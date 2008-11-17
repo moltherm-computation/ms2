@@ -1,0 +1,43 @@
+Units        =       SI
+LengthUnit   =        3.5
+EnergyUnit   =      100.0
+MassUnit     =       44.0
+Simulation   =      MC
+Acceptance   =       0.5
+Ensemble     =      GE
+NVTSteps     =    1000
+mueVTSteps   =    5000
+RunSteps     =   50000
+ResultFreq   =     100
+ErrorsFreq   =   10000
+VisualFreq   =       0
+CutoffMode   =      COM
+NEnsembles   =       1
+
+#Flüssigkeit
+Temperature  =      390.0
+Pressure0    =       1.957
+LiqDensity   =      16.2126
+VarDensity   =       0.0135
+LiqEnthalpy  =  -21043.6
+VarEnthalpy  =      12.5
+LiqBetaT     =       0.004445
+VarBetaT     =       0.000369
+LiqdHdP      =      -0.007050
+VardHdP      =       0.005725
+
+#Dampf
+Density      =       0.796
+NParticles   =     500
+NComponents  =       1
+
+PotModel     =     eox.pm
+MolarFract   =       1.0000
+LiqMolarFract=       1.0000
+ChemPot      =      -4.380
+VarChemPot   =       0.010
+PartMolVol   =       2.3889
+VarPartMolVol=       0.0020
+
+Cutoff       =        5.0
+Epsilon      =        1.0e10
