@@ -2,6 +2,7 @@
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
 !  (c) 2007 by Bernhard Eckl, ITT                              !
+!  (c) 2007 by Ekaterina Elts, TUM                             !
 !==============================================================!
 !  Module ms2_site                                             !
 !  Contains TSite* objects                                     !
@@ -29,7 +30,9 @@ module ms2_site
 
   type TSiteLJ126
 
-    real(RK)          :: r(3)
+    integer           :: SiteId
+    integer           :: UnitNumber
+    real(RK), pointer :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
     integer, pointer  :: NPartMax, NPart, NTest
@@ -70,7 +73,9 @@ module ms2_site
 
   type TSiteCharge
 
-    real(RK)          :: r(3)
+    integer           :: SiteId
+    integer           :: UnitNumber
+    real(RK),pointer  :: r(:)
     real(RK)          :: e
     real(RK)          :: mass
     real(RK)          :: shield
@@ -112,7 +117,9 @@ module ms2_site
 
   type TSiteDipole
 
-    real(RK)          :: r(3), or(3)
+    integer           :: SiteId
+    integer           :: UnitNumber
+    real(RK), pointer :: r(:), or(:)
     real(RK)          :: D
     real(RK)          :: mass
     real(RK)          :: shield
@@ -157,7 +164,9 @@ module ms2_site
 
   type TSiteQuadrupole
 
-    real(RK)          :: r(3), or(3)
+    integer           :: SiteId
+    integer           :: UnitNumber
+    real(RK), pointer :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
     real(RK)          :: shield
@@ -215,8 +224,16 @@ contains
 
     ! Declare arguments
     type(TSiteLJ126) :: this
+    integer :: stat
 
     ! Read site parameters
+    if( UseIntDegFreed ) then
+        call FileReadParameter( iounit_potmod, IdLJ126_SiteId )
+        read( IOBuffer, * ) this%SiteId
+    end if
+    nullify( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
     call FileReadParameter( iounit_potmod, IdLJ126_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdLJ126_r2 )
@@ -349,33 +366,16 @@ contains
     type(TSiteLJ126) :: this
 
     ! Deallocate arrays
-    if( associated( this%RX ) ) then
-      deallocate( this%RX )
-    end if
-    if( associated( this%RY ) ) then
-      deallocate( this%RY )
-    end if
-    if( associated( this%RZ ) ) then
-      deallocate( this%RZ )
-    end if
-    if( associated( this%FX ) ) then
-      deallocate( this%FX )
-    end if
-    if( associated( this%FY ) ) then
-      deallocate( this%FY )
-    end if
-    if( associated( this%FZ ) ) then
-      deallocate( this%FZ )
-    end if
-    if( associated( this%RXTest ) ) then
-      deallocate( this%RXTest )
-    end if
-    if( associated( this%RYTest ) ) then
-      deallocate( this%RYTest )
-    end if
-    if( associated( this%RZTest ) ) then
-      deallocate( this%RZTest )
-    end if
+    if( associated( this%r ) ) deallocate( this%r )
+    if( associated( this%RX ) ) deallocate( this%RX )
+    if( associated( this%RY ) ) deallocate( this%RY )
+    if( associated( this%RZ ) ) deallocate( this%RZ )
+    if( associated( this%FX ) ) deallocate( this%FX )
+    if( associated( this%FY ) ) deallocate( this%FY )
+    if( associated( this%FZ ) ) deallocate( this%FZ )
+    if( associated( this%RXTest ) ) deallocate( this%RXTest )
+    if( associated( this%RYTest ) ) deallocate( this%RYTest )
+    if( associated( this%RZTest ) ) deallocate( this%RZTest )
 
   end subroutine TSiteLJ126_Deallocate
 
@@ -398,6 +398,11 @@ contains
     type(TSiteLJ126) :: this
 
     ! Save site parameters
+
+    if( UseIntDegFreed ) then
+        write( IOBuffer, '(I3)' ) this%SiteId
+        call FileWriteParameter( iounit_normal, IdLJ126_SiteId )
+    end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdLJ126_r1 )
@@ -436,8 +441,16 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
-
+    integer           :: stat
     ! Read site parameters
+
+    if( UseIntDegFreed ) then
+    	call FileReadParameter( iounit_potmod, IdCharge_SiteId )
+    	read( IOBuffer, * ) this%SiteId
+    end if
+    nullify( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
     call FileReadParameter( iounit_potmod, IdCharge_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdCharge_r2 )
@@ -549,6 +562,7 @@ contains
       call AllocationError( stat, 'test particles', nt )
     end if
 
+
   end subroutine TSiteCharge_Allocate
 
 
@@ -570,33 +584,16 @@ contains
     type(TSiteCharge) :: this
 
     ! Deallocate arrays
-    if( associated( this%RX ) ) then
-      deallocate( this%RX )
-    end if
-    if( associated( this%RY ) ) then
-      deallocate( this%RY )
-    end if
-    if( associated( this%RZ ) ) then
-      deallocate( this%RZ )
-    end if
-    if( associated( this%FX ) ) then
-      deallocate( this%FX )
-    end if
-    if( associated( this%FY ) ) then
-      deallocate( this%FY )
-    end if
-    if( associated( this%FZ ) ) then
-      deallocate( this%FZ )
-    end if
-    if( associated( this%RXTest ) ) then
-      deallocate( this%RXTest )
-    end if
-    if( associated( this%RYTest ) ) then
-      deallocate( this%RYTest )
-    end if
-    if( associated( this%RZTest ) ) then
-      deallocate( this%RZTest )
-    end if
+    if( associated( this%r ) ) deallocate( this%r )
+    if( associated( this%RX ) ) deallocate( this%RX )
+    if( associated( this%RY ) ) deallocate( this%RY )
+    if( associated( this%RZ ) ) deallocate( this%RZ )
+    if( associated( this%FX ) ) deallocate( this%FX )
+    if( associated( this%FY ) ) deallocate( this%FY )
+    if( associated( this%FZ ) ) deallocate( this%FZ )
+    if( associated( this%RXTest ) ) deallocate( this%RXTest )
+    if( associated( this%RYTest ) ) deallocate( this%RYTest )
+    if( associated( this%RZTest ) ) deallocate( this%RZTest )
 
   end subroutine TSiteCharge_Deallocate
 
@@ -619,6 +616,11 @@ contains
     type(TSiteCharge) :: this
 
     ! Save site parameters
+
+    if( UseIntDegFreed ) then
+    	write( IOBuffer, '(I3)' ) this%SiteId
+    	call FileWriteParameter( iounit_normal, IdCharge_SiteId )
+    end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdCharge_r1 )
@@ -660,8 +662,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer :: stat
 
     ! Read site parameters
+    if( UseIntDegFreed ) then
+    	call FileReadParameter( iounit_potmod, IdDipole_SiteId )
+    	read( IOBuffer, * ) this%SiteId
+    end if
+    nullify( this%r )
+    nullify( this%or )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates particles', 3 )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates particles', 3 )
     call FileReadParameter( iounit_potmod, IdDipole_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdDipole_r2 )
@@ -830,60 +843,26 @@ contains
     type(TSiteDipole) :: this
 
     ! Deallocate arrays
-    if( associated( this%RX ) ) then
-      deallocate( this%RX )
-    end if
-    if( associated( this%RY ) ) then
-      deallocate( this%RY )
-    end if
-    if( associated( this%RZ ) ) then
-      deallocate( this%RZ )
-    end if
-    if( associated( this%OX ) ) then
-      deallocate( this%OX )
-    end if
-    if( associated( this%OY ) ) then
-      deallocate( this%OY )
-    end if
-    if( associated( this%OZ ) ) then
-      deallocate( this%OZ )
-    end if
-    if( associated( this%FX ) ) then
-      deallocate( this%FX )
-    end if
-    if( associated( this%FY ) ) then
-      deallocate( this%FY )
-    end if
-    if( associated( this%FZ ) ) then
-      deallocate( this%FZ )
-    end if
-    if( associated( this%TX ) ) then
-      deallocate( this%TX )
-    end if
-    if( associated( this%TY ) ) then
-      deallocate( this%TY )
-    end if
-    if( associated( this%TZ ) ) then
-      deallocate( this%TZ )
-    end if
-    if( associated( this%RXTest ) ) then
-      deallocate( this%RXTest )
-    end if
-    if( associated( this%RYTest ) ) then
-      deallocate( this%RYTest )
-    end if
-    if( associated( this%RZTest ) ) then
-      deallocate( this%RZTest )
-    end if
-    if( associated( this%OXTest ) ) then
-      deallocate( this%OXTest )
-    end if
-    if( associated( this%OYTest ) ) then
-      deallocate( this%OYTest )
-    end if
-    if( associated( this%OZTest ) ) then
-      deallocate( this%OZTest )
-    end if
+    if( associated( this%r ) ) deallocate( this%r )
+    if( associated( this%or ) ) deallocate( this%or )
+    if( associated( this%RX ) ) deallocate( this%RX )
+    if( associated( this%RY ) ) deallocate( this%RY )
+    if( associated( this%RZ ) ) deallocate( this%RZ )
+    if( associated( this%OX ) ) deallocate( this%OX )
+    if( associated( this%OY ) ) deallocate( this%OY )
+    if( associated( this%OZ ) ) deallocate( this%OZ )
+    if( associated( this%FX ) ) deallocate( this%FX )
+    if( associated( this%FY ) ) deallocate( this%FY )
+    if( associated( this%FZ ) ) deallocate( this%FZ )
+    if( associated( this%TX ) ) deallocate( this%TX )
+    if( associated( this%TY ) ) deallocate( this%TY )
+    if( associated( this%TZ ) ) deallocate( this%TZ )
+    if( associated( this%RXTest ) ) deallocate( this%RXTest )
+    if( associated( this%RYTest ) ) deallocate( this%RYTest )
+    if( associated( this%RZTest ) ) deallocate( this%RZTest )
+    if( associated( this%OXTest ) ) deallocate( this%OXTest )
+    if( associated( this%OYTest ) ) deallocate( this%OYTest )
+    if( associated( this%OZTest ) ) deallocate( this%OZTest )
 
   end subroutine TSiteDipole_Deallocate
 
@@ -906,6 +885,10 @@ contains
     type(TSiteDipole) :: this
 
     ! Save site parameters
+    if( UseIntDegFreed ) then
+    	write( IOBuffer, '(I3)' ) this%SiteId
+    	call FileWriteParameter( iounit_normal, IdDipole_SiteId )
+    end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdDipole_r1 )
@@ -956,8 +939,20 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
+    if( UseIntDegFreed ) then
+    	call FileReadParameter( iounit_potmod, IdQuadrupole_SiteId )
+    	read( IOBuffer, * ) this%SiteId
+    end if
+
+    nullify( this%r )
+    nullify( this%or )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates particles', 3 )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates particles', 3 )
     call FileReadParameter( iounit_potmod, IdQuadrupole_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdQuadrupole_r2 )
@@ -1126,60 +1121,26 @@ contains
     type(TSiteQuadrupole) :: this
 
     ! Deallocate arrays
-    if( associated( this%RX ) ) then
-      deallocate( this%RX )
-    end if
-    if( associated( this%RY ) ) then
-      deallocate( this%RY )
-    end if
-    if( associated( this%RZ ) ) then
-      deallocate( this%RZ )
-    end if
-    if( associated( this%OX ) ) then
-      deallocate( this%OX )
-    end if
-    if( associated( this%OY ) ) then
-      deallocate( this%OY )
-    end if
-    if( associated( this%OZ ) ) then
-      deallocate( this%OZ )
-    end if
-    if( associated( this%FX ) ) then
-      deallocate( this%FX )
-    end if
-    if( associated( this%FY ) ) then
-      deallocate( this%FY )
-    end if
-    if( associated( this%FZ ) ) then
-      deallocate( this%FZ )
-    end if
-    if( associated( this%TX ) ) then
-      deallocate( this%TX )
-    end if
-    if( associated( this%TY ) ) then
-      deallocate( this%TY )
-    end if
-    if( associated( this%TZ ) ) then
-      deallocate( this%TZ )
-    end if
-    if( associated( this%RXTest ) ) then
-      deallocate( this%RXTest )
-    end if
-    if( associated( this%RYTest ) ) then
-      deallocate( this%RYTest )
-    end if
-    if( associated( this%RZTest ) ) then
-      deallocate( this%RZTest )
-    end if
-    if( associated( this%OXTest ) ) then
-      deallocate( this%OXTest )
-    end if
-    if( associated( this%OYTest ) ) then
-      deallocate( this%OYTest )
-    end if
-    if( associated( this%OZTest ) ) then
-      deallocate( this%OZTest )
-    end if
+    if( associated( this%r ) ) deallocate( this%r )
+    if( associated( this%or ) ) deallocate( this%or )
+    if( associated( this%RX ) ) deallocate( this%RX )
+    if( associated( this%RY ) ) deallocate( this%RY )
+    if( associated( this%RZ ) ) deallocate( this%RZ )
+    if( associated( this%OX ) ) deallocate( this%OX )
+    if( associated( this%OY ) ) deallocate( this%OY )
+    if( associated( this%OZ ) ) deallocate( this%OZ )
+    if( associated( this%FX ) ) deallocate( this%FX )
+    if( associated( this%FY ) ) deallocate( this%FY )
+    if( associated( this%FZ ) ) deallocate( this%FZ )
+    if( associated( this%TX ) ) deallocate( this%TX )
+    if( associated( this%TY ) ) deallocate( this%TY )
+    if( associated( this%TZ ) ) deallocate( this%TZ )
+    if( associated( this%RXTest ) ) deallocate( this%RXTest )
+    if( associated( this%RYTest ) ) deallocate( this%RYTest )
+    if( associated( this%RZTest ) ) deallocate( this%RZTest )
+    if( associated( this%OXTest ) ) deallocate( this%OXTest )
+    if( associated( this%OYTest ) ) deallocate( this%OYTest )
+    if( associated( this%OZTest ) ) deallocate( this%OZTest )
 
   end subroutine TSiteQuadrupole_Deallocate
 
@@ -1202,6 +1163,10 @@ contains
     type(TSiteQuadrupole) :: this
 
     ! Save site parameters
+    if( UseIntDegFreed ) then
+    	write( IOBuffer, '(I3)' ) this%SiteId
+    	call FileWriteParameter( iounit_normal, IdQuadrupole_SiteId )
+    end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdQuadrupole_r1 )

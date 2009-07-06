@@ -2,6 +2,7 @@
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
 !  (c) 2007 by Bernhard Eckl, ITT                              !
+!  (c) 2008 by Ekaterina Elts, TUM                                  !
 !==============================================================!
 !  Module ms2_global                                           !
 !  Contains declarations of global constants and functions     !
@@ -168,6 +169,10 @@ module ms2_global
   character(*), parameter :: IdEnsembleType                = 'Ensemble'
   character(*), parameter :: IdPistonMass                  = 'PistonMass'
   character(*), parameter :: IdSimulationType              = 'Simulation'
+  character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
+  character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
+  character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 electrostatic & LJ interaction incl/excl
+  character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs must be included/excluded from non-bonded inter.
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
@@ -224,28 +229,37 @@ module ms2_global
 
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
+  character(*), parameter :: IdIdf_ntypes                  = 'NIdfTypes' !number of types for internel degrees of freedom
   character(*), parameter :: IdSite_stype                  = 'SiteType'
+  character(*), parameter :: IdIdf_stype                   = 'IdfType'   ! type of internal degree of freedom: bond, angle, dihedral angle
   character(*), parameter :: IdSite_NLJ126                 = 'NSites'
   character(*), parameter :: IdSite_NCharge                = 'NSites'
   character(*), parameter :: IdSite_NDipole                = 'NSites'
   character(*), parameter :: IdSite_NQuadrupole            = 'NSites'
+  character(*), parameter :: IdIdf_NBond                   = 'NIdfs'
+  character(*), parameter :: IdIdf_NAngle                  = 'NIdfs'
+  character(*), parameter :: IdIdf_NDihedral               = 'NIdfs'
+  character(*), parameter :: IdUnit_NConstraint            = 'NConstraintUnits'
   character(*), parameter :: IdSite_NDFRot                 = 'NRotAxes'
   character(*), parameter :: IdSite_Mass                   = 'TotalMass'
   character(*), parameter :: IdSite_MOI1                   = 'InertMomX'
   character(*), parameter :: IdSite_MOI2                   = 'InertMomY'
   character(*), parameter :: IdSite_MOI3                   = 'InertMomZ'
+  character(*), parameter :: IdLJ126_SiteId                = 'SiteID'
   character(*), parameter :: IdLJ126_r1                    = 'x'
   character(*), parameter :: IdLJ126_r2                    = 'y'
   character(*), parameter :: IdLJ126_r3                    = 'z'
   character(*), parameter :: IdLJ126_sig                   = 'sigma'
   character(*), parameter :: IdLJ126_eps                   = 'epsilon'
   character(*), parameter :: IdLJ126_mass                  = 'mass'
+  character(*), parameter :: IdCharge_SiteId               = 'SiteID'
   character(*), parameter :: IdCharge_r1                   = 'x'
   character(*), parameter :: IdCharge_r2                   = 'y'
   character(*), parameter :: IdCharge_r3                   = 'z'
   character(*), parameter :: IdCharge_e                    = 'charge'
   character(*), parameter :: IdCharge_mass                 = 'mass'
   character(*), parameter :: IdCharge_shield               = 'shielding'
+  character(*), parameter :: IdDipole_SiteId               = 'SiteID'
   character(*), parameter :: IdDipole_r1                   = 'x'
   character(*), parameter :: IdDipole_r2                   = 'y'
   character(*), parameter :: IdDipole_r3                   = 'z'
@@ -254,6 +268,7 @@ module ms2_global
   character(*), parameter :: IdDipole_D                    = 'dipole'
   character(*), parameter :: IdDipole_mass                 = 'mass'
   character(*), parameter :: IdDipole_shield               = 'shielding'
+  character(*), parameter :: IdQuadrupole_SiteId           = 'SiteID'
   character(*), parameter :: IdQuadrupole_r1               = 'x'
   character(*), parameter :: IdQuadrupole_r2               = 'y'
   character(*), parameter :: IdQuadrupole_r3               = 'z'
@@ -263,6 +278,26 @@ module ms2_global
   character(*), parameter :: IdQuadrupole_mass             = 'mass'
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+  character(*), parameter :: IdConstraint_NSites           = 'Constraint'
+  character(*), parameter :: IdConstraint_SiteIds          = 'SiteIds'
+  character(*), parameter :: IdConstraint_NDFRot           = 'NRotAxes'
+  character(*), parameter :: IdConstraint_Mass             = 'TotalMass'
+  character(*), parameter :: IdConstraint_MOI1             = 'InertMomX'
+  character(*), parameter :: IdConstraint_MOI2             = 'InertMomY'
+  character(*), parameter :: IdConstraint_MOI3             = 'InertMomZ'
+  character(*), parameter :: IdBond_Sites                  = 'Bond'
+  character(*), parameter :: IdAngle_Sites                 = 'Angle'
+  character(*), parameter :: IdDihedral_Sites              = 'Dihedral'
+  character(*), parameter :: IdBond_ForConst               = 'ForConst'
+  character(*), parameter :: IdBond_R0                     = 'R0'
+  character(*), parameter :: IdAngle_ForConst              = 'ForConst'
+  character(*), parameter :: IdAngle_Angle0                = 'Angle0'
+  character(*), parameter :: IdDihedral_PotBarrier         = 'PotBarrier'
+  character(*), parameter :: IdDihedral_n                  = 'n'
+  character(*), parameter :: IdDihedral_gamma              = 'gamma'
+  character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'  ! Scale 1-4 LJ interactions by this factor
+  character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14' ! Scale 1-4 electrostatic interactions by this factor
+
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -296,6 +331,26 @@ module ms2_global
 
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
+
+  ! Use integral degrees of freedom
+  logical :: UseIntDegFreed
+
+  ! Shake tolerance for constraint bonds in the case of IDF
+  real(RK) :: Shake
+  integer, parameter :: Maxit = 100 ! Maximum allowed iterations for QShake
+
+  ! Include intramolecular 1-5 nonbonded interactions
+  logical :: IntraLJEl
+
+  ! Include intramolecular 1-4 nonbonded interactions
+  logical :: LJEl14
+
+  ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
+!  real(RK) :: ScaleEl14
+
+  ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
+!  real(RK) :: ScaleLJ14
+
 
   ! Basic reduced units
   real(RK) :: UnitLength
@@ -340,14 +395,6 @@ module ms2_global
   integer, parameter :: SecondVirialCoeff = 3
   integer            :: SimulationType
 
-  ! Type of integrator
-  character(80)      :: IntegratorTypeString
-  integer, parameter :: IntegratorTypeGear     = 1
-  integer, parameter :: IntegratorTypeLeapFrog = 2
-  integer, parameter :: IntegratorTypeVerlet   = 3
-  integer, parameter :: IntegratorTypeVV       = 4
-  integer            :: IntegratorType
-
   ! Type of ensembles
   character(80)      :: EnsembleTypeString
   integer, parameter :: EnsembleTypeNVE = 1
@@ -358,6 +405,14 @@ module ms2_global
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
+
+  ! Type of integrator
+  character(80)      :: IntegratorTypeString
+  integer, parameter :: IntegratorTypeGear     = 1
+  integer, parameter :: IntegratorTypeLeapFrog = 2
+  integer, parameter :: IntegratorTypeVerlet   = 3
+  integer, parameter :: IntegratorTypeVV       = 4
+  integer            :: IntegratorType
 
   ! Type of cutoff
   character(80)      :: CutoffModeString
@@ -541,6 +596,10 @@ module ms2_global
 
   interface FileReset
     module procedure Global_FileReset
+  end interface
+
+  interface FileRewind
+   module procedure Global_FileRewind
   end interface
 
   interface FileRewrite
@@ -1213,6 +1272,38 @@ contains
 
   end subroutine Global_FileReset
 
+!==============================================================!
+!  Subroutine Global_FileRewind                                !
+!==============================================================!
+
+  subroutine Global_FileRewind( iounit, filename )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
+&     trim( filename )
+    call LogWrite
+    rewind( iounit, iostat = stat )
+    if( stat /= 0 ) &
+&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileRewind
 
 
 !==============================================================!
@@ -1475,7 +1566,7 @@ contains
     if( .not. RootProc ) return
 
     ! Write parameter to file
-    write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
+    write( iounit, '(A, T17, "=", A)' ) trim( parameter ), trim( IOBuffer )
 
   end subroutine Global_FileWriteParameter
 

@@ -2,6 +2,7 @@
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
 !  (c) 2007 by Bernhard Eckl, ITT                              !
+!  (c) 2007 by Ekaterina Elts                                  !
 !==============================================================!
 !  Module ms2_simulation                                       !
 !  Contains TSimulation object                                 !
@@ -296,7 +297,7 @@ contains
       call FileReadParameter( iounit_params , IdRSteps )
       read( IOBuffer, * ) NSteps
       write( IOBuffer, '("Number of radial steps: ", I7)' ) NSteps
-      call LogWrite
+      call LogWrite   
 
       ! Read minimum radius
       call FileReadParameter( iounit_params , IdMinRadius )
@@ -304,9 +305,11 @@ contains
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
-      write( IOBuffer, '("Minimum radius: ", F8.3, " A")' ) &
+        write( IOBuffer, '("Minimum radius: ", F8.3, " A")' ) &
 &       MinRadius * UnitLength / Angstroem
       call LogWrite
+      
+
 
       ! Read maximum radius
       call FileReadParameter( iounit_params , IdMaxRadius )
@@ -317,7 +320,8 @@ contains
       write( IOBuffer, '("Maximum radius: ", F8.3, " A")' ) &
 &       MaxRadius * UnitLength / Angstroem
       call LogWrite
-
+      
+        
       ! Set output frequencies
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
@@ -331,6 +335,94 @@ contains
       ! Read MD simulation parameters
       if( SimulationType .eq. MolecularDynamics ) then
 
+       ! Read type of MD simulation with/without internal degree of freedom  
+       call FileReadParameter( iounit_params , IdUseIntDegFreed )
+       read( IOBuffer, * ) str
+       select case( str )
+       case( 'ON', 'On', 'on', 'YES', 'yes' )
+       UseIntDegFreed = .true.
+       str = 'Flexible molecules'
+       case( 'OFF', 'off', 'no', 'No' )
+       UseIntDegFreed = .false.
+       str = 'Rigid molecules'
+       case default
+         call Error( trim( str )//'To switch on internal degree of freedom use &
+&        on or yes' )
+       end select
+       write( IOBuffer, '("Using internal degree of freedom: ", A)' ) trim( str )
+       call LogWrite
+
+       ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
+       if ( UseIntDegFreed ) then
+         call FileReadParameter( iounit_params , IdShake )
+         read( IOBuffer, * ) Shake
+         if ( Shake > 0 ) then 
+           str = 'yes'
+         else 
+           str = 'no, all bonds can vibrate' 
+         end if
+         write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
+         call LogWrite
+         if (str == 'yes') then 
+           write( IOBuffer, '("Shake tolerance: ", F9.6)' ) &
+&          Shake
+           call LogWrite
+        end if   
+    end if
+
+        ! Read parameters for intramolecular nonbonded interactions
+    if ( UseIntDegFreed ) then
+      ! 1-5 intramolecular nonbonded interactions
+      call FileReadParameter( iounit_params , IdIntraLJEl )
+      read( IOBuffer, * ) str
+      select case( str )
+      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
+        IntraLJEl = .true.
+        str = 'Include all intramolecular 1-5 nonbonded interactions'
+      case( 'OFF', 'off', 'no', 'No' )
+        IntraLJEl = .false.
+        str = 'No intramolecular nonbonded interactions'
+      case default
+        call Error( trim( str )//'To switch on intramolecular 1-5 nonbonded interactions use &
+&        on or yes' )
+      end select
+      write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
+      call LogWrite
+
+            ! 1-4 intramolecular nonbonded interactions
+      if (IntraLJEl) then 
+        call FileReadParameter( iounit_params , IdLJEl14 )
+        read( IOBuffer, * ) str
+        select case( str )
+        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
+            LJEl14 = .true.
+          str = 'Include all intramolecular 1-4 nonbonded interactions'
+        case( 'OFF', 'off', 'no', 'No' )
+            LJEl14 = .false.
+          str = 'No intramolecular 1-4 nonbonded interactions'
+        case default
+          call Error( trim( str )//'To switch on intramolecular 1-4 nonbonded interactions use &
+&          on or yes' )
+        end select
+        write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
+        call LogWrite
+
+      
+        ! Read scaling factors for 1-4 nonbonded interactions
+!        if (LJEl14) then  
+!          call FileReadParameter( iounit_params , IdScaleEl14 )
+!          read( IOBuffer, * ) ScaleEl14
+!          write( IOBuffer, '("Scaling factor for electrostatic terms in 1,4 nonbonded interactions: ", F9.6)' ) &
+!&            ScaleEl14
+!          call LogWrite
+!          call FileReadParameter( iounit_params , IdScaleLJ14 )
+!          read( IOBuffer, * ) ScaleLJ14
+!          write( IOBuffer, '("Scaling factor for Lennard-Jones terms in 1,4 nonbonded interactions: ", F9.6)' ) &
+!&            ScaleLJ14
+!          call LogWrite   
+!        end if   
+      end if
+    end if  
         ! Type of integrator
         call FileReadParameter( iounit_params , IdIntegratorType )
         read( IOBuffer, * ) str
