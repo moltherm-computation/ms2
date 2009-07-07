@@ -8,7 +8,8 @@ ms2chart.jar: ms2package manifest.mf
 
 ms2package: Ms2chart.java ShowFileFrame.java ShowTableFrame.java
 	rm -fr ms2package
-	javac -d . *.java
+#	javac -d . *.java
+	javac -classpath .:lib/swing-layout-1.0.3.jar:lib/libs.zip -d . *.java
 
 ms2chart-javadocs.tar.bz2: ms2chart-javadocs
 	tar -cvjf ms2chart-javadocs.tar.bz2 ms2chart-javadocs
