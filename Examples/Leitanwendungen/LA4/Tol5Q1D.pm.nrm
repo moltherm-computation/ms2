@@ -1,0 +1,119 @@
+NSiteTypes = 3
+
+SiteType   = LJ126
+NSites     = 7
+
+x          =   -0.1881763920E-01           # reduced value:    -0.5376468344E-02
+y          =     0.000000000               # reduced value:      0.000000000
+z          =    -2.752001369               # reduced value:    -0.7862861053
+sigma      =     3.586388571               # reduced value:      1.024682449
+epsilon    =     123.4901700               # reduced value:      1.234901700
+mass       =     15.00000000               # reduced value:     0.3750000000
+
+x          =    0.1628587468E-01           # reduced value:     0.4653107051E-02
+y          =     0.000000000               # reduced value:      0.000000000
+z          =   -0.9597174959               # reduced value:    -0.2742049988
+sigma      =     2.793942857               # reduced value:     0.7982693878
+epsilon    =     10.93579200               # reduced value:     0.1093579200
+mass       =     12.00000000               # reduced value:     0.3000000000
+
+x          =    0.1195721801E-01           # reduced value:     0.3416348002E-02
+y          =     1.571970686               # reduced value:     0.4491344816
+z          =   -0.4615187271               # reduced value:    -0.1318624935
+sigma      =     3.275873143               # reduced value:     0.9359637551
+epsilon    =     100.5188400               # reduced value:      1.005188400
+mass       =     13.00000000               # reduced value:     0.3250000000
+
+x          =    0.1195721801E-01           # reduced value:     0.3416348002E-02
+y          =    -1.571970686               # reduced value:    -0.4491344816
+z          =   -0.4615187271               # reduced value:    -0.1318624935
+sigma      =     3.275873143               # reduced value:     0.9359637551
+epsilon    =     100.5188400               # reduced value:      1.005188400
+mass       =     13.00000000               # reduced value:     0.3250000000
+
+x          =   -0.2662885153E-02           # reduced value:    -0.7608243295E-03
+y          =     1.575212057               # reduced value:     0.4500605878
+z          =     1.355690109               # reduced value:     0.3873400312
+sigma      =     3.275873143               # reduced value:     0.9359637551
+epsilon    =     100.5188400               # reduced value:      1.005188400
+mass       =     13.00000000               # reduced value:     0.3250000000
+
+x          =   -0.2662885153E-02           # reduced value:    -0.7608243295E-03
+y          =    -1.575212057               # reduced value:    -0.4500605878
+z          =     1.355690109               # reduced value:     0.3873400312
+sigma      =     3.275873143               # reduced value:     0.9359637551
+epsilon    =     100.5188400               # reduced value:      1.005188400
+mass       =     13.00000000               # reduced value:     0.3250000000
+
+x          =   -0.1190912018E-01           # reduced value:    -0.3402605765E-02
+y          =     0.000000000               # reduced value:      0.000000000
+z          =     2.272936504               # reduced value:     0.6494104296
+sigma      =     3.275873143               # reduced value:     0.9359637551
+epsilon    =     100.5188400               # reduced value:      1.005188400
+mass       =     13.00000000               # reduced value:     0.3250000000
+
+SiteType   = Dipole
+NSites     = 1
+
+x          =    0.1628587468E-01           # reduced value:     0.4653107051E-02
+y          =     0.000000000               # reduced value:      0.000000000
+z          =   -0.9597174959               # reduced value:    -0.2742049988
+theta      =     179.8932543
+phi        =    -179.9994412
+dipole     =    0.4401472926               # reduced value:     0.5720749238
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+SiteType   = Quadrupole
+NSites     = 5
+
+x          =    0.1195721801E-01           # reduced value:     0.3416348002E-02
+y          =     1.571970686               # reduced value:     0.4491344816
+z          =   -0.4615187271               # reduced value:    -0.1318624935
+theta      =     90.10674153
+phi        =   -0.1037154089E-05
+quadrupole =    -1.687799338               # reduced value:    -0.6267691969
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+x          =    0.1195721801E-01           # reduced value:     0.3416348002E-02
+y          =    -1.571970686               # reduced value:    -0.4491344816
+z          =   -0.4615187271               # reduced value:    -0.1318624935
+theta      =     90.10674153
+phi        =   -0.1037154089E-05
+quadrupole =    -1.687799338               # reduced value:    -0.6267691969
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+x          =   -0.2662885153E-02           # reduced value:    -0.7608243295E-03
+y          =     1.575212057               # reduced value:     0.4500605878
+z          =     1.355690109               # reduced value:     0.3873400312
+theta      =     90.10674153
+phi        =   -0.1037154089E-05
+quadrupole =    -1.687799338               # reduced value:    -0.6267691969
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+x          =   -0.2662885153E-02           # reduced value:    -0.7608243295E-03
+y          =    -1.575212057               # reduced value:    -0.4500605878
+z          =     1.355690109               # reduced value:     0.3873400312
+theta      =     90.10674153
+phi        =   -0.1037154089E-05
+quadrupole =    -1.687799338               # reduced value:    -0.6267691969
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+x          =   -0.1190912018E-01           # reduced value:    -0.3402605765E-02
+y          =     0.000000000               # reduced value:      0.000000000
+z          =     2.272936504               # reduced value:     0.6494104296
+theta      =     90.10674153
+phi        =   -0.1037154089E-05
+quadrupole =    -1.687799338               # reduced value:    -0.6267691969
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.000000000               # reduced value:     0.2857142857
+
+NRotAxes   = 3
+TotalMass  =     92.00000000               # reduced value:      2.300000000
+InertMomX  =     373.9017714               # reduced value:     0.7630648396
+InertMomY  =     245.1540048               # reduced value:     0.5003142955
+InertMomZ  =     128.7762462               # reduced value:     0.2628086657

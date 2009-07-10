@@ -1,0 +1,32 @@
+Units        =       SI
+LengthUnit   =        3.5
+EnergyUnit   =      100.0
+MassUnit     =       44.0
+Simulation   =       MD
+Integrator   =  Gear
+TimeStep     =  0.0001
+Ensemble     =     NPT
+MCORSteps    =        0
+NVTSteps     =     5000
+NPTSteps     =    20000
+RunSteps     =   200000
+ResultFreq   =      100
+ErrorsFreq   =    10000
+VisualFreq   =        0
+CutoffMode   =      COM
+NEnsembles   =        1
+
+Temperature  =      390.0
+Pressure     =        1.957
+Density      =       16.065
+PistonMass   =        0.0002
+NParticles   =      1372
+NComponents  =        1
+
+PotModel     =      eox.pm
+MolarFract   =        1.0
+ChemPotMethod =   Widom
+NTest        =       500
+
+Cutoff       =        5.0
+Epsilon      =        1.0e10

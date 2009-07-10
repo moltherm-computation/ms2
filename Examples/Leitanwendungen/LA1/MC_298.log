@@ -1,0 +1,180 @@
+Program ms2mpi_GradIns compiled for Linux/Ifort
+version v12 Feb 12 2009
+started by unknown user on xc2n30 on 02.03.2009 at 09:48:59
+
+   8 MPI processes initialized
+
+Signal handler set successfully
+
+Random number generator initialized
+
+Parameter file name: MC_298.par
+
+Opening file <MC_298.par> for reading
+
+Reading parameters of simulation
+Name tag for output files: MC_298
+System of units: SI
+Unit of length:  3.500 A
+Unit of energy:  100.000 K
+Unit of mass:   40.000 a.u.
+Simulation type: Monte-Carlo
+Acceptance rate:  50.00%
+Ensemble type: NPT
+Number of NVT equilibration steps:    5000
+Number of NPT equilibration steps:   20000
+Number of production steps:  100000
+Result files will be updated each   2000 time steps
+Final result files will be updated each   8000 time steps
+Visualization files will not be created
+Cutoff mode: Center of Mass
+Long Range Correction: Reaction Field
+Number of ensembles:  1
+
+Reading parameters of ensemble  1
+Temperature:   298.150 K
+Pressure:     0.100 MPa
+Density:    20.120 mol/l
+Reduced temperature:  2.981500
+Reduced pressure:  0.003105
+Reduced density:  0.519497
+Number of components:  2
+Molar fraction of component MeOH.pm:  0.500000
+Chemical potential of MeOH.pm will be calculated by: none method
+Opening file <MeOH.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MeOH.pm> closed
+Opening file <MeOH.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MeOH.pm.nrm> closed
+Normalized potential model for MeOH.pm saved to file <MeOH.pm.nrm>
+Molar fraction of component ethanol.pm:  0.500000
+Chemical potential of ethanol.pm will be calculated by: none method
+Opening file <ethanol.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/ethanol.pm> closed
+Opening file <ethanol.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/ethanol.pm.nrm> closed
+Normalized potential model for ethanol.pm saved to file <ethanol.pm.nrm>
+Number of particles:       1372
+Molar fraction of MeOH.pm: 0.500;  number of particles:        686
+Molar fraction of ethanol.pm: 0.500;  number of particles:        686
+Memory for MeOH.pm allocated successfully
+Memory for ethanol.pm allocated successfully
+MeOH.pm-ethanol.pm Lennard-Jones interaction:  eta = 1.000, xi = 1.000
+Reduced center of mass cutoff radius:  6.700
+Characteristic dielectric constant:  0.100000000E+11
+Cutoff correction to potential energy from LJ: -0.15948352
+Cutoff correction to pressure from LJ        : -0.32034549
+Cutoff correction to chem. pot. of MeOH.pm from LJ: -0.26450231
+Cutoff correction to chem. pot. of ethanol.pm from LJ: -0.37343176
+Cutoff correction to potential energy from reaction field: -0.01502550
+Cutoff correction to chem. pot. of MeOH.pm from reaction field: -0.02579844
+Cutoff correction to chem. pot. of ethanol.pm from reaction field: -0.03430358
+
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298.par> closed
+
+Opening file <MC_298_1.run> for writing
+Opening file <MC_298_1.rav> for writing
+
+Starting NVT equilibration on 02.03.2009 at 09:49:00
+   1000 steps completed on 02.03.2009 at 10:00:41
+   2000 steps completed on 02.03.2009 at 10:12:17
+   3000 steps completed on 02.03.2009 at 10:24:46
+   4000 steps completed on 02.03.2009 at 10:37:45
+   5000 steps completed on 02.03.2009 at 10:50:44
+NVT equilibration completed on 02.03.2009 at 10:50:44
+
+Starting NPT equilibration on 02.03.2009 at 10:50:44
+   1000 steps completed on 02.03.2009 at 11:10:06
+   2000 steps completed on 02.03.2009 at 11:29:31
+   3000 steps completed on 02.03.2009 at 11:48:57
+   4000 steps completed on 02.03.2009 at 12:08:24
+   5000 steps completed on 02.03.2009 at 12:27:49
+   6000 steps completed on 02.03.2009 at 12:47:13
+   7000 steps completed on 02.03.2009 at 13:06:41
+   8000 steps completed on 02.03.2009 at 13:26:14
+   9000 steps completed on 02.03.2009 at 13:45:41
+  10000 steps completed on 02.03.2009 at 14:05:07
+  11000 steps completed on 02.03.2009 at 14:24:31
+  12000 steps completed on 02.03.2009 at 14:43:55
+  13000 steps completed on 02.03.2009 at 15:03:24
+  14000 steps completed on 02.03.2009 at 15:22:54
+  15000 steps completed on 02.03.2009 at 15:42:24
+  16000 steps completed on 02.03.2009 at 16:01:52
+  17000 steps completed on 02.03.2009 at 16:21:20
+  18000 steps completed on 02.03.2009 at 16:40:43
+  19000 steps completed on 02.03.2009 at 17:00:13
+  20000 steps completed on 02.03.2009 at 17:19:34
+NPT equilibration completed on 02.03.2009 at 17:19:34
+
+Starting simulation on 02.03.2009 at 17:19:34
+   1000 steps completed on 02.03.2009 at 17:39:00
+   2000 steps completed on 02.03.2009 at 17:58:25
+   3000 steps completed on 02.03.2009 at 18:17:48
+   4000 steps completed on 02.03.2009 at 18:37:13
+   5000 steps completed on 02.03.2009 at 18:56:37
+   6000 steps completed on 02.03.2009 at 19:16:04
+   7000 steps completed on 02.03.2009 at 19:35:27
+   8000 steps completed on 02.03.2009 at 19:54:54
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+   9000 steps completed on 02.03.2009 at 20:14:17
+  10000 steps completed on 02.03.2009 at 20:33:42
+  11000 steps completed on 02.03.2009 at 20:53:09
+  12000 steps completed on 02.03.2009 at 21:12:39
+  13000 steps completed on 02.03.2009 at 21:32:06
+  14000 steps completed on 02.03.2009 at 21:51:27
+  15000 steps completed on 02.03.2009 at 22:10:55
+  16000 steps completed on 02.03.2009 at 22:30:19
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+  17000 steps completed on 02.03.2009 at 22:49:44
+  18000 steps completed on 02.03.2009 at 23:09:10
+  19000 steps completed on 02.03.2009 at 23:28:34
+  20000 steps completed on 02.03.2009 at 23:47:59
+  21000 steps completed on 03.03.2009 at 00:07:27
+  22000 steps completed on 03.03.2009 at 00:26:52
+  23000 steps completed on 03.03.2009 at 00:46:14
+  24000 steps completed on 03.03.2009 at 01:05:34
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+  25000 steps completed on 03.03.2009 at 01:24:58
+  26000 steps completed on 03.03.2009 at 01:44:20
+  27000 steps completed on 03.03.2009 at 02:03:40
+  28000 steps completed on 03.03.2009 at 02:23:01
+  29000 steps completed on 03.03.2009 at 02:42:26
+  30000 steps completed on 03.03.2009 at 03:01:54
+  31000 steps completed on 03.03.2009 at 03:21:26
+  32000 steps completed on 03.03.2009 at 03:40:50
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+  33000 steps completed on 03.03.2009 at 04:00:14
+  34000 steps completed on 03.03.2009 at 04:19:41
+  35000 steps completed on 03.03.2009 at 04:39:04
+  36000 steps completed on 03.03.2009 at 04:58:24
+  37000 steps completed on 03.03.2009 at 05:17:47
+  38000 steps completed on 03.03.2009 at 05:37:09
+  39000 steps completed on 03.03.2009 at 05:56:27
+  40000 steps completed on 03.03.2009 at 06:15:48
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+  41000 steps completed on 03.03.2009 at 06:35:07
+  42000 steps completed on 03.03.2009 at 06:54:30
+  43000 steps completed on 03.03.2009 at 07:13:51
+  44000 steps completed on 03.03.2009 at 07:33:18
+  45000 steps completed on 03.03.2009 at 07:52:37
+  46000 steps completed on 03.03.2009 at 08:12:06
+  47000 steps completed on 03.03.2009 at 08:31:28
+  48000 steps completed on 03.03.2009 at 08:50:52
+Saving simulation results
+Opening file <MC_298_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA1/MC_298_1.res> closed
+  49000 steps completed on 03.03.2009 at 09:10:12
+  50000 steps completed on 03.03.2009 at 09:29:35
+  51000 steps completed on 03.03.2009 at 09:48:54
+  52000 steps completed on 03.03.2009 at 10:08:10
+  53000 steps completed on 03.03.2009 at 10:27:25
+  54000 steps completed on 03.03.2009 at 10:46:46

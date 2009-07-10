@@ -1,0 +1,611 @@
+Program hms2mpi compiled for Linux/Ifort
+version v12 Feb 13 2008
+started by unknown user on xc2n237 on 03.03.2009 at 09:13:58
+
+   8 MPI processes initialized
+
+Signal handler set successfully
+
+Random number generator initialized
+
+Parameter file name: Tol_MD_250.par
+
+Opening file <Tol_MD_250.par> for reading
+
+Reading parameters of simulation
+Name tag for output files: Tol_MD_250
+System of units: SI
+Unit of length:  3.500 A
+Unit of energy:  100.000 K
+Unit of mass:   40.000 a.u.
+Simulation type: Molecular Dynamics
+Integrator type: Gear predictor-corrector
+Time step:  2.184853 fs
+Reduced time step: 0.000900
+Ensemble type: NVT
+Number of MC overlap reduction steps:     100
+Number of NVT equilibration steps:   50000
+Number of production steps:  300000
+Result files will be updated each    500 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+Cutoff mode: Center of Mass
+Number of ensembles:  1
+
+Reading parameters of ensemble  1
+Temperature:   250.000 K
+Density:     9.900 mol/l
+Reduced temperature:  2.500000
+Reduced density:  0.255617
+Number of components:  1
+Molar fraction of component Tol5Q1D.pm:  1.000000
+Chemical potential of Tol5Q1D.pm will be calculated by: none method
+Opening file <Tol5Q1D.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol5Q1D.pm> closed
+Opening file <Tol5Q1D.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol5Q1D.pm.nrm> closed
+Normalized potential model for Tol5Q1D.pm saved to file <Tol5Q1D.pm.nrm>
+Number of particles:       1372
+Molar fraction of Tol5Q1D.pm: 1.000;  number of particles:       1372
+Memory for Tol5Q1D.pm allocated successfully
+Reduced center of mass cutoff radius:  8.000
+Characteristic dielectric constant:  0.100000000E+11
+Cutoff correction to potential energy from LJ: -0.50981601
+Cutoff correction to pressure from LJ        : -1.03187879
+Cutoff correction to chem. pot. of Tol5Q1D.pm from LJ: -1.01963201
+Cutoff correction to potential energy from reaction field: -0.00031960
+Cutoff correction to chem. pot. of Tol5Q1D.pm from reaction field: -0.00063920
+
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250.par> closed
+
+Opening file <Tol_MD_250_1.run> for writing
+Opening file <Tol_MD_250_1.rav> for writing
+
+Starting MC overlap reduction on 03.03.2009 at 09:14:00
+    100 steps completed on 03.03.2009 at 09:17:43
+MC overlap reduction completed on 03.03.2009 at 09:17:43
+
+Starting NVT equilibration on 03.03.2009 at 09:17:43
+   1000 steps completed on 03.03.2009 at 09:25:06
+   2000 steps completed on 03.03.2009 at 09:32:28
+   3000 steps completed on 03.03.2009 at 09:39:50
+   4000 steps completed on 03.03.2009 at 09:47:11
+   5000 steps completed on 03.03.2009 at 09:54:32
+   6000 steps completed on 03.03.2009 at 10:01:53
+   7000 steps completed on 03.03.2009 at 10:09:14
+   8000 steps completed on 03.03.2009 at 10:16:35
+   9000 steps completed on 03.03.2009 at 10:23:56
+  10000 steps completed on 03.03.2009 at 10:31:16
+  11000 steps completed on 03.03.2009 at 10:38:37
+  12000 steps completed on 03.03.2009 at 10:45:58
+  13000 steps completed on 03.03.2009 at 10:53:18
+  14000 steps completed on 03.03.2009 at 11:00:39
+  15000 steps completed on 03.03.2009 at 11:08:00
+  16000 steps completed on 03.03.2009 at 11:15:21
+  17000 steps completed on 03.03.2009 at 11:22:42
+  18000 steps completed on 03.03.2009 at 11:30:02
+  19000 steps completed on 03.03.2009 at 11:37:23
+  20000 steps completed on 03.03.2009 at 11:44:44
+  21000 steps completed on 03.03.2009 at 11:52:04
+  22000 steps completed on 03.03.2009 at 11:59:25
+  23000 steps completed on 03.03.2009 at 12:06:46
+  24000 steps completed on 03.03.2009 at 12:14:07
+  25000 steps completed on 03.03.2009 at 12:21:28
+  26000 steps completed on 03.03.2009 at 12:28:48
+  27000 steps completed on 03.03.2009 at 12:36:09
+  28000 steps completed on 03.03.2009 at 12:43:31
+  29000 steps completed on 03.03.2009 at 12:50:52
+  30000 steps completed on 03.03.2009 at 12:58:13
+  31000 steps completed on 03.03.2009 at 13:05:34
+  32000 steps completed on 03.03.2009 at 13:12:55
+  33000 steps completed on 03.03.2009 at 13:20:16
+  34000 steps completed on 03.03.2009 at 13:27:37
+  35000 steps completed on 03.03.2009 at 13:34:59
+  36000 steps completed on 03.03.2009 at 13:42:20
+  37000 steps completed on 03.03.2009 at 13:49:41
+  38000 steps completed on 03.03.2009 at 13:57:02
+  39000 steps completed on 03.03.2009 at 14:04:22
+  40000 steps completed on 03.03.2009 at 14:11:43
+  41000 steps completed on 03.03.2009 at 14:19:04
+  42000 steps completed on 03.03.2009 at 14:26:25
+  43000 steps completed on 03.03.2009 at 14:33:46
+  44000 steps completed on 03.03.2009 at 14:41:08
+  45000 steps completed on 03.03.2009 at 14:48:29
+  46000 steps completed on 03.03.2009 at 14:55:50
+  47000 steps completed on 03.03.2009 at 15:03:11
+  48000 steps completed on 03.03.2009 at 15:10:32
+  49000 steps completed on 03.03.2009 at 15:17:54
+  50000 steps completed on 03.03.2009 at 15:25:15
+NVT equilibration completed on 03.03.2009 at 15:25:15
+
+Starting simulation on 03.03.2009 at 15:25:15
+   1000 steps completed on 03.03.2009 at 15:32:37
+   2000 steps completed on 03.03.2009 at 15:39:58
+   3000 steps completed on 03.03.2009 at 15:47:20
+   4000 steps completed on 03.03.2009 at 15:54:41
+   5000 steps completed on 03.03.2009 at 16:02:02
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+   6000 steps completed on 03.03.2009 at 16:09:23
+   7000 steps completed on 03.03.2009 at 16:16:44
+   8000 steps completed on 03.03.2009 at 16:24:06
+   9000 steps completed on 03.03.2009 at 16:31:27
+  10000 steps completed on 03.03.2009 at 16:38:48
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  11000 steps completed on 03.03.2009 at 16:46:09
+  12000 steps completed on 03.03.2009 at 16:53:30
+  13000 steps completed on 03.03.2009 at 17:00:51
+  14000 steps completed on 03.03.2009 at 17:08:11
+  15000 steps completed on 03.03.2009 at 17:15:32
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  16000 steps completed on 03.03.2009 at 17:22:54
+  17000 steps completed on 03.03.2009 at 17:30:15
+  18000 steps completed on 03.03.2009 at 17:37:36
+  19000 steps completed on 03.03.2009 at 17:44:57
+  20000 steps completed on 03.03.2009 at 17:52:18
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  21000 steps completed on 03.03.2009 at 17:59:39
+  22000 steps completed on 03.03.2009 at 18:07:00
+  23000 steps completed on 03.03.2009 at 18:14:21
+  24000 steps completed on 03.03.2009 at 18:21:43
+  25000 steps completed on 03.03.2009 at 18:29:04
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  26000 steps completed on 03.03.2009 at 18:36:26
+  27000 steps completed on 03.03.2009 at 18:43:47
+  28000 steps completed on 03.03.2009 at 18:51:08
+  29000 steps completed on 03.03.2009 at 18:58:30
+  30000 steps completed on 03.03.2009 at 19:05:51
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  31000 steps completed on 03.03.2009 at 19:13:12
+  32000 steps completed on 03.03.2009 at 19:20:33
+  33000 steps completed on 03.03.2009 at 19:27:54
+  34000 steps completed on 03.03.2009 at 19:35:16
+  35000 steps completed on 03.03.2009 at 19:42:37
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  36000 steps completed on 03.03.2009 at 19:49:58
+  37000 steps completed on 03.03.2009 at 19:57:20
+  38000 steps completed on 03.03.2009 at 20:04:41
+  39000 steps completed on 03.03.2009 at 20:12:02
+  40000 steps completed on 03.03.2009 at 20:19:24
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  41000 steps completed on 03.03.2009 at 20:26:45
+  42000 steps completed on 03.03.2009 at 20:34:07
+  43000 steps completed on 03.03.2009 at 20:41:29
+  44000 steps completed on 03.03.2009 at 20:48:50
+  45000 steps completed on 03.03.2009 at 20:56:12
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  46000 steps completed on 03.03.2009 at 21:03:33
+  47000 steps completed on 03.03.2009 at 21:10:55
+  48000 steps completed on 03.03.2009 at 21:18:16
+  49000 steps completed on 03.03.2009 at 21:25:37
+  50000 steps completed on 03.03.2009 at 21:32:58
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  51000 steps completed on 03.03.2009 at 21:40:20
+  52000 steps completed on 03.03.2009 at 21:47:41
+  53000 steps completed on 03.03.2009 at 21:55:03
+  54000 steps completed on 03.03.2009 at 22:02:24
+  55000 steps completed on 03.03.2009 at 22:09:45
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  56000 steps completed on 03.03.2009 at 22:17:06
+  57000 steps completed on 03.03.2009 at 22:24:27
+  58000 steps completed on 03.03.2009 at 22:31:48
+  59000 steps completed on 03.03.2009 at 22:39:10
+  60000 steps completed on 03.03.2009 at 22:46:32
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  61000 steps completed on 03.03.2009 at 22:53:53
+  62000 steps completed on 03.03.2009 at 23:01:15
+  63000 steps completed on 03.03.2009 at 23:08:36
+  64000 steps completed on 03.03.2009 at 23:15:57
+  65000 steps completed on 03.03.2009 at 23:23:18
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  66000 steps completed on 03.03.2009 at 23:30:40
+  67000 steps completed on 03.03.2009 at 23:38:02
+  68000 steps completed on 03.03.2009 at 23:45:23
+  69000 steps completed on 03.03.2009 at 23:52:45
+  70000 steps completed on 04.03.2009 at 00:00:07
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  71000 steps completed on 04.03.2009 at 00:07:28
+  72000 steps completed on 04.03.2009 at 00:14:50
+  73000 steps completed on 04.03.2009 at 00:22:12
+  74000 steps completed on 04.03.2009 at 00:29:33
+  75000 steps completed on 04.03.2009 at 00:36:56
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  76000 steps completed on 04.03.2009 at 00:44:17
+  77000 steps completed on 04.03.2009 at 00:51:39
+  78000 steps completed on 04.03.2009 at 00:59:00
+  79000 steps completed on 04.03.2009 at 01:06:22
+  80000 steps completed on 04.03.2009 at 01:13:43
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  81000 steps completed on 04.03.2009 at 01:21:05
+  82000 steps completed on 04.03.2009 at 01:28:26
+  83000 steps completed on 04.03.2009 at 01:35:48
+  84000 steps completed on 04.03.2009 at 01:43:09
+  85000 steps completed on 04.03.2009 at 01:50:31
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  86000 steps completed on 04.03.2009 at 01:57:52
+  87000 steps completed on 04.03.2009 at 02:05:13
+  88000 steps completed on 04.03.2009 at 02:12:34
+  89000 steps completed on 04.03.2009 at 02:19:56
+  90000 steps completed on 04.03.2009 at 02:27:17
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  91000 steps completed on 04.03.2009 at 02:34:38
+  92000 steps completed on 04.03.2009 at 02:42:00
+  93000 steps completed on 04.03.2009 at 02:49:21
+  94000 steps completed on 04.03.2009 at 02:56:42
+  95000 steps completed on 04.03.2009 at 03:04:03
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+  96000 steps completed on 04.03.2009 at 03:11:25
+  97000 steps completed on 04.03.2009 at 03:18:46
+  98000 steps completed on 04.03.2009 at 03:26:08
+  99000 steps completed on 04.03.2009 at 03:33:30
+ 100000 steps completed on 04.03.2009 at 03:40:52
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 101000 steps completed on 04.03.2009 at 03:48:14
+ 102000 steps completed on 04.03.2009 at 03:55:36
+ 103000 steps completed on 04.03.2009 at 04:03:00
+ 104000 steps completed on 04.03.2009 at 04:10:24
+ 105000 steps completed on 04.03.2009 at 04:17:45
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 106000 steps completed on 04.03.2009 at 04:25:07
+ 107000 steps completed on 04.03.2009 at 04:32:29
+ 108000 steps completed on 04.03.2009 at 04:39:51
+ 109000 steps completed on 04.03.2009 at 04:47:13
+ 110000 steps completed on 04.03.2009 at 04:54:35
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 111000 steps completed on 04.03.2009 at 05:01:56
+ 112000 steps completed on 04.03.2009 at 05:09:18
+ 113000 steps completed on 04.03.2009 at 05:16:40
+ 114000 steps completed on 04.03.2009 at 05:24:02
+ 115000 steps completed on 04.03.2009 at 05:31:24
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 116000 steps completed on 04.03.2009 at 05:38:46
+ 117000 steps completed on 04.03.2009 at 05:46:08
+ 118000 steps completed on 04.03.2009 at 05:53:30
+ 119000 steps completed on 04.03.2009 at 06:00:52
+ 120000 steps completed on 04.03.2009 at 06:08:14
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 121000 steps completed on 04.03.2009 at 06:15:36
+ 122000 steps completed on 04.03.2009 at 06:22:57
+ 123000 steps completed on 04.03.2009 at 06:30:20
+ 124000 steps completed on 04.03.2009 at 06:37:42
+ 125000 steps completed on 04.03.2009 at 06:45:04
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 126000 steps completed on 04.03.2009 at 06:52:26
+ 127000 steps completed on 04.03.2009 at 06:59:48
+ 128000 steps completed on 04.03.2009 at 07:07:10
+ 129000 steps completed on 04.03.2009 at 07:14:31
+ 130000 steps completed on 04.03.2009 at 07:21:53
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 131000 steps completed on 04.03.2009 at 07:29:15
+ 132000 steps completed on 04.03.2009 at 07:36:37
+ 133000 steps completed on 04.03.2009 at 07:44:00
+ 134000 steps completed on 04.03.2009 at 07:51:22
+ 135000 steps completed on 04.03.2009 at 07:58:44
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 136000 steps completed on 04.03.2009 at 08:06:06
+ 137000 steps completed on 04.03.2009 at 08:13:28
+ 138000 steps completed on 04.03.2009 at 08:20:50
+ 139000 steps completed on 04.03.2009 at 08:28:12
+ 140000 steps completed on 04.03.2009 at 08:35:34
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 141000 steps completed on 04.03.2009 at 08:42:56
+ 142000 steps completed on 04.03.2009 at 08:50:18
+ 143000 steps completed on 04.03.2009 at 08:57:40
+ 144000 steps completed on 04.03.2009 at 09:05:02
+ 145000 steps completed on 04.03.2009 at 09:12:26
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 146000 steps completed on 04.03.2009 at 09:19:48
+ 147000 steps completed on 04.03.2009 at 09:27:10
+ 148000 steps completed on 04.03.2009 at 09:34:32
+ 149000 steps completed on 04.03.2009 at 09:41:55
+ 150000 steps completed on 04.03.2009 at 09:49:17
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 151000 steps completed on 04.03.2009 at 09:56:39
+ 152000 steps completed on 04.03.2009 at 10:04:01
+ 153000 steps completed on 04.03.2009 at 10:11:24
+ 154000 steps completed on 04.03.2009 at 10:18:46
+ 155000 steps completed on 04.03.2009 at 10:26:09
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 156000 steps completed on 04.03.2009 at 10:33:31
+ 157000 steps completed on 04.03.2009 at 10:40:54
+ 158000 steps completed on 04.03.2009 at 10:48:16
+ 159000 steps completed on 04.03.2009 at 10:55:39
+ 160000 steps completed on 04.03.2009 at 11:03:01
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 161000 steps completed on 04.03.2009 at 11:10:23
+ 162000 steps completed on 04.03.2009 at 11:17:46
+ 163000 steps completed on 04.03.2009 at 11:25:08
+ 164000 steps completed on 04.03.2009 at 11:32:31
+ 165000 steps completed on 04.03.2009 at 11:39:53
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 166000 steps completed on 04.03.2009 at 11:47:15
+ 167000 steps completed on 04.03.2009 at 11:54:38
+ 168000 steps completed on 04.03.2009 at 12:02:00
+ 169000 steps completed on 04.03.2009 at 12:09:23
+ 170000 steps completed on 04.03.2009 at 12:16:45
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 171000 steps completed on 04.03.2009 at 12:24:07
+ 172000 steps completed on 04.03.2009 at 12:31:29
+ 173000 steps completed on 04.03.2009 at 12:38:52
+ 174000 steps completed on 04.03.2009 at 12:46:14
+ 175000 steps completed on 04.03.2009 at 12:53:37
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 176000 steps completed on 04.03.2009 at 13:00:59
+ 177000 steps completed on 04.03.2009 at 13:08:21
+ 178000 steps completed on 04.03.2009 at 13:15:44
+ 179000 steps completed on 04.03.2009 at 13:23:06
+ 180000 steps completed on 04.03.2009 at 13:30:29
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 181000 steps completed on 04.03.2009 at 13:37:52
+ 182000 steps completed on 04.03.2009 at 13:45:14
+ 183000 steps completed on 04.03.2009 at 13:52:37
+ 184000 steps completed on 04.03.2009 at 13:59:59
+ 185000 steps completed on 04.03.2009 at 14:07:22
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 186000 steps completed on 04.03.2009 at 14:14:44
+ 187000 steps completed on 04.03.2009 at 14:22:06
+ 188000 steps completed on 04.03.2009 at 14:29:29
+ 189000 steps completed on 04.03.2009 at 14:36:52
+ 190000 steps completed on 04.03.2009 at 14:44:14
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 191000 steps completed on 04.03.2009 at 14:51:37
+ 192000 steps completed on 04.03.2009 at 14:58:59
+ 193000 steps completed on 04.03.2009 at 15:06:21
+ 194000 steps completed on 04.03.2009 at 15:13:43
+ 195000 steps completed on 04.03.2009 at 15:21:05
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 196000 steps completed on 04.03.2009 at 15:28:27
+ 197000 steps completed on 04.03.2009 at 15:35:50
+ 198000 steps completed on 04.03.2009 at 15:43:12
+ 199000 steps completed on 04.03.2009 at 15:50:34
+ 200000 steps completed on 04.03.2009 at 15:57:56
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 201000 steps completed on 04.03.2009 at 16:05:18
+ 202000 steps completed on 04.03.2009 at 16:12:40
+ 203000 steps completed on 04.03.2009 at 16:20:03
+ 204000 steps completed on 04.03.2009 at 16:27:25
+ 205000 steps completed on 04.03.2009 at 16:34:48
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 206000 steps completed on 04.03.2009 at 16:42:11
+ 207000 steps completed on 04.03.2009 at 16:49:33
+ 208000 steps completed on 04.03.2009 at 16:56:56
+ 209000 steps completed on 04.03.2009 at 17:04:19
+ 210000 steps completed on 04.03.2009 at 17:11:42
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 211000 steps completed on 04.03.2009 at 17:19:04
+ 212000 steps completed on 04.03.2009 at 17:26:26
+ 213000 steps completed on 04.03.2009 at 17:33:49
+ 214000 steps completed on 04.03.2009 at 17:41:12
+ 215000 steps completed on 04.03.2009 at 17:48:34
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 216000 steps completed on 04.03.2009 at 17:55:56
+ 217000 steps completed on 04.03.2009 at 18:03:19
+ 218000 steps completed on 04.03.2009 at 18:10:41
+ 219000 steps completed on 04.03.2009 at 18:18:04
+ 220000 steps completed on 04.03.2009 at 18:25:26
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 221000 steps completed on 04.03.2009 at 18:32:49
+ 222000 steps completed on 04.03.2009 at 18:40:11
+ 223000 steps completed on 04.03.2009 at 18:47:33
+ 224000 steps completed on 04.03.2009 at 18:54:55
+ 225000 steps completed on 04.03.2009 at 19:02:17
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 226000 steps completed on 04.03.2009 at 19:09:39
+ 227000 steps completed on 04.03.2009 at 19:17:01
+ 228000 steps completed on 04.03.2009 at 19:24:23
+ 229000 steps completed on 04.03.2009 at 19:31:46
+ 230000 steps completed on 04.03.2009 at 19:39:08
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 231000 steps completed on 04.03.2009 at 19:46:31
+ 232000 steps completed on 04.03.2009 at 19:53:53
+ 233000 steps completed on 04.03.2009 at 20:01:16
+ 234000 steps completed on 04.03.2009 at 20:08:38
+ 235000 steps completed on 04.03.2009 at 20:16:01
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 236000 steps completed on 04.03.2009 at 20:23:23
+ 237000 steps completed on 04.03.2009 at 20:30:45
+ 238000 steps completed on 04.03.2009 at 20:38:08
+ 239000 steps completed on 04.03.2009 at 20:45:30
+ 240000 steps completed on 04.03.2009 at 20:52:52
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 241000 steps completed on 04.03.2009 at 21:00:15
+ 242000 steps completed on 04.03.2009 at 21:07:37
+ 243000 steps completed on 04.03.2009 at 21:14:59
+ 244000 steps completed on 04.03.2009 at 21:22:21
+ 245000 steps completed on 04.03.2009 at 21:29:43
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 246000 steps completed on 04.03.2009 at 21:37:05
+ 247000 steps completed on 04.03.2009 at 21:44:27
+ 248000 steps completed on 04.03.2009 at 21:51:49
+ 249000 steps completed on 04.03.2009 at 21:59:11
+ 250000 steps completed on 04.03.2009 at 22:06:33
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 251000 steps completed on 04.03.2009 at 22:13:55
+ 252000 steps completed on 04.03.2009 at 22:21:16
+ 253000 steps completed on 04.03.2009 at 22:28:38
+ 254000 steps completed on 04.03.2009 at 22:36:00
+ 255000 steps completed on 04.03.2009 at 22:43:22
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 256000 steps completed on 04.03.2009 at 22:50:44
+ 257000 steps completed on 04.03.2009 at 22:58:06
+ 258000 steps completed on 04.03.2009 at 23:05:27
+ 259000 steps completed on 04.03.2009 at 23:12:49
+ 260000 steps completed on 04.03.2009 at 23:20:11
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 261000 steps completed on 04.03.2009 at 23:27:32
+ 262000 steps completed on 04.03.2009 at 23:34:54
+ 263000 steps completed on 04.03.2009 at 23:42:16
+ 264000 steps completed on 04.03.2009 at 23:49:37
+ 265000 steps completed on 04.03.2009 at 23:56:59
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 266000 steps completed on 05.03.2009 at 00:04:20
+ 267000 steps completed on 05.03.2009 at 00:11:41
+ 268000 steps completed on 05.03.2009 at 00:19:01
+ 269000 steps completed on 05.03.2009 at 00:26:23
+ 270000 steps completed on 05.03.2009 at 00:33:44
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 271000 steps completed on 05.03.2009 at 00:41:05
+ 272000 steps completed on 05.03.2009 at 00:48:25
+ 273000 steps completed on 05.03.2009 at 00:55:46
+ 274000 steps completed on 05.03.2009 at 01:03:07
+ 275000 steps completed on 05.03.2009 at 01:10:28
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 276000 steps completed on 05.03.2009 at 01:17:49
+ 277000 steps completed on 05.03.2009 at 01:25:09
+ 278000 steps completed on 05.03.2009 at 01:32:30
+ 279000 steps completed on 05.03.2009 at 01:39:51
+ 280000 steps completed on 05.03.2009 at 01:47:11
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 281000 steps completed on 05.03.2009 at 01:54:31
+ 282000 steps completed on 05.03.2009 at 02:01:51
+ 283000 steps completed on 05.03.2009 at 02:09:12
+ 284000 steps completed on 05.03.2009 at 02:16:32
+ 285000 steps completed on 05.03.2009 at 02:23:52
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 286000 steps completed on 05.03.2009 at 02:31:13
+ 287000 steps completed on 05.03.2009 at 02:38:34
+ 288000 steps completed on 05.03.2009 at 02:45:55
+ 289000 steps completed on 05.03.2009 at 02:53:15
+ 290000 steps completed on 05.03.2009 at 03:00:36
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 291000 steps completed on 05.03.2009 at 03:07:57
+ 292000 steps completed on 05.03.2009 at 03:15:17
+ 293000 steps completed on 05.03.2009 at 03:22:38
+ 294000 steps completed on 05.03.2009 at 03:29:59
+ 295000 steps completed on 05.03.2009 at 03:37:20
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+ 296000 steps completed on 05.03.2009 at 03:44:41
+ 297000 steps completed on 05.03.2009 at 03:52:03
+ 298000 steps completed on 05.03.2009 at 03:59:24
+ 299000 steps completed on 05.03.2009 at 04:06:47
+ 300000 steps completed on 05.03.2009 at 04:14:10
+Saving simulation results
+Opening file <Tol_MD_250_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.res> closed
+Simulation completed on 05.03.2009 at 04:14:10
+
+Saving simulation restart file
+Opening file <Tol_MD_250.rst> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250.rst> closed
+
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.rav> closed
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Tol_MD_250_1.run> closed
+
+Program terminated on 05.03.2009 at 04:14:11

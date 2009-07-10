@@ -1,0 +1,236 @@
+Program ms2mpi_GradIns compiled for Linux/Ifort
+version v12 Feb 12 2009
+started by unknown user on xc2n255 on 02.03.2009 at 09:49:54
+
+   8 MPI processes initialized
+
+Signal handler set successfully
+
+Random number generator initialized
+
+Parameter file name: Ar_MD_100.par
+
+Opening file <Ar_MD_100.par> for reading
+
+Reading parameters of simulation
+Name tag for output files: Ar_MD_100
+System of units: SI
+Unit of length:  3.500 A
+Unit of energy:  100.000 K
+Unit of mass:   40.000 a.u.
+Simulation type: Molecular Dynamics
+Integrator type: Gear predictor-corrector
+Time step:  2.184853 fs
+Reduced time step: 0.000900
+Ensemble type: NVT
+No MC overlap reduction
+Number of NVT equilibration steps:    5000
+Number of production steps:  100000
+Result files will be updated each    100 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+Cutoff mode: Center of Mass
+Long Range Correction: Reaction Field
+Number of ensembles:  1
+
+Reading parameters of ensemble  1
+Temperature:   100.000 K
+Density:    33.000 mol/l
+Reduced temperature:  1.000000
+Reduced density:  0.852057
+Number of components:  1
+Molar fraction of component Ar.pm:  1.000000
+Chemical potential of Ar.pm will be calculated by: none method
+Opening file <Ar.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar.pm> closed
+Opening file <Ar.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar.pm.nrm> closed
+Normalized potential model for Ar.pm saved to file <Ar.pm.nrm>
+Number of particles:       1372
+Molar fraction of Ar.pm: 1.000;  number of particles:       1372
+Memory for Ar.pm allocated successfully
+Reduced center of mass cutoff radius:  5.500
+Cutoff correction to potential energy from LJ: -0.05368140
+Cutoff correction to pressure from LJ        : -0.10736171
+Cutoff correction to chem. pot. of Ar.pm from LJ: -0.10736279
+Cutoff correction to potential energy from reaction field:  0.00000000
+Cutoff correction to chem. pot. of Ar.pm from reaction field:  0.00000000
+
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100.par> closed
+
+Opening file <Ar_MD_100_1.run> for writing
+Opening file <Ar_MD_100_1.rav> for writing
+
+Starting NVT equilibration on 02.03.2009 at 09:49:54
+   1000 steps completed on 02.03.2009 at 09:50:11
+   2000 steps completed on 02.03.2009 at 09:50:28
+   3000 steps completed on 02.03.2009 at 09:50:46
+   4000 steps completed on 02.03.2009 at 09:51:03
+   5000 steps completed on 02.03.2009 at 09:51:19
+NVT equilibration completed on 02.03.2009 at 09:51:19
+
+Starting simulation on 02.03.2009 at 09:51:19
+   1000 steps completed on 02.03.2009 at 09:51:36
+   2000 steps completed on 02.03.2009 at 09:51:55
+   3000 steps completed on 02.03.2009 at 09:52:12
+   4000 steps completed on 02.03.2009 at 09:52:29
+   5000 steps completed on 02.03.2009 at 09:52:46
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+   6000 steps completed on 02.03.2009 at 09:53:03
+   7000 steps completed on 02.03.2009 at 09:53:20
+   8000 steps completed on 02.03.2009 at 09:53:38
+   9000 steps completed on 02.03.2009 at 09:53:55
+  10000 steps completed on 02.03.2009 at 09:54:12
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  11000 steps completed on 02.03.2009 at 09:54:30
+  12000 steps completed on 02.03.2009 at 09:54:47
+  13000 steps completed on 02.03.2009 at 09:55:04
+  14000 steps completed on 02.03.2009 at 09:55:21
+  15000 steps completed on 02.03.2009 at 09:55:38
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  16000 steps completed on 02.03.2009 at 09:55:56
+  17000 steps completed on 02.03.2009 at 09:56:13
+  18000 steps completed on 02.03.2009 at 09:56:30
+  19000 steps completed on 02.03.2009 at 09:56:48
+  20000 steps completed on 02.03.2009 at 09:57:05
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  21000 steps completed on 02.03.2009 at 09:57:22
+  22000 steps completed on 02.03.2009 at 09:57:39
+  23000 steps completed on 02.03.2009 at 09:57:56
+  24000 steps completed on 02.03.2009 at 09:58:14
+  25000 steps completed on 02.03.2009 at 09:58:31
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  26000 steps completed on 02.03.2009 at 09:58:48
+  27000 steps completed on 02.03.2009 at 09:59:06
+  28000 steps completed on 02.03.2009 at 09:59:23
+  29000 steps completed on 02.03.2009 at 09:59:40
+  30000 steps completed on 02.03.2009 at 09:59:58
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  31000 steps completed on 02.03.2009 at 10:00:15
+  32000 steps completed on 02.03.2009 at 10:00:33
+  33000 steps completed on 02.03.2009 at 10:00:50
+  34000 steps completed on 02.03.2009 at 10:01:07
+  35000 steps completed on 02.03.2009 at 10:01:25
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  36000 steps completed on 02.03.2009 at 10:01:42
+  37000 steps completed on 02.03.2009 at 10:01:59
+  38000 steps completed on 02.03.2009 at 10:02:17
+  39000 steps completed on 02.03.2009 at 10:02:34
+  40000 steps completed on 02.03.2009 at 10:02:52
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  41000 steps completed on 02.03.2009 at 10:03:09
+  42000 steps completed on 02.03.2009 at 10:03:27
+  43000 steps completed on 02.03.2009 at 10:03:44
+  44000 steps completed on 02.03.2009 at 10:04:01
+  45000 steps completed on 02.03.2009 at 10:04:19
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  46000 steps completed on 02.03.2009 at 10:04:37
+  47000 steps completed on 02.03.2009 at 10:04:54
+  48000 steps completed on 02.03.2009 at 10:05:11
+  49000 steps completed on 02.03.2009 at 10:05:28
+  50000 steps completed on 02.03.2009 at 10:05:46
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  51000 steps completed on 02.03.2009 at 10:06:03
+  52000 steps completed on 02.03.2009 at 10:06:21
+  53000 steps completed on 02.03.2009 at 10:06:38
+  54000 steps completed on 02.03.2009 at 10:06:56
+  55000 steps completed on 02.03.2009 at 10:07:13
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  56000 steps completed on 02.03.2009 at 10:07:31
+  57000 steps completed on 02.03.2009 at 10:07:49
+  58000 steps completed on 02.03.2009 at 10:08:07
+  59000 steps completed on 02.03.2009 at 10:08:24
+  60000 steps completed on 02.03.2009 at 10:08:41
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  61000 steps completed on 02.03.2009 at 10:08:58
+  62000 steps completed on 02.03.2009 at 10:09:16
+  63000 steps completed on 02.03.2009 at 10:09:33
+  64000 steps completed on 02.03.2009 at 10:09:51
+  65000 steps completed on 02.03.2009 at 10:10:08
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  66000 steps completed on 02.03.2009 at 10:10:26
+  67000 steps completed on 02.03.2009 at 10:10:43
+  68000 steps completed on 02.03.2009 at 10:11:01
+  69000 steps completed on 02.03.2009 at 10:11:18
+  70000 steps completed on 02.03.2009 at 10:11:35
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  71000 steps completed on 02.03.2009 at 10:11:53
+  72000 steps completed on 02.03.2009 at 10:12:10
+  73000 steps completed on 02.03.2009 at 10:12:27
+  74000 steps completed on 02.03.2009 at 10:12:45
+  75000 steps completed on 02.03.2009 at 10:13:02
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  76000 steps completed on 02.03.2009 at 10:13:19
+  77000 steps completed on 02.03.2009 at 10:13:36
+  78000 steps completed on 02.03.2009 at 10:13:54
+  79000 steps completed on 02.03.2009 at 10:14:11
+  80000 steps completed on 02.03.2009 at 10:14:29
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  81000 steps completed on 02.03.2009 at 10:14:46
+  82000 steps completed on 02.03.2009 at 10:15:04
+  83000 steps completed on 02.03.2009 at 10:15:21
+  84000 steps completed on 02.03.2009 at 10:15:38
+  85000 steps completed on 02.03.2009 at 10:15:56
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  86000 steps completed on 02.03.2009 at 10:16:13
+  87000 steps completed on 02.03.2009 at 10:16:30
+  88000 steps completed on 02.03.2009 at 10:16:47
+  89000 steps completed on 02.03.2009 at 10:17:05
+  90000 steps completed on 02.03.2009 at 10:17:22
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  91000 steps completed on 02.03.2009 at 10:17:40
+  92000 steps completed on 02.03.2009 at 10:17:57
+  93000 steps completed on 02.03.2009 at 10:18:15
+  94000 steps completed on 02.03.2009 at 10:18:32
+  95000 steps completed on 02.03.2009 at 10:18:49
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+  96000 steps completed on 02.03.2009 at 10:19:08
+  97000 steps completed on 02.03.2009 at 10:19:25
+  98000 steps completed on 02.03.2009 at 10:19:43
+  99000 steps completed on 02.03.2009 at 10:20:02
+ 100000 steps completed on 02.03.2009 at 10:20:19
+Saving simulation results
+Opening file <Ar_MD_100_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA4/Ar_MD_100_1.res> closed
+Simulation completed on 02.03.2009 at 10:20:19
+
+Saving simulation restart file
+Opening file <Ar_MD_100.rst> for writing
