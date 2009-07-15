@@ -1,0 +1,38 @@
+Units        =      SI
+LengthUnit   =       3.5
+EnergyUnit   =     100.0
+MassUnit     =      40.0
+Simulation   =      MD
+IntDegFreed  =      on
+Shake        =     0.0001
+IntraLJ_El   =     on
+LJ_El_14     =     off
+Integrator   =    Gear
+TimeStep     =     0.000025
+Ensemble     =     NPT
+MCORSteps    =       0
+NVTSteps     =   50000
+NPTSteps     =   1000000
+RunSteps     =   1000000
+ResultFreq   =    1000
+ErrorsFreq   =    5000
+VisualFreq   =    1000
+CutoffMode   =     COM
+NEnsembles   =       1
+CorrfunMode  =      no
+
+Temperature  =     350.0
+Pressure     =      0.340 
+Density      =       7.84
+VapDensity   =       0.2
+PistonMass   =       0.000002
+NParticles   =     108 
+NTest        =       0
+NComponents  =       1
+
+PotModel     =       pentan.pm
+MolarFract   =        1.0
+ChemPotMethod =      none
+
+Cutoff       =       3.5
+Epsilon      =  1.0E10

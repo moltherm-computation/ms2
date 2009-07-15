@@ -1,0 +1,11 @@
+Innere Freiheitsgraden, Simulation von Pentan
+
+Zustandspunkt: T=350K
+NPT: p = 0.340 MPa
+NVT: rho = 7.84 mol/l
+
+MD-Simulation (NVT, NPT), ohne 1-4 WW.
+
+
+
+

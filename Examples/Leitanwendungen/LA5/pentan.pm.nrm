@@ -1,0 +1,121 @@
+NSiteTypes      = 1
+
+SiteType        = LJ126
+NSites          = 5
+
+SiteID          =  1
+x               =     0.000000000               # reduced value:      0.000000000
+y               =    0.3326641059               # reduced value:     0.9504688739E-01
+z               =    -2.536855952               # reduced value:    -0.7248159863
+sigma           =     3.905000000               # reduced value:      1.115714286
+epsilon         =     88.10000000               # reduced value:     0.8810000000
+mass            =     15.03470000               # reduced value:     0.3758675000
+
+SiteID          =  2
+x               =     0.000000000               # reduced value:      0.000000000
+y               =   -0.5228999399               # reduced value:    -0.1493999828
+z               =    -1.268427726               # reduced value:    -0.3624079218
+sigma           =     3.905000000               # reduced value:      1.115714286
+epsilon         =     59.40000000               # reduced value:     0.5940000000
+mass            =     14.02680000               # reduced value:     0.3506700000
+
+SiteID          =  3
+x               =     0.000000000               # reduced value:      0.000000000
+y               =    0.3326641542               # reduced value:     0.9504690119E-01
+z               =   -0.1204760308E-06           # reduced value:    -0.3442172308E-07
+sigma           =     3.905000000               # reduced value:      1.115714286
+epsilon         =     59.40000000               # reduced value:     0.5940000000
+mass            =     14.02680000               # reduced value:     0.3506700000
+
+SiteID          =  4
+x               =     0.000000000               # reduced value:      0.000000000
+y               =   -0.5228998915               # reduced value:    -0.1493999690
+z               =     1.268428105               # reduced value:     0.3624080301
+sigma           =     3.905000000               # reduced value:      1.115714286
+epsilon         =     59.40000000               # reduced value:     0.5940000000
+mass            =     14.02680000               # reduced value:     0.3506700000
+
+SiteID          =  5
+x               =     0.000000000               # reduced value:      0.000000000
+y               =    0.3326642025               # reduced value:     0.9504691500E-01
+z               =     2.536855711               # reduced value:     0.7248159175
+sigma           =     3.905000000               # reduced value:      1.115714286
+epsilon         =     88.10000000               # reduced value:     0.8810000000
+mass            =     15.03470000               # reduced value:     0.3758675000
+
+NRotAxes        = 3
+TotalMass       =     72.14980000               # reduced value:      1.803745000
+InertMomX       =     251.2019206               # reduced value:     0.5126569808
+InertMomY       =     238.6514587               # reduced value:     0.4870437932
+InertMomZ       =     12.55046191               # reduced value:     0.2561318757E-01
+
+NIdfTypes       = 3
+
+IdfType         = Bond
+NIdfs           = 4
+
+Bond            =  1  2
+R0              =     1.530000000               # reduced value:     0.4371428571
+ForConst        =     79840.00000               # reduced value:      798.4000000
+
+Bond            =  2  3
+R0              =     1.529999513               # reduced value:     0.4371427181
+ForConst        =     79840.00000               # reduced value:      798.4000000
+
+Bond            =  3  4
+R0              =     1.530000000               # reduced value:     0.4371428571
+ForConst        =     79840.00000               # reduced value:      798.4000000
+
+Bond            =  4  5
+R0              =     1.529999513               # reduced value:     0.4371427181
+ForConst        =     79840.00000               # reduced value:      798.4000000
+
+IdfType         = Angle
+NIdfs           = 3
+
+Angle           =  1  2  3
+Angle0          =     1.954770239
+ForConst        =     31250.00000               # reduced value:      312.5000000
+
+Angle           =  2  3  4
+Angle0          =     1.954770239
+ForConst        =     31250.00000               # reduced value:      312.5000000
+
+Angle           =  3  4  5
+Angle0          =     1.954770239
+ForConst        =     31250.00000               # reduced value:      312.5000000
+
+IdfType         = Dihedral
+NIdfs           = 6
+
+Dihedral        =  1  2  3  4
+PotBarrier      =     355.0300000               # reduced value:      3.550300000
+gamma           =     0.000000000
+n               =                   1
+
+Dihedral        =  1  2  3  4
+PotBarrier      =    -68.19000000               # reduced value:    -0.6819000000
+gamma           =     180.0000000
+n               =                   2
+
+Dihedral        =  1  2  3  4
+PotBarrier      =     791.3200000               # reduced value:      7.913200000
+gamma           =     0.000000000
+n               =                   3
+
+Dihedral        =  2  3  4  5
+PotBarrier      =     355.0300000               # reduced value:      3.550300000
+gamma           =     0.000000000
+n               =                   1
+
+Dihedral        =  2  3  4  5
+PotBarrier      =    -68.19000000               # reduced value:    -0.6819000000
+gamma           =     180.0000000
+n               =                   2
+
+Dihedral        =  2  3  4  5
+PotBarrier      =     791.3200000               # reduced value:      7.913200000
+gamma           =     0.000000000
+n               =                   3
+
+NConstraintUnits= 0
