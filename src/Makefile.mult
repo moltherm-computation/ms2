@@ -2,6 +2,7 @@
 # Makefile for ms2
 #
 PROGS =	ms2_global.F90 \
+	ms2_stopwatch.F90 \
 	ms2_accumulator.F90 \
 	ms2_site.F90 \
 	ms2_molecule.F90 \
@@ -39,40 +40,47 @@ pgf:
 	@echo "Compiling using PGF90..."
 	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
 	-fastsse -r8 -Bstatic \
-	-o ms2.linux $(PROGS)
+	-o ms2.pgf $(PROGS)
 	@rm -f *.o *.mod
 
 pgf_sp:
 	@echo "Compiling using PGF90..."
 	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DSINGLEPRECISION \
 	-fastsse -r4 -Bstatic \
-	-o ms2.sp $(PROGS)
+	-o ms2.pgf.sp $(PROGS)
 	@rm -f *.o *.mod
 
 pgf-64:
 	@echo "Compiling using PGF90-64..."
 	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
 	-fastsse -r8 -tp amd64 \
-	-o ms2.linux-64 $(PROGS)
+	-o ms2.pgf-64 $(PROGS)
 	@rm -f *.o *.mod
 
 pgf_mpi:
 	@echo "Compiling using MPI_PGF90..."
 	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
 	-fastsse -r8 -R/opt/openmpi-1.1.1/arch/lib \
-	-o ms2mpi.linux $(PROGS)
+	-o ms2mpi.pgf $(PROGS)
 	@rm -f *.o *.mod
 
-pgf_debug:
+pgf_dbg:
 	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
 	-g -Mdwarf2 -r8 \
 	-o ms2dbg $(PROGS)
 	@rm -f *.o *.mod
 
-pgf_mpi_debug:
+pgf_mpi_dbg:
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
 	-g -r8 -C \
 	-o ms2mpidbg $(PROGS)
+	@rm -f *.o *.mod
+
+gfortran_dbg:
+	@echo "Compiling debug version using GFORTRAN..."
+	@gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-g -O0 -fdefault-real-8 -Wall \
+	-o ms2dbg.gfortran $(PROGS)
 	@rm -f *.o *.mod
 
 gfortran:
@@ -85,9 +93,136 @@ gfortran:
 gfortran_mpi:
 	@echo "Compiling using MPI_GFORTRAN..."
 	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
-	-O3 -fdefault-real-8 -static \
+	-O3 -fdefault-real-8 \
 	-o ms2mpi.gfortran $(PROGS)
 	@rm -f *.o *.mod
+
+ifort_dbg:
+	@echo "Compiling debug version using IFORT..."
+	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2dbg.ifort $(PROGS)
+	@rm -f *.o *.mod *.il
+
+ifort:
+	@echo "Compiling using IFORT..."
+	# options to try with v10.x: -xT (for IntelCore2), -xS
+	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-r8 -fast -vec_report0 \
+	-o ms2.ifort $(PROGS)
+	@rm -f *.o *.mod *.il
+
+ifort_mpi:
+	@echo "Compiling using MPI_IFORT..."
+	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2mpi.ifort $(PROGS)
+	@rm -f *.o *.mod *.il
+
+nehalem:
+	@echo "Compiling for SSE4.2 using IFORT..."
+	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-r8 -fast -xSSE4.2 -vec_report0 \
+	-o ms2 $(PROGS)
+	@rm -f *.o *.mod *.il
+
+nehalem_mpi:
+	@echo "Compiling for SSE4.2 using MPI_IFORT..."
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -xSSE4.2 -vec_report0 \
+	-o ms2mpi $(PROGS)
+	@rm -f *.o *.mod *.il
+
+xt5_seq:
+	@echo "Compiling on XT5(m)..."
+	@ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-fastsse -r8 -Bstatic \
+	-o ms2.seq $(PROGS)
+	@rm -f *.o *.mod
+
+xt5:
+	@echo "Compiling on XT5(m)..."
+	@ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 -Bstatic \
+	-o ms2 $(PROGS)
+	@rm -f *.o *.mod
+
+jump:
+	xlf90 -qsuffix=f=f90:cpp=F90 \
+	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=0 \
+	-O5 \
+	-o ms2 $(PROGS)
+
+jump_mpi:
+	mpxlf90 -qsuffix=f=f90:cpp=F90 \
+	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=1 \
+	-O5 \
+	-o ms2mpi $(PROGS)
+
+sx_dbg:
+	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
+	-g -EP  \
+	-o ms2 $(PROGS)
+
+sx:
+	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
+	-C hopt -pi auto -sx8 \
+	-Wf'-pvctl vchg loopfusion loopchg outerstrip outerunroll' \
+	-o ms2 $(PROGS)
+
+sx_mpi:
+	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
+	-C hopt -pi auto -sx8 \
+	-Wf'-pvctl vchg' \
+	-o ms2mpi $(PROGS)
+
+xc1:
+	@echo "Compiling using IFORT..."
+	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-fast -r8 -vec-report0 \
+	-o ms2 $(PROGS)
+	@rm -f *.o *.mod *.il
+
+xc1_mpi:
+	@echo "Compiling using MPI_IFORT..."
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-O3 -ipo -Bdynamic -r8 -vec-report0 \
+	-o ms2mpi $(PROGS)
+	@rm -f *.o *.mod *.il
+
+leo: gfortran
+	@mv ms2.gfortran ms2.leo
+#	@echo "Compiling using PGF90..."
+#	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+#	-fastsse -r8 -tp amd64 \
+#	-o ms2.leo $(PROGS)
+#	@rm -f *.o *.mod
+
+leo_mpi: gfortran_mpi
+	@mv ms2mpi.gfortran ms2mpi.leo
+#	@echo "Compiling using MPI_PGF90..."
+#	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+#	-fastsse -r8 -tp amd64 \
+#	-o ms2mpi.leo $(PROGS)
+#	@rm -f *.o *.mod
+
+xc2:
+	@echo "Compiling using PGF90-64..."
+	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-fastsse -r8 -tp amd64 \
+	-o ms2 $(PROGS)
+	@rm -f *.o *.mod
+
+xc2_mpi:
+	@echo "Compiling using MPI_PGF90..."
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 -tp amd64 \
+	-o ms2mpi $(PROGS)
+	@rm -f *.o *.mod
+
+
+# ancient
 
 alpha:
 	@f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
@@ -146,71 +281,3 @@ strider_mpi:
 	-o ms2mpi $(PROGS)
 	@rm -f *.o *.mod *.ipo
 	@rm -f -r Extract.dir
-
-jump:
-	xlf90 -qsuffix=f=f90:cpp=F90 \
-	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=0 \
-	-O5 \
-	-o ms2 $(PROGS)
-
-jump_mpi:
-	mpxlf90 -qsuffix=f=f90:cpp=F90 \
-	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=1 \
-	-O5 \
-	-o ms2mpi $(PROGS)
-
-sx:
-	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
-	-C hopt -pi auto -sx8 \
-	-Wf'-pvctl vchg' \
-	-o ms2 $(PROGS)
-
-sx_mpi:
-	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
-	-C hopt -pi auto -sx8 \
-	-Wf'-pvctl vchg' \
-	-o ms2mpi $(PROGS)
-
-xc1:
-	@echo "Compiling using IFORT..."
-	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
-	-fast -r8 -vec-report0 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod *.il
-
-xc1_mpi:
-	@echo "Compiling using MPI_IFORT..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
-	-O3 -ipo -Bdynamic -r8 -vec-report0 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod *.il
-
-leo: gfortran
-	@mv ms2.gfortran ms2.leo
-#	@echo "Compiling using PGF90..."
-#	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-#	-fastsse -r8 -tp amd64 \
-#	-o ms2.leo $(PROGS)
-#	@rm -f *.o *.mod
-
-leo_mpi: gfortran_mpi
-	@mv ms2mpi.gfortran ms2mpi.leo
-#	@echo "Compiling using MPI_PGF90..."
-#	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-#	-fastsse -r8 -tp amd64 \
-#	-o ms2mpi.leo $(PROGS)
-#	@rm -f *.o *.mod
-
-xc2:
-	@echo "Compiling using PGF90-64..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-	-fastsse -r8 -tp amd64 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod
-
-xc2_mpi:
-	@echo "Compiling using MPI_PGF90..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-fastsse -r8 -tp amd64 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod

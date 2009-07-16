@@ -15,6 +15,7 @@ F90FLAGS = -g -C
 LDFLAGS =
 
 SRCS =  ms2.F90 \
+        ms2_stopwatch.F90 \
         ms2_global.F90 \
         ms2_simulation.F90 \
         ms2_ensemble.F90 \
@@ -52,7 +53,8 @@ clean:
 #
 ms2.o: ms2_simulation.mod ms2_global.mod
 
-ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod
+ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod \
+  ms2_stopwatch.mod
 
 ms2_ensemble.mod: ms2_component.mod ms2_interaction.mod \
   ms2_accumulator.mod ms2_global.mod
@@ -67,3 +69,5 @@ ms2_site.mod: ms2_global.mod
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
 ms2_potential.mod: ms2_site.mod ms2_global.mod
+
+ms2_stopwatch.mod: ms2_global.mod
