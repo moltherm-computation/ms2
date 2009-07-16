@@ -2,7 +2,7 @@
 # Makefile for ms2
 ########################################
 ifneq ($(MPI),)
-  F90 = ~/bin/mpif90
+  F90 = mpif90
   CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp -check noarg_temp_created
   PROG =  ms2mpi
 else
