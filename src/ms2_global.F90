@@ -577,6 +577,12 @@ module ms2_global
     module procedure Global_FileReadParameter
   end interface
 
+  interface FileReadParameter2
+    module procedure Global_FileReadParameter_String, &
+&                    Global_FileReadParameter_Integer, &
+&                    Global_FileReadParameter_Real
+  end interface
+
   interface FileWriteParameter
     module procedure Global_FileWriteParameter
   end interface
@@ -846,7 +852,6 @@ contains
 !    ! Declare arguments
 !    character(*), intent(in), optional :: MessageString
 !
-!    ! Issue warning
 !    if( present( MessageString ) ) then
 !      IOBuffer = 'MESSAGE: '// MessageString
 !    else
@@ -1449,8 +1454,7 @@ contains
 !  Subroutine Global_FileReadParameter                         !
 !==============================================================!
 
-  subroutine Global_FileReadParameter( iounit, parameter, rewind_before, defaultvalue )
-  ! why is this not a function returning the read value instead of saving it to IObuffer? (mb)
+  subroutine Global_FileReadParameter( iounit, parameterqualifier, rewind_before, defaultvalue, status )
 
     implicit none
 
@@ -1460,10 +1464,11 @@ contains
 #endif
 
     ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: parameter
-    logical, intent(in), optional :: rewind_before
+    integer, intent(in)                :: iounit
+    character(*), intent(in)           :: parameterqualifier
+    logical, intent(in), optional      :: rewind_before
     character(*), intent(in), optional :: defaultvalue
+    integer, intent(out), optional     :: status
 
     ! Declare local variables
     character(IOBufferLength) :: buffer
@@ -1477,6 +1482,7 @@ contains
       ! rewind file, if requested
       if( present(rewind_before) ) then
         if( rewind_before ) then
+          !write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
           rewind( iounit )
           FileReadParameter_LineNumber = 0
         end if
@@ -1487,23 +1493,35 @@ contains
         read( iounit, '(A)', IOSTAT = stat ) buffer
         ! error reading from file?
         if( stat > 0 ) then
-          call Error( "ERROR reading file "//trim(fn)//" while searching for parameter <"//parameter//">" )
+          call Error( "ERROR reading file "//trim(fn)//" while searching for parameter <"//parameterqualifier//">" )
           !return
         ! end of file reached?
         elseif( stat < 0 ) then
           if( present(defaultvalue) ) then
-            write( IOBuffer, '("(",A,":",I4,") setting ",A," to default value ",A, " (backspace",I4," lines)")' ) &
-&                 trim(fn), FileReadParameter_LineNumber, trim(parameter), trim(defaultvalue), linesread
+            if( present(rewind_before) ) then
+              if( rewind_before ) then
+                !write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+                rewind( iounit )
+                FileReadParameter_LineNumber = 0
+              end if
+            else
+              ! rewind to the position, where the reading process was started
+              do i = 1,linesread
+                !write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+                backspace( iounit )
+                FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
+              end do
+            end if
+            write( IOBuffer, '("(",A,":",I4,") setting ",A," to default value ",A)' ) &
+&                 trim(fn), FileReadParameter_LineNumber, trim(parameterqualifier), trim(defaultvalue)
             call LogWrite
-            ! rewind to the position, where the reading process was started
-            do i = 1,linesread
-              backspace( iounit )
-            end do
             ! set parameter to given default value
             IOBuffer = defaultvalue
+            if( present(status) ) status=1
             exit
           else
-            call Error( trim(fn)//": Could not find parameter <"//parameter//">" )
+            if( present(status) ) status=-1
+            call Error( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
             !return
           end if
         end if
@@ -1512,13 +1530,17 @@ contains
         !write( IOBuffer, '("(",A,":",I4,") read ",A)' ) trim(fn),FileReadParameter_LineNumber,trim(buffer); call LogWrite
         ! check for comment token
         comment_pos = index( buffer, CommentSign )
-        !                 eliminate comment part of line
-        if( comment_pos > 0 ) buffer = buffer(1:comment_pos - 1)
-        if( index( adjustl( buffer ), trim( parameter ) ) == 1 ) then
+        if( comment_pos > 0 ) then
+          !write( IOBuffer, '("(",A,":",I4,") comment ",A)' ) trim(fn),FileReadParameter_LineNumber,trim(buffer(1:comment_pos-1)); call LogWrite
+          !        eliminate comment part of line
+          buffer = buffer(1:comment_pos - 1)
+        end if
+        if( index( adjustl( buffer ), trim( parameterqualifier ) ) == 1 ) then
           ! extract value part (after =) - better also adjustl() and trim()?
           buffer = buffer( index( buffer, '=' )+1:len( buffer ) )
           !write( IOBuffer, '("(",A,":",I4,") IOBuffer=",A)' ) trim(fn),FileReadParameter_LineNumber,trim(buffer); call LogWrite
           IOBuffer = buffer
+          if( present(status) ) status=0
           exit
         end if
       end do
@@ -1530,7 +1552,211 @@ contains
 &     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
 #endif
 
+
   end subroutine Global_FileReadParameter
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_String                  !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_String( parametervalue, iounit, parameterqualifier, &
+&                                           rewind_before, defaultvalue, status )
+  ! setting up functions with result (parametervalue) for different data types is ambigious
+  ! for a FileReadParameter polymorphism 
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    character(*)                       :: parametervalue
+    integer, intent(in)                :: iounit
+    character(*), intent(in)           :: parameterqualifier
+    logical, intent(in), optional      :: rewind_before
+    character(*), intent(in), optional :: defaultvalue
+    integer, intent(out), optional     :: status
+
+
+    ! Declare local variables
+    character(IOBufferLength) :: buffer
+    integer                   :: stat, comment_pos, linesread, i
+    character(FileNameLength) :: fn
+
+    ! determine filename
+    inquire( iounit, NAME = fn )
+    ! Only RootProc reads parameter from file
+    if( RootProc ) then
+      ! rewind file, if requested
+      if( present(rewind_before) ) then
+        if( rewind_before ) then
+          !write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+          rewind( iounit )
+          FileReadParameter_LineNumber = 0
+        end if
+      end if
+      linesread = 0
+      ! loop to read lines until parameter is found
+      do
+        read( iounit, '(A)', IOSTAT = stat ) buffer
+        ! error reading from file?
+        if( stat > 0 ) then
+          call Error( "ERROR reading file "//trim(fn)//" while searching for parameter <"//parameterqualifier//">" )
+          !return
+        ! end of file reached?
+        elseif( stat < 0 ) then
+          if( present(defaultvalue) ) then
+            if( present(rewind_before) ) then
+              if( rewind_before ) then
+                !write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+                rewind( iounit )
+                FileReadParameter_LineNumber = 0
+              end if
+            else
+              ! rewind to the position, where the reading process was started
+              do i = 1,linesread
+                !write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+                backspace( iounit )
+                FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
+              end do
+            end if
+            write( IOBuffer, '("(",A,":",I4,") setting ",A," to default value ",A)' ) &
+&                 trim(fn), FileReadParameter_LineNumber, trim(parameterqualifier), trim(defaultvalue)
+            call LogWrite
+            ! set parameter to given default value
+            parametervalue = defaultvalue
+            if( present(status) ) status = 1
+            exit
+          else
+            if( present(status) ) status = -1
+            call Error( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+            !return
+          end if
+        end if
+        FileReadParameter_LineNumber = FileReadParameter_LineNumber+1
+        linesread = linesread + 1
+        !write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(buffer); call LogWrite
+        ! check for comment token
+        comment_pos = index( buffer, CommentSign )
+        if( comment_pos > 0 ) then
+          !write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(buffer(comment_pos:len(parametervalue))); call LogWrite
+          !        eliminate comment part of line
+          buffer = buffer(1:comment_pos - 1)
+        end if
+        if( index( adjustl( buffer ), trim( parameterqualifier ) ) == 1 ) then
+          ! extract value part (after =)
+          parametervalue = buffer( index( buffer, '=' )+1:len( buffer ) )
+          parametervalue = trim( adjustl( parametervalue ) )
+          if( present(status) ) status = 0
+          exit
+        end if
+      end do
+    end if
+
+    ! Broadcast parameter to other processes
+#if MPI_VER > 0
+    call MPI_Bcast( parametervalue, len(parametervalue), &
+&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+#endif
+
+    !write( IOBuffer, '(I5," (",A,":",I4,") ",A," parametervalue=",A)' ) NProc,trim(fn),FileReadParameter_LineNumber,trim(parameterqualifier),trim(parametervalue); call LogWrite
+
+  end subroutine Global_FileReadParameter_String
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_Integer                 !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_Integer( parametervalue, iounit, parameterqualifier, &
+&                                            rewind_before, defaultvalue, status )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in)            :: iounit
+    character(*), intent(in)       :: parameterqualifier
+    logical, intent(in), optional  :: rewind_before
+    integer, intent(in), optional  :: defaultvalue
+    integer, intent(out), optional :: status
+
+    integer :: parametervalue
+
+    ! Declare local variables
+    character(IOBufferLength) :: buffer
+    logical                   :: rewindbefore
+    integer                   :: stat
+    !character(FileNameLength) :: fn
+
+    !inquire( iounit, NAME = fn )
+    rewindbefore = .false.
+    if ( present(rewind_before) ) rewindbefore = rewind_before
+    if ( present(defaultvalue) ) then
+      call Global_FileReadParameter_String( buffer, iounit, parameterqualifier, &
+&                                           rewindbefore, "", stat)
+    else
+      call Global_FileReadParameter_String( buffer, iounit, parameterqualifier, &
+&                                           rewindbefore, status=stat)
+    end if
+    if( stat == 1 ) then
+      parametervalue = defaultvalue
+    else
+      read( buffer, * ) parametervalue
+    end if
+    if ( present(status) ) status=stat
+
+    !write( IOBuffer, '(I5," (",A,":",I4,";",I2,") ",A," parametervalue=",I5)' ) NProc,trim(fn),FileReadParameter_LineNumber,stat,trim(parameterqualifier),parametervalue; call LogWrite
+
+  end subroutine Global_FileReadParameter_Integer
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_Real                    !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_Real( parametervalue, iounit, parameterqualifier, &
+&                                         rewind_before, defaultvalue, status )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in)            :: iounit
+    character(*), intent(in)       :: parameterqualifier
+    logical, intent(in), optional  :: rewind_before
+    real(RK), intent(in), optional :: defaultvalue
+    integer, intent(out), optional :: status
+
+    real(RK) :: parametervalue
+
+    ! Declare local variables
+    character(IOBufferLength) :: buffer
+    logical                   :: rewindbefore
+    integer                   :: stat
+    !character(FileNameLength) :: fn
+
+    !inquire( iounit, NAME = fn )
+    rewindbefore = .false.
+    if ( present(rewind_before) ) rewindbefore = rewind_before
+    if ( present(defaultvalue) ) then
+      call Global_FileReadParameter_String( buffer, iounit, parameterqualifier, &
+&                                           rewindbefore, "", stat)
+    else
+      call Global_FileReadParameter_String( buffer, iounit, parameterqualifier, &
+&                                           rewindbefore, status=stat)
+    end if
+    if( stat == 1 ) then
+      parametervalue = defaultvalue
+    else
+      read( buffer, * ) parametervalue
+    end if
+    if ( present(status) ) status=stat
+
+    !write( IOBuffer, '(I5," (",A,":",I4,";",I2,") ",A," parametervalue=",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber,stat,trim(parameterqualifier),parametervalue; call LogWrite
+
+  end subroutine Global_FileReadParameter_Real
 
 
 
