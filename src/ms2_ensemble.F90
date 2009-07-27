@@ -727,6 +727,10 @@ contains
     if( CutoffMode .eq. CenterofMass ) then
       call FileReadParameter( iounit_params , IdRCutoffCOM )
       read( IOBuffer, * ) this%RCutoffLJ126LJ126
+      if (this%RCutoffLJ126LJ126 < 0._RK) then
+        this%RCutoffLJ126LJ126 = 0.9*0.5*(this%NPart / &
+&          (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
+      end if
       write( IOBuffer, '("Reduced center of mass cutoff radius: ", F6.3)' ) &
 &       this%RCutoffLJ126LJ126
       call LogWrite
@@ -813,7 +817,7 @@ contains
     end do
 
     ! Calculate maximum cutoff radius
-    this%RCutoffMax2 = 0._RK
+!    this%RCutoffMax2 = 0._RK
     if( this%NDipoleMax > 0 ) then
       this%RCutoffMax2 = max(this%RCutoffMax2, &
 &       2._RK * this%RCutoffDipoleDipole )
@@ -6639,7 +6643,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j
+    integer                   :: i,j,counter
 
     if( RootProc ) then
 
@@ -6743,6 +6747,7 @@ loop2:        do nc = 1, this%NComponents
     endif
 
     ! 4.) Chemical potential and partial molar volumes
+    counter = this%NRealComponents+1
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       select case( pc%ChemPotMethod )
@@ -6755,12 +6760,13 @@ loop2:        do nc = 1, this%NComponents
         call RestartRead( pc%SumInvChemPotRho2 )
         call RestartRead( pc%SumInvChemPot2 )
 !DEBUG
-        pc%NFluctState = 0;
-        do j = 1, this%NComponents
+        pc%NFluctState = 0
+        do j = counter,counter + this%Component(i)%Molecule%NFluct-1
           if (this%Component(j)%NPart .eq. 1) then
-            pc%NFluctState = j-1
+            pc%NFluctState = j-counter+1
           end if
         end do
+        counter = counter + this%Component(i)%Molecule%NFluct
 
       case( ChemPotMethodWidom )
         call RestartRead( pc%SumChemPotV )

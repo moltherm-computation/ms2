@@ -492,6 +492,9 @@ contains
       if( BlockSize > 0 ) then
         NBlocksMax = max( NStepsV, NStepsP, NSteps ) / BlockSize
         NBlockSizesMax = int( sqrt( real( NSteps / BlockSize, RK ) ) )
+        if (NBlocksMax .eq. 0) then
+            call Error( 'ResultFreq < RunSteps, please change input variables' )
+        end if
       else
         NBlocksMax = 0
         NBlockSizesMax = 0
