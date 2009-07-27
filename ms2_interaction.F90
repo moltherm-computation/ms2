@@ -110,14 +110,15 @@ module ms2_interaction
     logical :: ReactionField
 
     ! (2*eps-1)/(2*eps+1)
-    real(RK) :: RFConst2
+    real(RK) :: RFConst2, RFConst3
 
     ! Same component
     logical :: SameComponent
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: DebyeLen
+    real(RK) :: DebyeLen, RFConstant
+    real(RK) :: lad1,lad2
 
 #ifdef ABL
     real(RK),pointer :: AblS(:)
@@ -213,17 +214,21 @@ contains
     ! Declare local variables
     integer :: j1, j2
     integer :: stat
+    real    :: fac
 
     ! RFConstant2
-    if (LongRange .eq. ExtRField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 &
-&       * ((RFEpsilon - 1._RK)*(1._RK+this%DebyeLen*RCutoffDipoleDipole)+&
-&          RFEpsilon*(this%DebyeLen*RCutoffDipoleDipole)**2)&
-&       / ((2._RK * RFEpsilon+1._RK)*(1._RK+this%DebyeLen*RCutoffDipoleDipole)+&
-&          RFEpsilon*(this%DebyeLen*RCutoffDipoleDipole)**2)
-    else
+    if (LongRange .eq. RField) then
       this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 &
 &       * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
+    else
+      fac = this%DebyeLen*RCutoffDipoleDipole
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 &
+&       * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
+&       / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
+      this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
+&               / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
+!       this%RFConst3 = ( 1._RK - RFEpsilon*(1+fac) ) / ( RFEpsilon*(1+fac) )
+      this%RFConstant=RCutoffDipoleDipole
     end if
 
     ! Set SameComponent flag
@@ -277,6 +282,14 @@ contains
       this%tRFZ2 => Component2%tRFZ(:)
     end if
 
+    ! Charge for extended reactionField
+    if ((this%N1Charge .gt. 0) .and. (.not. Component1%Molecule%isElongated) )then
+       this%lad1 = Component1%Molecule%SiteCharge(1)%e
+    end if
+    if ((this%N1Charge .gt. 0) .and. (.not. Component2%Molecule%isElongated)) then
+       this%lad2 = Component2%Molecule%SiteCharge(1)%e
+    end if
+
     ! Set center of mass positions of test particles
     if( this%NTest1 > 0 ) then
       this%PX1Test => Component1%P0Test(:, 1)
@@ -301,7 +314,7 @@ contains
 
     ! Create arrays
     call Allocate( this )
-    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       this%EPot = 0._RK
       this%Virial = 0._RK
       this%EPotNew = 0._RK
@@ -668,7 +681,7 @@ contains
 
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       N1 = this%NPartMax
       N2 = this%NPartMax
     else
@@ -677,7 +690,7 @@ contains
     end if
 
     ! Allocate arrays
-    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       allocate( this%EPot(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
       allocate( this%EPot1(N2), STAT = stat )
@@ -1052,17 +1065,17 @@ contains
 
     ! Calculate point charge chemical potential
     do i = 1, this%N1Charge
-      if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
-        do j = 1, this%N2Charge
-          call ChemicalPotential( this%PotChargeCharge( i, j ), &
-&           EPotTest, BoxLength, this%Kappa)
-        end do
-      else
+!       if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+!         do j = 1, this%N2Charge
+!           call ChemicalPotential( this%PotChargeCharge( i, j ), &
+! &           EPotTest, BoxLength, this%Kappa)
+!         end do
+!       else
         do j = 1, this%N2Charge
           call ChemicalPotential( this%PotChargeCharge( i, j ), &
 &           EPotTest, BoxLength )
         end do
-      end if
+!       end if
       do j = 1, this%N2Dipole
         call ChemicalPotential( this%PotChargeDipole( i, j ), &
 &         EPotTest, BoxLength )
@@ -1187,7 +1200,7 @@ contains
     real(RK)          :: Tmp, RFConst2
     real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
-    real(RK)          :: KappaRij, Rij, approx, Faktor
+    real(RK)          :: KappaRij, Rij, approx, Faktor, q
     integer           :: N
     integer           :: s1, s2, j, k
 
@@ -2038,21 +2051,166 @@ contains
       end do
 
       ! Explicit reaction field contribution
-      if ( this%ReactionField ) then
-        MueX2 => this%MueX2
-        MueY2 => this%MueY2
-        MueZ2 => this%MueZ2
+      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+        if ( LongRange .eq. RField) then    ! Normal ReactionField
+          MueX2 => this%MueX2
+          MueY2 => this%MueY2
+          MueZ2 => this%MueZ2
 
-        mueXi = this%MueX1(np)
-        mueYi = this%MueY1(np)
-        mueZi = this%MueZ1(np)
-        do k = 1, this%NInCutoff(np)
-          j = this%CutoffPartner(k, np)
-          EPot(j) = EPot(j) + this%RFConst2 &
-&           * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
-        end do
-      end if
+          mueXi = this%MueX1(np)
+          mueYi = this%MueY1(np)
+          mueZi = this%MueZ1(np)
+          do k = 1, this%NInCutoff(np)
+            j = this%CutoffPartner(k, np)
+            EPot(j) = EPot(j) + this%RFConst2 &
+&               * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+          end do
+        else         ! Extended ReactionField
+          if ( ((this%N1Charge > 1) .and. (this%N2Charge > 1) ) .or. &
+&                                  (this%N1Charge+this%N2Charge .eq. 0)) then 
+            MueX2 => this%MueX2
+            MueY2 => this%MueY2
+            MueZ2 => this%MueZ2
 
+            mueXi = this%MueX1(np)
+            mueYi = this%MueY1(np)
+            mueZi = this%MueZ1(np)
+            do k = 1, this%NInCutoff(np)
+              j = this%CutoffPartner(k, np)
+              EPot(j) = EPot(j) + this%RFConst2 &
+&                 * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+            end do
+
+          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .ne. 1) ) then 
+          ! Assign pointers to site positions
+            if (this%N2Charge > 0) then
+              pcc => this%PotChargeCharge(1,1)
+              PX2 => pcc%Site2%PX
+              PY2 => pcc%Site2%PY
+              PZ2 => pcc%Site2%PZ
+              RX1 => pcc%Site1%RX
+              RY1 => pcc%Site1%RY
+              RZ1 => pcc%Site1%RZ
+            else
+              pcd => this%PotChargeDipole(1,1)
+              PX2 => pcd%Site2%PX
+              PY2 => pcd%Site2%PY
+              PZ2 => pcd%Site2%PZ
+              RX1 => pcd%Site1%RX
+              RY1 => pcd%Site1%RY
+              RZ1 => pcd%Site1%RZ
+            end if
+!!!!!!!!!!!!!!!!!!!!!!!!!!
+            muexi = 0.0_RK
+            mueyi = 0.0_RK
+            muezi = 0.0_RK
+            q = this%lad1
+            MueX2 => this%MueX2
+            MueY2 => this%MueY2
+            MueZ2 => this%MueZ2
+            do k = 1, this%NInCutoff(np)
+              j = this%CutoffPartner(k, np)
+!!!!!!!!!!!!!!!!!!!!!!!!!
+              RXij = PX2(j)-RX1(np)
+              RYij = PY2(j)-RY1(np)
+              RZij = PZ2(j)-RZ1(np)
+              RXij = (RXij - anint(RXij))*BoxLength
+              RYij = (RYij - anint(RYij))*BoxLength
+              RZij = (RZij - anint(RZij))*BoxLength
+!               Rij = sqrt(RXij**2+RYij**2+RZij**2)
+              EPot(j) = EPot(j) -this%RFConst2 * q &
+&                 * ( RXij*MueX2(j) + RYij*MueY2(j) + RZij*MueZ2(j) )
+
+!!!!!!!
+! richtig
+!               EPot(j) = EPot(j) + 2._RK*this%RFConst2 * q &
+! &                 * ( RXij*MueX2(j) + RYij*MueY2(j) + RZij*MueZ2(j) )
+!!!!!!!
+            end do
+
+          else if ( (this%N1Charge > 1) .and. (this%N2Charge .eq. 1) ) then 
+          ! Assign pointers to site positions
+           if (this%N1Charge > 0) then
+            pcc => this%PotChargeCharge(1,1)
+            PX1 => pcc%Site1%PX
+            PY1 => pcc%Site1%PY
+            PZ1 => pcc%Site1%PZ
+            RX2 => pcc%Site2%RX
+            RY2 => pcc%Site2%RY
+            RZ2 => pcc%Site2%RZ
+           else
+            pdc => this%PotDipoleCharge(1,1)
+            PX1 => pdc%Site1%PX
+            PY1 => pdc%Site1%PY
+            PZ1 => pdc%Site1%PZ
+            RX2 => pdc%Site2%RX
+            RY2 => pdc%Site2%RY
+            RZ2 => pdc%Site2%RZ
+           end if
+            q = this%lad2
+
+            muexi = 0.0_RK
+            mueyi = 0.0_RK
+            muezi = 0.0_RK
+            do k = 1, this%NInCutoff(np)
+              j = this%CutoffPartner(k, np)
+              RXij = RX2(j)-PX1(np)
+              RYij = RY2(j)-PY1(np)
+              RZij = RZ2(j)-PZ1(np)
+              RXij = (RXij - anint(RXij))*BoxLength
+              RYij = (RYij - anint(RYij))*BoxLength
+              RZij = (RZij - anint(RZij))*BoxLength
+!               Rij = sqrt(RXij**2+RYij**2+RZij**2)
+!               muexi = muexi + (1+RXij)*q
+!               mueyi = mueyi + (1+RYij)*q
+!               muezi = muezi + (1+RZij)*q
+              muexi = (RXij)*q
+              mueyi = (RYij)*q
+              muezi = (RZij)*q
+              EPot(j) = EPot(j) +this%RFConst2 &
+&                 * ( muexi * this%MueX1(np) + mueyi * this%MueY1(np) + muezi * this%MueZ1(np) )
+! &                 * ( muexi * this%MueX1(np) + mueyi * this%MueY1(np) + muezi * this%MueZ1(np) )
+!!!!!!!
+! richtig
+!               EPot(j) = EPot(j) - this%RFConst2 &
+! &                 * ( muexi * this%MueX1(np) + mueyi * this%MueY1(np) + muezi * this%MueZ1(np) )
+!!!!!!!
+!               EPot(j) = EPot(j) + this%RFConst3*q !*&
+! &                          (this%MueX1(np)+this%MueY1(np)+this%MueZ1(np))
+            end do
+          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
+            pcc => this%PotChargeCharge(1, 1)
+            Epsilon = pcc%Epsilon
+            RShieldSquared = pcc%RShieldSquared
+
+          ! Assign pointers to site positions
+            RX1 => pcc%Site1%RX
+            RY1 => pcc%Site1%RY
+            RZ1 => pcc%Site1%RZ
+            RX2 => pcc%Site2%RX
+            RY2 => pcc%Site2%RY
+            RZ2 => pcc%Site2%RZ
+            do k = 1, this%NInCutoff(np)
+              j = this%CutoffPartner(k, np)
+              RXij = RX2(j)-RX1(np)
+              RYij = RY2(j)-RY1(np)
+              RZij = RZ2(j)-RZ1(np)
+              RXij = (RXij - anint(RXij))*BoxLength
+              RYij = (RYij - anint(RYij))*BoxLength
+              RZij = (RZij - anint(RZij))*BoxLength
+              Rij = (RXij**2+RYij**2+RZij**2)
+
+!               EPot(j) = EPot(j) - this%RFConst2 * Epsilon * Rij
+!               EPot(j) = EPot(j) + 0.5*this%RFConst2 * Epsilon * Rij &
+! &                                - this%RFConst3 * Epsilon
+!               EPot(j) = EPot(j) - this%RFConst2 * Epsilon * Rij
+            end do
+!             EPot(np) = EPot(np) + this%RFConst3*(this%NInCutoff(np)*q-this%lad1)
+          end if
+        end if 
+      end if 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     else ! Site-site cutoff
 
       ! Calculate Lennard-Jones energy

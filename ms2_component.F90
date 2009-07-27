@@ -208,6 +208,10 @@ module ms2_component
     module procedure TComponent_DestroyAccumulators
   end interface
 
+  interface LongRangeCheck
+    module procedure TComponent_LongRangeCheck
+  end interface
+
   interface InitVelocities
     module procedure TComponent_InitVelocities
   end interface
@@ -492,7 +496,7 @@ contains
     this%NFluctState = 0
 
     ! Allocate maximum allowed MC displacements
-    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       allocate( this%DispTran, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
@@ -722,7 +726,7 @@ contains
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -769,7 +773,7 @@ contains
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
@@ -1234,6 +1238,7 @@ contains
       call Deallocate( this%Molecule%SiteQuadrupole(i) )
     end do
 
+    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
      ! Fluctuating particle states
     if( associated( this%NState ) ) then
       deallocate( this%NState )
@@ -1260,15 +1265,47 @@ contains
     if( associated( this%NFluctUpSuccesses ) ) then
       deallocate( this%NFluctUpSuccesses )
     end if
-    if( associated( this%NFluctDownAttempts ) ) then
-      deallocate( this%NFluctDownAttempts )
-    end if
-    if( associated( this%NFluctDownSuccesses ) ) then
-      deallocate( this%NFluctDownSuccesses )
+      if( associated( this%NFluctDownAttempts ) ) then
+        deallocate( this%NFluctDownAttempts )
+      end if
+      if( associated( this%NFluctDownSuccesses ) ) then
+        deallocate( this%NFluctDownSuccesses )
+      end if
     end if
 !DEBUG
 
   end subroutine TComponent_Deallocate
+
+
+
+!==============================================================!
+!  Subroutine TComponent_LongRangeCheck                        !
+!==============================================================!
+
+   subroutine TComponent_LongRangeCheck ( this, q )
+
+   implicit none
+   type(TComponent)           :: this
+   real(RK),intent(in out)    :: q
+   integer                    :: i
+
+   do i=1,this%Molecule%NCharge
+     q = q + this%NPart * this%Molecule%SiteCharge(i)%e
+   end do
+
+! Reaction Field Check
+   if ((LongRange .eq. RField) .and. (abs(q) .ge. 1e-1)) then
+     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
+     call Error
+   end if
+
+   if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) &
+&         .and. (abs(q) .ge. 1e-4) ) then
+     write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
+     call Error
+   end if
+
+   end subroutine TComponent_LongRangeCheck
 
 
 
@@ -3223,7 +3260,7 @@ contains
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_DOUBLE_PRECISION, &
 &       NRootProc, MPI_COMM_WORLD, ierror )
-    if( SimulationType .eq. MonteCarlo ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
       call MPI_Bcast( this%DispTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
       call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
@@ -3261,9 +3298,6 @@ contains
     this%P0old = this%P0
 
   end subroutine TComponent_RestartRead
-
-
-
 
 
 #if CONSTR > 0

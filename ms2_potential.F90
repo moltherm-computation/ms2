@@ -117,7 +117,7 @@ module ms2_potential
 
   interface ChemicalPotential
     module procedure TPotCC_ChemicalPotential
-    module procedure TPotCC_ChemicalPotential_Ewald
+!     module procedure TPotCC_ChemicalPotential_Ewald
   end interface
 
   interface Energy
@@ -1822,120 +1822,118 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 !  Subroutine TPotCC_ChemicalPotential_Ewald                   !
 !==============================================================!
-
-  subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TPotChargeCharge) :: this
-    real(RK), pointer      :: EPotTest(:)
-    real(RK), intent(in)   :: BoxLength
-    real(RK), intent(in)   :: kappa
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RCutoffSquared
-    real(RK)          :: RShieldSquared
-    real(RK)          :: RCutoffInv
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: RijInv, RijSquared
-    real(RK)          :: EPotLocal1,EPotlocal
-    real(RK)          :: Rij, PDR
-    integer           :: i, j, k, i1
-#if ARCH == 3
-    logical           :: hit
-#endif
-
-    ! Assign local variables
-    i1 = this%Site1%NTest
-    Epsilon = this%Epsilon
-    RCutoffSquared = this%RCutoffSquared
-    RCutoffInv     = 1._RK / sqrt(RCutoffSquared)
-    RShieldSquared = this%RShieldSquared
-
-    ! Assign pointers
-    RX1 => this%Site1%RXTest
-    RY1 => this%Site1%RYTest
-    RZ1 => this%Site1%RZTest
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PXTest
-    PY1 => this%Site1%PYTest
-    PZ1 => this%Site1%PZTest
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-   ! Loop over test particles
-   do i = 1, i1
-     RXi = RX1(i)
-     RYi = RY1(i)
-     RZi = RZ1(i)
-     PXi = PX1(i)
-     PYi = PY1(i)
-     PZi = PZ1(i)
-     EPotLocal = 0._RK
-#if ARCH == 3
-        hit = .false.
-#endif
-!CDIR NODEP
-! loop1:  do k = 1, this%NInCutoff(i)
-!           j = this%CutoffPartner(k, i)
-loop1:  do j = 1, this%Site2%NPart
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-#if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
-#else
-          if ( RijSquared <= RShieldSquared ) then 
-              EPotLocal = 1E33_RK
-              exit loop1
-          end if
-#endif
-         Rij        =  sqrt(RijSquared)
-         RijInv     = 1._RK /  Rij 
-         EPotLocal1 = Epsilon * ( RijInv - RCutoffInv )
-         EPotLocal1 = Epsilon * RijInv
-         EPotLocal  = EPotLocal + EPotLocal1
-        end do loop1
-
-#if ARCH == 3
-        if( .not. hit ) then
-          EPotTest(i) = EPotTest(i) + EPotLocal
-        else
-          EPotTest(i) = EPotTest(i) + 1E33_RK
-        endif
-#else
-        EPotTest(i) = EPotTest(i) + EPotLocal
-#endif
-   end do
-
-  end subroutine TPotCC_ChemicalPotential_Ewald
-
-
+! ! ! 
+! ! !   subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
+! ! ! 
+! ! !     implicit none
+! ! ! 
+! ! !     ! Include MPI header
+! ! ! #if MPI_VER > 0
+! ! !     include 'mpif.h'
+! ! ! #endif
+! ! ! 
+! ! !     ! Declare arguments
+! ! !     type(TPotChargeCharge) :: this
+! ! !     real(RK), pointer      :: EPotTest(:)
+! ! !     real(RK), intent(in)   :: BoxLength
+! ! !     real(RK), intent(in)   :: kappa
+! ! ! 
+! ! !     ! Declare local variables
+! ! !     real(RK)          :: Epsilon
+! ! !     real(RK)          :: RShieldSquared
+! ! !     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+! ! !     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+! ! !     real(RK)          :: RXi, RYi, RZi
+! ! !     real(RK)          :: PXi, PYi, PZi
+! ! !     real(RK)          :: RXij, RYij, RZij
+! ! !     real(RK)          :: PXij, PYij, PZij
+! ! !     real(RK)          :: RijInv, RijSquared
+! ! !     real(RK)          :: KappaRij, approx
+! ! !     real(RK)          :: EPotLocal1,EPotlocal
+! ! !     real(RK)          :: Rij, PDR
+! ! !     integer           :: i, j, k, i1
+! ! ! #if ARCH == 3
+! ! !     logical           :: hit
+! ! ! #endif
+! ! ! 
+! ! !     ! Assign local variables
+! ! !     i1 = this%Site1%NTest
+! ! !     Epsilon = this%Epsilon
+! ! !     RShieldSquared = this%RShieldSquared
+! ! ! 
+! ! !     ! Assign pointers
+! ! !     RX1 => this%Site1%RXTest
+! ! !     RY1 => this%Site1%RYTest
+! ! !     RZ1 => this%Site1%RZTest
+! ! !     RX2 => this%Site2%RX
+! ! !     RY2 => this%Site2%RY
+! ! !     RZ2 => this%Site2%RZ
+! ! !     PX1 => this%Site1%PXTest
+! ! !     PY1 => this%Site1%PYTest
+! ! !     PZ1 => this%Site1%PZTest
+! ! !     PX2 => this%Site2%PX
+! ! !     PY2 => this%Site2%PY
+! ! !     PZ2 => this%Site2%PZ
+! ! ! 
+! ! !    ! Loop over test particles
+! ! !    do i = 1, i1
+! ! !      RXi = RX1(i)
+! ! !      RYi = RY1(i)
+! ! !      RZi = RZ1(i)
+! ! !      PXi = PX1(i)
+! ! !      PYi = PY1(i)
+! ! !      PZi = PZ1(i)
+! ! !      EPotLocal = 0._RK
+! ! ! #if ARCH == 3
+! ! !         hit = .false.
+! ! ! #endif
+! ! ! !CDIR NODEP
+! ! ! loop1:  do k = 1, this%NInCutoff(i)
+! ! !           j = this%CutoffPartner(k, i)
+! ! ! ! loop1:  do j = 1, this%Site2%NPart
+! ! !           RXij = RXi - RX2(j)
+! ! !           RYij = RYi - RY2(j)
+! ! !           RZij = RZi - RZ2(j)
+! ! !           PXij = PXi - PX2(j)
+! ! !           PYij = PYi - PY2(j)
+! ! !           PZij = PZi - PZ2(j)
+! ! !           RXij = (RXij - anint( PXij )) * BoxLength
+! ! !           RYij = (RYij - anint( PYij )) * BoxLength
+! ! !           RZij = (RZij - anint( PZij )) * BoxLength
+! ! !           PXij = (PXij - anint( PXij )) * BoxLength
+! ! !           PYij = (PYij - anint( PYij )) * BoxLength
+! ! !           PZij = (PZij - anint( PZij )) * BoxLength
+! ! !           RijSquared = RXij**2 + RYij**2 + RZij**2
+! ! ! #if ARCH == 3
+! ! !           if( RijSquared <= RShieldSquared ) hit = .true.
+! ! ! #else
+! ! !           if ( RijSquared <= RShieldSquared ) then 
+! ! !               EPotLocal = 1E33_RK
+! ! !               exit loop1
+! ! !           end if
+! ! ! #endif
+! ! !          Rij        =  sqrt(RijSquared)
+! ! !          RijInv     = 1._RK /  Rij 
+! ! !          KappaRij   = kappa * Rij
+! ! !          call erfc_approx(KappaRij,approx) 
+! ! !          EPotLocal1 = Epsilon * RijInv * approx
+! ! !          EPotLocal  = EPotLocal + EPotLocal1
+! ! !         end do loop1
+! ! ! 
+! ! ! #if ARCH == 3
+! ! !         if( .not. hit ) then
+! ! !           EPotTest(i) = EPotTest(i) + EPotLocal
+! ! !         else
+! ! !           EPotTest(i) = EPotTest(i) + 1E33_RK
+! ! !         endif
+! ! ! #else
+! ! !         EPotTest(i) = EPotTest(i) + EPotLocal
+! ! ! #endif
+! ! !    end do
+! ! ! 
+! ! !   end subroutine TPotCC_ChemicalPotential_Ewald
+! ! ! 
+! ! ! 
 
 
 !==============================================================!

@@ -51,6 +51,7 @@ module ms2_ensemble
 
     ! Maximum number of particles
     integer, pointer :: NPartMax
+    integer, pointer :: NPartMaxFluct
 
     ! Number of particles in ensemble
     integer :: NPart, NPartInitial
@@ -197,6 +198,7 @@ module ms2_ensemble
    real(RK),pointer:: distx(:,:,:),disty(:,:,:),distz(:,:,:)
    real(RK),pointer:: VirIntra(:)
 
+#ifdef SPME
   ! SPME parameters
    integer         :: splineorder
    integer         :: gridx
@@ -209,6 +211,7 @@ module ms2_ensemble
    real(RK)        :: EVirialIntra
    real(RK),pointer:: EPotPME(:), VirialPME(:), mm2(:)
 !    real(RK),pointer:: spline(:), dspline(:)
+#endif
 
    ! Extended ReactionField Method
    real(RK)        :: DebyeLen
@@ -273,6 +276,10 @@ module ms2_ensemble
 
   interface CalculateNPart
     module procedure TEnsemble_CalculateNPart
+  end interface
+
+  interface LongRangeCheck
+    module procedure TEnsemble_LongRangeCheck
   end interface
 
   interface UpdateBoxLength
@@ -432,6 +439,7 @@ module ms2_ensemble
     module procedure TEnsemble_Energy
     module procedure TEnsemble_Energy1
     module procedure TEnsemble_Energy1_CF
+    module procedure TEnsemble_EwaldEnergy1
   end interface
 
   interface GetEnergy
@@ -477,6 +485,29 @@ module ms2_ensemble
 
   interface Resize
     module procedure TEnsemble_Resize
+  end interface
+
+  interface Resize_Gibbs
+    module procedure TEnsemble_Resize_liq
+    module procedure TEnsemble_Resize_vap
+  end interface
+
+  interface Update_Gibbs
+    module procedure TEnsemble_ResizeLiquid_Update
+    module procedure TEnsemble_PartChangeUpdate
+  end interface
+
+  interface Insert_Gibbs
+    module procedure TEnsemble_GibbsInsert
+!     module procedure TEnsemble_Gibbs_Insert
+  end interface
+
+  interface Remove_Gibbs
+    module procedure TEnsemble_GibbsRemove
+  end interface
+
+  interface Gibbs_Delete
+    module procedure TEnsemble_GibbsDelete
   end interface
 
   interface ZeroNAttempts
@@ -547,15 +578,17 @@ module ms2_ensemble
     module procedure TEnsemble_EwaldFourierEnergy
     module procedure TEnsemble_EwaldFourierEnergy1
     module procedure TEnsemble_EwaldFourierEnergy_CF
+    module procedure TEnsemble_EwaldFourierAddDel
   end interface
 
   interface EwaldSelfTerm_Energy
     module procedure TEnsemble_EwaldSelf_Energy
   end interface
-
-  interface Ewald_ChemPotSelf
-    module procedure TEnsemble_Ewald_ChemPotSelf
-  end interface
+! ! ! 
+! ! !   interface Ewald_ChemPotSelf
+! ! !     module procedure TEnsemble_Ewald_ChemPotSelf
+! ! !   end interface
+! ! ! 
 ! ! ! 
 ! ! !   interface Ewald_ChemPotFour
 ! ! !     module procedure TEnsemble_Ewald_ChemPotFour
@@ -565,6 +598,7 @@ module ms2_ensemble
 !     module procedure TEnsemble_PMESelfTerm
 !   end interface
 
+#ifdef SPME
   interface PMEFourierTerm
     module procedure TEnsemble_PMEFourierTerm
   end interface
@@ -588,6 +622,7 @@ module ms2_ensemble
   interface chargegrid_plus
    module procedure TEnsemble_PMChargeGrid_plus
    end interface
+#endif
 
 #if CONSTR > 0
   interface Constraints
@@ -628,6 +663,9 @@ contains
     ! Allocate maximum number of particles
     allocate( this%NPartMax, STAT = stat )
     call AllocationError( stat, 'maximum number of particles' )
+    allocate( this%NPartMaxFluct, STAT = stat )
+    call AllocationError( stat, 'maximum number of particles' )
+
 
     ! Set number of ensemble
     this%EnsembleNumber = ne
@@ -784,7 +822,7 @@ contains
     call FileReadParameter( iounit_params , IdNPart )
     read( IOBuffer, * ) this%NPart
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       this%NPartInitial = this%NPart
       this%NPartLBound = int( real( this%NPart, RK ) / 1.2_RK )
       this%NPartUBound = int( real( this%NPart, RK ) * 1.2_RK )
@@ -816,6 +854,9 @@ contains
 
     ! Calculate initial number of particles of each component
     call CalculateNPart( this )
+
+    ! LongRange-Corrections need electro-neutral system
+    call LongRangeCheck ( this )
 
     ! Calculate maximum numbers of sites in components
     call FindNSiteMax( this )
@@ -978,7 +1019,6 @@ contains
 
 #endif
 
-
     ! Create potentials
     call CreatePotentials( this )
 
@@ -1049,13 +1089,14 @@ contains
             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          end if
          do i=1,this%NComponents
-           do j=1,this%NCOmponents
+           do j=1,this%NComponents
              this%Interaction(i,j)%Kappa = this%Kappa
+             this%Interaction(i,j)%DebyeLen = this%DebyeLen
            end do
          end do
          call EwaldSelfTerm( this )
         ! Memory Allocation for Ewald Summation
-         allocate(this%Faktor(this%NPart),STAT=stat)
+         allocate(this%Faktor(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Faktor'
          allocate(this%U_fourierLocal(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error U_fourier'
@@ -1063,17 +1104,17 @@ contains
          if(stat >0) write(*,*) 'Allocation Error SSin'
          allocate(this%SCos(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos'
-         allocate(this%sinfac(this%NPart),STAT=stat)
+         allocate(this%sinfac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error sinfac'
-         allocate(this%cosfac(this%NPart),STAT=stat)
+         allocate(this%cosfac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error cosfac'
-         allocate(this%SSin_Vec(this%NPart),STAT=stat)
+         allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
-         allocate(this%SCos_Vec(this%NPart),STAT=stat)
+         allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
-         allocate(this%sinfac_s(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error sin_facs'
-         allocate(this%cosfac_s(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error cosfac_s'
 !          allocate(this%sinfac_s_old(5),STAT=stat)
 !          if(stat >0) write(*,*) 'Allocation Error sinfac'
@@ -1083,7 +1124,7 @@ contains
          if(stat >0) write(*,*) 'Allocation Error rold'
          allocate(this%Vec2(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
-         allocate(this%HFac(this%NPart),STAT=stat)
+         allocate(this%HFac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error HFac'
 !          allocate(this%distx(this%NComponents,5,this%NPart),STAT=stat)
 !          if(stat >0) write(*,*) 'Allocation Error distx'
@@ -1093,20 +1134,20 @@ contains
 !          if(stat >0) write(*,*) 'Allocation Error distz'
 !          allocate(this%VirIntra(this%NPart),STAT=stat)
 !          if(stat >0) write(*,*) 'Allocation Error VirIntra'
-         allocate(this%distx(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error distx'
-         allocate(this%disty(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error disty'
-         allocate(this%distz(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error distz'
-         allocate(this%VirIntra(this%NPart),STAT=stat)
+         allocate(this%VirIntra(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error VirIntra'
 
 ! Chemical Potential
-         DO i=1,this%NComponents
-           call Ewald_ChemPotSelf(this,i)
-         END DO
-
+!          DO i=1,this%NComponents
+!            call Ewald_ChemPotSelf(this,i)
+!          END DO
+#ifdef SPME
       else if (LongRange .eq. PME) then
 
          if (this%KappaL .eq. 0.) then
@@ -1116,7 +1157,7 @@ contains
             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          end if
          do i=1,this%NComponents
-           do j=1,this%NCOmponents
+           do j=1,this%NComponents
              this%Interaction(i,j)%Kappa = this%Kappa
            end do
          end do
@@ -1131,9 +1172,10 @@ contains
 
 ! Setup SPME calculation
          call PMESetup (this)
+#endif
        else if (LongRange .eq. ExtRField) then
          do i=1,this%NComponents
-           do j=1,this%NCOmponents
+           do j=1,this%NComponents
              this%Interaction(i,j)%DebyeLen = this%DebyeLen
            end do
          end do
@@ -1308,6 +1350,9 @@ contains
       call Construct( this%Component(i), PotModFileName )
       call Construct( this%Component(i+1), PotModFileName )
 
+      if( (this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom) .and. (LongRange .ne. RField) ) &
+&     call Error( 'Widom cannot be used with Ewald Summation or its Deriavtes ' )
+
     end do
 
     ! Calculate number of particles in each process
@@ -1410,7 +1455,9 @@ contains
 #if MPI_VER > 0
     include 'mpif.h'
 #endif
+#ifdef SPME
     include 'fftw3.f'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1427,6 +1474,9 @@ contains
     ! Deallocate maximum number of particles
     if( associated( this%NPartMax ) ) then
       deallocate( this%NPartMax )
+    end if
+    if( associated( this%NPartMaxFluct ) ) then
+      deallocate( this%NPartMaxFluct )
     end if
 
     ! Deallocate simulation box length
@@ -1505,6 +1555,7 @@ contains
       end if
     end if
 
+#ifdef SPME
     if (LongRange .eq. PME) then
       call dfftw_destroy_plan(this%qgrid_forward)
       call dfftw_destroy_plan(this%qgrid_backward)
@@ -1527,6 +1578,7 @@ contains
          deallocate( this%bsp_modz )
       end if
     endif
+#endif
 
   end subroutine TEnsemble_Destruct
 
@@ -1551,6 +1603,7 @@ contains
     ! Declare local variables
     integer :: i, j, nfluct, ncomp
     integer :: stat
+    real(RK):: q
     type(TComponent), pointer :: reallocate(:)
 
     ! Create components
@@ -1564,7 +1617,16 @@ contains
     ! Create components for fluctuating particle states
     this%NRealComponents = ncomp
     do i = 1, this%NRealComponents
+      q = 0._RK
+
       if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+        ! LongRange Check
+        do j=1,this%Component(i)%Molecule%NCharge
+          q = q + this%Component(i)%Molecule%SiteCharge(j)%e
+        end do
+        if (abs(q) .gt. 1e-7) &
+&        call Error ('Gradual Insertion not possible for charged molecule! No Electroneutrality')
+
         nfluct = this%Component(i)%Molecule%NFluct
         ncomp = ncomp + nfluct
 
@@ -1665,6 +1727,9 @@ contains
     else
       do i = 1, this%NComponents
         do j = 1, this%NComponents
+          if (LongRange .ne. RField) then
+            this%Interaction(i,j)%DebyeLen = this%DebyeLen
+          end if
           call Construct( &
 &           this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
@@ -1755,7 +1820,7 @@ contains
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
       if( EnsembleType .eq. EnsembleTypeGE .or. &
-&         EnsembleType .eq. EnsembleTypeHA ) then
+&         EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Construct( this%SumNPart, .false. )
       end if
 
@@ -1814,7 +1879,7 @@ contains
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumNPart )
     end if
 
@@ -1871,10 +1936,14 @@ contains
 
     ! Set maximum number of particles
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       this%NPartMax = 2 * this%NPart
+! Max. number of particles of component i in a fluctuating state 
+      this%NPartMaxFluct = 1
     else
       this%NPartMax = this%NPart
+! Max. number of particles of component i in a fluctuating state 
+      this%NPartMaxFluct = 1
     end if
 
     ! Normalize molar fractions
@@ -1952,6 +2021,34 @@ contains
 
 
 !==============================================================!
+!  Subroutine TEnsemble_LongRangeCheck                         !
+!==============================================================!
+
+   subroutine TEnsemble_LongRangeCheck ( this )
+
+   implicit none
+   type(TEnsemble)            :: this
+   integer                    :: i
+   real(RK)                   :: q
+
+! Calculation
+   q = 0._RK
+   do i=1,this%NComponents
+     call LongRangeCheck ( this%Component(i), q)
+   end do
+
+! Error Analysis
+   if (abs(q) .ge. 1e-1) then
+     write (ErrorBuffer,'("You have a non-neutral system.\n NetCharge norm&red = ", &
+&                 F20.10, "\n Conflicts arise applying long range corrections")') q
+     call Error
+   end if
+
+   end subroutine TEnsemble_LongRangeCheck
+
+
+
+!==============================================================!
 !  Subroutine TEnsemble_UpdateBoxLength                        !
 !==============================================================!
 
@@ -1988,6 +2085,7 @@ contains
           end do
         end do
         call EwaldSelfTerm(this)
+#ifdef SPME
       else if (LongRange .eq. PME ) then
         this%Kappa = this%KappaL / this%BoxLength
         do i=1,this%NComponents
@@ -1996,6 +2094,7 @@ contains
           end do
         end do
         call PMESelfTermMC ( this )
+#endif
       end if
     end if
 
@@ -2143,7 +2242,7 @@ contains
 
     ! Allocate components
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
        do i = 1, this%NComponents
          this%Component(i)%NPartMax => this%NPartMax
          if( this%Component(i)%NTest > 0 ) then
@@ -2155,7 +2254,11 @@ contains
        end do
     else
        do i = 1, this%NComponents
-         this%Component(i)%NPartMax => this%NPartMax
+         if (i .le. this%NRealComponents) then
+           this%Component(i)%NPartMax => this%NPartMax
+         else 
+           this%Component(i)%NPartMax => this%NPartMaxFluct
+         end if
          if( this%Component(i)%NTest > 0 ) then
            this%Component(i)%P0Test => this%P0Test
            this%Component(i)%Q0Test => this%Q0Test
@@ -2170,10 +2273,10 @@ contains
     if (LongRange .eq. Ewald) then
      allocate(this%Ewald_Prefac(this%NVecMax),STAT=stat)
      allocate(this%Ewald_Vec(3,this%NVecMax),STAT=stat)
-     number = 0
-     do i=1,this%NComponents
-       number = number + this%Component(i)%NPart * this%Component(i)%Molecule%NCharge
-     end do
+!      number = 0
+!      do i=1,this%NComponents
+!        number = number + this%Component(i)%NPart * this%Component(i)%Molecule%NCharge
+!      end do
 !      allocate(this%SSin_fac(number),STAT=stat)
 !      allocate(this%SCos_fac(number),STAT=stat)
     end if 
@@ -2286,18 +2389,18 @@ contains
     type(TComponent), pointer       :: pc
     type(TPotLJ126LJ126), pointer   :: plj
     integer                         :: i1, i2, j1, j2
+    real(RK)                        :: fac
 
     ! Assign local variables
     NPartInv = 1._RK / this%NPart
-    if (LongRange .eq. ExtRField) then
-      RFConst = -1._RK / this%RCutoffDipoleDipole**3 &
-&       * ((this%RFEpsilon - 1._RK)*(1._RK+this%DebyeLen*this%RCutoffDipoleDipole)+&
-&          this%RFEpsilon*(this%DebyeLen*this%RCutoffDipoleDipole)**2)&
-&       / ((2._RK * this%RFEpsilon+1._RK)*(1._RK+this%DebyeLen*this%RCutoffDipoleDipole)+&
-&          this%RFEpsilon*(this%DebyeLen*this%RCutoffDipoleDipole)**2)
-    else 
+    if (LongRange .eq. RField) then
       RFConst = -1._RK / this%RCutoffDipoleDipole**3 &
 &       * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
+    else 
+      fac = this%DebyeLen*this%RCutoffDipoleDipole
+      RFConst = -1._RK / this%RCutoffDipoleDipole**3 &
+&       * ((this%RFEpsilon - 1._RK)*(1._RK+fac) + 0.5*this%RFEpsilon*(fac)**2) &
+&       / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
     endif
 
     ! Set maximum cutoff radius
@@ -2338,8 +2441,7 @@ contains
 
     ! Calculate electrostatic long-range corrections
     ! This is the self term of the reaction field
-    if(((this%NChargeMax>0).AND.((LongRange.eq.RField).or.(LongRange.eq.ExtRField))) &
-&              .or.(this%NDipoleMax > 0) ) then
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
       do i1 = 1, this%NComponents
         pc => this%Component(i1)
         pc%EPotTestCorrRF = pc%Molecule%MueSquared * 2._RK * RFConst
@@ -2348,14 +2450,29 @@ contains
       this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
     end if
 
-    if ((this%NChargeMax > 0) .and. ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))) then
-      this%EPotCorrRF = 0.0
-      do i1 = 1, this%NComponents
-        pc => this%Component(i1)
-        pc%EPotTestCorrRF = 0._RK
-      end do
 
-    end if
+
+
+
+
+!     if(((this%NChargeMax>0).AND.((LongRange.eq.RField).or.(LongRange.eq.ExtRField))) &
+! &              .or.(this%NDipoleMax > 0) ) then
+!       do i1 = 1, this%NComponents
+!         pc => this%Component(i1)
+!         pc%EPotTestCorrRF = pc%Molecule%MueSquared * 2._RK * RFConst
+!         this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
+!       end do
+!       this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
+!     end if
+! 
+!     if ((this%NChargeMax > 0) .and. ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))) then
+!       this%EPotCorrRF = 0.0
+!       do i1 = 1, this%NComponents
+!         pc => this%Component(i1)
+!         pc%EPotTestCorrRF = 0._RK
+!       end do
+! 
+!     end if
   end subroutine TEnsemble_CalculateCorr
 
 
@@ -3131,7 +3248,8 @@ loop1:do nc = 1, this%NComponents
     this%EPot = GetEnergy( this )
     this%Virial = GetVirial( this )
 #endif
-
+!     write(*,*) 'changes in 3179'
+!     call Energy(this,this%Epot)
     ! Resize simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
       call Resize( this )
@@ -3989,9 +4107,11 @@ loop3:    do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierTerm (this)
     end if
+#ifdef SPME
     if (LongRange .eq. PME) then
       call PMEFourierTerm (this)
     end if
+#endif
 
 
     ! Collect sums from all processes
@@ -4043,7 +4163,11 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, &
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
+    integer                   :: ewald_h
     type(TComponent), pointer :: pc
+#if MPI_VER > 0
+    real(RK)                  :: EPot_h
+#endif
 !DEBUG
 !     type(TComponent), pointer :: pcf
     integer                   :: nstate( 0:this%NFluctMax ) !, counter
@@ -4094,6 +4218,40 @@ loop3:    do nc = 1, this%NComponents
       ! Chemical potential by gradual insertion
       case( ChemPotMethodGradIns )
 
+       ! Calculation of Chemical Potential for Ionic systems
+        if (LongRange .eq. Ewald) then
+          ewald_h = 1
+          ! Set LongRange Correction to Extended ReactionField
+          LongRange = 4
+          call CalculateCorr (this)
+#if MPI_VER > 0
+          call Energy( this, EPot_h )
+          call MPI_Allreduce( EPot_h, this%EPot, 1, &
+&             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+!           write(*,*) this%Epot
+          call Energy( this, this%EPot )
+          call UpdateEnergy ( this )
+!           write(*,*) this%Epot
+!           STOP
+#endif
+        end if
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
+!         if (ewald_h .eq. 1) then
+!           ! Set LongRange Correction to Extended ReactionField
+!           LongRange = 1
+!           call CalculateCorr (this)
+! #if MPI_VER > 0
+!           call Energy( this, EPot_h )
+!           call MPI_Allreduce( EPot_h, this%EPot, 1, &
+! &             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+! #else
+!           call Energy( this, this%EPot )
+! #endif
+!         end if
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
         ! Reset variables
         if( Step == 1 ) then
           pc%ProbW0 = 0._RK
@@ -4108,12 +4266,17 @@ loop3:    do nc = 1, this%NComponents
           pc%CalcChemPot = .true.
 
           ! Save current state
-!           call SaveState( this )
+          call SaveState( this )
 
           ndfmove = this%NDF
           ndfbiased = this%NDF * 50
           ndffluct = this%NDF * 10
           ndfchange = this%NDF * 10
+! 	          write (*,*) 'changes in ensemble 4128!'
+! 	          ndfmove = this%NDF
+! 	          ndfbiased = 50
+! 	          ndffluct = 10
+! 	          ndfchange = 10
           ndfcp = ndfmove + ndfbiased + ndffluct + ndfchange
           pc%NState(:) = 1
 !DEBUG
@@ -4182,12 +4345,13 @@ loop2:        do nc = 1, this%NComponents
             else
               ! Change fluctuating particle
               call ChangeFluct( this, i, ncf, npf )
+
 !DEBUG
 !               pc%NState(pc%NFluctState) = pc%NState(pc%NFluctState) + 1
 !               pc%NStateWF(pc%NFluctState) = pc%NStateWF(pc%NFluctState) + 1
 !   if( maxcounter > 0 .and. counter > maxcounter ) exit giloop
 !   if( maxcounter > 0 ) exit giloop
-!   nstate(pc%NFluctState) = nstate(pc%NFluctState) + 1
+           nstate(pc%NFluctState) = nstate(pc%NFluctState) + 1     ! Wird gebraucht"" KEIN DEBUG
 !DEBUG
 
             end if
@@ -4195,22 +4359,22 @@ loop2:        do nc = 1, this%NComponents
           end do giloop
 
 !DEBUG
-  pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
+          pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
 !   if( maxcounter > 0 .and. counter > maxcounter ) then
-  if( maxcounter > 0 ) then
-    write( IOBuffer, &
-&     '("GradIns abgebrochen. Zeitschritt: ", I0, "  FluctState: ", I0)') &
-&     Step, pc%NFluctState
-    call LogWrite
-    write( IOBuffer, '("NStates:")' )
-    call LogWrite
-    do j = 0, pc%NFluctMax
-      write( IOBuffer, '(I10)' ) nstate(j)
-      call LogWrite
-    end do
-  else
-    pc%NState = pc%NState + nstate(0:pc%NFluctMax)
-  end if
+!   if( maxcounter > 0 ) then
+!     write( IOBuffer, &
+! &     '("GradIns abgebrochen. Zeitschritt: ", I0, "  FluctState: ", I0)') &
+! &     Step, pc%NFluctState
+!     call LogWrite
+!     write( IOBuffer, '("NStates:")' )
+!     call LogWrite
+!     do j = 0, pc%NFluctMax
+!       write( IOBuffer, '(I10)' ) nstate(j)
+!       call LogWrite
+!     end do
+!   else
+          pc%NState = pc%NState + nstate(0:pc%NFluctMax)         ! Wird gebraucht"" KEIN DEBUG
+!   end if
 !DEBUG
 
           ! Reset fluctuating particle
@@ -4288,12 +4452,31 @@ loop2:        do nc = 1, this%NComponents
           pc%NStateWF(:) = 0
         end if
 
+
+        if (ewald_h .eq. 1) then
+          ! Set LongRange Correction to Extended ReactionField
+          LongRange = 1
+          call CalculateCorr (this)
+#if MPI_VER > 0
+          call Energy( this, EPot_h )
+          call MPI_Allreduce( EPot_h, this%EPot, 1, &
+&             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+          call Energy( this, this%EPot )
+#endif
+          call UpdateEnergy ( this )
+        end if
+
+
       ! Chemical potential by Widom's test particle method
+      ! Just applicable for ReactionField Method. 
+      ! - otherwise you cannot calculate the energy of only 1 particle
+      ! Check earlier in ms2_ensemble (right after compnoent construction
       case( ChemPotMethodWidom )
         pc%CalcChemPot = .true.
         call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
 
-        if ((LongRange .eq. RField) .or. (LongRange .eq. ExtRField)) then
+!         if ((LongRange .eq. RField) .or. (LongRange .eq. ExtRField)) then
           this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ &
 &                                       + pc%EPotTestCorrRF
           do j = 1, this%NRealComponents
@@ -4301,28 +4484,15 @@ loop2:        do nc = 1, this%NComponents
 &                                 this%EPotTest, this%BoxLength )
           end do
 
+          ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
+&                   / pc%NTestAll
 
 ! Ewald Summation
-        else           ! Ewald
-! Chemical Potential  - BLODSINN, nur fuer restart wichtig
-           write (*,*) 'Widom does not yet work with Ewald Summation'
-           STOP
-!          DO j=1,this%NComponents
-           call Ewald_ChemPotSelf(this,i)
-!          END DO
+!         else           ! Ewald
+!            write (*,*) 'Widom does not yet work with Ewald Summation'
+!            STOP
+!         end if
 
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + &
-&                            pc%EPotTestSelf
-          do j = 1, this%NRealComponents
-            call ChemicalPotential( this%Interaction( i, j ), &
-&                                 this%EPotTest, this%BoxLength )
-          end do
-
-! ! !           call Ewald_ChemPotFour(this,i)
-        end if
-
-        ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
-&                   / pc%NTestAll
 #if MPI_VER > 0
         call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
 &         MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
@@ -4334,6 +4504,7 @@ loop2:        do nc = 1, this%NComponents
         pc%CalcChemPot = .false.
         pc%ChemPot = 0._RK
       end select
+
 
     end do
 
@@ -4476,8 +4647,10 @@ loop2:        do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
       call EwaldSelfTerm_Energy ( this )
+#ifdef SPME
     else if (LongRange .eq. PME) then
       call PMESelfTermMC ( this )
+#endif
     end if
     ! Loop over components
     do nc = 1, this%NComponents
@@ -4509,10 +4682,12 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
+#ifdef SPME
     else if (LongRange .eq. PME) then
       call charge_grid_MCall ( this )
       call PMEFourierTermMC ( this )
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
+#endif
     end if
 
   end subroutine TEnsemble_Energy
@@ -4564,11 +4739,61 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np)
        EPotNew = EPotnew + this%UFourier
+#ifdef SPME
     else if (LongRange .eq. PME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
+#endif
     end if
   end subroutine TEnsemble_Energy1
+
+
+!==============================================================!
+!  Subroutine TEnsemble_EwaldEnergy1                           !
+!==============================================================!
+
+  subroutine TEnsemble_EwaldEnergy1( this, nc, np, EPotNew, m )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)       :: this
+    integer, intent(in)   :: nc, np,m
+    real(RK), intent(out) :: EPotNew
+
+    ! Declare local variables
+    type(TInteraction), pointer :: pi
+    integer                     :: n
+    integer                     :: i
+
+    ! Initialize new energy
+    EPotNew = 0._RK
+
+    ! Loop over components
+    do i = 1, this%NComponents
+      pi => this%Interaction(nc, i)
+      n = pi%NPart2
+      call Energy( pi, np, this%BoxLength )
+      ! Calculate new energy
+      EPotNew = EPotNew + sum( pi%EPot1(1:n) )
+    end do
+
+    if (LongRange .eq. Ewald) then
+       call EwaldFourierEnergy(this,nc,np,m)
+       EPotNew = EPotnew + this%UFourier
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+       call PMEFourierTermMC ( this )
+       EPotNew = EPotnew + this%UFourier
+#endif
+    end if
+  end subroutine TEnsemble_EwaldEnergy1
+
 
 
 
@@ -4613,9 +4838,11 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,ncold,npold)
        EPotNew = EPotnew + this%UFourier + this%USelbstTerm + this%UIntra
+#ifdef SPME
     else if (LongRange .eq. PME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
+#endif
     end if
   end subroutine TEnsemble_Energy1_CF
 
@@ -4659,10 +4886,12 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
+#ifdef SPME
     else if (LongRange .eq. PME) then
       call charge_grid_MCall (this)
       call PMEFourierTermMC(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
+#endif
     end if
 
   end function TEnsemble_GetEnergy
@@ -4799,11 +5028,13 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 !       EVirial  = this%EVirial
+#ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
 !       this%qgrida_old = this%qgrida
       call chargegrid_min  (this, nc, np)
+#endif
     end if
 
     ! Generate a trial displacement
@@ -4817,11 +5048,13 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
+#ifdef SPME
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
 !       call charge_grid_MCall (this )
     end if
+#endif
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, EPotNew )
@@ -4855,6 +5088,7 @@ loop2:        do nc = 1, this%NComponents
           call EwaldFourierEnergy(this,nc,np)
 !           this%sinfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%sinfac_s_old
 !           this%cosfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%cosfac_s_old
+#ifdef SPME
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
@@ -4863,6 +5097,7 @@ loop2:        do nc = 1, this%NComponents
           call Mol2Atom1( pc, np )
           call chargegrid_plus (this, nc, np)
 !         this%qgrida   = this%qgrida_old
+#endif
       else
           pc%P0(np, :) = r(:)
           call Mol2Atom1( pc, np )
@@ -4919,11 +5154,13 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 !       EVirial  = this%EVirial
+#ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
 !       this%qgrida_old = this%qgrida
       call chargegrid_min  (this, nc, np)
+#endif
     end if
 
     ! Generate a trial rotation
@@ -4939,10 +5176,12 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
+#ifdef SPME
     if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
 !       call charge_grid_MCall (this)
     end if
+#endif
 
     ! Calculate particle energy with trial orientation
     call Energy( this, nc, np, EPotNew )
@@ -4976,6 +5215,7 @@ loop2:        do nc = 1, this%NComponents
         call EwaldFourierEnergy(this,nc,np)
 !         this%sinfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%sinfac_s_old
 !         this%cosfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%cosfac_s_old
+#ifdef SPME
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
@@ -4984,6 +5224,7 @@ loop2:        do nc = 1, this%NComponents
         call Mol2Atom1( pc, np )
         call chargegrid_plus (this, nc, np)
 !         this%qgrida   = this%qgrida_old
+#endif
       else
         pc%Q0(np, :) = q(:)
         call Mol2Atom1( pc, np )
@@ -5051,11 +5292,13 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 !       EVirial  = this%EVirial
+#ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
       call chargegrid_min  (this, nc, np)
+#endif
     end if
 
     ! Generate a trial displacement
@@ -5078,10 +5321,12 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
+#ifdef SPME
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
+#endif
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, EPotNew )
@@ -5114,10 +5359,12 @@ loop2:        do nc = 1, this%NComponents
           pc%P0(np, :) = r(:)
           call Mol2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
+#ifdef SPME
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
+#endif
       else
         pc%P0(np, :) = r(:)
         call Mol2Atom1( pc, np )
@@ -5185,11 +5432,13 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 !       EVirial  = this%EVirial
+#ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
       call chargegrid_min  (this, nc, np)
+#endif
     end if
 
     ! Generate a trial rotation
@@ -5204,10 +5453,12 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
+#ifdef SPME
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
+#endif
 
     ! Calculate particle energy with trial orientation
     call Energy( this, nc, np, EPotNew )
@@ -5239,10 +5490,12 @@ loop2:        do nc = 1, this%NComponents
         pc%Q0(np, :) = q(:)
         call Mol2Atom1( pc, np )
         call EwaldFourierEnergy(this,nc,np)
+#ifdef SPME
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
+#endif
       else
         pc%Q0(np, :) = q(:)
         call Mol2Atom1( pc, np )
@@ -5341,6 +5594,7 @@ loop2:        do nc = 1, this%NComponents
        EFourier = this%UFourier
        EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
        EVirial  = this%EVirial
+!  Sufficient, since no call to Mol2Atom1 yet
        DO i=1,pcf%Molecule%NCharge
          this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
          this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
@@ -5400,6 +5654,7 @@ loop2:        do nc = 1, this%NComponents
 
        end if       ! Acceptance Criteria
 
+#ifdef SPME
 ! ----------------------------------------------------------------
     else if (LongRange .eq. PME) then ! PME 
       EFourier = this%UFourier
@@ -5407,7 +5662,7 @@ loop2:        do nc = 1, this%NComponents
       call PMESetup(this)
       write (*,*) 'Gradual Insertion does not yet work with PME'
       STOP
-
+#endif
 ! ----------------------------------------------------------------
     else   ! REACTION FIELD
        ! Convert molecular coordinates to atom positions
@@ -5505,7 +5760,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: s
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: UIntra, USelbst, EFourier, EVirial
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll
 !DEBUG
@@ -5516,14 +5771,6 @@ loop2:        do nc = 1, this%NComponents
     ! Assign local variables
     pc => this%Component(nc)
 
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      this%qgrida_old = this%qgrida
-    end if
     ! Update number of insert attempts
     this%NInsertAttempts = this%NInsertAttempts + 1
 
@@ -5552,101 +5799,183 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-    ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. Ewald) then           ! EWALD-SUMMATION
+      UIntra   = this%UIntra
+      USelbst  = this%USelbstTerm
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      ! Energy
+      call EwaldSelfTerm_Energy(this)
+      call Energy ( this, nc, np, EPotIns, 1 )
+#if MPI_VER > 0
+      call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
+&                MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ + &
+&            this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+    ! Apply acceptance criterion - MPI
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                 ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
+&                    * this%Volume0 / np )) then
+#else
+      EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ + &
+&            this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+    ! Apply acceptance criterion - SINGLE
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
+&                * this%Volume0 / np )) then
+#endif
+        ! Accept Insertion
+        this%NInsertSuccesses = this%NInsertSuccesses + 1
+        ! Update energy matrix
+        call UpdateEnergy( this, nc, np )
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+        ! Update long range correction
+        call CalculateCorr( this )
+      else
+        ! Reject Insertion
+        call RemoveParticle( pc, np )
+        this%NPart = this%NPart - 1
+        call EwaldFourierEnergy ( this, nc, np, -1 )
+        this%USelbstTerm = USelbst
+        this%UIntra  = UIntra
+      end if 
+
+#ifdef SPME
+    else if (LongRange .eq. PME) then           ! PME-SUMMATION
+      EVirial  = this%EVirial
+      this%qgrida_old = this%qgrida
       call chargegrid_plus (this, nc, np)
       call PMESelfTermMC( this )
-    end if
-
-    ! Calculate particle energy at trial position
-    call Energy( this, nc, np, EPotIns )
-
-    ! Apply acceptance criterion
-#if MPI_VER > 0
-    call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
-&                           + pc%EPotTestCorrRF
-    if ( LongRange .eq. PME ) then
-      EPotInsAll = EPotInsAll + this%USelbstTerm + this%UIntra
-    end if
-!DEBUG
-!  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotInsAll
-!DEBUG
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
-&         * this%Volume0 / np )) then
-#else
-    EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
-&                     + pc%EPotTestCorrRF
-    if (LongRange .eq. PME) then
-      EPotIns = EPotIns + this%USelbstTerm + this%UIntra
-    end if
-!DEBUG
-!  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotIns
-!DEBUG
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
-&         * this%Volume0 / np )) then
+      write (*,*) 'Insertion and Deletion is not supported for PME!'
+      STOP
 #endif
 
-      ! Accept Insertion
-      this%NInsertSuccesses = this%NInsertSuccesses + 1
+    else                                         ! REACTION FIELD
+      ! Calculate particle energy at trial position
+      call Energy( this, nc, np, EPotIns )
+    ! Apply acceptance criterion
+#if MPI_VER > 0
+      call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
+&                MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
+&                           + pc%EPotTestCorrRF
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                 ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
+&                    * this%Volume0 / np )) then
+#else
+      EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
+&                     + pc%EPotTestCorrRF
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
+&                * this%Volume0 / np )) then
+#endif
 
-      ! Update energy matrix
-      call UpdateEnergy( this, nc, np )
+        ! Accept Insertion
+        this%NInsertSuccesses = this%NInsertSuccesses + 1
+        ! Update energy matrix
+        call UpdateEnergy( this, nc, np )
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+        ! Update long range correction
+        call CalculateCorr( this )
 
-      ! Update density
-      this%Density = this%NPart / this%Volume0
-
-      ! Update fractions and NDF
-      call UpdateFractions( this )
-
-      ! Update long range correction
-      call CalculateCorr( this )
-
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .TRUE.
-!#endif
-!DEBUG
-
-    else
-
-      ! Reject Insertion
-      call RemoveParticle( pc, np )
-      this%NPart = this%NPart - 1
-
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        this%qgrida   = this%qgrida_old
-        call PMESelfTermMC (this)
-      end if
-
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .FALSE.
-!#endif
-!DEBUG
+      else
+        ! Reject Insertion
+        call RemoveParticle( pc, np )
+        this%NPart = this%NPart - 1
+      end if 
 
     end if
 
-!DEBUG
-!#if MPI_VER > 0
-!  call MPI_Allreduce( accepted, different, 1, MPI_LOGICAL, MPI_LXOR, &
-!&   MPI_COMM_WORLD, ierror )
-!  if( different ) then
-!    write(0, '(I2, ": Insert of comp. ", I0, A, " at step ", I0)') &
-!&     NProc, nc, merge("    accepted", "not accepted", accepted), step
-!    write(0, '(I2, ": Next random number = ", F12.10)') NProc, rnd(0._RK, 1._RK)
-!    stop
-!  end if
-!#endif
-!DEBUG
+
+! ! ! 
+! ! !     ! Apply acceptance criterion
+! ! ! #if MPI_VER > 0
+! ! !     call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
+! ! ! &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+! ! !     EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
+! ! ! &                           + pc%EPotTestCorrRF
+! ! !     if ( LongRange .eq. PME ) then
+! ! !       EPotInsAll = EPotInsAll + this%USelbstTerm + this%UIntra
+! ! !     end if
+! ! !     if( rnd( 0._RK, 1._RK ) .lt. &
+! ! ! &       ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
+! ! ! &         * this%Volume0 / np )) then
+! ! ! #else
+! ! !     EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
+! ! ! &                     + pc%EPotTestCorrRF
+! ! !     if (LongRange .eq. PME) then
+! ! !       EPotIns = EPotIns + this%USelbstTerm + this%UIntra
+! ! !     end if
+! ! !     if( rnd( 0._RK, 1._RK ) .lt. &
+! ! ! &       ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
+! ! ! &         * this%Volume0 / np )) then
+! ! ! #endif
+! ! ! 
+! ! !       ! Accept Insertion
+! ! !       this%NInsertSuccesses = this%NInsertSuccesses + 1
+! ! ! 
+! ! !       ! Update energy matrix
+! ! !       call UpdateEnergy( this, nc, np )
+! ! ! 
+! ! !       ! Update density
+! ! !       this%Density = this%NPart / this%Volume0
+! ! ! 
+! ! !       ! Update fractions and NDF
+! ! !       call UpdateFractions( this )
+! ! ! 
+! ! !       ! Update long range correction
+! ! !       call CalculateCorr( this )
+! ! ! 
+! ! ! !DEBUG
+! ! ! !#if MPI_VER > 0
+! ! ! !  accepted = .TRUE.
+! ! ! !#endif
+! ! ! !DEBUG
+! ! ! 
+! ! !     else
+! ! ! 
+! ! !       ! Reject Insertion
+! ! !       call RemoveParticle( pc, np )
+! ! !       this%NPart = this%NPart - 1
+! ! ! 
+! ! !       if (LongRange .eq. Ewald) then
+! ! !         UIntra = this%UIntra
+! ! !         USelbst = this%USelbstTerm
+! ! !         this%EVirial  = EVirial
+! ! ! #ifdef SPME
+! ! !       else if (LongRange .eq. PME) then
+! ! !         this%EVirial  = EVirial
+! ! !         this%qgrida   = this%qgrida_old
+! ! !         call PMESelfTermMC (this)
+! ! ! #endif
+! ! !       end if
+! ! ! 
+! ! ! !DEBUG
+! ! ! !#if MPI_VER > 0
+! ! ! !  accepted = .FALSE.
+! ! ! !#endif
+! ! ! !DEBUG
+! ! ! 
+! ! !     end if
+! ! ! 
+! ! ! !DEBUG
+! ! ! !#if MPI_VER > 0
+! ! ! !  call MPI_Allreduce( accepted, different, 1, MPI_LOGICAL, MPI_LXOR, &
+! ! ! !&   MPI_COMM_WORLD, ierror )
+! ! ! !  if( different ) then
+! ! ! !    write(0, '(I2, ": Insert of comp. ", I0, A, " at step ", I0)') &
+! ! ! !&     NProc, nc, merge("    accepted", "not accepted", accepted), step
+! ! ! !    write(0, '(I2, ": Next random number = ", F12.10)') NProc, rnd(0._RK, 1._RK)
+! ! ! !    stop
+! ! ! !  end if
+! ! ! !#endif
+! ! ! !DEBUG
 
   end subroutine TEnsemble_Insert
 
@@ -5683,20 +6012,72 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                    :: r(3)
     real(RK)                    :: q(4)
 
-!DEBUG
-!#if MPI_VER > 0
-!  logical                     :: accepted, different
-!#endif
-!DEBUG
-
     ! Assign local variables
     pc => this%Component(nc)
+
+    ! Update number of delete attempts
+    this%NDeleteAttempts = this%NDeleteAttempts + 1
+
 
     if (LongRange .eq. Ewald) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
+      pc%NPart = pc%NPart - 1
+      call EwaldSelfTerm_Energy (this)
+      call EwaldFourierEnergy(this,nc,np,-1)
+      pc%NPart = pc%NPart + 1
+      ! Calculate particle energy
+#if MPI_VER > 0
+      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      EPotDel = GetEnergy( this, nc, np )
+#endif
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
+&                  + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
+
+      ! Apply acceptance criterion
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&          ( exp( EPotDel / this%Temperature - pc%ChemPot ) &
+&           * this%Density * pc%Fraction )) then
+
+        ! Accept Deletion
+        this%NDeleteSuccesses = this%NDeleteSuccesses + 1
+        call RemoveParticle( pc, np )
+
+        ! Copy energies and virial
+        n1 = pc%NPart + 1
+        do i = 1, this%NComponents
+          pi => this%Interaction(nc, i)
+          n2 = pi%NPart2
+          pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
+          pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
+          this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
+          this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
+        end do
+
+        ! Zero diagonal elements
+        this%Interaction(nc, nc)%EPot(np, np) = 0._RK
+        this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+
+        this%NPart = this%NPart - 1
+
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+
+        ! Update long range correction
+        call CalculateCorr( this )
+      else        ! Rejection
+        call EwaldSelfTerm_Energy (this)
+        call EwaldFourierEnergy(this,nc,np,1)
+      end if
+
+#ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
@@ -5711,115 +6092,60 @@ loop2:        do nc = 1, this%NComponents
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%Component(nc)%NPart = this%Component(nc)%NPart + 1
-    end if
-
-    ! Update number of delete attempts
-    this%NDeleteAttempts = this%NDeleteAttempts + 1
-
-    ! Calculate particle energy
-#if MPI_VER > 0
-    call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-#else
-    EPotDel = GetEnergy( this, nc, np )
+      write(*,*) 'Molecule Deletion is not supported yet with PME'
+      STOP
 #endif
-    EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
+
+
+! ReactionField
+    else
+      ! Calculate particle energy
+#if MPI_VER > 0
+      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      EPotDel = GetEnergy( this, nc, np )
+#endif
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
 
-    if (LongRange .eq. Ewald) then
-    ! Save Coordinates
-      do i=1,3,1
-         r(i) = pc%P0(np,i)
-      end do
-      do i=1,4,1
-         q(i) = pc%Q0(np,i)
-      end do
+      ! Apply acceptance criterion
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&          ( exp( EPotDel / this%Temperature - pc%ChemPot ) &
+&           * this%Density * pc%Fraction )) then
 
-      call RemoveParticle( pc, np )
-      this%NPart = this%NPart - 1
+        ! Accept Deletion
+        this%NDeleteSuccesses = this%NDeleteSuccesses + 1
+        call RemoveParticle( pc, np )
 
-!        call EwaldSelfTerm_Energy( this,nc,np )
+        ! Copy energies and virial
+        n1 = pc%NPart + 1
+        do i = 1, this%NComponents
+          pi => this%Interaction(nc, i)
+          n2 = pi%NPart2
+          pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
+          pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
+          this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
+          this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
+        end do
 
-       EPotNew = GetEnergy( this, nc, np )
+        ! Zero diagonal elements
+        this%Interaction(nc, nc)%EPot(np, np) = 0._RK
+        this%Interaction(nc, nc)%Virial(np, np) = 0._RK
 
-       EPotDel = EPotDel + this%USelbstTerm + this%UIntra
-    else if (LongRange .eq. PME) then
-       EPotDel = EpotDel + (this%UIntra + this%USelbstTerm) - (USelf+UIntra)
-    end if
+        this%NPart = this%NPart - 1
 
-!DEBUG
-!  write(0, '(I2, ": EPotDel = ", F12.6)') NProc, EPotDel
-!#if MPI_VER > 0
-!  accepted = .FALSE.
-!#endif
-!DEBUG
+        ! Update density
+        this%Density = this%NPart / this%Volume0
 
-    ! Apply acceptance criterion
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( EPotDel / this%Temperature - pc%ChemPot ) &
-&         * this%Density * pc%Fraction )) then
+        ! Update fractions and NDF
+        call UpdateFractions( this )
 
-      ! Accept Deletion
-      this%NDeleteSuccesses = this%NDeleteSuccesses + 1
-      call RemoveParticle( pc, np )
-
-      ! Copy energies and virial
-      n1 = pc%NPart + 1
-      do i = 1, this%NComponents
-        pi => this%Interaction(nc, i)
-        n2 = pi%NPart2
-        pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
-        pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
-        this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
-        this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
-      end do
-
-      ! Zero diagonal elements
-      this%Interaction(nc, nc)%EPot(np, np) = 0._RK
-      this%Interaction(nc, nc)%Virial(np, np) = 0._RK
-
-      this%NPart = this%NPart - 1
-
-      ! Update density
-      this%Density = this%NPart / this%Volume0
-
-      ! Update fractions and NDF
-      call UpdateFractions( this )
-
-      ! Update long range correction
-      call CalculateCorr( this )
-
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .TRUE.
-!#endif
-!DEBUG
-
-    else 
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        call AddParticle(pc,r,q)
-        this%NPart = this%NPart + 1
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        this%qgrida   = this%qgrida_old
-        call PMESelfTermMC (this)
+        ! Update long range correction
+        call CalculateCorr( this )
       end if
-    end if
 
-!DEBUG
-!#if MPI_VER > 0
-!  call MPI_Allreduce( accepted, different, 1, MPI_LOGICAL, MPI_LXOR, &
-!&   MPI_COMM_WORLD, ierror )
-!  if( different ) then
-!    write(0, '(I2, ": Delete of comp. ", I0, A, " at step ", I0)') &
-!&     NProc, nc, merge("    accepted", "not accepted", accepted), step
-!    write(0, '(I2, ": Next random number = ", F12.10)') NProc, rnd(0._RK, 1._RK)
-!    stop
-!  end if
-!#endif
-!DEBUG
+     end if
 
   end subroutine TEnsemble_Delete
 
@@ -5932,19 +6258,33 @@ loop2:        do nc = 1, this%NComponents
     VolumeOld = this%Volume0
     EPotOld = this%EPot
     if (LongRange .eq. Ewald) then
-       UIntra  = this%UIntra
-       EVirialIntra = this%EVirialIntra
+!        UIntra  = this%UIntra
+!        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
+#ifdef SPME
     else if (LongRange .eq. PME) then
-       UIntra  = this%UIntra
+!        UIntra  = this%UIntra
        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
+#endif
+!     else if (LongRange .eq. ExtRField) then
+! #if MPI_VER > 0
+!       call Energy( this, EPotNew )
+!       call MPI_Allreduce( EPotNew, this%EPot, 1, &
+! &        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+! #else
+!       call Energy( this, this%EPot )
+! #endif
+!       EPotOld = this%EPot
     end if
 
     ! Generate a trial volume change
+!     write (*,*) '6211 changed!'
+!     call Energy( this, this%EPot )
     this%Volume0 = this%Volume0 * (1._RK + rnd( -this%DispVol, this%DispVol ))
+!     this%Volume0 = this%Volume0
     call UpdateBoxLength( this )
 
     ! Convert molecular coordinates to atom positions
@@ -5987,7 +6327,7 @@ loop2:        do nc = 1, this%NComponents
       call Mol2Atom( this )
       this%EPot = EPotOld
       if (LongRange .eq. Ewald) then
-         this%UIntra = UIntra
+!          this%UIntra = UIntra
 !          this%EVirialIntra = EVirialIntra
          this%UFourier = UFourier
          call Energy(this,this%Epot)
@@ -6001,17 +6341,618 @@ loop2:        do nc = 1, this%NComponents
          this%EPot = GetEnergy(this)
          this%Virial = GetVirial( this )
 #endif
+#ifdef SPME
       else if (LongRange .eq. PME) then
          this%UIntra = UIntra
          this%EVirialIntra = EVirialIntra
          this%UFourier = UFourier
          this%EVirial = EVirial
          call charge_grid_MCall ( this )
+#endif
       end if
 
     end if
 
   end subroutine TEnsemble_Resize
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Resize_LiquidPhase                     !
+!==============================================================!
+
+  subroutine TEnsemble_Resize_liq( this,dv,EPotDelta )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    real(RK), intent(in out) :: dv
+    real(RK), intent(in out) :: EPotDelta
+    real(RK) :: VolumeOld, EPotOld
+#if MPI_VER > 0
+    real(RK) :: EPotNew
+#endif
+
+    ! Update number of resizing attempts
+    this%NResizeAttempts = this%NResizeAttempts + 1
+
+    ! Save current simulation energy
+    EPotOld = this%EPot
+    VolumeOld = this%Volume0
+
+    ! Generate a trial volume change
+    dv = this%Volume0 * rnd( -this%DispVol, this%DispVol )
+    this%Volume0 = this%Volume0 + dv
+    call UpdateBoxLength( this )
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom( this )
+
+    ! Calculate potential energy and virial at trial position
+#if MPI_VER > 0
+    call Energy( this, EPotNew )
+    call MPI_Allreduce( EPotNew, this%EPot, 1, &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+    call Energy( this, this%EPot )
+#endif
+
+    ! Find potential change
+    EPotDelta = this%EPot - EPotOld &
+&     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+
+  end subroutine TEnsemble_Resize_liq
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Resize_LiquidPhaseUpdate               !
+!==============================================================!
+  subroutine TEnsemble_ResizeLiquid_Update(this,accept,EPotOldliq,VolumeOld)
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+    real(RK),intent(in) :: EPotOldliq,VolumeOld
+    logical  :: accept
+
+    if ( accept ) then
+      ! Accept volume change
+      this%NResizeSuccesses = this%NResizeSuccesses + 1
+
+      ! Update energy and virial matrices
+      call UpdateEnergy( this )
+#if MPI_VER > 0
+      call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      this%Virial = GetVirial( this )
+#endif
+
+    else
+      ! Reject volume change
+      this%Volume0 = VolumeOld
+      call UpdateBoxLength( this )
+      call Mol2Atom( this )
+      this%EPot = EPotOldliq
+      if (LongRange .eq. Ewald) then
+         call Energy(this,this%Epot)
+#if MPI_VER > 0
+         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+         this%EPot = GetEnergy(this)
+         this%Virial = GetVirial( this )
+#endif
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+         this%UIntra = UIntra
+         this%EVirialIntra = EVirialIntra
+         this%UFourier = UFourier
+         this%EVirial = EVirial
+         call charge_grid_MCall ( this )
+#endif
+      end if
+    end if
+
+  end subroutine TEnsemble_ResizeLiquid_Update
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Resize_VaporPhase                     !
+!==============================================================!
+
+  subroutine TEnsemble_Resize_vap( this,dv,EPotDelta,accept )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    real(RK), intent(in) :: dv
+    real(RK), intent(in out) :: EPotDelta
+    real(RK) :: VolumeOld, EPotOld
+    real(RK) :: EVirial
+    real(RK) :: UFourier
+    real(RK) :: UIntra, EVirialintra
+#if MPI_VER > 0
+    real(RK) :: EPotNew
+#endif
+    logical  :: accept
+
+    ! Save current simulation box size, volume, energy, virial
+    VolumeOld = this%Volume0
+    EPotOld = this%EPot
+    if (LongRange .eq. Ewald) then
+!        UIntra  = this%UIntra
+       UFourier= this%UFourier
+       EVirial = this%EVirial
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+!        UIntra  = this%UIntra
+       EVirialIntra = this%EVirialIntra
+       UFourier= this%UFourier
+       EVirial = this%EVirial
+#endif
+    end if
+
+    ! Generate a trial volume change
+    this%Volume0 = this%Volume0 - dv
+    call UpdateBoxLength( this )
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom( this )
+
+    ! Calculate potential energy and virial at trial position
+#if MPI_VER > 0
+    call Energy( this, EPotNew )
+    call MPI_Allreduce( EPotNew, this%EPot, 1, &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+    call Energy( this, this%EPot )
+#endif
+
+    ! Find potential change
+    EPotDelta = EPotDelta + this%EPot - EPotOld &
+&     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+
+    ! Acceptance criteria
+    if( exp( -EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
+      accept = .true.
+
+      ! Update energy and virial matrices
+      call UpdateEnergy( this )
+#if MPI_VER > 0
+      call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      this%Virial = GetVirial( this )
+#endif
+
+    else
+      ! Reject volume change
+      this%Volume0 = VolumeOld
+      call UpdateBoxLength( this )
+      call Mol2Atom( this )
+      this%EPot = EPotOld
+      if (LongRange .eq. Ewald) then
+         this%UFourier = UFourier
+         call Energy(this,this%Epot)
+#if MPI_VER > 0
+         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+         this%EPot = GetEnergy(this)
+         this%Virial = GetVirial( this )
+#endif
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+         this%UIntra = UIntra
+         this%EVirialIntra = EVirialIntra
+         this%UFourier = UFourier
+         this%EVirial = EVirial
+         call charge_grid_MCall ( this )
+#endif
+      end if
+
+    end if
+
+  end subroutine TEnsemble_Resize_vap
+
+
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_GibbsRemoveParticle                    !
+!==============================================================!
+
+  subroutine TEnsemble_GibbsRemove( this, nc, np, EPotDelta )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)         :: this
+
+    real(RK)                :: rx,sx
+    real(RK),intent(in out) :: EPotDelta
+    integer,intent(in out)  :: nc,np
+
+     ! Chose component
+     sx = 0._RK
+     rx = rnd( 0._RK, 1._RK )
+     do nc = 1, this%NComponents
+        sx = sx + this%Component(nc)%Fraction
+        if( rx <= sx ) exit 
+     end do 
+
+     np = rnd( this%Component(nc)%NPart )
+
+     call Gibbs_Delete( this, nc, np, EPotDelta )
+
+   end subroutine TEnsemble_GibbsRemove
+
+
+!==============================================================!
+!  Subroutine TEnsemble_GibbsDelete                            !
+!==============================================================!
+
+  subroutine TEnsemble_GibbsDelete( this, nc, np, EPotDel )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+    real(RK),intent(in out) :: EPotDel
+
+    ! Declare local variables
+    type(TComponent), pointer   :: pc
+    type(TInteraction), pointer :: pi
+    integer                     :: i, n1, n2
+!     real(RK)                    :: s
+
+! Ewald Parameter
+    real(RK)                    :: EFourier, EPotNew
+    real(RK)                    :: EVirial, EVirialIntra
+    real(RK)                    :: USelf, UIntra
+    real(RK)                    :: r(3)
+    real(RK)                    :: q(4)
+
+    ! Assign local variables
+    pc => this%Component(nc)
+    EPotDel = 0._RK
+
+    ! Update number of delete attempts
+    this%NDeleteAttempts = this%NDeleteAttempts + 1
+
+
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      USelf    = this%USelbstTerm
+      UIntra   = this%UIntra
+      pc%NPart = pc%NPart - 1
+      call EwaldSelfTerm_Energy (this)
+      call EwaldFourierEnergy(this,nc,np,-1)
+      pc%NPart = pc%NPart + 1
+      ! Calculate particle energy
+#if MPI_VER > 0
+      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      EPotDel = GetEnergy( this, nc, np )
+#endif
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
+&                  + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
+&                  this%Temperature*log(this%Volume0/(this%NPart) )
+
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      EVirialIntra = this%EVirialIntra
+      USelf    = this%USelbstTerm
+      UIntra   = this%UIntra
+      this%qgrida_old = this%qgrida
+      call chargegrid_min ( this, nc,np )
+      this%NPart = this%NPart - 1
+      this%Component(nc)%NPart = this%Component(nc)%NPart - 1
+      call PMESelfTermMC ( this )
+! For further use of the following code
+      this%NPart = this%NPart + 1
+      this%Component(nc)%NPart = this%Component(nc)%NPart + 1
+      write(*,*) 'Molecule Deletion is not supported yet with PME'
+      STOP
+#endif
+
+
+! ReactionField
+    else
+      ! Calculate particle energy
+#if MPI_VER > 0
+      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+      EPotDel = GetEnergy( this, nc, np )
+#endif
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
+&         + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
+
+    end if
+
+  end subroutine TEnsemble_GibbsDelete
+
+
+!==============================================================!
+!  Subroutine TEnsemble_GibbsInsertParticle                    !
+!==============================================================!
+
+  subroutine TEnsemble_GibbsInsert( this, nc, EPotDelta,accept )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc
+    real(RK),intent(in out)   :: EPotDelta
+    logical             :: accept
+
+    ! Declare local variables
+    real(RK)                  :: r(3)
+    real(RK)                  :: q(4)
+    type(TComponent), pointer :: pc
+    integer                   :: i, np
+    real(RK)                  :: s
+    real(RK)                  :: EPotIns
+    real(RK)                  :: UIntra, USelbst, EFourier, EVirial
+#if MPI_VER > 0
+    real(RK)                  :: EPotInsAll
+#endif
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Generate a random position and orientation
+    do i = 1, 3
+      r(i) = rnd( -.5_RK, .5_RK )
+    end do
+    do
+      s = 0._RK
+      do i = 1, 4
+        q(i) = rnd( -1._RK, 1._RK )
+      end do
+      s = sum( q**2 )
+      if( s <= 1._RK ) exit
+    end do
+#if ARCH == 3
+    q = q * rsqrt( s )
+#else
+    q = q / sqrt( s )
+#endif
+
+    call AddParticle( pc, r, q )
+    np = pc%NPart
+    this%NPart = this%NPart + 1
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1( pc, np )
+
+    if (LongRange .eq. Ewald) then           ! EWALD-SUMMATION
+      UIntra   = this%UIntra
+      USelbst  = this%USelbstTerm
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      ! Energy
+      call EwaldSelfTerm_Energy(this)
+      call Energy ( this, nc, np, EPotIns, 1 )
+#if MPI_VER > 0
+      call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
+&                MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrLJ &
+&             - this%Temperature*log((this%NPart)/this%Volume0 ) - &
+&            NProcs*this%UIntra+NProcs*UIntra - NProcs*this%USelbstTerm+NProcs*USelbst+&
+&              NProcs*EFourier
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                 ( exp( EPotDelta / this%Temperature ) )) then
+#else
+!       EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ + &
+! &            this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+!     ! Apply acceptance criterion - SINGLE
+!       if( rnd( 0._RK, 1._RK ) .lt. &
+! &                ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
+! &                * this%Volume0 / np )) then
+      EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrLJ &
+&               - this%Temperature*log((this%NPart)/this%Volume0 ) - &
+&            this%UIntra+UIntra - this%USelbstTerm+USelbst+EFourier
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                ( exp( EPotDelta / this%Temperature ) )) then
+#endif
+        ! Accept Insertion
+        accept = .true.
+        this%NInsertSuccesses = this%NInsertSuccesses + 1
+        ! Update energy matrix
+        call UpdateEnergy( this, nc, np )
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+        ! Update long range correction
+        call CalculateCorr( this )
+      else
+        ! Reject Insertion
+        call RemoveParticle( pc, np )
+        this%NPart = this%NPart - 1
+        call EwaldFourierEnergy ( this, nc, np, -1 )
+        this%USelbstTerm = USelbst
+        this%UIntra  = UIntra
+      end if 
+
+    else                                         ! REACTION FIELD
+      ! Calculate particle energy at trial position
+      call Energy( this, nc, np, EPotIns )
+    ! Apply acceptance criterion
+#if MPI_VER > 0
+      call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
+&                MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrLJ &
+&         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                 ( exp( EPotDelta / this%Temperature ) )) then
+#else
+      EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrLJ &
+&         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
+      if( rnd( 0._RK, 1._RK ) .lt. &
+&                ( exp( EPotDelta / this%Temperature ) )) then
+#endif
+
+        accept = .true.
+        ! Update energy matrix
+        call UpdateEnergy( this, nc, np )
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+        ! Update long range correction
+        call CalculateCorr( this )
+
+      else
+        ! Reject Insertion
+        call RemoveParticle( pc, np )
+        this%NPart = this%NPart - 1
+      end if 
+
+    end if
+
+   end subroutine TEnsemble_GibbsInsert
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_PartChangeUpdate                       !
+!==============================================================!
+  subroutine TEnsemble_PartChangeUpdate(this,nc,np,accept)
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc,np
+    logical             :: accept
+
+    ! Declare variables
+    type(TComponent)  ,pointer :: pc
+    type(TInteraction),pointer :: pi
+
+    integer                    :: n1,n2,i
+
+    pc => this%Component(nc)
+    if ( accept ) then
+      this%NDeleteSuccesses = this%NDeleteSuccesses + 1
+      call RemoveParticle( pc, np )
+        ! Copy energies and virial
+        n1 = pc%NPart + 1
+
+        do i = 1, this%NComponents
+          pi => this%Interaction(nc, i)
+          n2 = pi%NPart2
+          pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
+          pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
+          this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
+          this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
+        end do
+
+        ! Zero diagonal elements
+        this%Interaction(nc, nc)%EPot(np, np) = 0._RK
+        this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+
+        this%NPart = this%NPart - 1
+
+        ! Update density
+        this%Density = this%NPart / this%Volume0
+
+        ! Update fractions and NDF
+        call UpdateFractions( this )
+
+        ! Update long range correction
+        call CalculateCorr( this )
+    else
+      if (LongRange .eq. Ewald) then
+        call EwaldSelfTerm_Energy (this)
+        call EwaldFourierEnergy(this,nc,np,1)
+      end if
+    endif
+
+
+
+  end subroutine TEnsemble_PartChangeUpdate
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6247,6 +7188,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i,err
     real(RK)                  :: value
+    integer                   :: time_limit
 
     if( Step == 1 ) then
       ! Reset accumulators
@@ -6259,7 +7201,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
       if( EnsembleType .eq. EnsembleTypeGE .or. &
-&         EnsembleType .eq. EnsembleTypeHA ) then
+&         EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Reset( this%SumNPart )
         do i = 1, this%NComponents
           call Reset( this%Component(i)%SumFraction )
@@ -6378,7 +7320,7 @@ loop2:        do nc = 1, this%NComponents
 
       ! Number of particles in ensemble
       if( EnsembleType .eq. EnsembleTypeGE .or. &
-&         EnsembleType .eq. EnsembleTypeHA ) then
+&         EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         write( IOBuffer, '("     NPART")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
@@ -6407,6 +7349,8 @@ loop2:        do nc = 1, this%NComponents
 ! END IF of step ==1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    ! Set Time limit for Abortion if Simulation runs in Karlsruhe, Germany
+    time_limit = 15
     ! Update accumulators
     ! 1.) Basic sums
     call Update( this%SumPressure, this%Pressure )
@@ -6423,7 +7367,7 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Update( this%SumNPart, real( this%NPart, RK ) )
       do i = 1, this%NComponents
         pc => this%Component(i)
@@ -6571,6 +7515,8 @@ loop2:        do nc = 1, this%NComponents
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+          ! Update time limit according to consumed time necessary
+          time_limit = 60
           if( Equilibration ) then
             write( IOBuffer, '(F10.5)' ) 0._RK
             call FileWriteNoAdvance( this%iounit_result )
@@ -6626,7 +7572,7 @@ loop2:        do nc = 1, this%NComponents
 
       ! Number of particles in ensemble
       if( EnsembleType .eq. EnsembleTypeGE .or. &
-&         EnsembleType .eq. EnsembleTypeHA ) then
+&         EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         write( IOBuffer, '(F10.2)' ) this%SumNPart%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
         write( IOBuffer, '(F10.2)' ) this%SumNPart%Average
@@ -6664,6 +7610,10 @@ loop2:        do nc = 1, this%NComponents
     if( err .eq. 0 ) call SetTerminateProgram
 #endif
 
+#if MPI_VER > 0
+! Abortion of simulation run in Karlsruhe
+    call time_left(time_limit)
+#endif
 
   end subroutine TEnsemble_ResultUpdate
 
@@ -6740,7 +7690,7 @@ loop2:        do nc = 1, this%NComponents
     call Error( this%SumEnthalpy )
     call Error( this%SumVolume )
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NComponents
         pc => this%Component(i)
         call Error( pc%SumFraction )
@@ -6834,7 +7784,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     ! Acceptance rate
-    if( SimulationType .eq. MonteCarlo ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs)  ) then
       write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) &
 &       Acceptance
       call FileWrite( this%iounit_errors )
@@ -6857,7 +7807,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Potential models
     if( EnsembleType .ne. EnsembleTypeGE .or. &
-&       EnsembleType .ne. EnsembleTypeHA ) then
+&       EnsembleType .ne. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NRealComponents
         write( IOBuffer, '("Molar fraction of ", A, T36, ":", F20.9)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), &
@@ -6920,8 +7870,8 @@ loop2:        do nc = 1, this%NComponents
     ! Cutoff radii
     if( this%NLJ126Max > 0 ) then
       write( IOBuffer, &
-&       '("Lennard-Jones cutoff radius", T36, ":", F20.9, " sigma")' ) &
-&       this%RCutoffLJ126LJ126
+&       '("Lennard-Jones cutoff radius", T36, ":", F20.9, " A")' ) &
+&       this%RCutoffLJ126LJ126 * UnitLength / Angstroem
       call FileWrite( this%iounit_errors )
     end if
     if( this%NDipoleMax > 0 ) then
@@ -6984,6 +7934,11 @@ loop2:        do nc = 1, this%NComponents
 &     Average * UnitDensity, Variance * UnitDensity
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
+! #ifdef __INTEL_COMPILER
+!     if( Variance .le. 0.05*Average ) err = SetTerminateProgram( 1 )
+! #else
+!     if( Variance .le. 0.05*Average ) call SetTerminateProgram
+! #endif
 
     ! Temperature
     Average = this%SumTemperature%Average
@@ -7021,7 +7976,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWriteBlank( this%iounit_errors )
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA ) then
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       ! Molar fraction
       do i = 1, this%NComponents
         pc => this%Component(i)
@@ -7426,7 +8381,7 @@ loop2:        do nc = 1, this%NComponents
 
     end if
 
-    if( SimulationType .eq. MonteCarlo ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
       ! Statistics section
       write( IOBuffer, '("Statistics")' )
       call FileWrite( this%iounit_errors )
@@ -7971,7 +8926,7 @@ loop2:        do nc = 1, this%NComponents
 &     MPI_COMM_WORLD, ierror )
     call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
-    if( SimulationType .eq. MonteCarlo ) then
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
       call MPI_Bcast( this%DispVol, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
       call MPI_Bcast( this%NResizeAttempts, 1, MPI_INTEGER, NRootProc, &
@@ -8093,7 +9048,7 @@ loop2:        do nc = 1, this%NComponents
 !       if (LongRange .eq. Ewald) then
 !          write (*,*) 'this%BoxLength wurde festgelegt in Zeile ms2_ensemble 958'
         ! Memory Allocation for Ewald Summation
-         allocate(this%Faktor(this%NPart),STAT=stat)
+         allocate(this%Faktor(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Faktor'
          allocate(this%U_fourierLocal(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error U_fourier'
@@ -8101,29 +9056,29 @@ loop2:        do nc = 1, this%NComponents
          if(stat >0) write(*,*) 'Allocation Error SSin'
          allocate(this%SCos(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos'
-         allocate(this%sinfac(this%NPart),STAT=stat)
+         allocate(this%sinfac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error sinfac'
-         allocate(this%cosfac(this%NPart),STAT=stat)
+         allocate(this%cosfac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error cosfac'
-         allocate(this%SSin_Vec(this%NPart),STAT=stat)
+         allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
-         allocate(this%SCos_Vec(this%NPart),STAT=stat)
+         allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
-         allocate(this%sinfac_s(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error sin_facs'
-         allocate(this%cosfac_s(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error cosfac_s'
          allocate(this%Vec2(this%BoxenAnzahl),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
-         allocate(this%HFac(this%NPart),STAT=stat)
+         allocate(this%HFac(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error HFac'
-         allocate(this%distx(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error distx'
-         allocate(this%disty(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error disty'
-         allocate(this%distz(this%NComponents,5,this%NPart),STAT=stat)
+         allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error distz'
-         allocate(this%VirIntra(this%NPart),STAT=stat)
+         allocate(this%VirIntra(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error VirIntra'
          allocate(this%rold(5,3),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error rold'
@@ -8135,7 +9090,7 @@ loop2:        do nc = 1, this%NComponents
            END DO
          END DO
 
-
+#ifdef SPME
     else if (LongRange .eq. PME) then
     ! Calculate initial energies for the Ewald Summation
        this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
@@ -8156,6 +9111,7 @@ loop2:        do nc = 1, this%NComponents
          if(stat >0) write(*,*) 'Allocation Error bsp_modz'
 
        call PMESetup(this)
+#endif
     end if
 
     if( SimulationType .eq. MolecularDynamics ) then
@@ -8172,6 +9128,8 @@ loop2:        do nc = 1, this%NComponents
       call Mol2Atom( this )
       call Energy( this, this%EPot )
       call UpdateEnergy( this )
+!     write(*,*) 'Changes in 8505'
+!       this%Virial = GetVirial(this)
 
     end if
 
@@ -8262,7 +9220,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
     include 'mpif.h'
 #endif
-    include 'fftw3.f'
+
     ! Declare arguments
     type(TEnsemble)         :: this
     ! Declare local variables
@@ -8473,8 +9431,8 @@ loop2:        do nc = 1, this%NComponents
    real(RK),pointer:: PX(:),PY(:),PZ(:)
    real(RK),pointer:: FX(:),FY(:),FZ(:)
    real(RK),pointer:: q(:)
-   real(RK) :: RXloc(this%NPart),RYloc(this%NPart),RZloc(this%NPart)
-   real(RK) :: PXloc(this%NPart),PYloc(this%NPart),PZloc(this%NPart)
+   real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
+   real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
 
    real(RK):: KVec(3)
    real(RK):: EPotLocal
@@ -8764,7 +9722,7 @@ loop2:        do nc = 1, this%NComponents
    ! Declare arguments
    type(TEnsemble)   :: this
 
-   integer :: i,j,l
+   integer :: i,j,l,m
    integer :: molec
 # if MPI_VER > 0
    integer :: i0
@@ -8776,6 +9734,8 @@ loop2:        do nc = 1, this%NComponents
    real(RK),pointer:: RX(:),RY(:),RZ(:)
    real(RK),pointer:: PX(:),PY(:),PZ(:)
    real(RK),pointer:: q(:)
+   real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
+   real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
 
    real(RK):: KVec(3)
    real(RK):: EPotLocal
@@ -8845,19 +9805,35 @@ loop2:        do nc = 1, this%NComponents
          PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
          PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
 
-         this%distx(j,l,1:molec) = (RX - PX)*this%BoxLength
-         this%disty(j,l,1:molec) = (RY - PY)*this%BoxLength
-         this%distz(j,l,1:molec) = (RZ - PZ)*this%BoxLength
+         RXloc(1:molec) = RX(1:molec)
+         RYloc(1:molec) = RY(1:molec)
+         RZloc(1:molec) = RZ(1:molec)
+         PXloc(1:molec) = PX(1:molec)
+         PYloc(1:molec) = PY(1:molec)
+         PZloc(1:molec) = PZ(1:molec)
 
-         this%Faktor(1:molec) = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
+         DO m=1,molec
+           if (RX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
+           if (RY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
+           if (RZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
+           if (PX(m) < 0) PXloc(m) = PXloc(m) + 1._RK
+           if (PY(m) < 0) PYloc(m) = PYloc(m) + 1._RK
+           if (PZ(m) < 0) PZloc(m) = PZloc(m) + 1._RK
+         end DO
+
+         this%distx(j,l,1:molec) = (RXloc - PXloc)*this%BoxLength
+         this%disty(j,l,1:molec) = (RYloc - PYloc)*this%BoxLength
+         this%distz(j,l,1:molec) = (RZloc - PZloc)*this%BoxLength
+
+         this%Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
 
          this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
          this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
-         this%sinfac = q(l)*this%sinfac_s(j,l,1:molec)
-         this%cosfac = q(l)*this%cosfac_s(j,l,1:molec)
+         this%sinfac(1:molec) = q(l)*this%sinfac_s(j,l,1:molec)
+         this%cosfac(1:molec) = q(l)*this%cosfac_s(j,l,1:molec)
 
-         this%SSin_Vec = this%SSin_Vec + this%sinfac
-         this%SCos_Vec = this%SCos_Vec + this%cosfac
+         this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + this%sinfac(1:molec)
+         this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + this%cosfac(1:molec)
        END DO
      END DO
 
@@ -8878,8 +9854,8 @@ loop2:        do nc = 1, this%NComponents
        DO l=1,mol%NCharge
           this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - this%cosfac_s(j,l,1:molec)*this%SSin(i))
           this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
-   &         Facy*this%HFac*this%disty(j,l,1:molec) + &
-   &         Facz*this%HFac*this%distz(j,l,1:molec)
+&            Facy*this%HFac*this%disty(j,l,1:molec) + &
+&            Facz*this%HFac*this%distz(j,l,1:molec)
 ! # endif
        END DO
      END DO
@@ -8909,10 +9885,12 @@ loop2:        do nc = 1, this%NComponents
 !     call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 ! &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
 
-!   if( RootProc ) then
    this%UFourier= EPotLocal / NProcs
+
+!     write(*,*) 'Changes in 9264'
+!    this%EVirial = -(Viriallocal )*Third / NProcs
    this%EVirial = -(Viriallocal - VirIntra)*Third / NProcs
-!   end if
+!    this%EVirial =  (Viriallocal - VirIntra)*Third / NProcs
 
 
   END subroutine TEnsemble_EwaldFourierEnergy
@@ -8934,6 +9912,7 @@ loop2:        do nc = 1, this%NComponents
    type(TMolecule), pointer :: mol
 
    real(RK):: RX,RY,RZ
+   real(RK):: RX2,RY2,RZ2
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
@@ -8943,7 +9922,7 @@ loop2:        do nc = 1, this%NComponents
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
 
-   integer :: i,j,l
+   integer :: i,j,l,m
    integer,intent(in)::nc,np
 
 # if MPI_VER > 0
@@ -8976,9 +9955,19 @@ loop2:        do nc = 1, this%NComponents
          RX = this%Component(nc)%Molecule%SiteCharge(l)%RX(np)
          RY = this%Component(nc)%Molecule%SiteCharge(l)%RY(np)
          RZ = this%Component(nc)%Molecule%SiteCharge(l)%RZ(np)
+         RX2 = this%rold(l,1)
+         RY2 = this%rold(l,2)
+         RZ2 = this%rold(l,3)
+
+         if (RX < 0) RX = RX + 1._RK
+         if (RY < 0) RY = RY + 1._RK
+         if (RZ < 0) RZ = RZ + 1._RK
+         if (RX2< 0) RX2= RX2+ 1._RK
+         if (RY2< 0) RY2= RY2+ 1._RK
+         if (RZ2< 0) RZ2= RZ2+ 1._RK
 
          Faktor = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
-         Faktor2 = KVec(1) * this%rold(l,1) + KVec(2)*this%rold(l,2) + KVec(3)*this%rold(l,3)
+         Faktor2 = KVec(1) * RX2 + KVec(2)*RY2 + KVec(3)*RZ2
 
 !         this%sinfac_s(nc,l,np) = sin(Faktor)
 !         this%cosfac_s(nc,l,np) = cos(Faktor)
@@ -9025,7 +10014,7 @@ loop2:        do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermEnergy1             !
+!  Subroutine TSimulation_Ewald_FourierTermEnergyCF            !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierEnergy_CF(this,nc,np,ncold,npold)
 
@@ -9082,6 +10071,10 @@ loop2:        do nc = 1, this%NComponents
          RY = this%Component(nc)%Molecule%SiteCharge(l)%RY(np)
          RZ = this%Component(nc)%Molecule%SiteCharge(l)%RZ(np)
 
+         if (RX < 0) RX = RX + 1._RK
+         if (RY < 0) RY = RY + 1._RK
+         if (RZ < 0) RZ = RZ + 1._RK
+
          Faktor = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
 
          sinfac = q(l)*sin(Faktor)
@@ -9095,7 +10088,11 @@ loop2:        do nc = 1, this%NComponents
          RY = this%rold(l,2)
          RZ = this%rold(l,3)
 
-         Faktor2 = KVec(1) * this%rold(l,1) + KVec(2)*this%rold(l,2) + KVec(3)*this%rold(l,3)
+         if (RX < 0) RX = RX + 1._RK
+         if (RY < 0) RY = RY + 1._RK
+         if (RZ < 0) RZ = RZ + 1._RK
+
+         Faktor2 = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
 
          sinfac = q(l)*sin(Faktor2)
          cosfac = q(l)*cos(Faktor2)
@@ -9124,49 +10121,145 @@ loop2:        do nc = 1, this%NComponents
 
 
 
-
-
-
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_ChemicalPotential                !
+!  Subroutine TSimulation_Ewald_FourierTermAddDel              !
 !==============================================================!
+   subroutine TEnsemble_EwaldFourierAddDel(this,nc,np,m)
 
-  subroutine TEnsemble_Ewald_ChemPotSelf( this,nc1)
+   implicit none
 
-    implicit none
-
-    ! Include MPI header
 #if MPI_VER > 0
     include 'mpif.h'
 #endif
 
-    ! Declare arguments
-    type(TEnsemble)            :: this
-    type(TMolecule), pointer   :: mol
-    integer, intent(in)        :: nc1
+   ! Declare arguments
+   type(TEnsemble)          :: this
+   type(TMolecule), pointer :: mol
 
-    ! Declare local variables
-    integer :: Si,Sj, np
-    real(RK):: fac
-    real(RK):: UTermKomp1
+   real(RK):: RX,RY,RZ
+   real(RK),pointer:: q(:)
+   real(RK):: KVec(3)
+   real(RK):: EPotLocal
+   real(RK):: SSinSum,SCosSum
+   real(RK):: SSin_Vec,SCos_Vec
+   real(RK):: KappaL2
+   real(RK):: sinfac,cosfac
+   real(RK):: Faktor
 
-    fac = 1.0_RK / this%RCutoffLJ126LJ126
-! Selfterm
-    UTermKomp1 = 0._RK
-    DO Si=1,this%Component(nc1)%Molecule%NCharge,1
-         UTermKomp1 = UTermKomp1 - &
-&                  this%Component(nc1)%Molecule%SiteCharge(Si)%e**2
-    END DO
+   integer :: i,j,l
+   integer,intent(in)::nc,np,m
 
-
-! Final Summation
-    this%Component(nc1)%EPotTestSelf = UTermKomp1*fac
-    this%Component(nc1)%EPotTestSelf = 0._RK
-
-    end subroutine TEnsemble_Ewald_ChemPotSelf
+# if MPI_VER > 0
+   integer :: i0
+   integer :: i1
+# endif
 
 
+! Declarations
+   KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
+! Calculation
+# if MPI_VER > 0
+   j=NProc+1
+   i0 = this%NBox0(j)
+   i1 = this%NBox2(j)
+   DO i=i0,i1,1
+# else
+   DO i=1,this%BoxenAnzahl,1
+# endif
+     KVec = this%Ewald_Vec(:,i)
+     mol => this%Component(nc)%Molecule
+     q => mol%SiteCharge(1:mol%NCharge)%e
+     SSin_Vec =0._RK
+     SCos_Vec =0._RK
+       DO l=1,mol%NCharge
+         RX = this%Component(nc)%Molecule%SiteCharge(l)%RX(np)
+         RY = this%Component(nc)%Molecule%SiteCharge(l)%RY(np)
+         RZ = this%Component(nc)%Molecule%SiteCharge(l)%RZ(np)
+
+         if (RX < 0) RX = RX + 1._RK
+         if (RY < 0) RY = RY + 1._RK
+         if (RZ < 0) RZ = RZ + 1._RK
+
+         Faktor = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
+
+         sinfac = q(l)*sin(Faktor)
+         cosfac = q(l)*cos(Faktor)
+
+         SSin_Vec = SSin_Vec + sinfac*m
+         SCos_Vec = SCos_Vec + cosfac*m
+       END DO
+
+     this%SSin(i) = this%SSin(i) + SSin_Vec
+     this%SCos(i) = this%SCos(i) + SCos_Vec
+
+   END DO ! Boxenschleife
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+! Finish Calculation
+
+! Energy
+   this%U_fourierLocal = this%Ewald_Prefac * (this%SSin*this%SSin + this%SCos*this%SCos)
+! Virial
+   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
+
+#if MPI_VER > 0
+   call MPI_Allreduce( sum(this%U_fourierLocal), EPotLocal, 1, &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+#else
+   EPotLocal = sum(this%U_fourierLocal)
+#endif
+
+   this%UFourier= EPotLocal  / NProcs
+
+  END subroutine TEnsemble_EwaldFourierAddDel
+
+
+
+
+
+! ! ! 
+! ! ! !==============================================================!
+! ! ! !  Subroutine TEnsemble_Ewald_ChemicalPotential                !
+! ! ! !==============================================================!
+! ! ! 
+! ! !   subroutine TEnsemble_Ewald_ChemPotSelf( this,nc1)
+! ! ! 
+! ! !     implicit none
+! ! ! 
+! ! !     ! Include MPI header
+! ! ! #if MPI_VER > 0
+! ! !     include 'mpif.h'
+! ! ! #endif
+! ! ! 
+! ! !     ! Declare arguments
+! ! !     type(TEnsemble)            :: this
+! ! !     type(TMolecule), pointer   :: mol
+! ! !     integer, intent(in)        :: nc1
+! ! ! 
+! ! !     ! Declare local variables
+! ! !     integer :: Si,Sj, np
+! ! !     real(RK):: fac
+! ! !     real(RK):: UTermKomp1
+! ! ! 
+! ! !     fac = 1.0_RK / this%RCutoffLJ126LJ126
+! ! ! ! Selfterm
+! ! !     UTermKomp1 = 0._RK
+! ! !     DO Si=1,this%Component(nc1)%Molecule%NCharge,1
+! ! !          UTermKomp1 = UTermKomp1 - &
+! ! ! &                  this%Component(nc1)%Molecule%SiteCharge(Si)%e**2
+! ! !     END DO
+! ! ! 
+! ! ! 
+! ! ! ! Final Summation
+! ! !     this%Component(nc1)%EPotTestSelf = UTermKomp1*fac
+! ! !     this%Component(nc1)%EPotTestSelf = 0._RK
+! ! ! 
+! ! !     end subroutine TEnsemble_Ewald_ChemPotSelf
+! ! ! 
+! ! ! 
+! ! ! 
 ! ! ! ! 
 ! ! ! ! 
 ! ! ! ! 
@@ -10092,7 +11185,7 @@ loop2:        do nc = 1, this%NComponents
 !==============================================================!
 !  Subroutine TSimulation_PME_FourierTerm                      !
 !==============================================================!
-
+#ifdef SPME
    subroutine TEnsemble_PMEFourierTerm(this)
 
    implicit none
@@ -10823,7 +11916,7 @@ contains
     if (SimulationType .eq. MolecularDynamics) then
     call dfftw_plan_dft_3d(this%qgrid_forward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_FORWARD,FFTW_PATIENT)
     call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_BACKWARD,FFTW_PATIENT)
-    else if (SimulationType .eq. MonteCarlo) then
+    else if (SimulationType .eq. (MonteCarlo .or. Gibbs) ) then
     call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgridb,FFTW_BACKWARD,FFTW_PATIENT)
     end if
 
@@ -11093,7 +12186,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSimulation_PME_FourierTerm MonteCarlo           !
+!  Subroutine TEnsemble_PME_FourierTerm MonteCarlo             !
 !==============================================================!
 
    subroutine TEnsemble_PMEFourierTerm_MC(this)
@@ -11894,5 +12987,7 @@ contains
    END DO
 
    end subroutine TEnsemble_VirialIntra
+
+#endif
 
 end module ms2_ensemble

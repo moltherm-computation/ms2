@@ -83,6 +83,10 @@ module ms2_simulation
     module procedure TSimulation_RunSVCStep
   end interface
 
+  interface RunMCStep_Gibbs
+    module procedure TSimulation_RunMCStep_Gibbs
+  end interface
+
   interface CheckNPart
     module procedure TSimulation_CheckNPart
   end interface
@@ -281,6 +285,9 @@ contains
     case( 'SVC', 'svc', '2VC', '2vc' )
       SimulationType = SecondVirialCoeff
       SimulationTypeString = 'Second Virial Coefficient'
+    case( 'GibbsMC', 'gibbsmc', 'gibbs', 'Gibbs' )
+      SimulationType = Gibbs
+      SimulationTypeString = 'Gibbs-Monte-Carlo'
     case default
       call Error( trim( str )//' simulation is not implemented' )
     end select
@@ -519,6 +526,9 @@ contains
       if( BlockSize > 0 ) then
         NBlocksMax = max( NStepsV, NStepsP, NSteps ) / BlockSize
         NBlockSizesMax = int( sqrt( real( NSteps / BlockSize, RK ) ) )
+        if (NBlocksMax .eq. 0) then
+            call Error( 'ResultFreq < RunSteps, please change input variables' )
+        end if
       else
         NBlocksMax = 0
         NBlockSizesMax = 0
@@ -578,6 +588,11 @@ contains
             LongRangeString = 'EwaldSum'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
+            ! Read extended Reaction Field Parameters
+!             call FileReadParameter( iounit_params , IdDebyeLen )
+!             read( IOBuffer, * ) debyelen_h
+!             write( IOBuffer, '("Debye Length [A^-1]:", F8.3)' )debyelen_h
+!             call LogWrite
             ! Read Ewald Parameters
             call FileReadParameter( iounit_params , IdKappa )
             read( IOBuffer, * ) KappaL_h
@@ -620,23 +635,23 @@ contains
             read( IOBuffer, * ) spline_h
             write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
 
-      case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
-         LongRange = RField
-        LongRangeString = 'Reaction Field'
-        write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+        case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
+            LongRange = RField
+            LongRangeString = 'Reaction Field'
+            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
 
-      case( 'ExtReactionField', 'ExtRF', 'extreactionfield', 'extrf' )
-         LongRange = ExtRField
-        LongRangeString = 'Extended Reaction Field by Tironi et al.'
-        write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+        case( 'ExtReactionField', 'ExtRF', 'extreactionfield', 'extrf' )
+            LongRange = ExtRField
+            LongRangeString = 'Extended Reaction Field by Tironi et al.'
+            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+            call LogWrite
             ! Read extended Reaction Field Parameters
             call FileReadParameter( iounit_params , IdDebyeLen )
             read( IOBuffer, * ) debyelen_h
             write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
-            call LogWrite
 
       case default
-        call Error( trim( str )//' is not a valid cutoff mode' )
+        call Error( trim( str )//' is not a valid longrange correction' )
       end select
       call LogWrite
 
@@ -648,6 +663,10 @@ contains
     write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
     call LogWrite
 
+    if( (SimulationType .eq. Gibbs .and. this%NEnsembles .ne. 2) )  &
+&     call Error( trim( SimulationTypeString )//" simulation of " &
+&       //trim( SimulationTypeString )//" needs 2 Ensembles" )
+
     ! Create ensembles
     allocate( this%Ensemble(this%NEnsembles), STAT = stat )
     call AllocationError( stat, 'ensembles', this%NEnsembles )
@@ -657,6 +676,8 @@ contains
             this%ensemble(i)%nsqmax = nsqmax_h
             this%ensemble(i)%nvecmax = nvecmax_h
             this%ensemble(i)%nmax = nmax_h
+!             this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+#ifdef SPME
       else if (LongRange .eq. PME) then
             this%ensemble(i)%KappaL = KappaL_h
             this%ensemble(i)%gridx  = grid_h
@@ -669,9 +690,9 @@ contains
             if(stat >0) write(*,*) 'Allocation Error grida_old'
             allocate(this%ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error gridb'
+#endif
       else if (LongRange .eq. ExtRField) then
-            this%ensemble(i)%DebyeLen = debyelen_h * Angstroem / UnitLength
-
+            this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )
@@ -998,6 +1019,42 @@ eqloop: do
           end if
           call LogWriteTime
 
+        else if( SimulationType .eq. Gibbs ) then
+          StepEnd = NStepsV
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming Gibbs equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting Gibbs equilibration")' )
+          end if
+          call LogWriteTime
+
+          call RunSteps( this, StepStart, StepEnd )
+
+          if( .not. TerminateProgram ) then
+            call CheckNPart( this, NPartsOk )
+            if( NPartsOk ) then
+              write( IOBuffer, '("Gibbs equilibration completed")' )
+              Equilibration = .false.
+            else
+              write( IOBuffer, &
+&               '("Gibbs equilibration ended with too many/too less particles")' )
+              call LogWriteTime
+              write( IOBuffer, '("Restarting equilibration")' )
+              call LogWrite
+              call ResetEnsembles( this )
+              tooManyParticles = .false.
+              NVTEquilibration = .true.
+              StepStart = 1
+              cycle eqloop
+            end if
+          else
+            write( IOBuffer, '("Gibbs equilibration terminated")' )
+          end if
+          call LogWriteTime
+
+
         else
           Equilibration = .false.
         end if
@@ -1117,6 +1174,8 @@ eqloop: do
         call RunMCStep( this )
       case( SecondVirialCoeff )
         call RunSVCStep( this )
+      case( Gibbs )
+        call RunMCStep_Gibbs( this )
       end select
 
       ! Update result and visualisation files
@@ -1232,6 +1291,75 @@ eqloop: do
     end do
 
   end subroutine TSimulation_RunSVCStep
+
+
+
+!==============================================================!
+!  Subroutine TSimulation_RunMCStep_GibbsEnsemble              !
+!==============================================================!
+
+  subroutine TSimulation_RunMCStep_Gibbs( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+    real(RK):: EPotOldliq
+    real(RK):: VolOldliq
+    real(RK):: EPotDelta
+    real(RK):: dv, NEns_h
+    logical :: accept
+
+    integer :: NEns
+    integer :: nc,np
+
+
+    ! Simulations Setup Check for Gibbs
+    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
+&     call Error( 'Gibbs Ensemble only implemented for NVT')
+    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) &
+&     call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
+
+    ! Run MC simulation step
+    do i = 1, this%NEnsembles
+      call RunMCStep( this%Ensemble(i) )
+    end do
+
+! Volume Change in both boxes
+    if (.not. NVTEquilibration) then
+      accept = .false.
+      EPotOldliq = this%ensemble(1)%EPot
+      VolOldliq = this%ensemble(1)%Volume0
+
+      call Resize_Gibbs( this%Ensemble(1),dv,EPotDelta )
+      call Resize_Gibbs( this%Ensemble(2),dv,EPotDelta,accept )
+
+    ! Accept volume change
+      call Update_Gibbs ( this%Ensemble(1),accept,EPotOldliq,VolOldliq )
+
+! Particle change in both boxes
+      DO i=1, 100
+        accept = .false.
+        NEns_h = rnd(0._RK,1._RK)
+        NEns   = int(anint(NEns_h) + 1._RK)
+
+        call Remove_Gibbs( this%Ensemble(NEns),nc,np,EPotDelta )
+        call Insert_Gibbs( this%Ensemble(3-NEns),nc,EPotDelta, accept )
+
+        call Update_Gibbs ( this%Ensemble(NEns),nc,np,accept )
+      END DO
+    end if
+
+
+  end subroutine TSimulation_RunMCStep_Gibbs
 
 
 

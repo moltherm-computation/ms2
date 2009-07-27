@@ -356,6 +356,7 @@ module ms2_global
   integer, parameter :: MolecularDynamics = 1
   integer, parameter :: MonteCarlo        = 2
   integer, parameter :: SecondVirialCoeff = 3
+  integer, parameter :: Gibbs             = 4
   integer            :: SimulationType
 
   ! Type of integrator
@@ -1680,6 +1681,61 @@ contains
   end subroutine IgnoreSignal
 #endif
 
+
+!==============================================================!
+!  Subroutine Write Restart File on xc2 in Karlsruhe, Germany  !
+!==============================================================!
+
+#if MPI_VER > 0
+  subroutine time_left(time_limit)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    real(RK) :: time_remaining
+    real(RK) :: cputime,max_cpu_time
+    character*10 string_max_time
+    integer  :: ierror,max_time, err
+    integer  :: time_limit
+
+! Get CPU time consumed by each task and compute the maximum value
+    call cpu_time(cputime)
+!    call MPI_Allreduce(cputime,max_cpu_time,1,MPI_DOUBLE_PREICSION,MPI_MAX,MPI_COMM_WORLD,ierror)
+
+    max_time = 1e7
+#ifdef KARLS
+! getenv delivers the value of the environment variable JMS_t
+    call getenv('JMS_t',string_max_time)
+
+! Convert to integer
+    read(string_max_time,*) max_time
+#endif
+#ifdef ITWM
+! getenv WALLTIME
+    call getenv('WALLTIME',string_max_time)
+! Convert to integer
+    read(string_max_time,*) max_time
+#endif
+
+! Compute the remaining CPU time
+    time_remaining = max_time - real(cputime)/60.
+
+    if (time_remaining .le. time_limit) then
+       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster")' )
+       call LogWrite
+       call LogWriteBlank
+
+#ifdef __INTEL_COMPILER
+         err = SetTerminateProgram( 1 )
+#else
+         call SetTerminateProgram
+#endif
+    end if
+
+  end subroutine time_left
+#endif
 
 end module ms2_global
 
