@@ -218,6 +218,7 @@ contains
     real, allocatable      :: ScaleLJ14(:), ScaleCC14(:), ScaleCD14(:), ScaleCQ14(:)
     real, allocatable      :: ScaleQQ14(:), ScaleDD14(:), ScaleDQ14(:)
     real, allocatable      :: ScaleDC14(:), ScaleQD14(:), ScaleQC14(:)
+    real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
     integer                :: Charge1Id, Charge2Id, Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
     real(RK)               :: scalegeo, scalesig, scaleeps, scaleest
@@ -772,6 +773,10 @@ contains
      if (LJEl14) then
        allocate (Int14(this%NDihedral, 2), STAT = stat)
        call AllocationError( stat, 'Int14', this%NDihedral*2 )
+       allocate (CoeffLJ14(this%NDihedral), STAT = stat)
+       call AllocationError( stat, 'CoeffLJ14', this%NDihedral )
+       allocate (CoeffEl14(this%NDihedral), STAT = stat)
+       call AllocationError( stat, 'CoeffEl14', this%NDihedral )
        allocate (IntLJ14(this%NDihedral, 2), STAT = stat)
        call AllocationError( stat, 'IntLJ14', this%NDihedral*2 )
        allocate (ScaleLJ14(this%NDihedral), STAT = stat)
@@ -1090,15 +1095,21 @@ contains
              if (.not. ok1) then
                 Int14(k,1)=Site1
                 Int14(k,2)=Site4
+                CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
+                CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
                 k=k+1
              else if (Int14(index, 2) .ne. Site4) then
                 Int14(k,1)=Site1
                 Int14(k,2)=Site4
+                CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
+                CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
                 k=k+1
              end if
            else
              Int14(k,1)=Site1
              Int14(k,2)=Site4
+             CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
+             CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
              k=k+1
            end if
          end if
@@ -1120,7 +1131,8 @@ contains
          if (LJ1 .and. LJ2) then
            IntLJ14(lj,1)=Int14(i,1)
            IntLJ14(lj,2)=Int14(i,2)
-           ScaleLJ14(lj)=this%IdfDihedral(i)%ScaleLJ14
+           ScaleLJ14(lj)=CoeffLJ14(i)
+!          ScaleLJ14(lj)=this%IdfDihedral(i)%ScaleLJ14
 !          print *, 'IntLJ14, 1=', IntLJ14(lj, 1)
 !          print *, 'IntLJ14, 2=', IntLJ14(lj, 2)
 !          print *, 'ScaleLJ14=', ScaleLJ14(lj)
@@ -1135,7 +1147,8 @@ contains
              if ( Charge2Id > 0) then
                IntCC14(cc,1) = Charge1Id
                IntCC14(cc,2) = Charge2Id
-               ScaleCC14(cc)=this%IdfDihedral(i)%ScaleEl14
+               ScaleCC14(cc)=CoeffEl14(i)
+!              ScaleCC14(cc)=this%IdfDihedral(i)%ScaleEl14
 !              print *, 'IntCC14, 1=', IntCC14(cc, 1)
 !              print *, 'IntCC14, 2=', IntCC14(cc, 2)
 !              print *, 'ScaleCC14=', ScaleCC14(cc)
@@ -1145,13 +1158,15 @@ contains
 !               IntCD14(cd,2) = max(Charge1Id, Dipole2Id)
                IntCD14(cd,1) = Charge1Id
                IntCD14(cd,2) = Dipole2Id
-               ScaleCD14(cd)=this%IdfDihedral(i)%ScaleEl14
+               ScaleCD14(cd)=CoeffEl14(i)
+!               ScaleCD14(cd)=this%IdfDihedral(i)%ScaleEl14
                cd = cd+1
              else
                 if ( Quadrupole2Id > 0) then
                   IntCQ14(cq,1) = Charge1Id
                   IntCQ14(cq,2) = Quadrupole2Id
-                  ScaleCQ14(cq)=this%IdfDihedral(i)%ScaleEl14
+                  ScaleCQ14(cq)=CoeffEl14(i)
+!                  ScaleCQ14(cq)=this%IdfDihedral(i)%ScaleEl14
                   cq = cq+1
                 end if
              end if
@@ -1160,18 +1175,21 @@ contains
              if ( Charge2Id > 0) then
                IntDC14(dc,1) = Dipole1Id
                IntDC14(dc,2) = Charge2Id
-               ScaleDC14(dc)=this%IdfDihedral(i)%ScaleEl14
+               ScaleDC14(dc)=CoeffEl14(i)
+!               ScaleDC14(dc)=this%IdfDihedral(i)%ScaleEl14
                dc = dc+1
              else if ( Dipole2Id > 0) then
                IntDD14(dd,1) = Dipole1Id
                IntDD14(dd,2) = Dipole2Id
-               ScaleDD14(dd)=this%IdfDihedral(i)%ScaleEl14
+               ScaleDD14(dd)=CoeffEl14(i)
+!               ScaleDD14(dd)=this%IdfDihedral(i)%ScaleEl14
                dd = dd+1
              else
                 if (Quadrupole2Id > 0) then
                   IntDQ14(dq,1) = Dipole1Id
                   IntDQ14(dq,2) = Quadrupole2Id
-                  ScaleDQ14(dq)=this%IdfDihedral(i)%ScaleEl14
+                  ScaleDQ14(dq)=CoeffEl14(i)
+!                  ScaleDQ14(dq)=this%IdfDihedral(i)%ScaleEl14
                   dq = dq+1
                 end if
              end if
@@ -1180,18 +1198,21 @@ contains
              if ( Charge2Id > 0) then
                IntQC14(qc,1) = Quadrupole1Id
                IntQC14(qc,2) = Charge2Id
-               ScaleQC14(qc)=this%IdfDihedral(i)%ScaleEl14
+               ScaleQC14(qc) = CoeffEl14(i)
+!               ScaleQC14(qc)=this%IdfDihedral(i)%ScaleEl14
                qc = qc+1
              else if ( Dipole2Id > 0) then
                IntQD14(qd,1) = Quadrupole1Id
                IntQD14(qd,2) = Dipole2Id
-               ScaleQD14(qd)=this%IdfDihedral(i)%ScaleEl14
+               ScaleQD14(qd) = CoeffEl14(i)
+!               ScaleQD14(qd)=this%IdfDihedral(i)%ScaleEl14
                qd = qd+1
              else
                 if ( Quadrupole2Id > 0) then
                   IntQQ14(qq,1) = Quadrupole1Id
                   IntQQ14(qq,2) = Quadrupole2Id
-                  ScaleQQ14(qq)=this%IdfDihedral(i)%ScaleEl14
+                  ScaleQQ14(qq)= CoeffEl14(i)
+!                  ScaleQQ14(qq)=this%IdfDihedral(i)%ScaleEl14
                   qq = qq+1
                 end if
              end if
