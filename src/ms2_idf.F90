@@ -319,7 +319,7 @@ end subroutine TIdfAngle_Construct
     read( IOBuffer, * ) this%gamma
     call FileReadParameter( iounit_potmod, IdDihedral_n )
     read( IOBuffer, * ) this%multi
-    if (LJEl14) then
+    if (LJEl14 .and. this%multi) then
       call FileReadParameter( iounit_potmod, IdDihedral_ScaleLJ14 )
       read( IOBuffer, * ) this%ScaleLJ14
       call FileReadParameter( iounit_potmod, IdDihedral_ScaleEl14 )
