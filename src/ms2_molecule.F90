@@ -19,6 +19,10 @@
 
 module ms2_molecule
 
+!#ifdev MPI_VER > 0
+!  use mpi
+!#endif
+
   use ms2_global
   use ms2_site
 
@@ -139,8 +143,7 @@ contains
     call FileReset( iounit_potmod, this%PotModFileName )
 
     ! Read number of potential types
-    call FileReadParameter( iounit_potmod, IdSite_ntypes )
-    read( IOBuffer, * ) ntypes
+    call FileReadParameter( ntypes, iounit_potmod, IdSite_ntypes, .false. )
 
     ! Zero number of sites
     this%NLJ126 = 0
@@ -150,12 +153,10 @@ contains
 
     ! Loop over potential types
     do i = 1, ntypes
-      call FileReadParameter( iounit_potmod, IdSite_stype )
-      read( IOBuffer, * ) stype
+      call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
       case( 'LJ126', 'lj126', 'LJ', 'lj' )
-        call FileReadParameter( iounit_potmod, IdSite_NLJ126 )
-        read( IOBuffer, * ) this%NLJ126
+        call FileReadParameter( this%NLJ126, iounit_potmod, IdSite_NLJ126, .false. )
         if( this%NLJ126 > 0 ) then
           allocate( this%SiteLJ126(this%NLJ126), STAT = stat )
           call AllocationError( stat, 'Lennard-Jones sites', this%NLJ126 )
@@ -164,8 +165,7 @@ contains
           end do
         end if
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
-        call FileReadParameter( iounit_potmod, IdSite_NCharge )
-        read( IOBuffer, * ) this%NCharge
+        call FileReadParameter( this%NCharge, iounit_potmod, IdSite_NCharge, .false. )
         if( this%NCharge > 0 ) then
           allocate( this%SiteCharge(this%NCharge), STAT = stat )
           call AllocationError( stat, 'point charge sites', this%NCharge )
@@ -174,8 +174,7 @@ contains
           end do
         end if
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
-        call FileReadParameter( iounit_potmod, IdSite_NDipole )
-        read( IOBuffer, * ) this%NDipole
+        call FileReadParameter( this%NDipole, iounit_potmod, IdSite_NDipole, .false. )
         if( this%NDipole > 0 ) then
           allocate( this%SiteDipole(this%NDipole), STAT = stat )
           call AllocationError( stat, 'dipolar sites', this%NDipole )
@@ -184,8 +183,7 @@ contains
           end do
         end if
       case( 'QUADRUPOLE', 'Quadrupole', 'quadrupole', 'Q', 'q' )
-        call FileReadParameter( iounit_potmod, IdSite_NQuadrupole )
-        read( IOBuffer, * ) this%NQuadrupole
+        call FileReadParameter( this%NQuadrupole, iounit_potmod, IdSite_NQuadrupole, .false. )
         if( this%NQuadrupole > 0 ) then
           allocate( this%SiteQuadrupole(this%NQuadrupole), STAT = stat )
           call AllocationError( stat, 'quadrupolar sites', this%NQuadrupole )
@@ -199,8 +197,7 @@ contains
     end do
 
     ! Read number of rotation axes
-    call FileReadParameter( iounit_potmod, IdSite_NDFRot )
-    read( IOBuffer, * ) stype
+    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
     select case( stype )
     case( '0' )
       this%NDFRot = 0
@@ -229,7 +226,7 @@ contains
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
-      call FileReadParameter( iounit_potmod, IdNFluct )
+      call FileReadParameter_IOBuffer( iounit_potmod, IdNFluct, .false. )
 
       ! Scaling factors start in next line
       if( RootProc ) then
@@ -275,8 +272,7 @@ contains
 
     else if( fluctstate .eq. 0 ) then
 
-      call FileReadParameter( iounit_potmod, IdNFluct )
-      read( IOBuffer, * ) this%NFluct
+      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .false. )
 
     else
 
@@ -315,11 +311,6 @@ contains
   subroutine TMolecule_Destruct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule) :: this
@@ -364,11 +355,6 @@ contains
   subroutine TMolecule_Save( this, fluctstate )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)     :: this
@@ -496,11 +482,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -562,11 +543,6 @@ contains
   subroutine TMolecule_FindMOI( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule) :: this
@@ -795,11 +771,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -809,13 +780,10 @@ contains
     ! Read moments of inertia
     this%MOI(:) = 0._RK
     if( this%NDFRot > 0 ) then
-      call FileReadParameter( iounit_potmod, IdSite_MOI1 )
-      read( IOBuffer, * ) this%MOI(1)
-      call FileReadParameter( iounit_potmod, IdSite_MOI2 )
-      read( IOBuffer, * ) this%MOI(2)
+      call FileReadParameter( this%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
+      call FileReadParameter( this%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
       if( this%NDFRot == 3 ) then
-        call FileReadParameter( iounit_potmod, IdSite_MOI3 )
-        read( IOBuffer, * ) this%MOI(3)
+        call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
       end if
     end if
 
@@ -838,11 +806,6 @@ contains
   subroutine TMolecule_FindNDF( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule) :: this

@@ -19,6 +19,10 @@
 
 module ms2_simulation
 
+!#ifdev MPI_VER > 0
+!  use mpi
+!#endif
+
   use ms2_ensemble
   use ms2_global
   use ms2_stopwatch
@@ -146,11 +150,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -170,17 +169,17 @@ contains
     end if
 #else
     call FileReset( iounit_config, ProgramFileName//ConfigFileExtension )
-    call FileReadParameter2( str, iounit_config, IdRestart, .true., "NO" )
+    call FileReadParameter( str, iounit_config, IdRestart, .true., "NO" )
     select case( str )
     case( 'YES', 'Yes', 'yes' )
       Restart = .true.
-      call FileReadParameter2( RestartFileName, iounit_config, IdRestartFileName, .true. )
+      call FileReadParameter( RestartFileName, iounit_config, IdRestartFileName, .true. )
       write( IOBuffer, '("Restarting from file: ", A)' ) RestartFileName
       call LogWrite
       call FileReset( iounit_restart, RestartFileName )
       read( iounit_restart, '(A128)' ) ParameterFileName
     case( 'NO', 'No', 'no' )
-      call FileReadParameter2( ParameterFileName, iounit_config, IdParamsFileName, .true. )
+      call FileReadParameter( ParameterFileName, iounit_config, IdParamsFileName, .true. )
     case default
       call Error( 'Select yes/no for restart in file '// &
 &       ProgramFileName//ConfigFileExtension )
@@ -201,14 +200,14 @@ contains
 
     ! Read name tag for output files
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
-    call FileReadParameter2( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
+    call FileReadParameter( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
 #endif
     write( IOBuffer, '("Name tag for output files: ", A)' ) &
 &     trim( OutputNameTag )
     call LogWrite
 
     ! Read type of units
-    call FileReadParameter2( str, iounit_params , IdUseReducedUnits, .true. )
+    call FileReadParameter( str, iounit_params , IdUseReducedUnits, .true. )
     select case( str )
     case( 'REDUCED', 'Reduced', 'reduced' )
       UseReducedUnits = .true.
@@ -223,21 +222,21 @@ contains
     call LogWrite
 
     ! Read unit of length
-    call FileReadParameter2( UnitLength, iounit_params, IdUnitLength, .true. )
+    call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
     UnitLength = UnitLength * Angstroem
     write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
 &     UnitLength / Angstroem
     call LogWrite
 
     ! Read unit of energy
-    call FileReadParameter2( UnitEnergy, iounit_params, IdUnitEnergy, .true. )
+    call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
     UnitEnergy = UnitEnergy * kBoltzmann
     write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
 &     UnitEnergy / kBoltzmann
     call LogWrite
 
     ! Read unit of mass
-    call FileReadParameter2( UnitMass, iounit_params, IdUnitMass, .true. )
+    call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
     UnitMass = UnitMass * .001_RK / NAvogadro
     write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
 &     UnitMass * NAvogadro * 1000._RK
@@ -258,7 +257,7 @@ contains
     UnitQuadrupole = UnitCharge * UnitLength**2
 
     ! Read type of simulation
-    call FileReadParameter2( str, iounit_params , IdSimulationType, .true. )
+    call FileReadParameter( str, iounit_params , IdSimulationType, .true. )
     select case( str )
     case( 'MD', 'md' )
       SimulationType = MolecularDynamics
@@ -279,17 +278,17 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
 
       ! Read number of orientations
-      call FileReadParameter2( NOrient, iounit_params , IdNOrient, .true. )
+      call FileReadParameter( NOrient, iounit_params , IdNOrient, .true. )
       write( IOBuffer, '("Number of orientations: ", I7)' ) NOrient
       call LogWrite
 
       ! Read number of steps
-      call FileReadParameter2( NSteps, iounit_params , IdRSteps, .true. )
+      call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
       write( IOBuffer, '("Number of radial steps: ", I7)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
-      call FileReadParameter2( MinRadius, iounit_params , IdMinRadius, .true. )
+      call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .true. )
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
@@ -298,7 +297,7 @@ contains
       call LogWrite
 
       ! Read maximum radius
-      call FileReadParameter2( MaxRadius, iounit_params , IdMaxRadius, .true. )
+      call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .true. )
       if( .not. UseReducedUnits ) then
         MaxRadius = MaxRadius / UnitLength * Angstroem
       end if
@@ -320,7 +319,7 @@ contains
       if( SimulationType .eq. MolecularDynamics ) then
 
         ! Type of integrator
-        call FileReadParameter2( str, iounit_params , IdIntegratorType, .true., "GEAR" )
+        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "GEAR" )
         select case( str )
         case( 'GEAR', 'Gear', 'gear' )
           IntegratorType = IntegratorTypeGear
@@ -346,7 +345,7 @@ contains
         call LogWrite
 
         ! Time step
-        call FileReadParameter2( TimeStep, iounit_params , IdTimeStep, .true. )
+        call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
         write( IOBuffer, '("Time step: ", F9.6, " fs")' ) &
 &         TimeStep * UnitTime * 1E15_RK
         call LogWrite
@@ -361,7 +360,7 @@ contains
       else
 
         ! Acceptance rate
-        call FileReadParameter2( Acceptance, iounit_params , IdAcceptance, .true. )
+        call FileReadParameter( Acceptance, iounit_params , IdAcceptance, .true., 0.5_RK )
         if( Acceptance < 0.05_RK ) then
           Acceptance = 0.05_RK
         else if( Acceptance > 0.95_RK ) then
@@ -376,7 +375,7 @@ contains
       end if
 
       ! Read type of ensembles
-      call FileReadParameter2( str, iounit_params , IdEnsembleType, .true. )
+      call FileReadParameter( str, iounit_params , IdEnsembleType, .true. )
       select case( str )
       case( 'NVE', 'nve' )
         EnsembleType = EnsembleTypeNVE
@@ -426,7 +425,7 @@ contains
 
       ! Read number of MC overlap reduction steps
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter2( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
+        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
         if( NStepsMC > 0 ) then
           write( IOBuffer, '("Number of MC overlap reduction steps: ", I7)' ) &
 &           NStepsMC
@@ -445,7 +444,7 @@ contains
       end if
 
       ! Read number of NVT equilibration steps
-      call FileReadParameter2( NStepsV, iounit_params , IdNStepsV, .true., 0 )
+      call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ", I7)' ) &
 &       NStepsV
       call LogWrite
@@ -453,18 +452,18 @@ contains
       ! Read number of NPT equilibration steps
       if( ConstantPressure ) then
         if( EnsembleType .eq. EnsembleTypeHA ) then
-          call FileReadParameter2( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
+          call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ", I7)' ) &
 &           NStepsP
           call LogWrite
         else
-          call FileReadParameter2( NStepsP, iounit_params , IdNStepsP, .true., 0 )
+          call FileReadParameter( NStepsP, iounit_params , IdNStepsP, .true., 0 )
           write( IOBuffer, '("Number of NPT equilibration steps: ", I7)' ) &
 &           NStepsP
           call LogWrite
         end if
       else if( EnsembleType .eq. EnsembleTypeGE ) then
-        call FileReadParameter2( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
+        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of GE equilibration steps: ", I7)' ) &
 &         NStepsP
         call LogWrite
@@ -473,12 +472,12 @@ contains
       end if
 
       ! Read number of production steps
-      call FileReadParameter2( NSteps, iounit_params , IdNSteps, .true., 0 )
+      call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
       write( IOBuffer, '("Number of production steps: ", I7)' ) NSteps
       call LogWrite
 
       ! Read frequency of updating result file
-      call FileReadParameter2( BlockSize, iounit_params , IdBlockSize, .true., 0 )
+      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., 0 )
       if( BlockSize > 0 ) then
         write( IOBuffer, &
 &         '("Result files will be updated each", I7, " time steps")' ) &
@@ -501,7 +500,7 @@ contains
       end if
 
       ! Read frequency of updating final result file
-      call FileReadParameter2( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
+      call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
       if( ErrorsUpdateFrequency < 1 ) then
         ErrorsUpdateFrequency = NSteps
       else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
@@ -517,7 +516,7 @@ contains
       call LogWrite
 
       ! Read frequency of updating visualisation file
-      call FileReadParameter2( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
+      call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
       if( VisualUpdateFrequency > 0 ) then
         write( IOBuffer, &
 &        '("Visualization files will be updated each", I7, " time steps")' ) &
@@ -528,7 +527,7 @@ contains
       call LogWrite
 
       ! Read cutoff mode
-      call FileReadParameter2( str, iounit_params , IdCutoffMode, .true., "COM" )
+      call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
       select case( str )
       case( 'COM', 'com', 'CenterOfMass', 'CenterofMass', 'centerofmass' )
         CutoffMode = CenterofMass
@@ -545,7 +544,7 @@ contains
     end if
 
     ! Read number of ensembles
-    call FileReadParameter2( this%NEnsembles, iounit_params , IdNEnsembles, .true. )
+    call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
     call LogWrite
 
@@ -562,9 +561,9 @@ contains
 
 !DEBUG
 !   if( any( this%Ensemble(:)%Component(:)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-!     call FileReadParameter2( GradInsFrequency, iounit_params, IDFluctFreq )
-!     call FileReadParameter2( NFullFluct, iounit_params, IDNFullFluct )
-!     call FileReadParameter2( maxcounter, iounit_params, IDMaxCounter )
+!     call FileReadParameter( GradInsFrequency, iounit_params, IDFluctFreq, .false. )
+!     call FileReadParameter( NFullFluct, iounit_params, IDNFullFluct, .false. )
+!     call FileReadParameter( maxcounter, iounit_params, IDMaxCounter, .false. )
 !   end if
   GradInsFrequency = BlockSize
   NFullFluct = 20
@@ -600,11 +599,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -639,11 +633,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -666,11 +655,6 @@ contains
   subroutine TSimulation_DestroyAccumulators( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -695,11 +679,6 @@ contains
   subroutine TSimulation_Run( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1084,11 +1063,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1111,11 +1085,6 @@ eqloop: do
   subroutine TSimulation_RunMCStep( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1140,11 +1109,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1167,11 +1131,6 @@ eqloop: do
   subroutine TSimulation_CheckNPart( this, NPartsOk )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation)    :: this
@@ -1198,11 +1157,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1225,11 +1179,6 @@ eqloop: do
   subroutine TSimulation_ResultOpen( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1283,11 +1232,6 @@ eqloop: do
   subroutine TSimulation_ResultUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1352,11 +1296,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1395,11 +1334,6 @@ eqloop: do
   subroutine TSimulation_ErrorsUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1533,11 +1467,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1568,11 +1497,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1601,11 +1525,6 @@ eqloop: do
   subroutine TSimulation_VisualUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -1641,11 +1560,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1674,11 +1588,6 @@ eqloop: do
   subroutine TSimulation_RestartSave( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this

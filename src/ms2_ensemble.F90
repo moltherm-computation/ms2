@@ -19,6 +19,10 @@
 
 module ms2_ensemble
 
+!#ifdev MPI_VER > 0
+!  use mpi
+!#endif
+
   use ms2_accumulator
   use ms2_component
   use ms2_global
@@ -488,11 +492,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: ne
@@ -517,23 +516,20 @@ contains
     call LogWrite
 
     ! Read temperature
-    call FileReadParameter( iounit_params , IdRefTemperature )
-    read( IOBuffer, * ) this%RefTemperature
+    call FileReadParameter( this%RefTemperature, iounit_params , IdRefTemperature, .false. )
     if( .not. UseReducedUnits ) then
       this%RefTemperature = this%RefTemperature / UnitTemperature
     end if
 
     ! Read pressure
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      call FileReadParameter( iounit_params , IdPressure0 )
-      read( IOBuffer, * ) this%RefPressure
+      call FileReadParameter( this%RefPressure, iounit_params , IdPressure0, .false. )
       if( .not. UseReducedUnits ) then
         this%RefPressure = this%RefPressure * 1E6_RK / UnitPressure
       end if
     end if
     if( ConstantPressure ) then
-      call FileReadParameter( iounit_params , IdRefPressure )
-      read( IOBuffer, * ) this%RefPressure
+      call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
       if( .not. UseReducedUnits ) then
         this%RefPressure = this%RefPressure * 1E6_RK / UnitPressure
       end if
@@ -541,51 +537,42 @@ contains
 
     ! Read liquid simulation data
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      call FileReadParameter( iounit_params , IdLiqDensity )
-      read( IOBuffer, * ) this%LiqDensity
+      call FileReadParameter( this%LiqDensity, iounit_params , IdLiqDensity, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqDensity = this%LiqDensity / UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdVarLiqDensity )
-      read( IOBuffer, * ) this%VarLiqDensity
+      call FileReadParameter( this%VarLiqDensity, iounit_params , IdVarLiqDensity, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqDensity = this%VarLiqDensity / UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdLiqEnthalpy )
-      read( IOBuffer, * ) this%LiqEnthalpy
+      call FileReadParameter( this%LiqEnthalpy, iounit_params , IdLiqEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqEnthalpy = this%LiqEnthalpy / ( UnitEnergy * NAvogadro )
       end if
-      call FileReadParameter( iounit_params , IdVarLiqEnthalpy )
-      read( IOBuffer, * ) this%VarLiqEnthalpy
+      call FileReadParameter( this%VarLiqEnthalpy, iounit_params , IdVarLiqEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqEnthalpy = this%VarLiqEnthalpy / ( UnitEnergy * NAvogadro )
       end if
-      call FileReadParameter( iounit_params , IdLiqBetaT )
-      read( IOBuffer, * ) this%LiqBetaT
+      call FileReadParameter( this%LiqBetaT, iounit_params , IdLiqBetaT, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqBetaT = this%LiqBetaT * UnitPressure * 1E-6_RK
       end if
-      call FileReadParameter( iounit_params , IdVarLiqBetaT )
-      read( IOBuffer, * ) this%VarLiqBetaT
+      call FileReadParameter( this%VarLiqBetaT, iounit_params , IdVarLiqBetaT, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqBetaT = this%VarLiqBetaT * UnitPressure * 1E-6_RK
       end if
-      call FileReadParameter( iounit_params , IdLiqdHdP )
-      read( IOBuffer, * ) this%LiqdHdP
+      call FileReadParameter( this%LiqdHdP, iounit_params , IdLiqdHdP, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqdHdP = this%LiqdHdP * UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdVarLiqdHdP )
-      read( IOBuffer, * ) this%VarLiqdHdP
+      call FileReadParameter( this%VarLiqdHdP, iounit_params , IdVarLiqdHdP, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqdHdP = this%VarLiqdHdP * UnitDensity
       end if
     end if
 
     ! Read density
-    call FileReadParameter( iounit_params , IdRefDensity )
-    read( IOBuffer, * ) this%RefDensity
+    call FileReadParameter( this%RefDensity, iounit_params , IdRefDensity, .false. )
     if( .not. UseReducedUnits ) then
       this%RefDensity = this%RefDensity / UnitDensity
     end if
@@ -650,8 +637,7 @@ contains
 
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
-      call FileReadParameter( iounit_params , IdPistonMass )
-      read( IOBuffer, * ) this%PistonMass
+      call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
       if( .not. UseReducedUnits ) then
 !        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
       end if
@@ -660,8 +646,7 @@ contains
     end if
 
     ! Read initial number of particles in ensemble
-    call FileReadParameter( iounit_params , IdNPart )
-    read( IOBuffer, * ) this%NPart
+    call FileReadParameter( this%NPart, iounit_params , IdNPart, .false. )
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA ) then
       this%NPartInitial = this%NPart
@@ -670,8 +655,7 @@ contains
     end if
 
     ! Read number of components in ensemble
-    call FileReadParameter( iounit_params , IdNComponents )
-    read( IOBuffer, * ) this%NComponents
+    call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
     write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
@@ -704,11 +688,9 @@ contains
     this%ScaleEpsilon(:, :) = 1._RK
     do i = 1, this%NRealComponents - 1
       do j = i + 1, this%NRealComponents
-        call FileReadParameter( iounit_params , IdScaleSigma )
-        read( IOBuffer, * ) this%ScaleSigma(i, j)
+        call FileReadParameter( this%ScaleSigma(i, j), iounit_params , IdScaleSigma, .false. )
         if( i /= j ) this%ScaleSigma(j, i) = this%ScaleSigma(i, j)
-        call FileReadParameter( iounit_params , IdScaleEpsilon )
-        read( IOBuffer, * ) this%ScaleEpsilon(i, j)
+        call FileReadParameter( this%ScaleEpsilon(i, j), iounit_params , IdScaleEpsilon, .false. )
         if( i /= j ) this%ScaleEpsilon(j, i) = this%ScaleEpsilon(i, j)
         write( IOBuffer, &
 &         '(A, "-", A, " Lennard-Jones interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
@@ -725,8 +707,7 @@ contains
     this%RCutoffDipoleQuadrupole = 0._RK
     this%RCutoffQuadrupoleQuadrupole = 0._RK
     if( CutoffMode .eq. CenterofMass ) then
-      call FileReadParameter( iounit_params , IdRCutoffCOM )
-      read( IOBuffer, * ) this%RCutoffLJ126LJ126
+      call FileReadParameter( this%RCutoffLJ126LJ126, iounit_params , IdRCutoffCOM, .false. )
       if (this%RCutoffLJ126LJ126 < 0._RK) then
         this%RCutoffLJ126LJ126 = 0.9*0.5*(this%NPart / &
 &          (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
@@ -739,22 +720,19 @@ contains
       this%RCutoffQuadrupoleQuadrupole = this%RCutoffLJ126LJ126
     else
       if( this%NLJ126Max > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffLJ126LJ126 )
-        read( IOBuffer, * ) this%RCutoffLJ126LJ126
+        call FileReadParameter( this%RCutoffLJ126LJ126, iounit_params , IdRCutoffLJ126LJ126, .false. )
         write( IOBuffer, &
 &         '("Lennard-Jones cutoff radius: ", F6.3, " sigma")' ) &
 &         this%RCutoffLJ126LJ126
         call LogWrite
       end if
       if( this%NDipoleMax > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffDipoleDipole )
-        read( IOBuffer, * ) this%RCutoffDipoleDipole
+        call FileReadParameter( this%RCutoffDipoleDipole, iounit_params , IdRCutoffDipoleDipole, .false. )
         write( IOBuffer, '("Reduced dipole-dipole cutoff radius: ", F8.3)' ) &
 &         this%RCutoffDipoleDipole
         call LogWrite
         if( this%NQuadrupoleMax > 0 ) then
-          call FileReadParameter( iounit_params , IdRCutoffDipoleQuadrupole )
-          read( IOBuffer, * ) this%RCutoffDipoleQuadrupole
+          call FileReadParameter( this%RCutoffDipoleQuadrupole, iounit_params , IdRCutoffDipoleQuadrupole, .false. )
           write( IOBuffer, &
 &           '("Reduced dipole-quadrupole cutoff radius: ", F8.3)' ) &
 &           this%RCutoffDipoleQuadrupole
@@ -762,8 +740,7 @@ contains
         end if
       end if
       if( this%NQuadrupoleMax > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffQuadrupoleQuadrupole )
-        read( IOBuffer, * ) this%RCutoffQuadrupoleQuadrupole
+        call FileReadParameter( this%RCutoffQuadrupoleQuadrupole, iounit_params , IdRCutoffQuadrupoleQuadrupole, .false. )
         write( IOBuffer, &
 &         '("Reduced quadrupole-quadrupole cutoff radius: ", F8.3)' ) &
 &         this%RCutoffQuadrupoleQuadrupole
@@ -774,8 +751,7 @@ contains
     ! Read characteristic dielectric constant
     this%RFEpsilon = 0._RK
     if(( this%NDipoleMax > 0 ) .or. ( this%NChargeMax > 0 )) then
-      call FileReadParameter( iounit_params , IdRFEpsilon )
-      read( IOBuffer, * ) this%RFEpsilon
+      call FileReadParameter( this%RFEpsilon, iounit_params , IdRFEpsilon, .false. )
       write( IOBuffer, '("Characteristic dielectric constant: ", E16.9)' ) &
 &       this%RFEpsilon
       call LogWrite
@@ -890,11 +866,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: ne
@@ -922,8 +893,7 @@ contains
     call LogWrite
 
     ! Read temperature
-    call FileReadParameter( iounit_params , IdRefTemperature )
-    read( IOBuffer, * ) this%Temperature
+    call FileReadParameter( this%Temperature, iounit_params , IdRefTemperature, .false. )
     if( .not. UseReducedUnits ) then
       this%Temperature = this%Temperature / UnitTemperature
     end if
@@ -936,8 +906,7 @@ contains
     call LogWrite
 
     ! Read number of components in ensemble
-    call FileReadParameter( iounit_params , IdNComponents )
-    read( IOBuffer, * ) this%NComponents
+    call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
     write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
@@ -956,8 +925,7 @@ contains
     do i = 1, this%NComponents, 2
 
       ! Read file name for potential model
-      call FileReadParameter( iounit_params , IdPotModFileName )
-      read( IOBuffer, * ) PotModFileName
+      call FileReadParameter( PotModFileName, iounit_params , IdPotModFileName, .false. )
 
       call Construct( this%Component(i), PotModFileName )
       call Construct( this%Component(i+1), PotModFileName )
@@ -987,12 +955,10 @@ contains
     this%ScaleEpsilon(:, :) = 1._RK
     do i = 1, this%NComponents - 2, 2
       do j = i + 2, this%NComponents, 2
-        call FileReadParameter( iounit_params , IdScaleSigma )
-        read( IOBuffer, * ) scaleSigma
+        call FileReadParameter( scaleSigma, iounit_params , IdScaleSigma, .false. )
         this%ScaleSigma(i:i+1, j:j+1) = scaleSigma
         if( i /= j ) this%ScaleSigma(j:j+1, i:i+1) = scaleSigma
-        call FileReadParameter( iounit_params , IdScaleEpsilon )
-        read( IOBuffer, * ) scaleEpsilon
+        call FileReadParameter( scaleEpsilon, iounit_params , IdScaleEpsilon, .false. )
         this%ScaleEpsilon(i:i+1, j:j+1) = scaleEpsilon
         if( i /= j ) this%ScaleEpsilon(j:j+1, i:i+1) = scaleEpsilon
         write( IOBuffer, &
@@ -1060,11 +1026,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1098,11 +1059,6 @@ contains
   subroutine TEnsemble_CreateComponents( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1158,11 +1114,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1188,11 +1139,6 @@ contains
   subroutine TEnsemble_CreatePotentials( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1250,16 +1196,11 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i, j, j0
+    integer :: i, j
 
     ! Destroy interactions
     if( SimulationType .eq. SecondVirialCoeff ) then
@@ -1291,16 +1232,11 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i, j, stat
+    integer :: i, j
 
     ! Construct accumulators
     if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -1351,11 +1287,6 @@ contains
   subroutine TEnsemble_DestroyAccumulators( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1409,11 +1340,6 @@ contains
   subroutine TEnsemble_CalculateNPart( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1518,11 +1444,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1559,11 +1480,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1598,11 +1514,6 @@ contains
   subroutine TEnsemble_FindNSiteMax( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1639,11 +1550,6 @@ contains
   subroutine TEnsemble_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1700,11 +1606,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1729,11 +1630,6 @@ contains
   subroutine TEnsemble_Deallocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1772,11 +1668,6 @@ contains
   subroutine TEnsemble_CalculateCorr( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -1851,11 +1742,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1873,6 +1759,9 @@ contains
     ! Create FCC lattice
     n = 0
     xl = 1._RK / real( this%NCells, RK )
+    write( IOBuffer, '("Initialize positions: ",I4," *",I5,"**3 cells FCC lattice")' ) &
+&          NPartInCell, this%NCells
+    call LogWrite
 loop:do l = 1, NPartInCell
       do i = 1, this%NCells
         do j = 1, this%NCells
@@ -1947,11 +1836,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -1988,11 +1872,6 @@ loop:do l = 1, NPartInCell
   subroutine TEnsemble_InitMolecularDynamics( this, dealloc )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -2037,11 +1916,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2067,11 +1941,6 @@ loop:do l = 1, NPartInCell
   subroutine TEnsemble_InitIntegrator( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -2103,11 +1972,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2138,11 +2002,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2170,11 +2029,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2198,11 +2052,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2225,11 +2074,6 @@ loop:do l = 1, NPartInCell
   subroutine TEnsemble_RemoveNetMomentum( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -2329,11 +2173,6 @@ loop:do l = 1, NPartInCell
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)        :: this
     logical, intent(inout) :: NPartOk
@@ -2353,11 +2192,6 @@ loop:do l = 1, NPartInCell
   subroutine TEnsemble_ResetEnsemble( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -2408,11 +2242,6 @@ loop:do l = 1, NPartInCell
   subroutine TEnsemble_RunMDStep( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -2582,11 +2411,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2754,11 +2578,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2782,11 +2601,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -2809,11 +2623,6 @@ loop3:    do nc = 1, this%NComponents
   subroutine TEnsemble_Predict( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -2841,11 +2650,6 @@ loop3:    do nc = 1, this%NComponents
   subroutine TEnsemble_Correct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -3030,11 +2834,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -3071,11 +2870,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -3101,11 +2895,6 @@ loop3:    do nc = 1, this%NComponents
   subroutine TEnsemble_CorrectVerlet( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -3135,11 +2924,6 @@ loop3:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -3165,11 +2949,6 @@ loop3:    do nc = 1, this%NComponents
   subroutine TEnsemble_CorrectVV( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -3302,7 +3081,8 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, &
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
-    type(TComponent), pointer :: pc, pcf
+    type(TComponent), pointer :: pc
+!    type(TComponent), pointer :: pcf
 !DEBUG
     integer                   :: nstate( 0:this%NFluctMax ), counter
 !DEBUG
@@ -3580,11 +3360,6 @@ loop2:        do nc = 1, this%NComponents
 
       implicit none
 
-      ! Include MPI header
-#if MPI_VER > 1
-      include 'mpif.h'
-#endif
-
       ! Declare arguments
       real(RK), intent(in) :: l_range, h_range
 
@@ -3618,11 +3393,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
 
@@ -3654,11 +3424,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc, np
@@ -3689,11 +3454,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_Energy( this, E )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)       :: this
@@ -3742,11 +3502,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)       :: this
     integer, intent(in)   :: nc, np
@@ -3783,11 +3538,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -3821,11 +3571,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc, np
@@ -3854,11 +3599,6 @@ loop2:        do nc = 1, this%NComponents
   function TEnsemble_GetVirial( this ) result(V)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -4534,7 +4274,6 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
     integer                     :: i, n1, n2
-    real(RK)                    :: s
 !DEBUG
 !#if MPI_VER > 0
 !  logical                     :: accepted, different
@@ -4630,11 +4369,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_Move2End( this, nc, np )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)        :: this
@@ -4785,11 +4519,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -4818,11 +4547,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_UpdateDisplacements( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -4882,11 +4606,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -4913,11 +4632,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_RestoreState( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -4948,11 +4662,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_ResultOpen( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -4996,11 +4705,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_ResultUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -5412,11 +5116,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -5438,11 +5137,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_ErrorsUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -6266,11 +5960,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6398,11 +6087,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6438,11 +6122,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_VisualUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -6486,11 +6165,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6510,11 +6184,6 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_RestartSave( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -6819,11 +6488,6 @@ loop2:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6834,7 +6498,6 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     type(TSiteLJ126), pointer :: plj
     integer                   :: nc, i, i1, i2, j, n, n2, n3
-    real(RK)                  :: a1, a2, a3, anorm, EPot
     real(RK)                  :: C(this%NPart * 3), Q(this%NPart * 4)
 
     if( .not. RootProc ) return
