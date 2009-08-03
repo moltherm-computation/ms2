@@ -529,10 +529,10 @@ module ms2_potential
     integer                      :: Site1, Site2, Site3, Site4
     integer                      :: multi
     real(RK)                     :: ForConst, gamma
-    real(RK)                     :: ScaleLJ14, ScaleEl14
+!    real(RK)                     :: ScaleLJ14, ScaleEl14
     real(RK)                     :: EPotCorr, VirialCorr, EPotTestCorr
     real(RK)                     :: BoxlengthInv, BoxLengthThird
-    real(RK)                     :: Sigma1, Sigma4, Epsilon1, Epsilon4
+ !   real(RK)                     :: Sigma1, Sigma4, Epsilon1, Epsilon4
 
   end type TPotDihedral
 
@@ -8467,12 +8467,12 @@ loop2:do j = 1, j1
     this%ForConst = this%Dihedral%ForConst
     this%gamma = this%Dihedral%gamma
     this%multi = this%Dihedral%multi
-    this%ScaleLJ14=this%Dihedral%ScaleLJ14
-    this%ScaleEl14=this%Dihedral%ScaleEl14
-    this%Sigma1=this%Dihedral%Sigma1
-    this%Sigma4=this%Dihedral%Sigma4
-    this%Epsilon1=this%Dihedral%Epsilon1
-    this%Epsilon4=this%Dihedral%Epsilon4
+!    this%ScaleLJ14=this%Dihedral%ScaleLJ14
+!    this%ScaleEl14=this%Dihedral%ScaleEl14
+!    this%Sigma1=this%Dihedral%Sigma1
+!    this%Sigma4=this%Dihedral%Sigma4
+!    this%Epsilon1=this%Dihedral%Epsilon1
+!    this%Epsilon4=this%Dihedral%Epsilon4
 
 
 
@@ -8527,7 +8527,7 @@ loop2:do j = 1, j1
     ! Declare local variables
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
+!    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: RXj, RYj, RZj
     real(RK)          :: RXk, RYk, RZk
@@ -8536,10 +8536,10 @@ loop2:do j = 1, j1
     real(RK)          :: FXk, FYk, FZk
     real(RK)          :: FXl, FYl, FZl
     real(RK)          :: FXj, FYj, FZj
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: PXl, PYl, PZl
-    real(RK)          :: RilSquaredInv, SigmaSquared, Ril6Inv, Sigma,Epsilon, Epsilon48, BoxLengthInv
-    real(RK)          :: RXil, RYil, RZil, PXil, PYil, PZil, FXil, FYil, FZil, Fil
+!    real(RK)          :: PXi, PYi, PZi
+!    real(RK)          :: PXl, PYl, PZl
+!    real(RK)          :: RilSquaredInv, SigmaSquared, Ril6Inv, Sigma,Epsilon, Epsilon48, BoxLengthInv
+!    real(RK)          :: RXil, RYil, RZil, PXil, PYil, PZil, FXil, FYil, FZil, Fil
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: num, den, de1, ax, ay, az, bx, by, bz, cx, cy, cz
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, cos1, cosn, earg
@@ -8566,12 +8566,12 @@ loop2:do j = 1, j1
     gamma = this%gamma
     ForConst = this%ForConst
     multi =this%multi
-    Sigma = .5_RK * (this%Sigma1 + this%Sigma4)
-    Epsilon = sqrt(this%Epsilon1 * this%Epsilon4)
-    BoxLengthInv = 1._RK / BoxLength
-    SigmaSquared = (Sigma * BoxLengthInv)**2
-    Epsilon48 = 48._RK * Epsilon * BoxLengthInv &
-&      / SigmaSquared
+!    Sigma = .5_RK * (this%Sigma1 + this%Sigma4)
+!    Epsilon = sqrt(this%Epsilon1 * this%Epsilon4)
+!    BoxLengthInv = 1._RK / BoxLength
+!    SigmaSquared = (Sigma * BoxLengthInv)**2
+!    Epsilon48 = 48._RK * Epsilon * BoxLengthInv &
+!&      / SigmaSquared
 
     EPotLocal   = 0._RK
     VirialLocal = 0._RK

@@ -1361,11 +1361,11 @@ contains
                  this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
                  this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
                  this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:) !for 1,4 intramolecular interaction virial
-                 this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
-                 this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
-                 this%Molecule%IdfDihedral(i)%Sigma1=this%Molecule%SiteLJ126(j)%sig
-                 this%Molecule%IdfDihedral(i)%Epsilon1=this%Molecule%SiteLJ126(j)%eps
+!                 this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:) !for 1,4 intramolecular interaction virial
+!                 this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
+!                 this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
+!                 this%Molecule%IdfDihedral(i)%Sigma1=this%Molecule%SiteLJ126(j)%sig
+!                 this%Molecule%IdfDihedral(i)%Epsilon1=this%Molecule%SiteLJ126(j)%eps
                  Site1 = .true.
              else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
                  this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
@@ -1390,11 +1390,11 @@ contains
                  this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteLJ126(j)%FX(:)
                  this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteLJ126(j)%FY(:)
                  this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteLJ126(j)%PX(:)!for 1,4 intramolecular interaction virial
-                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteLJ126(j)%PY(:)
-                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteLJ126(j)%PZ(:)
-                 this%Molecule%IdfDihedral(i)%Sigma4=this%Molecule%SiteLJ126(j)%sig
-                 this%Molecule%IdfDihedral(i)%Epsilon4=this%Molecule%SiteLJ126(j)%eps
+!                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteLJ126(j)%PX(:)!for 1,4 intramolecular interaction virial
+!                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteLJ126(j)%PY(:)
+!                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteLJ126(j)%PZ(:)
+!                 this%Molecule%IdfDihedral(i)%Sigma4=this%Molecule%SiteLJ126(j)%sig
+!                 this%Molecule%IdfDihedral(i)%Epsilon4=this%Molecule%SiteLJ126(j)%eps
                  Site4 = .true.
               end if
               if (Site1 .and. Site2 .and. Site3 .and. Site4) then
@@ -1411,9 +1411,9 @@ contains
                  this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
                  this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
                  this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
-                 this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)!for 1,4 intramolecular interaction virial
-                 this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
-                 this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
+ !                this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)!for 1,4 intramolecular interaction virial
+ !                this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
+ !                this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
                  Site1 = .true.
              else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
                  this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
@@ -1438,9 +1438,9 @@ contains
                  this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteCharge(j)%FX(:)
                  this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteCharge(j)%FY(:)
                  this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteCharge(j)%FZ(:)
-                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteCharge(j)%PX(:)
-                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteCharge(j)%PY(:)
-                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteCharge(j)%PZ(:)
+!                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteCharge(j)%PX(:)
+!                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteCharge(j)%PY(:)
+!                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteCharge(j)%PZ(:)
                  Site4 = .true.
              end if
              if (Site1 .and. Site2 .and. Site3 .and. Site4) then
