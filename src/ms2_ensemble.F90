@@ -75,9 +75,6 @@ module ms2_ensemble
     ! Positions and orientations of test particles
     real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
 
-    ! Number of unit cells in one dimension of lattice
-    integer :: NCells
-
     ! Number of components in ensemble
     integer :: NComponents, NRealComponents
 
@@ -1236,7 +1233,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i, j
+    integer :: i
 
     ! Construct accumulators
     if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -1351,8 +1348,6 @@ contains
 
     ! Adjust number of cells to cube of integer
     if( this%NPart < NPartInCell ) this%NPart = NPartInCell
-    this%NCells = ceiling( (real( this%NPart, RK ) &
-&                             / real( NPartInCell, RK ))**Third )
 
     ! Set maximum number of particles
     if( EnsembleType .eq. EnsembleTypeGE .or. &
@@ -1747,9 +1742,18 @@ contains
 
     ! Declare local variables
     integer                   :: i, j, k, l, n, nc, nm
-    real(RK)                  :: xl
+    real(RK), dimension(3)    :: xl
     integer                   :: comp(this%NComponents)
     type(TComponent), pointer :: pc
+    real(RK)                  :: NCells                    ! Number of unit cells
+    integer, dimension(3)     :: NCells1dim                ! Number of unit cells in one dimension of lattice
+
+
+    NCells = ceiling( real( this%NPart, RK ) / real( NPartInCell, RK ) )
+    NCells1dim = ceiling( NCells**Third )
+
+    if( (NCells1dim(1)-1)*NCells1dim(2)*NCells1dim(3)>=NCells ) NCells1dim(1)=NCells1dim(1)-1
+    if( NCells1dim(1)*(NCells1dim(2)-1)*NCells1dim(3)>=NCells ) NCells1dim(2)=NCells1dim(2)-1
 
     ! Initialize comp array
     do i = 1, this%NComponents
@@ -1758,20 +1762,22 @@ contains
 
     ! Create FCC lattice
     n = 0
-    xl = 1._RK / real( this%NCells, RK )
-    write( IOBuffer, '("Initialize positions: ",I4," *",I5,"**3 cells FCC lattice")' ) &
-&          NPartInCell, this%NCells
+    xl(1) = 1._RK / real( NCells1dim(1), RK )
+    xl(2) = 1._RK / real( NCells1dim(2), RK )
+    xl(3) = 1._RK / real( NCells1dim(3), RK )
+    write( IOBuffer, '("Initialize positions:",I3," *",I4,"x",I4,"x",I4," cells FCC lattice with",I3," molecules/cell")' ) &
+&          NPartInCell, ( NCells1dim(i), i=1,3 ), NPartInCell
     call LogWrite
 loop:do l = 1, NPartInCell
-      do i = 1, this%NCells
-        do j = 1, this%NCells
-          do k = 1, this%NCells
+      do i = 1, NCells1dim(1)
+        do j = 1, NCells1dim(2)
+          do k = 1, NCells1dim(3)
             nc = select_component( comp )
             nm = comp(nc) + 1
             pc => this%Component(nc)
-            pc%P0(nm, 1) = xl * (CellX(l) + i - 1)
-            pc%P0(nm, 2) = xl * (CellY(l) + j - 1)
-            pc%P0(nm, 3) = xl * (CellZ(l) + k - 1)
+            pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1)
+            pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1)
+            pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1)
             n = n + 1
             if( n == this%NPart ) exit loop
           end do
