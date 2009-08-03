@@ -167,7 +167,7 @@ module ms2_global
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
-  integer, parameter :: IOBufferLength = 256
+  integer, parameter :: IOBufferLength = 1024
 
   ! Declare input/output buffer strings
   character(IOBufferLength) :: IOBuffer
@@ -723,9 +723,9 @@ contains
       i = index( buffer, '/', BACK=.true. )
 #endif
       if( i > 0 ) then
-        ProgramFileName = buffer( i+1:len( buffer ) )
+        ProgramFileName = trim( buffer( i+1:len( buffer ) ) )
       else
-        ProgramFileName = buffer
+        ProgramFileName = trim( buffer )         ! possible truncation?
       end if
       narg = iargc()
       if( narg .lt. 1 ) then
@@ -746,7 +746,7 @@ contains
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
           Restart = .true.
-          RestartFileName = buffer
+          RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
           open( iounit_restart , file = RestartFileName, action = 'READ', &
@@ -770,7 +770,7 @@ contains
           buffer = buffer( 1:dot - 1 )
         end if
       end if
-      OutputNameTag = buffer
+      OutputNameTag = trim( buffer )             ! possible truncation
     end if
 
 #if MPI_VER > 0
@@ -872,9 +872,9 @@ contains
 !    character(*), intent(in), optional :: MessageString
 !
 !    if( present( MessageString ) ) then
-!      IOBuffer = 'MESSAGE: '// MessageString
+!      IOBuffer = 'MESSAGE: '// trim(MessageString)
 !    else
-!      IOBuffer = 'MESSAGE: '// MessageBuffer
+!      IOBuffer = 'MESSAGE: '// trim(MessageBuffer)        ! possible truncation
 !    end if
 !    if( RootProc ) print *, trim( IOBuffer )
 !    call LogWrite
@@ -896,9 +896,9 @@ contains
 
     ! Issue warning
     if( present( ErrorString ) ) then
-      IOBuffer = 'WARNING: '// ErrorString
+      IOBuffer = 'WARNING: '// trim(ErrorString)
     else
-      IOBuffer = 'WARNING: '// ErrorBuffer
+      IOBuffer = 'WARNING: '// trim(ErrorBuffer)           ! possible truncation
     end if
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
@@ -926,9 +926,9 @@ contains
     ! Output error message
     call LogWriteBlank
     if( present( ErrorString ) ) then
-      IOBuffer = 'ERROR: '// ErrorString
+      IOBuffer = 'ERROR: '// trim( ErrorString )
     else
-      IOBuffer = 'ERROR: '// ErrorBuffer
+      IOBuffer = 'ERROR: '// trim( ErrorBuffer ) ! possible truncation
     end if
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
@@ -1532,6 +1532,9 @@ contains
     IOBuffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) &
+&             trim(parameterqualifier), trim(defaultvalue)
+        call LogWrite
         IOBuffer = defaultvalue
       else
         call Error( "Could not find parameter <"//parameterqualifier//">" )
@@ -1545,6 +1548,10 @@ contains
 !    call MPI_Bcast( IOBuffer, IOBufferLength, &
 !&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
 !#endif
+
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") IOBuffer ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier),trim(IOBuffer); call LogWrite
 
   end subroutine Global_FileReadParameter_buffer
 
@@ -1581,6 +1588,9 @@ contains
     parametervariable = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",A)' ) &
+&             trim(parameterqualifier), trim(defaultvalue)
+        call LogWrite
         parametervariable = defaultvalue
       else
         call Error( "Could not find parameter <"//parameterqualifier//">" )
@@ -1630,6 +1640,9 @@ contains
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
+&             trim(parameterqualifier), defaultvalue
+        call LogWrite
         parametervariable = defaultvalue
       else
         call Error( "Could not find parameter <"//parameterqualifier//">" )
@@ -1645,7 +1658,7 @@ contains
 !#endif
 
 !    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I5)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
 !&          stat,trim(parameterqualifier),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_Int
@@ -1679,6 +1692,9 @@ contains
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
+&             trim(parameterqualifier), defaultvalue
+        call LogWrite
         parametervariable = defaultvalue
       else
         call Error( "Could not find parameter <"//parameterqualifier//">" )
@@ -1727,6 +1743,10 @@ contains
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifier)
+        call LogWrite
+        write( IOBuffer, * ) defaultvalue
+        call LogWrite
         parametervariable = defaultvalue
       else
         call Error( "Could not find parameter <"//parameterqualifier//">" )

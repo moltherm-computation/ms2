@@ -38,8 +38,11 @@
 
 module ms2_stopwatch
 
+!#if MPI_VER
+!  use mpi
+!#endif
+
   use ms2_global
-  !use mpi
 
 #if defined STOPWATCH_USE_ETIME && defined __INTEL_COMPILER
   use IFPORT
@@ -638,28 +641,21 @@ contains
     real :: etime_sum_diff
 #endif
 
-#ifdef STOPWATCH_USE_DATIME
+#ifdef STOPWATCH_USE_ETIME
+    etime_array_diff = this%etime_array_stop-this%etime_array_start
+    etime_sum_diff=this%etime_sum_stop-this%etime_sum_start
     write( IOBuffer, &
-&     '("Timer ",A," stop: ", &
-&       I2.2,".",I2.2,".",I4.4,"T",I2.2,":",I2.2,":",I2.2,".",I3.3," (",SP,I4,")")' ) &
+&     '(A," etime        diff:",F12.4,"(user) +",F12.4,"(system) = ",G15.9," sec ")' ) &
 &     trim(this%tag_string), &
-&     this%datime_array_stop(3), this%datime_array_stop(2), this%datime_array_stop(1), &
-&     this%datime_array_stop(5), this%datime_array_stop(6), this%datime_array_stop(7), &
-&     this%datime_array_stop(8), this%datime_array_stop(4)
+&     etime_array_diff, etime_sum_diff
     call LogWrite
 #endif
-
-#ifdef STOPWATCH_USE_SYSCLK
-    call system_clock(count_max=sysclk_cnt_max, count_rate=sysclk_cnt_rate)
-    sysclk_diff = this%sysclk_cnt_stop-this%sysclk_cnt_start
-    !sysclk_diff=mod(sysclk_diff+sysclk_cnt_max, sysclk_cnt_max) !sum needs long integer
-    if( sysclk_diff<0 ) sysclk_diff = sysclk_diff+sysclk_cnt_max
-    sysclk_diff_sec = float(sysclk_diff)/float(sysclk_cnt_rate)
+#ifdef STOPWATCH_USE_CPUTIME
+    cputime_diff = this%cputime_stop-this%cputime_start
     write( IOBuffer, &
-&     '(A," system_clock diff:",I5," h",I3," min",F9.5, " sec (",G15.9,"+i*",E15.9," sec)")' ) &
+&     '(A," cpu_time     diff:",G15.9," sec ")' ) &
 &     trim(this%tag_string), &
-&     int(sysclk_diff_sec)/3600, mod(int(sysclk_diff_sec),3600)/60, amod(sysclk_diff_sec,60.), &
-&     sysclk_diff_sec, float(sysclk_cnt_max)/float(sysclk_cnt_rate)
+&     cputime_diff
     call LogWrite
 #endif
 #ifdef STOPWATCH_USE_WTIME
@@ -673,21 +669,27 @@ contains
 &     this%wtime_diff(1), this%wtime_diff(2), MPI_WTICK()
     call LogWrite
 #endif
-#ifdef STOPWATCH_USE_CPUTIME
-    cputime_diff = this%cputime_stop-this%cputime_start
+#ifdef STOPWATCH_USE_SYSCLK
+    call system_clock(count_max=sysclk_cnt_max, count_rate=sysclk_cnt_rate)
+    sysclk_diff = this%sysclk_cnt_stop-this%sysclk_cnt_start
+    !sysclk_diff=mod(sysclk_diff+sysclk_cnt_max, sysclk_cnt_max) !sum needs long integer
+    if( sysclk_diff<0 ) sysclk_diff = sysclk_diff+sysclk_cnt_max
+    sysclk_diff_sec = float(sysclk_diff)/float(sysclk_cnt_rate)
     write( IOBuffer, &
-&     '(A," cpu_time     diff:",G15.9," sec ")' ) &
+&     '(A," system_clock diff:",I5," h",I3," min",F9.5, " sec (",G15.9,"+i*",E15.9," sec)")' ) &
 &     trim(this%tag_string), &
-&     cputime_diff
+&     int(sysclk_diff_sec)/3600, mod(int(sysclk_diff_sec),3600)/60, amod(sysclk_diff_sec,60.), &
+&     sysclk_diff_sec, float(sysclk_cnt_max)/float(sysclk_cnt_rate)
     call LogWrite
 #endif
-#ifdef STOPWATCH_USE_ETIME
-    etime_array_diff = this%etime_array_stop-this%etime_array_start
-    !etime_sum_diff=this%etime_sum_stop-this%etime_sum_start
+#ifdef STOPWATCH_USE_DATIME
     write( IOBuffer, &
-&     '(A," etime        diff:",F12.4,"(user) +",F12.4,"(system) = ",G15.9," sec ")' ) &
+&     '("Timer ",A," stop: ", &
+&       I2.2,".",I2.2,".",I4.4,"T",I2.2,":",I2.2,":",I2.2,".",I3.3," (",SP,I4,")")' ) &
 &     trim(this%tag_string), &
-&     etime_array_diff, etime_sum_diff
+&     this%datime_array_stop(3), this%datime_array_stop(2), this%datime_array_stop(1), &
+&     this%datime_array_stop(5), this%datime_array_stop(6), this%datime_array_stop(7), &
+&     this%datime_array_stop(8), this%datime_array_stop(4)
     call LogWrite
 #endif
     call LogWriteBlank
