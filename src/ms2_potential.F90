@@ -937,15 +937,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PZij = PZij - anint( PZij )
             RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
             Rij6Inv = RijSquaredInv**3
-            EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
-            EPotLocalIntra = EPotLocalIntra + Rij6Inv * (Rij6Inv - 1._RK)
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
-            FXij = Fij * RXij * coeff
-            FYij = Fij * RYij * coeff
-            FZij = Fij * RZij * coeff
+            EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)*coeff
+            EPotLocalIntra = EPotLocalIntra + Rij6Inv * (Rij6Inv - 1._RK)*coeff
+            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
+            FXij = Fij * RXij
+            FYij = Fij * RYij
+            FZij = Fij * RZij
             VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
             VirialLocalIntra = VirialLocalIntra + PXij * FXij + PYij * FYij + PZij * FZij
-!            print*, 'VirialLocalIntra=', VirialLocalIntra
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
@@ -1505,7 +1504,7 @@ loop2:do j = 1, N
     PZ2 => this%Site2%PZ
 
     if (intra14) then
-    		coeff = this%ScaleEl14 ! Scale 1,4 El interaction
+    	coeff = this%ScaleEl14 ! Scale 1,4 El interaction
 	else
 		coeff = 1._RK
 	end if
@@ -1559,21 +1558,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal  = EPotLocal + EPotLocal1
             VirialLocal = VirialLocal + EPotLocal1 * RijInv &
 &                           * (eX * PXij + eY * PYij + eZ * PZij)
-!            if (intra) then
-!	       EPotLocal1Intra = Epsilon * RijInv
-!               EPotLocalIntra  = EPotLocalIntra + EPotLocal1Intra
-!               VirialLocalIntra = VirialLocalIntra + EPotLocal1Intra * RijInv &
-!&                           * (eX * PXij + eY * PYij + eZ * PZij)
-!	    else
 	       EPotLocal1Inter = Epsilon * RijInv
                EPotLocalInter  = EPotLocalInter + EPotLocal1Inter
                VirialLocalInter = VirialLocalInter + EPotLocal1Inter * RijInv &
 &                           * (eX * PXij + eY * PYij + eZ * PZij)
-
-!            end if
-            FXij = EPotLocal1 * RijInv * eX * coeff
-            FYij = EPotLocal1 * RijInv * eY * coeff
-            FZij = EPotLocal1 * RijInv * eZ * coeff
+            FXij = EPotLocal1 * RijInv * eX
+            FYij = EPotLocal1 * RijInv * eY
+            FZij = EPotLocal1 * RijInv * eZ
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
             FZi    = FZi    + FZij
@@ -1604,17 +1595,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eX = RXij * RijInv
             eY = RYij * RijInv
             eZ = RZij * RijInv
-            EPotLocal1 = Epsilon * RijInv
+            EPotLocal1 = Epsilon * RijInv*coeff !for 1,4 intramolecular interactions
             EPotLocal  = EPotLocal + EPotLocal1
             VirialLocal = VirialLocal + EPotLocal1 * RijInv &
-&                           * (eX * PXij + eY * PYij + eZ * PZij)
-            EPotLocal1Intra = Epsilon * RijInv
-            EPotLocalIntra  = EPotLocalIntra + EPotLocal1Intra
-            VirialLocalIntra = VirialLocalIntra + EPotLocal1Intra * RijInv &
-&                           * (eX * PXij + eY * PYij + eZ * PZij)
-            FXij = EPotLocal1 * RijInv * eX * coeff
-            FYij = EPotLocal1 * RijInv * eY * coeff
-            FZij = EPotLocal1 * RijInv * eZ * coeff
+&                           * (eX * PXij + eY * PYij + eZ * PZij) ! schon skaliert durch EPotLocal1
+            EPotLocalIntra  = EPotLocalIntra + EPotLocal1
+            VirialLocalIntra = VirialLocalIntra + EPotLocal1 * RijInv &
+&                           * (eX * PXij + eY * PYij + eZ * PZij)  ! schon skaliert durch EPotLocal1
+            FXij = EPotLocal1 * RijInv * eX
+            FYij = EPotLocal1 * RijInv * eY
+            FZij = EPotLocal1 * RijInv * eZ
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
             FZi    = FZi    + FZij
@@ -2064,13 +2054,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          intra = this%Intra(k,unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -2102,14 +2085,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Epsilon1 = Epsilon * RijSquaredInv
             Epsilon2 = Epsilon1 * RijInv
             EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
-!            if (intra) then
-!              EPotLocalIntra  = EPotLocalIntra + Epsilon1 * CosTheta
-!            else
-              EPotLocalInter  = EPotLocalInter + Epsilon1 * CosTheta
-!            endif
-            FXij = Epsilon2 * ( CosTheta3 * eX - OXj ) * coeff                      ! F2 bei Price
-            FYij = Epsilon2 * ( CosTheta3 * eY - OYj ) * coeff
-            FZij = Epsilon2 * ( CosTheta3 * eZ - OZj ) * coeff
+            EPotLocalInter  = EPotLocalInter + Epsilon1 * CosTheta
+            FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                      ! F2 bei Price
+            FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
+            FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             FXi    = FXi    + FXij
@@ -2149,8 +2128,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             CosTheta3 = 3._RK * CosTheta
             Epsilon1 = Epsilon * RijSquaredInv
             Epsilon2 = Epsilon1 * RijInv
-            EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
-            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * CosTheta
+            EPotLocal  = EPotLocal + Epsilon1 * CosTheta*coeff                            ! Uebereinstimmumg mit Price
+            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * CosTheta*coeff
             FXij = Epsilon2 * ( CosTheta3 * eX - OXj ) * coeff                      ! F2 bei Price
             FYij = Epsilon2 * ( CosTheta3 * eY - OYj ) * coeff
             FZij = Epsilon2 * ( CosTheta3 * eZ - OZj ) * coeff
@@ -2162,9 +2141,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TX2(i) = TX2(i) - Epsilon1 * eX                                         ! Uebereinstimmung mit Price
-            TY2(i) = TY2(i) - Epsilon1 * eY
-            TZ2(i) = TZ2(i) - Epsilon1 * eZ
+            TX2(i) = TX2(i) - Epsilon1 * eX * coeff                                         ! Uebereinstimmung mit Price
+            TY2(i) = TY2(i) - Epsilon1 * eY * coeff
+            TZ2(i) = TZ2(i) - Epsilon1 * eZ * coeff
         end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -2624,15 +2603,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-!            print *, 'j =', j
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
             else
@@ -2661,17 +2632,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
             CosTheta  = OXj * ex + OYj * eY + OZj * eZ
             Epsilon1 = Epsilon * RijSquaredInv * RijInv
             EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
-!            if (intra) then
-!              EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )
-!	    else
-              EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
-!	    end if
+            EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
             CosTheta2 = 2._RK * CosTheta
             CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
             Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-            FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj ) * coeff                     ! F2 nach Price bzw. Kraft auf Punktladung
-            FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj ) * coeff
-            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj ) * coeff
+            FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                      ! F2 nach Price bzw. Kraft auf Punktladung
+            FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
+            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             FXi    = FXi    + FXij
@@ -2710,8 +2677,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eZ = RZij * RijInv
             CosTheta  = OXj * ex + OYj * eY + OZj * eZ
             Epsilon1 = Epsilon * RijSquaredInv * RijInv
-            EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
-            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )
+            EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )*coeff
+            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )*coeff
             CosTheta2 = 2._RK * CosTheta
             CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
             Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
@@ -2726,9 +2693,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TX2(i) = TX2(i) - Epsilon1 * CosTheta2 * eX
-            TY2(i) = TY2(i) - Epsilon1 * CosTheta2 * eY
-            TZ2(i) = TZ2(i) - Epsilon1 * CosTheta2 * eZ
+            TX2(i) = TX2(i) - Epsilon1 * CosTheta2 * eX * coeff
+            TY2(i) = TY2(i) - Epsilon1 * CosTheta2 * eY * coeff
+            TZ2(i) = TZ2(i) - Epsilon1 * CosTheta2 * eZ * coeff
           end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -3196,13 +3163,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -3231,14 +3191,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Epsilon1 = Epsilon * RijSquaredInv
             Epsilon2 = Epsilon1 * RijInv
             EPotLocal  = EPotLocal - Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
-!            if (intra) then
-!              EPotLocalIntra  = EPotLocalIntra - Epsilon1 * CosTheta                ! Uebereinstimmumg mit Price
-!            else
-              EPotLocalInter  = EPotLocalInter - Epsilon1 * CosTheta                ! Uebereinstimmumg mit Price
-!            end if
-            FXij = Epsilon2 * ( OXi - CosTheta3 * eX ) * coeff                      ! F1 bei Price
-            FYij = Epsilon2 * ( OYi - CosTheta3 * eY ) * coeff
-            FZij = Epsilon2 * ( OZi - CosTheta3 * eZ ) * coeff
+            EPotLocalInter  = EPotLocalInter - Epsilon1 * CosTheta                ! Uebereinstimmumg mit Price
+            FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                      ! F1 bei Price
+            FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
+            FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
@@ -3275,8 +3231,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             CosTheta3 = 3._RK * CosTheta
             Epsilon1 = Epsilon * RijSquaredInv
             Epsilon2 = Epsilon1 * RijInv
-            EPotLocal  = EPotLocal - Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
-            EPotLocalIntra  = EPotLocalIntra - Epsilon1 * CosTheta                ! Uebereinstimmumg mit Price
+            EPotLocal  = EPotLocal - Epsilon1 * CosTheta*coeff                            ! Uebereinstimmumg mit Price
+            EPotLocalIntra  = EPotLocalIntra - Epsilon1 * CosTheta*coeff                ! Uebereinstimmumg mit Price
             FXij = Epsilon2 * ( OXi - CosTheta3 * eX ) * coeff                      ! F1 bei Price
             FYij = Epsilon2 * ( OYi - CosTheta3 * eY ) * coeff
             FZij = Epsilon2 * ( OZi - CosTheta3 * eZ ) * coeff
@@ -3285,9 +3241,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
             FZi    = FZi    + FZij
-            TXi = TXi + Epsilon1 * eX                                               ! Uebereinstimmumg mit Price; Rest bei Atom2Mol in Component
-            TYi = TYi + Epsilon1 * eY                                               ! Reaktionsfeldbeitrag in Interaction
-            TZi = TZi + Epsilon1 * eZ
+            TXi = TXi + Epsilon1 * eX * coeff                                              ! Uebereinstimmumg mit Price; Rest bei Atom2Mol in Component
+            TYi = TYi + Epsilon1 * eY * coeff                                               ! Reaktionsfeldbeitrag in Interaction
+            TZi = TZi + Epsilon1 * eZ * coeff
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
@@ -3786,13 +3742,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -3831,21 +3780,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Rij3Inv = Epsilon * RijInv**3
             Rij4Inv3 = 3._RK * Rij3Inv * RijInv
             EPotLocal = EPotLocal +  Rij3Inv * Tmp
-!            if (intra) then
-!              EPotLocalIntra = EPotLocalIntra +  Rij3Inv * Tmp
-!            else
-              EPotLocalInter = EPotLocalInter +  Rij3Inv * Tmp
-!            end if
+            EPotLocalInter = EPotLocalInter +  Rij3Inv * Tmp
 !           EPotLocal = EPotLocal +  Rij3Inv * Tmp - RFConstant2 * CosGammaij
             FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                       - (eX * CosThetaj - OXj) * CosThetai)
-            FXij = FXij * coeff
             FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
 &                                       - (eY * CosThetaj - OYj) * CosThetai)
-            FYij = FYij * coeff
             FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                       - (eZ * CosThetaj - OZj) * CosThetai)
-            FZij = FZij * coeff
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
@@ -3907,8 +3849,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Tmp = CosGammaij - CosThetai * CosThetaj3
             Rij3Inv = Epsilon * RijInv**3
             Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-            EPotLocal = EPotLocal +  Rij3Inv * Tmp
-            EPotLocalIntra = EPotLocalIntra +  Rij3Inv * Tmp
+            EPotLocal = EPotLocal +  Rij3Inv * Tmp*coeff
+            EPotLocalIntra = EPotLocalIntra +  Rij3Inv * Tmp*coeff
             FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                       - (eX * CosThetaj - OXj) * CosThetai)
             FXij = FXij * coeff
@@ -3926,12 +3868,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
-            TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
-            TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
-            TX2(i) = TX2(i) + Rij3Inv * (eX * CosThetai3 - OXi)
-            TY2(i) = TY2(i) + Rij3Inv * (eY * CosThetai3 - OYi)
-            TZ2(i) = TZ2(i) + Rij3Inv * (eZ * CosThetai3 - OZi)
+            TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj) * coeff
+            TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj) * coeff
+            TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj) * coeff
+            TX2(i) = TX2(i) + Rij3Inv * (eX * CosThetai3 - OXi) * coeff
+            TY2(i) = TY2(i) + Rij3Inv * (eY * CosThetai3 - OYi) * coeff
+            TZ2(i) = TZ2(i) + Rij3Inv * (eZ * CosThetai3 - OZi) * coeff
 !           TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj) &
 ! &                         + RFConstant2 * OXj
 !           TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj) &
@@ -4701,13 +4643,6 @@ loop2:do j = 1, j1
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
- !         if (scale) then
- !            coeff = ScaleEl14
- !         else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -4746,28 +4681,19 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
 &                        - CosThetai * (5._RK * CosThetaj2 - 1))
             EPotLocal = EPotLocal + EPotLocal1
-!            if (intra) then
-!               EPotLocal1Intra = Rij4Inv * (CosGammaij * CosThetaj &
-!&                        - CosThetai * (5._RK * CosThetaj2 - 1))
-!               EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra
-!            else
                EPotLocal1Inter = Rij4Inv * (CosGammaij * CosThetaj &
 &                        - CosThetai * (5._RK * CosThetaj2 - 1))
                EPotLocalInter = EPotLocalInter + EPotLocal1Inter
-!            end if
             dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
             dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
             dCosGammaij = 2._RK * Rij4Inv * CosThetaj
             Tmp = -4._RK * RijInv * EPotLocal1
             FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                      + (eX * CosThetaj - OXj) * dCosThetaj)
-            FXij = FXij * coeff
             FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
 &                                      + (eY * CosThetaj - OYj) * dCosThetaj)
-            FYij = FYij * coeff
             FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                      + (eZ * CosThetaj - OZj) * dCosThetaj)
-            FZij = FZij * coeff
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
@@ -4817,10 +4743,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Rij4Inv = Epsilon / RijSquared**2
             EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
 &                        - CosThetai * (5._RK * CosThetaj2 - 1))
-            EPotLocal = EPotLocal + EPotLocal1
-            EPotLocal1Intra = Rij4Inv * (CosGammaij * CosThetaj &
-&                        - CosThetai * (5._RK * CosThetaj2 - 1))
-            EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra
+            EPotLocal = EPotLocal + EPotLocal1*coeff
+            EPotLocalIntra = EPotLocalIntra + EPotLocal1*coeff
             dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
             dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
             dCosGammaij = 2._RK * Rij4Inv * CosThetaj
@@ -4842,12 +4766,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
-            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
-            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
-            TX2(i) = TX2(i) - eX * dCosThetaj - OXi * dCosGammaij
-            TY2(i) = TY2(i) - eY * dCosThetaj - OYi * dCosGammaij
-            TZ2(i) = TZ2(i) - eZ * dCosThetaj - OZi * dCosGammaij
+            TXi    = TXi    - (eX * dCosThetai + OXj * dCosGammaij) * coeff
+            TYi    = TYi    - (eY * dCosThetai + OYj * dCosGammaij) * coeff
+            TZi    = TZi    - (eZ * dCosThetai + OZj * dCosGammaij) * coeff
+            TX2(i) = TX2(i) - (eX * dCosThetaj + OXi * dCosGammaij) * coeff
+            TY2(i) = TY2(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
+            TZ2(i) = TZ2(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
           end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -5595,13 +5519,6 @@ loop2:do j = 1, j1
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -5628,17 +5545,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
             CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
             Epsilon1 = Epsilon * RijSquaredInv * RijInv
             EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
-!            if (intra) then
-!              EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )!
-!	    else
-              EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
-!            end if
+            EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
             CosTheta2 = 2._RK * CosTheta
             CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
             Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-            FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) * coeff                     ! Kraft auf die Punktladung, sprich F2
-            FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi ) * coeff
-            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi ) * coeff
+            FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi )                     ! Kraft auf die Punktladung, sprich F2
+            FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
+            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
             VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
             VirialLocalInter = VirialLocalInter - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
             FXi    = FXi    - FXij
@@ -5673,8 +5586,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eZ = - RZij * RijInv
             CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
             Epsilon1 = Epsilon * RijSquaredInv * RijInv
-            EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
-            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )!
+            EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )*coeff
+            EPotLocalIntra  = EPotLocalIntra + Epsilon1 * ( CosTheta * CosTheta - Third )*coeff!
             CosTheta2 = 2._RK * CosTheta
             CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
             Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
@@ -5689,9 +5602,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) + FXij
             FY2(i) = FY2(i) + FYij
             FZ2(i) = FZ2(i) + FZij
-            TXi    = TXi - Epsilon1*CosTheta2*eX                                    ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
-            TYi    = TYi - Epsilon1*CosTheta2*eY                                    ! in Atom2Mol von Component
-            TZi    = TZi - Epsilon1*CosTheta2*eZ
+            TXi    = TXi - Epsilon1*CosTheta2*eX * coeff                                    ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
+            TYi    = TYi - Epsilon1*CosTheta2*eY * coeff                                   ! in Atom2Mol von Component
+            TZi    = TZi - Epsilon1*CosTheta2*eZ * coeff
           end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -6187,13 +6100,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -6232,28 +6138,19 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
 &                                    - CosGammaij * CosThetai)
             EPotLocal = EPotLocal + EPotLocal1
-!            if (intra) then
-!              EPotLocal1Intra = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
-!&                                    - CosGammaij * CosThetai)
-!              EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra
-!	    else
-              EPotLocal1Inter = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
+            EPotLocal1Inter = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
 &                                    - CosGammaij * CosThetai)
-              EPotLocalInter = EPotLocalInter + EPotLocal1Inter
-!	    end if
+            EPotLocalInter = EPotLocalInter + EPotLocal1Inter
             dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
             dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
             dCosGammaij = -2._RK * Rij4Inv * CosThetai
             Tmp = -4._RK * RijInv * EPotLocal1
             FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                      + (eX * CosThetaj - OXj) * dCosThetaj)
-            FXij = FXij * coeff
             FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
 &                                      + (eY * CosThetaj - OYj) * dCosThetaj)
-            FYij = FYij * coeff
             FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                      + (eZ * CosThetaj - OZj) * dCosThetaj)
-            FZij = FZij * coeff
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
@@ -6303,10 +6200,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Rij4Inv = Epsilon / RijSquared**2
             EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
 &                                    - CosGammaij * CosThetai)
-            EPotLocal = EPotLocal + EPotLocal1
-            EPotLocal1Intra = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
-&                                    - CosGammaij * CosThetai)
-            EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra
+            EPotLocal = EPotLocal + EPotLocal1*coeff
+            EPotLocalIntra = EPotLocalIntra + EPotLocal1*coeff
             dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
             dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
             dCosGammaij = -2._RK * Rij4Inv * CosThetai
@@ -6328,12 +6223,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
-            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
-            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
-            TX2(i) = TX2(i) - eX * dCosThetaj - OXi * dCosGammaij
-            TY2(i) = TY2(i) - eY * dCosThetaj - OYi * dCosGammaij
-            TZ2(i) = TZ2(i) - eZ * dCosThetaj - OZi * dCosGammaij
+            TXi    = TXi    - (eX * dCosThetai + OXj * dCosGammaij) * coeff
+            TYi    = TYi    - (eY * dCosThetai + OYj * dCosGammaij) * coeff
+            TZi    = TZi    - (eZ * dCosThetai + OZj * dCosGammaij) * coeff
+            TX2(i) = TX2(i) - (eX * dCosThetaj + OXi * dCosGammaij) * coeff
+            TY2(i) = TY2(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
+            TZ2(i) = TZ2(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
           end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -7104,13 +6999,6 @@ loop2:do j = 1, j1
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-!          intra = this%Intra(k, unit)
-!          scale = this%ScaleCoeff(k, unit)
-!          if (scale) then
-!             coeff = ScaleEl14
-!          else
-             coeff = 1._RK
-!          end if
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
             if (mod(j,nu2)==0) then
               jk = INT(j/nu2)
@@ -7180,13 +7068,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Tmp = -5._RK * RijInv * EPotLocal1
             FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                      + (eX * CosThetaj - OXj) * dCosThetaj)
-            FXij = FXij * coeff
+            FXij = FXij
             FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
 &                                      + (eY * CosThetaj - OYj) * dCosThetaj)
-            FYij = FYij * coeff
+            FYij = FYij
             FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                      + (eZ * CosThetaj - OZj) * dCosThetaj)
-            FZij = FZij * coeff
+            FZij = FZij
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
@@ -7244,12 +7132,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
 &             - 5._RK * (CosThetaiSquared + CosThetajSquared) &
 &             - 15._RK * CosThetaiSquared * CosThetajSquared &
 &             + 2._RK * Tmp**2)
-            EPotLocal = EPotLocal + EPotLocal1
-            EPotLocal1Intra = Rij5Inv * (1._RK &
-&             - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&             - 15._RK * CosThetaiSquared * CosThetajSquared &
-&             + 2._RK * Tmp**2)
-            EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra
+            EPotLocal = EPotLocal + EPotLocal1*coeff
+            EPotLocal1Intra = EPotLocal1
+            EPotLocalIntra = EPotLocalIntra + EPotLocal1Intra*coeff
             dCosThetai = Rij5Inv * (-10._RK * CosThetai &
 &                                  - 30._RK * CosThetai * CosThetajSquared &
 &                                  - 20._RK * CosThetaj * Tmp)
@@ -7275,12 +7160,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(i) = FX2(i) - FXij
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
-            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
-            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
-            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
-            TX2(i) = TX2(i) - eX * dCosThetaj - OXi * dCosGammaij
-            TY2(i) = TY2(i) - eY * dCosThetaj - OYi * dCosGammaij
-            TZ2(i) = TZ2(i) - eZ * dCosThetaj - OZi * dCosGammaij
+            TXi    = TXi    - (eX * dCosThetai + OXj * dCosGammaij) * coeff
+            TYi    = TYi    - (eY * dCosThetai + OYj * dCosGammaij) * coeff
+            TZi    = TZi    - (eZ * dCosThetai + OZj * dCosGammaij) * coeff
+            TX2(i) = TX2(i) - (eX * dCosThetaj + OXi * dCosGammaij) * coeff
+            TY2(i) = TY2(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
+            TZ2(i) = TZ2(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
           end if
         FX1(i) = FXi
         FY1(i) = FYi
