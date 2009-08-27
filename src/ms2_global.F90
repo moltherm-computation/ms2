@@ -1001,17 +1001,16 @@ contains
 
     implicit none
 
-    ! Declare local viriables
-#if ARCH == 1
-    character(IOBufferLength) :: hostname
-#elif ARCH == 2 || ARCH == 3
+    ! Declare local variables
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+    character(IOBufferLength) :: hostname = 'unknown host'
+    character(IOBufferLength) :: username = 'unknown user'
+#if ARCH == 2 || ARCH == 3
     integer                   :: i
-    character(IOBufferLength) :: hostname
-! #ifndef _PGF
-    character(IOBufferLength) :: logname
-! #endif
+#endif
 #else
     character(*), parameter   :: hostname = 'unknown host'
+    character(*), parameter   :: username = 'unknown user'
 #endif
 
     ! Check for root process
@@ -1020,16 +1019,19 @@ contains
     ! Get name of host
 #if ARCH == 1
     call getenv( 'HOSTNAME', hostname )
-#elif ARCH == 2
-#if defined _PGF || defined __GNUC__
+#elif ARCH == 2 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
 #endif
     if( i .ne. 0 ) hostname = 'unknown host'
-#elif ARCH == 3
-    i = hostnm( hostname )
-    if( i .ne. 0 ) hostname = 'unknown host'
+#endif
+
+#if ARCH == 1 || defined _PGF
+    username = getlog()
+#elif ARCH == 2 || ARCH == 3
+    call getlog( username )
 #endif
 
     ! Open log file
@@ -1044,26 +1046,9 @@ contains
     call LogWrite
     write( IOBuffer, '("version ", A)' ) trim( VersionString )
     call LogWrite
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-#if defined _PGF || ARCH == 1
     write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( getlog() ), &
+&     trim( username ), &
 &     trim( hostname )
-#elif defined __INTEL_COMPILER && MPI_VER > 0
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     'unknown user', &
-&     trim( hostname )
-#else
-    call getlog( logname )
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( logname ), &
-&     trim( hostname )
-#endif
-#else
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     'unknown user', &
-&     trim( hostname )
-#endif
     call LogWriteTime
     call LogWriteBlank
 
@@ -1468,6 +1453,7 @@ contains
           end do
           if( present(status) ) status = stat
           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+          parametervalue=""
           exit
         end if
         FileReadParameter_LineNumber = FileReadParameter_LineNumber+1
@@ -1477,7 +1463,7 @@ contains
         comment_pos = index( parametervalue, CommentSign )
         if( comment_pos > 0 ) then
 !          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
-!&               trim(buffer(comment_pos:len(parametervalue))); call LogWrite
+!&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
           !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
@@ -1492,10 +1478,15 @@ contains
     end if
 
     ! Broadcast parameter to other processes
-    ! (better do that for the parametervalues later...)
+    ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
+    !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
     call MPI_Bcast( parametervalue, len(parametervalue), &
 &     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+    if( present(status) ) then
+      call MPI_Bcast( status, 1, &
+&       MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+    end if
 #endif
 
 !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &

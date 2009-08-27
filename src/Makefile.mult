@@ -57,6 +57,18 @@ pgf-64:
 	-o ms2.pgf-64 $(PROGS)
 	@rm -f *.o *.mod
 
+pgf_dbg:
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-g -Mdwarf2 -r8 \
+	-o ms2.pgf_dbg $(PROGS)
+	@rm -f *.o *.mod
+
+pgf_mpi_dbg:
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-g -r8 -C \
+	-o ms2mpi.pgf_dbg $(PROGS)
+	@rm -f *.o *.mod
+
 pgf_mpi:
 	@echo "Compiling using MPI_PGF90..."
 	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
@@ -64,23 +76,11 @@ pgf_mpi:
 	-o ms2mpi.pgf $(PROGS)
 	@rm -f *.o *.mod
 
-pgf_dbg:
-	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-	-g -Mdwarf2 -r8 \
-	-o ms2dbg $(PROGS)
-	@rm -f *.o *.mod
-
-pgf_mpi_dbg:
-	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-g -r8 -C \
-	-o ms2mpidbg $(PROGS)
-	@rm -f *.o *.mod
-
 gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
 	@gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
 	-g -O0 -fdefault-real-8 -Wall \
-	-o ms2dbg.gfortran $(PROGS)
+	-o ms2dbg.gfortran_dbg $(PROGS)
 	@rm -f *.o *.mod
 
 gfortran:
@@ -88,6 +88,13 @@ gfortran:
 	@gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
 	-O3 -fdefault-real-8 -static \
 	-o ms2.gfortran $(PROGS)
+	@rm -f *.o *.mod
+
+gfortran_mpi_dbg:
+	@echo "Compiling debug version using MPI_GFORTRAN..."
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-g -O0 -fdefault-real-8  -Wall \
+	-o ms2mpi.gfortran_dbg $(PROGS)
 	@rm -f *.o *.mod
 
 gfortran_mpi:
@@ -101,7 +108,7 @@ ifort_dbg:
 	@echo "Compiling debug version using IFORT..."
 	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
 	-g -r8 -O0 -warn all -check all -debug all \
-	-o ms2dbg.ifort $(PROGS)
+	-o ms2dbg.ifort_dbg $(PROGS)
 	@rm -f *.o *.mod *.il
 
 ifort:
@@ -110,6 +117,13 @@ ifort:
 	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
 	-r8 -fast -vec_report0 \
 	-o ms2.ifort $(PROGS)
+	@rm -f *.o *.mod *.il
+
+ifort_mpi_dbg:
+	@echo "Compiling mpi debug version using MPI_IFORT..."
+	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2mpi.ifort_dbg $(PROGS)
 	@rm -f *.o *.mod *.il
 
 ifort_mpi:
@@ -165,17 +179,33 @@ sx_dbg:
 	-g -EP  \
 	-o ms2 $(PROGS)
 
-sx:
+sx8:
+	# NEC SX8R: -sx8r
 	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
 	-C hopt -pi auto -sx8 \
 	-Wf'-pvctl vchg loopfusion loopchg outerstrip outerunroll' \
 	-o ms2 $(PROGS)
 
-sx_mpi:
+sx8_mpi:
+	# NEC SX8R: -sx8r
 	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
 	-C hopt -pi auto -sx8 \
 	-Wf'-pvctl vchg' \
 	-o ms2mpi $(PROGS)
+
+# to be optimized...
+sx9:
+	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
+	-C hopt -pi auto -sx9 \
+	-Wf'-pvctl vchg loopfusion loopchg outerstrip outerunroll' \
+	-o ms2 $(PROGS)
+
+sx9_mpi:
+	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
+	-C hopt -pi auto -sx9 \
+	-Wf'-pvctl vchg' \
+	-o ms2mpi $(PROGS)
+#
 
 xc1:
 	@echo "Compiling using IFORT..."
