@@ -3148,8 +3148,14 @@ loop3:    do nc = 1, this%NComponents
 !           pc%NStateBF(:) = 0
         end if
 
-        if( mod( Step, GradInsFrequency ) == 0 ) then
-          pc%CalcChemPot = .true.
+        ! determine, if chemical potential has to be calculated
+        pc%CalcChemPot = .false.
+        if( GradInsFrequency > 0 ) then
+          if( mod( Step, GradInsFrequency ) == 0 ) pc%CalcChemPot = .true.
+        end if
+
+        if( pc%CalcChemPot ) then
+          !pc%CalcChemPot = .true.
 
           ! Save current state
 !           call SaveState( this )
@@ -3289,7 +3295,7 @@ loop2:        do nc = 1, this%NComponents
 !DEBUG
 
         else
-          pc%CalcChemPot = .false.
+          !pc%CalcChemPot = .false.
           pc%ChemPot = 0._RK
         end if
 
