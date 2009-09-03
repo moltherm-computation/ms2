@@ -649,6 +649,14 @@ contains
       deallocate( this%NPart )
     end if
 
+    ! Deallocate maximum allowed MC displacements
+    if( associated( this%DispTran ) ) then
+      deallocate( this%DispTran )
+    end if
+    if( associated( this%DispRot ) ) then
+      deallocate( this%DispRot )
+    end if
+
   end subroutine TComponent_Destruct
 
 
@@ -1217,6 +1225,15 @@ contains
       deallocate( this%NFluctDownSuccesses )
     end if
 !DEBUG
+
+#if MPI_VER > 0
+    if( associated( this%FAll ) ) then
+      deallocate( this%FAll )
+    end if
+    if( associated( this%TAll ) ) then
+      deallocate( this%TAll )
+    end if
+#endif
 
   end subroutine TComponent_Deallocate
 
@@ -2674,9 +2691,6 @@ contains
     ! Declare arguments
     type(TComponent)    :: this
     integer, intent(in) :: np
-
-    ! Declare local variables
-    integer :: i
 
     if( np .ne. this%NPart ) then
 

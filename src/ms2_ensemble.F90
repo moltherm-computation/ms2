@@ -1099,6 +1099,10 @@ contains
     ! Set new number of components (including fluctuating particles)
     this%NComponents = ncomp
 
+    if( associated( reallocate ) ) then
+      deallocate( reallocate )
+    end if
+
   end subroutine TEnsemble_CreateComponents
 
 
