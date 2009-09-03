@@ -26,11 +26,6 @@ program ms2
 
   implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
   ! Declare local variables
   type(TSimulation) :: Simulation
 

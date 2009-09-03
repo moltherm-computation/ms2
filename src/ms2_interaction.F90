@@ -26,6 +26,10 @@
 
 module ms2_interaction
 
+!#ifdev MPI_VER > 0
+!  use mpi
+!#endif
+
   use ms2_potential
   use ms2_component
   use ms2_site
@@ -182,11 +186,6 @@ contains
 &                                    RFEpsilon )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)           :: this
@@ -486,11 +485,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -612,11 +606,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -698,11 +687,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -737,11 +721,6 @@ contains
   subroutine TInteraction_Deallocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this
@@ -801,11 +780,6 @@ contains
   subroutine TInteraction_Force( this, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)       :: this
@@ -955,11 +929,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), pointer    :: EPotTest(:)
@@ -1068,11 +1037,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     integer, intent(in)  :: np
@@ -1091,11 +1055,11 @@ contains
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
     real(RK), pointer :: EPot(:), Virial(:)
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
+    real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: PX2(:), PY2(:), PZ2(:)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -2296,11 +2260,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), intent(in) :: BoxLength
@@ -2329,11 +2288,6 @@ contains
   subroutine TInteraction_CalcPartners( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this
@@ -2523,11 +2477,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)  :: this
     integer, intent(in) :: np
@@ -2583,11 +2532,6 @@ contains
   subroutine TInteraction_CalcPartnersTest( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this

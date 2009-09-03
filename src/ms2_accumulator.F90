@@ -99,11 +99,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TAccumulator)  :: this
     logical, intent(in) :: UpdateByAverage
@@ -126,11 +121,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TAccumulator) :: this
 
@@ -148,11 +138,6 @@ contains
   subroutine TAccumulator_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator) :: this
@@ -178,11 +163,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TAccumulator) :: this
 
@@ -205,11 +185,6 @@ contains
   subroutine TAccumulator_Reset( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator) :: this
@@ -235,11 +210,6 @@ contains
   subroutine TAccumulator_Update( this, Value )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator)   :: this
@@ -277,11 +247,6 @@ contains
   subroutine TAccumulator_Error( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator) :: this
@@ -336,11 +301,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TAccumulator) :: this
 
@@ -366,11 +326,6 @@ contains
   subroutine TAccumulator_RestartRead( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator) :: this
