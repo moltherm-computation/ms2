@@ -1082,6 +1082,7 @@ contains
 
         ! Reallocate component array
         allocate( reallocate(ncomp), STAT = stat )
+        ! reallocate will be stored in this%Component, which thus has to be deallocated
         call AllocationError( stat, 'components', ncomp )
         reallocate( 1:size(this%Component) ) = this%Component(:)
         deallocate( this%Component )
@@ -1098,10 +1099,6 @@ contains
 
     ! Set new number of components (including fluctuating particles)
     this%NComponents = ncomp
-
-    if( associated( reallocate ) ) then
-      deallocate( reallocate )
-    end if
 
   end subroutine TEnsemble_CreateComponents
 
