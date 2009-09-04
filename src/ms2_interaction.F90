@@ -1085,6 +1085,7 @@ contains
     ! Assign local variables
     EPot => this%EPot1
     Virial => this%Virial1
+    VirialLocal = 1E33_RK
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
