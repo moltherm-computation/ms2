@@ -784,9 +784,11 @@ contains
     ! Update log file
 #if MPI_VER > 0
     write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
+#else
+    write( IOBuffer, '("sequential Version")' )
+#endif
     call LogWrite
     call LogWriteBlank
-#endif
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
@@ -1436,6 +1438,9 @@ contains
           !return
         ! end of file reached?
         elseif( stat < 0 ) then
+          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+          parametervalue=""
+          if( present(status) ) status = stat
           ! (try to) restore position
           if( present(rewind_before) ) then
             if( rewind_before ) then
@@ -1443,20 +1448,19 @@ contains
               rewind( iounit )
               FileReadParameter_LineNumber = 0
               linesread=0
+              exit    !not nice!
             end if
           end if
           ! rewind to the position, where the reading process was started
+          backspace( iounit )   ! "undo" last read, where eof was encountered
           do i = 1,linesread
 !            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
             backspace( iounit )
             FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
           end do
-          if( present(status) ) status = stat
-          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
-          parametervalue=""
           exit
         end if
-        FileReadParameter_LineNumber = FileReadParameter_LineNumber+1
+        FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
         linesread = linesread + 1
 !        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
 !         check for comment token
