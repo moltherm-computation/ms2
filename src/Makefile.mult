@@ -99,7 +99,7 @@ gfortran_mpi_dbg:
 
 gfortran_mpi:
 	@echo "Compiling using MPI_GFORTRAN..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	@mpif90 -DTRANS=1 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
 	-O3 -fdefault-real-8 \
 	-o ms2mpi.gfortran $(PROGS)
 	@rm -f *.o *.mod

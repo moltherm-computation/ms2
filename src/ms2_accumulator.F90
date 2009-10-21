@@ -13,6 +13,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
@@ -86,10 +90,51 @@ module ms2_accumulator
   end interface
 
 
+!===============================================================
+!TRANSPORT_start
+!==============================================================!
+!  Type TAccumulatorCF                                         !
+!==============================================================!
+  type TAccumulatorCF
+    ! Block sum
+    real(RK), pointer :: BlockSum(:)
 
+    ! Total sum
+    real(RK) :: TotalSum
+
+    ! Average and variance
+    real(RK) :: Average, Variance
+
+    ! Method of updating
+    logical :: UpdateByAverage
+  end type TAccumulatorCF
+
+  interface ConstructCF
+    module procedure TAccumulatorCF_Construct
+  end interface
+
+  interface DestructCF
+    module procedure TAccumulatorCF_Destruct
+  end interface
+
+  interface AllocateCF
+    module procedure TAccumulatorCF_Allocate
+  end interface
+
+  interface DeallocateCF
+    module procedure TAccumulatorCF_Deallocate
+  end interface
+
+  interface UpdateCF
+    module procedure TAccumulatorCF_Update
+  end interface
+
+  interface ErrorCF
+    module procedure TAccumulatorCF_Error
+  end interface
 contains
 
-
+!TRANSPORT_END
 
 !==============================================================!
 !  Subroutine TAccumulator_Construct                           !
@@ -110,9 +155,33 @@ contains
     call Allocate( this )
 
   end subroutine TAccumulator_Construct
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Construct                         !
+!==============================================================!
 
+  subroutine TAccumulatorCF_Construct( this, UpdateByAverage )
 
+    implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF):: this
+    logical, intent(in) :: UpdateByAverage 
+
+    ! Set method of updating
+    this%UpdateByAverage = UpdateByAverage
+
+    ! Allocate arrays
+    call AllocateCF( this )
+
+  end subroutine TAccumulatorCF_Construct
+
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_Destruct                            !
 !==============================================================!
@@ -129,8 +198,30 @@ contains
 
   end subroutine TAccumulator_Destruct
 
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Destruct                            !
+!==============================================================!
+
+  subroutine TAccumulatorCF_Destruct( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
+
+    ! Deallocate arrays
+    call DeallocateCF( this )
+
+  end subroutine TAccumulatorCF_Destruct
 
 
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_Allocate                            !
 !==============================================================!
@@ -152,9 +243,32 @@ contains
     call AllocationError( stat, 'output blocks', NBlocksMax )
 
   end subroutine TAccumulator_Allocate
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Allocate                            !
+!==============================================================!
 
+  subroutine TAccumulatorCF_Allocate( this )
 
+    implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
+
+    ! Declare local variables
+    integer :: stat
+#if TRANS==1
+    ! Allocate arrays
+    allocate( this%BlockSum( NBlocksMaxCF ), STAT = stat )
+    call AllocationError( stat, 'output blocks', NBlocksMaxCF )
+#endif
+  end subroutine TAccumulatorCF_Allocate
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_Deallocate                          !
 !==============================================================!
@@ -175,9 +289,32 @@ contains
     end if
 
   end subroutine TAccumulator_Deallocate
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Deallocate                          !
+!==============================================================!
+
+  subroutine TAccumulatorCF_Deallocate( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
 
 
+    ! Deallocate arrays
+    if( associated( this%BlockSum ) ) then
+       deallocate( this%BlockSum )
+    end if
 
+  end subroutine TAccumulatorCF_Deallocate
+
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_Reset                               !
 !==============================================================!
@@ -238,8 +375,44 @@ contains
 
   end subroutine TAccumulator_Update
 
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Update                              !
+!==============================================================!
 
+  subroutine TAccumulatorCF_Update( this, Value , Mmess )
 
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF)    :: this
+    real(RK), intent(in)    :: Value
+    integer, intent(in)     :: Mmess
+#if TRANS==1
+    ! Nullify total sum
+    if( Mmess == 1 ) this%TotalSum = 0._RK
+    if( Mmess == BlockSizeCF ) this%TotalSum = 0._RK
+
+    ! Update sums
+    if( this%UpdateByAverage ) then
+      if( mod( Mmess, BlockSizeCF ) == 0) then
+        this%BlockSum(NBlocksCF) = NBlocksCF * BlockSizeCF * Value - this%TotalSum
+        this%TotalSum = NBlocksCF * BlockSizeCF * Value
+      end if
+    else
+      if( mod( Mmess, BlockSizeCF ) == 0 ) this%BlockSum(NBlocksCF) = 0._RK
+      this%BlockSum(NBlocksCF) = this%BlockSum(NBlocksCF) + Value
+      this%TotalSum = this%TotalSum + Value
+    end if
+#endif
+  end subroutine TAccumulatorCF_Update
+
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_Error                               !
 !==============================================================!
@@ -291,8 +464,66 @@ contains
 
   end subroutine TAccumulator_Error
 
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TAccumulatorCF_Error                             !
+!==============================================================!
 
+  subroutine TAccumulatorCF_Error( this, Mmess )
 
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
+#if TRANS==1
+    ! Declare local variables
+    real(RK) :: Tau(NBlockSizesCF)
+#endif
+    real(RK) :: BlockAverage
+    real(RK) :: sx1, sx2, sxy
+    real(RK) :: TauSum, TauInf
+    integer :: i, j, k, Mmess
+    ! Calculate average
+#if TRANS==1
+    this%Average = this%TotalSum / Mmess
+
+    ! Calculate variance
+    Tau = 0._RK
+    do i = 1, NBlockSizesCF
+      do j = i, NBlocksCF, i
+        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( (i * BlockSizeCF), RK )
+        Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
+      end do
+#ifdef _PGF
+      ! Call write to prevent vectorization of loop (a bug in pgi compiler)
+      write( IOBuffer, '("Prevent loop vectorization")' )
+#endif
+      Tau(i) = Tau(i) / real( (NBlocksCF / i), RK )
+    end do
+    this%Variance = Tau(1)
+    if( this%Variance == 0._RK ) return
+    Tau(1:NBlockSizesCF) = Tau(1:NBlockSizesCF) / this%Variance
+    sx1 = 0._RK
+    sx2 = 0._RK
+    sxy = 0._RK
+    do i = 1, NBlockSizesCF
+      sx1 = sx1 + 1._RK / i
+      sx2 = sx2 + 1._RK / i**2
+      sxy = sxy + Tau(i)
+      Tau(i) = i * Tau(i)
+    end do
+    TauSum = sum( Tau(1:NBlockSizesCF) )
+    TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizesCF * sx2 - sx1**2)
+    TauInf = max( TauInf, TauSum / NBlockSizesCF )
+    this%Variance = sqrt( this%Variance / NBlocksCF * TauInf )
+#endif
+  end subroutine TAccumulatorCF_Error
+!TRANSPORT_END
 !==============================================================!
 !  Subroutine TAccumulator_RestartSave                         !
 !==============================================================!

@@ -13,6 +13,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_component.F90...'
 #endif
@@ -78,6 +82,41 @@ module ms2_component
     real(RK), pointer :: T(:, :)
 #if MPI_VER > 0
     real(RK), pointer :: TAll(:, :)
+#endif
+#if  TRANS == 1
+!TRANSPORT_start
+ ! Transport
+    real(RK), pointer :: KinETran(:,:)
+
+    real(RK), pointer :: fs(:,:)
+    real(RK), pointer :: fb(:,:)
+    real(RK), pointer :: ftc(:,:)
+    real(RK), pointer :: frc(:,:)
+
+    real(RK), pointer :: ftc1(:,:)
+    real(RK), pointer :: ftc2(:,:)
+    real(RK), pointer :: ftc3(:,:)
+
+    real(RK), pointer :: frc1(:,:)
+    real(RK), pointer :: frc2(:,:)
+    real(RK), pointer :: frc3(:,:)
+#if MPI_VER > 0
+    real(RK), pointer :: fsAll(:,:)
+    real(RK), pointer :: fbAll(:,:)
+    real(RK), pointer :: frcAll(:,:)
+
+! Components of the FTC Tensor(3)
+    real(RK), pointer :: ftc1All(:,:)
+    real(RK), pointer :: ftc2All(:,:)
+    real(RK), pointer :: ftc3All(:,:)
+
+! Components of the FRC Tensor(3)
+    real(RK), pointer :: frc1All(:,:)
+    real(RK), pointer :: frc2All(:,:)
+    real(RK), pointer :: frc3All(:,:)
+
+#endif
+!TRANSPORT_END
 #endif
 
     ! Total dipole moment of molecule for reaction field
@@ -320,8 +359,14 @@ module ms2_component
   interface RestartRead
     module procedure TComponent_RestartRead
   end interface
-
-
+#if  TRANS == 1
+!Transport properties
+!TRANSPORT_start	
+  interface ForceTransport
+    module procedure TComponent_ForceTransport
+  end interface
+!TRANSPORT_END
+#endif
 contains
 
 
@@ -760,6 +805,8 @@ contains
     integer :: np, ntest, nf
     integer :: i
     integer :: stat
+    real(RK), pointer:: Q00(: , :)
+
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -808,7 +855,124 @@ contains
     nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
+#if  TRANS == 1
+!  Transport  !TRANSPORT_start
+    nullify(this%KinETran)
+    nullify( this%fs )
+    nullify( this%fb )
+    nullify( this%frc )
+    nullify( this%ftc )
 
+    nullify( this%ftc1)
+    nullify( this%ftc2 )
+    nullify( this%ftc3 )
+
+    nullify( this%frc1)
+    nullify( this%frc2 )
+    nullify( this%frc3 )
+
+#if MPI_VER > 0
+    nullify( this%fsAll )
+    nullify( this%fbAll )
+    nullify( this%frcAll )
+
+    nullify( this%ftc1All )
+    nullify( this%ftc2All )
+    nullify( this%ftc3All )
+
+    nullify( this%frc1All )
+    nullify( this%frc2All )
+    nullify( this%frc3All )
+
+#endif
+
+    ! Tranport
+    
+    allocate( this%KinETran( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%fs( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%fb( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc1( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc2( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc3( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc1( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc2( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc3( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+
+    allocate( Q00( np, 4 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+#if MPI_VER > 0
+    allocate( this%fsAll( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%fbAll( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frcAll( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc1All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc2All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%ftc3All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc1All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc2All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    allocate( this%frc3All( np, 3 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+#endif
+
+    allocate( Q00( np, 4 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+
+    this%fs(: , :)   = 0._RK
+    this%fb(: , :)   = 0._RK
+    this%ftc(: , :)  = 0._RK
+    this%frc(: , :)  = 0._RK
+    Q00(: , :)       = 0._RK
+
+    this%ftc1(:,:)  = 0._RK
+    this%ftc2(:,:)  = 0._RK
+    this%ftc3(:,:)  = 0._RK
+
+    this%frc1(:,:)  = 0._RK
+    this%frc2(:,:)  = 0._RK
+    this%frc3(:,:)  = 0._RK
+!TRANSPORT_END
+#endif
     ! Centers of mass positions
     allocate( this%P0( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
@@ -956,7 +1120,14 @@ contains
         this%Molecule%SiteLJ126(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteLJ126(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteLJ126(i)%PZTest => this%P0Test(:, 3)
-      end if
+        end if
+#if TRANS==1	  
+	  if (this%Molecule%isElongated) then
+	  this%Molecule%SiteLJ126(i)%Q0r => this%Q0
+	  else 
+	  this%Molecule%SiteLJ126(i)%Q0r => Q00
+	  end if
+#endif    
     end do
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
@@ -973,7 +1144,14 @@ contains
         this%Molecule%SiteCharge(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteCharge(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteCharge(i)%PZTest => this%P0Test(:, 3)
+        end if
+#if Trans==1
+	  if (this%Molecule%isElongated) then
+	  this%Molecule%SiteCharge(i)%Q0r => this%Q0
+	  else
+  	  this%Molecule%SiteCharge(i)%Q0r => Q00
       end if
+#endif
     end do
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
@@ -990,7 +1168,14 @@ contains
         this%Molecule%SiteDipole(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteDipole(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteDipole(i)%PZTest => this%P0Test(:, 3)
+        end if
+#if TRANS==1
+	  if (this%Molecule%isElongated) then
+      this%Molecule%SiteDipole(i)%Q0r => this%Q0
+      else
+      this%Molecule%SiteDipole(i)%Q0r => Q00
       end if
+#endif
     end do
     do i = 1, this%Molecule%NQuadrupole
       this%Molecule%SiteQuadrupole(i)%NPartMax => this%NPartMax
@@ -1007,7 +1192,14 @@ contains
         this%Molecule%SiteQuadrupole(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteQuadrupole(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteQuadrupole(i)%PZTest => this%P0Test(:, 3)
-      end if
+        end if
+#if TRANS==1
+	  if (this%Molecule%isElongated) then
+      this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
+      else
+      this%Molecule%SiteQuadrupole(i)%Q0r => Q00
+      end if 
+#endif
     end do
 
     ! Fluctuating particle states
@@ -1177,7 +1369,81 @@ contains
     if( associated( this%Corr1 ) ) then
       deallocate( this%Corr1 )
     end if
+#if  TRANS == 1
+! Transport !TRANSPORT_start
 
+    if( associated( this%KinETran) ) then
+      deallocate( this%KinETran )
+    end if
+    if( associated( this%fs ) ) then
+      deallocate( this%fs )
+    end if
+    if( associated( this%fb ) ) then
+      deallocate( this%fb )
+    end if
+    if( associated( this%ftc ) ) then
+      deallocate( this%ftc )
+    end if
+    if( associated( this%frc ) ) then
+      deallocate( this%frc )
+    end if
+
+    if( associated( this%FTC1 ) ) then
+      deallocate( this%FTC1 )
+    end if
+    if( associated( this%FTC2 ) ) then
+      deallocate( this%FTC2 )
+    end if
+    if( associated( this%FTC3 ) ) then
+      deallocate( this%FTC3 )
+    end if
+
+    if( associated( this%FRC1 ) ) then
+      deallocate( this%FRC1 )
+    end if
+    if( associated( this%FRC2 ) ) then
+      deallocate( this%FRC2 )
+    end if
+    if( associated( this%FRC3 ) ) then
+      deallocate( this%FRC3 )
+    end if
+
+#if MPI_VER > 0
+    if( associated( this%FBAll ) ) then
+      deallocate( this%FBAll )
+    end if
+    if( associated( this%FSAll ) ) then
+      deallocate( this%FSAll )
+    end if
+    if( associated( this%FRCAll ) ) then
+      deallocate( this%FRCAll )
+    end if
+
+    if( associated( this%FTC1All ) ) then
+      deallocate( this%FTC1All )
+    end if
+    if( associated( this%FTC2All ) ) then
+      deallocate( this%FTC2All )
+    end if
+    if( associated( this%FTC3All ) ) then
+      deallocate( this%FTC3All )
+    end if
+
+    if( associated( this%FRC1All ) ) then
+      deallocate( this%FRC1All )
+    end if
+    if( associated( this%FRC2All ) ) then
+      deallocate( this%FRC2All )
+    end if
+    if( associated( this%FRC3All ) ) then
+      deallocate( this%FRC3All )
+    end if
+
+
+#endif
+!TRANSPORT_END
+
+#endif
     ! Site positions, orientations, forces and torques
     do i = 1, this%Molecule%NLJ126
       call Deallocate( this%Molecule%SiteLJ126(i) )
@@ -1513,7 +1779,7 @@ contains
         this%Q0(i, 3) = q3
         this%Q0(i, 4) = q4
 
-        ! Calculate rotation matrix elements
+        ! Calculate rotation matrix elements   ! FIXME Hier ist was doppelt, diese Berechnung wird nochmals gemacht
         A11(i) = q1**2 + q2**2 - q3**2 - q4**2
         A12(i) = 2._RK * (q2 * q3 + q1 * q4)
         A13(i) = 2._RK * (q2 * q4 - q1 * q3)
@@ -1941,8 +2207,19 @@ contains
     real(RK)                       :: BoxLength
     real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
-    real(RK)                       :: fx, fy, fz, tx, ty, tz
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+    real(RK)                       :: fx, fy, fz, tx, ty, tz 
+#if  TRANS == 1
+    !TRANSPORT_start
+	real(RK)                       :: vsx,vsy,vsz 
+	real(RK)                       :: vsux,vsuy,vsuz 
+	real(RK)                       :: vbx,vby,vbz
+	real(RK)                       :: cx, cy, cz
+    real(RK)                       :: tux, tuy, tuz, tlx, tly, tlz, tdx, tdy, tdz 
+	real(RK)                       :: BoxLength_dt    
+#endif
+!TRANSPORT_END
+  
+  real(RK)                       :: A11, A12, A13, A21, A22, A23, &
 &                                     A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
@@ -1952,9 +2229,25 @@ contains
 
     ! Assign local variables
     BoxLength = this%BoxLength
-
+#if  TRANS == 1
+    BoxLength_dt = this%BoxLength/TimeStep !TRANSPORT_thisline
+#endif
     ! Initialize forces
     this%F(1:np, :) = 0._RK
+#if  TRANS == 1
+    !TRANSPORT_start
+    this%FS(:,:) = 0._RK
+    this%FB(:,:) = 0._RK
+    this%FTC(:,:) = 0._RK
+    this%FRC(:,:) = 0._RK
+    this%FTC1(:,:) = 0._RK
+    this%FTC2(:,:) = 0._RK
+    this%FTC3(:,:) = 0._RK
+    this%FRC1(:,:) = 0._RK
+    this%FRC2(:,:) = 0._RK
+    this%FRC3(:,:) = 0._RK
+!TRANSPORT_END
+#endif
 
     ! Check number of rotation axes
     if( this%Molecule%isElongated ) then
@@ -1970,7 +2263,6 @@ contains
       q2(:) = this%Q0(:, 2)
       q3(:) = this%Q0(:, 3)
       q4(:) = this%Q0(:, 4)
-
       ! Loop over LJ126 sites in molecule
       do j = 1, this%Molecule%NLJ126
         pLJ126 => this%Molecule%SiteLJ126(j)
@@ -1978,15 +2270,70 @@ contains
           fx = pLJ126%FX(i)
           fy = pLJ126%FY(i)
           fz = pLJ126%FZ(i)
-          r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
-          r1y = ( pLJ126%RY(i) - ry(i) ) * BoxLength
-          r1z = ( pLJ126%RZ(i) - rz(i) ) * BoxLength
+#if  TRANS == 1
+          !TRANSPORT_start
+          vsx = pLJ126%vsLJx(i) 
+          vsy = pLJ126%vsLJy(i) 
+          vsz = pLJ126%vsLJz(i) 
+          vsux= pLJ126%vsuLJx(i) 
+          vsuy= pLJ126%vsuLJy(i) 
+          vsuz= pLJ126%vsuLJz(i) 
+          vbx = pLJ126%vbLJx(i) 
+          vby = pLJ126%vbLJy(i) 
+          vbz = pLJ126%vbLJz(i) 
+          cx  = pLJ126%cLJx(i) 
+          cy  = pLJ126%cLJy(i) 
+          cz  = pLJ126%cLJz(i) 
+          tux = pLJ126%tuLJx(i)
+		  tuy = pLJ126%tuLJy(i)
+		  tuz = pLJ126%tuLJz(i)
+		  tlx = pLJ126%tlLJx(i)
+		  tly = pLJ126%tlLJy(i)
+		  tlz = pLJ126%tlLJz(i)
+		  tdx = pLJ126%tdLJx(i)
+		  tdy = pLJ126%tdLJy(i)
+		  tdz = pLJ126%tdLJz(i)
+		  !TRANSPORT_END
+#endif
+          r1x = ( pLJ126%RX(i) - RX(i) ) * BoxLength
+          r1y = ( pLJ126%RY(i) - RY(i) ) * BoxLength
+          r1z = ( pLJ126%RZ(i) - RZ(i) ) * BoxLength
           this%F(i, 1) = this%F(i, 1) + fx
           this%F(i, 2) = this%F(i, 2) + fy
           this%F(i, 3) = this%F(i, 3) + fz
           this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+#if  TRANS == 1
+          !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+          this%FRC1(i,1) = this%FRC1(i,1) + tdx
+          this%FRC1(i,2) = this%FRC1(i,2) + tux
+          this%FRC1(i,3) = this%FRC1(i,3) + tuy
+          this%FRC2(i,1) = this%FRC2(i,1) + tlx
+          this%FRC2(i,2) = this%FRC2(i,2) + tdy
+          this%FRC2(i,3) = this%FRC2(i,3) + tuz
+          this%FRC3(i,1) = this%FRC3(i,1) + tly
+          this%FRC3(i,2) = this%FRC3(i,2) + tlz
+          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+          !TRANSPORT_END
+#endif
         end do
       end do
 
@@ -1997,6 +2344,31 @@ contains
           fx = pCharge%FX(i)
           fy = pCharge%FY(i)
           fz = pCharge%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          vsx = pCharge%vsCx(i) 
+          vsy = pCharge%vsCy(i) 
+          vsz = pCharge%vsCz(i) 
+          vsux= pCharge%vsuCx(i) 
+          vsuy= pCharge%vsuCy(i) 
+          vsuz= pCharge%vsuCz(i) 
+          vbx = pCharge%vbCx(i) 
+          vby = pCharge%vbCy(i) 
+          vbz = pCharge%vbCz(i) 
+          cx  = pCharge%cCx(i) 
+          cy  = pCharge%cCy(i) 
+          cz  = pCharge%cCz(i) 
+		  tux = pCharge%tuCx(i)
+		  tuy = pCharge%tuCy(i)
+          tuz = pCharge%tuCz(i)
+		  tlx = pCharge%tlCx(i)
+		  tly = pCharge%tlCy(i)
+		  tlz = pCharge%tlCz(i)
+		  tdx = pCharge%tdCx(i)
+		  tdy = pCharge%tdCy(i)
+		  tdz = pCharge%tdCz(i)
+		  !TRANSPORT_END
+#endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
           r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
           r1z = ( pCharge%RZ(i) - rz(i) ) * BoxLength
@@ -2006,6 +2378,36 @@ contains
           this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+#if  TRANS == 1
+          !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+          this%FRC1(i,1) = this%FRC1(i,1) + tdx
+          this%FRC1(i,2) = this%FRC1(i,2) + tux
+          this%FRC1(i,3) = this%FRC1(i,3) + tuy
+          this%FRC2(i,1) = this%FRC2(i,1) + tlx
+          this%FRC2(i,2) = this%FRC2(i,2) + tdy
+          this%FRC2(i,3) = this%FRC2(i,3) + tuz
+          this%FRC3(i,1) = this%FRC3(i,1) + tly
+          this%FRC3(i,2) = this%FRC3(i,2) + tlz
+          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+!TRANSPORT_END
+#endif
         end do
       end do
 
@@ -2016,6 +2418,31 @@ contains
           fx = pDipole%FX(i)
           fy = pDipole%FY(i)
           fz = pDipole%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          vsx = pDipole%vsDx(i) 
+          vsy = pDipole%vsDy(i) 
+          vsz = pDipole%vsDz(i) 
+          vsux= pDipole%vsuDx(i) 
+          vsuy= pDipole%vsuDy(i) 
+          vsuz= pDipole%vsuDz(i) 
+          vbx = pDipole%vbDx(i) 
+          vby = pDipole%vbDy(i) 
+          vbz = pDipole%vbDz(i)
+          cx  = pDipole%cDx(i) 
+          cy  = pDipole%cDy(i) 
+          cz  = pDipole%cDz(i) 
+     	  tux = pDipole%tuDx(i)
+		  tuy = pDipole%tuDy(i)
+		  tuz = pDipole%tuDz(i)
+		  tlx = pDipole%tlDx(i)
+		  tly = pDipole%tlDy(i)
+		  tlz = pDipole%tlDz(i)
+		  tdx = pDipole%tdDx(i)
+		  tdy = pDipole%tdDy(i)
+		  tdz = pDipole%tdDz(i)
+		  !TRANSPORT_END
+#endif
           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
           r1y = ( pDipole%RY(i) - ry(i) ) * BoxLength
           r1z = ( pDipole%RZ(i) - rz(i) ) * BoxLength
@@ -2031,6 +2458,36 @@ contains
           this%T(i, 3) = this%T(i, 3) + pDipole%OX(i) * pDipole%TY(i) &
 &                                     - pDipole%OY(i) * pDipole%TX(i) &
 &                                     + r1x * fy - r1y * fx
+#if  TRANS == 1
+         !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+          this%FRC1(i,1) = this%FRC1(i,1) + tdx
+          this%FRC1(i,2) = this%FRC1(i,2) + tux
+          this%FRC1(i,3) = this%FRC1(i,3) + tuy
+          this%FRC2(i,1) = this%FRC2(i,1) + tlx
+          this%FRC2(i,2) = this%FRC2(i,2) + tdy
+          this%FRC2(i,3) = this%FRC2(i,3) + tuz
+          this%FRC3(i,1) = this%FRC3(i,1) + tly
+          this%FRC3(i,2) = this%FRC3(i,2) + tlz
+          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+!TRANSPORT_END
+#endif
         end do
       end do
 
@@ -2041,6 +2498,31 @@ contains
           fx = pQuadrupole%FX(i)
           fy = pQuadrupole%FY(i)
           fz = pQuadrupole%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          vsx = pQuadrupole%vsQx(i) 
+          vsy = pQuadrupole%vsQy(i) 
+          vsz = pQuadrupole%vsQz(i) 
+          vsux= pQuadrupole%vsuQx(i) 
+          vsuy= pQuadrupole%vsuQy(i) 
+          vsuz= pQuadrupole%vsuQz(i) 
+          vbx = pQuadrupole%vbQx(i) 
+          vby = pQuadrupole%vbQy(i) 
+          vbz = pQuadrupole%vbQz(i) 
+          cx  = pQuadrupole%cQx(i) 
+          cy  = pQuadrupole%cQy(i) 
+          cz  = pQuadrupole%cqz(i) 
+     	  tux = pQuadrupole%tuQx(i)
+		  tuy = pQuadrupole%tuQy(i)
+		  tuz = pQuadrupole%tuQz(i)
+		  tlx = pQuadrupole%tlQx(i)
+		  tly = pQuadrupole%tlQy(i)
+		  tlz = pQuadrupole%tlQz(i)
+		  tdx = pQuadrupole%tdQx(i)
+		  tdy = pQuadrupole%tdQy(i)
+		  tdz = pQuadrupole%tdQz(i)
+		  !TRANSPORT_END
+#endif
           r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
           r1y = ( pQuadrupole%RY(i) - ry(i) ) * BoxLength
           r1z = ( pQuadrupole%RZ(i) - rz(i) ) * BoxLength
@@ -2056,6 +2538,36 @@ contains
           this%T(i, 3) = this%T(i, 3) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
 &                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
 &                                     + r1x * fy - r1y * fx
+#if  TRANS == 1
+  !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+          this%FRC1(i,1) = this%FRC1(i,1) + tdx
+          this%FRC1(i,2) = this%FRC1(i,2) + tux
+          this%FRC1(i,3) = this%FRC1(i,3) + tuy
+          this%FRC2(i,1) = this%FRC2(i,1) + tlx
+          this%FRC2(i,2) = this%FRC2(i,2) + tdy
+          this%FRC2(i,3) = this%FRC2(i,3) + tuz
+          this%FRC3(i,1) = this%FRC3(i,1) + tly
+          this%FRC3(i,2) = this%FRC3(i,2) + tlz
+          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+!TRANSPORT_END
+#endif
         end do
       end do
 
@@ -2086,9 +2598,45 @@ contains
       do j = 1, this%Molecule%NLJ126
         pLJ126 => this%Molecule%SiteLJ126(j)
         do i = 1, np
+#if  TRANS == 1
+        !TRANSPORT_start
+          vsx = pLJ126%vsLJx(i) 
+          vsy = pLJ126%vsLJy(i) 
+          vsz = pLJ126%vsLJz(i) 
+          vsux= pLJ126%vsuLJx(i) 
+          vsuy= pLJ126%vsuLJy(i) 
+          vsuz= pLJ126%vsuLJz(i) 
+          vbx = pLJ126%vbLJx(i) 
+          vby = pLJ126%vbLJy(i) 
+          vbz = pLJ126%vbLJz(i) 
+          cx  = pLJ126%cLJx(i) 
+          cy  = pLJ126%cLJy(i) 
+          cz  = pLJ126%cLJz(i) 
+          !TRANSPORT_END
+#endif
           this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
           this%F(i, 2) = this%F(i, 2) + pLJ126%FY(i)
           this%F(i, 3) = this%F(i, 3) + pLJ126%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          this%FS(i, 1) = this%FS(i, 1) + vsx
+          this%FS(i, 2) = this%FS(i, 2) + vsy
+          this%FS(i, 3) = this%FS(i, 3) + vsz
+          this%FB(i, 1) = this%FB(i, 1) + vbx
+          this%FB(i, 2) = this%FB(i, 2) + vby
+          this%FB(i, 3) = this%FB(i, 3) + vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+!TRANSPORT_END
+#endif
         end do
       end do
 
@@ -2098,9 +2646,33 @@ contains
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+    if( this%Molecule%isElongated ) then
+     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+&      MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    end if
+#if  TRANS == 1
+! Transport  !TRANSPORT_start
+    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
 &       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+
+    call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+
+    call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+!TRANSPORT_END
+#endif
+
 #endif
 
   end subroutine TComponent_Atom2Mol
@@ -3060,7 +3632,97 @@ contains
 
   end subroutine TComponent_RestartRead
 
+!TRANSPORT_start
+!==============================================================!
+!  Subroutine TComponent_ForceTransport                        !
+!==============================================================!
 
+subroutine TComponent_ForceTransport( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)  :: this
+#if TRANS==1    
+	integer           :: i, j, k, nra
+    real(RK), pointer :: pftc1(:,:), pftc2(:,:), pftc3(:,:)
+    real(RK), pointer :: pfrc1(:,:), pfrc2(:,:), pfrc3(:,:)
+    real(RK)          :: BoxLength_dt
+    real(RK)          :: BoxLength_dt2
+
+    !declare local variables
+    BoxLength_dt = this%BoxLength/TimeStep
+    BoxLength_dt2 = BoxLength_dt*BoxLength_dt
+
+
+    this%FTC(:,:) = 0._RK
+    this%FRC(:,:) = 0._RK
+    this%KinETran(:,:) = 0._RK
+
+ if (RootProc) then
+
+#if MPI_VER > 0
+    pftc1 => this%FTC1All(:,:)
+    pftc2 => this%FTC2All(:,:)
+    pftc3 => this%FTC3All(:,:)
+
+    pfrc1 => this%FRC1All(:,:)
+    pfrc2 => this%FRC2All(:,:)
+    pfrc3 => this%FRC3All(:,:)
+#else
+    pftc1 => this%FTC1(:,:)
+    pftc2 => this%FTC2(:,:)
+    pftc3 => this%FTC3(:,:)
+
+    pfrc1 => this%FRC1(:,:)
+    pfrc2 => this%FRC2(:,:)
+    pfrc3 => this%FRC3(:,:)
+#endif
+
+    do k = 1, 3
+       do i= 1, this%Npart
+         this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k)
+         this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k)
+         this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k)
+       end do
+    end do
+
+ nra = this%Molecule%NDFRot
+    do k= 1, nra
+      do i= 1, this%Npart
+       this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k)
+       this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k)
+       this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k)
+     end do
+    end do
+
+    this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
+
+
+
+! Calculate kinetic energy / molecule 
+
+   do j = 1, 3
+     do i = 1, this%NPart
+
+       this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j) 
+
+     end do
+   end do
+
+      this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
+
+   end if
+
+#endif
+  end subroutine TComponent_ForceTransport
+
+!TRANSPORT_END
 
 end module ms2_component
 

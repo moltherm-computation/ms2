@@ -13,6 +13,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
@@ -49,7 +53,12 @@ module ms2_simulation
 
     ! I/O unit for final result file
     integer :: iounit_errors
-
+#if  TRANS == 1
+!TRANSPORT_start
+	! I/O unit for correlation function
+	integer :: iounit_rescf  
+!TRANSPORT_END
+#endif
   end type TSimulation
 
   interface Construct
@@ -157,6 +166,7 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
+	real                        :: hilf  
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -547,7 +557,24 @@ contains
     call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
     call LogWrite
-
+#if  TRANS == 1
+!TRANSPORT_start
+	! Read correlation function mode
+    call FileReadParameter( str , iounit_params , IdCorrFun ) 
+	select case( str )
+    case( 'ja', 'yes' , 'ok' )
+	  CorrfunMode = active
+	  CorrfunModeString = 'Include transport properties'
+    case( 'nein', 'no' )
+	  CorrfunMode = inactive
+	  CorrfunModeString = 'No transport properties'
+	case default
+	  call Error( 'No Transport properties' )
+    end select
+	write( IOBuffer, '("Transport properties:", A)' ) trim(CorrfunModeString)    
+	call LogWrite
+!TRANSPORT_END
+#endif
     ! Create ensembles
     allocate( this%Ensemble(this%NEnsembles), STAT = stat )
     call AllocationError( stat, 'ensembles', this%NEnsembles )
@@ -581,7 +608,10 @@ contains
     this%iounit_result = iounit_result
     this%iounit_runave = iounit_runave
     this%iounit_errors = iounit_errors
+#if  TRANS == 1
+	this%iounit_rescf  = iounit_rescf  !TRANSPORT_thisline
 
+#endif
     ! Open result and visualisation files
     call LogWriteBlank
     call ResultOpen( this )
@@ -1000,6 +1030,7 @@ eqloop: do
 #if MPI_VER > 0
     logical :: AnyTerminateProgram
 #endif
+	integer:: i
 
     ! Run simulation steps
     do Step = StepStart, StepEnd
@@ -1011,9 +1042,24 @@ eqloop: do
       if( BlockSize > 0 ) then
         NBlocks = 1 + (Step - 1) / BlockSize
         NBlockSizes = int( sqrt( real( Step / BlockSize, RK ) ) )
-      end if
-
+  
+#if TRANS==1
       ! Run simulation step
+	  if(( CorrfunMode == active ).and.(.not. Equilibration )) then
+         do i = 1, this%Nensembles
+		 if ( Step >= this%ensemble(i)%Ncorr ) then
+			if ( Step >= this%ensemble(i)%Ncorr )then 
+              NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr )/ ( BlockSizeCF * this%ensemble(i)%NSpancf )
+			  NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   )) 
+          		else
+			  NBlocksCF     = 0
+			  NBlockSizesCF = 0 
+			end if 
+		 end if	  
+         end do
+	  end if
+#endif
+    end if
       select case( SimulationType )
       case( MolecularDynamics )
         call RunMDStep( this )

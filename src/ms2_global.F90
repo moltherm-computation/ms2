@@ -13,6 +13,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
@@ -134,7 +138,13 @@ module ms2_global
 
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
-
+#if  TRANS == 1
+ 
+!TRANSPORT_start
+  ! Extension fo result correlation fucntion
+  character(*), parameter :: ResultTransportExtension = '.rtr'
+!TRANSPORT_END
+#endif
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
 
@@ -161,8 +171,13 @@ module ms2_global
   integer, parameter :: iounit_result  = iounit_start + 6
   integer, parameter :: iounit_runave  = iounit_start + 7
   integer, parameter :: iounit_errors  = iounit_start + 8
-  integer, parameter :: iounit_visual  = iounit_start + 9
+#if  TRANS == 1
 
+  integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
+  integer, parameter :: iounit_visual  = iounit_start + 10
+#else
+  integer, parameter :: iounit_visual  = iounit_start + 9
+#endif
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
 
@@ -201,6 +216,7 @@ module ms2_global
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
   character(*), parameter :: IdBlockSize                   = 'ResultFreq'
+  character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -244,7 +260,15 @@ module ms2_global
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+#if  TRANS == 1
+  !TRANSPORT_start
+  character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
+  character(*), parameter :: IdCorrlength                  = 'Corrlength'
+  character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
+  character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
+!TRANSPORT_END
 
+#endif
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
   character(*), parameter :: IdSite_stype                  = 'SiteType'
@@ -398,7 +422,15 @@ module ms2_global
   integer, parameter :: WFMethodAuto   = 1
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
-
+#if  TRANS == 1
+!TRANSPORT_start
+  ! Correlation function status 
+  character(80)      :: CorrfunModeString
+  integer, parameter :: active                 = 1
+  integer, parameter :: inactive               = 2
+  integer            :: CorrfunMode
+!TRANSPORT_END
+#endif
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
   real(RK) :: TimeStepSquared, TimeStepSquared2, TimeStepSquaredInv2
@@ -471,7 +503,24 @@ module ms2_global
 
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
+#if  TRANS == 1
+!TRANSPORT_start
+  ! Maximum number of blocks CF
+  integer :: NBlocksMaxCF
 
+  ! Frequency of updating result file CF
+  integer :: BlockSizeCF
+
+  ! Maximum number of block sizes for error calculation CF
+  integer :: NBlockSizesMaxCF
+
+  ! Number of block sizes for error calculation CF
+  integer :: NBlockSizesCF
+
+  ! Current number of blocks CF
+  integer :: NBlocksCF
+!TRANSPORT_END
+#endif
   ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
 
