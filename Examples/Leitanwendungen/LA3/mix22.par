@@ -30,9 +30,9 @@ SpanCorrfun  =       200
 ViewCorrfun  =       100
 ResultFreqCF =       4
 
-PotModel     =    ethanol.pm
+PotModel     =  ethanol.pm
 MolarFract   =        0.5
-PotModel     =     Methanol.pm
+PotModel     =     MeOH.pm
 MolarFract   =        0.5
 
 eta          =       1.0
