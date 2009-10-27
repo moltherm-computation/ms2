@@ -694,12 +694,14 @@ contains
       deallocate( this%NPart )
     end if
 
-    ! Deallocate maximum allowed MC displacements
-    if( associated( this%DispTran ) ) then
-      deallocate( this%DispTran )
-    end if
-    if( associated( this%DispRot ) ) then
-      deallocate( this%DispRot )
+    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+      ! Deallocate maximum allowed MC displacements
+      if( associated( this%DispTran ) ) then
+        deallocate( this%DispTran )
+      end if
+      if( associated( this%DispRot ) ) then
+        deallocate( this%DispRot )
+      end if
     end if
 
   end subroutine TComponent_Destruct
@@ -1459,18 +1461,19 @@ contains
     end do
 
      ! Fluctuating particle states
-    if( associated( this%NState ) ) then
-      deallocate( this%NState )
-    end if
-    if( associated( this%NStateWF ) ) then
-      deallocate( this%NStateWF )
-    end if
     if( associated( this%NFluctComp ) ) then
       deallocate( this%NFluctComp )
     end if
-    if( associated( this%WF ) ) then
-      deallocate( this%WF )
-    end if
+    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+      if( associated( this%WF ) ) then
+        deallocate( this%WF )
+      end if
+      if( associated( this%NState ) ) then
+        deallocate( this%NState )
+      end if
+      if( associated( this%NStateWF ) ) then
+        deallocate( this%NStateWF )
+      end if
 !     if( associated( this%NStateBF ) ) then
 !       deallocate( this%NStateBF )
 !     end if
@@ -1478,19 +1481,20 @@ contains
 !       deallocate( this%BFSumState )
 !     end if
 !DEBUG
-    if( associated( this%NFluctUpAttempts ) ) then
-      deallocate( this%NFluctUpAttempts )
-    end if
-    if( associated( this%NFluctUpSuccesses ) ) then
-      deallocate( this%NFluctUpSuccesses )
-    end if
-    if( associated( this%NFluctDownAttempts ) ) then
-      deallocate( this%NFluctDownAttempts )
-    end if
-    if( associated( this%NFluctDownSuccesses ) ) then
-      deallocate( this%NFluctDownSuccesses )
-    end if
+      if( associated( this%NFluctUpAttempts ) ) then
+        deallocate( this%NFluctUpAttempts )
+      end if
+      if( associated( this%NFluctUpSuccesses ) ) then
+        deallocate( this%NFluctUpSuccesses )
+      end if
+      if( associated( this%NFluctDownAttempts ) ) then
+        deallocate( this%NFluctDownAttempts )
+      end if
+      if( associated( this%NFluctDownSuccesses ) ) then
+        deallocate( this%NFluctDownSuccesses )
+      end if
 !DEBUG
+    end if
 
 #if MPI_VER > 0
     if( associated( this%FAll ) ) then
