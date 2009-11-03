@@ -36,11 +36,17 @@
 !#endif
 #endif
 
+#if USE_PAPI
+! Note, that PAPI calls outside ms2_stopwatch might interfere...
+#define STOPWATCH_USE_PAPI
+#endif
+
+
 module ms2_stopwatch
 
-!#if MPI_VER
-!  use mpi
-!#endif
+#if MPI_VER
+  use mpi
+#endif
 
   use ms2_global
 
@@ -49,6 +55,9 @@ module ms2_stopwatch
 ! __INTEL_COMPILER also offers DTIME and DCLOCK via IFPORT
 #endif
 
+!#ifdef STOPWATCH_USE_PAPI
+!  #include "fpapi.h"
+!#endif
 
   integer, parameter :: tag_string_length = 64
 
@@ -93,7 +102,13 @@ module ms2_stopwatch
     real :: etime_sum_start, etime_sum_stop
 #endif
 
+#ifdef STOPWATCH_USE_PAPI
+    real(kind=4) papi_real_time_start, papi_real_time_stop, papi_proc_time_start, papi_proc_time_stop
+    integer(kind=8) papi_flpops_start, papi_flpops_stop
+#endif
+
   end type TStopwatch
+
 
   interface Construct
     module procedure TStopwatch_Construct
@@ -137,7 +152,6 @@ module ms2_stopwatch
 contains
 
 
-
 !==============================================================!
 !  Subroutine TStopwatch_Construct                            !
 !==============================================================!
@@ -152,6 +166,12 @@ contains
     type(TStopwatch) :: this
     character(*), intent(in), optional :: tag_string
     integer, intent(in), optional :: options
+
+    ! Declare local variables
+#ifdef STOPWATCH_USE_PAPI
+    integer papi_check
+    real(kind=4) papi_mflops
+#endif
 
     if( present( tag_string ) ) then
       this%tag_string = tag_string
@@ -189,6 +209,19 @@ contains
     this%etime_array_stop = 0
     this%etime_sum_start = 0
     this%etime_sum_stop = 0
+#endif
+#ifdef STOPWATCH_USE_PAPI
+    this%papi_real_time_start = 0.
+    this%papi_real_time_stop = 0.
+    this%papi_proc_time_start = 0.
+    this%papi_proc_time_stop = 0.
+    this%papi_flpops_start = 0
+    this%papi_flpops_stop = 0
+    ! do a first call to initialize PAPI...
+!    call PAPIF_flops(this%papi_real_time_start, this%papi_proc_time_start, this%papi_flpops_start &
+!&                   , papi_mflops, papi_check)
+    ! PAPIF_flops calls of multiple concurrent stopwatches interfere...
+    ! better use papif_library_init, papif_start_counters...?
 #endif
 
   end subroutine TStopwatch_Construct
@@ -433,16 +466,24 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER
-    include 'mpif.h'
-#endif
+!#if MPI_VER
+!    include 'mpif.h'
+!#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
+#endif
+#ifdef STOPWATCH_USE_PAPI
+  include "f90papi.h"
 #endif
 
     ! Declare arguments
     type(TStopwatch) :: this
+
+    ! Declare local variables
+#ifdef STOPWATCH_USE_PAPI
+    integer papi_check
+    real(kind=4) papi_mflops
+#endif
 
 #ifdef STOPWATCH_USE_DATIME
     call date_and_time( values=this%datime_array_start )
@@ -466,6 +507,10 @@ contains
     !call etime(this%etime_array_start, this%etime_sum_start)	! not supported by PGF
     this%etime_sum_start = etime( this%etime_array_start )
 #endif
+#ifdef STOPWATCH_USE_PAPI
+    call PAPIF_flops(this%papi_real_time_start, this%papi_proc_time_start, this%papi_flpops_start &
+&                   , papi_mflops, papi_check)
+#endif
 
   end subroutine TStopwatch_Start
 
@@ -482,16 +527,30 @@ contains
     implicit none
 
     ! Include headers
-#if MPI_VER
-    include 'mpif.h'
-#endif
+!#if MPI_VER
+!    include 'mpif.h'
+!#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
+#endif
+#ifdef STOPWATCH_USE_PAPI
+  include "f90papi.h"
 #endif
 
     ! Declare arguments
     type(TStopwatch) :: this
 
+    ! Declare local variables
+#ifdef STOPWATCH_USE_PAPI
+    integer papi_check
+    real(kind=4) papi_mflops
+#endif
+
+#ifdef STOPWATCH_USE_PAPI
+    ! do PAPIF_flops calls of multiple concurrent stopwatches interfere?
+    call PAPIF_flops(this%papi_real_time_stop, this%papi_proc_time_stop, this%papi_flpops_stop &
+&                   , papi_mflops, papi_check)
+#endif
 #ifdef STOPWATCH_USE_ETIME
     this%etime_sum_stop = etime( this%etime_array_stop )
 #endif
@@ -531,9 +590,9 @@ contains
     implicit none
 
     ! Include headers
-#if MPI_VER
-    include 'mpif.h'
-#endif
+!#if MPI_VER
+!    include 'mpif.h'
+!#endif
 
     ! Declare arguments
     type(TStopwatch) :: this
@@ -567,7 +626,7 @@ contains
 !==============================================================!
 !  Subroutine TStopwatch_LogWriteStart                         !
 !==============================================================!
-! TODO: argument to set options for writing short/detailed...
+! TODO: argument to set options for writing short/detailed information...
 
   !> write start information to log; this means additional (I)O within the tested code part!
   !> \param this     ... object	TStopwatch
@@ -591,14 +650,14 @@ contains
 #endif
 #ifdef STOPWATCH_USE_CPUTIME
     write( IOBuffer, &
-&     '(A," cpu_time start:",G15.9,"sec ")' ) &
+&     '(A," cpu_time start:",G16.9," sec")' ) &
 &     trim(this%tag_string), &
 &     this%cputime_start
     call LogWrite
 #endif
 #ifdef STOPWATCH_USE_ETIME
     write( IOBuffer, &
-&     '(A," etime start:",F12.4,"(user) +",F12.4,"(system) = ",G15.9,"sec ")' ) &
+&     '(A," etime start:",F12.4,"(user) +",F12.4,"(system) =",G16.9," sec")' ) &
 &     trim(this%tag_string), &
 &     this%etime_array_start, this%etime_sum_start
     call LogWrite
@@ -620,9 +679,9 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER
-    include 'mpif.h'
-#endif
+!#if MPI_VER
+!    include 'mpif.h'
+!#endif
 
     ! Declare arguments
     type(TStopwatch) :: this
@@ -640,12 +699,16 @@ contains
     real, dimension(2) :: etime_array_diff
     real :: etime_sum_diff
 #endif
+#ifdef STOPWATCH_USE_PAPI
+    real(kind=4) papi_mflops
+    real(kind=4) papi_real_time_diff, papi_proc_time_diff, papi_flpops_diff
+#endif
 
 #ifdef STOPWATCH_USE_ETIME
     etime_array_diff = this%etime_array_stop-this%etime_array_start
     etime_sum_diff=this%etime_sum_stop-this%etime_sum_start
     write( IOBuffer, &
-&     '(A," etime        diff:",F12.4,"(user) +",F12.4,"(system) = ",G15.9," sec ")' ) &
+&     '(A," etime        diff:",F12.4,"(user) +",F12.4,"(system) =",G16.9," sec")' ) &
 &     trim(this%tag_string), &
 &     etime_array_diff, etime_sum_diff
     call LogWrite
@@ -653,9 +716,14 @@ contains
 #ifdef STOPWATCH_USE_CPUTIME
     cputime_diff = this%cputime_stop-this%cputime_start
     write( IOBuffer, &
-&     '(A," cpu_time     diff:",G15.9," sec ")' ) &
+&     '(A," cpu_time     diff:",G16.9," sec")' ) &
 &     trim(this%tag_string), &
 &     cputime_diff
+!    write( IOBuffer, &
+!&     '(A," cpu_time     diff:",I5," h",I3," min",F9.5," sec =",G16.9," sec")' ) &
+!&     trim(this%tag_string), &
+!&     int(this%cputime_diff)/3600, mod(int(cputime_diff),3600)/60, dmod(cputime_diff,60.), &
+!&     cputime_diff
     call LogWrite
 #endif
 #ifdef STOPWATCH_USE_WTIME
@@ -663,7 +731,7 @@ contains
         call TStopwatch_ReduceWtimeDiff( this )
     end if
     write( IOBuffer, &
-&     '(A," wtime    max diff:",I5," h",I3," min",F9.5," sec =",G15.9," (min.",G15.9,") +-",E8.2," sec")' ) &
+&     '(A," wtime    max diff:",I5," h",I3," min",F9.5," sec =",G16.9," (min.",G16.9,") +-",E8.2," sec")' ) &
 &     trim(this%tag_string), &
 &     int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.), &
 &     this%wtime_diff(1), this%wtime_diff(2), MPI_WTICK()
@@ -676,10 +744,21 @@ contains
     if( sysclk_diff<0 ) sysclk_diff = sysclk_diff+sysclk_cnt_max
     sysclk_diff_sec = float(sysclk_diff)/float(sysclk_cnt_rate)
     write( IOBuffer, &
-&     '(A," system_clock diff:",I5," h",I3," min",F9.5, " sec (",G15.9,"+i*",E15.9," sec)")' ) &
+&     '(A," system_clock diff:",I5," h",I3," min",F9.5, " sec =",G16.9,"(+i*",E15.9,") sec")' ) &
 &     trim(this%tag_string), &
 &     int(sysclk_diff_sec)/3600, mod(int(sysclk_diff_sec),3600)/60, amod(sysclk_diff_sec,60.), &
 &     sysclk_diff_sec, float(sysclk_cnt_max)/float(sysclk_cnt_rate)
+    call LogWrite
+#endif
+#ifdef STOPWATCH_USE_PAPI
+    papi_real_time_diff = this%papi_real_time_stop - this%papi_real_time_start
+    papi_proc_time_diff = this%papi_proc_time_stop - this%papi_proc_time_start
+    papi_flpops_diff = this%papi_flpops_stop - this%papi_flpops_start
+    papi_mflops = papi_flpops_diff/1.0E6/papi_proc_time_diff
+    write( IOBuffer, &
+&     '(A," PAPI: real time",G16.9,"sec, proc time",G16.9,"sec ;",I16," FlOps,",G16.9," MFlOps/sec")' ) &
+&     trim(this%tag_string), &
+&     papi_real_time_diff, papi_proc_time_diff, papi_flpops_diff, papi_mflops
     call LogWrite
 #endif
 #ifdef STOPWATCH_USE_DATIME
