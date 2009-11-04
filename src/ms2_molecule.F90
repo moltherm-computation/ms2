@@ -1,8 +1,7 @@
 !==============================================================!
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT
-!  (c) 2007 by Ekaterina Elts, TUM
+!  (c) 2007 by Bernhard Eckl, ITT                              !
 !==============================================================!
 !  Module ms2_molecule                                         !
 !  Contains TMolecule object                                   !
@@ -24,6 +23,8 @@ module ms2_molecule
   use ms2_site
   use ms2_idf
   use ms2_unit
+
+
 
 !==============================================================!
 !  Type TMolecule                                              !
@@ -70,6 +71,7 @@ module ms2_molecule
     integer, allocatable :: DipoleSiteIds(:)
     integer, allocatable :: ConstraintSiteIds(:)
     integer, allocatable :: NotConstraintSiteIds(:)
+    integer, pointer     :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
 
     ! Bond for internal degree of freedom
     integer :: NBond
@@ -96,6 +98,8 @@ module ms2_molecule
     character(FileNameLength) :: PotModFileName
 
     ! Bonded Units
+    integer,pointer      :: BondCount(:)
+    integer,pointer      :: BoPartner(:,:)
     integer, allocatable :: BondedUnits(:, :)
 
     !1-4 and 1-5 Sites in molecule for intramolecular 1-4, 1-5 nonbonded interactions
@@ -121,6 +125,8 @@ module ms2_molecule
     real, allocatable :: ScaleQD14(:), ScaleDQ14(:)
 
 
+    ! Body fixed dipole vector for reaction field
+    real(RK) :: Mue(3), MueSquared
 
     ! Number of fluctuating states
     integer :: NFluct
@@ -159,7 +165,6 @@ module ms2_molecule
     module procedure TMolecule_FindNDF
   end interface
 
-
 ! Find bond  distance
   interface FindBondR
     module procedure TMolecule_FindBondR
@@ -169,6 +174,11 @@ module ms2_molecule
   interface FindAngle
     module procedure TMolecule_FindAngle
   end interface
+
+  interface SetLJ
+    module procedure TMolecule_SetLJ
+  end interface
+
 
 contains
 
@@ -193,13 +203,17 @@ contains
     integer, intent(in)      :: fluctstate
 
     ! Declare local variables
-    integer                :: i, j, k, index, u, l, Bondend, m, n, index1, index2
-    integer                :: ntypes
-    integer                :: nidftypes  !number of internal degree of freedom types
-    character(16)          :: stype
-    character(16)          :: sidftype  !type of internal degree of freedom
-    integer                :: stat
-    integer                :: ncs        ! number of all constraint sites
+    integer       :: i, j
+    integer       :: ntypes
+    character(16) :: stype
+    integer       :: stat
+    real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
+
+    ! Inner Degrees of Freedom
+    integer       :: k, index, u, l, Bondend, m, n, index1, index2
+    integer       :: nidftypes  !number of internal degree of freedom types
+    character(16) :: sidftype  !type of internal degree of freedom
+    integer                :: ncs        ! number of all constraint sites 
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
     logical, allocatable   :: mask(:)
     logical                :: ok, ok1, ok2, ok3, done, LJ1, LJ2, same
@@ -221,20 +235,21 @@ contains
     real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
     integer                :: Charge1Id, Charge2Id, Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
-    real(RK)               :: scalegeo, scalesig, scaleeps, scaleest
+
+
 
     ! Nullify pointers.
     nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
-
+    ! Inner Degrees of Freedom
     nullify( this%IdfBond )
     nullify( this%IdfAngle )
     nullify( this%IdfDihedral )
-
     nullify( this%Unit )
     nullify( this%NUnit )
+
 
     ! Open potential model file
     this%PotModFileName = filename
@@ -244,35 +259,30 @@ contains
     call FileReadParameter( iounit_potmod, IdSite_ntypes )
     read( IOBuffer, * ) ntypes
 
-
     ! Zero number of sites
     this%NLJ126 = 0
     this%NCharge = 0
     this%NDipole = 0
     this%NQuadrupole = 0
 
-
+    ! Inner Degrees of Freedom
     ! Zero number of idf
     this%NBond = 0
     this%NAngle = 0
     this%NDihedral = 0
-
     ! Zero number of Units
     this%NEUnit = 0
     allocate( this%NUnit, STAT = stat )
     call AllocationError( stat, 'number of units' )
-
-
     ! Zero number of constraint and notconstrained Units
     this%NConstraint = 0
     this%NNotConstraint = 0
-
     ! Zero number of Sites
     this%NSite = 0
-
-
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
+
+
 
     ! Loop over potential types
     do i = 1, ntypes
@@ -340,7 +350,6 @@ contains
       call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
     end select
 
-
     ! Find center of mass position
     call FindCOM( this )
 
@@ -354,77 +363,14 @@ contains
     ! Find number of degrees of freedom
     call FindNDF( this )
 
-    !**************************************************************************************************************
-    !***************************For Chemical Potential Grad. insertion*********************************************
-
-    ! For fluctuating particle scale parameters
-    if( fluctstate > 0 ) then
-      call FileReadParameter( iounit_potmod, IdNFluct )
-
-      ! Scaling factors start in next line
-      if( RootProc ) then
-        do i = 1, fluctstate
-          read( iounit_potmod, * ) scalegeo, scalesig, scaleeps, scaleest
-        end do
-      end if
-#if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-#endif
-      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
-&         scaleeps > 1._RK .or. scaleest > 1._RK ) &
-&       call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
-
-      ! Apply scaling factors
-      do i = 1, this%NLJ126
-        this%SiteLJ126(i)%r = this%SiteLJ126(i)%r * scalegeo
-        this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
-        this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
-      end do
-      do i = 1, this%NCharge
-        this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
-        this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
-        this%SiteCharge(i)%e = this%SiteCharge(i)%e * scaleest
-      end do
-      do i = 1, this%NDipole
-        this%SiteDipole(i)%r = this%SiteDipole(i)%r * scalegeo
-        this%SiteDipole(i)%shield = this%SiteDipole(i)%shield * scalegeo
-        this%SiteDipole(i)%D = this%SiteDipole(i)%D * scaleest
-      end do
-      do i = 1, this%NQuadrupole
-        this%SiteQuadrupole(i)%r = this%SiteQuadrupole(i)%r * scalegeo
-        this%SiteQuadrupole(i)%shield = this%SiteQuadrupole(i)%shield * scalegeo
-        this%SiteQuadrupole(i)%Q = this%SiteQuadrupole(i)%Q * scaleest
-      end do
-
-    else if( fluctstate .eq. 0 ) then
-
-      call FileReadParameter( iounit_potmod, IdNFluct )
-      read( IOBuffer, * ) this%NFluct
-
-    else
-
-      this%NFluct = 0
-
-    end if
-
-    !**************************************************************************************************************
-
-
-    ! Save used potential model
-    call Save( this, fluctstate )
-
+    ! Internal degrees of freedom
     ! Calculate the total number of sites
     this%NSite = this%NLJ126+this%NCharge+this%NDipole+this%NQuadrupole
 
     ! Create SiteIds array, if use IDF
     if (UseIntDegFreed) then
+
+       ! Allocation
        allocate (this%SiteIds(this%NSite), STAT = stat)
        call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
        allocate (this%LJSiteIds(this%NLJ126), STAT = stat)
@@ -435,6 +381,16 @@ contains
        call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
        allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
        call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
+
+
+      ! Important constants
+       nullify( this%BondCount )
+       nullify( this%BoPartner )
+       allocate (this%BondCount(this%NSite), STAT = stat)
+       call AllocationError( stat, 'BondCount', this%NSite )
+       allocate (this%BoPartner(this%NLJ126,this%NSite), STAT = stat)
+       call AllocationError( stat, 'BoPartner', this%NSite )
+
 
        if( this%NLJ126 > 0 ) then
           do j = 1, this%NLJ126
@@ -485,6 +441,7 @@ contains
             do j = 1, this%NBond
               call Construct( this%IdfBond(j) )
               call FindBondR(this,this%IdfBond(j), j)
+!               call SetLJ(this, j)
             end do
           end if
         case( 'ANGLE', 'Angle', 'angle', 'Angles', 'ANGLES' )
@@ -496,7 +453,7 @@ contains
             do j = 1, this%NAngle
               call Construct( this%IdfAngle(j) )
               call FindAngle(this,this%IdfAngle(j), j)
-	    end do
+            end do
           end if
         case( 'DIHEDRAL', 'Dihedral', 'dihedral', 'Dihedrals', 'DIHEDRALS' )
          call FileReadParameter( iounit_potmod, IdIdf_NDihedral )
@@ -585,7 +542,6 @@ contains
              end do
              k=k+ncspu(i)
           end do
- !         print *, 'Number of constraint sites=', k
        end if
        if (this%NNotConstraint > 0) then
           allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
@@ -593,6 +549,7 @@ contains
           k=1
           if (this%NConstraint > 0) then
             call sort_array(this%ConstraintSiteIds)
+!            print *, 'ConstraintSiteIds=', this%ConstraintSiteIds
             do i = 1, this%NSite
                call binar_search(this%ConstraintSiteIds, this%SiteIds(i), ok, index)
                if (.not. ok) then
@@ -673,6 +630,54 @@ contains
          this%Unit(1)%NDFRot = -1
     end if
 
+    if (UseIntDegFreed) then
+      if( this%NBond > 0 ) then
+        do j = 1, this%NBond
+           call SetLJ(this, j)
+        end do
+      end if
+   end if
+
+   ! Assigning Number of interaction sites to vectors
+   nullify( this%UnitLJ )
+   nullify( this%UnitC )
+   nullify( this%UnitDP )
+   nullify( this%UnitQP )
+
+    ! Allocate simulation box length
+    allocate( this%UnitLJ(this%NUnit+1), STAT = stat )
+    call AllocationError( stat, 'UnitLJ' )
+    allocate( this%UnitC(this%NUnit+1), STAT = stat )
+    call AllocationError( stat, 'UnitC' )
+    allocate( this%UnitDP(this%NUnit+1), STAT = stat )
+    call AllocationError( stat, 'UnitDP' )
+    allocate( this%UnitQP(this%NUnit+1), STAT = stat )
+    call AllocationError( stat, 'UnitQP' )
+
+!    this%UnitLJ = this%NLJ126
+!    this%UnitC  = this%NCharge
+!    this%UnitDP = this%NDipole
+!    this%UnitQP = this%NQuadrupole
+!
+!   do i=2, this%NUnit
+!     if (this%UnitLJ(1) .ne. 0) this%UnitLJ(i) = 1+this%Unit(i-1)%NSites
+!     if (this%UnitC(1)  .ne. 0) this%UnitC(i)  = 1+this%Unit(i-1)%NCharge
+!     if (this%UnitDP(1) .ne. 0) this%UnitDP(i) = 1+this%Unit(i-1)%NDipole
+!     if (this%UnitQP(1) .ne. 0) this%UnitQP(i) = 1+this%Unit(i-1)%NQuadrupole
+!   end do
+
+    this%UnitLJ = 1
+    this%UnitC  = 1
+    this%UnitDP = 1
+    this%UnitQP = 1
+
+   do i=2, this%NUnit+1
+     this%UnitLJ(i) = this%Unit(i-1)%NLJ126  + this%UnitLJ(i-1)
+     this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
+     this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
+     this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
+   end do
+
 
    ! For all Units find mass, COM, moment of inertia, number of degree of freedom
    do i = 1, this%NUnit
@@ -685,7 +690,6 @@ contains
       do j =1, this%Unit(i)%NDipole
         this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
       end do
-!      print *, 'this%Unit(i)%Mue(:)=',this%Unit(i)%Mue(:)
     end if
     this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
       call FindCOM ( this%Unit(i) )
@@ -711,8 +715,6 @@ contains
     if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
        call Error( 'Check *.par file, molecule too small, no intramolecular interactions can be used' )
     end if
-
-
     if (UseIntDegFreed .and. IntraLJEl) then
 !      do k = 1, this%NUnit
 !        call sort_array(this%Unit(k)%SiteIds)
@@ -729,7 +731,7 @@ contains
        do k = 1, this%NQuadrupole
          call sort_array(this%QuadrupoleSiteIds)
        end do
-   end if
+      end if
 
    ! create list of 1-4, 1-5 interactions
 
@@ -1132,10 +1134,6 @@ contains
            IntLJ14(lj,1)=Int14(i,1)
            IntLJ14(lj,2)=Int14(i,2)
            ScaleLJ14(lj)=CoeffLJ14(i)
-!          ScaleLJ14(lj)=this%IdfDihedral(i)%ScaleLJ14
-!          print *, 'IntLJ14, 1=', IntLJ14(lj, 1)
-!          print *, 'IntLJ14, 2=', IntLJ14(lj, 2)
-!          print *, 'ScaleLJ14=', ScaleLJ14(lj)
            lj = lj+1
            Charge1Id = SameCoord(this%LJSiteIds(index1),1)
            Charge2Id = SameCoord(this%LJSiteIds(index2),1)
@@ -1148,25 +1146,17 @@ contains
                IntCC14(cc,1) = Charge1Id
                IntCC14(cc,2) = Charge2Id
                ScaleCC14(cc)=CoeffEl14(i)
-!              ScaleCC14(cc)=this%IdfDihedral(i)%ScaleEl14
-!              print *, 'IntCC14, 1=', IntCC14(cc, 1)
-!              print *, 'IntCC14, 2=', IntCC14(cc, 2)
-!              print *, 'ScaleCC14=', ScaleCC14(cc)
                cc = cc+1
              else if ( Dipole2Id > 0) then
-!               IntCD14(cd,1) = min(Charge1Id, Dipole2Id)
-!               IntCD14(cd,2) = max(Charge1Id, Dipole2Id)
                IntCD14(cd,1) = Charge1Id
                IntCD14(cd,2) = Dipole2Id
                ScaleCD14(cd)=CoeffEl14(i)
-!               ScaleCD14(cd)=this%IdfDihedral(i)%ScaleEl14
                cd = cd+1
              else
                 if ( Quadrupole2Id > 0) then
                   IntCQ14(cq,1) = Charge1Id
                   IntCQ14(cq,2) = Quadrupole2Id
                   ScaleCQ14(cq)=CoeffEl14(i)
-!                  ScaleCQ14(cq)=this%IdfDihedral(i)%ScaleEl14
                   cq = cq+1
                 end if
              end if
@@ -1176,20 +1166,17 @@ contains
                IntDC14(dc,1) = Dipole1Id
                IntDC14(dc,2) = Charge2Id
                ScaleDC14(dc)=CoeffEl14(i)
-!               ScaleDC14(dc)=this%IdfDihedral(i)%ScaleEl14
                dc = dc+1
              else if ( Dipole2Id > 0) then
                IntDD14(dd,1) = Dipole1Id
                IntDD14(dd,2) = Dipole2Id
                ScaleDD14(dd)=CoeffEl14(i)
-!               ScaleDD14(dd)=this%IdfDihedral(i)%ScaleEl14
                dd = dd+1
              else
                 if (Quadrupole2Id > 0) then
                   IntDQ14(dq,1) = Dipole1Id
                   IntDQ14(dq,2) = Quadrupole2Id
                   ScaleDQ14(dq)=CoeffEl14(i)
-!                  ScaleDQ14(dq)=this%IdfDihedral(i)%ScaleEl14
                   dq = dq+1
                 end if
              end if
@@ -1199,20 +1186,17 @@ contains
                IntQC14(qc,1) = Quadrupole1Id
                IntQC14(qc,2) = Charge2Id
                ScaleQC14(qc) = CoeffEl14(i)
-!               ScaleQC14(qc)=this%IdfDihedral(i)%ScaleEl14
                qc = qc+1
              else if ( Dipole2Id > 0) then
                IntQD14(qd,1) = Quadrupole1Id
                IntQD14(qd,2) = Dipole2Id
                ScaleQD14(qd) = CoeffEl14(i)
-!               ScaleQD14(qd)=this%IdfDihedral(i)%ScaleEl14
                qd = qd+1
              else
                 if ( Quadrupole2Id > 0) then
                   IntQQ14(qq,1) = Quadrupole1Id
                   IntQQ14(qq,2) = Quadrupole2Id
                   ScaleQQ14(qq)= CoeffEl14(i)
-!                  ScaleQQ14(qq)=this%IdfDihedral(i)%ScaleEl14
                   qq = qq+1
                 end if
              end if
@@ -1301,9 +1285,95 @@ contains
        end if
 
      end if
-   end if
+   end if     ! (Inner Degrees of Freedom) IntLJE1
 
-   contains
+
+
+
+
+
+    ! For fluctuating particle scale parameters
+    if( fluctstate > 0 ) then
+      call FileReadParameter( iounit_potmod, IdNFluct )
+
+      ! Scaling factors start in next line
+      if( RootProc ) then
+        do i = 1, fluctstate
+          read( iounit_potmod, * ) scalegeo, scalesig, scaleeps, scaleest
+        end do
+      end if
+#if MPI_VER > 0
+      call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( scaleeps, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+#endif
+      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
+&         scaleeps > 1._RK .or. scaleest > 1._RK ) &
+&       call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
+
+      ! Apply scaling factors
+      do i = 1, this%NLJ126
+        this%SiteLJ126(i)%r = this%SiteLJ126(i)%r * scalegeo
+        this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
+        this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
+      end do
+      do i = 1, this%NCharge
+        this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
+        this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
+        this%SiteCharge(i)%e = this%SiteCharge(i)%e * scaleest
+      end do
+      do i = 1, this%NDipole
+        this%SiteDipole(i)%r = this%SiteDipole(i)%r * scalegeo
+        this%SiteDipole(i)%shield = this%SiteDipole(i)%shield * scalegeo
+        this%SiteDipole(i)%D = this%SiteDipole(i)%D * scaleest
+      end do
+      do i = 1, this%NQuadrupole
+        this%SiteQuadrupole(i)%r = this%SiteQuadrupole(i)%r * scalegeo
+        this%SiteQuadrupole(i)%shield = this%SiteQuadrupole(i)%shield * scalegeo
+        this%SiteQuadrupole(i)%Q = this%SiteQuadrupole(i)%Q * scaleest
+      end do
+
+    else if( fluctstate .eq. 0 ) then
+
+      call FileReadParameter( iounit_potmod, IdNFluct )
+      read( IOBuffer, * ) this%NFluct
+
+    else
+
+      this%NFluct = 0
+
+    end if
+
+    ! Close potential model file
+    call FileClose( iounit_potmod )
+
+    ! Reduction of point charges and dipoles to body fixed dipole vector
+    this%Mue(:) = 0._RK
+    if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
+      if ((LongRange .eq. RField) .or. (LongRange .eq. ExtRField)) then
+        do i =1, this%NCharge
+          this%Mue(:) = this%Mue(:) + &
+&           this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
+        end do
+      end if
+      do i =1, this%NDipole
+        this%Mue(:) = this%Mue(:) + &
+&         this%SiteDipole(i)%or(:) * this%SiteDipole(i)%D
+      end do
+    end if
+    this%MueSquared = sum( this%Mue(:)**2 )
+
+    ! Save used potential model
+    call Save( this, fluctstate )
+
+
+
+    contains
 
     subroutine sort_array(array)
       ! Declare arguments
@@ -1373,6 +1443,7 @@ contains
 
     end subroutine compare_coord
 
+
     subroutine FindEdgeFrom( unit, bondedunit, E, n )
 
       ! Declare arguments
@@ -1399,7 +1470,9 @@ contains
 
     end subroutine FindEdgeFrom
 
+
   end subroutine TMolecule_Construct
+
 
 
 !==============================================================!
@@ -1570,8 +1643,6 @@ contains
       call FileWriteParameter( iounit_normal, IdSite_MOI3 )
     end if
 
-
-
     ! Close file
     call FileClose( iounit_normal )
 
@@ -1582,6 +1653,7 @@ contains
     call LogWrite
 
   end subroutine TMolecule_Save
+
 
 
 !==============================================================!
@@ -1684,6 +1756,9 @@ contains
   end subroutine TMolecule_SaveIDF
 
 
+
+
+
 !==============================================================!
 !  Subroutine TMolecule_FindCOM                                !
 !==============================================================!
@@ -1748,6 +1823,8 @@ contains
     end do
 
   end subroutine TMolecule_FindCOM
+
+
 
 !==============================================================!
 !  Subroutine TMolecule_FindMOI                                !
@@ -2155,7 +2232,7 @@ end if
 
 
 if (.not. Site1 .or. .not. Site2) then
-write (stb, '(i10)') j
+write (stb, '(i10)'), j
 call Error('Uncorrect sites for bond' // stb)
 end if
 
@@ -2253,7 +2330,7 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
 end if
 
 if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
-write (sta, '(i10)') j
+write (sta, '(i10)'), j
 call Error('Uncorrect sites for angle' // sta)
 end if
 
@@ -2275,6 +2352,57 @@ if ( cosa .lt. -1.0d0) cosa = -1.0d0
 Angle%Angle0=dacos(cosa)
 
 end subroutine TMolecule_FindAngle
+
+
+
+
+!==============================================================!
+!  Subroutine TMolecule_SetLJ                                  !
+!==============================================================!
+
+
+   subroutine  TMolecule_SetLJ( this, pair )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule)     :: this
+    integer             :: pair
+    integer             :: counter, count
+    integer             :: check1, check2
+    integer             :: j
+    logical             :: hit1, hit2
+
+      counter = 1
+      check1  = 0
+      check2  = 0
+      hit1 = .false.
+      hit2 = .false.
+
+      do j=1,this%NUnit
+        if ( .not. hit1 .and. this%IdfBond(pair)%SiteId1 < this%Unit(j)%NLJ126 + counter ) then
+          check1 = j
+          this%IdfBond(pair)%UnitId1 = j
+          count = this%BondCount(j) + 1
+          this%BondCount(j) = count
+          this%BoPartner(j,count) = pair
+          hit1 = .true.
+        end if
+        if ( .not. hit2 .and. this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counter ) then
+          if (check1 .eq. check2) then
+            this%BondCount(j) = this%BondCount(j) - 1
+          else
+            this%IdfBond(pair)%UnitId2 = j
+            count = this%BondCount(j) + 1
+            this%BondCount(j) = count
+          this%BoPartner(j,count) = pair
+            hit2 = .true.
+          end if
+        end if
+        counter = counter + this%Unit(j)%NLJ126
+      end do
+
+   end subroutine TMolecule_SetLJ
 
 
 end module ms2_molecule

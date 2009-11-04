@@ -169,10 +169,6 @@ module ms2_global
   character(*), parameter :: IdEnsembleType                = 'Ensemble'
   character(*), parameter :: IdPistonMass                  = 'PistonMass'
   character(*), parameter :: IdSimulationType              = 'Simulation'
-  character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
-  character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
-  character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 electrostatic & LJ interaction incl/excl
-  character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs must be included/excluded from non-bonded inter.
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
@@ -186,6 +182,14 @@ module ms2_global
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
+  character(*), parameter :: IdLongRange                   = 'LongRange'
+  character(*), parameter :: IdKappa                       = 'Kappa'
+  character(*), parameter :: Idnsqmax                      = 'NsqMax'
+  character(*), parameter :: IdNVecMax                     = 'NVecMax'
+  character(*), parameter :: IdNMax                        = 'NMax'
+  character(*), parameter :: IdGrid                        = 'Grid'
+  character(*), parameter :: IdSpline                      = 'Spline'
+  character(*), parameter :: IdDebyeLen                    = 'DebyeLen'
   character(*), parameter :: IdNOrient                     = 'NOrient'
   character(*), parameter :: IdRSteps                      = 'RSteps'
   character(*), parameter :: IdMinRadius                   = 'RMinRadius'
@@ -226,6 +230,12 @@ module ms2_global
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+  character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
+  character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
+  character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 electrostatic & LJ interaction incl/excl
+  character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs must be included/excluded from non-bonded inter.
+!  character(*), parameter :: IdScaleEl14                   = 'ScaleEl_14'    ! Scale 1-4 electrostatic interactions by this factor
+!  character(*), parameter :: IdScaleLJ14                   = 'ScaleLJ_14'    ! Scale 1-4 LJ interactions by this factor
 
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
@@ -277,7 +287,7 @@ module ms2_global
   character(*), parameter :: IdQuadrupole_Q                = 'quadrupole'
   character(*), parameter :: IdQuadrupole_mass             = 'mass'
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
-  character(*), parameter :: IdNFluct                      = 'NFluct'
+! Inner Degrees of Freedom
   character(*), parameter :: IdConstraint_NSites           = 'Constraint'
   character(*), parameter :: IdConstraint_SiteIds          = 'SiteIds'
   character(*), parameter :: IdConstraint_NDFRot           = 'NRotAxes'
@@ -297,7 +307,17 @@ module ms2_global
   character(*), parameter :: IdDihedral_gamma              = 'gamma'
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'  ! Scale 1-4 LJ interactions by this factor
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14' ! Scale 1-4 electrostatic interactions by this factor
+! Chemical Potential
+  character(*), parameter :: IdNFluct                      = 'NFluct'
 
+#if CONSTR > 0
+  character(*), parameter :: IdNCons                       = 'NConstr'
+  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
+  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
+  character(*), parameter :: IdCons1                       = 'Constr1'
+  character(*), parameter :: IdCons2                       = 'Constr2'
+  character(*), parameter :: IdConsR                       = 'ConstrDist'
+#endif
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -307,6 +327,7 @@ module ms2_global
 
   ! General mathematical constants
   real(RK), parameter :: Pi = 3.141592689793238462643_RK
+  real(RK), parameter :: Pi2 = Pi * 2._RK
   real(RK), parameter :: Pi23 = Pi * 2._RK / 3._RK
   real(RK), parameter :: Pi8 = Pi * 8._RK
   real(RK), parameter :: Pi89 = Pi * 8._RK / 9._RK
@@ -351,7 +372,6 @@ module ms2_global
   ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
 !  real(RK) :: ScaleLJ14
 
-
   ! Basic reduced units
   real(RK) :: UnitLength
   real(RK) :: UnitEnergy
@@ -393,7 +413,16 @@ module ms2_global
   integer, parameter :: MolecularDynamics = 1
   integer, parameter :: MonteCarlo        = 2
   integer, parameter :: SecondVirialCoeff = 3
+  integer, parameter :: Gibbs             = 4
   integer            :: SimulationType
+
+  ! Type of integrator
+  character(80)      :: IntegratorTypeString
+  integer, parameter :: IntegratorTypeGear     = 1
+  integer, parameter :: IntegratorTypeLeapFrog = 2
+  integer, parameter :: IntegratorTypeVerlet   = 3
+  integer, parameter :: IntegratorTypeVV       = 4
+  integer            :: IntegratorType
 
   ! Type of ensembles
   character(80)      :: EnsembleTypeString
@@ -406,19 +435,20 @@ module ms2_global
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
-  ! Type of integrator
-  character(80)      :: IntegratorTypeString
-  integer, parameter :: IntegratorTypeGear     = 1
-  integer, parameter :: IntegratorTypeLeapFrog = 2
-  integer, parameter :: IntegratorTypeVerlet   = 3
-  integer, parameter :: IntegratorTypeVV       = 4
-  integer            :: IntegratorType
-
   ! Type of cutoff
   character(80)      :: CutoffModeString
   integer, parameter :: SiteSite     = 1
   integer, parameter :: CenterofMass = 2
   integer            :: CutoffMode
+!   integer            :: 
+
+  ! Type of LongRange Mode
+  character(80)      :: LongRangeString
+  integer, parameter :: Ewald         = 1
+  integer, parameter :: RField        = 2
+  integer, parameter :: PME           = 3
+  integer, parameter :: extRField     = 4
+  integer            :: LongRange
 
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
@@ -1272,6 +1302,7 @@ contains
 
   end subroutine Global_FileReset
 
+
 !==============================================================!
 !  Subroutine Global_FileRewind                                !
 !==============================================================!
@@ -1304,6 +1335,8 @@ contains
 &     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
 
   end subroutine Global_FileRewind
+
+
 
 
 !==============================================================!
@@ -1744,6 +1777,61 @@ contains
   end subroutine IgnoreSignal
 #endif
 
+
+!==============================================================!
+!  Subroutine Write Restart File on xc2 in Karlsruhe, Germany  !
+!==============================================================!
+
+#if MPI_VER > 0
+  subroutine time_left(time_limit)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    real(RK) :: time_remaining
+    real(RK) :: cputime,max_cpu_time
+    character*10 string_max_time
+    integer  :: ierror,max_time, err
+    integer  :: time_limit
+
+! Get CPU time consumed by each task and compute the maximum value
+    call cpu_time(cputime)
+!    call MPI_Allreduce(cputime,max_cpu_time,1,MPI_DOUBLE_PREICSION,MPI_MAX,MPI_COMM_WORLD,ierror)
+
+    max_time = 1e7
+#ifdef KARLS
+! getenv delivers the value of the environment variable JMS_t
+    call getenv('JMS_t',string_max_time)
+
+! Convert to integer
+    read(string_max_time,*) max_time
+#endif
+#ifdef ITWM
+! getenv WALLTIME
+    call getenv('WALLTIME',string_max_time)
+! Convert to integer
+    read(string_max_time,*) max_time
+#endif
+
+! Compute the remaining CPU time
+    time_remaining = max_time - real(cputime)/60.
+
+    if (time_remaining .le. time_limit) then
+       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster")' )
+       call LogWrite
+       call LogWriteBlank
+
+#ifdef __INTEL_COMPILER
+         err = SetTerminateProgram( 1 )
+#else
+         call SetTerminateProgram
+#endif
+    end if
+
+  end subroutine time_left
+#endif
 
 end module ms2_global
 

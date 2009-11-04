@@ -32,7 +32,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK), pointer :: r(:)
+    real(RK),pointer  :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
     integer, pointer  :: NPartMax, NPart, NTest
@@ -119,7 +119,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK), pointer :: r(:), or(:)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: D
     real(RK)          :: mass
     real(RK)          :: shield
@@ -166,7 +166,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK), pointer :: r(:), or(:)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
     real(RK)          :: shield
@@ -224,16 +224,18 @@ contains
 
     ! Declare arguments
     type(TSiteLJ126) :: this
-    integer :: stat
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( iounit_potmod, IdLJ126_SiteId )
         read( IOBuffer, * ) this%SiteId
     end if
-    nullify( this%r )
+
+    nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
+
     call FileReadParameter( iounit_potmod, IdLJ126_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdLJ126_r2 )
@@ -398,9 +400,8 @@ contains
     type(TSiteLJ126) :: this
 
     ! Save site parameters
-
-    if( UseIntDegFreed ) then
-        write( IOBuffer, '(I3)' ) this%SiteId
+    if( UseIntDegFreed ) then 
+        write( IOBuffer, '(I3)' ), this%SiteId
         call FileWriteParameter( iounit_normal, IdLJ126_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
@@ -441,16 +442,18 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
-    integer           :: stat
-    ! Read site parameters
+    integer          :: stat
 
+    ! Read site parameters
     if( UseIntDegFreed ) then
     	call FileReadParameter( iounit_potmod, IdCharge_SiteId )
     	read( IOBuffer, * ) this%SiteId
     end if
-    nullify( this%r )
+
+    nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
+
     call FileReadParameter( iounit_potmod, IdCharge_r1 )
     read( IOBuffer, * ) this%r(1)
     call FileReadParameter( iounit_potmod, IdCharge_r2 )
@@ -562,7 +565,6 @@ contains
       call AllocationError( stat, 'test particles', nt )
     end if
 
-
   end subroutine TSiteCharge_Allocate
 
 
@@ -616,11 +618,11 @@ contains
     type(TSiteCharge) :: this
 
     ! Save site parameters
-
     if( UseIntDegFreed ) then
-    	write( IOBuffer, '(I3)' ) this%SiteId
-    	call FileWriteParameter( iounit_normal, IdCharge_SiteId )
+        write( IOBuffer, '(I3)' ), this%SiteId
+        call FileWriteParameter( iounit_normal, IdCharge_SiteId ) 
     end if
+
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdCharge_r1 )
@@ -666,11 +668,12 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-    	call FileReadParameter( iounit_potmod, IdDipole_SiteId )
-    	read( IOBuffer, * ) this%SiteId
+        call FileReadParameter( iounit_potmod, IdDipole_SiteId )
+        read( IOBuffer, * ) this%SiteId
     end if
-    nullify( this%r )
-    nullify( this%or )
+
+    nullify ( this%r )
+    nullify ( this%or )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates particles', 3 )
     allocate( this%or( 3 ), STAT = stat )
@@ -885,9 +888,9 @@ contains
     type(TSiteDipole) :: this
 
     ! Save site parameters
-    if( UseIntDegFreed ) then
-    	write( IOBuffer, '(I3)' ) this%SiteId
-    	call FileWriteParameter( iounit_normal, IdDipole_SiteId )
+    if( UseIntDegFreed ) then 
+        write( IOBuffer, '(I3)' ), this%SiteId
+        call FileWriteParameter( iounit_normal, IdDipole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)
@@ -943,12 +946,12 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-    	call FileReadParameter( iounit_potmod, IdQuadrupole_SiteId )
-    	read( IOBuffer, * ) this%SiteId
+        call FileReadParameter( iounit_potmod, IdQuadrupole_SiteId )
+        read( IOBuffer, * ) this%SiteId
     end if
 
-    nullify( this%r )
-    nullify( this%or )
+    nullify ( this%r )
+    nullify ( this%or )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates particles', 3 )
     allocate( this%or( 3 ), STAT = stat )
@@ -1163,9 +1166,9 @@ contains
     type(TSiteQuadrupole) :: this
 
     ! Save site parameters
-    if( UseIntDegFreed ) then
-    	write( IOBuffer, '(I3)' ) this%SiteId
-    	call FileWriteParameter( iounit_normal, IdQuadrupole_SiteId )
+    if( UseIntDegFreed ) then 
+        write( IOBuffer, '(I3)' ), this%SiteId
+        call FileWriteParameter( iounit_normal, IdQuadrupole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%r(1) * UnitLength / Angstroem, this%r(1)

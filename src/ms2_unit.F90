@@ -32,7 +32,7 @@ module ms2_unit
     integer  :: NSites
 
     ! SiteIds in a unit
-    integer, allocatable :: SiteIds(:)
+    integer, allocatable :: SiteIds(:) 
 
     ! Geometry of unit
     logical :: isElongated, is3D
@@ -172,9 +172,9 @@ contains
     if ( UseIntDegFreed ) then
       if ( this%isConstraint ) then
           call FileReadParameter( iounit_potmod, IdConstraint_NSites )
-          read( IOBuffer, * ) this%NSites
+          read( IOBuffer, * ),this%NSites
           call FileReadParameter( iounit_potmod, IdConstraint_SiteIds )
-          read( IOBuffer, * ) this%SiteIds
+          read( IOBuffer, * ),this%SiteIds
 
           ! Read number of rotation axes
           call FileReadParameter( iounit_potmod, IdConstraint_NDFRot )
@@ -469,7 +469,7 @@ contains
     end do
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) &
 &     this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
-
+ 
     ! Calculate inverse of rotation matrix - from body coordinate to space axes
     this%Rotation(:,:) = transpose(rotation)
 

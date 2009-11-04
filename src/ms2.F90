@@ -2,7 +2,6 @@
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
 !  (c) 2007 by Bernhard Eckl, ITT                              !
-!  (c) 2007 by Ekaterina Elts, TUM                             !
 !==============================================================!
 !  Program ms2                                                 !
 !  This file contains the main routine                         !

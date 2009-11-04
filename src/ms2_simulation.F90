@@ -2,7 +2,6 @@
 !  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !  (c) 2001 by Sergey Lishchuk, ITT                            !
 !  (c) 2007 by Bernhard Eckl, ITT                              !
-!  (c) 2007 by Ekaterina Elts                                  !
 !==============================================================!
 !  Module ms2_simulation                                       !
 !  Contains TSimulation object                                 !
@@ -84,6 +83,10 @@ module ms2_simulation
     module procedure TSimulation_RunSVCStep
   end interface
 
+  interface RunMCStep_Gibbs
+    module procedure TSimulation_RunMCStep_Gibbs
+  end interface
+
   interface CheckNPart
     module procedure TSimulation_CheckNPart
   end interface
@@ -158,6 +161,10 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
+    real(RK)                    :: KappaL_h
+    real(RK)                    :: debyelen_h
+    integer                     :: grid_h,spline_h
+    integer                     :: nvecmax_h,nsqmax_h,nmax_h
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -278,6 +285,9 @@ contains
     case( 'SVC', 'svc', '2VC', '2vc' )
       SimulationType = SecondVirialCoeff
       SimulationTypeString = 'Second Virial Coefficient'
+    case( 'GibbsMC', 'gibbsmc', 'gibbs', 'Gibbs' )
+      SimulationType = Gibbs
+      SimulationTypeString = 'Gibbs-Monte-Carlo'
     case default
       call Error( trim( str )//' simulation is not implemented' )
     end select
@@ -297,7 +307,7 @@ contains
       call FileReadParameter( iounit_params , IdRSteps )
       read( IOBuffer, * ) NSteps
       write( IOBuffer, '("Number of radial steps: ", I7)' ) NSteps
-      call LogWrite   
+      call LogWrite
 
       ! Read minimum radius
       call FileReadParameter( iounit_params , IdMinRadius )
@@ -305,11 +315,9 @@ contains
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
-        write( IOBuffer, '("Minimum radius: ", F8.3, " A")' ) &
+      write( IOBuffer, '("Minimum radius: ", F8.3, " A")' ) &
 &       MinRadius * UnitLength / Angstroem
       call LogWrite
-      
-
 
       ! Read maximum radius
       call FileReadParameter( iounit_params , IdMaxRadius )
@@ -320,8 +328,7 @@ contains
       write( IOBuffer, '("Maximum radius: ", F8.3, " A")' ) &
 &       MaxRadius * UnitLength / Angstroem
       call LogWrite
-      
-        
+
       ! Set output frequencies
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
@@ -335,94 +342,6 @@ contains
       ! Read MD simulation parameters
       if( SimulationType .eq. MolecularDynamics ) then
 
-       ! Read type of MD simulation with/without internal degree of freedom  
-       call FileReadParameter( iounit_params , IdUseIntDegFreed )
-       read( IOBuffer, * ) str
-       select case( str )
-       case( 'ON', 'On', 'on', 'YES', 'yes' )
-       UseIntDegFreed = .true.
-       str = 'Flexible molecules'
-       case( 'OFF', 'off', 'no', 'No' )
-       UseIntDegFreed = .false.
-       str = 'Rigid molecules'
-       case default
-         call Error( trim( str )//'To switch on internal degree of freedom use &
-&        on or yes' )
-       end select
-       write( IOBuffer, '("Using internal degree of freedom: ", A)' ) trim( str )
-       call LogWrite
-
-       ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
-       if ( UseIntDegFreed ) then
-         call FileReadParameter( iounit_params , IdShake )
-         read( IOBuffer, * ) Shake
-         if ( Shake > 0 ) then 
-           str = 'yes'
-         else 
-           str = 'no, all bonds can vibrate' 
-         end if
-         write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
-         call LogWrite
-         if (str == 'yes') then 
-           write( IOBuffer, '("Shake tolerance: ", F9.6)' ) &
-&          Shake
-           call LogWrite
-        end if   
-    end if
-
-        ! Read parameters for intramolecular nonbonded interactions
-    if ( UseIntDegFreed ) then
-      ! 1-5 intramolecular nonbonded interactions
-      call FileReadParameter( iounit_params , IdIntraLJEl )
-      read( IOBuffer, * ) str
-      select case( str )
-      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
-        IntraLJEl = .true.
-        str = 'Include all intramolecular 1-5 nonbonded interactions'
-      case( 'OFF', 'off', 'no', 'No' )
-        IntraLJEl = .false.
-        str = 'No intramolecular nonbonded interactions'
-      case default
-        call Error( trim( str )//'To switch on intramolecular 1-5 nonbonded interactions use &
-&        on or yes' )
-      end select
-      write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
-      call LogWrite
-
-            ! 1-4 intramolecular nonbonded interactions
-      if (IntraLJEl) then 
-        call FileReadParameter( iounit_params , IdLJEl14 )
-        read( IOBuffer, * ) str
-        select case( str )
-        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
-            LJEl14 = .true.
-          str = 'Include all intramolecular 1-4 nonbonded interactions'
-        case( 'OFF', 'off', 'no', 'No' )
-            LJEl14 = .false.
-          str = 'No intramolecular 1-4 nonbonded interactions'
-        case default
-          call Error( trim( str )//'To switch on intramolecular 1-4 nonbonded interactions use &
-&          on or yes' )
-        end select
-        write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
-        call LogWrite
-
-      
-        ! Read scaling factors for 1-4 nonbonded interactions
-!        if (LJEl14) then  
-!          call FileReadParameter( iounit_params , IdScaleEl14 )
-!          read( IOBuffer, * ) ScaleEl14
-!          write( IOBuffer, '("Scaling factor for electrostatic terms in 1,4 nonbonded interactions: ", F9.6)' ) &
-!&            ScaleEl14
-!          call LogWrite
-!          call FileReadParameter( iounit_params , IdScaleLJ14 )
-!          read( IOBuffer, * ) ScaleLJ14
-!          write( IOBuffer, '("Scaling factor for Lennard-Jones terms in 1,4 nonbonded interactions: ", F9.6)' ) &
-!&            ScaleLJ14
-!          call LogWrite   
-!        end if   
-      end if
-    end if  
         ! Type of integrator
         call FileReadParameter( iounit_params , IdIntegratorType )
         read( IOBuffer, * ) str
@@ -659,21 +578,220 @@ contains
 
     end if
 
+
+    ! Read LongRange mode
+    call FileReadParameter( iounit_params , IdLongRange )
+    read( IOBuffer, * ) str
+    select case( str )
+      case( 'Ewald', 'ew', 'ewald', 'EWALD')
+          LongRange = Ewald
+          LongRangeString = 'EwaldSum'
+          write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+          call LogWrite
+          ! Read extended Reaction Field Parameters
+          call FileReadParameter( iounit_params , IdDebyeLen )
+          read( IOBuffer, * ) debyelen_h
+          write( IOBuffer, '("Debye Length [A^-1]:", F8.3)' )debyelen_h
+          call LogWrite
+          ! Read Ewald Parameters
+          call FileReadParameter( iounit_params , IdKappa )
+          read( IOBuffer, * ) KappaL_h
+          write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
+          call LogWrite
+
+          call FileReadParameter( iounit_params , Idnsqmax )
+          read( IOBuffer, * ) nsqmax_h
+          write( IOBuffer, '("Ewald Parameter NsqMax:", I7)' ) nsqmax_h
+          call LogWrite
+
+          call FileReadParameter( iounit_params , IdNVecMax )
+          read( IOBuffer, * ) nvecmax_h
+
+          write( IOBuffer, '("Ewald Parameter NVecMax:", I7)' ) nvecmax_h
+          call LogWrite
+          call FileReadParameter( iounit_params , IdNMax )
+          read( IOBuffer, * ) nmax_h
+
+          write( IOBuffer, '("Ewald Parameter NMax:", I7)' ) nmax_h
+          call LogWrite
+
+      case( 'PME', 'pme', 'SPME', 'spme')
+          LongRange = PME
+          LongRangeString = 'Smooth Particle Mesh Ewald Summation'
+          write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+          call LogWrite
+          ! Read SPM Ewald Parameters
+          call FileReadParameter( iounit_params , IdKappa )
+          read( IOBuffer, * ) KappaL_h
+          write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
+          call LogWrite
+
+          call FileReadParameter( iounit_params , IdGrid )
+          read( IOBuffer, * ) grid_h
+          write( IOBuffer, '("Grid Space SPME:", I7)' ) grid_h
+          call LogWrite
+
+          call FileReadParameter( iounit_params , IdSpline )
+          read( IOBuffer, * ) spline_h
+          write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
+
+      case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
+          LongRange = RField
+          LongRangeString = 'Reaction Field'
+          write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+
+      case( 'ExtReactionField', 'ExtRF', 'extreactionfield', 'extrf' )
+          LongRange = ExtRField
+          LongRangeString = 'Extended Reaction Field by Tironi et al.'
+          write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+          call LogWrite
+          ! Read extended Reaction Field Parameters
+          call FileReadParameter( iounit_params , IdDebyeLen )
+          read( IOBuffer, * ) debyelen_h
+          write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
+
+    case default
+      call Error( trim( str )//' is not a valid longrange correction' )
+    end select
+    call LogWrite
+
+
+    ! Read type of simulation with/without internal degree of freedom
+       ! Read type of MD simulation with/without internal degree of freedom  
+       call FileReadParameter( iounit_params , IdUseIntDegFreed )
+       read( IOBuffer, * ) str
+       select case( str )
+       case( 'ON', 'On', 'on', 'YES', 'yes' )
+       UseIntDegFreed = .true.
+       str = 'Flexible molecules'
+       case( 'OFF', 'off', 'no', 'No' )
+       UseIntDegFreed = .false.
+       str = 'Rigid molecules'
+       case default
+         call Error( trim( str )//'To switch on internal degree of freedom use &
+&        on or yes' )
+       end select
+       write( IOBuffer, '("Using internal degree of freedom: ", A)' ) trim( str )
+       call LogWrite
+
+       ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
+       if ( UseIntDegFreed ) then
+         call FileReadParameter( iounit_params , IdShake )
+         read( IOBuffer, * ) Shake
+         if ( Shake > 0 ) then 
+           str = 'yes'
+         else 
+           str = 'no, all bonds can vibrate' 
+         end if
+         write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
+         call LogWrite
+         if (str == 'yes') then 
+           write( IOBuffer, '("Shake tolerance: ", F9.6)' ) &
+&          Shake
+           call LogWrite
+        end if   
+    end if
+
+        ! Read parameters for intramolecular nonbonded interactions
+    if ( UseIntDegFreed ) then
+      ! 1-5 intramolecular nonbonded interactions
+      call FileReadParameter( iounit_params , IdIntraLJEl )
+      read( IOBuffer, * ) str
+      select case( str )
+      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
+        IntraLJEl = .true.
+        str = 'Include all intramolecular 1-5 nonbonded interactions'
+      case( 'OFF', 'off', 'no', 'No' )
+        IntraLJEl = .false.
+        str = 'No intramolecular nonbonded interactions'
+      case default
+        call Error( trim( str )//'To switch on intramolecular 1-5 nonbonded interactions use &
+&        on or yes' )
+      end select
+      write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
+      call LogWrite
+
+            ! 1-4 intramolecular nonbonded interactions
+      if (IntraLJEl) then 
+        call FileReadParameter( iounit_params , IdLJEl14 )
+        read( IOBuffer, * ) str
+        select case( str )
+        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
+            LJEl14 = .true.
+          str = 'Include all intramolecular 1-4 nonbonded interactions'
+        case( 'OFF', 'off', 'no', 'No' )
+            LJEl14 = .false.
+          str = 'No intramolecular 1-4 nonbonded interactions'
+        case default
+          call Error( trim( str )//'To switch on intramolecular 1-4 nonbonded interactions use &
+&          on or yes' )
+        end select
+        write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
+        call LogWrite
+
+      
+        ! Read scaling factors for 1-4 nonbonded interactions
+!        if (LJEl14) then  
+!          call FileReadParameter( iounit_params , IdScaleEl14 )
+!          read( IOBuffer, * ) ScaleEl14
+!          write( IOBuffer, '("Scaling factor for electrostatic terms in 1,4 nonbonded interactions: ", F9.6)' ) &
+!&            ScaleEl14
+!          call LogWrite
+!          call FileReadParameter( iounit_params , IdScaleLJ14 )
+!          read( IOBuffer, * ) ScaleLJ14
+!          write( IOBuffer, '("Scaling factor for Lennard-Jones terms in 1,4 nonbonded interactions: ", F9.6)' ) &
+!&            ScaleLJ14
+!          call LogWrite   
+!        end if   
+      end if
+    end if  
+
+
     ! Read number of ensembles
     call FileReadParameter( iounit_params , IdNEnsembles )
     read( IOBuffer, * ) this%NEnsembles
     write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
     call LogWrite
 
+    if( (SimulationType .eq. Gibbs .and. this%NEnsembles .ne. 2) )  &
+&     call Error( trim( SimulationTypeString )//" simulation of " &
+&       //trim( SimulationTypeString )//" needs 2 Ensembles" )
+
     ! Create ensembles
     allocate( this%Ensemble(this%NEnsembles), STAT = stat )
     call AllocationError( stat, 'ensembles', this%NEnsembles )
     do i = 1, this%NEnsembles
+      if (LongRange .eq. Ewald) then
+            this%ensemble(i)%KappaL = KappaL_h
+            this%ensemble(i)%nsqmax = nsqmax_h
+            this%ensemble(i)%nvecmax = nvecmax_h
+            this%ensemble(i)%nmax = nmax_h
+            this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+            this%ensemble(i)%KappaL = KappaL_h
+            this%ensemble(i)%gridx  = grid_h
+            this%ensemble(i)%gridy  = grid_h
+            this%ensemble(i)%gridz  = grid_h
+            this%ensemble(i)%splineorder = spline_h
+            allocate(this%ensemble(i)%qgrida(2,(grid_h)**3+1),STAT=stat)
+            if(stat >0) write(*,*) 'Allocation Error grida'
+            allocate(this%ensemble(i)%qgrida_old(2,(grid_h)**3+1),STAT=stat)
+            if(stat >0) write(*,*) 'Allocation Error grida_old'
+            allocate(this%ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
+            if(stat >0) write(*,*) 'Allocation Error gridb'
+#endif
+      else if (LongRange .eq. ExtRField) then
+            this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+      end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )
       else
         call Construct( this%Ensemble(i), i )
       end if
+!       if (LongRange .eq. PME) then
+!         call PMESelfTerm(this%Ensemble(i))
+!       endif
     end do
 
 !DEBUG
@@ -991,6 +1109,42 @@ eqloop: do
           end if
           call LogWriteTime
 
+        else if( SimulationType .eq. Gibbs ) then
+          StepEnd = NStepsV
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming Gibbs equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting Gibbs equilibration")' )
+          end if
+          call LogWriteTime
+
+          call RunSteps( this, StepStart, StepEnd )
+
+          if( .not. TerminateProgram ) then
+            call CheckNPart( this, NPartsOk )
+            if( NPartsOk ) then
+              write( IOBuffer, '("Gibbs equilibration completed")' )
+              Equilibration = .false.
+            else
+              write( IOBuffer, &
+&               '("Gibbs equilibration ended with too many/too less particles")' )
+              call LogWriteTime
+              write( IOBuffer, '("Restarting equilibration")' )
+              call LogWrite
+              call ResetEnsembles( this )
+              tooManyParticles = .false.
+              NVTEquilibration = .true.
+              StepStart = 1
+              cycle eqloop
+            end if
+          else
+            write( IOBuffer, '("Gibbs equilibration terminated")' )
+          end if
+          call LogWriteTime
+
+
         else
           Equilibration = .false.
         end if
@@ -1110,6 +1264,8 @@ eqloop: do
         call RunMCStep( this )
       case( SecondVirialCoeff )
         call RunSVCStep( this )
+      case( Gibbs )
+        call RunMCStep_Gibbs( this )
       end select
 
       ! Update result and visualisation files
@@ -1225,6 +1381,75 @@ eqloop: do
     end do
 
   end subroutine TSimulation_RunSVCStep
+
+
+
+!==============================================================!
+!  Subroutine TSimulation_RunMCStep_GibbsEnsemble              !
+!==============================================================!
+
+  subroutine TSimulation_RunMCStep_Gibbs( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+    real(RK):: EPotOldliq
+    real(RK):: VolOldliq
+    real(RK):: EPotDelta
+    real(RK):: dv, NEns_h
+    logical :: accept
+
+    integer :: NEns
+    integer :: nc,np
+
+
+    ! Simulations Setup Check for Gibbs
+    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
+&     call Error( 'Gibbs Ensemble only implemented for NVT')
+    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) &
+&     call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
+
+    ! Run MC simulation step
+    do i = 1, this%NEnsembles
+      call RunMCStep( this%Ensemble(i) )
+    end do
+
+! Volume Change in both boxes
+    if (.not. NVTEquilibration) then
+      accept = .false.
+      EPotOldliq = this%ensemble(1)%EPot
+      VolOldliq = this%ensemble(1)%Volume0
+
+      call Resize_Gibbs( this%Ensemble(1),dv,EPotDelta )
+      call Resize_Gibbs( this%Ensemble(2),dv,EPotDelta,accept )
+
+    ! Accept volume change
+      call Update_Gibbs ( this%Ensemble(1),accept,EPotOldliq,VolOldliq )
+
+! Particle change in both boxes
+      DO i=1, 100
+        accept = .false.
+        NEns_h = rnd(0._RK,1._RK)
+        NEns   = int(anint(NEns_h) + 1._RK)
+
+        call Remove_Gibbs( this%Ensemble(NEns),nc,np,EPotDelta )
+        call Insert_Gibbs( this%Ensemble(3-NEns),nc,EPotDelta, accept )
+
+        call Update_Gibbs ( this%Ensemble(NEns),nc,np,accept )
+      END DO
+    end if
+
+
+  end subroutine TSimulation_RunMCStep_Gibbs
 
 
 
@@ -1838,6 +2063,7 @@ eqloop: do
 
 
 
+
+
+
 end module ms2_simulation
-
-
