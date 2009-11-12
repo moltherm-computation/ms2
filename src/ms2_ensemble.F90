@@ -3303,7 +3303,7 @@ loop3:    do nc = 1, this%NComponents
     real(RK)                    :: r, rdist, rsquared(NSteps)
     real(RK)                    :: betaneg, betaneg1, betaneg2, Bij0
     integer                     :: i, j, n, np
-    integer                     :: nu1, nu2
+    integer                     :: nu, nu1, nu2
     type(TInteraction), pointer :: pi
 
     ! Inverse temperature
@@ -3332,24 +3332,31 @@ loop3:    do nc = 1, this%NComponents
     do i = 1, this%NComponents, 2
       do j = i + 1, this%NComponents, 2
         pi => this%Interaction(i, j)
-        n = pi%NPart2
+!        n = pi%NPart2
+        n = pi%NPart2*pi%NUnit2
         pi%MayerFFunction(Step) = 0._RK
 
         ! Loop over particles
-        do np = 1, this%Component(i)%NPart
-          do nu1=1, pi%NUnit1
-            do nu2=1,pi%NUnit2
-              call Energy( pi, np, nu1, nu2, this%BoxLength )
-            end do
-          end do
+!        do np = 1, this%Component(i)%NPart
+!          do nu1=1, pi%NUnit1
+!            do nu2=1,pi%NUnit2
+!              call Energy( pi, np, nu1, nu2, this%BoxLength )
+!            end do
+!          end do
+
+        ! Loop over unites
+         do np = 1, this%Component(i)%NPart
+           do nu = 1, this%Component(i)%Molecule%NUnit
+             call Energy( pi, np, nu, this%BoxLength )
+           end do
 
           ! Sum Mayer f-function
           pi%MayerFFunction(Step) = pi%MayerFFunction(Step) + &
-&           sum( exp( betaneg * pi%EPot1(1:n*pi%NUnit2) ) - 1._RK )
+&           sum( exp( betaneg * pi%EPot1(1:n) ) - 1._RK )
           pi%MayerFFunction1(Step) = pi%MayerFFunction1(Step) + &
-&           sum( exp( betaneg1 * pi%EPot1(1:n*pi%NUnit2) ) - 1._RK )
+&           sum( exp( betaneg1 * pi%EPot1(1:n) ) - 1._RK )
           pi%MayerFFunction2(Step) = pi%MayerFFunction2(Step) + &
-&           sum( exp( betaneg2 * pi%EPot1(1:n*pi%NUnit2) ) - 1._RK )
+&           sum( exp( betaneg2 * pi%EPot1(1:n) ) - 1._RK )
 
         end do
 
@@ -4807,8 +4814,9 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: nc, np
-    integer                     :: nu1, nu2
+!    integer                     :: nc, np
+    integer                     :: nu1
+    integer                     :: nc, np, nu
     integer                     :: i, n
 
     ! Initialize new energy
@@ -4825,28 +4833,28 @@ loop2:        do nc = 1, this%NComponents
     do nc = 1, this%NComponents
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
-        n = pi%NPart2
-        do nu1 = 1, pi%NUnit1
-          do nu2 = 1, pi%NUnit2
+        n=pi%NUnit2*pi%NPart2
+       ! Loop over units
+        do np=1, this%Component(nc)%NPart
+           do nu=1, this%Component(nc)%Molecule%NUnit
+              call Energy(pi, np, nu, this%BoxLength)
+              nu1=(np-1)*pi%NUnit1+nu ! global number of unit
 
-            ! Loop over particles
-            do np = 1, this%Component(nc)%NPart
-              call Energy( pi, nu1, nu2, np, this%BoxLength )
 
 !           if ((LongRange .eq. Ewald) .AND. (i .eq. nc)) then
 !              call EwaldSelfTerm_Energy(this,nc,np)	! immer gleich - Beschleunigung möglich!!!!!!!!!!
 !           end if
               ! Save new energy matrix
-              pi%EPotNew((np-1)*pi%NUnit1+nu1, 1:n*pi%NUnit2) = pi%EPot1(1:n*pi%NUnit2)
-              pi%VirialNew((np-1)*pi%NUnit1+nu1, 1:n*pi%NUnit2) = pi%Virial1(1:n*pi%NUnit2)
+               pi%EPotNew(nu1, 1:n) = pi%EPot1(1:n)
+               pi%VirialNew(nu1, 1:n)= pi%Virial1(1:n)
+
 
               ! Sum energy
-              E = E + sum( pi%EPot1(1:n*pi%NUnit2) )
-            end do
+              E = E + sum( pi%EPot1(1:n) )
+           end do
           end do
         end do
       end do
-    end do
 
     ! Calculate new energy
     E = .5_RK * E + this%Density * this%EPotCorrLJ + this%EPotCorrRF
@@ -4887,8 +4895,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n
-    integer                     :: i,j,k
+    integer                     :: n, nu
+    integer                     :: i
 
     ! Initialize new energy
     EPotNew = 0._RK
@@ -4899,13 +4907,10 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
-      do j = 1,pi%NUnit1
-        do k = 1,pi%NUnit2
-          call Energy( pi, j, k, np, this%BoxLength )
-        end do
-
-        ! Calculate new energy
-        EPotNew = EPotNew + sum( pi%EPot1(1:n) )
+      do nu=1, this%Component(nc)%Molecule%NUnit
+          call Energy( pi, np, nu, this%BoxLength )
+          ! Calculate new energy
+          EPotNew = EPotNew + sum( pi%EPot1(1:n) )
       end do
     end do
 
@@ -4927,7 +4932,7 @@ loop2:        do nc = 1, this%NComponents
 !  Subroutine TEnsemble_Energy1                                !
 !==============================================================!
 
-  subroutine TEnsemble_Energy1( this, nc, np, nu1, EPotNew )
+  subroutine TEnsemble_Energy1( this, nc, np, nu, EPotNew )
 
     implicit none
 
@@ -4938,8 +4943,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare arguments
     type(TEnsemble)       :: this
-    integer, intent(in)   :: nc, np
-    integer, intent(in)   :: nu1
+    integer, intent(in)   :: nc, np, nu
+!    integer, intent(in)   :: nu1
     real(RK), intent(out) :: EPotNew
 
     ! Declare local variables
@@ -4954,9 +4959,7 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
-      do k = 1,pi%NUnit2
-        call Energy( pi, nu1, k, np, this%BoxLength )
-      end do
+      call Energy( pi, np,  nu, this%BoxLength )
 
       ! Calculate new energy
       EPotNew = EPotNew + sum( pi%EPot1(1:n) )
@@ -4995,19 +4998,18 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     type(TInteraction), pointer :: pi
     integer                     :: n
-    integer                     :: i,j,k
+    integer                     :: i, nu
 
     ! Initialize new energy
     EPotNew = 0._RK
 
     ! Loop over components
-    do j=1,this%Component(nc)%Molecule%NUnit
+    do nu=1,this%Component(nc)%Molecule%NUnit
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
         n = pi%NPart2*pi%NUnit2
-        do k = 1,pi%NUnit2
-          call Energy( pi, j, k, np, this%BoxLength )
-        end do
+        call Energy( pi, np, nu, this%BoxLength )
+
 
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )
@@ -5051,8 +5053,7 @@ loop2:        do nc = 1, this%NComponents
     type(TInteraction), pointer :: pi
     integer                     :: n
     integer                     :: i
-    integer                     :: j,k
-    integer                     :: nu1
+    integer                     :: nu
 
     ! Initialize new energy
     EPotNew = 0._RK
@@ -5061,10 +5062,8 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
-      do j = 1,pi%NUnit1
-        do k = 1,pi%NUnit2
-          call Energy( pi, j, k, np, this%BoxLength )
-        end do
+      do nu = 1,pi%NUnit1
+        call Energy( pi, np, nu, this%BoxLength )
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )
       end do
@@ -5285,7 +5284,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i, nu1
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5341,7 +5340,9 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
+
     call Energy( this, nc, np, nu, EPotNew )
+
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
@@ -5416,7 +5417,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i, nu1
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5470,7 +5471,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate particle energy with trial orientation
     call Energy( this, nc, np, nu, EPotNew )
-
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
@@ -5544,7 +5544,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc, pcf
-    integer                   :: i
+    integer                   :: i, nu1
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5618,6 +5618,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
+
     call Energy( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
@@ -5693,7 +5694,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc, pcf
-    integer                   :: i
+    integer                   :: i, nu1
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif

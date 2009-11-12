@@ -1331,7 +1331,8 @@ contains
 !  Subroutine TInteraction_Energy                              !
 !==============================================================!
 
-  subroutine TInteraction_Energy( this, nu1, nu2, np, BoxLength )
+!  subroutine TInteraction_Energy( this, nu1, nu2, np, BoxLength )
+   subroutine TInteraction_Energy( this, np, nu, BoxLength )
 
     implicit none
 
@@ -1342,8 +1343,8 @@ contains
 
     ! Declare arguments
     type(TInteraction)   :: this
-    integer, intent(in)  :: nu1, nu2
-    integer, intent(in)  :: np
+!    integer, intent(in)  :: nu1, nu2
+    integer, intent(in)  :: np, nu
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
@@ -1398,20 +1399,23 @@ contains
     integer           :: nup,nups, mol
     logical           :: intra15, intra14
     logical           :: SameComponent
+    integer           :: nu1, nu2
 
     ! Assign local variables
     SameComponent = this%SameComponent
     EPot => this%EPot1
-    unit1=this%NUnit1*(np-1)+nu1 ! Number of unit, to which this site corresponds
-    unit2=this%NUnit2*(np-1)+nu2 ! Number of unit, to which this site corresponds
+    unit1=this%NUnit1*(np-1)+nu ! Global number of unit
     Virial => this%Virial1
+    VirialLocal = 0._RK
+!    VirialLocal=1E33_RK
+
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
     BoxLengthThird = 1._RK/3._RK * BoxLength
-    PXi = this%PX1(np,nu1)
-    PYi = this%PY1(np,nu1)
-    PZi = this%PZ1(np,nu1)
+    PXi = this%PX1(np,nu)
+    PYi = this%PY1(np,nu)
+    PZi = this%PZ1(np,nu)
 
     ! Assign pointers to COM positions
     PX2 => this%PX2
@@ -1423,7 +1427,6 @@ contains
 
     ! Zero virial
     Virial(:) = 0._RK
-    VirialLocal = 0._RK
 
     ! Initialization Ewald Summation
     if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
@@ -1432,16 +1435,12 @@ contains
 
     if( CutoffMode .eq. CenterofMass ) then
 
-      ! Calculate interactions partners within cutoff sphere
-      if( CutoffMode .eq. CenterofMass ) then
-        call CalcCutoffPartners( this,  nu1, nu2, np )
-      end if
+    ! Calculate interactions partners of unit within cutoff sphere
+      call CalcCutoffPartners( this,  unit1)
 
       ! Calculate Lennard-Jones energy
-      nup = this%NLJ126_U1*(np-1)
-      do s1 = this%UnitLJ1(nu1), this%UnitLJ1(nu1+1) - 1
-        nups = nup + s1
-        do s2 = this%UnitLJ2(nu2), this%UnitLJ2(nu2+1) - 1
+      do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
+        do s2 = 1, this%N2LJ126
 
           ! Set site specific variables
           plj => this%PotLJ126LJ126(s1, s2)
@@ -1472,42 +1471,52 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j  = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NLJ126_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = RXij - anint( PXij )
-            RYij = RYij - anint( PYij )
-            RZij = RZij - anint( PZij )
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPot(unit2) = EPot(unit2) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
-            FXij = Fij * RXij
-            FYij = Fij * RYij
-            FZij = Fij * RZij
-            Virial(unit2) = Virial(unit2) &
+          do k=1, this%NInCutoff(unit1)
+             j = this%CutoffPartner(k, unit1) ! j - global number of unit
+             if ( mod(j-plj%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+               if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = RXij - anint( PXij )
+               RYij = RYij - anint( PYij )
+               RZij = RZij - anint( PZij )
+               PXij = PXij - anint( PXij )
+               PYij = PYij - anint( PYij )
+               PZij = PZij - anint( PZij )
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               RijSquaredInv = SigmaSquared / RijSquared
+               Rij6Inv = RijSquaredInv**3
+ !           EPot(unit2) = EPot(unit2) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+               EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+               Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+               FXij = Fij * RXij
+               FYij = Fij * RYij
+               FZij = Fij * RZij
+!            Virial(unit2) = Virial(unit2) &
+!&             + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+               Virial(j)=Virial(j) &
 &             + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            end if
           end do
-        end do
+!        end do
         ! Include intramolecular interaction if need
         if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,plj%Site2%UnitNumber)
+            PYij = PYi - PY2(np,plj%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,plj%Site2%UnitNumber)
             RXij = RXij - anint( PXij )
             RYij = RYij - anint( PYij )
             RZij = RZij - anint( PZij )
@@ -1516,6 +1525,7 @@ contains
             PZij = PZij - anint( PZij )
             RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
             Rij6Inv = RijSquaredInv**3
+            unit2=(np-1)*this%NUnit1+plj%Site2%UnitNumber ! global number of unit
             EPot(unit2) = EPot(unit2) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 !            EPotIntra(unit2) = EPotIntra(unit2) + Rij6Inv * (Rij6Inv - 1._RK) * coeff
             Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv * coeff
@@ -1525,27 +1535,24 @@ contains
             Virial(unit2) = Virial(unit2) + (PXij * FXij + PYij * FYij + PZij * FZij) * BoxLengthThird
 !            VirialLocalIntra(unit2) = VirialIntra(unit2) + (PXij * FXij + PYij * FYij + PZij * FZij) * BoxLengthThird
          end if
-      end do
-
+        end do
+       end do
       ! Calculate point charge energy
-      nup = this%NCharge_U1*(np-1)
-      do s1 = this%UnitC1(nu1), this%UnitC1(nu1+1) - 1
-        nups = nup + s1
-! Ewald-Summation
-       if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
-        do s2 = this%UnitC2(nu2), this%UnitC2(nu2+1) - 1
-          pcc => this%PotChargeCharge(s1, s2)
-          Epsilon = pcc%Epsilon
-          RShieldSquared = pcc%RShieldSquared
+!      nup = this%NCharge_U1*(np-1)
+      do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
+         do s2 = 1, this%N2Charge
+           pcc => this%PotChargeCharge(s1, s2)
+           Epsilon = pcc%Epsilon
+           RShieldSquared = pcc%RShieldSquared
 
           ! Inner Degrees of Freedom
-          intra15 = pcc%potintra15
-          intra14 = pcc%potintra14
-          if (intra14) then
-            coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
-          else
-            coeff = 1._RK
-          end if
+           intra15 = pcc%potintra15
+           intra14 = pcc%potintra14
+           if (intra14) then
+             coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
+           else
+             coeff = 1._RK
+           end if
 
           ! Assign pointers to site positions
           RX1 => pcc%Site1%RX
@@ -1559,50 +1566,59 @@ contains
           RYi = RY1(np)
           RZi = RZ1(np)
 
-          ! Loop over molecules
+! Ewald-Summation
+       if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NCharge_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-            else
-                Rij =  sqrt(RijSquared)
-                RijInv = 1._RK /  Rij
-                KappaRij = this%Kappa*Rij
-                call erfc_approx(KappaRij,approx)
-                eX = RXij * RijInv
-                eY = RYij * RijInv
-                eZ = RZij * RijInv
-                EPotLocal = Epsilon * RijInv * approx
-                VirialLocal = (EPotLocal + Faktor*exp(-KappaRij**2) * Epsilon) &
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pcc%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+               else
+                  Rij =  sqrt(RijSquared)
+                  RijInv = 1._RK /  Rij
+                  KappaRij = this%Kappa*Rij
+                  call erfc_approx(KappaRij,approx)
+                  eX = RXij * RijInv
+                  eY = RYij * RijInv
+                  eZ = RZij * RijInv
+                  EPotLocal = Epsilon * RijInv * approx
+                  VirialLocal = (EPotLocal + Faktor*exp(-KappaRij**2) * Epsilon) &
 &                        * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do
       ! Include intramolecular interaction if need
       if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pcc%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pcc%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pcc%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -1628,86 +1644,67 @@ contains
               VirialLocal = (EPotLocal + coeff*Faktor*exp(-KappaRij**2) * Epsilon) &
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
             end if
+            unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
             EPot(unit2)  = EPot(unit2) + EPotLocal
             Virial(unit2)= Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2)  = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2)= VirialIntra(unit2) + Third * VirialLocal
          end if
-        end do
 ! Reaction Field
-       else
-        do s2 = this%UnitC2(nu2), this%UnitC2(nu2+1) - 1
-          pcc => this%PotChargeCharge(s1, s2)
-          Epsilon = pcc%Epsilon
-          RShieldSquared = pcc%RShieldSquared
+       else ! if Reaction Field
 
-          ! Inner Degrees of Freedom
-          intra15 = pcc%potintra15
-          intra14 = pcc%potintra14
-          if (intra14) then
-            coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
-          else
-            coeff = 1._RK
-          end if
-
-          ! Assign pointers to site positions
-          RX1 => pcc%Site1%RX
-          RY1 => pcc%Site1%RY
-          RZ1 => pcc%Site1%RZ
-          RX2 => pcc%Site2%RX
-          RY2 => pcc%Site2%RY
-          RZ2 => pcc%Site2%RZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-
-          ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NCharge_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 0._RK
-            else
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pcc%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+              RXij = RXi - RX2(jk)
+              RYij = RYi - RY2(jk)
+              RZij = RZi - RZ2(jk)
+              PXij = PXi - PX2(jk,nu2)
+              PYij = PYi - PY2(jk,nu2)
+              PZij = PZi - PZ2(jk,nu2)
+              RXij = (RXij - anint( PXij )) * BoxLength
+              RYij = (RYij - anint( PYij )) * BoxLength
+              RZij = (RZij - anint( PZij )) * BoxLength
+              PXij = (PXij - anint( PXij )) * BoxLength
+              PYij = (PYij - anint( PYij )) * BoxLength
+              PZij = (PZij - anint( PZij )) * BoxLength
+              RijSquared = RXij**2 + RYij**2 + RZij**2
+              if( RijSquared <= RShieldSquared ) then
+                EPotLocal = 1E33_RK
+                VirialLocal = 0._RK
+              else
 #if ARCH == 3
-              RijInv = rsqrt( RijSquared )
+                RijInv = rsqrt( RijSquared )
 #else
-              RijInv = 1._RK / sqrt( RijSquared )
+                RijInv = 1._RK / sqrt( RijSquared )
 #endif
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              EPotLocal = Epsilon * RijInv
-              VirialLocal = EPotLocal * RijInv &
+                eX = RXij * RijInv
+                eY = RYij * RijInv
+                eZ = RZij * RijInv
+                EPotLocal = Epsilon * RijInv
+                VirialLocal = EPotLocal * RijInv &
 &               * (eX * PXij + eY * PYij + eZ * PZij)
+              end if
+              EPot(j) = EPot(j) + EPotLocal
+              Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do
       ! Include intramolecular interaction if need
       if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pcc%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pcc%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pcc%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -1731,94 +1728,103 @@ contains
               VirialLocal = EPotLocal  &
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
             end if
+            unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber! global number of unit
             EPot(unit2)  = EPot(unit2) + EPotLocal
             Virial(unit2)= Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2)  = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2)= VirialIntra(unit2) + Third * VirialLocal
          end if
-        end do
        end if ! ReactionField - Ewald-Summation
-!
-        do s2 = this%UnitDP2(nu2), this%UnitDP2(nu2+1) - 1
-          pcd => this%PotChargeDipole(s1, s2)
-          Epsilon = pcd%Epsilon
-          RShieldSquared = pcd%RShieldSquared
+      end do !s2-cycle
+
+!        do s2 = this%UnitDP2(nu2), this%UnitDP2(nu2+1) - 1
+      do s2 = 1, this%N2Dipole
+        pcd => this%PotChargeDipole(s1, s2)
+        Epsilon = pcd%Epsilon
+        RShieldSquared = pcd%RShieldSquared
 
           ! Inner Degrees of Freedom
-          intra14 = pcd%potintra14
-          intra15 = pcd%potintra15
-          if (intra14) then
-            coeff = pcd%ScaleEl14
-          else
-            coeff = 1._Rk
-          end if
+        intra14 = pcd%potintra14
+        intra15 = pcd%potintra15
+        if (intra14) then
+          coeff = pcd%ScaleEl14
+        else
+          coeff = 1._Rk
+        end if
 
 
-          ! Assign pointers to site positions
-          RX1 => pcd%Site1%RX
-          RY1 => pcd%Site1%RY
-          RZ1 => pcd%Site1%RZ
-          RX2 => pcd%Site2%RX
-          RY2 => pcd%Site2%RY
-          RZ2 => pcd%Site2%RZ
-          OX2 => pcd%Site2%OX
-          OY2 => pcd%Site2%OY
-          OZ2 => pcd%Site2%OZ
+        ! Assign pointers to site positions
+        RX1 => pcd%Site1%RX
+        RY1 => pcd%Site1%RY
+        RZ1 => pcd%Site1%RZ
+        RX2 => pcd%Site2%RX
+        RY2 => pcd%Site2%RY
+        RZ2 => pcd%Site2%RZ
+        OX2 => pcd%Site2%OX
+        OY2 => pcd%Site2%OY
+        OZ2 => pcd%Site2%OZ
 
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
+        RXi = RX1(np)
+        RYi = RY1(np)
+        RZi = RZ1(np)
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NDipole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            OXj = OX2(j)
-            OYj = OY2(j)
-            OZj = OZ2(j)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 0._RK
-            else
-              RijSquaredInv = 1._RK / RijSquared
-              RijInv = sqrt( RijSquaredInv )
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetaj = OXj * ex + OYj * eY + OZj * eZ
-              Tmp = 3._RK * CosThetaj
-              EPotLocal = Epsilon * RijSquaredInv * CosThetaj
-              VirialLocal = Epsilon * RijSquaredInv * RijInv &
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pcd%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               OXj = OX2(jk)
+               OYj = OY2(jk)
+               OZj = OZ2(jk)
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 0._RK
+               else
+                 RijSquaredInv = 1._RK / RijSquared
+                 RijInv = sqrt( RijSquaredInv )
+                 eX = RXij * RijInv
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetaj = OXj * ex + OYj * eY + OZj * eZ
+                 Tmp = 3._RK * CosThetaj
+                 EPotLocal = Epsilon * RijSquaredInv * CosThetaj
+                 VirialLocal = Epsilon * RijSquaredInv * RijInv &
 &                            * ( ( Tmp * eX - OXj ) * PXij &
 &                              + ( Tmp * eY - OYj ) * PYij &
 &                              + ( Tmp * eZ - OZj ) * PZij )
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do
           ! Include intramolecular interactions if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pcd%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pcd%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pcd%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -1848,15 +1854,16 @@ contains
               FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
               VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             end if
+            unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
             EPot(unit2)  = EPot(unit2) + EPotLocal                            ! Uebereinstimmumg mit Price
             Virial(unit2)= Virial(unit2) + Viriallocal                        ! F2*R_COM_Price; stimmt so
 !            EPotIntra(unit2)  = EPotIntra(unit2) + EPotLocal                            ! Uebereinstimmumg mit Price
 !            VirialIntra(unit2)= VirialIntra(unit2) + Viriallocal                        ! F2*R_COM_Price; stimmt so
           end if
+        end do !s2-cycle
 
-
-        end do
-        do s2 = this%UnitQP2(nu2), this%UnitQP2(nu2+1) - 1
+!        do s2 = this%UnitQP2(nu2), this%UnitQP2(nu2+1) - 1
+        do s2=1, this%N2Quadrupole
           pcq => this%PotChargeQuadrupole(s1, s2)
           Epsilon = pcq%Epsilon
           RShieldSquared = pcq%RShieldSquared
@@ -1887,56 +1894,63 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NQuadrupole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength                           ! Abstandsvektor von Q nach C wie bei Price
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength                           ! Orientierungsvektor Quadrupol
-            OXj = OX2(j)
-            OYj = OY2(j)
-            OZj = OZ2(j)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 0._RK
-            else
-              RijSquaredInv = 1._RK / RijSquared
-              RijInv = sqrt( RijSquaredInv )
-              eX = RXij * RijInv                                                ! Normierter Abstandsvektor
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetaj = OXj * ex + OYj * eY + OZj * eZ
-              EPotLocal = Epsilon * RijSquaredInv * RijInv &
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pcq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength                           ! Abstandsvektor von Q nach C wie bei Price
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength                           ! Orientierungsvektor Quadrupol
+               OXj = OX2(jk)
+               OYj = OY2(jk)
+               OZj = OZ2(jk)
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 0._RK
+               else
+                 RijSquaredInv = 1._RK / RijSquared
+                 RijInv = sqrt( RijSquaredInv )
+                 eX = RXij * RijInv                                                ! Normierter Abstandsvektor
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetaj = OXj * ex + OYj * eY + OZj * eZ
+                 EPotLocal = Epsilon * RijSquaredInv * RijInv &
 &                          * ( CosThetaj * CosThetaj - Third )
-              Tmp = 2._RK * CosThetaj
-              CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
-              VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
-&               * ( ( CosAux * eX - Tmp * OXj ) * PXij &
-&                 + ( CosAux * eY - Tmp * OYj ) * PYij &
-&                 + ( CosAux * eZ - Tmp * OZj ) * PZij )
+                 Tmp = 2._RK * CosThetaj
+                 CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
+                 VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
+&                  * ( ( CosAux * eX - Tmp * OXj ) * PXij &
+&                   + ( CosAux * eY - Tmp * OYj ) * PYij &
+&                   + ( CosAux * eZ - Tmp * OZj ) * PZij )
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
-          end do
+         end do
           ! Include intramolecular interactions if need
-          if (SameComponent .and. (intra14 .or. intra15)) then
+         if (SameComponent .and. (intra14 .or. intra15)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pcq%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pcq%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pcq%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -1968,19 +1982,20 @@ contains
               FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             end if
+            unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-        end do
-      end do
+        end do !s2-cycle
+      end do  !s1-cycle
 
       ! Calculate dipolar energy
-      nup = this%NDipole_U1*(np-1)
-      do s1 = this%UnitDP1(nu1), this%UnitDP1(nu1+1) - 1
-        nups = nup + s1
-        do s2 = this%UnitC2(nu2), this%UnitC2(nu2+1) - 1
+!      nup = this%NDipole_U1*(np-1)
+      do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
+!        nups = nup + s1
+        do s2 = 1, this%N2Charge
           pdc => this%PotDipoleCharge(s1, s2)
           Epsilon = pdc%Epsilon
           RShieldSquared = pdc%RShieldSquared
@@ -2014,50 +2029,57 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NCharge_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-            else
-              RijSquaredInv = 1._RK / RijSquared
-              RijInv = sqrt( RijSquaredInv )
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetai = OXi * ex + OYi * eY + OZi * eZ
-              Tmp = 3._RK * CosThetai
-              EPotLocal = - Epsilon * RijSquaredInv * CosThetai
-              VirialLocal = Epsilon * RijSquaredInv * RijInv &
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pdc%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+               else
+                 RijSquaredInv = 1._RK / RijSquared
+                 RijInv = sqrt( RijSquaredInv )
+                 eX = RXij * RijInv
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetai = OXi * ex + OYi * eY + OZi * eZ
+                 Tmp = 3._RK * CosThetai
+                 EPotLocal = - Epsilon * RijSquaredInv * CosThetai
+                 VirialLocal = Epsilon * RijSquaredInv * RijInv &
 &                            * ( ( OXi - Tmp * eX ) * PXij &
 &                              + ( OYi - Tmp * eY ) * PYij &
 &                              + ( OZi - Tmp * eZ ) * PZij )
-            end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
+             end if
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pdc%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pdc%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pdc%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2082,13 +2104,16 @@ contains
 &                              + ( OYi - Tmp * eY ) * PYij &
 &                              + ( OZi - Tmp * eZ ) * PZij )
             end if
+            unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-        end do
-        do s2 = this%UnitDP2(nu2), this%UnitDP2(nu2+1) - 1
+        end do ! s2-cycle
+!        do s2 = this%UnitDP2(nu2), this%UnitDP2(nu2+1) - 1
+        do s2 = 1, this%N2Dipole
+
           pdd => this%PotDipoleDipole(s1, s2)
           Epsilon = pdd%Epsilon
           RShieldSquared = pdd%RShieldSquared
@@ -2125,63 +2150,70 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NDipole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-            else
-              OXj = OX2(j)
-              OYj = OY2(j)
-              OZj = OZ2(j)
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pdd%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+               else
+                 OXj = OX2(jk)
+                 OYj = OY2(jk)
+                 OZj = OZ2(jk)
 #if ARCH == 3
-              RijInv = rsqrt( RijSquared )
+                 RijInv = rsqrt( RijSquared )
 #else
-              RijInv = 1._RK / sqrt( RijSquared )
+                 RijInv = 1._RK / sqrt( RijSquared )
 #endif
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetai = OXi * eX + OYi * eY + OZi * eZ
-              CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-              CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-              Tmp = CosGammaij -  3._RK * CosThetai * CosThetaj
-              Rij3Inv = Epsilon * RijInv**3
-              Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-              EPotLocal = Rij3Inv * Tmp
-              FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+                 eX = RXij * RijInv
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetai = OXi * eX + OYi * eY + OZi * eZ
+                 CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+                 CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+                 Tmp = CosGammaij -  3._RK * CosThetai * CosThetaj
+                 Rij3Inv = Epsilon * RijInv**3
+                 Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+                 EPotLocal = Rij3Inv * Tmp
+                 FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                         - (eX * CosThetaj - OXj) * CosThetai)
-              FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+                 FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
 &                                         - (eY * CosThetaj - OYj) * CosThetai)
-              FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+                 FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                         - (eZ * CosThetaj - OZj) * CosThetai)
-            end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third &
+               end if
+            EPot(j) = EPot(j) + EPotLocal
+            Virial(j) = Virial(j) + Third &
 &                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pdd%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pdd%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pdd%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2219,14 +2251,15 @@ contains
 &                                         - (eZ * CosThetaj - OZj) * CosThetai)
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
+            unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-
-        end do
-        do s2 = this%UnitQP2(nu2), this%UnitQP2(nu2+1) - 1
+        end do !s2-cycle
+!        do s2 = this%UnitQP2(nu2), this%UnitQP2(nu2+1) - 1
+        do s2=1, this%N2Quadrupole
           pdq => this%PotDipoleQuadrupole(s1, s2)
           Epsilon = pdq%Epsilon
           RShieldSquared = pdq%RShieldSquared
@@ -2263,30 +2296,36 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NQuadrupole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-            else
-              OXj = OX2(j)
-              OYj = OY2(j)
-              OZj = OZ2(j)
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pdq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 1E33_RK
+               else
+                 OXj = OX2(jk)
+                 OYj = OY2(jk)
+                 OZj = OZ2(jk)
 #if ARCH == 3
               RijInv = rsqrt( RijSquared )
 #else
@@ -2315,17 +2354,18 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(j) = EPot(j) + EPotLocal
+            Virial(j) = Virial(j) + Third * VirialLocal
+           end if
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pdq%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pdq%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pdq%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2368,19 +2408,20 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
+            unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-        end do
-      end do
+        end do !s2-cycle
+      end do !s1-cycle
 
       ! Calculate quadrupolar energy
-      nup = this%NQuadrupole_U1*(np-1)
-      do s1 = this%UnitQP1(nu1), this%UnitQP1(nu1+1) - 1
-        nups = nup + s1
-        do s2 = this%UnitC2(nu2), this%UnitC2(nu2+1) - 1
+!      nup = this%NQuadrupole_U1*(np-1)
+      do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
+!        nups = nup + s1
+        do s2 = 1, this%N2Charge
           pqc => this%PotQuadrupoleCharge(s1, s2)
           Epsilon = pqc%Epsilon
           RShieldSquared = pqc%RShieldSquared
@@ -2414,55 +2455,62 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NCharge_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-            else
-              RijSquaredInv = 1._RK / RijSquared
-              RijInv = sqrt( RijSquaredInv )
-              eX = - RXij * RijInv                                              ! Normierter Abstandsvektor nach Price
-              eY = - RYij * RijInv
-              eZ = - RZij * RijInv
-              CosThetai = OXi * ex + OYi * eY + OZi * eZ        ! Scalarprodukt normierter Abstandsvektor mit
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pqc%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 1E33_RK
+               else
+                 RijSquaredInv = 1._RK / RijSquared
+                 RijInv = sqrt( RijSquaredInv )
+                 eX = - RXij * RijInv                                              ! Normierter Abstandsvektor nach Price
+                 eY = - RYij * RijInv
+                 eZ = - RZij * RijInv
+                 CosThetai = OXi * ex + OYi * eY + OZi * eZ        ! Scalarprodukt normierter Abstandsvektor mit
 !                                                              Orientierungsvektor Quadrupol
-              EPotLocal = Epsilon * RijSquaredInv * RijInv &
+                 EPotLocal = Epsilon * RijSquaredInv * RijInv &
 &                          * ( CosThetai * CosThetai - Third )
-              Tmp = 2._RK * CosThetai
-              CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
-              Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-              FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               ! Kraft auf die Punktladung, sprich F2
-              FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
-              FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
-              VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
-            end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) - Third * VirialLocal
+                 Tmp = 2._RK * CosThetai
+                 CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
+                 Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+                 FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               ! Kraft auf die Punktladung, sprich F2
+                 FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
+                 FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
+                 VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) - Third * VirialLocal
+             end if
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pqc%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pqc%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pqc%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2491,13 +2539,14 @@ contains
               FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
               VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
             end if
+            unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) - Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) - Third * VirialLocal
           end if
-        end do
-        do s2 = this%UnitDP2(nu2), this%UnitDP2(nu2+1) - 1
+        end do !s2-cycle
+        do s2 = 1, this%N2Dipole
           pqd => this%PotQuadrupoleDipole(s1, s2)
           Epsilon = pqd%Epsilon
           RShieldSquared = pqd%RShieldSquared
@@ -2534,69 +2583,76 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NDipole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-            else
-              OXj = OX2(j)
-              OYj = OY2(j)
-              OZj = OZ2(j)
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pqd%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 1E33_RK
+               else
+                 OXj = OX2(jk)
+                 OYj = OY2(jk)
+                 OZj = OZ2(jk)
 #if ARCH == 3
-              RijInv = rsqrt( RijSquared )
+                 RijInv = rsqrt( RijSquared )
 #else
-              RijInv = 1._RK / sqrt( RijSquared )
+                 RijInv = 1._RK / sqrt( RijSquared )
 #endif
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetai = OXi * eX + OYi * eY + OZi * eZ
-              CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-              CosAux = 5._RK * CosThetai**2 - 1._RK
-              CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
-              Rij4Inv = Epsilon / RijSquared**2
-              EPotLocal = Rij4Inv * ( CosThetaj * CosAux &
+                 eX = RXij * RijInv
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetai = OXi * eX + OYi * eY + OZi * eZ
+                 CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+                 CosAux = 5._RK * CosThetai**2 - 1._RK
+                 CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+                 Rij4Inv = Epsilon / RijSquared**2
+                 EPotLocal = Rij4Inv * ( CosThetaj * CosAux &
 &                                   - CosGammaij * CosThetai )
-              dCosThetai = Rij4Inv &
+                 dCosThetai = Rij4Inv &
 &                           * (10._RK * CosThetai * CosThetaj - CosGammaij)
-              dCosThetaj = Rij4Inv * CosAux
-              dCosGammaij = -2._RK * Rij4Inv * CosThetai
-              Tmp = -4._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+                 dCosThetaj = Rij4Inv * CosAux
+                 dCosGammaij = -2._RK * Rij4Inv * CosThetai
+                 Tmp = -4._RK * RijInv * EPotLocal
+                 FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+                 FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
 &                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
-              VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij)
-            end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+                 VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij)
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
+             end if
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,nu2)
-            PYij = PYi - PY2(np,nu2)
-            PZij = PZi - PZ2(np,nu2)
+            PXij = PXi - PX2(np,pqd%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pqd%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pqd%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2639,13 +2695,14 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij) * coeff
             end if
+            unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-        end do
-        do s2 = this%UnitQP2(nu2), this%UnitQP2(nu2+1) - 1
+        end do! s2-cycle
+        do s2 = 1, this%N2Quadrupole
           pqq => this%PotQuadrupoleQuadrupole(s1, s2)
           Epsilon = pqq%Epsilon
           RShieldSquared = pqq%RShieldSquared
@@ -2682,81 +2739,88 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            jk = (j-1)*this%NQuadrupole_U2 + s2
-            unit2=this%NUnit2*(j-1)+nu2
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-            else
-              OXj = OX2(j)
-              OYj = OY2(j)
-              OZj = OZ2(j)
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pqq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+               RXij = RXi - RX2(jk)
+               RYij = RYi - RY2(jk)
+               RZij = RZi - RZ2(jk)
+               PXij = PXi - PX2(jk,nu2)
+               PYij = PYi - PY2(jk,nu2)
+               PZij = PZi - PZ2(jk,nu2)
+               RXij = (RXij - anint( PXij )) * BoxLength
+               RYij = (RYij - anint( PYij )) * BoxLength
+               RZij = (RZij - anint( PZij )) * BoxLength
+               PXij = (PXij - anint( PXij )) * BoxLength
+               PYij = (PYij - anint( PYij )) * BoxLength
+               PZij = (PZij - anint( PZij )) * BoxLength
+               RijSquared = RXij**2 + RYij**2 + RZij**2
+               if( RijSquared <= RShieldSquared ) then
+                 EPotLocal = 1E33_RK
+                 VirialLocal = 1E33_RK
+               else
+                 OXj = OX2(jk)
+                 OYj = OY2(jk)
+                 OZj = OZ2(jk)
 #if ARCH == 3
-              RijInv = rsqrt( RijSquared )
+                 RijInv = rsqrt( RijSquared )
 #else
-              RijInv = 1._RK / sqrt( RijSquared )
+                 RijInv = 1._RK / sqrt( RijSquared )
 #endif
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetai = OXi * eX + OYi * eY + OZi * eZ
-              CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-              CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-              CosThetaiSquared = CosThetai**2
-              CosThetajSquared = CosThetaj**2
-              Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+                 eX = RXij * RijInv
+                 eY = RYij * RijInv
+                 eZ = RZij * RijInv
+                 CosThetai = OXi * eX + OYi * eY + OZi * eZ
+                 CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+                 CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+                 CosThetaiSquared = CosThetai**2
+                 CosThetajSquared = CosThetaj**2
+                 Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
 #if ARCH == 1
-              Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+                 Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
 #else
-              Rij5Inv = Epsilon * RijInv**5
+                 Rij5Inv = Epsilon * RijInv**5
 #endif
-              EPotLocal = Rij5Inv * (1._RK &
-&               - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&               - 15._RK * CosThetaiSquared * CosThetajSquared &
-&               + 2._RK * Tmp**2)
+                 EPotLocal = Rij5Inv * (1._RK &
+&                  - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&                  - 15._RK * CosThetaiSquared * CosThetajSquared &
+&                  + 2._RK * Tmp**2)
 
-              dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+                 dCosThetai = Rij5Inv * (-10._RK * CosThetai &
 &                                    - 30._RK * CosThetai * CosThetajSquared &
 &                                    - 20._RK * CosThetaj * Tmp)
-              dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+                 dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
 &                                    - 30._RK * CosThetaj * CosThetaiSquared &
 &                                    - 20._RK * CosThetai * Tmp)
-              dCosGammaij = 4._RK * Rij5Inv * Tmp
-              Tmp = -5._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+                 dCosGammaij = 4._RK * Rij5Inv * Tmp
+                 Tmp = -5._RK * RijInv * EPotLocal
+                 FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+                 FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
 &                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
-              VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij )
+                 VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij )
+               end if
+               EPot(j) = EPot(j) + EPotLocal
+               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do
           ! Include intramolecular interaction if need
           if (SameComponent .and. (intra15 .or. intra14)) then
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,nu2)
-            PYij = PYi - PY2(j,nu2)
-            PZij = PZi - PZ2(j,nu2)
+            RXij = RXi - RX2(np)
+            RYij = RYi - RY2(np)
+            RZij = RZi - RZ2(np)
+            PXij = PXi - PX2(np,pqq%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pqq%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pqq%Site2%UnitNumber)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -2768,9 +2832,9 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
             else
-              OXj = OX2(j)
-              OYj = OY2(j)
-              OZj = OZ2(j)
+              OXj = OX2(np)
+              OYj = OY2(np)
+              OZj = OZ2(np)
 #if ARCH == 3
               RijInv = rsqrt( RijSquared )
 #else
@@ -2811,22 +2875,23 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
+            unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + EPotLocal
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
-        end do
-      end do
+        end do! s2-cycle
+      end do! s1-cycle
   write(*,*) 'bonds not in'
       if (UseIntDegFreed .and. SameComponent .and. this%NUnit1>1) then
  write(*,*) 'bonds  in'
         ! Site
-        mol = (np-1) * this%NUnit1 + nu1
+        mol = (np-1) * this%NUnit1 + nu
         ! Bond Interactions
-          k = this%BondCount(nu1)
+          k = this%BondCount(nu)
           do j = 1, k
-            bi = this%BoPartner(nu1,j)
+            bi = this%BoPartner(nu,j)
             s1 = this%PotBond(bi)%Site1
             s2 = this%PotBond(bi)%Site2
             u1 = this%PotBond(bi)%Unit1
@@ -2847,8 +2912,8 @@ contains
             ! Potential parameter
             F0 = dR*this%PotBond(bi)%ForConst
             ! Energy of the bond
-            unit2 =mol + (u1+u2-nu1) - nu1
-            write(*,*) u1,u2,nu1,unit2
+            unit2 =mol + (u1+u2-nu) - nu
+            write(*,*) u1,u2,nu,unit2
             EPot(unit2) = EPot(unit2) + dR*F0
             ! Force (abs. value)
             Fij=-2.0d0*F0/R
@@ -2877,14 +2942,22 @@ contains
           MueY2 => this%MueY2
           MueZ2 => this%MueZ2
 
-          mueXi = this%MueX1(np,nu1)
-          mueYi = this%MueY1(np,nu1)
-          mueZi = this%MueZ1(np,nu1)
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            unit2=this%NUnit2*(j-1)+nu2
-            EPot(unit2) = EPot(unit2) + this%RFConst2 &
-&               * ( mueXi * MueX2(j,nu2) + mueYi * MueY2(j,nu2) + mueZi * MueZ2(j,nu2) )
+          mueXi = this%MueX1(np,nu)
+          mueYi = this%MueY1(np,nu)
+          mueZi = this%MueZ1(np,nu)
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if ( mod(j-pqq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+              if (mod(j,this%NUnit2)==0) then
+                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+                 nu2 = this%NUnit2 ! number of unit in molecule
+               else
+                 jk = INT(j/this%NUnit2)+1
+                 nu2 = mod(j,this%NUnit2)
+               end if
+                EPot(j) = EPot(j) + this%RFConst2 &
+&               * ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
+             end if
           end do
         else         ! Extended ReactionField
 !          if ( ((this%N1Charge > 1) .and. (this%N2Charge > 1) ) .or. &
@@ -3741,7 +3814,7 @@ contains
 !  Subroutine TInteraction_CalcPartners1                       !
 !==============================================================!
 
-  subroutine TInteraction_CalcPartners1( this, nu1, nu2, np )
+  subroutine TInteraction_CalcPartners1( this, nu )
 
     implicit none
 
@@ -3752,48 +3825,76 @@ contains
 
     ! Declare arguments
     type(TInteraction)  :: this
-    integer, intent(in) :: nu1, nu2
-    integer, intent(in) :: np
+!    integer, intent(in) :: nu1, nu2
+    integer, intent(in) :: nu
 
     ! Declare local variables
     real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: PX2d(this%NPart2*this%NUnit2), PY2d(this%NPart2*this%NUnit2), PZ2d(this%NPart2*this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff
+    integer           :: i, j, NInCutoff, np, nu1, k, NU2, N2
 
     ! Set cutoff radius
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
+    N2 = this%NPart2
+    NU2 = this%NUnit2
 
     ! Assign local pointers
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
 
+    do i=1, N2
+      do k=1, NU2
+        PX2d((i-1)*NU2+k)=PX2(i,k)
+        PY2d((i-1)*NU2+k)=PY2(i,k)
+        PZ2d((i-1)*NU2+k)=PZ2(i,k)
+       end do
+     end do
+
+    if ( mod(nu,this%NUnit1)>0) then
+        nu1= mod(nu,this%NUnit1)
+        np = INT(nu/this%NUnit1)+1
+      else
+        nu1 = this%NUnit1
+        np = INT(nu/this%NUnit1)
+      end if
+
+      PXi = this%PX1(np, nu1)
+      PYi = this%PY1(np, nu1)
+      PZi = this%PZ1(np, nu1)
+
     ! Calculate partners within cutoff sphere
-    PXi = this%PX1(np, nu1)
-    PYi = this%PY1(np, nu1)
-    PZi = this%PZ1(np, nu1)
+
     NInCutoff = 0
 #if MPI_VER > 0
-    do j = this%NPart20, this%NPart22
+    do j = this%NPart20*this%NUnit2, this%NPart22*this%NUnit2
 #else
-    do j = 1, this%NPart2
+    do j = 1, N2*NU2
+    if( mod(j,NU2)==0) then
+      k=INT(j/NU2)
+    else
+      k=INT(j/NU2)+1
+    end if
 #endif
-      if( this%SameComponent .and. j == np ) cycle
-      PXij = PXi - PX2(j, nu2)
-      PYij = PYi - PY2(j, nu2)
-      PZij = PZi - PZ2(j, nu2)
+      if( this%SameComponent .and. k== np ) cycle
+      PXij = PXi - PX2d(j)
+      PYij = PYi - PY2d(j)
+      PZij = PZi - PZ2d(j)
       PXij = PXij - anint( PXij )
       PYij = PYij - anint( PYij )
       PZij = PZij - anint( PZij )
       RijSquared = PXij**2 + PYij**2 + PZij**2
       if( RijSquared < RCutoffSquaredScaled ) then
         NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, np) = j
+        this%CutoffPartner(NInCutoff, nu) = j
       end if
     end do
-    this%NInCutoff(np) = NInCutoff
+    this%NInCutoff(nu) = NInCutoff
+    print *, 'for nu=', nu
+    print *, 'NInCutoff=', NInCutoff
 
   end subroutine TInteraction_CalcPartners1
 

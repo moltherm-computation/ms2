@@ -213,7 +213,7 @@ contains
     integer       :: k, index, u, l, Bondend, m, n, index1, index2
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
-    integer                :: ncs        ! number of all constraint sites 
+    integer                :: ncs        ! number of all constraint sites
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
     logical, allocatable   :: mask(:)
     logical                :: ok, ok1, ok2, ok3, done, LJ1, LJ2, same
@@ -631,7 +631,7 @@ contains
     end if
 
     if (UseIntDegFreed) then
-      if( this%NBond > 0 ) then
+      if( this%NBond > 0 .and. this%NUnit>1 ) then
         do j = 1, this%NBond
            call SetLJ(this, j)
         end do

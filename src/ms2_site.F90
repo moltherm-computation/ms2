@@ -400,8 +400,8 @@ contains
     type(TSiteLJ126) :: this
 
     ! Save site parameters
-    if( UseIntDegFreed ) then 
-        write( IOBuffer, '(I3)' ), this%SiteId
+    if( UseIntDegFreed ) then
+        write( IOBuffer, '(I3)' ) this%SiteId
         call FileWriteParameter( iounit_normal, IdLJ126_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
@@ -619,8 +619,8 @@ contains
 
     ! Save site parameters
     if( UseIntDegFreed ) then
-        write( IOBuffer, '(I3)' ), this%SiteId
-        call FileWriteParameter( iounit_normal, IdCharge_SiteId ) 
+        write( IOBuffer, '(I3)' ) this%SiteId
+        call FileWriteParameter( iounit_normal, IdCharge_SiteId )
     end if
 
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
@@ -888,8 +888,8 @@ contains
     type(TSiteDipole) :: this
 
     ! Save site parameters
-    if( UseIntDegFreed ) then 
-        write( IOBuffer, '(I3)' ), this%SiteId
+    if( UseIntDegFreed ) then
+        write( IOBuffer, '(I3)' ) this%SiteId
         call FileWriteParameter( iounit_normal, IdDipole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
@@ -1166,8 +1166,8 @@ contains
     type(TSiteQuadrupole) :: this
 
     ! Save site parameters
-    if( UseIntDegFreed ) then 
-        write( IOBuffer, '(I3)' ), this%SiteId
+    if( UseIntDegFreed ) then
+        write( IOBuffer, '(I3)' ) this%SiteId
         call FileWriteParameter( iounit_normal, IdQuadrupole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
