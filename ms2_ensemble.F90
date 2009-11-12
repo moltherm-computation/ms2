@@ -4220,9 +4220,9 @@ loop3:    do nc = 1, this%NComponents
 
        ! Calculation of Chemical Potential for Ionic systems
         if (LongRange .eq. Ewald) then
-          ewald_h = 1
+!          ewald_h = 1
           ! Set LongRange Correction to Extended ReactionField
-          LongRange = 4
+!          LongRange = 4
           call CalculateCorr (this)
 #if MPI_VER > 0
           call Energy( this, EPot_h )
