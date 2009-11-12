@@ -310,15 +310,6 @@ module ms2_global
 ! Chemical Potential
   character(*), parameter :: IdNFluct                      = 'NFluct'
 
-#if CONSTR > 0
-  character(*), parameter :: IdNCons                       = 'NConstr'
-  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
-  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
-  character(*), parameter :: IdCons1                       = 'Constr1'
-  character(*), parameter :: IdCons2                       = 'Constr2'
-  character(*), parameter :: IdConsR                       = 'ConstrDist'
-#endif
-
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
 
