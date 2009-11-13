@@ -1526,9 +1526,9 @@ contains
             RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
             Rij6Inv = RijSquaredInv**3
             unit2=(np-1)*this%NUnit1+plj%Site2%UnitNumber ! global number of unit
-            EPot(unit2) = EPot(unit2) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
+            EPot(unit2) = EPot(unit2) + 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 !            EPotIntra(unit2) = EPotIntra(unit2) + Rij6Inv * (Rij6Inv - 1._RK) * coeff
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv * coeff
+            Fij = 2._RK*Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv * coeff
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1640,8 +1640,8 @@ contains
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
-              EPotLocal = Epsilon * RijInv * approx * coeff !for 1,4 intramolecular interactions
-              VirialLocal = (EPotLocal + coeff*Faktor*exp(-KappaRij**2) * Epsilon) &
+              EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff !for 1,4 intramolecular interactions
+              VirialLocal = (EPotLocal + 2._RK*coeff*Faktor*exp(-KappaRij**2) * Epsilon) &
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
             end if
             unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
@@ -1724,7 +1724,7 @@ contains
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
-              EPotLocal = Epsilon * RijInv * coeff !for 1,4 intramolecular interactions
+              EPotLocal = 2._RK*Epsilon * RijInv * coeff !for 1,4 intramolecular interactions
               VirialLocal = EPotLocal  &
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
             end if
@@ -1848,15 +1848,15 @@ contains
               CosTheta3 = 3._RK * CosTheta
               Epsilon1  = Epsilon * RijSquaredInv * coeff
               Epsilon2  = Epsilon1 * RijInv
-              EPotLocal = Epsilon1 * CosTheta
+              EPotLocal = 2._RK*Epsilon1 * CosTheta
               FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                       ! F2 bei Price
               FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
               FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
-              VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+              VirialLocal = VirialLocal + 2._RK*FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             end if
             unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
-            EPot(unit2)  = EPot(unit2) + EPotLocal                            ! Uebereinstimmumg mit Price
-            Virial(unit2)= Virial(unit2) + Viriallocal                        ! F2*R_COM_Price; stimmt so
+            EPot(unit2)  = EPot(unit2) + 2._RK*EPotLocal                            ! Uebereinstimmumg mit Price
+            Virial(unit2)= Virial(unit2) + 2._RK*Viriallocal                        ! F2*R_COM_Price; stimmt so
 !            EPotIntra(unit2)  = EPotIntra(unit2) + EPotLocal                            ! Uebereinstimmumg mit Price
 !            VirialIntra(unit2)= VirialIntra(unit2) + Viriallocal                        ! F2*R_COM_Price; stimmt so
           end if
@@ -1983,8 +1983,8 @@ contains
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             end if
             unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
@@ -2105,8 +2105,8 @@ contains
 &                              + ( OZi - Tmp * eZ ) * PZij )
             end if
             unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
@@ -2252,8 +2252,8 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
             unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
@@ -2409,8 +2409,8 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
             unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
@@ -2540,8 +2540,8 @@ contains
               VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
             end if
             unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) - Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) - 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) - Third * VirialLocal
           end if
@@ -2696,8 +2696,8 @@ contains
               VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij) * coeff
             end if
             unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
@@ -2876,16 +2876,16 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
             unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + EPotLocal
-            Virial(unit2) = Virial(unit2) + Third * VirialLocal
+            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
 !            EPotIntra(unit2) = EPotIntra(unit2) + EPotLocal
 !            VirialIntra(unit2) = VirialIntra(unit2) + Third * VirialLocal
           end if
         end do! s2-cycle
       end do! s1-cycle
-  write(*,*) 'bonds not in'
+!   write(*,*) 'bonds not in'
       if (UseIntDegFreed .and. SameComponent .and. this%NUnit1>1) then
- write(*,*) 'bonds  in'
+!  write(*,*) 'bonds  in'
         ! Site
         mol = (np-1) * this%NUnit1 + nu
         ! Bond Interactions
@@ -2913,7 +2913,7 @@ contains
             F0 = dR*this%PotBond(bi)%ForConst
             ! Energy of the bond
             unit2 =mol + (u1+u2-nu) - nu
-            write(*,*) u1,u2,nu,unit2
+!             write(*,*) u1,u2,nu,unit2
             EPot(unit2) = EPot(unit2) + dR*F0
             ! Force (abs. value)
             Fij=-2.0d0*F0/R
@@ -3893,8 +3893,8 @@ contains
       end if
     end do
     this%NInCutoff(nu) = NInCutoff
-    print *, 'for nu=', nu
-    print *, 'NInCutoff=', NInCutoff
+!     print *, 'for nu=', nu
+!     print *, 'NInCutoff=', NInCutoff
 
   end subroutine TInteraction_CalcPartners1
 
