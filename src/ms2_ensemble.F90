@@ -3258,6 +3258,7 @@ loop3:    do nc = 1, this%NComponents
          do np = 1, this%Component(i)%NPart
            do nu = 1, this%Component(i)%Molecule%NUnit
              call Energy( pi, np, nu, this%BoxLength )
+             call IntraEnergy( pi, np, nu, this%BoxLength )
            end do
 
           ! Sum Mayer f-function
@@ -4748,6 +4749,7 @@ loop2:        do nc = 1, this%NComponents
         do np=1, this%Component(nc)%NPart
            do nu=1, this%Component(nc)%Molecule%NUnit
               call Energy(pi, np, nu, this%BoxLength)
+              call IntraEnergy(pi, np, nu, this%BoxLength)
               nu1=(np-1)*pi%NUnit1+nu ! global number of unit
 
 
@@ -4819,6 +4821,7 @@ loop2:        do nc = 1, this%NComponents
       n = pi%NPart2*pi%NUnit2
       do nu=1, this%Component(nc)%Molecule%NUnit
           call Energy( pi, np, nu, this%BoxLength )
+          call IntraEnergy( pi, np, nu, this%BoxLength )
           ! Calculate new energy
           EPotNew = EPotNew + sum( pi%EPot1(1:n) )
       end do
@@ -4870,6 +4873,7 @@ loop2:        do nc = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
       call Energy( pi, np,  nu, this%BoxLength )
+      call IntraEnergy( pi, np,  nu, this%BoxLength )
 
       ! Calculate new energy
       EPotNew = EPotNew + sum( pi%EPot1(1:n) )
@@ -4919,7 +4923,7 @@ loop2:        do nc = 1, this%NComponents
         pi => this%Interaction(nc, i)
         n = pi%NPart2*pi%NUnit2
         call Energy( pi, np, nu, this%BoxLength )
-
+       call IntraEnergy( pi, np, nu, this%BoxLength )
 
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )
@@ -4974,6 +4978,8 @@ loop2:        do nc = 1, this%NComponents
       n = pi%NPart2*pi%NUnit2
       do nu = 1,pi%NUnit1
         call Energy( pi, np, nu, this%BoxLength )
+        call IntraEnergy( pi, np, nu, this%BoxLength )
+
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )
       end do
