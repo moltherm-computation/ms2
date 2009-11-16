@@ -2914,7 +2914,7 @@ contains
             ! Energy of the bond
             unit2 =mol + (u1+u2-nu) - nu
 !             write(*,*) u1,u2,nu,unit2
-            EPot(unit2) = EPot(unit2) + dR*F0
+            EPot(unit2) = EPot(unit2) + 2._RK*dR*F0
             ! Force (abs. value)
             Fij=-2.0d0*F0/R
             ! Force components
@@ -2929,7 +2929,7 @@ contains
             PYij = (PYi - plj%Site2%PY(np)) * BoxLength
             PZij = (PZi - plj%Site2%PZ(np)) * BoxLength
             ! Contribution to virial
-            VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+            VirialLocal = VirialLocal + 2._RK*(PXij * FXij + PYij * FYij + PZij * FZij)
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do ! bonds
 
