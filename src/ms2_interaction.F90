@@ -2953,6 +2953,7 @@ contains
     logical           :: intra15, intra14
     logical           :: SameComponent
     integer           :: nu1, nu2
+    integer           :: u1_new, u2_new
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -3843,28 +3844,23 @@ contains
           end if
         end do! s2-cycle
       end do! s1-cycle
-!   write(*,*) 'bonds not in'
       if (UseIntDegFreed .and. SameComponent .and. this%NUnit1>1) then
-!  write(*,*) 'bonds  in'
         ! Site
-        mol = (np-1) * this%NUnit1 + nu
         ! Bond Interactions
           k = this%BondCount(nu)
           do j = 1, k
             bi = this%BoPartner(nu,j)
-            s1 = this%PotBond(bi)%Site1
-            s2 = this%PotBond(bi)%Site2
-            u1 = this%PotBond(bi)%Unit1
-            u2 = this%PotBond(bi)%Unit2
-            ! Set site specific variables
-            plj => this%PotLJ126LJ126(s1, s2)
+            pbo => this%PotBond(bi)
+            u1 = pbo%Unit1 ! unit1 of bond
+            u2 = pbo%Unit2 ! unit2 of bond
+
             ! Assign pointers to site positions
-            RXi = plj%Site1%RX(np)
-            RYi = plj%Site1%RY(np)
-            RZi = plj%Site1%RZ(np)
-            RXij = (RXi - plj%Site2%RX(np)) * BoxLength
-            RYij = (RYi - plj%Site2%RY(np)) * BoxLength
-            RZij = (RZi - plj%Site2%RZ(np)) * BoxLength
+            RXi=pbo%Bond%RX1(np)
+            RYi=pbo%Bond%RY1(np)
+            RZi=pbo%Bond%RZ1(np)
+            RXij = (RXi - pbo%Bond%RX2(np)) * BoxLength
+            RYij = (RYi - pbo%Bond%RY2(np)) * BoxLength
+            RZij = (RZi - pbo%Bond%RZ2(np)) * BoxLength
             RSquared=RXij**2+RYij**2+RZij**2
             R=dsqrt(RSquared) ! Bond length
             ! Deviation from equilibrium
@@ -3872,8 +3868,7 @@ contains
             ! Potential parameter
             F0 = dR*this%PotBond(bi)%ForConst
             ! Energy of the bond
-            unit2 =mol + (u1+u2-nu) - nu
-!             write(*,*) u1,u2,nu,unit2
+            unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu, or u1 if u2==nu
             EPot(unit2) = EPot(unit2) + 2._RK*dR*F0
             ! Force (abs. value)
             Fij=-2.0d0*F0/R
@@ -3882,12 +3877,13 @@ contains
             FYij = Fij * RYij
             FZij = Fij * RZij
             ! For calculation of virial
-            PXi = plj%Site1%PX(np)
-            PYi = plj%Site1%PY(np)
-            PZi = plj%Site1%PZ(np)
-            PXij = (PXi - plj%Site2%PX(np)) * BoxLength
-            PYij = (PYi - plj%Site2%PY(np)) * BoxLength
-            PZij = (PZi - plj%Site2%PZ(np)) * BoxLength
+            PXi = pbo%Bond%PX1(np)
+            PYi = pbo%Bond%PY1(np)
+            PZi = pbo%Bond%PZ1(np)
+            PXij = (PXi - pbo%Bond%PX2(np)) * BoxLength
+            PYij = (PYi - pbo%Bond%PY2(np)) * BoxLength
+            PZij = (PZi - pbo%Bond%PZ2(np)) * BoxLength
+
             ! Contribution to virial
             VirialLocal = VirialLocal + 2._RK*(PXij * FXij + PYij * FYij + PZij * FZij)
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
