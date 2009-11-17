@@ -175,8 +175,16 @@ module ms2_molecule
     module procedure TMolecule_FindAngle
   end interface
 
-  interface SetLJ
-    module procedure TMolecule_SetLJ
+  interface BondCheck
+    module procedure TMolecule_BondCheck
+  end interface
+
+  interface AbgleCheck
+    module procedure TMolecule_AngleCheck
+  end interface
+
+  interface DihedralCheck
+    module procedure TMolecule_DihedralCheck
   end interface
 
 
@@ -441,7 +449,6 @@ contains
             do j = 1, this%NBond
               call Construct( this%IdfBond(j) )
               call FindBondR(this,this%IdfBond(j), j)
-!               call SetLJ(this, j)
             end do
           end if
         case( 'ANGLE', 'Angle', 'angle', 'Angles', 'ANGLES' )
@@ -631,9 +638,9 @@ contains
     end if
 
     if (UseIntDegFreed) then
-      if( this%NBond > 0 .and. this%NUnit>1 ) then
+      if( this%NBond > 0 ) then
         do j = 1, this%NBond
-           call SetLJ(this, j)
+           call BondCheck(this, j)
         end do
       end if
    end if
@@ -2357,52 +2364,222 @@ end subroutine TMolecule_FindAngle
 
 
 !==============================================================!
-!  Subroutine TMolecule_SetLJ                                  !
+!  Subroutine TMolecule_Bondcheck                              !
 !==============================================================!
 
 
-   subroutine  TMolecule_SetLJ( this, pair )
+   subroutine  TMolecule_BondCheck( this, pair )
 
     implicit none
 
     ! Declare arguments
-    type(TMolecule)     :: this
-    integer             :: pair
-    integer             :: counter, count
-    integer             :: check1, check2
-    integer             :: j
-    logical             :: hit1, hit2
+    type(TMolecule)        :: this
+    integer,intent(in out) :: pair
+    integer                :: counteri, counterj
+    integer                :: count
+    integer                :: check1, check2
+    integer                :: i,j
+    logical                :: hit
+!     logical                :: hit1,hit2
+!     integer                :: counter
+      counteri = 1
+      counterj = 1
+      hit = .false.
+!       hit1 = .false.
+!       hit2 = .false.
 
-      counter = 1
-      check1  = 0
-      check2  = 0
-      hit1 = .false.
-      hit2 = .false.
-
-      do j=1,this%NUnit
-        if ( .not. hit1 .and. this%IdfBond(pair)%SiteId1 < this%Unit(j)%NLJ126 + counter ) then
-          check1 = j
-          this%IdfBond(pair)%UnitId1 = j
-          count = this%BondCount(j) + 1
-          this%BondCount(j) = count
-          this%BoPartner(j,count) = pair
-          hit1 = .true.
+loop1:do i=1,this%NUnit
+        if ( this%IdfBond(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
+loop2:    do j=1,this%NUnit
+            if ( this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
+              hit = .true.
+              ! Abortion, if bond is defined within unit 
+              if (i .eq. j) then
+                this%IdfBond(pair)%SiteId1  = this%IdfBond(this%NBond)%SiteId1
+                this%IdfBond(pair)%SiteId2  = this%IdfBond(this%NBond)%SiteId2
+                this%IdfBond(pair)%UnitId1  = this%IdfBond(this%NBond)%UnitId1
+                this%IdfBond(pair)%UnitId2  = this%IdfBond(this%NBond)%UnitId2
+                this%IdfBond(pair)%ForConst = this%IdfBond(this%NBond)%ForConst
+                this%IdfBond(pair)%R0       = this%IdfBond(this%NBond)%R0
+                pair = pair - 1
+                this%NBond = this%NBond - 1
+                exit loop2
+              else
+                this%IdfBond(pair)%UnitId1 = i
+                count = this%BondCount(i) + 1
+                this%BondCount(i) = count
+                this%BoPartner(i,count) = pair
+                this%IdfBond(pair)%UnitId2 = j
+                count = this%BondCount(j) + 1
+                this%BondCount(j) = count
+                this%BoPartner(j,count) = pair
+                exit loop2
+              end if
+            end if
+            counterj = counterj + this%Unit(j)%NLJ126
+          end do loop2
         end if
-        if ( .not. hit2 .and. this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counter ) then
-          if (check1 .eq. check2) then
-            this%BondCount(j) = this%BondCount(j) - 1
-          else
-            this%IdfBond(pair)%UnitId2 = j
-            count = this%BondCount(j) + 1
-            this%BondCount(j) = count
-          this%BoPartner(j,count) = pair
-            hit2 = .true.
-          end if
-        end if
-        counter = counter + this%Unit(j)%NLJ126
-      end do
+        if ( hit ) exit loop1
+        counteri = counteri + this%Unit(i)%NLJ126
+      end do loop1
 
-   end subroutine TMolecule_SetLJ
+!       counter = 1
+!       do j=1,this%NUnit
+!         if ( .not. hit1 .and. this%IdfBond(pair)%SiteId1 < this%Unit(j)%NLJ126 + counter ) then
+!           check1 = j
+!           this%IdfBond(pair)%UnitId1 = j
+!           count = this%BondCount(j) + 1
+!           this%BondCount(j) = count
+!           this%BoPartner(j,count) = pair
+!           hit1 = .true.
+!         end if
+!         if ( .not. hit2 .and. this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counter ) then
+!           if (check1 .eq. check2) then
+!             this%BondCount(j) = this%BondCount(j) - 1
+!           else
+!             this%IdfBond(pair)%UnitId2 = j
+!             count = this%BondCount(j) + 1
+!             this%BondCount(j) = count
+!           this%BoPartner(j,count) = pair
+!             hit2 = .true.
+!           end if
+!         end if
+!         counter = counter + this%Unit(j)%NLJ126
+!       end do
+
+   end subroutine TMolecule_BondCheck
+
+
+
+!==============================================================!
+!  Subroutine TMolecule_Anglecheck                             !
+!==============================================================!
+
+
+   subroutine  TMolecule_AngleCheck( this, pair )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule)        :: this
+    integer,intent(in out) :: pair
+    integer                :: counteri, counterj, counterk
+    integer                :: count
+    integer                :: check1, check2
+    integer                :: i,j,k
+    logical                :: hit
+
+    ! Local variables
+    counteri = 1
+    counterj = 1
+    counterk = 1
+    hit = .false.
+
+loop1:do i=1,this%NUnit
+        if ( this%IdfAngle(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
+loop2:    do j=1,this%NUnit
+            if ( this%IdfAngle(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
+loop3:        do k=1,this%NUnit
+                if ( this%IdfAngle(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
+                  hit = .true.
+                  ! Abortion, if angle is defined within unit 
+                  if (i .eq. j .and. k .eq. i) then
+                    this%IdfAngle(pair)%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
+                    this%IdfAngle(pair)%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
+                    this%IdfAngle(pair)%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
+!                     this%IdfAngle(pair)%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
+!                     this%IdfAngle(pair)%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
+!                     this%IdfAngle(pair)%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
+                    this%IdfAngle(pair)%ForConst = this%IdfAngle(this%NAngle)%ForConst
+                    this%IdfAngle(pair)%Angle    = this%IdfAngle(this%NAngle)%Angle
+                    this%IdfAngle(pair)%Angle0   = this%IdfAngle(this%NAngle)%Angle0
+                    pair = pair - 1
+                    this%NAngle = this%NAngle - 1
+                    exit loop3
+                  end if
+                end if
+              counterk = counterk + this%Unit(k)%NLJ126
+              end do loop3
+            end if
+            if ( hit ) exit loop2
+            counterj = counterj + this%Unit(j)%NLJ126
+          end do loop2
+        end if
+        if ( hit ) exit loop1
+        counteri = counteri + this%Unit(i)%NLJ126
+      end do loop1
+
+   end subroutine TMolecule_AngleCheck
+
+
+!==============================================================!
+!  Subroutine TMolecule_Dihedralcheck                          !
+!==============================================================!
+
+
+   subroutine  TMolecule_DihedralCheck( this, pair )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule)        :: this
+    integer,intent(in out) :: pair
+    integer                :: counteri, counterj, counterk, counterm
+    integer                :: count
+    integer                :: check1, check2
+    integer                :: i,j,k,m
+    logical                :: hit
+
+    ! Local variables
+    counteri = 1
+    counterj = 1
+    counterk = 1
+    counterm = 1
+    hit = .false.
+
+loop1:do i=1,this%NUnit
+        if ( this%IdfDihedral(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
+loop2:    do j=1,this%NUnit
+            if ( this%IdfDihedral(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
+loop3:        do k=1,this%NUnit
+                if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
+loop4:            do m=1,this%NUnit
+                    if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
+                      hit = .true.
+                      ! Abortion, if angle is defined within unit 
+                      if ((i .eq. j) .and. (k .eq. i) .and. (m .eq.i)) then
+                        this%IdfDihedral(pair)%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
+                        this%IdfDihedral(pair)%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
+                        this%IdfDihedral(pair)%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
+                        this%IdfDihedral(pair)%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
+                        this%IdfDihedral(pair)%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
+                        this%IdfDihedral(pair)%gamma    = this%IdfDihedral(this%NDihedral)%gamma
+                        this%IdfDihedral(pair)%phi      = this%IdfDihedral(this%NDihedral)%phi
+                        this%IdfDihedral(pair)%multi    = this%IdfDihedral(this%NDihedral)%multi
+                        this%IdfDihedral(pair)%ScaleLJ14=this%IdfDihedral(this%NDihedral)%ScaleLJ14
+                        this%IdfDihedral(pair)%ScaleEl14=this%IdfDihedral(this%NDihedral)%ScaleEl14
+                        pair = pair - 1
+                        this%NDihedral = this%NDihedral - 1
+                        exit loop4
+                      end if
+                    end if
+                  counterm = counterm + this%Unit(k)%NLJ126
+                  end do loop4
+                end if
+                if ( hit ) exit loop3
+                counterk = counterk + this%Unit(k)%NLJ126
+              end do loop3
+            end if
+            if ( hit ) exit loop2
+            counterj = counterj + this%Unit(j)%NLJ126
+          end do loop2
+        end if
+        if ( hit ) exit loop1
+        counteri = counteri + this%Unit(i)%NLJ126
+      end do loop1
+
+   end subroutine TMolecule_DihedralCheck
+
 
 
 end module ms2_molecule
