@@ -2544,7 +2544,7 @@ loop2:    do j=1,this%NUnit
 loop3:        do k=1,this%NUnit
                 if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
 loop4:            do m=1,this%NUnit
-                    if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
+                    if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(m)%NLJ126 + counterk ) then
                       hit = .true.
                       ! Abortion, if angle is defined within unit 
                       if ((i .eq. j) .and. (k .eq. i) .and. (m .eq.i)) then
@@ -2563,7 +2563,7 @@ loop4:            do m=1,this%NUnit
                         exit loop4
                       end if
                     end if
-                  counterm = counterm + this%Unit(k)%NLJ126
+                  counterm = counterm + this%Unit(m)%NLJ126
                   end do loop4
                 end if
                 if ( hit ) exit loop3
