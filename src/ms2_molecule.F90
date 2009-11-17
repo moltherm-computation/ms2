@@ -179,7 +179,7 @@ module ms2_molecule
     module procedure TMolecule_BondCheck
   end interface
 
-  interface AbgleCheck
+  interface AngleCheck
     module procedure TMolecule_AngleCheck
   end interface
 
@@ -641,6 +641,16 @@ contains
       if( this%NBond > 0 ) then
         do j = 1, this%NBond
            call BondCheck(this, j)
+        end do
+      end if
+      if ( this%NAngle > 0 ) then
+        do j = 1, this%NAngle
+           call AngleCheck(this, j)
+        end do
+      end if
+      if ( this%NDihedral > 0 ) then
+        do j = 1, this%NDihedral
+           call DihedralCheck(this, j)
         end do
       end if
    end if
