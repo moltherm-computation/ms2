@@ -4,12 +4,18 @@
 #MPI=1
 ifneq ($(MPI),)
   F90 = mpif90
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created
+  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF -DCONSTR=0
   PROG =  ms2mpi
 else
-  F90 = ifort 
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created 
+ifneq ($(ABL),)
+  F90 = pgf90 
+  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DCONSTR=0 -DABL 
+  PROG =  ms2abl
+else
+  F90 = pgf90 
+  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DCONSTR=0  
   PROG =  ms2
+endif
 endif
 F90FLAGS = -g -C
 LDFLAGS = -L/usr/lib
@@ -17,6 +23,7 @@ INCL    = -I/usr/include
 #INCL    = -I/opt/mathlibs/fft-3.1.3/libbench2
 
 SRCS =  ms2.F90 \
+        ms2_stopwatch.F90 \
         ms2_global.F90 \
         ms2_simulation.F90 \
         ms2_ensemble.F90 \
@@ -56,7 +63,8 @@ clean:
 #
 ms2.o: ms2_simulation.mod ms2_global.mod
 
-ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod
+ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod \
+  ms2_stopwatch.mod
 
 ms2_ensemble.mod: ms2_component.mod ms2_interaction.mod \
   ms2_accumulator.mod ms2_global.mod
@@ -75,3 +83,5 @@ ms2_idf.mod:  ms2_global.mod
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod 
 
 ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod
+
+ms2_stopwatch.mod: ms2_global.mod

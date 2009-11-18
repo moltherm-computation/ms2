@@ -1522,6 +1522,12 @@ contains
       end do
       deallocate( this%SiteQuadrupole )
     end if
+    if( associated( this%BondCount ) ) then
+      deallocate( this%BondCount )
+    end if
+    if( associated( this%BoPartner ) ) then
+      deallocate( this%BoPartner )
+    end if
 
   end subroutine TMolecule_Destruct
 
