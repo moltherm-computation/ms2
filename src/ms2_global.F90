@@ -533,6 +533,9 @@ module ms2_global
   integer(K4B)       :: ix, iy, tpix
   real(RK)           :: am
 
+  ! Internal variable of FileReadParameter
+  integer :: FileReadParameter_LineNumber = 0
+
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
@@ -618,10 +621,10 @@ module ms2_global
   interface FileReset
     module procedure Global_FileReset
   end interface
-
-  interface FileRewind
-   module procedure Global_FileRewind
-  end interface
+! 
+!   interface FileRewind
+!    module procedure Global_FileRewind
+!   end interface
 
   interface FileRewrite
     module procedure Global_FileRewrite
@@ -647,8 +650,18 @@ module ms2_global
     module procedure Global_FileWriteBlank
   end interface
 
+  ! backward compatible version of FileReadParameter
+  interface FileReadParameter_IOBuffer
+    module procedure Global_FileReadParameter_buffer
+  end interface
+
   interface FileReadParameter
-    module procedure Global_FileReadParameter
+    module procedure Global_FileReadParameter_String, &
+&                    Global_FileReadParameter_Int, &
+&                    Global_FileReadParameter_RK, &
+&                    Global_FileReadParameter_RKdim1!,
+!&                    Global_FileReadParameter_buffer
+!                    ambiguous for SX compiler, collision of _buffer with _Int
   end interface
 
   interface FileWriteParameter
@@ -767,9 +780,9 @@ contains
       i = index( buffer, '/', BACK=.true. )
 #endif
       if( i > 0 ) then
-        ProgramFileName = buffer( i+1:len( buffer ) )
+        ProgramFileName = trim( buffer( i+1:len( buffer ) ) )
       else
-        ProgramFileName = buffer
+        ProgramFileName = trim( buffer )         ! possible truncation?
       end if
       narg = iargc()
       if( narg .lt. 1 ) then
@@ -790,7 +803,7 @@ contains
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
           Restart = .true.
-          RestartFileName = buffer
+          RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
           open( iounit_restart , file = RestartFileName, action = 'READ', &
@@ -814,7 +827,7 @@ contains
           buffer = buffer( 1:dot - 1 )
         end if
       end if
-      OutputNameTag = buffer
+      OutputNameTag = trim( buffer )             ! possible truncation
     end if
 
 #if MPI_VER > 0
@@ -828,9 +841,11 @@ contains
     ! Update log file
 #if MPI_VER > 0
     write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
+#else
+    write( IOBuffer, '("sequential Version")' )
+#endif
     call LogWrite
     call LogWriteBlank
-#endif
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
@@ -905,6 +920,29 @@ contains
 
 
 !==============================================================!
+!  Subroutine Global_Message                                   !
+!==============================================================!
+!
+!  subroutine Global_Message( MessageString )
+!
+!    implicit none
+!
+!    ! Declare arguments
+!    character(*), intent(in), optional :: MessageString
+!
+!    if( present( MessageString ) ) then
+!      IOBuffer = 'MESSAGE: '// trim(MessageString)
+!    else
+!      IOBuffer = 'MESSAGE: '// trim(MessageBuffer)        ! possible truncation
+!    end if
+!    if( RootProc ) print *, trim( IOBuffer )
+!    call LogWrite
+!
+!  end subroutine Global_MESSAGE
+
+
+
+!==============================================================!
 !  Subroutine Global_Warning                                   !
 !==============================================================!
 
@@ -922,9 +960,9 @@ contains
 
     ! Issue warning
     if( present( ErrorString ) ) then
-      IOBuffer = 'WARNING: '// ErrorString
+      IOBuffer = 'WARNING: '// trim(ErrorString)
     else
-      IOBuffer = 'WARNING: '// ErrorBuffer
+      IOBuffer = 'WARNING: '// trim(ErrorBuffer)           ! possible truncation
     end if
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
@@ -952,9 +990,9 @@ contains
     ! Output error message
     call LogWriteBlank
     if( present( ErrorString ) ) then
-      IOBuffer = 'ERROR: '// ErrorString
+      IOBuffer = 'ERROR: '// trim( ErrorString )
     else
-      IOBuffer = 'ERROR: '// ErrorBuffer
+      IOBuffer = 'ERROR: '// trim( ErrorBuffer ) ! possible truncation
     end if
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
@@ -1018,7 +1056,6 @@ contains
   end subroutine Global_AllocationError
 
 
-
 !==============================================================!
 !  Subroutine Global_LogOpen                                   !
 !==============================================================!
@@ -1027,40 +1064,36 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare local viriables
-#if ARCH == 1
-    character(IOBufferLength) :: hostname
-#elif ARCH == 2 || ARCH == 3
+    ! Declare local variables
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+    character(IOBufferLength) :: hostname = 'unknown host'
+    character(IOBufferLength) :: username = 'unknown user'
+#if ARCH == 2 || ARCH == 3
     integer                   :: i
-    character(IOBufferLength) :: hostname
-! #ifndef _PGF
-    character(IOBufferLength) :: logname
-! #endif
+#endif
 #else
     character(*), parameter   :: hostname = 'unknown host'
+    character(*), parameter   :: username = 'unknown user'
 #endif
 
     ! Check for root process
     if( .not. RootProc ) return
-
     ! Get name of host
 #if ARCH == 1
     call getenv( 'HOSTNAME', hostname )
-#elif ARCH == 2
-#if defined _PGF || defined __GNUC__
+#elif ARCH == 2 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
 #endif
     if( i .ne. 0 ) hostname = 'unknown host'
-#elif ARCH == 3
-    i = hostnm( hostname )
-    if( i .ne. 0 ) hostname = 'unknown host'
+#endif
+
+#if ARCH == 1 || defined _PGF
+    username = getlog()
+#elif ARCH == 2 || ARCH == 3
+    call getlog( username )
 #endif
 
     ! Open log file
@@ -1075,26 +1108,9 @@ contains
     call LogWrite
     write( IOBuffer, '("version ", A)' ) trim( VersionString )
     call LogWrite
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-#if defined _PGF || ARCH == 1
     write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( getlog() ), &
+&     trim( username ), &
 &     trim( hostname )
-#elif defined __INTEL_COMPILER && MPI_VER > 0
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     'unknown user', &
-&     trim( hostname )
-#else
-    call getlog( logname )
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( logname ), &
-&     trim( hostname )
-#endif
-#else
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     'unknown user', &
-&     trim( hostname )
-#endif
     call LogWriteTime
     call LogWriteBlank
 
@@ -1294,39 +1310,39 @@ contains
   end subroutine Global_FileReset
 
 
-!==============================================================!
-!  Subroutine Global_FileRewind                                !
-!==============================================================!
-
-  subroutine Global_FileRewind( iounit, filename )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: filename
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-&     trim( filename )
-    call LogWrite
-    rewind( iounit, iostat = stat )
-    if( stat /= 0 ) &
-&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
-
-  end subroutine Global_FileRewind
-
+! ! !==============================================================!
+! ! !  Subroutine Global_FileRewind                                !
+! ! !==============================================================!
+! ! 
+! !   subroutine Global_FileRewind( iounit, filename )
+! ! 
+! !     implicit none
+! ! 
+! !     ! Include MPI header
+! ! #if MPI_VER > 0
+! !     include 'mpif.h'
+! ! #endif
+! ! 
+! !     ! Declare arguments
+! !     integer, intent(in)      :: iounit
+! !     character(*), intent(in) :: filename
+! ! 
+! !     ! Declare local variables
+! !     integer :: stat
+! ! 
+! !     ! Check for root process
+! !     if( .not. RootProc ) return
+! ! 
+! !     ! Open file for reading
+! !     write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
+! ! &     trim( filename )
+! !     call LogWrite
+! !     rewind( iounit, iostat = stat )
+! !     if( stat /= 0 ) &
+! ! &     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
+! ! 
+! !   end subroutine Global_FileRewind
+! ! 
 
 
 
@@ -1524,12 +1540,14 @@ contains
   end subroutine Global_FileWriteBlank
 
 
-
 !==============================================================!
-!  Subroutine Global_FileReadParameter                         !
+!  Function Global_FileReadParameter                           !
 !==============================================================!
 
-  subroutine Global_FileReadParameter( iounit, parameter )
+  function Global_FileReadParameter( iounit, parameterqualifier, &
+&                                    rewind_before, status ) &
+&          result (parametervalue)
+
 
     implicit none
 
@@ -1539,33 +1557,369 @@ contains
 #endif
 
     ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: parameter
+    integer, intent(in)                :: iounit
+    character(*), intent(in)           :: parameterqualifier
+    logical, intent(in), optional      :: rewind_before
+    integer, intent(out), optional     :: status
+
+    character(IOBufferLength) :: parametervalue
+
+
+    ! Declare local variables
+    integer                   :: stat, comment_pos, linesread, i
+    character(FileNameLength) :: fn
+
+    ! determine filename
+    inquire( iounit, NAME = fn )
+    ! Only RootProc reads parameter from file
+    if( RootProc ) then
+      ! rewind file, if requested
+      if( present(rewind_before) ) then
+        if( rewind_before ) then
+!          write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+          rewind( iounit )
+          FileReadParameter_LineNumber = 0
+        end if
+      end if
+      linesread = 0
+      ! loop to read lines until parameter is found
+      do
+        read( iounit, '(A)', IOSTAT = stat ) parametervalue
+        ! error reading from file?
+        if( stat > 0 ) then
+          call Error( "ERROR reading file "//trim(fn)// &
+&                     " while searching for parameter <"//parameterqualifier//">" )
+          !if( present(status) ) status = stat
+          !return
+        ! end of file reached?
+        elseif( stat < 0 ) then
+          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+          parametervalue=""
+          if( present(status) ) status = stat
+          ! (try to) restore position
+          if( present(rewind_before) ) then
+            if( rewind_before ) then
+!              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+              rewind( iounit )
+              FileReadParameter_LineNumber = 0
+              linesread=0
+              exit    !not nice!
+            end if
+          end if
+          ! rewind to the position, where the reading process was started
+          backspace( iounit )   ! "undo" last read, where eof was encountered
+          do i = 1,linesread
+!            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+            backspace( iounit )
+            FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
+          end do
+          exit
+        end if
+        FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
+        linesread = linesread + 1
+!        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
+!         check for comment token
+        comment_pos = index( parametervalue, CommentSign )
+        if( comment_pos > 0 ) then
+!          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
+!&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
+          !                eliminate comment part of line
+          parametervalue = parametervalue(1:comment_pos - 1)
+        end if
+        if( index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1 ) then
+          ! extract value part (after =)
+          parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
+          parametervalue = trim( adjustl( parametervalue ) )
+          if( present(status) ) status = 0
+          exit
+        end if
+      end do
+
+    end if
+
+    ! Broadcast parameter to other processes
+    ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
+    !  Better broadcast the integer, float parametervalues, instead of the string?)
+#if MPI_VER > 0
+    call MPI_Bcast( parametervalue, len(parametervalue), &
+&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+    if( present(status) ) then
+      call MPI_Bcast( status, 1, &
+&       MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+    end if
+#endif
+
+!    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&                      trim(parameterqualifier),trim(parametervalue); call LogWrite
+
+  end function Global_FileReadParameter
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_buffer                  !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_buffer( iounit, parameterqualifier, &
+&                                            rewind_before, defaultvalue, status )
+  ! this subroutine is for backward compatibily purposes
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    integer, intent(in)                :: iounit
+    character(*), intent(in)           :: parameterqualifier
+    logical, intent(in), optional      :: rewind_before
+    character(*), intent(in), optional :: defaultvalue
+    integer, intent(out), optional     :: status
+
+    ! Declare local variables
+    integer                   :: stat
+
+    IOBuffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    if ( stat < 0 ) then
+      if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) &
+&             trim(parameterqualifier), trim(defaultvalue)
+        call LogWrite
+        IOBuffer = defaultvalue
+      else
+        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        !return
+      end if
+    end if
+    if ( present(status) ) status=stat
+
+    ! Broadcast parameter
+!#if MPI_VER > 0
+!    call MPI_Bcast( IOBuffer, IOBufferLength, &
+!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!#endif
+
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") IOBuffer ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier),trim(IOBuffer); call LogWrite
+
+  end subroutine Global_FileReadParameter_buffer
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_String                  !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifier, &
+&                                            rewind_before, defaultvalue, status )
+  ! setting up functions with result (parametervalue) for different data types is ambigious
+  ! for a FileReadParameter polymorphism 
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    character(*), intent(out)          :: parametervariable
+    integer, intent(in)                :: iounit
+    character(*), intent(in)           :: parameterqualifier
+    logical, intent(in), optional      :: rewind_before
+    character(*), intent(in), optional :: defaultvalue
+    integer, intent(out), optional     :: status
+
+
+    ! Declare local variables
+    integer                   :: stat
+    !character(FileNameLength) :: fn
+
+    parametervariable = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    if ( stat < 0 ) then
+      if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",A)' ) &
+&             trim(parameterqualifier), trim(defaultvalue)
+        call LogWrite
+        parametervariable = defaultvalue
+      else
+        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        !return
+      end if
+    end if
+    if ( present(status) ) status=stat
+
+    ! Broadcast parameter to other processes
+!#if MPI_VER > 0
+!    call MPI_Bcast( parametervariable, len(parametervariable), &
+!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!#endif
+
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier),trim(parametervariable); call LogWrite
+
+  end subroutine Global_FileReadParameter_String
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_Int                     !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_Int( parametervariable, iounit, parameterqualifier, &
+&                                         rewind_before, defaultvalue, status )
+  ! Global_FileReadParameter_Integer has 32>31 characters!
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(out)           :: parametervariable
+    integer, intent(in)            :: iounit
+    character(*), intent(in)       :: parameterqualifier
+    logical, intent(in), optional  :: rewind_before
+    integer, intent(in), optional  :: defaultvalue
+    integer, intent(out), optional :: status
 
     ! Declare local variables
     character(IOBufferLength) :: buffer
-    integer                   :: comment, stat
+    integer                   :: stat
+    !character(FileNameLength) :: fn
 
-    ! Read parameter from file
-    if( RootProc ) then
-      do
-        read( iounit, '(A)', IOSTAT = stat ) buffer
-        if( stat /= 0 ) &
-&         call Error( "Could not read parameter <"//parameter//">" )
-        comment = index( buffer, CommentSign )
-        if( comment > 0 ) buffer = buffer(1:comment - 1)
-        if( index( buffer, trim( parameter ) ) == 1 ) exit
-      end do
-      IOBuffer = buffer( index( buffer, '=' ) + 1:len( buffer ) )
+    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    if ( stat == 0 ) then
+      read( buffer, * ) parametervariable
+    else if ( stat < 0 ) then
+      if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
+&             trim(parameterqualifier), defaultvalue
+        call LogWrite
+        parametervariable = defaultvalue
+      else
+        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        !return
+      end if
     end if
+    if ( present(status) ) status=stat
 
-    ! Broadcast parameter
-#if MPI_VER > 0
-    call MPI_Bcast( IOBuffer, IOBufferLength, &
-&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
-#endif
+    ! Broadcast parameter to other processes
+!#if MPI_VER > 0
+!    call MPI_Bcast( parametervariable, 1, &
+!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!#endif
 
-  end subroutine Global_FileReadParameter
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+
+  end subroutine Global_FileReadParameter_Int
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_RK                      !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_RK( parametervariable, iounit, parameterqualifier, &
+&                                        rewind_before, defaultvalue, status )
+
+    implicit none
+
+    ! Declare arguments
+    real(RK), intent(out)          :: parametervariable
+    integer, intent(in)            :: iounit
+    character(*), intent(in)       :: parameterqualifier
+    logical, intent(in), optional  :: rewind_before
+    real(RK), intent(in), optional :: defaultvalue
+    integer, intent(out), optional :: status
+
+
+    ! Declare local variables
+    character(IOBufferLength) :: buffer
+    integer                   :: stat
+    !character(FileNameLength) :: fn
+
+    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    if ( stat == 0 ) then
+      read( buffer, * ) parametervariable
+    else if ( stat < 0 ) then
+      if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
+&             trim(parameterqualifier), defaultvalue
+        call LogWrite
+        parametervariable = defaultvalue
+      else
+        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        !return
+      end if
+    end if
+    if ( present(status) ) status=stat
+
+    ! Broadcast parameter to other processes
+!#if MPI_VER > 0
+!    call MPI_Bcast( parametervariable, 1, &
+!&     MPI_RK, NRootProc, MPI_COMM_WORLD, ierror )
+!#endif
+
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+
+  end subroutine Global_FileReadParameter_RK
+
+
+!==============================================================!
+!  Subroutine Global_FileReadParameter_RKdim1                  !
+!==============================================================!
+
+  subroutine Global_FileReadParameter_RKdim1( parametervariable, iounit, parameterqualifier, &
+&                                            rewind_before, defaultvalue, status )
+
+    implicit none
+
+    ! Declare arguments
+    real(RK), dimension(:), intent(out)          :: parametervariable
+    integer, intent(in)                          :: iounit
+    character(*), intent(in)                     :: parameterqualifier
+    logical, intent(in), optional                :: rewind_before
+    real(RK), dimension(:), intent(in), optional :: defaultvalue
+    integer, intent(out), optional               :: status
+
+    ! Declare local variables
+    character(IOBufferLength) :: buffer
+    integer                   :: stat
+    !character(FileNameLength) :: fn
+
+    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    if ( stat == 0 ) then
+      read( buffer, * ) parametervariable
+    else if ( stat < 0 ) then
+      if ( present(defaultvalue) ) then
+        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifier)
+        call LogWrite
+        write( IOBuffer, * ) defaultvalue
+        call LogWrite
+        parametervariable = defaultvalue
+      else
+        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        !return
+      end if
+    end if
+    if ( present(status) ) status=stat
+
+    ! Broadcast parameter to other processes
+!#if MPI_VER > 0
+!    call MPI_Bcast( parametervariable, size(parametervariable), &
+!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!#endif
+
+!    inquire( iounit, NAME = fn )
+!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Real Array ",A," =")' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+!&          stat,trim(parameterqualifier); call LogWrite
+!    write( IOBuffer, * ) parametervariable; call LogWrite
+
+  end subroutine Global_FileReadParameter_RKdim1
+
+
 
 
 

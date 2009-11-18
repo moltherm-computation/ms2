@@ -145,10 +145,9 @@ contains
     type(TIdfBond) :: this
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdBond_Sites )
+    call FileReadParameter_IOBuffer( iounit_potmod, IdBond_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
-    call FileReadParameter( iounit_potmod, IdBond_ForConst)
-    read( IOBuffer, * ) this%ForConst
+    call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
 
 
     ! Convert to SI units
@@ -230,10 +229,9 @@ end subroutine TIdfBond_Construct
     type(TIdfAngle) :: this
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdAngle_Sites )
+    call FileReadParameter_IOBuffer( iounit_potmod, IdAngle_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3
-    call FileReadParameter( iounit_potmod, IdAngle_ForConst)
-    read( IOBuffer, * ) this%ForConst
+    call FileReadParameter( this%ForConst, iounit_potmod, IdAngle_ForConst, .false.)
 
     ! Convert to SI units
     this%ForConst = this%ForConst * kBoltzmann
@@ -312,19 +310,14 @@ end subroutine TIdfAngle_Construct
     type(TIdfDihedral) :: this
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdDihedral_Sites )
+    call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
-    call FileReadParameter( iounit_potmod, IdDihedral_PotBarrier)
-    read( IOBuffer, * ) this%ForConst
-    call FileReadParameter( iounit_potmod, IdDihedral_gamma )
-    read( IOBuffer, * ) this%gamma
-    call FileReadParameter( iounit_potmod, IdDihedral_n )
-    read( IOBuffer, * ) this%multi
+    call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
+    call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
+    call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
     if (LJEl14 .and. this%multi) then
-      call FileReadParameter( iounit_potmod, IdDihedral_ScaleLJ14 )
-      read( IOBuffer, * ) this%ScaleLJ14
-      call FileReadParameter( iounit_potmod, IdDihedral_ScaleEl14 )
-      read( IOBuffer, * ) this%ScaleEl14
+      call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )
+      call FileReadParameter( this%ScaleEl14, iounit_potmod, IdDihedral_ScaleEl14, .false. )
     end if
 
     ! Convert to SI units

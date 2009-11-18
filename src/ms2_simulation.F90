@@ -21,6 +21,7 @@ module ms2_simulation
 
   use ms2_ensemble
   use ms2_global
+  use ms2_stopwatch
 
 
 
@@ -177,20 +178,17 @@ contains
     end if
 #else
     call FileReset( iounit_config, ProgramFileName//ConfigFileExtension )
-    call FileReadParameter( iounit_config, IdRestart )
-    read( IOBuffer, * ) str
+    call FileReadParameter( str, iounit_config, IdRestart, .true., "NO" )
     select case( str )
     case( 'YES', 'Yes', 'yes' )
-      call FileReadParameter( iounit_config, IdRestartFileName )
-      read( IOBuffer, * ) RestartFileName
       Restart = .true.
+      call FileReadParameter( RestartFileName, iounit_config, IdRestartFileName, .true. )
       write( IOBuffer, '("Restarting from file: ", A)' ) RestartFileName
       call LogWrite
       call FileReset( iounit_restart, RestartFileName )
       read( iounit_restart, '(A128)' ) ParameterFileName
     case( 'NO', 'No', 'no' )
-      call FileReadParameter( iounit_config, IdParamsFileName )
-      read( IOBuffer, * ) ParameterFileName
+      call FileReadParameter( ParameterFileName, iounit_config, IdParamsFileName, .true. )
     case default
       call Error( 'Select yes/no for restart in file '// &
 &       ProgramFileName//ConfigFileExtension )
@@ -211,16 +209,14 @@ contains
 
     ! Read name tag for output files
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
-    call FileReadParameter( iounit_params , IdOutputNameTag )
-    read( IOBuffer, * ) OutputNameTag
+    call FileReadParameter( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
 #endif
     write( IOBuffer, '("Name tag for output files: ", A)' ) &
 &     trim( OutputNameTag )
     call LogWrite
 
     ! Read type of units
-    call FileReadParameter( iounit_params , IdUseReducedUnits )
-    read( IOBuffer, * ) str
+    call FileReadParameter( str, iounit_params , IdUseReducedUnits, .true. )
     select case( str )
     case( 'REDUCED', 'Reduced', 'reduced' )
       UseReducedUnits = .true.
@@ -235,24 +231,21 @@ contains
     call LogWrite
 
     ! Read unit of length
-    call FileReadParameter( iounit_params, IdUnitLength )
-    read( IOBuffer, * ) UnitLength
+    call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
     UnitLength = UnitLength * Angstroem
     write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
 &     UnitLength / Angstroem
     call LogWrite
 
     ! Read unit of energy
-    call FileReadParameter( iounit_params, IdUnitEnergy )
-    read( IOBuffer, * ) UnitEnergy
+    call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
     UnitEnergy = UnitEnergy * kBoltzmann
     write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
 &     UnitEnergy / kBoltzmann
     call LogWrite
 
     ! Read unit of mass
-    call FileReadParameter( iounit_params, IdUnitMass )
-    read( IOBuffer, * ) UnitMass
+    call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
     UnitMass = UnitMass * .001_RK / NAvogadro
     write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
 &     UnitMass * NAvogadro * 1000._RK
@@ -273,8 +266,7 @@ contains
     UnitQuadrupole = UnitCharge * UnitLength**2
 
     ! Read type of simulation
-    call FileReadParameter( iounit_params , IdSimulationType )
-    read( IOBuffer, * ) str
+    call FileReadParameter( str, iounit_params , IdSimulationType, .true. )
     select case( str )
     case( 'MD', 'md' )
       SimulationType = MolecularDynamics
@@ -298,20 +290,17 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
 
       ! Read number of orientations
-      call FileReadParameter( iounit_params , IdNOrient )
-      read( IOBuffer, * ) NOrient
+      call FileReadParameter( NOrient, iounit_params , IdNOrient, .true. )
       write( IOBuffer, '("Number of orientations: ", I7)' ) NOrient
       call LogWrite
 
       ! Read number of steps
-      call FileReadParameter( iounit_params , IdRSteps )
-      read( IOBuffer, * ) NSteps
+      call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
       write( IOBuffer, '("Number of radial steps: ", I7)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
-      call FileReadParameter( iounit_params , IdMinRadius )
-      read( IOBuffer, * ) MinRadius
+      call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .true. )
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
@@ -320,8 +309,7 @@ contains
       call LogWrite
 
       ! Read maximum radius
-      call FileReadParameter( iounit_params , IdMaxRadius )
-      read( IOBuffer, * ) MaxRadius
+      call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .true. )
       if( .not. UseReducedUnits ) then
         MaxRadius = MaxRadius / UnitLength * Angstroem
       end if
@@ -343,8 +331,7 @@ contains
       if( SimulationType .eq. MolecularDynamics ) then
 
         ! Type of integrator
-        call FileReadParameter( iounit_params , IdIntegratorType )
-        read( IOBuffer, * ) str
+        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "GEAR" )
         select case( str )
         case( 'GEAR', 'Gear', 'gear' )
           IntegratorType = IntegratorTypeGear
@@ -370,8 +357,7 @@ contains
         call LogWrite
 
         ! Time step
-        call FileReadParameter( iounit_params , IdTimeStep )
-        read( IOBuffer, * ) TimeStep
+        call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
         write( IOBuffer, '("Time step: ", F9.6, " fs")' ) &
 &         TimeStep * UnitTime * 1E15_RK
         call LogWrite
@@ -386,8 +372,7 @@ contains
       else
 
         ! Acceptance rate
-        call FileReadParameter( iounit_params , IdAcceptance )
-        read( IOBuffer, * ) Acceptance
+        call FileReadParameter( Acceptance, iounit_params , IdAcceptance, .true., 0.5_RK )
         if( Acceptance < 0.05_RK ) then
           Acceptance = 0.05_RK
         else if( Acceptance > 0.95_RK ) then
@@ -402,8 +387,7 @@ contains
       end if
 
       ! Read type of ensembles
-      call FileReadParameter( iounit_params , IdEnsembleType )
-      read( IOBuffer, * ) str
+      call FileReadParameter( str, iounit_params , IdEnsembleType, .true. )
       select case( str )
       case( 'NVE', 'nve' )
         EnsembleType = EnsembleTypeNVE
@@ -453,8 +437,7 @@ contains
 
       ! Read number of MC overlap reduction steps
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter( iounit_params , IdNStepsMC )
-        read( IOBuffer, * ) NStepsMC
+        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
         if( NStepsMC > 0 ) then
           write( IOBuffer, '("Number of MC overlap reduction steps: ", I7)' ) &
 &           NStepsMC
@@ -473,8 +456,7 @@ contains
       end if
 
       ! Read number of NVT equilibration steps
-      call FileReadParameter( iounit_params , IdNStepsV )
-      read( IOBuffer, * ) NStepsV
+      call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ", I7)' ) &
 &       NStepsV
       call LogWrite
@@ -482,21 +464,18 @@ contains
       ! Read number of NPT equilibration steps
       if( ConstantPressure ) then
         if( EnsembleType .eq. EnsembleTypeHA ) then
-          call FileReadParameter( iounit_params , IdNStepsMueP )
-          read( IOBuffer, * ) NStepsP
+          call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ", I7)' ) &
 &           NStepsP
           call LogWrite
         else
-          call FileReadParameter( iounit_params , IdNStepsP )
-          read( IOBuffer, * ) NStepsP
+          call FileReadParameter( NStepsP, iounit_params , IdNStepsP, .true., 0 )
           write( IOBuffer, '("Number of NPT equilibration steps: ", I7)' ) &
 &           NStepsP
           call LogWrite
         end if
       else if( EnsembleType .eq. EnsembleTypeGE ) then
-        call FileReadParameter( iounit_params , IdNStepsMue )
-        read( IOBuffer, * ) NStepsP
+        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of GE equilibration steps: ", I7)' ) &
 &         NStepsP
         call LogWrite
@@ -505,14 +484,12 @@ contains
       end if
 
       ! Read number of production steps
-      call FileReadParameter( iounit_params , IdNSteps )
-      read( IOBuffer, * ) NSteps
+      call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
       write( IOBuffer, '("Number of production steps: ", I7)' ) NSteps
       call LogWrite
 
       ! Read frequency of updating result file
-      call FileReadParameter( iounit_params , IdBlockSize )
-      read( IOBuffer, * ) BlockSize
+      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., 0 )
       if( BlockSize > 0 ) then
         write( IOBuffer, &
 &         '("Result files will be updated each", I7, " time steps")' ) &
@@ -526,14 +503,16 @@ contains
       if( BlockSize > 0 ) then
         NBlocksMax = max( NStepsV, NStepsP, NSteps ) / BlockSize
         NBlockSizesMax = int( sqrt( real( NSteps / BlockSize, RK ) ) )
+        if (NBlocksMax .eq. 0) then
+            call Error( 'ResultFreq < RunSteps, please change input variables' )
+        end if
       else
         NBlocksMax = 0
         NBlockSizesMax = 0
       end if
 
       ! Read frequency of updating final result file
-      call FileReadParameter( iounit_params , IdErrorsUpdateFrequency )
-      read( IOBuffer, * ) ErrorsUpdateFrequency
+      call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
       if( ErrorsUpdateFrequency < 1 ) then
         ErrorsUpdateFrequency = NSteps
       else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
@@ -549,8 +528,7 @@ contains
       call LogWrite
 
       ! Read frequency of updating visualisation file
-      call FileReadParameter( iounit_params , IdVisualUpdateFrequency )
-      read( IOBuffer, * ) VisualUpdateFrequency
+      call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
       if( VisualUpdateFrequency > 0 ) then
         write( IOBuffer, &
 &        '("Visualization files will be updated each", I7, " time steps")' ) &
@@ -561,8 +539,7 @@ contains
       call LogWrite
 
       ! Read cutoff mode
-      call FileReadParameter( iounit_params , IdCutoffMode )
-      read( IOBuffer, * ) str
+      call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
       select case( str )
       case( 'COM', 'com', 'CenterOfMass', 'CenterofMass', 'centerofmass' )
         CutoffMode = CenterofMass
@@ -580,8 +557,7 @@ contains
 
 
     ! Read LongRange mode
-    call FileReadParameter( iounit_params , IdLongRange )
-    read( IOBuffer, * ) str
+    call FileReadParameter( str, iounit_params , IdLongRange, .true., "rf" )
     select case( str )
       case( 'Ewald', 'ew', 'ewald', 'EWALD')
           LongRange = Ewald
@@ -589,52 +565,43 @@ contains
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
           call LogWrite
           ! Read extended Reaction Field Parameters
-          call FileReadParameter( iounit_params , IdDebyeLen )
-          read( IOBuffer, * ) debyelen_h
-          write( IOBuffer, '("Debye Length [A^-1]:", F8.3)' )debyelen_h
-          call LogWrite
+!           call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0 )
+!           write( IOBuffer, '("Debye Length [A^-1]:", F8.3)' )debyelen_h
+!           call LogWrite
           ! Read Ewald Parameters
-          call FileReadParameter( iounit_params , IdKappa )
-          read( IOBuffer, * ) KappaL_h
+          call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
           write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
           call LogWrite
 
-          call FileReadParameter( iounit_params , Idnsqmax )
-          read( IOBuffer, * ) nsqmax_h
+          call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true., 27 )
           write( IOBuffer, '("Ewald Parameter NsqMax:", I7)' ) nsqmax_h
           call LogWrite
 
-          call FileReadParameter( iounit_params , IdNVecMax )
-          read( IOBuffer, * ) nvecmax_h
-
+          call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true., 500 )
           write( IOBuffer, '("Ewald Parameter NVecMax:", I7)' ) nvecmax_h
           call LogWrite
-          call FileReadParameter( iounit_params , IdNMax )
-          read( IOBuffer, * ) nmax_h
 
+          call FileReadParameter( nmax_h, iounit_params , IdNMax, .true., 5 )
           write( IOBuffer, '("Ewald Parameter NMax:", I7)' ) nmax_h
           call LogWrite
-
+#ifdef SPME
       case( 'PME', 'pme', 'SPME', 'spme')
           LongRange = PME
           LongRangeString = 'Smooth Particle Mesh Ewald Summation'
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
           call LogWrite
           ! Read SPM Ewald Parameters
-          call FileReadParameter( iounit_params , IdKappa )
-          read( IOBuffer, * ) KappaL_h
+          call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
           write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
           call LogWrite
 
-          call FileReadParameter( iounit_params , IdGrid )
-          read( IOBuffer, * ) grid_h
+          call FileReadParameter( grid_h, iounit_params , IdGrid, .true., 5 )
           write( IOBuffer, '("Grid Space SPME:", I7)' ) grid_h
           call LogWrite
 
-          call FileReadParameter( iounit_params , IdSpline )
-          read( IOBuffer, * ) spline_h
+          call FileReadParameter( spline_h, iounit_params , IdSpline, .true. )
           write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
-
+#endif
       case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
           LongRange = RField
           LongRangeString = 'Reaction Field'
@@ -646,8 +613,7 @@ contains
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
           call LogWrite
           ! Read extended Reaction Field Parameters
-          call FileReadParameter( iounit_params , IdDebyeLen )
-          read( IOBuffer, * ) debyelen_h
+          call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0_RK )
           write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
 
     case default
@@ -658,8 +624,7 @@ contains
 
     ! Read type of simulation with/without internal degree of freedom
        ! Read type of MD simulation with/without internal degree of freedom  
-       call FileReadParameter( iounit_params , IdUseIntDegFreed )
-       read( IOBuffer, * ) str
+       call FileReadParameter( str, iounit_params , IdUseIntDegFreed, .true., "off" )
        select case( str )
        case( 'ON', 'On', 'on', 'YES', 'yes' )
        UseIntDegFreed = .true.
@@ -676,8 +641,7 @@ contains
 
        ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
        if ( UseIntDegFreed ) then
-         call FileReadParameter( iounit_params , IdShake )
-         read( IOBuffer, * ) Shake
+         call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
          if ( Shake > 0 ) then 
            str = 'yes'
          else 
@@ -695,8 +659,7 @@ contains
         ! Read parameters for intramolecular nonbonded interactions
     if ( UseIntDegFreed ) then
       ! 1-5 intramolecular nonbonded interactions
-      call FileReadParameter( iounit_params , IdIntraLJEl )
-      read( IOBuffer, * ) str
+      call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "no" )
       select case( str )
       case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
         IntraLJEl = .true.
@@ -713,8 +676,7 @@ contains
 
             ! 1-4 intramolecular nonbonded interactions
       if (IntraLJEl) then 
-        call FileReadParameter( iounit_params , IdLJEl14 )
-        read( IOBuffer, * ) str
+        call FileReadParameter( str, iounit_params , IdLJEl14, .true., "no" )
         select case( str )
         case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
             LJEl14 = .true.
@@ -728,28 +690,12 @@ contains
         end select
         write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
         call LogWrite
-
-      
-        ! Read scaling factors for 1-4 nonbonded interactions
-!        if (LJEl14) then  
-!          call FileReadParameter( iounit_params , IdScaleEl14 )
-!          read( IOBuffer, * ) ScaleEl14
-!          write( IOBuffer, '("Scaling factor for electrostatic terms in 1,4 nonbonded interactions: ", F9.6)' ) &
-!&            ScaleEl14
-!          call LogWrite
-!          call FileReadParameter( iounit_params , IdScaleLJ14 )
-!          read( IOBuffer, * ) ScaleLJ14
-!          write( IOBuffer, '("Scaling factor for Lennard-Jones terms in 1,4 nonbonded interactions: ", F9.6)' ) &
-!&            ScaleLJ14
-!          call LogWrite   
-!        end if   
       end if
     end if  
 
 
     ! Read number of ensembles
-    call FileReadParameter( iounit_params , IdNEnsembles )
-    read( IOBuffer, * ) this%NEnsembles
+    call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
     call LogWrite
 
@@ -945,8 +891,16 @@ contains
     integer :: StepStart, StepEnd
     integer :: i
     logical :: NPartsOk
+    type(TStopwatch) :: RunTimer,RunStepsTimer
 
     tooManyParticles = .false.
+
+    ! Stopwatch
+    call Construct(RunTimer,"TSimulation_Run",CStopwatch_useStartBarrier)
+    call Construct(RunStepsTimer)
+
+    call start_Timer(RunTimer)
+    call logwritestart_Timer(RunTimer)
 
     if( Restart ) then
       call RestartRead( this )
@@ -974,10 +928,18 @@ contains
       else
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
-      call LogWriteTime
       SimulationType = MonteCarlo
+      !call LogWriteTime
+
+      call Timer_setTag(RunStepsTimer,"MC overlap reduction")
+      call start_Timer(RunStepsTimer)
+      call logwritestart_Timer(RunStepsTimer)
 
       call RunSteps( this, StepStart, StepEnd )
+
+      ! Stopwatch
+      call stop_Timer(RunStepsTimer)
+      call logwritestop_Timer(RunStepsTimer)
 
       if( .not. TerminateProgram ) then
         write( IOBuffer, '("MC overlap reduction completed")' )
@@ -990,6 +952,7 @@ contains
         write( IOBuffer, '("MC overlap reduction terminated")' )
       end if
       call LogWriteTime
+
       StepStart = 1
     end if
 
@@ -1004,9 +967,17 @@ eqloop: do
         else
           write( IOBuffer, '("Starting NVT equilibration")' )
         end if
-        call LogWriteTime
+        ! Stopwatch
+!         call LogWriteTime
+        call Timer_setTag(RunStepsTimer,"NVT equilibration")
+        call start_Timer(RunStepsTimer)
+        call logwritestart_Timer(RunStepsTimer)
 
         call RunSteps( this, StepStart, StepEnd )
+
+        ! Stopwatch
+        call stop_Timer(RunStepsTimer)
+        call logwritestop_Timer(RunStepsTimer)
 
         if( .not. TerminateProgram ) then
           write( IOBuffer, '("NVT equilibration completed")' )
@@ -1029,9 +1000,18 @@ eqloop: do
           else
             write( IOBuffer, '("Starting GE equilibration")' )
           end if
-          call LogWriteTime
+
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"GE equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
+
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1063,9 +1043,18 @@ eqloop: do
           else
             write( IOBuffer, '("Starting HA equilibration")' )
           end if
-          call LogWriteTime
+
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"HA equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
+
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1097,9 +1086,18 @@ eqloop: do
           else
             write( IOBuffer, '("Starting NPT equilibration")' )
           end if
-          call LogWriteTime
+
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"NPT equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
+
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             write( IOBuffer, '("NPT equilibration completed")' )
@@ -1118,9 +1116,18 @@ eqloop: do
           else
             write( IOBuffer, '("Starting Gibbs equilibration")' )
           end if
-          call LogWriteTime
+
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"Gibbs Ensemble")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
+
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1192,9 +1199,18 @@ eqloop: do
       else
         write( IOBuffer, '("Starting simulation")' )
       end if
-      call LogWriteTime
+
+      ! Stopwatch
+      call Timer_setTag(RunStepsTimer,"simulation")
+      call start_Timer(RunStepsTimer)
+      call logwritestart_Timer(RunStepsTimer)
+!       call LogWriteTime
 
       call RunSteps( this, StepStart, StepEnd )
+
+      ! Stopwatch
+      call stop_Timer(RunStepsTimer)
+      call logwritestop_Timer(RunStepsTimer)
 
       if( .not. TerminateProgram ) then
         write( IOBuffer, '("Simulation completed")' )
@@ -1202,7 +1218,7 @@ eqloop: do
       else
         write( IOBuffer, '("Simulation terminated")' )
       end if
-      call LogWriteTime
+!       call LogWriteTime
     end if
 
     ! Output for second virial coefficient run
@@ -1217,6 +1233,10 @@ eqloop: do
       if( BlockSize > 0 ) NBlocks = 1 + (Step - 1) / BlockSize
     end if
     call RestartSave( this )
+
+    ! Stopwatch
+    call stop_Timer(RunTimer)
+    call logwritestop_Timer(RunTimer)
 
   end subroutine TSimulation_Run
 

@@ -228,26 +228,19 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( iounit_potmod, IdLJ126_SiteId )
-        read( IOBuffer, * ) this%SiteId
+        call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
     end if
 
     nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
 
-    call FileReadParameter( iounit_potmod, IdLJ126_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdLJ126_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdLJ126_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdLJ126_sig )
-    read( IOBuffer, * ) this%sig
-    call FileReadParameter( iounit_potmod, IdLJ126_eps )
-    read( IOBuffer, * ) this%eps
-    call FileReadParameter( iounit_potmod, IdLJ126_mass )
-    read( IOBuffer, * ) this%mass
+    call FileReadParameter( this%r(1), iounit_potmod, IdLJ126_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdLJ126_r3, .false. )
+    call FileReadParameter( this%sig, iounit_potmod, IdLJ126_sig, .false. )
+    call FileReadParameter( this%eps, iounit_potmod, IdLJ126_eps, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdLJ126_mass, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -446,26 +439,19 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-    	call FileReadParameter( iounit_potmod, IdCharge_SiteId )
-    	read( IOBuffer, * ) this%SiteId
+      call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
     end if
 
     nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
 
-    call FileReadParameter( iounit_potmod, IdCharge_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdCharge_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdCharge_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdCharge_e )
-    read( IOBuffer, * ) this%e
-    call FileReadParameter( iounit_potmod, IdCharge_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdCharge_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdCharge_r3, .false. )
+    call FileReadParameter( this%e, iounit_potmod, IdCharge_e, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdCharge_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdCharge_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -668,8 +654,7 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( iounit_potmod, IdDipole_SiteId )
-        read( IOBuffer, * ) this%SiteId
+        call FileReadParameter( this%SiteId, iounit_potmod, IdDipole_SiteId, .false. )
     end if
 
     nullify ( this%r )
@@ -678,22 +663,14 @@ contains
     call AllocationError( stat, 'coordinates particles', 3 )
     allocate( this%or( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates particles', 3 )
-    call FileReadParameter( iounit_potmod, IdDipole_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdDipole_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdDipole_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdDipole_theta )
-    read( IOBuffer, * ) theta
-    call FileReadParameter( iounit_potmod, IdDipole_phi )
-    read( IOBuffer, * ) phi
-    call FileReadParameter( iounit_potmod, IdDipole_D )
-    read( IOBuffer, * ) this%D
-    call FileReadParameter( iounit_potmod, IdDipole_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdDipole_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdDipole_r3, .false. )
+    call FileReadParameter( theta, iounit_potmod, IdDipole_theta, .false. )
+    call FileReadParameter( phi, iounit_potmod, IdDipole_phi, .false. )
+    call FileReadParameter( this%D, iounit_potmod, IdDipole_D, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdDipole_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdDipole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -946,8 +923,7 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( iounit_potmod, IdQuadrupole_SiteId )
-        read( IOBuffer, * ) this%SiteId
+        call FileReadParameter( this%SiteId, iounit_potmod, IdQuadrupole_SiteId, .false. )
     end if
 
     nullify ( this%r )
@@ -956,22 +932,14 @@ contains
     call AllocationError( stat, 'coordinates particles', 3 )
     allocate( this%or( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates particles', 3 )
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_theta )
-    read( IOBuffer, * ) theta
-    call FileReadParameter( iounit_potmod, IdQuadrupole_phi )
-    read( IOBuffer, * ) phi
-    call FileReadParameter( iounit_potmod, IdQuadrupole_Q )
-    read( IOBuffer, * ) this%Q
-    call FileReadParameter( iounit_potmod, IdQuadrupole_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdQuadrupole_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdQuadrupole_r3, .false. )
+    call FileReadParameter( theta, iounit_potmod, IdQuadrupole_theta, .false. )
+    call FileReadParameter( phi, iounit_potmod, IdQuadrupole_phi, .false. )
+    call FileReadParameter( this%Q, iounit_potmod, IdQuadrupole_Q, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdQuadrupole_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdQuadrupole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem

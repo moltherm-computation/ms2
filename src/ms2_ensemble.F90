@@ -699,23 +699,20 @@ contains
     call LogWrite
 
     ! Read temperature
-    call FileReadParameter( iounit_params , IdRefTemperature )
-    read( IOBuffer, * ) this%RefTemperature
+    call FileReadParameter( this%RefTemperature, iounit_params , IdRefTemperature, .false. )
     if( .not. UseReducedUnits ) then
       this%RefTemperature = this%RefTemperature / UnitTemperature
     end if
 
     ! Read pressure
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      call FileReadParameter( iounit_params , IdPressure0 )
-      read( IOBuffer, * ) this%RefPressure
+      call FileReadParameter( this%RefPressure, iounit_params , IdPressure0, .false. )
       if( .not. UseReducedUnits ) then
         this%RefPressure = this%RefPressure * 1E6_RK / UnitPressure
       end if
     end if
     if( ConstantPressure ) then
-      call FileReadParameter( iounit_params , IdRefPressure )
-      read( IOBuffer, * ) this%RefPressure
+      call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
       if( .not. UseReducedUnits ) then
         this%RefPressure = this%RefPressure * 1E6_RK / UnitPressure
       end if
@@ -723,51 +720,42 @@ contains
 
     ! Read liquid simulation data
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      call FileReadParameter( iounit_params , IdLiqDensity )
-      read( IOBuffer, * ) this%LiqDensity
+      call FileReadParameter( this%LiqDensity, iounit_params , IdLiqDensity, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqDensity = this%LiqDensity / UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdVarLiqDensity )
-      read( IOBuffer, * ) this%VarLiqDensity
+      call FileReadParameter( this%VarLiqDensity, iounit_params , IdVarLiqDensity, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqDensity = this%VarLiqDensity / UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdLiqEnthalpy )
-      read( IOBuffer, * ) this%LiqEnthalpy
+      call FileReadParameter( this%LiqEnthalpy, iounit_params , IdLiqEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqEnthalpy = this%LiqEnthalpy / ( UnitEnergy * NAvogadro )
       end if
-      call FileReadParameter( iounit_params , IdVarLiqEnthalpy )
-      read( IOBuffer, * ) this%VarLiqEnthalpy
+      call FileReadParameter( this%VarLiqEnthalpy, iounit_params , IdVarLiqEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqEnthalpy = this%VarLiqEnthalpy / ( UnitEnergy * NAvogadro )
       end if
-      call FileReadParameter( iounit_params , IdLiqBetaT )
-      read( IOBuffer, * ) this%LiqBetaT
+      call FileReadParameter( this%LiqBetaT, iounit_params , IdLiqBetaT, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqBetaT = this%LiqBetaT * UnitPressure * 1E-6_RK
       end if
-      call FileReadParameter( iounit_params , IdVarLiqBetaT )
-      read( IOBuffer, * ) this%VarLiqBetaT
+      call FileReadParameter( this%VarLiqBetaT, iounit_params , IdVarLiqBetaT, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqBetaT = this%VarLiqBetaT * UnitPressure * 1E-6_RK
       end if
-      call FileReadParameter( iounit_params , IdLiqdHdP )
-      read( IOBuffer, * ) this%LiqdHdP
+      call FileReadParameter( this%LiqdHdP, iounit_params , IdLiqdHdP, .false. )
       if( .not. UseReducedUnits ) then
         this%LiqdHdP = this%LiqdHdP * UnitDensity
       end if
-      call FileReadParameter( iounit_params , IdVarLiqdHdP )
-      read( IOBuffer, * ) this%VarLiqdHdP
+      call FileReadParameter( this%VarLiqdHdP, iounit_params , IdVarLiqdHdP, .false. )
       if( .not. UseReducedUnits ) then
         this%VarLiqdHdP = this%VarLiqdHdP * UnitDensity
       end if
     end if
 
     ! Read density
-    call FileReadParameter( iounit_params , IdRefDensity )
-    read( IOBuffer, * ) this%RefDensity
+    call FileReadParameter( this%RefDensity, iounit_params , IdRefDensity, .false. )
     if( .not. UseReducedUnits ) then
       this%RefDensity = this%RefDensity / UnitDensity
     end if
@@ -832,15 +820,16 @@ contains
 
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
-      call FileReadParameter( iounit_params , IdPistonMass )
-      read( IOBuffer, * ) this%PistonMass
+      call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
+      if( .not. UseReducedUnits ) then
+!        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
+      end if
       write( IOBuffer, '("Mass of piston: ", F12.9)' ) this%PistonMass
       call LogWrite
     end if
 
     ! Read initial number of particles in ensemble
-    call FileReadParameter( iounit_params , IdNPart )
-    read( IOBuffer, * ) this%NPart
+    call FileReadParameter( this%NPart, iounit_params , IdNPart, .false. )
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       this%NPartInitial = this%NPart
@@ -849,8 +838,7 @@ contains
     end if
 
     ! Read number of components in ensemble
-    call FileReadParameter( iounit_params , IdNComponents )
-    read( IOBuffer, * ) this%NComponents
+    call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
     write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
@@ -893,11 +881,9 @@ contains
     this%ScaleEpsilon(:, :) = 1._RK
     do i = 1, this%NRealComponents - 1
       do j = i + 1, this%NRealComponents
-        call FileReadParameter( iounit_params , IdScaleSigma )
-        read( IOBuffer, * ) this%ScaleSigma(i, j)
+        call FileReadParameter( this%ScaleSigma(i, j), iounit_params , IdScaleSigma, .false. )
         if( i /= j ) this%ScaleSigma(j, i) = this%ScaleSigma(i, j)
-        call FileReadParameter( iounit_params , IdScaleEpsilon )
-        read( IOBuffer, * ) this%ScaleEpsilon(i, j)
+        call FileReadParameter( this%ScaleEpsilon(i, j), iounit_params , IdScaleEpsilon, .false. )
         if( i /= j ) this%ScaleEpsilon(j, i) = this%ScaleEpsilon(i, j)
         write( IOBuffer, &
 &         '(A, "-", A, " Lennard-Jones interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
@@ -914,10 +900,10 @@ contains
     this%RCutoffDipoleQuadrupole = 0._RK
     this%RCutoffQuadrupoleQuadrupole = 0._RK
     if( CutoffMode .eq. CenterofMass ) then
-      call FileReadParameter( iounit_params , IdRCutoffCOM )
-      read( IOBuffer, * ) this%RCutoffLJ126LJ126
+      call FileReadParameter( this%RCutoffLJ126LJ126, iounit_params , IdRCutoffCOM, .false. )
       if (this%RCutoffLJ126LJ126 < 0._RK) then
-        this%RCutoffLJ126LJ126 = 0.9*0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
+        this%RCutoffLJ126LJ126 = 0.9*0.5*(this%NPart / &
+&              (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
       end if
       write( IOBuffer, '("Reduced center of mass cutoff radius: ", F6.3)' ) &
 &       this%RCutoffLJ126LJ126
@@ -927,22 +913,19 @@ contains
       this%RCutoffQuadrupoleQuadrupole = this%RCutoffLJ126LJ126
     else
       if( this%NLJ126Max > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffLJ126LJ126 )
-        read( IOBuffer, * ) this%RCutoffLJ126LJ126
+        call FileReadParameter( this%RCutoffLJ126LJ126, iounit_params , IdRCutoffLJ126LJ126, .false. )
         write( IOBuffer, &
 &         '("Lennard-Jones cutoff radius: ", F6.3, " sigma")' ) &
 &         this%RCutoffLJ126LJ126
         call LogWrite
       end if
       if( this%NDipoleMax > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffDipoleDipole )
-        read( IOBuffer, * ) this%RCutoffDipoleDipole
+        call FileReadParameter( this%RCutoffDipoleDipole, iounit_params , IdRCutoffDipoleDipole, .false. )
         write( IOBuffer, '("Reduced dipole-dipole cutoff radius: ", F8.3)' ) &
 &         this%RCutoffDipoleDipole
         call LogWrite
         if( this%NQuadrupoleMax > 0 ) then
-          call FileReadParameter( iounit_params , IdRCutoffDipoleQuadrupole )
-          read( IOBuffer, * ) this%RCutoffDipoleQuadrupole
+          call FileReadParameter( this%RCutoffDipoleQuadrupole, iounit_params , IdRCutoffDipoleQuadrupole, .false. )
           write( IOBuffer, &
 &           '("Reduced dipole-quadrupole cutoff radius: ", F8.3)' ) &
 &           this%RCutoffDipoleQuadrupole
@@ -950,8 +933,7 @@ contains
         end if
       end if
       if( this%NQuadrupoleMax > 0 ) then
-        call FileReadParameter( iounit_params , IdRCutoffQuadrupoleQuadrupole )
-        read( IOBuffer, * ) this%RCutoffQuadrupoleQuadrupole
+        call FileReadParameter( this%RCutoffQuadrupoleQuadrupole, iounit_params , IdRCutoffQuadrupoleQuadrupole, .false. )
         write( IOBuffer, &
 &         '("Reduced quadrupole-quadrupole cutoff radius: ", F8.3)' ) &
 &         this%RCutoffQuadrupoleQuadrupole
@@ -962,8 +944,7 @@ contains
     ! Read characteristic dielectric constant
     this%RFEpsilon = 0._RK
     if(( this%NDipoleMax > 0 ) .or. ( this%NChargeMax > 0 )) then
-      call FileReadParameter( iounit_params , IdRFEpsilon )
-      read( IOBuffer, * ) this%RFEpsilon
+      call FileReadParameter( this%RFEpsilon, iounit_params , IdRFEpsilon, .false. )
       write( IOBuffer, '("Characteristic dielectric constant: ", E16.9)' ) &
 &       this%RFEpsilon
       call LogWrite
@@ -1006,7 +987,6 @@ contains
     end do
 
     ! Calculate maximum cutoff radius
-!     this%RCutoffMax2 = 0._RK       ! Bug
     if( this%NDipoleMax > 0 ) then
       this%RCutoffMax2 = max(this%RCutoffMax2, &
 &       2._RK * this%RCutoffDipoleDipole )
@@ -1265,8 +1245,7 @@ contains
     call LogWrite
 
     ! Read temperature
-    call FileReadParameter( iounit_params , IdRefTemperature )
-    read( IOBuffer, * ) this%Temperature
+    call FileReadParameter( this%Temperature, iounit_params , IdRefTemperature, .false. )
     if( .not. UseReducedUnits ) then
       this%Temperature = this%Temperature / UnitTemperature
     end if
@@ -1279,8 +1258,7 @@ contains
     call LogWrite
 
     ! Read number of components in ensemble
-    call FileReadParameter( iounit_params , IdNComponents )
-    read( IOBuffer, * ) this%NComponents
+    call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
     write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
@@ -1299,8 +1277,7 @@ contains
     do i = 1, this%NComponents, 2
 
       ! Read file name for potential model
-      call FileReadParameter( iounit_params , IdPotModFileName )
-      read( IOBuffer, * ) PotModFileName
+      call FileReadParameter( PotModFileName, iounit_params , IdPotModFileName, .false. )
 
       call Construct( this%Component(i), PotModFileName )
       call Construct( this%Component(i+1), PotModFileName )
@@ -1333,12 +1310,10 @@ contains
     this%ScaleEpsilon(:, :) = 1._RK
     do i = 1, this%NComponents - 2, 2
       do j = i + 2, this%NComponents, 2
-        call FileReadParameter( iounit_params , IdScaleSigma )
-        read( IOBuffer, * ) scaleSigma
+        call FileReadParameter( scaleSigma, iounit_params , IdScaleSigma, .false. )
         this%ScaleSigma(i:i+1, j:j+1) = scaleSigma
         if( i /= j ) this%ScaleSigma(j:j+1, i:i+1) = scaleSigma
-        call FileReadParameter( iounit_params , IdScaleEpsilon )
-        read( IOBuffer, * ) scaleEpsilon
+        call FileReadParameter( scaleEpsilon, iounit_params , IdScaleEpsilon, .false. )
         this%ScaleEpsilon(i:i+1, j:j+1) = scaleEpsilon
         if( i /= j ) this%ScaleEpsilon(j:j+1, i:i+1) = scaleEpsilon
         write( IOBuffer, &
@@ -1593,7 +1568,7 @@ contains
         allocate( reallocate(ncomp), STAT = stat )
         call AllocationError( stat, 'components', ncomp )
         reallocate( 1:size(this%Component) ) = this%Component(:)
-        deallocate( this%Component )
+ !       deallocate( this%Component )
         this%Component => reallocate
 
         do j = 1, nfluct
@@ -1635,7 +1610,7 @@ contains
     do i = 1, this%NComponents
       call Destruct( this%Component(i) )
     end do
-    if( associated( this%Component ) ) deallocate( this%Component )
+!    if( associated( this%Component ) ) deallocate( this%Component )
 
   end subroutine TEnsemble_DestroyComponents
 
@@ -4924,6 +4899,7 @@ loop2:        do nc = 1, this%NComponents
         n = pi%NPart2*pi%NUnit2
         call Energy( pi, np, nu, this%BoxLength )
        call IntraEnergy( pi, np, nu, this%BoxLength )
+
 
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )

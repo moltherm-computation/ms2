@@ -432,12 +432,10 @@ contains
     call AllocationError( stat, 'number of test particles' )
 
     ! Read file name for potential model
-    call FileReadParameter( iounit_params , IdPotModFileName )
-    read( IOBuffer, * ) this%PotModFileName
+    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read molar fraction of this component
-    call FileReadParameter( iounit_params , IdFraction )
-    read( IOBuffer, * ) this%Fraction
+    call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
     write( IOBuffer, '("Molar fraction of component ", A, ": ", F9.6)' ) &
 &     trim( this%PotModFileName ), this%Fraction
     call LogWrite
@@ -451,19 +449,14 @@ contains
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
       ! Read molar fraction of liquid simulation
-      call FileReadParameter( iounit_params , IdLiqFraction )
-      read( IOBuffer, * ) this%LiqFraction
+      call FileReadParameter( this%LiqFraction, iounit_params , IdLiqFraction, .false. )
 
       ! Read chemical potential and partial molar volume and their
       ! uncertainties for Grand Equilibrium
-      call FileReadParameter( iounit_params , IdChemPot )
-      read( IOBuffer, * ) this%ChemPot0
-      call FileReadParameter( iounit_params , IdVarChemPot )
-      read( IOBuffer, * ) this%VarChemPot
-      call FileReadParameter( iounit_params , IdPartialMolarVolume )
-      read( IOBuffer, * ) this%PartialMolarVolume
-      call FileReadParameter( iounit_params , IdVarPartialMolarVolume )
-      read( IOBuffer, * ) this%VarPartialMolarVolume
+      call FileReadParameter( this%ChemPot0, iounit_params , IdChemPot, .false. )
+      call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
+      call FileReadParameter( this%PartialMolarVolume, iounit_params , IdPartialMolarVolume, .false. )
+      call FileReadParameter( this%VarPartialMolarVolume, iounit_params , IdVarPartialMolarVolume, .false. )
       write( IOBuffer, &
 &       '("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
@@ -477,10 +470,8 @@ contains
     else if( EnsembleType .eq. EnsembleTypeHA ) then
       if( comp == 1 ) then
         ! Read chemical potential of phase changing component (first one)
-        call FileReadParameter( iounit_params , IdChemPot )
-        read( IOBuffer, * ) this%ChemPot
-        call FileReadParameter( iounit_params , IdVarChemPot )
-        read( IOBuffer, * ) this%VarChemPot
+        call FileReadParameter( this%ChemPot, iounit_params , IdChemPot, .false. )
+        call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
         write( IOBuffer, &
 &         '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &         trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
@@ -490,8 +481,7 @@ contains
 
     else
       ! Read method for calculation of chemical potential
-      call FileReadParameter( iounit_params, IdChemPotMethod )
-      read( IOBuffer, * ) str
+      call FileReadParameter( str, iounit_params, IdChemPotMethod, .false., "NONE" )
       select case( str )
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
@@ -517,8 +507,7 @@ contains
 
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
-        call FileReadParameter( iounit_params, IdNTest )
-        read( IOBuffer, * ) this%NTest
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) &
 &         call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '("Number of test particles:", I11 )' ) this%NTest
@@ -527,8 +516,7 @@ contains
       ! Read weighting factors method
       this%WFMethod = WFMethodNone
       if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( iounit_params, IdWeightFactors )
-        read( IOBuffer, * ) str
+        call FileReadParameter( str, iounit_params, IdWeightFactors, .false. )
         select case(str)
         case( 'auto', 'Auto' )
           call Error( 'Method "auto" for weighting factors is not implemented' )
@@ -748,6 +736,17 @@ contains
     ! Deallocate number of particles in component
     if( associated( this%NPart ) ) then
       deallocate( this%NPart )
+    end if
+
+    ! Deallocation of MC vectors - even in MD
+    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+      ! Deallocate maximum allowed MC displacements
+      if( associated( this%DispTran ) ) then
+        deallocate( this%DispTran )
+      end if
+      if( associated( this%DispRot ) ) then
+        deallocate( this%DispRot )
+      end if
     end if
 
   end subroutine TComponent_Destruct

@@ -20,6 +20,7 @@
 
 module ms2_unit
 
+  use ms2_global
   use ms2_site
 
 !==============================================================!
@@ -171,14 +172,12 @@ contains
 
     if ( UseIntDegFreed ) then
       if ( this%isConstraint ) then
-          call FileReadParameter( iounit_potmod, IdConstraint_NSites )
-          read( IOBuffer, * ),this%NSites
-          call FileReadParameter( iounit_potmod, IdConstraint_SiteIds )
+          call FileReadParameter( this%NSites, iounit_potmod, IdConstraint_NSites, .false. )
+          call FileReadParameter_IOBuffer( iounit_potmod, IdConstraint_SiteIds )
           read( IOBuffer, * ),this%SiteIds
 
           ! Read number of rotation axes
-          call FileReadParameter( iounit_potmod, IdConstraint_NDFRot )
-          read( IOBuffer, * ) stype
+          call FileReadParameter( stype, iounit_potmod, IdConstraint_NDFRot, .false. )
           select case( stype )
             case( '0' )
                this%NDFRot = 0
@@ -612,13 +611,10 @@ contains
     ! Read moments of inertia
     this%MOI(:) = 0._RK
     if( this%NDFRot > 0 ) then
-      call FileReadParameter( iounit_potmod, IdConstraint_MOI1 )
-      read( IOBuffer, * ) this%MOI(1)
-      call FileReadParameter( iounit_potmod, IdConstraint_MOI2 )
-      read( IOBuffer, * ) this%MOI(2)
+      call FileReadParameter( this%MOI(1), iounit_potmod, IdConstraint_MOI1, .false. )
+      call FileReadParameter( this%MOI(2), iounit_potmod, IdConstraint_MOI2, .false. )
       if( this%NDFRot == 3 ) then
-        call FileReadParameter( iounit_potmod, IdConstraint_MOI3 )
-        read( IOBuffer, * ) this%MOI(3)
+        call FileReadParameter( this%MOI(3), iounit_potmod, IdConstraint_MOI3, .false. )
       end if
     end if
 
