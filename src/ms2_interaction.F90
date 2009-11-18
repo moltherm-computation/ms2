@@ -135,6 +135,7 @@ module ms2_interaction
 
     ! IDF
     integer,pointer :: BoPartner(:,:), BondCount(:)
+    integer,pointer :: AnglePartner(:,:), AngleCount(:)
 
     ! Ewald Summation
     real(RK) :: Kappa
@@ -303,6 +304,11 @@ contains
     ! Set Bond Partners
     this%BondCount => Component1%BondCount
     this%BoPartner => Component1%BoPartner
+
+    ! Set Angle Partners
+    this%AngleCount => Component1%AngleCount
+    this%AnglePartner => Component1%AnglePartner
+
 
     ! Set Number of interaction sites per Unit
     this%UnitLJ1 => Component1%UnitLJ
@@ -2926,6 +2932,7 @@ contains
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: RXkj, RYkj, RZkj, RijRkj
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXj, OYj, OZj
@@ -2942,13 +2949,15 @@ contains
     real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: KappaRij, Rij, approx, Faktor, q
-    real(RK)          :: coeff
+    real(RK)          :: coeff, coeffIntra
     real(RK)          :: r, dr, rsquared
+    real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
+    real(RK)          :: RXk, RYk, RZk
     real(RK)          :: f0
     integer           :: N
     integer           :: s1, s2, j, k
-    integer           :: bi, i, u1, u2
-    integer           :: unit1,unit2,jk
+    integer           :: bi, i, u1, u2, u3
+    integer           :: unit1,unit2, unit3, unitX, jk
     integer           :: nup,nups, mol
     logical           :: intra15, intra14
     logical           :: SameComponent
@@ -3888,6 +3897,95 @@ contains
             VirialLocal = VirialLocal + 2._RK*(PXij * FXij + PYij * FYij + PZij * FZij)
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do ! bonds
+
+          ! Angle Interaction
+          coeffIntra = 2._RK
+          k = this%AngleCount(nu)
+          do j = 1, k
+            bi = this%AnglePartner(nu,j)
+            pan => this%PotAngle(bi)
+            u1 = pan%Unit1 ! unit1 of angle
+            u2 = pan%Unit2 ! unit2 of angle
+            u3 = pan%Unit3 ! unit2 of angle
+            ! Assign pointers to site positions
+            RXi=pan%Angle%RX1(np)
+            RYi=pan%Angle%RY1(np)
+            RZi=pan%Angle%RZ1(np)
+            RXk=pan%Angle%RX3(np)
+            RYk=pan%Angle%RY3(np)
+            RZk=pan%Angle%RZ3(np)
+
+            RXij = (RXi - pan%Angle%RX2(np)) * BoxLength
+            RYij = (RYi - pan%Angle%RY2(np)) * BoxLength
+            RZij = (RZi - pan%Angle%RZ2(np)) * BoxLength
+            RXkj = (RXk - pan%Angle%RX2(np)) * BoxLength
+            RYkj = (RYk - pan%Angle%RY2(np)) * BoxLength
+            RZkj = (RZk - pan%Angle%RZ2(np)) * BoxLength
+
+            RijSquared=RXij**2+RYij**2+RZij**2
+            RkjSquared=RXkj**2+RYkj**2+RZkj**2
+
+           ! Calculate angle
+           RijRkj=dsqrt(RijSquared*RkjSquared)
+           cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
+           if( cosa .gt. 1._RK ) cosa = 1._RK
+           if( cosa .lt.  -1._RK ) cosa = -1._RK
+           Angle = acos(cosa)
+
+           ! Calculate energy
+           ! Deviation from equilibrium
+           dAngle = Angle - this%PotAngle(bi)%Angle0
+
+           ! Derivative of the energy
+           abc = dAngle*this%PotAngle(bi)%ForConst
+           if (u1==nu) then
+              if ((u1 .ne. u2) .and. (u1 .ne. u3)) then
+                unit2=(np-1) * this%NUnit1 + u2
+                unit3=(np-1) * this%NUnit1 + u3
+                EPot(unit2) = EPot(unit2) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+                EPot(unit3) = EPot(unit3) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+              else
+                unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
+                EPot(unitX) = EPot(unitX) + abc*dAngle*coeffIntra
+              end if
+           end if
+
+           if (u2==nu) then
+              if ((u2 .ne. u1) .and. (u2 .ne. u3)) then
+                unit1=(np-1) * this%NUnit1 + u1
+                unit3=(np-1) * this%NUnit1 + u3
+                EPot(unit1) = EPot(unit1) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+                EPot(unit3) = EPot(unit3) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+              else
+                unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
+                EPot(unitX) = EPot(unitX) + abc*dAngle*coeffIntra
+              end if
+           end if
+
+           if (u3==nu) then
+              if ((u3 .ne. u1) .and. (u3 .ne. u2)) then
+                unit1=(np-1) * this%NUnit1 + u1
+                unit2=(np-1) * this%NUnit1 + u2
+                EPot(unit1) = EPot(unit1) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+                EPot(unit2) = EPot(unit2) + abc*dAngle ! abc*dAngle/2 * coeffIntra
+              else
+                unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
+                EPot(unitX) = EPot(unitX) + abc*dAngle*coeffIntra
+              end if
+           end if
+
+
+         end do
+
+
+          ! Dihedral/Torsions Interaction
+ !         k = this%AngleCount(nu)
+ !         do j = 1, k
+ !           bi = this%DihedralPartner(nu,j)
+ !           pto => this%PotDihedral(bi)
+ !           u1 = pto%Unit1 ! unit1 of dihedral
+ !           u2 = pto%Unit2 ! unit2 of dihedral
+
 
       end if
 

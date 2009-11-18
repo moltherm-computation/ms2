@@ -65,6 +65,7 @@ module ms2_idf
     real(RK)          :: ForConst
     real(RK)          :: Angle0, Angle
     integer           :: SiteId1, SiteId2, SiteId3
+    integer           :: UnitId1, UnitId2, UnitId3
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
@@ -98,6 +99,7 @@ module ms2_idf
     real(RK)          :: gamma ! phase factor
     integer           :: multi     ! multiplicity
     integer           :: SiteId1, SiteId2, SiteId3, SiteId4
+    integer           :: UnitId1, UnitId2, UnitId3, UnitId4
     real(RK)          :: ScaleLJ14
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart

@@ -100,6 +100,8 @@ module ms2_molecule
     ! Bonded Units
     integer,pointer      :: BondCount(:)
     integer,pointer      :: BoPartner(:,:)
+    integer,pointer      :: AngleCount(:)
+    integer,pointer      :: AnglePartner(:,:)
     integer, allocatable :: BondedUnits(:, :)
 
     !1-4 and 1-5 Sites in molecule for intramolecular 1-4, 1-5 nonbonded interactions
@@ -173,14 +175,6 @@ module ms2_molecule
 ! Find  bond angle
   interface FindAngle
     module procedure TMolecule_FindAngle
-  end interface
-
-  interface BondCheck
-    module procedure TMolecule_BondCheck
-  end interface
-
-  interface AngleCheck
-    module procedure TMolecule_AngleCheck
   end interface
 
   interface DihedralCheck
@@ -392,7 +386,12 @@ contains
        this%BondCount = 0
        allocate (this%BoPartner(this%NLJ126,this%NSite), STAT = stat)
        call AllocationError( stat, 'BoPartner', this%NSite )
-
+       nullify( this%AngleCount )
+       nullify( this%AnglePartner )
+       allocate (this%AngleCount(this%NSite), STAT = stat)
+       call AllocationError( stat, 'AngleCount', this%NSite )
+       allocate (this%AnglePartner(this%NLJ126,this%NSite), STAT = stat)
+       call AllocationError( stat, 'AnglePartner', this%NSite )
 
        if( this%NLJ126 > 0 ) then
           do j = 1, this%NLJ126
@@ -439,7 +438,7 @@ contains
             call AllocationError( stat, 'Bonds for integral degrees of freedom', this%NBond )
             do j = 1, this%NBond
               call Construct( this%IdfBond(j) )
-              call FindBondR(this,this%IdfBond(j), j)
+!             call FindBondR(this,this%IdfBond(j), j)
             end do
           end if
         case( 'ANGLE', 'Angle', 'angle', 'Angles', 'ANGLES' )
@@ -449,7 +448,7 @@ contains
             call AllocationError( stat, 'angles for internal degrees of freedom', this%NAngle )
             do j = 1, this%NAngle
               call Construct( this%IdfAngle(j) )
-              call FindAngle(this,this%IdfAngle(j), j)
+!              call FindAngle(this,this%IdfAngle(j), j)
             end do
           end if
         case( 'DIHEDRAL', 'Dihedral', 'dihedral', 'Dihedrals', 'DIHEDRALS' )
@@ -536,7 +535,7 @@ contains
              end do
              k=k+ncspu(i)
           end do
-       end if
+       end if ! if NConstraint > 0
        if (this%NNotConstraint > 0) then
           allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
           call AllocationError( stat, 'NotConstraintSiteIds', this%NNotConstraint )
@@ -624,22 +623,43 @@ contains
          this%Unit(1)%NDFRot = -1
     end if
 
+    ! Zero arrays
+    do i=1, this%NUnit
+      this%BondCount(i)=0
+      this%AngleCount(i)=0
+    end do
+
+
     if (UseIntDegFreed) then
-      if ( this%NBond > 0 ) then
-        do j = 1, this%NBond
-           call BondCheck(this, j)
+       if (this%NBond>0) then ! check bonds and find initial bond lengths
+         do j = 1, this%NBond
+           if (j<=this%NBond) then
+              call FindBondR(this,this%IdfBond(j), j) ! Number of bonds can change in this procedure!
+           else
+             exit
+           end if
+          end do
+       end if
+
+      if (this%NAngle>0) then ! check angles and find initial angles
+         do j = 1, this%NAngle
+           if (j<=this%NAngle) then
+              call FindAngle(this,this%IdfAngle(j), j) ! Number of angles can change in this procedure!
+           else
+             exit
+           end if
         end do
+!        do i=1, this%NUnit
+!          print *, 'i=', i
+!          print *, 'this%AngleCount(i)=', this%AngleCount(i)
+!        end do
       end if
-      if ( this%NAngle > 0 ) then
-        do j = 1, this%NAngle
-           call AngleCheck(this, j)
-        end do
-      end if
-      if ( this%NDihedral > 0 ) then
-        do j = 1, this%NDihedral
-           call DihedralCheck(this, j)
-        end do
-      end if
+
+!      if ( this%NDihedral > 0 ) then
+!        do j = 1, this%NDihedral
+!           call DihedralCheck(this, j)
+!        end do
+!      end if
    end if
 
    ! Assigning Number of interaction sites to vectors
@@ -657,18 +677,6 @@ contains
     call AllocationError( stat, 'UnitDP' )
     allocate( this%UnitQP(this%NUnit+1), STAT = stat )
     call AllocationError( stat, 'UnitQP' )
-
-!    this%UnitLJ = this%NLJ126
-!    this%UnitC  = this%NCharge
-!    this%UnitDP = this%NDipole
-!    this%UnitQP = this%NQuadrupole
-!
-!   do i=2, this%NUnit
-!     if (this%UnitLJ(1) .ne. 0) this%UnitLJ(i) = 1+this%Unit(i-1)%NSites
-!     if (this%UnitC(1)  .ne. 0) this%UnitC(i)  = 1+this%Unit(i-1)%NCharge
-!     if (this%UnitDP(1) .ne. 0) this%UnitDP(i) = 1+this%Unit(i-1)%NDipole
-!     if (this%UnitQP(1) .ne. 0) this%UnitQP(i) = 1+this%Unit(i-1)%NQuadrupole
-!   end do
 
     this%UnitLJ = 1
     this%UnitC  = 1
@@ -1522,11 +1530,18 @@ contains
       end do
       deallocate( this%SiteQuadrupole )
     end if
+
     if( associated( this%BondCount ) ) then
       deallocate( this%BondCount )
     end if
     if( associated( this%BoPartner ) ) then
       deallocate( this%BoPartner )
+    end if
+        if( associated( this%AngleCount ) ) then
+      deallocate( this%AngleCount )
+    end if
+    if( associated( this%AnglePartner ) ) then
+      deallocate( this%AnglePartner )
     end if
 
   end subroutine TMolecule_Destruct
@@ -2182,7 +2197,7 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfBond)      :: Bond
-    integer, intent(in) :: j
+    integer, intent(in out) :: j
 
     ! Declare local variables
     integer:: SiteId1, SiteId2
@@ -2198,24 +2213,30 @@ contains
     Site1 = .false.
     Site2 = .false.
 
-     if( this%NLJ126 > 0 ) then
+   if( this%NLJ126 > 0 ) then
      do i = 1, this%NLJ126
         if (this%SiteLJ126(i)%SiteId==SiteId1) then
             r1(1)=this%SiteLJ126(i)%r(1)
             r1(2)=this%SiteLJ126(i)%r(2)
             r1(3)=this%SiteLJ126(i)%r(3)
             Site1 = .true.
+            Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+            this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId2) then
             r2(1)=this%SiteLJ126(i)%r(1)
             r2(2)=this%SiteLJ126(i)%r(2)
             r2(3)=this%SiteLJ126(i)%r(3)
             Site2 = .true.
+            Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+            this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
         if (Site1 .and. Site2) then
             exit
         end if
      end do
-end if
+   end if
 
 if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
      do i = 1, this%NCharge
@@ -2224,11 +2245,17 @@ if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
             r1(2)=this%SiteCharge(i)%r(2)
             r1(3)=this%SiteCharge(i)%r(3)
             Site1 = .true.
+            Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+            this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
             r2(1)=this%SiteCharge(i)%r(1)
             r2(2)=this%SiteCharge(i)%r(2)
             r2(3)=this%SiteCharge(i)%r(3)
             Site2 = .true.
+            Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+            this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
         if (Site1 .and. Site2) then
            exit
@@ -2238,15 +2265,27 @@ end if
 
 
 if (.not. Site1 .or. .not. Site2) then
-write (stb, '(i10)'), j
+write (stb, '(i10)') j
 call Error('Uncorrect sites for bond' // stb)
 end if
 
-
-RX=r2(1)-r1(1)
-RY=r2(2)-r1(2)
-RZ=r2(3)-r1(3)
-Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
+if (Bond%UnitId1==Bond%UnitId2) then
+  this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
+  this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
+  Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
+  Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
+  Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
+  Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
+  Bond%ForConst = this%IdfBond(this%NBond)%ForConst
+  Bond%R0       = this%IdfBond(this%NBond)%R0
+  j = j - 1 ! the procedure of bond definition will be repeated for the same bond
+  this%NBond = this%NBond - 1
+else
+  RX=r2(1)-r1(1)
+  RY=r2(2)-r1(2)
+  RZ=r2(3)-r1(3)
+  Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
+end if
 
 end subroutine TMolecule_FindBondR
 
@@ -2266,7 +2305,7 @@ end subroutine TMolecule_FindBondR
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfAngle)     :: Angle
-    integer, intent(in) :: j
+    integer, intent(in out) :: j
 
     ! Declare local variables
 
@@ -2287,7 +2326,6 @@ end subroutine TMolecule_FindBondR
     Site2 = .false.   !         \  /
     Site3 = .false.   !        (Site2)
 
-
      if( this%NLJ126 > 0 ) then
      do i = 1, this%NLJ126
         if (this%SiteLJ126(i)%SiteId==SiteId1) then
@@ -2295,16 +2333,25 @@ end subroutine TMolecule_FindBondR
             r1(2)=this%SiteLJ126(i)%r(2)
             r1(3)=this%SiteLJ126(i)%r(3)
             Site1 = .true.
+            Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+            this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId2) then
             r2(1)=this%SiteLJ126(i)%r(1)
             r2(2)=this%SiteLJ126(i)%r(2)
             r2(3)=this%SiteLJ126(i)%r(3)
             Site2 = .true.
+            Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+            this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId3) then
             r3(1)=this%SiteLJ126(i)%r(1)
             r3(2)=this%SiteLJ126(i)%r(2)
             r3(3)=this%SiteLJ126(i)%r(3)
             Site3=.true.
+            Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+            this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
       if (Site1 .and. Site2 .and. Site3) then
           exit
@@ -2336,179 +2383,55 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
 end if
 
 if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
-write (sta, '(i10)'), j
+write (sta, '(i10)') j
 call Error('Uncorrect sites for angle' // sta)
 end if
 
-R1X=r1(1)-r2(1)
-R1Y=r1(2)-r2(2)
-R1Z=r1(3)-r2(3)
-R2X=r3(1)-r2(1)
-R2Y=r3(2)-r2(2)
-R2Z=r3(3)-r2(3)
 
-R1S=R1X**2+R1Y**2+R1Z**2
-R2S=R2X**2+R2Y**2+R2Z**2
-R1R2=dsqrt(R1S*R2S)
+if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
+  print *, 'this angle is in one unit, should not be calculated'
+  this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+  this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+  this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
+  Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
+  Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
+  Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
+  Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
+  Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
+  Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
+  Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
+  Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
+  j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
+  this%NAngle = this%NAngle - 1
+else ! calculate value of this angle
+  if (Angle%UnitId1==Angle%UnitId2) then
+    this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+  end if
+  if (Angle%UnitId2==Angle%UnitId3) then
+    this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+  end if
+  if (Angle%UnitId1==Angle%UnitId3) then
+    this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+  end if
+  R1X=r1(1)-r2(1)
+  R1Y=r1(2)-r2(2)
+  R1Z=r1(3)-r2(3)
+  R2X=r3(1)-r2(1)
+  R2Y=r3(2)-r2(2)
+  R2Z=r3(3)-r2(3)
 
-cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
-if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
-if ( cosa .lt. -1.0d0) cosa = -1.0d0
+  R1S=R1X**2+R1Y**2+R1Z**2
+  R2S=R2X**2+R2Y**2+R2Z**2
+  R1R2=dsqrt(R1S*R2S)
 
-Angle%Angle0=dacos(cosa)
+  cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
+  if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
+  if ( cosa .lt. -1.0d0) cosa = -1.0d0
+
+  Angle%Angle0=dacos(cosa)
+end if
 
 end subroutine TMolecule_FindAngle
-
-
-
-
-!==============================================================!
-!  Subroutine TMolecule_Bondcheck                              !
-!==============================================================!
-
-
-   subroutine  TMolecule_BondCheck( this, pair )
-
-    implicit none
-
-    ! Declare arguments
-    type(TMolecule)        :: this
-    integer,intent(in out) :: pair
-    integer                :: counteri, counterj
-    integer                :: count
-    integer                :: check1, check2
-    integer                :: i,j
-    logical                :: hit
-!     logical                :: hit1,hit2
-!     integer                :: counter
-      counteri = 1
-      counterj = 1
-      hit = .false.
-!       hit1 = .false.
-!       hit2 = .false.
-
-loop1:do i=1,this%NUnit
-        if ( this%IdfBond(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
-loop2:    do j=1,this%NUnit
-            if ( this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
-              hit = .true.
-              ! Abortion, if bond is defined within unit 
-              if (i .eq. j) then
-                this%IdfBond(pair)%SiteId1  = this%IdfBond(this%NBond)%SiteId1
-                this%IdfBond(pair)%SiteId2  = this%IdfBond(this%NBond)%SiteId2
-                this%IdfBond(pair)%UnitId1  = this%IdfBond(this%NBond)%UnitId1
-                this%IdfBond(pair)%UnitId2  = this%IdfBond(this%NBond)%UnitId2
-                this%IdfBond(pair)%ForConst = this%IdfBond(this%NBond)%ForConst
-                this%IdfBond(pair)%R0       = this%IdfBond(this%NBond)%R0
-                pair = pair - 1
-                this%NBond = this%NBond - 1
-                exit loop2
-              else
-                this%IdfBond(pair)%UnitId1 = i
-                count = this%BondCount(i) + 1
-                this%BondCount(i) = count
-                this%BoPartner(i,count) = pair
-                this%IdfBond(pair)%UnitId2 = j
-                count = this%BondCount(j) + 1
-                this%BondCount(j) = count
-                this%BoPartner(j,count) = pair
-                exit loop2
-              end if
-            end if
-            counterj = counterj + this%Unit(j)%NLJ126
-          end do loop2
-        end if
-        if ( hit ) exit loop1
-        counteri = counteri + this%Unit(i)%NLJ126
-      end do loop1
-
-!       counter = 1
-!       do j=1,this%NUnit
-!         if ( .not. hit1 .and. this%IdfBond(pair)%SiteId1 < this%Unit(j)%NLJ126 + counter ) then
-!           check1 = j
-!           this%IdfBond(pair)%UnitId1 = j
-!           count = this%BondCount(j) + 1
-!           this%BondCount(j) = count
-!           this%BoPartner(j,count) = pair
-!           hit1 = .true.
-!         end if
-!         if ( .not. hit2 .and. this%IdfBond(pair)%SiteId2 < this%Unit(j)%NLJ126 + counter ) then
-!           if (check1 .eq. check2) then
-!             this%BondCount(j) = this%BondCount(j) - 1
-!           else
-!             this%IdfBond(pair)%UnitId2 = j
-!             count = this%BondCount(j) + 1
-!             this%BondCount(j) = count
-!           this%BoPartner(j,count) = pair
-!             hit2 = .true.
-!           end if
-!         end if
-!         counter = counter + this%Unit(j)%NLJ126
-!       end do
-
-   end subroutine TMolecule_BondCheck
-
-
-
-!==============================================================!
-!  Subroutine TMolecule_Anglecheck                             !
-!==============================================================!
-
-
-   subroutine  TMolecule_AngleCheck( this, pair )
-
-    implicit none
-
-    ! Declare arguments
-    type(TMolecule)        :: this
-    integer,intent(in out) :: pair
-    integer                :: counteri, counterj, counterk
-    integer                :: count
-    integer                :: check1, check2
-    integer                :: i,j,k
-    logical                :: hit
-
-    ! Local variables
-    counteri = 1
-    counterj = 1
-    counterk = 1
-    hit = .false.
-
-loop1:do i=1,this%NUnit
-        if ( this%IdfAngle(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
-loop2:    do j=1,this%NUnit
-            if ( this%IdfAngle(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
-loop3:        do k=1,this%NUnit
-                if ( this%IdfAngle(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
-                  hit = .true.
-                  ! Abortion, if angle is defined within unit 
-                  if (i .eq. j .and. k .eq. i) then
-                    this%IdfAngle(pair)%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
-                    this%IdfAngle(pair)%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
-                    this%IdfAngle(pair)%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
-!                     this%IdfAngle(pair)%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
-!                     this%IdfAngle(pair)%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
-!                     this%IdfAngle(pair)%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
-                    this%IdfAngle(pair)%ForConst = this%IdfAngle(this%NAngle)%ForConst
-                    this%IdfAngle(pair)%Angle    = this%IdfAngle(this%NAngle)%Angle
-                    this%IdfAngle(pair)%Angle0   = this%IdfAngle(this%NAngle)%Angle0
-                    pair = pair - 1
-                    this%NAngle = this%NAngle - 1
-                    exit loop3
-                  end if
-                end if
-              counterk = counterk + this%Unit(k)%NLJ126
-              end do loop3
-            end if
-            if ( hit ) exit loop2
-            counterj = counterj + this%Unit(j)%NLJ126
-          end do loop2
-        end if
-        if ( hit ) exit loop1
-        counteri = counteri + this%Unit(i)%NLJ126
-      end do loop1
-
-   end subroutine TMolecule_AngleCheck
 
 
 !==============================================================!
@@ -2545,7 +2468,7 @@ loop3:        do k=1,this%NUnit
 loop4:            do m=1,this%NUnit
                     if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(m)%NLJ126 + counterm ) then
                       hit = .true.
-                      ! Abortion, if angle is defined within unit 
+                      ! Abortion, if angle is defined within unit
                       if ((i .eq. j) .and. (k .eq. i) .and. (m .eq.i)) then
                         this%IdfDihedral(pair)%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
                         this%IdfDihedral(pair)%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
@@ -2578,6 +2501,7 @@ loop4:            do m=1,this%NUnit
       end do loop1
 
    end subroutine TMolecule_DihedralCheck
+
 
 
 

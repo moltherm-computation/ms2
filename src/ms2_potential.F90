@@ -475,8 +475,8 @@ module ms2_potential
   type TPotBond
 
     type(TIdfBond), pointer   :: Bond
-    integer                   :: Site1, Site2 
-    integer                   :: Unit1, Unit2 
+    integer                   :: Site1, Site2
+    integer                   :: Unit1, Unit2
     real(RK)                  :: ForConst, R0
     real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
     real(RK)                  :: BoxlengthInv, BoxLengthThird
@@ -512,7 +512,8 @@ module ms2_potential
 
 
     type(TIdfAngle), pointer  :: Angle
-    integer                   :: Site1, Site2, Site3 
+    integer                   :: Site1, Site2, Site3
+    integer                   :: Unit1, Unit2, Unit3
     real(RK)                  :: ForConst, Angle0
     real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
     real(RK)                  :: BoxlengthInv, BoxLengthThird
@@ -548,8 +549,8 @@ module ms2_potential
 
 
     type(TIdfDihedral), pointer  :: Dihedral
-    integer                      :: Site1, Site2, Site3, Site4 
-    integer                      :: multi 
+    integer                      :: Site1, Site2, Site3, Site4
+    integer                      :: multi
     real(RK)                     :: ForConst, gamma
     real(RK)                     :: EPotCorr, VirialCorr, EPotTestCorr
     real(RK)                     :: BoxlengthInv, BoxLengthThird
@@ -932,7 +933,7 @@ contains
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
-    real(RK)          :: EPotLocalInter, VirialLocalInter   
+    real(RK)          :: EPotLocalInter, VirialLocalInter
     logical           :: SameComponent
     logical           :: noIntra, choice
     integer           :: i, j, k, i1, j0, j1
@@ -1116,7 +1117,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
         else ! Site-site cutoff ! Should be corrected
 
-!    noIntra = .not. IntraLJEl       ! no Intramolecular interaction  
+!    noIntra = .not. IntraLJEl       ! no Intramolecular interaction
 !    choice = SameComponent .and. noIntra ! SameComponent, but no Intramolecular interaction
 
 
@@ -1600,7 +1601,7 @@ loop2:do j = 1, N
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: EPotIntra
-    real(RK), intent(in out) :: VirialIntra  
+    real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -1949,9 +1950,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             end if
 
 #if ARCH == 3
-            RijInv = 1._RK /  Rij 
+            RijInv = 1._RK /  Rij
 #else
-            RijInv = 1._RK /  Rij 
+            RijInv = 1._RK /  Rij
 #endif
             KappaRij = Kappa*Rij
             call erfc_approx(KappaRij,approx)
@@ -2171,22 +2172,22 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! !==============================================================!
 ! !  Subroutine TPotCC_ChemicalPotential_Ewald                   !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Include MPI header
 ! #if MPI_VER > 0
 !     include 'mpif.h'
 ! #endif
-! 
+!
 !     ! Declare arguments
 !     type(TPotChargeCharge) :: this
 !     real(RK), pointer      :: EPotTest(:)
 !     real(RK), intent(in)   :: BoxLength
 !     real(RK), intent(in)   :: kappa
-! 
+!
 !     ! Declare local variables
 !     real(RK)          :: Epsilon
 !     real(RK)          :: RCutoffSquared
@@ -2205,13 +2206,13 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! #if ARCH == 3
 !     logical           :: hit
 ! #endif
-! 
+!
 !     ! Assign local variables
 !     i1 = this%Site1%NTest
 !     Epsilon = this%Epsilon
 !     RCutoffSquared = this%RCutoffSquared
 !     RShieldSquared = this%RShieldSquared
-! 
+!
 !     ! Assign pointers
 !     RX1 => this%Site1%RXTest
 !     RY1 => this%Site1%RYTest
@@ -2225,7 +2226,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !     PX2 => this%Site2%PX
 !     PY2 => this%Site2%PY
 !     PZ2 => this%Site2%PZ
-! 
+!
 !    ! Loop over test particles
 !    do i = 1, i1
 !      RXi = RX1(i)
@@ -2258,7 +2259,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! #if ARCH == 3
 !           if( RijSquared <= RShieldSquared ) hit = .true.
 ! #else
-!           if ( RijSquared <= RShieldSquared ) then 
+!           if ( RijSquared <= RShieldSquared ) then
 !               EPotLocal = 1E33_RK
 !               exit loop1
 !           end if
@@ -2267,14 +2268,14 @@ loop1:  do k = 1, this%NInCutoff(i)
 !               EPotLocal1 = 1E33_RK
 !           else
 !               Rij =  sqrt(RijSquared)
-!               RijInv = 1._RK /  Rij 
+!               RijInv = 1._RK /  Rij
 !               KappaRij = Kappa*Rij
 !               call erfc_approx(KappaRij,approx)
 !               EPotLocal1 = Epsilon * RijInv * approx
 !           end if
 !          EPotLocal = EPotLocal + EPotLocal1
 !         end do loop1
-! 
+!
 ! #if ARCH == 3
 !         if( .not. hit ) then
 !           EPotTest(i) = EPotTest(i) + EPotLocal
@@ -2285,28 +2286,28 @@ loop1:  do k = 1, this%NInCutoff(i)
 !         EPotTest(i) = EPotTest(i) + EPotLocal
 ! #endif
 !    end do
-! 
+!
 !   end subroutine TPotCC_ChemicalPotential_Ewald
-! 
+!
 !==============================================================!
 !  Subroutine TPotCC_ChemicalPotential_Ewald                   !
 !==============================================================!
-! ! ! 
+! ! !
 ! ! !   subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
-! ! ! 
+! ! !
 ! ! !     implicit none
 ! ! !
 ! ! !     ! Include MPI header
 ! ! ! #if MPI_VER > 0
 ! ! !     include 'mpif.h'
 ! ! ! #endif
-! ! ! 
+! ! !
 ! ! !     ! Declare arguments
 ! ! !     type(TPotChargeCharge) :: this
 ! ! !     real(RK), pointer      :: EPotTest(:)
 ! ! !     real(RK), intent(in)   :: BoxLength
 ! ! !     real(RK), intent(in)   :: kappa
-! ! ! 
+! ! !
 ! ! !     ! Declare local variables
 ! ! !     real(RK)          :: Epsilon
 ! ! !     real(RK)          :: RShieldSquared
@@ -2324,12 +2325,12 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! ! ! #if ARCH == 3
 ! ! !     logical           :: hit
 ! ! ! #endif
-! ! ! 
+! ! !
 ! ! !     ! Assign local variables
 ! ! !     i1 = this%Site1%NTest
 ! ! !     Epsilon = this%Epsilon
 ! ! !     RShieldSquared = this%RShieldSquared
-! ! ! 
+! ! !
 ! ! !     ! Assign pointers
 ! ! !     RX1 => this%Site1%RXTest
 ! ! !     RY1 => this%Site1%RYTest
@@ -2343,7 +2344,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! ! !     PX2 => this%Site2%PX
 ! ! !     PY2 => this%Site2%PY
 ! ! !     PZ2 => this%Site2%PZ
-! ! ! 
+! ! !
 ! ! !    ! Loop over test particles
 ! ! !    do i = 1, i1
 ! ! !      RXi = RX1(i)
@@ -2376,19 +2377,19 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! ! ! #if ARCH == 3
 ! ! !           if( RijSquared <= RShieldSquared ) hit = .true.
 ! ! ! #else
-! ! !           if ( RijSquared <= RShieldSquared ) then 
+! ! !           if ( RijSquared <= RShieldSquared ) then
 ! ! !               EPotLocal = 1E33_RK
 ! ! !               exit loop1
 ! ! !           end if
 ! ! ! #endif
 ! ! !          Rij        =  sqrt(RijSquared)
-! ! !          RijInv     = 1._RK /  Rij 
+! ! !          RijInv     = 1._RK /  Rij
 ! ! !          KappaRij   = kappa * Rij
-! ! !          call erfc_approx(KappaRij,approx) 
+! ! !          call erfc_approx(KappaRij,approx)
 ! ! !          EPotLocal1 = Epsilon * RijInv * approx
 ! ! !          EPotLocal  = EPotLocal + EPotLocal1
 ! ! !         end do loop1
-! ! ! 
+! ! !
 ! ! ! #if ARCH == 3
 ! ! !         if( .not. hit ) then
 ! ! !           EPotTest(i) = EPotTest(i) + EPotLocal
@@ -2399,10 +2400,10 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! ! !         EPotTest(i) = EPotTest(i) + EPotLocal
 ! ! ! #endif
 ! ! !    end do
-! ! ! 
+! ! !
 ! ! !   end subroutine TPotCC_ChemicalPotential_Ewald
-! ! ! 
-! ! ! 
+! ! !
+! ! !
 
 
 !==============================================================!
@@ -2592,9 +2593,9 @@ loop1:  do k = 1, this%NInCutoff(i)
       else
       Rij =  sqrt(RijSquared)
 #if ARCH == 3
-        RijInv = 1._RK /  Rij 
+        RijInv = 1._RK /  Rij
 #else
-        RijInv = 1._RK /  Rij 
+        RijInv = 1._RK /  Rij
 #endif
         KappaRij = Kappa*Rij
         call erfc_approx(KappaRij,approx)
@@ -2854,7 +2855,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
    	    EPotLocal  = EPotLocal + Epsilon1 * CosTheta 			   ! Uebereinstimmumg mit Price
             EPotLocalInter  = EPotLocalInter + Epsilon1 * CosTheta
    	    FXij = Epsilon2 * ( CosTheta3 * eX - OXj )				   ! F2 bei Price
-   	    FYij = Epsilon2 * ( CosTheta3 * eY - OYj )  
+   	    FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
    	    FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
    	    VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
@@ -2898,8 +2899,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
             EPotLocalIntra  = EPotLocalIntra + Epsilon1 * CosTheta
             FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
-            FYij = Epsilon2 * ( CosTheta3 * eY - OYj ) 
-            FZij = Epsilon2 * ( CosTheta3 * eZ - OZj ) 
+            FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
+            FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             VirialLocalIntra = VirialLocalIntra + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
             FXi    = FXi    + FXij
@@ -2916,7 +2917,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
          FY1(i) = FYi
          FZ1(i) = FZi
        end do
-   
+
        ! Update potential energy and virial
        EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
@@ -3399,12 +3400,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eY = RYij * RijInv
             eZ = RZij * RijInv
             CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-            Epsilon1 = Epsilon * RijSquaredInv * RijInv 
+            Epsilon1 = Epsilon * RijSquaredInv * RijInv
             EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
             EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
             CosTheta2 = 2._RK * CosTheta
             CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
-            Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv 
+            Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
             FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj ) 		    ! F2 nach Price bzw. Kraft auf Punktladung
             FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
             FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
@@ -3416,7 +3417,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(jk) = FX2(jk) - FXij
             FY2(jk) = FY2(jk) - FYij
             FZ2(jk) = FZ2(jk) - FZij
-            TX2(jk) = TX2(jk) - Epsilon1 * CosTheta2 * eX 
+            TX2(jk) = TX2(jk) - Epsilon1 * CosTheta2 * eX
             TY2(jk) = TY2(jk) - Epsilon1 * CosTheta2 * eY
             TZ2(jk) = TZ2(jk) - Epsilon1 * CosTheta2 * eZ
         end if
@@ -3452,7 +3453,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv*coeff
             FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                      ! F2 nach Price bzw. Kraft auf Punktladung
             FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )                      ! 1-4 Coeff is included in Epsilon2
-            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj ) 
+            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
             VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             VirialLocalIntra = VirialLocalIntra + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             FXi    = FXi    + FXij
@@ -3462,8 +3463,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
             TX2(i) = TX2(i) - Epsilon1 * CosTheta2 * eX   ! 1-4 coeff is included in Epsilon1
-            TY2(i) = TY2(i) - Epsilon1 * CosTheta2 * eY 
-            TZ2(i) = TZ2(i) - Epsilon1 * CosTheta2 * eZ 
+            TY2(i) = TY2(i) - Epsilon1 * CosTheta2 * eY
+            TZ2(i) = TZ2(i) - Epsilon1 * CosTheta2 * eZ
           end if
       FX1(i) = FXi
       FY1(i) = FYi
@@ -3596,7 +3597,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           eZ = RZij * RijInv
           CosTheta  = OXj * ex + OYj * eY + OZj * eZ
           EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * RijInv &
-&                        * ( CosTheta * CosTheta - Third )     
+&                        * ( CosTheta * CosTheta - Third )
         end do loop1
 #if ARCH == 3
         if( .not. hit ) then
@@ -3768,7 +3769,7 @@ loop1:  do k = 1, this%NInCutoff(i)
       end do
       if (LJEL14 .and. .not. this%potintra15) then
         ende = size(Molecule1%IntDC14(:,1))
-        do k=1, ende 
+        do k=1, ende
           if (Molecule1%IntDC14(k,1)==this%Site1%SiteId .and. Molecule1%IntDC14(k,2)==this%Site2%SiteId) then
              this%potintra14=.true.
              this%ScaleEl14 = Molecule1%ScaleDC14(k)
@@ -3958,7 +3959,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eZ = RZij * RijInv
             CosTheta  = OXi * ex + OYi * eY + OZi * eZ                       ! -cos(alpha) bei Price
             CosTheta3 = 3._RK * CosTheta
-            Epsilon1 = Epsilon * RijSquaredInv 
+            Epsilon1 = Epsilon * RijSquaredInv
             Epsilon2 = Epsilon1 * RijInv
             EPotLocal  = EPotLocal - Epsilon1 * CosTheta                     ! Uebereinstimmumg mit Price
             EPotLocalInter  = EPotLocalInter - Epsilon1 * CosTheta           ! Uebereinstimmumg mit Price
@@ -4148,7 +4149,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
-          CosTheta  = OXi * ex + OYi * eY + OZi * eZ 
+          CosTheta  = OXi * ex + OYi * eY + OZi * eZ
           EPotLocal = EPotLocal - Epsilon * RijSquaredInv * CosTheta
         end do loop1
 #if ARCH == 3
@@ -4548,7 +4549,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Tmp = CosGammaij - CosThetai * CosThetaj3
             Rij3Inv = Epsilon * RijInv**3
             Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-            EPotLocal = EPotLocal +  Rij3Inv * Tmp 
+            EPotLocal = EPotLocal +  Rij3Inv * Tmp
             EPotLocalInter = EPotLocalInter +  Rij3Inv * Tmp
 !           EPotLocal = EPotLocal +  Rij3Inv * Tmp - RFConstant2 * CosGammaij
     	    FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
@@ -4758,7 +4759,7 @@ loop2:  do j = j0, j1
     if ( IntraLJEl) then
       EPotIntra = EPotIntra + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
-    end if  
+    end if
 
 
   end subroutine TPotDD_Force
@@ -4916,7 +4917,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
@@ -4960,7 +4961,7 @@ loop2:  do j = 1, j1
         endif
 #else
         EPotTest(i) = EPotTest(i) + EPotLocal
-#endif        
+#endif
       end do
 
     end if
@@ -5428,7 +5429,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocal1Inter = Rij4Inv * (CosGammaij * CosThetaj &
 &                        - CosThetai * (5._RK * CosThetaj2 - 1))
-            EPotLocalInter = EPotLocalInter + EPotLocal1Inter 
+            EPotLocalInter = EPotLocalInter + EPotLocal1Inter
   	    dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
   	    dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
   	    dCosGammaij = 2._RK * Rij4Inv * CosThetaj
@@ -5686,7 +5687,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest
@@ -5731,7 +5732,7 @@ loop2:  do j = j0, j1
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -6286,12 +6287,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
     	    eY = - RYij * RijInv
     	    eZ = - RZij * RijInv
             CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
-     	    Epsilon1 = Epsilon * RijSquaredInv * RijInv 
+     	    Epsilon1 = Epsilon * RijSquaredInv * RijInv
      	    EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
-            EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )  
+            EPotLocalInter  = EPotLocalInter + Epsilon1 * ( CosTheta * CosTheta - Third )
      	    CosTheta2 = 2._RK * CosTheta
      	    CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
-     	    Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv 
+     	    Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
      	    FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) 		    ! Kraft auf die Punktladung, sprich F2
      	    FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
      	    FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
@@ -6878,8 +6879,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
   	    CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
   	    Rij4Inv = Epsilon / RijSquared**2
   	    EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
-  &				     - CosGammaij * CosThetai) 
-  	    EPotLocal = EPotLocal + EPotLocal1 
+  &				     - CosGammaij * CosThetai)
+  	    EPotLocal = EPotLocal + EPotLocal1
             EPotLocal1Inter = EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1Inter
   	    dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
@@ -7140,7 +7141,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest
@@ -7185,7 +7186,7 @@ loop2:  do j = j0, j1
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -7250,7 +7251,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
@@ -7295,7 +7296,7 @@ loop2:  do j = 1, j1
         endif
 #else
         EPotTest(i) = EPotTest(i) + EPotLocal
-#endif        
+#endif
       end do
 
     end if
@@ -7786,8 +7787,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 &             - 5._RK * (CosThetaiSquared + CosThetajSquared) &
 &             - 15._RK * CosThetaiSquared * CosThetajSquared &
 &             + 2._RK * Tmp**2)
-            EPotLocal = EPotLocal + EPotLocal1 
-            EPotLocal1Inter = EPotLocaL1 
+            EPotLocal = EPotLocal + EPotLocal1
+            EPotLocal1Inter = EPotLocaL1
             EPotLocalInter = EPotLocalInter + EPotLocal1Inter
             dCosThetai = Rij5Inv * (-10._RK * CosThetai &
 &                                - 30._RK * CosThetai * CosThetajSquared &
@@ -7803,8 +7804,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 &                                    + (eY * CosThetaj - OYj) * dCosThetaj)
             FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
-            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij 
-            VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij 
+            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+            VirialLocalInter = VirialLocalInter + FXij * PXij + FYij * PYij + FZij * PZij
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
             FZi    = FZi    + FZij
@@ -8078,7 +8079,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest
@@ -8518,7 +8519,7 @@ loop2:do j = 1, j1
     this%Unit1 = this%Bond%UnitId1
     this%Unit2 = this%Bond%UnitId2
     this%ForConst = this%Bond%ForConst
-    this%R0 = this%Bond%R0 
+    this%R0 = this%Bond%R0
 
   end subroutine TPotBond_Construct
 
@@ -8584,7 +8585,7 @@ loop2:do j = 1, j1
 
     integer           :: i, j, k, i1, j0, j1
 #if MPI_VER > 0
-    integer           :: i0 
+    integer           :: i0
 !    integer           :: N1, N2, ji
 !    logical           :: EvenN
 #endif
@@ -8650,7 +8651,7 @@ loop2:do j = 1, j1
 
         ! Standard harmonic bond
         ! Energy and forces:
-        ! formulae  E = ForConst*(R - R0)**2 
+        ! formulae  E = ForConst*(R - R0)**2
         !           F = - 2*ForConst*(R-R0)/R - abs. value
 
         ! Calculate bond length
@@ -8662,10 +8663,10 @@ loop2:do j = 1, j1
         RYij = (RYij - anint( RYij )) * BoxLength
         RZij = (RZij - anint( RZij )) * BoxLength
         !
-        RSquared=RXij**2+RYij**2+RZij**2 
+        RSquared=RXij**2+RYij**2+RZij**2
         R=dsqrt(RSquared) ! Bond length
 
-        ! Deviation from equilibrium 
+        ! Deviation from equilibrium
         dR=R-R0
 
         ! Potential parameter
@@ -8691,7 +8692,7 @@ loop2:do j = 1, j1
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
 
-        ! Contribution to virial 
+        ! Contribution to virial
         VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
 
          ! New Forces
@@ -8793,6 +8794,9 @@ loop2:do j = 1, j1
     this%Site1 = this%Angle%SiteId1
     this%Site2 = this%Angle%SiteId2
     this%Site3 = this%Angle%SiteId3
+    this%Unit1 = this%Angle%UnitId1
+    this%Unit2 = this%Angle%UnitId2
+    this%Unit3 = this%Angle%UnitId3
     this%ForConst = this%Angle%ForConst
     this%Angle0 = this%Angle%Angle0
 
@@ -8844,7 +8848,7 @@ loop2:do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:) 
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: RXk, RYk, RZk
@@ -8905,7 +8909,7 @@ loop2:do j = 1, j1
 
     ! Standard harmonic potential of angle
     ! Energy:
-    ! formulae  E = ForConst*(a - a0)**2 
+    ! formulae  E = ForConst*(a - a0)**2
 
       ! Loop over molecules
 #if MPI_VER > 0
@@ -8946,7 +8950,7 @@ loop2:do j = 1, j1
          RkjSquared=RXkj**2+RYkj**2+RZkj**2
 
          ! Calculate angle
-         RijRkj=dsqrt(RijSquared*RkjSquared) 
+         RijRkj=dsqrt(RijSquared*RkjSquared)
          cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
          if( cosa .gt. 1._RK ) cosa = 1._RK
          if( cosa .lt.  -1._RK ) cosa = -1._RK
@@ -8958,7 +8962,7 @@ loop2:do j = 1, j1
 
          ! Derivative of the energy
          abc = dAngle*ForConst
-         EPotLocal = EPotLocal + abc*dAngle 
+         EPotLocal = EPotLocal + abc*dAngle
 
          ! Force calculation
          sina = sqrt(1._RK-cosa**2)
@@ -9130,7 +9134,7 @@ loop2:do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)  
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: RXj, RYj, RZj
@@ -9231,13 +9235,13 @@ loop2:do j = 1, j1
 
 !CDIR NODEP
 
-        if (multi .eq. 0) then 
+        if (multi .eq. 0) then
            EPotLocal = EPotLocal+ForConst*2._RK
         else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
-          az = (RZj - RZi) 
+          az = (RZj - RZi)
           bx = (RXk - RXj)
           by = (RYk - RYj)
           bz = (RZk - RZj)
@@ -9290,12 +9294,12 @@ loop2:do j = 1, j1
             if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
 
-            if (multi > 0) then 
+            if (multi > 0) then
                ! Normal Amber-type torsion angle
                earg= multi*arg-gamma
 
                ! Energy and forces:
-               ! formulae  E = ForConst*( 1 + cos(earg) ) 
+               ! formulae  E = ForConst*( 1 + cos(earg) )
                !           F = ForConst*n*sin(earg)
 
                 EPotLocal  = EPotLocal + ForConst*(1.d0+dcos(earg))
@@ -9305,7 +9309,7 @@ loop2:do j = 1, j1
                earg= arg-gamma
 
                ! Energy and forces:
-               ! formulae  E = ForConst*earg**2 
+               ! formulae  E = ForConst*earg**2
                !           F = -2*ForConst*earg
                 EPotLocal  = EPotLocal + ForConst*earg**2
                 deri= 2.d0*ForConst*earg
@@ -9368,7 +9372,7 @@ loop2:do j = 1, j1
             FZ1(i) = FZi+ffi
             FZ2(i) = FZj+ffj
             FZ3(i) = FZk+ffk
-            FZ4(i) = FZl+ffl 
+            FZ4(i) = FZl+ffl
 
           endif ! den>0
         endif ! multi/=0

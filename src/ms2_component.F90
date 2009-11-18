@@ -180,6 +180,10 @@ module ms2_component
     ! Inner Degrees of Freedom
     integer,pointer :: BondCount(:)
     integer,pointer :: BoPartner(:,:)
+    integer,pointer :: AngleCount(:)
+    integer,pointer :: AnglePartner(:,:)
+
+
 
     ! Accumulated sums, averages and errors
     type(TAccumulator) :: SumInvChemPotRho
@@ -1542,6 +1546,8 @@ contains
     if (UseIntDegFreed) then
       this%BondCount => this%Molecule%BondCount
       this%BoPartner => this%Molecule%BoPartner
+      this%AngleCount => this%Molecule%AngleCount
+      this%AnglePartner => this%Molecule%AnglePartner
     end if
 
     ! Fluctuating particle states
@@ -2246,7 +2252,7 @@ contains
 ! ! ! #if MPI_VER > 0
 ! ! !     include 'mpif.h'
 ! ! ! #endif
-! ! ! 
+! ! !
 ! ! !     ! Declare arguments
 ! ! !     type(TComponent)    :: this
 ! ! !     integer, intent(in) :: n
@@ -2601,7 +2607,7 @@ contains
 ! ! !
 ! ! !     ! Assign local variables
 ! ! !     BoxLength = this%BoxLength
-! ! ! 
+! ! !
 ! ! !     ! Initialize forces
 ! ! !     this%F(1:np, :) = 0._RK
 ! ! !
@@ -3349,7 +3355,7 @@ contains
     integer             :: i, j
 
     ! Calculate positions of units after global resize
-    nu = this%Molecule%NUnit 
+    nu = this%Molecule%NUnit
     np = this%NPart
     if (nu .eq. 1) then
       do i=1, np
