@@ -491,7 +491,7 @@ contains
     call AllocationError( stat, 'Units', this%NUnit)
 
     ! Rewind File for reading Constraints
-!     call FileRewind( iounit_potmod, this%PotModFileName )
+    call FileRewind( iounit_potmod, this%PotModFileName )
 
     ! Construct Units
 

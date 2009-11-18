@@ -621,10 +621,10 @@ module ms2_global
   interface FileReset
     module procedure Global_FileReset
   end interface
-! 
-!   interface FileRewind
-!    module procedure Global_FileRewind
-!   end interface
+
+  interface FileRewind
+   module procedure Global_FileRewind
+  end interface
 
   interface FileRewrite
     module procedure Global_FileRewrite
@@ -1310,39 +1310,39 @@ contains
   end subroutine Global_FileReset
 
 
-! ! !==============================================================!
-! ! !  Subroutine Global_FileRewind                                !
-! ! !==============================================================!
-! ! 
-! !   subroutine Global_FileRewind( iounit, filename )
-! ! 
-! !     implicit none
-! ! 
-! !     ! Include MPI header
-! ! #if MPI_VER > 0
-! !     include 'mpif.h'
-! ! #endif
-! ! 
-! !     ! Declare arguments
-! !     integer, intent(in)      :: iounit
-! !     character(*), intent(in) :: filename
-! ! 
-! !     ! Declare local variables
-! !     integer :: stat
-! ! 
-! !     ! Check for root process
-! !     if( .not. RootProc ) return
-! ! 
-! !     ! Open file for reading
-! !     write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-! ! &     trim( filename )
-! !     call LogWrite
-! !     rewind( iounit, iostat = stat )
-! !     if( stat /= 0 ) &
-! ! &     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
-! ! 
-! !   end subroutine Global_FileRewind
-! ! 
+!==============================================================!
+!  Subroutine Global_FileRewind                                !
+!==============================================================!
+
+  subroutine Global_FileRewind( iounit, filename )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
+&     trim( filename )
+    call LogWrite
+    rewind( iounit, iostat = stat )
+    if( stat /= 0 ) &
+&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileRewind
+
 
 
 
