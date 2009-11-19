@@ -623,15 +623,10 @@ contains
          this%Unit(1)%NDFRot = -1
     end if
 
-    ! Zero arrays
-    do i=1, this%NUnit
-      this%BondCount(i)=0
-      this%AngleCount(i)=0
-    end do
-
 
     if (UseIntDegFreed) then
        if (this%NBond>0) then ! check bonds and find initial bond lengths
+         this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
            if (j<=this%NBond) then
               call FindBondR(this,this%IdfBond(j), j) ! Number of bonds can change in this procedure!
@@ -642,6 +637,7 @@ contains
        end if
 
       if (this%NAngle>0) then ! check angles and find initial angles
+        this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
            if (j<=this%NAngle) then
               call FindAngle(this,this%IdfAngle(j), j) ! Number of angles can change in this procedure!
