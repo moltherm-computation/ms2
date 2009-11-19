@@ -182,7 +182,8 @@ module ms2_component
     integer,pointer :: BoPartner(:,:)
     integer,pointer :: AngleCount(:)
     integer,pointer :: AnglePartner(:,:)
-
+    integer,pointer :: DihedralCount(:)
+    integer,pointer :: DihedralPartner(:,:)
 
 
     ! Accumulated sums, averages and errors
@@ -1548,6 +1549,8 @@ contains
       this%BoPartner => this%Molecule%BoPartner
       this%AngleCount => this%Molecule%AngleCount
       this%AnglePartner => this%Molecule%AnglePartner
+      this%DihedralCount => this%Molecule%DihedralCount
+      this%DihedralPartner => this%Molecule%DihedralPartner
     end if
 
     ! Fluctuating particle states

@@ -102,6 +102,8 @@ module ms2_molecule
     integer,pointer      :: BoPartner(:,:)
     integer,pointer      :: AngleCount(:)
     integer,pointer      :: AnglePartner(:,:)
+    integer,pointer      :: DihedralCount(:)
+    integer,pointer      :: DihedralPartner(:,:)
     integer, allocatable :: BondedUnits(:, :)
 
     !1-4 and 1-5 Sites in molecule for intramolecular 1-4, 1-5 nonbonded interactions
@@ -177,8 +179,9 @@ module ms2_molecule
     module procedure TMolecule_FindAngle
   end interface
 
-  interface DihedralCheck
-    module procedure TMolecule_DihedralCheck
+! Check  dihedral angle
+  interface FindDihedral
+    module procedure TMolecule_FindDihedral
   end interface
 
 
@@ -392,6 +395,13 @@ contains
        call AllocationError( stat, 'AngleCount', this%NSite )
        allocate (this%AnglePartner(this%NLJ126,this%NSite), STAT = stat)
        call AllocationError( stat, 'AnglePartner', this%NSite )
+       nullify( this%DihedralCount )
+       nullify( this%DihedralPartner )
+       allocate (this%DihedralCount(this%NSite*2), STAT = stat)
+       call AllocationError( stat, 'DihedralCount', this%NSite*2 )
+       allocate (this%DihedralPartner(this%NLJ126,this%NSite*2), STAT = stat)
+       call AllocationError( stat, 'DihedralPartner', this%NSite*2 )
+
 
        if( this%NLJ126 > 0 ) then
           do j = 1, this%NLJ126
@@ -651,11 +661,20 @@ contains
 !        end do
       end if
 
-!      if ( this%NDihedral > 0 ) then
-!        do j = 1, this%NDihedral
-!           call DihedralCheck(this, j)
-!        end do
-!      end if
+      if ( this%NDihedral > 0 ) then
+        this%DihedralCount(1:this%NUnit)=0
+        do j = 1, this%NDihedral
+           if (j<=this%NDihedral) then
+              call FindDihedral(this,this%IdfDihedral(j), j) ! Number of angles can change in this procedure!
+           else
+             exit
+           end if
+        end do
+        do i=1, this%NUnit
+!          print *, 'i=', i
+!          print *, 'this%DihedralCount(i)=', this%DihedralCount(i)
+        end do
+      end if
    end if
 
    ! Assigning Number of interaction sites to vectors
@@ -1533,12 +1552,19 @@ contains
     if( associated( this%BoPartner ) ) then
       deallocate( this%BoPartner )
     end if
-        if( associated( this%AngleCount ) ) then
+    if( associated( this%AngleCount ) ) then
       deallocate( this%AngleCount )
     end if
     if( associated( this%AnglePartner ) ) then
       deallocate( this%AnglePartner )
     end if
+    if( associated( this%DihedralCount ) ) then
+      deallocate( this%DihedralCount )
+    end if
+    if( associated( this%DihedralPartner ) ) then
+      deallocate( this%DihedralPartner )
+    end if
+
 
   end subroutine TMolecule_Destruct
 
@@ -2361,16 +2387,25 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
             r1(2)=this%SiteCharge(i)%r(2)
             r1(3)=this%SiteCharge(i)%r(3)
             Site1 = .true.
+            Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+            this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
             r2(1)=this%SiteCharge(i)%r(1)
             r2(2)=this%SiteCharge(i)%r(2)
             r2(3)=this%SiteCharge(i)%r(3)
             Site2 = .true.
+            Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+            this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
             r3(1)=this%SiteCharge(i)%r(1)
             r3(2)=this%SiteCharge(i)%r(2)
             r3(3)=this%SiteCharge(i)%r(3)
             Site3 = .true.
+            Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
+            this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+            this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
       if (Site1 .and. Site2 .and. Site3) then
           exit
@@ -2385,7 +2420,7 @@ end if
 
 
 if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
-  print *, 'this angle is in one unit, should not be calculated'
+!  print *, 'this angle is in one unit, should not be calculated'
   this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
   this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
   this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
@@ -2429,76 +2464,162 @@ end if
 
 end subroutine TMolecule_FindAngle
 
-
 !==============================================================!
-!  Subroutine TMolecule_Dihedralcheck                          !
+!  Subroutine TMolecule_FindDihedral                                !
 !==============================================================!
 
-
-   subroutine  TMolecule_DihedralCheck( this, pair )
+  subroutine TMolecule_FindDihedral( this, Dihedral, j )
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
-    type(TMolecule)        :: this
-    integer,intent(in out) :: pair
-    integer                :: counteri, counterj, counterk, counterm
-    integer                :: count
-    integer                :: check1, check2
-    integer                :: i,j,k,m
-    logical                :: hit
+    type(TMolecule)         :: this
+    type(TIdfDihedral)      :: Dihedral
+    integer, intent(in out) :: j
 
-    ! Local variables
-    counteri = 1
-    counterj = 1
-    counterk = 1
-    counterm = 1
-    hit = .false.
+    ! Declare local variables
 
-loop1:do i=1,this%NUnit
-        if ( this%IdfDihedral(pair)%SiteId1 < this%Unit(i)%NLJ126 + counteri ) then
-loop2:    do j=1,this%NUnit
-            if ( this%IdfDihedral(pair)%SiteId2 < this%Unit(j)%NLJ126 + counterj ) then
-loop3:        do k=1,this%NUnit
-                if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(k)%NLJ126 + counterk ) then
-loop4:            do m=1,this%NUnit
-                    if ( this%IdfDihedral(pair)%SiteId3 < this%Unit(m)%NLJ126 + counterm ) then
-                      hit = .true.
-                      ! Abortion, if angle is defined within unit
-                      if ((i .eq. j) .and. (k .eq. i) .and. (m .eq.i)) then
-                        this%IdfDihedral(pair)%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
-                        this%IdfDihedral(pair)%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
-                        this%IdfDihedral(pair)%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
-                        this%IdfDihedral(pair)%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
-                        this%IdfDihedral(pair)%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
-                        this%IdfDihedral(pair)%gamma    = this%IdfDihedral(this%NDihedral)%gamma
-                        this%IdfDihedral(pair)%phi      = this%IdfDihedral(this%NDihedral)%phi
-                        this%IdfDihedral(pair)%multi    = this%IdfDihedral(this%NDihedral)%multi
-                        this%IdfDihedral(pair)%ScaleLJ14=this%IdfDihedral(this%NDihedral)%ScaleLJ14
-                        this%IdfDihedral(pair)%ScaleEl14=this%IdfDihedral(this%NDihedral)%ScaleEl14
-                        pair = pair - 1
-                        this%NDihedral = this%NDihedral - 1
-                        exit loop4
-                      end if
-                    end if
-                  counterm = counterm + this%Unit(m)%NLJ126
-                  end do loop4
-                end if
-                if ( hit ) exit loop3
-                counterk = counterk + this%Unit(k)%NLJ126
-              end do loop3
-            end if
-            if ( hit ) exit loop2
-            counterj = counterj + this%Unit(j)%NLJ126
-          end do loop2
+    integer           :: i
+    integer           :: SiteId1, SiteId2, SiteId3, SiteId4
+    logical           :: Site1, Site2, Site3, Site4
+    character(10)     ::sta
+
+    SiteId1 = Dihedral%SiteId1
+    SiteId2 = Dihedral%SiteId2
+    SiteId3 = Dihedral%SiteId3
+    SiteId4 = Dihedral%SiteId4
+
+
+    Site1 = .false.   !    (Site1)     (Site4)
+    Site2 = .false.   !         \        /
+    Site3 = .false.   !          \______/
+    Site4 = .false.   !       (Site2) (Site3)
+
+  if( this%NLJ126 > 0 ) then
+     do i = 1, this%NLJ126
+        if (this%SiteLJ126(i)%SiteId==SiteId1) then
+            Site1 = .true.
+            Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+            this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+        else if (this%SiteLJ126(i)%SiteId==SiteId2) then
+            Site2 = .true.
+            Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+            this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+        else if (this%SiteLJ126(i)%SiteId==SiteId3) then
+            Site3=.true.
+            Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+            this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+        else if (this%SiteLJ126(i)%SiteId==SiteId4) then
+            Site4=.true.
+            Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+            this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
         end if
-        if ( hit ) exit loop1
-        counteri = counteri + this%Unit(i)%NLJ126
-      end do loop1
+      if (Site1 .and. Site2 .and. Site3 .and. Site4) then
+          exit
+      end if
+     end do
+  end if
+  if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) .and. (this%NCharge > 0) ) then
+     do i = 1, this%NCharge
+        if (this%SiteCharge(i)%SiteId==SiteId1) then
+            Site1 = .true.
+            Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+            this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+        else if (this%SiteCharge(i)%SiteId==SiteId2) then
+            Site2 = .true.
+            Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+            this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+        else if (this%SiteCharge(i)%SiteId==SiteId3) then
+            Site3 = .true.
+            Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+            this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+        else if (this%SiteCharge(i)%SiteId==SiteId3) then
+            Site4 = .true.
+            Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
+            this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+            this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+        end if
+      if (Site1 .and. Site2 .and. Site3 .and. Site4) then
+          exit
+      end if
+    end do
+ end if
 
-   end subroutine TMolecule_DihedralCheck
+if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
+write (sta, '(i10)') j
+call Error('Uncorrect sites for dihedral angle' // sta)
+end if
 
 
+if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then
+!  print *, 'this dihedral angle is in one unit, should not be calculated'
+  this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+  this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+  this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+  this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
+  Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
+  Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
+  Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
+  Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
+  Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
+  Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
+  Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
+  Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
+  Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
+  Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
+  Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
+  if (LJEl14 .and. Dihedral%multi) then
+    Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
+    Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
+  end if
+  j = j - 1 ! the procedure of Dihedral definition will be repeated for the same Dihedral angle
+  this%NDihedral = this%NDihedral - 1
+else !
+    if (Dihedral%UnitId1==Dihedral%UnitId2) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+    end if
+    if (Dihedral%UnitId2==Dihedral%UnitId3) then
+      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+    end if
+    if (Dihedral%UnitId1==Dihedral%UnitId3) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+    end if
+    if (Dihedral%UnitId1==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+    end if
+    if (Dihedral%UnitId2==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+    end if
+    if (Dihedral%UnitId3==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+    end if
+    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+    end if
+    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+    end if
+    if (Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+    end if
+    if (Dihedral%UnitId1==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
+      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+    end if
+end if
+
+end subroutine TMolecule_FindDihedral
 
 
 end module ms2_molecule

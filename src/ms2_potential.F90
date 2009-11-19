@@ -550,6 +550,7 @@ module ms2_potential
 
     type(TIdfDihedral), pointer  :: Dihedral
     integer                      :: Site1, Site2, Site3, Site4
+    integer                      :: Unit1, Unit2, Unit3, Unit4
     integer                      :: multi
     real(RK)                     :: ForConst, gamma
     real(RK)                     :: EPotCorr, VirialCorr, EPotTestCorr
@@ -9081,6 +9082,10 @@ loop2:do j = 1, j1
     this%Site2 = this%Dihedral%SiteId2
     this%Site3 = this%Dihedral%SiteId3
     this%Site4 = this%Dihedral%SiteId4
+    this%Unit1 = this%Dihedral%UnitId1
+    this%Unit2 = this%Dihedral%UnitId2
+    this%Unit3 = this%Dihedral%UnitId3
+    this%Unit4 = this%Dihedral%UnitId4
     this%ForConst = this%Dihedral%ForConst
     this%gamma = this%Dihedral%gamma*Pi/180
     this%multi = this%Dihedral%multi

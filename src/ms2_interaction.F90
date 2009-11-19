@@ -136,6 +136,8 @@ module ms2_interaction
     ! IDF
     integer,pointer :: BoPartner(:,:), BondCount(:)
     integer,pointer :: AnglePartner(:,:), AngleCount(:)
+    integer,pointer :: DihedralPartner(:,:), DihedralCount(:)
+
 
     ! Ewald Summation
     real(RK) :: Kappa
@@ -308,6 +310,10 @@ contains
     ! Set Angle Partners
     this%AngleCount => Component1%AngleCount
     this%AnglePartner => Component1%AnglePartner
+
+    ! Set Dihedral Partners
+    this%DihedralCount => Component1%DihedralCount
+    this%DihedralPartner => Component1%DihedralPartner
 
 
     ! Set Number of interaction sites per Unit
@@ -3338,6 +3344,9 @@ contains
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: RXj, RYj, RZj
+    real(RK)          :: RXk, RYk, RZk
+    real(RK)          :: RXl, RYl, RZl
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXkj, RYkj, RZkj, RijRkj
     real(RK)          :: FXij, FYij, FZij, Fij
@@ -3359,17 +3368,19 @@ contains
     real(RK)          :: coeff, coeffIntra
     real(RK)          :: r, dr, rsquared
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
-    real(RK)          :: RXk, RYk, RZk
     real(RK)          :: f0
-    integer           :: N
+    real(RK)          :: ForConst, gamma
+    integer           :: N, multi
     integer           :: s1, s2, j, k
-    integer           :: bi, i, u1, u2, u3
-    integer           :: unit1,unit2, unit3, unitX, jk
+    integer           :: bi, i, u1, u2, u3, u4
+    integer           :: unit1,unit2, unit3, unit4, unitX, jk
     integer           :: nup,nups, mol
     logical           :: intra15, intra14
     logical           :: SameComponent
     integer           :: nu1, nu2
-    integer           :: u1_new, u2_new
+    real(RK)          :: num, den, ax, ay, az, bx, by, bz, cx, cy, cz, EPotAdd
+    real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, cos1, cosn, earg
+    logical           :: need, a1, a2, a3, b1, b2, b3
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -4305,8 +4316,9 @@ contains
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end do ! bonds
 
-          ! Angle Interaction
           coeffIntra = 2._RK
+
+          ! Angle Interaction
           k = this%AngleCount(nu)
           do j = 1, k
             bi = this%AnglePartner(nu,j)
@@ -4345,7 +4357,9 @@ contains
 
            ! Derivative of the energy
            abc = dAngle*this%PotAngle(bi)%ForConst
-           if (u1==nu) then
+           need = .true.
+           if (u1==nu .and. need) then
+              need = .false.
               if ((u1 .ne. u2) .and. (u1 .ne. u3)) then
                 unit2=(np-1) * this%NUnit1 + u2
                 unit3=(np-1) * this%NUnit1 + u3
@@ -4357,7 +4371,8 @@ contains
               end if
            end if
 
-           if (u2==nu) then
+           if (u2==nu .and. need) then
+              need = .false.
               if ((u2 .ne. u1) .and. (u2 .ne. u3)) then
                 unit1=(np-1) * this%NUnit1 + u1
                 unit3=(np-1) * this%NUnit1 + u3
@@ -4369,7 +4384,8 @@ contains
               end if
            end if
 
-           if (u3==nu) then
+           if (u3==nu .and. need) then
+              need = .false.
               if ((u3 .ne. u1) .and. (u3 .ne. u2)) then
                 unit1=(np-1) * this%NUnit1 + u1
                 unit2=(np-1) * this%NUnit1 + u2
@@ -4380,19 +4396,281 @@ contains
                 EPot(unitX) = EPot(unitX) + abc*dAngle*coeffIntra
               end if
            end if
+         end do  ! Angle Interaction
 
-
-         end do
 
 
           ! Dihedral/Torsions Interaction
- !         k = this%AngleCount(nu)
- !         do j = 1, k
- !           bi = this%DihedralPartner(nu,j)
- !           pto => this%PotDihedral(bi)
- !           u1 = pto%Unit1 ! unit1 of dihedral
- !           u2 = pto%Unit2 ! unit2 of dihedral
+          k = this%DihedralCount(nu)
+          do j = 1, k
+            bi = this%DihedralPartner(nu,j)
+            pto => this%PotDihedral(bi)
+            u1 = pto%Unit1 ! unit1 of dihedral
+            u2 = pto%Unit2 ! unit2 of dihedral
+            u3 = pto%Unit3 ! unit3 of dihedral
+            u4 = pto%Unit4 ! unit4 of dihedral
+            multi = pto%multi
+            gamma = pto%gamma
+            ForConst = pto%ForConst
 
+            ! Assign pointers to site positions
+            RXi=pto%Dihedral%RX1(np)
+            RYi=pto%Dihedral%RY1(np)
+            RZi=pto%Dihedral%RZ1(np)
+            RXj=pto%Dihedral%RX2(np)
+            RYj=pto%Dihedral%RY2(np)
+            RZj=pto%Dihedral%RZ2(np)
+            RXk=pto%Dihedral%RX3(np)
+            RYk=pto%Dihedral%RY3(np)
+            RZk=pto%Dihedral%RZ3(np)
+            RXl=pto%Dihedral%RX4(np)
+            RYl=pto%Dihedral%RY4(np)
+            RZl=pto%Dihedral%RZ4(np)
+
+            if (multi .eq. 0) then
+              EPotAdd=ForConst*2._RK
+            else !multi /= 0
+           ! Calculate vectors IJ, JK, KL
+              ax = (RXj - RXi)
+              ay = (RYj - RYi)
+          	  az = (RZj - RZi)
+              bx = (RXk - RXj)
+              by = (RYk - RYj)
+              bz = (RZk - RZj)
+	          cx = (RXl - RXk)
+	          cy = (RYl - RYk)
+			  cz = (RZl - RZk)
+          !
+	          ax = (ax - anint( ax )) * BoxLength
+	          ay = (ay - anint( ay )) * BoxLength
+	          az = (az - anint( az )) * BoxLength
+	          bx = (bx - anint( bx )) * BoxLength
+	          by = (by - anint( by )) * BoxLength
+	          bz = (bz - anint( bz )) * BoxLength
+	          cx = (cx - anint( cx )) * BoxLength
+	          cy = (cy - anint( cy )) * BoxLength
+	          cz = (cz - anint( cz )) * BoxLength
+
+  	        ! Scalar products
+	          ab = ax*bx + ay*by + az*bz
+	          bc = bx*cx + by*cy + bz*cz
+	          ac = ax*cx + ay*cy + az*cz
+	          aa = ax*ax + ay*ay + az*az
+	          bb = bx*bx + by*by + bz*bz
+	          cc = cx*cx + cy*cy + cz*cz
+
+	          ! Vector products
+	          axb = (aa*bb) - (ab*ab)
+	          bxc = (bb*cc) - (bc*bc)
+
+	          num = (ab*bc) - (ac*bb)
+	          den = axb*bxc
+
+	          ! Check, that any 3 atoms don't lie on one line and they define good dihedral angle:
+	          ! (Otherwise contribution is zero)
+
+	          if ( den .gt. 1E-10_RK ) then
+	            den = sqrt( den )
+
+	            ! cos of angle:
+	            co = num/den
+	            if ( co .gt. 1._RK ) co =   1._RK
+	            if ( co .lt. -1._RK ) co = -1._RK
+
+	            ! sign of angle:
+	            signum = ax*(by*cz-cy*bz)+ay*(bz*cx-cz*bx)+az*(bx*cy-cx*by)
+
+	            ! Value of angle:
+	            arg = sign( acos(co), signum)
+	            si = sin(arg)
+	            if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
+
+
+	            if (multi > 0) then
+	               ! Normal Amber-type torsion angle
+	               earg= multi*arg-gamma
+
+	               ! Energy:
+	               ! formulae  E = ForConst*( 1 + cos(earg) )
+
+	                EPotAdd = ForConst*(1.d0+dcos(earg))
+
+	             else ! Improper dihedral angle
+	               earg= arg-gamma
+
+    	           ! Energy
+            	   ! formulae  E = ForConst*earg**2
+		           EPotAdd = ForConst*earg**2
+	             end if
+	          endif ! den>0
+	        endif ! multi/=0
+
+            need = .true.
+            if (u1==nu .and. need) then
+              need = .false.
+              if ((u1 .ne. u2) .and. (u1 .ne. u3) .and. (u1 .ne. u4 )) then
+                 unit2=(np-1) * this%NUnit1 + u2
+                 unit3=(np-1) * this%NUnit1 + u3
+                 unit4=(np-1) * this%NUnit1 + u4
+                 EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/3
+                 EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/3
+                 EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/3
+               else
+                 a1=((u1+u2+u3-3*nu)==0)
+                 a2=((u1+u3+u4-3*nu)==0)
+                 a3=((u1+u2+u4-3*nu)==0)
+                 if (a1 .or. a2 .or. a3) then
+                   unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
+                   EPot(unitX) = EPot(unitX)+EPotAdd*coeffIntra
+                 else
+                   b1=(u1 == u2)
+                   b2=(u1 == u3)
+                   b3=(u1 == u4)
+                   if (b1) then
+                     unit3=(np-1) * this%NUnit1 + u3
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b2) then
+                     unit2=(np-1) * this%NUnit1 + u2
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b3) then
+                     unit2=(np-1) * this%NUnit1 + u2
+                     unit3=(np-1) * this%NUnit1 + u3
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                   end if
+                 end if
+               end if
+            end if ! u1==nu
+            if (u2==nu .and. need) then
+              need = .false.
+              if ((u2 .ne. u1) .and. (u2 .ne. u3) .and. (u2 .ne. u4 )) then
+                 unit1=(np-1) * this%NUnit1 + u1
+                 unit3=(np-1) * this%NUnit1 + u3
+                 unit4=(np-1) * this%NUnit1 + u4
+                 EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/3
+                 EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/3
+                 EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/3
+               else
+                 a1=((u1+u2+u3-3*nu)==0)
+                 a2=((u2+u3+u4-3*nu)==0)
+                 a3=((u1+u2+u4-3*nu)==0)
+                 if (a1 .or. a2 .or. a3) then
+                   unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
+                   EPot(unitX) = EPot(unitX)+EPotAdd*coeffIntra
+                 else
+                   b1=(u2 == u1)
+                   b2=(u2 == u3)
+                   b3=(u2 == u4)
+                   if (b1) then
+                     unit3=(np-1) * this%NUnit1 + u3
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b2) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b3) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit3=(np-1) * this%NUnit1 + u3
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                   end if
+                 end if
+               end if
+            end if ! u2==nu
+            if (u3==nu .and. need) then
+               need = .false.
+              if ((u3 .ne. u1) .and. (u3 .ne. u2) .and. (u3 .ne. u4 )) then
+                 unit1=(np-1) * this%NUnit1 + u1
+                 unit2=(np-1) * this%NUnit1 + u2
+                 unit4=(np-1) * this%NUnit1 + u4
+                 EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/3
+                 EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/3
+                 EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/3
+               else
+                 a1=((u1+u2+u3-3*nu)==0)
+                 a2=((u2+u3+u4-3*nu)==0)
+                 a3=((u1+u3+u4-3*nu)==0)
+                 if (a1 .or. a2 .or. a3) then
+                   unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
+                   EPot(unitX) = EPot(unitX)+EPotAdd*coeffIntra
+                 else
+                   b1=(u3 == u1)
+                   b2=(u3 == u2)
+                   b3=(u3 == u4)
+                   if (b1) then
+                     unit2=(np-1) * this%NUnit2 + u2
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b2) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit4=(np-1) * this%NUnit1 + u4
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit4) = EPot(unit4)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b3) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit2=(np-1) * this%NUnit1 + u2
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                   end if
+                 end if
+               end if
+            end if ! u3==nu
+            if (u4==nu .and. need) then
+              need = .false.
+              if ((u4 .ne. u1) .and. (u4 .ne. u2) .and. (u4 .ne. u3 )) then
+                 unit1=(np-1) * this%NUnit1 + u1
+                 unit2=(np-1) * this%NUnit1 + u2
+                 unit3=(np-1) * this%NUnit1 + u3
+                 EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/3
+                 EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/3
+                 EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/3
+               else
+                 a1=((u1+u2+u4-3*nu)==0)
+                 a2=((u2+u3+u4-3*nu)==0)
+                 a3=((u1+u3+u4-3*nu)==0)
+                 if (a1 .or. a2 .or. a3) then
+                   unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
+                   EPot(unitX) = EPot(unitX)+EPotAdd*coeffIntra
+                 else
+                   b1=(u4 == u1)
+                   b2=(u4 == u2)
+                   b3=(u4 == u3)
+                   if (b1) then
+                     unit2=(np-1) * this%NUnit2 + u2
+                     unit3=(np-1) * this%NUnit1 + u3
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b2) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit3=(np-1) * this%NUnit1 + u3
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit3) = EPot(unit3)+EPotAdd*coeffIntra/2
+                   end if
+                   if (b3) then
+                     unit1=(np-1) * this%NUnit1 + u1
+                     unit2=(np-1) * this%NUnit1 + u2
+                     EPot(unit1) = EPot(unit1)+EPotAdd*coeffIntra/2
+                     EPot(unit2) = EPot(unit2)+EPotAdd*coeffIntra/2
+                   end if
+                 end if
+               end if
+            end if ! u4==nu
+           end do ! Dihedral Interaction
 
       end if
 
