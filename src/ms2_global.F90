@@ -146,7 +146,7 @@ module ms2_global
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
-  integer, parameter :: IOBufferLength = 256
+  integer, parameter :: IOBufferLength = 1024
 
   ! Declare input/output buffer strings
   character(IOBufferLength) :: IOBuffer
