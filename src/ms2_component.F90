@@ -1757,6 +1757,13 @@ contains
    end do
 
 ! Reaction Field Check
+   if ((LongRange .eq. RField) .and. (CutOffMode .eq. SiteSite) ) then
+     if (this%Molecule%NCharge > 0 ) then
+       write (ErrorBuffer,'("Reaction Field in combination with SiteSite-Cutoff doesnot support partial charges")')
+     end if
+   end if
+
+
    if ((LongRange .eq. RField) .and. (abs(q) .ge. 1e-1)) then
      write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
      call Error
