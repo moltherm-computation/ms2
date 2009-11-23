@@ -3809,12 +3809,13 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, &
 &           '("   --------------------------------  --------  --------")' )
           call LogWrite
-          write( IOBuffer, &
-&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
-&           real(pc%NFluctUpSuccesses(1), RK) / &
-&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
-          call LogWrite
-          do j = 1, pc%NFluctMax - 1
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
+&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
+            call LogWrite
+
+          do j = pc%NFluctMax - 1, 1, -1
             write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
 &             pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
 &               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
@@ -3822,11 +3823,11 @@ loop2:        do nc = 1, this%NComponents
 &               real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call LogWrite
           end do
-          j = pc%NFluctMax
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
-&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
+&           real(pc%NFluctUpSuccesses(1), RK) / &
+&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
         end if
@@ -6330,7 +6331,7 @@ loop2:        do nc = 1, this%NComponents
         ! Cv
         Average = this%SumCV%Average
         Variance = this%SumCV%Variance
-        write( IOBuffer, '("Isochore heat capacity", T29, "reduced:", 2F20.9)' ) &
+        write( IOBuffer, '("Isochoric heat capacity", T29, "reduced:", 2F20.9)' ) &
 &         Average, Variance
         call FileWrite( this%iounit_errors )
         write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) &
@@ -6576,7 +6577,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Phase equilibria data for GE-ensemble
     if( EnsembleType == EnsembleTypeGE ) then
-      write( IOBuffer, '("PHASE EQUILIBRIA DATA")' )
+      write( IOBuffer, '("PHASE EQUILIBRIUM DATA")' )
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '("---------------------")' )
       call FileWrite( this%iounit_errors )
@@ -6773,7 +6774,7 @@ loop2:        do nc = 1, this%NComponents
         ! Move and rotate acceptance rates
         write( IOBuffer, '("Component ", A)' ) pc%PotModFileName
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '("Acceptance rate moves", T32, "in %:", F20.9)' ) &
+        write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
 &         100._RK * real( pc%NMoveSuccesses, RK ) / real ( pc%NMoveAttempts, RK )
         call FileWrite( this%iounit_errors )
         if( pc%Molecule%IsElongated ) then
@@ -6784,7 +6785,7 @@ loop2:        do nc = 1, this%NComponents
 
         if( pc%NMoveBiasedAttempts > 0 ) then
           ! Biased move and rotate acceptance rates
-          write( IOBuffer, '(T17, "biased moves", T32, "in %:", F20.9)' ) &
+          write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) &
 &          100._RK * real( pc%NMoveBiasedSuccesses, RK ) / &
 &          real ( pc%NMoveBiasedAttempts, RK )
           call FileWrite( this%iounit_errors )
