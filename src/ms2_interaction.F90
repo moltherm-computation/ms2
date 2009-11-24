@@ -2307,17 +2307,19 @@ contains
           mueZi = this%MueZ1(np,nu)
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            if ( mod(j-pqq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
-              if (mod(j,this%NUnit2)==0) then
-                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
-                 nu2 = this%NUnit2 ! number of unit in molecule
-               else
-                 jk = INT(j/this%NUnit2)+1
-                 nu2 = mod(j,this%NUnit2)
-               end if
+            nu2 = mod(j,this%NUnit2) + 1
+            jk = int(j/this%NUnit2)
+!             if ( mod(j-pqq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
+!               if (mod(j,this%NUnit2)==0) then
+!                  jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+!                  nu2 = this%NUnit2 ! number of unit in molecule
+!                else
+!                  jk = INT(j/this%NUnit2)+1
+!                  nu2 = mod(j,this%NUnit2)
+!                end if
                 EPot(j) = EPot(j) + this%RFConst2 &
 &               * ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
-             end if
+!              end if
           end do
         else         ! Extended ReactionField
 !          if ( ((this%N1Charge > 1) .and. (this%N2Charge > 1) ) .or. &

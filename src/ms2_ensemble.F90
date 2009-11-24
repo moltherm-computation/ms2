@@ -4458,12 +4458,12 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, &
 &           '("   --------------------------------  --------  --------")' )
           call LogWrite
-          write( IOBuffer, &
-&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
-&           real(pc%NFluctUpSuccesses(1), RK) / &
-&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
-          call LogWrite
-          do j = 1, pc%NFluctMax - 1
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
+&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
+            call LogWrite
+          do j = pc%NFluctMax - 1, 1, -1
             write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
 &             pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
 &               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
@@ -4471,11 +4471,11 @@ loop2:        do nc = 1, this%NComponents
 &               real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call LogWrite
           end do
-          j = pc%NFluctMax
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
-&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
+&           real(pc%NFluctUpSuccesses(1), RK) / &
+&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
         end if
