@@ -5446,12 +5446,12 @@ contains
     do j = this%NPart20*this%NUnit2, this%NPart22*this%NUnit2
 #else
     do j = 1, N2*NU2
-    if( mod(j,NU2)==0) then
-      k=INT(j/NU2)
-    else
-      k=INT(j/NU2)+1
-    end if
 #endif
+      if( mod(j,NU2)==0) then
+        k=INT(j/NU2)
+      else
+        k=INT(j/NU2)+1
+      end if
       if( this%SameComponent .and. k== np ) cycle
       PXij = PXi - PX2d(j)
       PYij = PYi - PY2d(j)

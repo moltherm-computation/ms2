@@ -222,6 +222,10 @@ module ms2_component
     module procedure TComponent_Destruct
   end interface
 
+  interface DestructFluct
+    module procedure TComponent_DestructFluct
+  end interface
+
   interface Allocate
     module procedure TComponent_Allocate
   end interface
@@ -557,6 +561,8 @@ contains
 
     ! Allocate maximum allowed MC displacements
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
+      nullify ( this%DispTran )
+      nullify ( this%DispRot )
       allocate( this%DispTran, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
@@ -565,6 +571,7 @@ contains
 
     ! Allocate and read weighting factors
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+      nullify( this%WF )
       allocate( this%WF( 0:this%NFluctMax ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', &
 &       this%NFluctMax + 1 )
@@ -662,6 +669,9 @@ contains
     integer :: stat
 
     ! Allocate number of particles in component
+    nullify( this%NPart )
+    nullify( this%NPart1 )
+    nullify( this%NPart2 )
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
@@ -755,6 +765,52 @@ contains
     end if
 
   end subroutine TComponent_Destruct
+
+
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Destruct                              !
+!==============================================================!
+
+  subroutine TComponent_DestructFluct( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent) :: this
+
+    ! Destroy potential model
+    call Destruct( this%Molecule )
+
+    ! Deallocate number of test particles
+    if( associated( this%NTest ) ) then
+      deallocate( this%NTest )
+    end if
+
+    ! Deallocate number of particles in process
+    if( associated( this%NPart0 ) ) then
+      deallocate( this%NPart0 )
+    end if
+    if( associated( this%NPart1 ) ) then
+      deallocate( this%NPart1 )
+    end if
+    if( associated( this%NPart2 ) ) then
+      deallocate( this%NPart2 )
+    end if
+
+    ! Deallocate number of particles in component
+    if( associated( this%NPart ) ) then
+      deallocate( this%NPart )
+    end if
+
+  end subroutine TComponent_DestructFluct
 
 
 

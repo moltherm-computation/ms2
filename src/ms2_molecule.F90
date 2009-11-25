@@ -729,9 +729,6 @@ contains
       if  (this%Unit(i)%isElongated) this%NEUnit = this%NEunit + 1
    end do
 
-    ! Close potential model file
-    call FileClose( iounit_potmod )
-
     if (UseIntDegFreed) then
       ! Save  used potential model with IDF
        call SaveIDF( this )
@@ -1321,7 +1318,8 @@ contains
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
-      call FileReadParameter_IOBuffer( iounit_potmod, IdNFluct, .false. )
+      ! Rewind Input File
+      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true.)
 
       ! Scaling factors start in next line
       if( RootProc ) then
@@ -1366,8 +1364,7 @@ contains
       end do
 
     else if( fluctstate .eq. 0 ) then
-
-      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .false. )
+       call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
 
     else
 

@@ -1568,7 +1568,7 @@ contains
         allocate( reallocate(ncomp), STAT = stat )
         call AllocationError( stat, 'components', ncomp )
         reallocate( 1:size(this%Component) ) = this%Component(:)
- !       deallocate( this%Component )
+!        deallocate( this%Component )
         this%Component => reallocate
 
         do j = 1, nfluct
@@ -1608,7 +1608,11 @@ contains
 
     ! Destroy components
     do i = 1, this%NComponents
-      call Destruct( this%Component(i) )
+      if ( i .le. this%NRealComponents ) then
+        call Destruct( this%Component(i) )
+      else
+        call DestructFluct( this%Component(i) )
+      end if
     end do
 !    if( associated( this%Component ) ) deallocate( this%Component )
 
@@ -2227,6 +2231,7 @@ contains
            this%Component(i)%NUnitMax => this%NUnitMax
          else
            this%Component(i)%NPartMax => this%NPartMaxFluct
+           this%Component(i)%NUnitMax => this%NUnitMax
          end if
          if( this%Component(i)%NTest > 0 ) then
            this%Component(i)%Pm0Test => this%Pm0Test
