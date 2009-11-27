@@ -1561,6 +1561,11 @@ contains
         if (abs(q) .gt. 1e-7) &
 &        call Error ('Gradual Insertion not possible for charged molecule! No Electroneutrality')
 
+        ! Error, wenn chem. Potenzial berechnet wird für Partikel mit mehr als 1 Unit
+        ! COM-Moves muessen noch implementiert werden
+        if ( this%Component(i)%Molecule%NUnit .gt. 1 ) &
+&          call Error ('MC COM moves not implemented. Do that first to start GradIns')
+
         nfluct = this%Component(i)%Molecule%NFluct
         ncomp = ncomp + nfluct
 
@@ -4198,7 +4203,7 @@ loop3:    do nc = 1, this%NComponents
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
     integer                   :: ewald_h
-    integer                   :: nu
+    integer                   :: nu, nuh, add
     type(TComponent), pointer :: pc
 #if MPI_VER > 0
     real(RK)                  :: EPot_h
@@ -4339,10 +4344,17 @@ loop1:        do nc = 1, this%NComponents
               end do loop1
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
-              nu = 1
+              nuh = mod(((s-r)/ndf),ndf)
+loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
+                add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
+                if ( nuh .le. add ) then
+                  nuh = add - nuh
+                  exit loop2
+                end if
+              end do loop2
 
               ! Move or rotate
-              if( mod( s - r, ndf ) < 3 ) then
+              if( nuh < 3 ) then
                 call Move( this, nc, np, nu )
               else
                 call Rotate( this, nc, np, nu )
@@ -4350,12 +4362,20 @@ loop1:        do nc = 1, this%NComponents
 
             else if( r <= (ndfmove + ndfbiased) ) then
               r = (r - ndfmove - 1) / 50 + 1
-loop2:        do nc = 1, this%NComponents
+loop3:        do nc = 1, this%NComponents
                 s = s + this%Component(nc)%NDF
-                if( r <= s ) exit loop2
-              end do loop2
+                if( r <= s ) exit loop3
+              end do loop3
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
+              nuh = mod(((s-r)/ndf),ndf)
+loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
+                add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
+                if ( nuh .le. add ) then
+                  nuh = add - nuh
+                  exit loop4
+                end if
+              end do loop4
 
               ! Move or rotate biased
               if( mod( s - r, ndf ) < 3 ) then
@@ -4366,7 +4386,16 @@ loop2:        do nc = 1, this%NComponents
 
             else if( r <= (ndfmove + ndfbiased + ndffluct) ) then
               r = r - ndfmove - ndfbiased
+! ist das so ok?? Da gehoert noch ein Faktor  0.1 rein, Gewichtung von oben
               ndf = this%Component(ncf)%Molecule%NDF
+              nuh = mod(r/ndf,ndf)
+loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
+                add = sum(this%Component(ncf)%Molecule%Unit(1:nu)%NDF)
+                if ( nuh .le. add ) then
+                  nuh = add - nuh
+                  exit loop5
+                end if
+              end do loop5
 
               ! Move or rotate fluctuating particle
               if( mod( r, ndf ) < 3 ) then
@@ -4671,7 +4700,7 @@ loop2:        do nc = 1, this%NComponents
     integer                     :: n
     integer                     :: i
 
-    write(*,*) 'U gotta update all units of the molecule - therefore safe all interactions'
+!     write(*,*) 'U gotta update all units of the molecule - therefore safe all interactions'
     ! Update potential energy and virial matrices for a particle
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
@@ -4793,7 +4822,7 @@ loop2:        do nc = 1, this%NComponents
     ! Initialize new energy
     EPotNew = 0._RK
 
-    write(*,*) 'U gotta get the energy of all units of the molecule'
+!     write(*,*) 'U gotta get the energy of all units of the molecule'
 
     ! Loop over components
     do i = 1, this%NComponents
