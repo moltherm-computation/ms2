@@ -3243,7 +3243,9 @@ loop3:    do nc = 1, this%NComponents
          do np = 1, this%Component(i)%NPart
            do nu = 1, this%Component(i)%Molecule%NUnit
              call Energy( pi, np, nu, this%BoxLength )
-             call IntraEnergy( pi, np, nu, this%BoxLength )
+             if ( (j .eq. i) .and. UseIntDegFreed ) then
+               call IntraEnergy( pi, np, nu, this%BoxLength )
+             end if
            end do
 
           ! Sum Mayer f-function
@@ -4758,7 +4760,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         do np=1, this%Component(nc)%NPart
            do nu=1, this%Component(nc)%Molecule%NUnit
               call Energy(pi, np, nu, this%BoxLength)
-              call IntraEnergy(pi, np, nu, this%BoxLength)
+              if ( (nc .eq. i) .and. UseIntDegFreed ) then
+                call IntraEnergy(pi, np, nu, this%BoxLength)
+              end if
               nu1=(np-1)*pi%NUnit1+nu ! global number of unit
 
 
@@ -4830,7 +4834,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2*pi%NUnit2
       do nu=1, this%Component(nc)%Molecule%NUnit
           call Energy( pi, np, nu, this%BoxLength )
-          call IntraEnergy( pi, np, nu, this%BoxLength )
+          if ( (nc .eq. i) .and. UseIntDegFreed ) then
+            call IntraEnergy( pi, np, nu, this%BoxLength )
+          end if
           ! Calculate new energy
           EPotNew = EPotNew + sum( pi%EPot1(1:n) )
       end do
@@ -4882,7 +4888,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
       call Energy( pi, np,  nu, this%BoxLength )
-      call IntraEnergy( pi, np,  nu, this%BoxLength )
+      if ( (nc .eq. i) .and. UseIntDegFreed ) then
+        call IntraEnergy( pi, np,  nu, this%BoxLength )
+      end if
 
       ! Calculate new energy
       EPotNew = EPotNew + sum( pi%EPot1(1:n) )
@@ -4932,7 +4940,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         pi => this%Interaction(nc, i)
         n = pi%NPart2*pi%NUnit2
         call Energy( pi, np, nu, this%BoxLength )
-       call IntraEnergy( pi, np, nu, this%BoxLength )
+        if ( (nc .eq. i) .and. UseIntDegFreed ) then
+          call IntraEnergy( pi, np, nu, this%BoxLength )
+        end if
 
 
         ! Calculate new energy
@@ -4988,7 +4998,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2*pi%NUnit2
       do nu = 1,pi%NUnit1
         call Energy( pi, np, nu, this%BoxLength )
-        call IntraEnergy( pi, np, nu, this%BoxLength )
+        if ( (nc .eq. i) .and. UseIntDegFreed ) then
+          call IntraEnergy( pi, np, nu, this%BoxLength )
+        end if
 
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) )

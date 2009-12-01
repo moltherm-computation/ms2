@@ -705,6 +705,12 @@ contains
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, state )
 
+    ! Set Unit Borders
+    this%UnitLJ => this%Molecule%UnitLJ
+    this%UnitC  => this%Molecule%UnitC
+    this%UnitDP => this%Molecule%UnitDP
+    this%UnitQP => this%Molecule%UnitQP
+
     ! Set maximum allowed MC displacements
     this%DispTran => comp0%DispTran
     this%DispRot => comp0%DispRot
