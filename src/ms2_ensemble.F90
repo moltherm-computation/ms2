@@ -7956,6 +7956,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       end if
 
       call FileWriteBlank( this%iounit_result )
+      call FileWriteBlank( this%iounit_runave )
 #if ARCH == 2
       call flush( this%iounit_result )
       call flush( this%iounit_runave )
