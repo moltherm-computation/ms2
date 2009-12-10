@@ -2750,7 +2750,7 @@ contains
             PXij = PXi - PX2(j,pcq%Site2%UnitNumber)
             PYij = PYi - PY2(j,pcq%Site2%UnitNumber)
             PZij = PZi - PZ2(j,pcq%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength 
+            RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             PXij = (PXij - anint( RXij )) * BoxLength
@@ -5979,17 +5979,9 @@ contains
     ! Calculate partners within cutoff sphere
 
     NInCutoff = 0
-! #if MPI_VER > 0
-!     do j = this%NPart20*this%NUnit2, this%NPart22*this%NUnit2
-! #else
+
     do j = (np-1)*this%NUnit1+1, np*this%NUnit1
-! #endif
-!       if( mod(j,NU2)==0) then
-!         k=INT(j/NU2)
-!       else
-!         k=INT(j/NU2)+1
-!       end if
-      if( nu1+(np-1)*this%NUnit1 .eq. j ) cycle
+      if( nu .eq. j ) cycle
       PXij = PXi - PX2d(j)
       PYij = PYi - PY2d(j)
       PZij = PZi - PZ2d(j)
