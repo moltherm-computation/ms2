@@ -3417,7 +3417,7 @@ loop3:    do nc = 1, this%NComponents
     ! Call Atom2Mol for each component
     call Atom2Unit( this )
     do i = 1, this%NComponents
-      call Unit2Mol( this%Component(i), this%Component(i)%NPart )
+      call Unit2Mol( this%Component(i) )
     end do
 
   end subroutine TEnsemble_Atom2Mol
@@ -5099,7 +5099,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do i = 1, this%NComponents
       numax = this%Component(i)%Molecule%NUnit
       do k=1, this%Component(nc)%Molecule%NUnit
-        numax1 = this%Component(i)%Molecule%NUnit
+        numax1 = this%Component(nc)%Molecule%NUnit
         E = E &
 &         + sum( this%Interaction(i, nc)%EPot(1:this%Component(i)%NPart*numax, numax1*(np-1)+k) )
       end do
@@ -5261,7 +5261,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end do
 
     ! Calculate new COM
-    call Unit2Mol1( pc, np )
+    call Unit2Mol( pc, np )
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
@@ -5311,7 +5311,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call EwaldFourierEnergy(this,nc,np)
 !           this%sinfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%sinfac_s_old
 !           this%cosfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%cosfac_s_old
-          call Unit2Mol1( pc, np )
+          call Unit2Mol( pc, np )
 #ifdef SPME
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
@@ -5325,7 +5325,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else
           pc%P0(np, :, nu) = r(:)
           call Unit2Atom1( pc, np, nu )
-          call Unit2Mol1( pc, np )
+          call Unit2Mol( pc, np )
       end if
     end if
 
@@ -5421,7 +5421,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call Unit2Mol1( pc, np )
+      call Unit2Mol( pc, np )
       call UpdateEnergy( this, nc, np, nu )
 
     else
@@ -5531,7 +5531,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end do
 
     ! Calculate new COM
-    call Unit2Mol1( pc, np )
+    call Unit2Mol( pc, np )
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
@@ -5589,7 +5589,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call EwaldFourierEnergy(this,nc,np)
 
          ! Calculate new COM
-         call Unit2Mol1( pc, np )
+         call Unit2Mol( pc, np )
 
 #ifdef SPME
       else if (LongRange .eq. PME) then
@@ -5601,7 +5601,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         pc%P0(np, :, nu) = r(:)
         call Unit2Atom1( pc, np, nu )
         ! Calculate new COM
-        call Unit2Mol1( pc, np )
+        call Unit2Mol( pc, np )
       end if
 
     end if
@@ -5769,6 +5769,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer                   :: ncfnew, npfnew
     integer                   :: nu, np
     real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: scalefac
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5816,12 +5817,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ncfnew = pc%NFluctComp( newstate )
     pcfnew => this%Component( ncfnew )
     if( pcf%Molecule%IsElongated ) then
-      call AddParticle( pcfnew, pcf%Pm0( npf, : ), pcf%Qm0( npf, : ) )
+      call AddParticle( pcfnew, pcf%Pm0( npf, : ), pcf%Q0( npf, 1:4, 1:pcf%Molecule%NUnit) )
     else
       call AddParticle( pcfnew, pcf%Pm0( npf, : ) )
     end if
     call RemoveParticle( pcf, npf )
     npfnew = pcfnew%NPart
+
+    ! Save constants
+    scalefac = 1._RK
+    if (UseIntDegFreed) scalefac = pcfnew%Molecule%IDFBond(1)%R0 - pcf%Molecule%IDFBond(1)%R0
 
 ! Save states for the Ewald Summation and/or derivates
     if (LongRange .eq. Ewald) then     ! Ewald Summation
@@ -5878,7 +5883,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        else
          ! Reject
          if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Qm0( npfnew, : ) )
+           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Q0( npfnew,  1:4, 1:pcfnew%Molecule%NUnit) )
          else
            call AddParticle( pcf, pcfnew%Pm0( npfnew, : ) )
          end if
@@ -5909,8 +5914,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 ! ----------------------------------------------------------------
     else   ! REACTION FIELD
+       ! Calculate center of mass of that particle
+       call Unit2Mol( pcf, npf )
+
+       ! Scale bond length
+!        call Mol2Unit_Fluct ( pcfnew, npfnew, pcf, npf )
+       nu= pcfnew%Molecule%NUnit
+       pcfnew%P0(npfnew,1:3,nu) = pcfnew%Pm0(npfnew, 1:3) + &
+&                           ( pcf%P0(npf, 1:3, nu) - pcf%Pm0(npf, 1:3) ) * scalefac
+
        ! Convert molecular coordinates to atom positions
-       call Mol2Unit1( pcfnew, npfnew, nu )
+!        call Mol2Unit1( pcfnew, npfnew, nu )
        do i = 1, nu
          call Unit2Atom1( pcfnew, npfnew, i )
        end do
@@ -5954,11 +5968,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
          ! Reject
          if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Qm0( npfnew, : ) )
+           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Q0( npfnew,  1:4, 1:pcfnew%Molecule%NUnit ) )
          else
            call AddParticle( pcf, pcfnew%Pm0( npfnew, : ) )
          end if
          call RemoveParticle( pcfnew, npfnew )
+
+         ! Reassign proper molecular unit positions
+!          pcf%P0(np,1:3,nu) = ( pcf%P0(np, 1:3, nu) - pcf%Pm0(np, 1:3) ) / scalefac
+
 
        end if
 
@@ -6002,7 +6020,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(4)
+    real(RK)                  :: q(4,1)
     real(RK)                  :: EPotIns
     type(TComponent), pointer :: pc
     integer                   :: i, np, nu
@@ -6028,9 +6046,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do
       s = 0._RK
       do i = 1, 4
-        q(i) = rnd( -1._RK, 1._RK )
+        q(i,1) = rnd( -1._RK, 1._RK )
       end do
-      s = sum( q**2 )
+      s = sum( q(:,1)**2 )
       if( s <= 1._RK ) exit
     end do
 #if ARCH == 3
@@ -6425,26 +6443,35 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TInteraction), pointer :: pi
     integer                     :: i, k, n1, n2, jk, nu
     real(RK)                    :: PSave(3), QSave(4)
+    real(RK)                    :: P0Save(3, 1:this%Component(nc)%Molecule%NUnit)
+    real(RK)                    :: Q0Save(4, 1:this%Component(nc)%Molecule%NUnit)
     real(RK)                    :: ESave(this%NPartMax), VSave(this%NPartMax)
 
     ! Assign local variables
     pc => this%Component(nc)
     n1 = pc%NPart
+    nu = pc%Molecule%NUnit
 
     ! Copy position and quaternions
     PSave(:) = pc%Pm0(np, :)
     pc%Pm0(np, :) = pc%Pm0(n1, :)
     pc%Pm0(n1, :) = PSave(:)
+    P0Save(1:3,1:nu) = pc%P0(np, 1:3, 1:nu )
+    pc%P0(np,1:3,1:nu) = pc%P0(n1,1:3,1:nu)
+    pc%P0(n1,1:3,1:nu) = P0Save(1:3,1:nu)
+
     if( pc%Molecule%IsElongated ) then
       QSave(:) = pc%Qm0(np, :)
       pc%Qm0(np, :) = pc%Qm0(n1, :)
       pc%Qm0(n1, :) = QSave(:)
+      Q0Save(:, 1:nu) = pc%Q0(np, :, 1:nu)
+      pc%Q0(np, :, 1:nu) = pc%Q0(n1, :, 1:nu)
+      pc%Q0(n1, :, 1:nu) = Q0Save(:, 1:nu)
     end if
 
     ! Convert molecular coordinates to atom positions
-    nu = pc%Molecule%NUnit
-    call Mol2Unit1( pc, np, nu )
-    call Mol2Unit1( pc, n1, nu )
+!     call Mol2Unit1( pc, np, nu )
+!     call Mol2Unit1( pc, n1, nu )
     do k=1,nu
       call Unit2Atom1( pc, np, k )
       call Unit2Atom1( pc, n1, k )
@@ -7022,7 +7049,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(4)
+    real(RK)                  :: q(4,1)
     type(TComponent), pointer :: pc
     integer                   :: i, np, nu
     real(RK)                  :: s
@@ -7042,9 +7069,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do
       s = 0._RK
       do i = 1, 4
-        q(i) = rnd( -1._RK, 1._RK )
+        q(i,1) = rnd( -1._RK, 1._RK )
       end do
-      s = sum( q**2 )
+      s = sum( q(:,1)**2 )
       if( s <= 1._RK ) exit
     end do
 #if ARCH == 3

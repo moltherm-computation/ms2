@@ -708,17 +708,6 @@ contains
 
    ! For all Units find mass, COM, moment of inertia, number of degree of freedom
    do i = 1, this%NUnit
-     ! Reduction of point charges to body fixed dipole vector
-     this%Unit(i)%Mue(:) = 0._RK
-     if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-      do j =1, this%Unit(i)%NCharge
-        this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-      end do
-      do j =1, this%Unit(i)%NDipole
-        this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
-      end do
-    end if
-    this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
       call FindCOM ( this%Unit(i) )
        if( this%Unit(i)%NDFRot < 0 ) then
           call FindMOI( this%Unit(i) )
@@ -1362,13 +1351,83 @@ contains
         this%SiteQuadrupole(i)%shield = this%SiteQuadrupole(i)%shield * scalegeo
         this%SiteQuadrupole(i)%Q = this%SiteQuadrupole(i)%Q * scaleest
       end do
+      ! For Unit Sites as well
+      do i = 1, this%NUnit
+        do j = 1, this%Unit(i)%NLJ126
+          this%Unit(i)%SiteLJ126(j)%r   = this%Unit(i)%SiteLJ126(j)%r * scalegeo
+          this%Unit(i)%SiteLJ126(j)%sig = this%Unit(i)%SiteLJ126(j)%sig * scalesig
+          this%Unit(i)%SiteLJ126(j)%eps = this%Unit(i)%SiteLJ126(j)%eps * scaleeps
+        end do
+        do j = 1, this%Unit(i)%NCharge
+          this%Unit(i)%SiteCharge(j)%r      = this%Unit(i)%SiteCharge(j)%r * scalegeo
+          this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
+          this%Unit(i)%SiteCharge(j)%e      = this%Unit(i)%SiteCharge(j)%e * scaleest
+        end do
+        do j = 1, this%Unit(i)%NDipole
+          this%Unit(i)%SiteDipole(j)%r      = this%Unit(i)%SiteDipole(j)%r * scalegeo
+          this%Unit(i)%SiteDipole(j)%shield = this%Unit(i)%SiteDipole(j)%shield * scalegeo
+          this%Unit(i)%SiteDipole(j)%D      = this%Unit(i)%SiteDipole(j)%D * scaleest
+        end do
+        do j = 1, this%Unit(i)%NQuadrupole
+          this%Unit(i)%SiteQuadrupole(j)%r      = this%Unit(i)%SiteQuadrupole(j)%r * scalegeo
+          this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
+          this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
+        end do
+
+        ! Reduction of point charges to body fixed dipole vector
+        this%Unit(i)%Mue(:) = 0._RK
+        if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
+          do j =1, this%Unit(i)%NCharge
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+          end do
+          do j =1, this%Unit(i)%NDipole
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+          end do
+        end if
+        this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
+      end do
+
+
+      if ( UseIntDegFreed ) then
+        do i = 1, this%NBond
+          this%IdfBond(i)%R0 = this%IdfBond(i)%R0 * scalegeo
+        end do
+      end if
 
     else if( fluctstate .eq. 0 ) then
        call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
 
+      ! Reduction of point charges to body fixed dipole vector
+      do i=1, this%NUnit
+        this%Unit(i)%Mue(:) = 0._RK
+        if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
+          do j =1, this%Unit(i)%NCharge
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+          end do
+          do j =1, this%Unit(i)%NDipole
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+          end do
+        end if
+        this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
+      end do
+
     else
 
       this%NFluct = 0
+
+      ! Reduction of point charges to body fixed dipole vector
+      do i=1, this%NUnit
+        this%Unit(i)%Mue(:) = 0._RK
+        if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
+          do j =1, this%Unit(i)%NCharge
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+          end do
+          do j =1, this%Unit(i)%NDipole
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+          end do
+        end if
+        this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
+      end do
 
     end if
 
@@ -2085,7 +2144,7 @@ contains
           d(j) = d(i)
           d(i) = p
           q(:) = v(:, i)
-          v(:, i) = -v(:, j)
+          v(:, i) = v(:, j)
           v(:, j) = q(:)
         end if
       end do
