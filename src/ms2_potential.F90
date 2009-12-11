@@ -644,6 +644,9 @@ contains
               end if
            end do
         end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
 	end if
 
     ! Calculate long-range corrections
@@ -1030,6 +1033,7 @@ contains
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
+
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
@@ -1552,6 +1556,9 @@ loop2:do j = 1, N
           end if
       	end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotCC_Construct
@@ -2669,6 +2676,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotCD_Construct
@@ -3220,6 +3230,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           end if
         end do
       end if
+   else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
 
@@ -3777,6 +3790,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotDC_Construct
@@ -4333,6 +4349,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotDD_Construct
@@ -5212,6 +5231,9 @@ loop2:do j = 1, j1
       		end if
       	end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotDQ_Construct
@@ -6104,6 +6126,9 @@ loop2:do j = 1, j1
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
   end subroutine TPotQC_Construct
@@ -6665,6 +6690,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
 
@@ -7563,6 +7591,9 @@ loop2:do j = 1, j1
           end if
         end do
       end if
+    else
+      this%potintra15 = .false.
+      this%potintra14 = .false.
     end if
 
 
