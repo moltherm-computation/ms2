@@ -4410,7 +4410,7 @@ contains
 
     ! Declare local variables
     real(RK)                 :: mass
-    real(RK)                 :: PX(np),PY(np),PZ(np)
+    real(RK)                 :: PX(this%NPart),PY(this%NPart),PZ(this%NPart)
     integer                  :: i
     integer                  :: np
     type(TMolecule), pointer :: pm
