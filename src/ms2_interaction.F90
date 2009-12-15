@@ -298,8 +298,10 @@ contains
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
+    nullify( this%PotDipoleCharge )
     nullify( this%PotDipoleDipole )
     nullify( this%PotDipoleQuadrupole )
+    nullify( this%PotQuadrupoleCharge )
     nullify( this%PotQuadrupoleDipole )
     nullify( this%PotQuadrupoleQuadrupole )
 

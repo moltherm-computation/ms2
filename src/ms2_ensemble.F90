@@ -193,6 +193,12 @@ module ms2_ensemble
     ! Kinetic energy
     real(RK) :: EKin, EKinTran, EKinRot
 
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    real(RK), pointer :: fvmTmpEKin1, fvmTmpEKin2
+    integer(c_size_t) :: fvmByteOffFvmTmpEKin1, fvmByteOffFvmTmpEKin2
+#endif
+
     ! Potential energy
 #if FVM_VER > 0
     real(RK), pointer :: EPot, fvmTmpEPot
@@ -1943,7 +1949,25 @@ contains
       call c_f_pointer (fvmPtr, this%NDeleteSuccesses)
 
     end if
+    
+    this%fvmByteOffFvmTmpEKin1 = &
+&     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpEKin1) )
+    if (this%fvmByteOffFvmTmpEKin1.LT.0) then
+      call AllocationError( -1, 'fvmTmpEKin1' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpEKin1)
+      call c_f_pointer (fvmPtr, this%fvmTmpEKin1)
+    end if
 
+    this%fvmByteOffFvmTmpEKin2 = &
+&     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpEKin2) )
+    if (this%fvmByteOffFvmTmpEKin2.LT.0) then
+      call AllocationError( -1, 'fvmTmpEKin2' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpEKin2)
+      call c_f_pointer (fvmPtr, this%fvmTmpEKin2)
+    end if
+    
     this%fvmByteOffEPot = reserveFvmMem( fvmDisp, sizeof(this%EPot) )
     if (this%fvmByteOffEPot.LT.0) then
       call AllocationError( -1, 'EPot' )
@@ -2486,9 +2510,29 @@ loop:do l = 1, NPartInCell
     ! Remove net momentum
     call RemoveNetMomentum( this )
 
+#if defined PAR_DEBUG
+    do pardbgidx1 = 1, this%NComponents
+      write(iounit_pardebug, '(A)') "velocities after net momentum removal:"
+      do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
+        write(iounit_pardebug, '(3F10.3)') &
+&         this%Component(pardbgidx1)%P1(pardbgidx2,:)
+      end do
+    end do
+#endif
+
     ! Rescale velocities
     call CalculateEKin( this, .true. )
     call CalculateEKin( this, .false. )
+
+#if defined PAR_DEBUG
+    do pardbgidx1 = 1, this%NComponents
+      write(iounit_pardebug, '(A)') "velocities after initial rescaling:"
+      do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
+        write(iounit_pardebug, '(3F20.10)') &
+&         this%Component(pardbgidx1)%P1(pardbgidx2,:)
+      end do
+    end do
+#endif
 
     ! Set velocity scaling factor
     this%scale = 1._RK
@@ -2511,8 +2555,11 @@ loop:do l = 1, NPartInCell
     ! Declare local variables
     integer :: i
 
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     ! Check for root process
     if( .not. RootProc ) return
+#endif
 
     ! Init velocities of each component
     do i = 1, this%NComponents
@@ -2534,8 +2581,11 @@ loop:do l = 1, NPartInCell
     ! Declare arguments
     type(TEnsemble) :: this
 
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     ! Check for root process
     if( .not. RootProc ) return
+#endif
 
     ! Call InitIntegrator
     select case( IntegratorType )
@@ -2671,7 +2721,10 @@ loop:do l = 1, NPartInCell
     integer :: i
 
     ! Check for root process
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     if( .not. RootProc ) return
+#endif
 
     ! Remove net momentum of each component
     do i = 1, this%NComponents
@@ -2705,8 +2758,11 @@ loop:do l = 1, NPartInCell
     real(RK)                  :: scale
     type(TComponent), pointer :: pc
 
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     ! Check for root process
     if( RootProc ) then
+#endif
 
       ! Nullify kinetic energies
       this%EKinTran = 0._RK
@@ -2721,8 +2777,56 @@ loop:do l = 1, NPartInCell
       end do
       this%EKin = this%EKinTran + this%EKinRot
 
+#if defined PAR_DEBUG
+      write(iounit_pardebug, '(A, F10.3)') "my EKin: ", this%EKin
+#endif
+
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+      !only have partial EKin now, need to Allreduce
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_CalculateEKin: Allreduce(this.EKin)' )
+
+#endif
+
+#if FVM_VER > 0
+
+      !FVM_Allreduce
+      this%fvmTmpEKin1 = this%EKin
+      fvmret = pv4dBarrier() !ensure correct init
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEKin2, &
+&         this%fvmByteOffFvmTmpEKin1, sizeof(this%fvmTmpEKin1), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        this%EKin = this%EKin + this%fvmTmpEKin2
+      end do
+
+      fvmret = pv4dBarrier()
+
+#endif
+      
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_CalculateEKin: Allreduce(this.EKin)' )
+
+#endif
+
       ! Calculate temperature
       this%Temperature = 2._RK * this%EKin / this%NDF
+
+#if defined PAR_DEBUG
+
+      write(iounit_pardebug, '(A, F10.3)') "EKin: ", this%EKin
+      write(iounit_pardebug, '(A, F10.3)') "Temp: ", this%Temperature
+      
+#endif
 
       ! Rescale velocities
       if( rescale ) then
@@ -2742,7 +2846,13 @@ loop:do l = 1, NPartInCell
       ! Save scaling factor
       this%scale = scale
 
+#if FVM_VER == 0
     end if
+#endif
+
+#if defined PAR_DEBUG
+      write(iounit_pardebug, '(A, F10.3)') "scale: ", this%scale
+#endif
 
     ! Broadcast temperature
 #if defined PAR_PROF
@@ -2761,14 +2871,26 @@ loop:do l = 1, NPartInCell
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier()
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!    fvmret = pv4dBarrier()
+!
+!    !FVM_Bcast
+!    fvmret = readdma(this%fvmByteOffTemperature, this%fvmByteOffTemperature, &
+!&     sizeof(this%Temperature), NRootProc, 0)
+!    fvmret = waitonqueue(0)
+!
+!    fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
-    !FVM_Bcast
-    fvmret = readdma(this%fvmByteOffTemperature, this%fvmByteOffTemperature, &
-&     sizeof(this%Temperature), NRootProc, 0)
-    fvmret = waitonqueue(0)
-
-    fvmret = pv4dBarrier()
+    !do not need any communication here 
+    !instead: Allreduce EKin (see above)
 
 #endif
 
@@ -3378,21 +3500,25 @@ loop3:    do nc = 1, this%NComponents
     integer :: i
 
     ! Call predictor for each component
-!#if FVM_VER == 0
+#if FVM_VER == 0
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     if( RootProc ) then
-!#endif
+#endif
       do i = 1, this%NComponents
         call PredictGear( this%Component(i) )
       end do
-!#if FVM_VER == 0
+#if FVM_VER == 0
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     end if
-!#endif 
+#endif 
 
     ! Predict volume of simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
       if( RootProc ) then
+#endif
+
         this%Volume0 = this%Volume0 &
 &                    + this%Volume1 &
 &                    + this%Volume2 &
@@ -3413,7 +3539,10 @@ loop3:    do nc = 1, this%NComponents
 &            +10._RK * this%Volume5
         this%Volume4 = this%Volume4 &
 &            + 5._RK * this%Volume5
+
+#if FVM_VER == 0
       end if
+#endif
 
 #if defined PAR_PROF
 
@@ -3478,16 +3607,27 @@ loop3:    do nc = 1, this%NComponents
     real(RK) :: dLogVolumeThird, Volume2, Corr
 
     ! Call corrector for each component
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     if( RootProc ) then
+#endif
+
       dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
       do i = 1, this%NComponents
         call CorrectGear( this%Component(i), dLogVolumeThird )
       end do
+      
+#if FVM_VER == 0
     end if
+#endif
 
     ! Correct volume of simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
+#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
       if( RootProc ) then
+#endif
+
         Volume2 = (this%Pressure - this%RefPressure) &
 &         * TimeStepSquared2 / this%PistonMass
         Corr = Volume2 - this%Volume2
@@ -3497,7 +3637,10 @@ loop3:    do nc = 1, this%NComponents
         this%Volume3 = this%Volume3 + Corr * Gear23
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
+
+#if FVM_VER == 0
       end if
+#endif
 
 #if defined PAR_PROF
 
@@ -3515,14 +3658,25 @@ loop3:    do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-      fvmret = pv4dBarrier()
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!      fvmret = pv4dBarrier()
+!
+!      !FVM_Bcast
+!      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+!&       sizeof(this%Volume0), NRootProc, 0)
+!      fvmret = waitonqueue(0)
+!
+!      fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
-      !FVM_Bcast
-      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
-&       sizeof(this%Volume0), NRootProc, 0)
-      fvmret = waitonqueue(0)
-
-      fvmret = pv4dBarrier()
+      !no communication needed
 
 #endif
 
@@ -3935,12 +4089,20 @@ loop3:    do nc = 1, this%NComponents
 #endif
     end do
 
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "Density: ", this%Density
+    write(iounit_pardebug, '(A, F20.10)') "EPotCorrLJ: ", this%EPotCorrLJ
+    write(iounit_pardebug, '(A, F20.10)') "EPotCorrRF: ", this%EPotCorrRF
+    write(iounit_pardebug, '(A, F20.10)') "VirialCorrLJ: ", this%VirialCorrLJ
+    write(iounit_pardebug, '(A, F20.10)') "BoxLength: ", this%BoxLength
+#endif
+
     ! Zero potential
     EPot = this%Density * this%EPotCorrLJ + this%EPotCorrRF
 
     ! Zero virial
     Virial = this%Density * this%VirialCorrLJ
-
+    
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
@@ -3969,9 +4131,48 @@ loop3:    do nc = 1, this%NComponents
 
     fvmret = pv4dBarrier() !???
 
-    !FVM_Reduce
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!    !FVM_Reduce
+!    this%fvmTmpEPot = EPot
+!    this%fvmTmpVirial = Virial
+!    fvmret = pv4dBarrier() !insure correct init (!)
+!    if ( myRank.eq.NRootProc ) then
+!      this%EPot = this%fvmTmpEPot
+!      this%Virial = this%fvmTmpVirial
+!      do fvmReduceLoopIdx = 1, numVmNodes-1
+!        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+!        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+!&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+!&         fvmRemoteRank, 0)
+!        fvmret = readdma(this%fvmByteOffFvmTmpVirial, &
+!&         this%fvmByteOffFvmTmpVirial, sizeof(this%fvmTmpVirial), &
+!&         fvmRemoteRank, 1)
+!        fvmret = waitonqueue(0)
+!        this%EPot = this%EPot + this%fvmTmpEPot
+!        fvmret = waitonqueue(1)
+!        this%Virial = this%Virial + this%fvmTmpVirial
+!      end do
+!    end if
+!
+!    fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+
+    !FVM_Allreduce
     this%fvmTmpEPot = EPot
     this%fvmTmpVirial = Virial
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
+#endif
+    
     fvmret = pv4dBarrier() !insure correct init (!)
     if ( myRank.eq.NRootProc ) then
       this%EPot = this%fvmTmpEPot
@@ -3989,8 +4190,18 @@ loop3:    do nc = 1, this%NComponents
         fvmret = waitonqueue(1)
         this%Virial = this%Virial + this%fvmTmpVirial
       end do
+    fvmret = pv4dBarrier()
     end if
-
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !wait for accumulated value
+      fvmret = readdma(this%fvmByteOffEPot, this%fvmByteOffEPot, &
+&       sizeof(this%EPot), NRootProc, 0)
+      fvmret = readdma(this%fvmByteOffVirial, this%fvmByteOffVirial, &
+&       sizeof(this%Virial), NRootProc, 1)
+      fvmret = waitonqueue(0)
+      fvmret = waitonqueue(1)
+    endif
+    
     fvmret = pv4dBarrier()
 
 #else
@@ -4005,6 +4216,13 @@ loop3:    do nc = 1, this%NComponents
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
     call profileTagAfter( Profiler, &
 &     'TEnsemble_Force: Reduce(EPot, Virial)' )
+
+#endif
+
+#if defined PAR_DEBUG
+
+    write(iounit_pardebug, '(A, F10.3)') "EPot: ", this%EPot
+    write(iounit_pardebug, '(A, F10.3)') "Virial: ", this%Virial
 
 #endif
 

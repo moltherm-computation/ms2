@@ -376,6 +376,12 @@ contains
         TimeStepSquared2 = .5_RK * TimeStepSquared
         TimeStepSquaredInv2 = .5_RK / TimeStepSquared
 
+#if defined PAR_DEBUG
+        write(iounit_pardebug, '(A, 4F20.10)') &
+&         "TimeStep, TimeStep2, TimeStepSquared2, TimeStepSquaredInv2: ", &
+&          TimeStep, TimeStep2, TimeStepSquared2, TimeStepSquaredInv2
+#endif
+
       ! Read MC simulation parameters
       else
 

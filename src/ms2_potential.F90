@@ -810,6 +810,15 @@ loop1:  do k = 1, this%NInCutoff(i)
           r1z  = ( RZi-PZi ) * BoxLength
 #endif
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+
+#if defined PAR_DEBUG
+       write(iounit_pardebug, '(A, 3F20.10)') "Rxi, Ryi, Rzi:", RXi, RYi, RZi
+       write(iounit_pardebug, '(A, 3F20.10)') "Rx2, Ry2, Rz2:", &
+&        RX2(j), RY2(j), RZ2(j)
+       write(iounit_pardebug, '(A, F20.10)') "SigmaSquared: ", SigmaSquared
+       write(iounit_pardebug, '(A, F20.10)') "RijSquaredInv: ", RijSquaredInv
+#endif
+
 #if TRANS==1
           RijSInvNorm   = Sqrt(RijSquaredInv)
 #endif          
@@ -965,9 +974,23 @@ loop2:  do j = j0, j1
 
     end if
 
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "EPot LJLJ: ", EPot
+    write(iounit_pardebug, '(A, F20.10)') "Virial LJLJ: ", Virial
+    write(iounit_pardebug, '(A, F20.10)') "Epsilon4: ", Epsilon4
+    write(iounit_pardebug, '(A, F20.10)') "EPotLocal: ", EPotLocal
+    write(iounit_pardebug, '(A, F20.10)') "Third: ", Third
+    write(iounit_pardebug, '(A, F20.10)') "VirialLocal: ", VirialLocal
+#endif
+
     ! Update potential energy and virial
     EPot = EPot + Epsilon4 * EPotLocal
     Virial = Virial + Third * VirialLocal * BoxLength
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "EPot LJLJ: ", EPot
+    write(iounit_pardebug, '(A, F20.10)') "Virial LJLJ: ", Virial
+#endif
 
   end subroutine TPotLJLJ_Force
 

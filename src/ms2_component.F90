@@ -87,6 +87,9 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer :: Disp(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffDisp
+#endif
 
     ! Total forces
     real(RK), pointer :: F(:, :)
@@ -1232,9 +1235,22 @@ contains
       end if
 
       ! Displacement
+#if FVM_VER == 0
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
+#elif FVM_VER > 0
+      !Parallelizing Predictor/Corrector (Hendrik Adorf, ITWM)
+      this%fvmByteOffDisp = &
+&       reserveFvmMem( fvmDisp, sizeof(this%Disp( 1:np, 1:3 )) )
+      if (this%fvmByteOffDisp.LT.0) then
+        call AllocationError( -1, 'displacement', np )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffDisp)
+        call c_f_pointer(fvmPtr, this%Disp, [np,3])
+      endif
+      this%Disp(:, :) = 0._RK
+#endif
 
       ! Total forces
 #if FVM_VER == 0
@@ -1651,9 +1667,11 @@ contains
     end if
 
     ! Displacement
+#if FVM_VER == 0
     if( associated( this%Disp ) ) then
       deallocate( this%Disp )
     end if
+#endif
 
     ! Total forces
 #if FVM_VER == 0
@@ -1912,7 +1930,16 @@ contains
       end do
     end do
 
-    ! Normalize translational velocity vectors (only done once - needs not to be efficient)
+#if defined PAR_DEBUG
+
+    write(iounit_pardebug, '(A)') "velocities after init:"
+    do pardbgidx1 = this%NPart0, this%NPart2
+      write(iounit_pardebug, '(3F10.3)') this%P1(pardbgidx1,:)
+    end do
+
+#endif
+
+    ! Normalize translational velocity vectors (only done once - need not be efficient)
     do j = 1, this%NPart
       this%P1(j, :) = this%P1(j, :) / sqrt( dot_product( this%P1(j, :), this%P1(j, :) ))
     end do
@@ -2078,15 +2105,35 @@ contains
     integer :: i
 
     ! Calculate translational kinetic energy
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    this%EKinTran = this%Molecule%Mass * TimeStepSquaredInv2 &
+&     * sum( this%P1(this%NPart0:this%NPart2, :)**2 ) * this%BoxLength**2
+#else
     this%EKinTran = this%Molecule%Mass * TimeStepSquaredInv2 &
 &     * sum( this%P1(1:this%NPart, :)**2 ) * this%BoxLength**2
+#endif
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F10.3)') "my EKinTran: ", this%EKinTran
+#endif
 
     ! Calculate rotational kinetic energy
     this%EKinRot = 0._RK
     do i = 1, this%Molecule%NDFRot
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+      this%EKinRot = this%EKinRot + this%Molecule%MOI(i) * .5_RK &
+&       * sum( this%W0(this%NPart0:this%NPart2, i)**2 )
+#else
       this%EKinRot = this%EKinRot + this%Molecule%MOI(i) * .5_RK &
 &       * sum( this%W0(1:this%NPart, i)**2 )
+#endif
     end do
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F10.3)') "my EKinRot: ", this%EKinRot
+#endif
 
   end subroutine TComponent_CalculateEKin
 
@@ -2127,9 +2174,13 @@ contains
 #if FVM_VER > 0
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
-    integer :: np0, np2
+    integer(c_size_t) :: fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize
+    integer :: fvmTmpIdx
+    integer :: npmax, np0, np1, np2
 
+    npmax = this%NPartMax
     np0 = this%NPart0
+    np1 = this%NPart1
     np2 = this%NPart2
 
 #endif
@@ -2154,28 +2205,74 @@ contains
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier()
+    fvmret = pv4dBarrier() !ensure that all data are initialized correctly
 
-!old version
-    !FVM_Bcast
-    fvmret = readdma(this%fvmByteOffP0, this%fvmByteOffP0, &
-&     sizeof( this%P0(:,:) ), NRootProc, 0)
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!    !FVM_Bcast
+!    fvmret = readdma(this%fvmByteOffP0, this%fvmByteOffP0, &
+!&     sizeof( this%P0(:,:) ), NRootProc, 0)
+!
+!    if( this%Molecule%isElongated ) then
+!
+!      !FVM_Bcast
+!      fvmret = readdma(this%fvmByteOffQ0, this%fvmByteOffQ0, &
+!&       sizeof( this%Q0(:,:) ), NRootProc, 1)
+!
+!    endif
+!
+!    fvmret = waitonqueue(0)
+!    fvmret = waitonqueue(1)
+!
+!    fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+
+    fvmTmpByteOffBase = this%fvmByteOffP0 + (np0-1)*sizeof( this%P0(1,1) )
+    fvmTmpByteSize = np1*sizeof( this%P0(1,1) )
+
+    !FVM_Allgather
+    do fvmReduceLoopIdx = 1, numVmNodes-1
+      fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+      do fvmTmpIdx = 1, 3 ! x,y,z coordinate; each in a different vmqueue
+        fvmTmpByteOff = fvmTmpByteOffBase + &
+&         npmax*(fvmTmpIdx-1)*sizeof( this%P0(1,1) )
+        fvmret = writedma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&         fvmRemoteRank, fvmTmpIdx )
+      end do
+      fvmret = waitonqueue(1)
+      fvmret = waitonqueue(2)
+      fvmret = waitonqueue(3)
+    end do
 
     if( this%Molecule%isElongated ) then
-
-      !FVM_Bcast
-      fvmret = readdma(this%fvmByteOffQ0, this%fvmByteOffQ0, &
-&       sizeof( this%Q0(:,:) ), NRootProc, 1)
-
+    
+      fvmTmpByteOffBase = this%fvmByteOffQ0 + (np0-1)*sizeof( this%Q0(1,1) )
+      fvmTmpByteSize = np1*sizeof( this%Q0(1,1) )
+      
+      !FVM_Allgather
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        do fvmTmpIdx = 1, 4 ! 1,i,j,k quaternion; each in a different vmqueue
+          fvmTmpByteOff = fvmTmpByteOffBase + &
+&           npmax*(fvmTmpIdx-1)*sizeof( this%Q0(1,1) )
+          fvmret = writedma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&           fvmRemoteRank, fvmTmpIdx )
+        end do
+        fvmret = waitonqueue(1)
+        fvmret = waitonqueue(2)
+        fvmret = waitonqueue(3)
+        fvmret = waitonqueue(4)
+      end do
+    
     endif
-
-!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
-    !FVM_Allgather
-
-    fvmret = waitonqueue(0)
-    fvmret = waitonqueue(1)
-
-    fvmret = pv4dBarrier()
+    
+    fvmret = pv4dBarrier() !ensure that all writes (remote!) have completed
 
 #endif
 
@@ -2189,11 +2286,13 @@ contains
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A, I10, A)') "size of P0(:,:) = ", &
-&     sizeof( this%P0(:,:) ), " bytes."
     write(iounit_pardebug, '(A)') "current positions (after Bcast):"
-    do pardbgidx1 = 1, size(this%P0(:,1))
-      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+    do pardbgidx1 = 1, np
+      write(iounit_pardebug, '(3F20.10)') this%P0(pardbgidx1,:)
+    end do
+    write(iounit_pardebug, '(A)') "current quaternions (after Bcast):"
+    do pardbgidx1 = 1, np
+      write(iounit_pardebug, '(3F20.10)') this%Q0(pardbgidx1,:)
     end do
 
 #endif
@@ -3139,35 +3238,68 @@ contains
 
     fvmret = pv4dBarrier()
 
-    !FVM_Reduce
-    if ( myRank.eq.NRootProc ) then
-      this%FAll(:,:) = this%F(:,:)
-      do fvmReduceLoopIdx = 1, numVmNodes-1
-        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
-        fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
-&         sizeof( this%F(:,:) ), fvmRemoteRank, 0)
-        fvmret = waitonqueue(0)
-        this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
-      end do
-    end if
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!    !FVM_Reduce
+!    if ( myRank.eq.NRootProc ) then
+!      this%FAll(:,:) = this%F(:,:)
+!      do fvmReduceLoopIdx = 1, numVmNodes-1
+!        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+!        fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
+!&         sizeof( this%F(:,:) ), fvmRemoteRank, 0)
+!        fvmret = waitonqueue(0)
+!        this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
+!      end do
+!    end if
+!
+!    if( this%Molecule%isElongated ) then
+!
+!      !FVM_Reduce
+!      if ( myRank.eq.NRootProc ) then
+!        this%TAll(:,:) = this%T(:,:)
+!        do fvmReduceLoopIdx = 1, numVmNodes-1
+!          fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+!          fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
+!&           sizeof( this%T(:,:) ), fvmRemoteRank, 0)
+!          fvmret = waitonqueue(0)
+!          this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
+!        end do
+!      end if
+!
+!    end if
+!
+!    fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+
+    !FVM_Allreduce
+    this%FAll(:,:) = this%F(:,:)
+    do fvmReduceLoopIdx = 1, numVmNodes-1
+      fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+      fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
+&       sizeof( this%F(:,:) ), fvmRemoteRank, 0)
+      fvmret = waitonqueue(0)
+      this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
+    end do
 
     if( this%Molecule%isElongated ) then
 
-      !FVM_Reduce
-      if ( myRank.eq.NRootProc ) then
-        this%TAll(:,:) = this%T(:,:)
-        do fvmReduceLoopIdx = 1, numVmNodes-1
-          fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
-          fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
-&           sizeof( this%T(:,:) ), fvmRemoteRank, 0)
-          fvmret = waitonqueue(0)
-          this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
-        end do
-      end if
+      !FVM_Allreduce
+      this%TAll(:,:) = this%T(:,:)
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
+&         sizeof( this%T(:,:) ), fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
+      end do
 
     end if
-
-    fvmret = pv4dBarrier()
 
 #endif
 
@@ -3222,20 +3354,13 @@ contains
 #endif
     nra = this%Molecule%NDFRot
 
-#if defined PAR_DEBUG
-    write(iounit_pardebug, '(A)') "positions before PredictGear:"
-    do pardbgidx1 = 1, size(this%P0(:,1))
-      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
-    end do
-#endif
-
     ! Predict COM positions and their derivatives
     do j = 1, 3
-!#if FVM_VER > 0
-!      do i = np0, np2
-!#else
+#if FVM_VER > 0
+      do i = np0, np2
+#else
       do i = 1, np
-!#endif
+#endif
         this%P0(i, j) = this%P0(i, j) &
 &                     + this%P1(i, j) &
 &                     + this%P2(i, j) &
@@ -3261,8 +3386,12 @@ contains
 
 #if defined PAR_DEBUG
     write(iounit_pardebug, '(A)') "positions after PredictGear:"
-    do pardbgidx1 = 1, size(this%P0(:,1))
+    do pardbgidx1 = this%NPart0, this%NPart2 
       write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+    end do
+    write(iounit_pardebug, '(A)') "velocities after PredictGear:"
+    do pardbgidx1 = this%NPart0, this%NPart2
+      write(iounit_pardebug, '(3F20.10)') this%P1(pardbgidx1,:)
     end do
 #endif
 
@@ -3270,11 +3399,11 @@ contains
 
       ! Predict quaternion parameters and their derivatives
       do j = 1, 4
-!#if FVM_VER > 0
-!        do i = np0, np2
-!#else
+#if FVM_VER > 0
+        do i = np0, np2
+#else
         do i = 1, np
-!#endif
+#endif
           this%Q0(i, j) = this%Q0(i, j) &
 &                       + this%Q1(i, j) &
 &                       + this%Q2(i, j) &
@@ -3294,11 +3423,11 @@ contains
 
       ! Predict angular velocities and their derivatives
       do j = 1, nra
-!#if FVM_VER > 0
-!        do i = np0, np2
-!#else
+#if FVM_VER > 0
+        do i = np0, np2
+#else
         do i = 1, np
-!#endif
+#endif
           this%W0(i, j) = this%W0(i, j) &
 &                       + this%W1(i, j) &
 &                       + this%W2(i, j) &
@@ -3342,12 +3471,26 @@ contains
     real(RK), pointer :: pF(:, :), pT(:, :)
     integer           :: np, nra
     integer           :: i, j
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    integer :: np0, np1, np2
+
+    integer(c_size_t) :: fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize
+    integer :: fvmTmpIdx
+
+#endif
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
     MassInv = 1._RK / this%Molecule%Mass
     np = this%NPart
     nra = this%Molecule%NDFRot
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    np0 = this%NPart0
+    np1 = this%NPart1
+    np2 = this%NPart2
+#endif
 
     ! Correct COM positions and their derivatives
 #if MPI_VER > 0 || FVM_VER > 0
@@ -3357,7 +3500,12 @@ contains
 #endif
 
     do j = 1, 3
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+      do i = np0, np2
+#else
       do i = 1, np
+#endif
         this%Corr0(i, j) = pF(i, j) &
 &         * TimeStepSquared2 * BoxLengthInv * MassInv
         if( ConstantPressure .and. .not. NVTEquilibration ) &
@@ -3373,6 +3521,13 @@ contains
 
         ! Calculate displacement
         this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
+
+#if defined PAR_DEBUG
+        write(iounit_pardebug, '(A)') "velocities after correction:"
+        do pardbgidx1 = this%NPart0, this%NPart2
+          write(iounit_pardebug, '(3F20.10)') this%P1(pardbgidx1,:)
+        end do
+#endif
 
         ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -3391,7 +3546,12 @@ contains
     if( this%Molecule%isElongated ) then
 
       ! Correct quaternion parameters and their derivatives
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+      do i = np0, np2
+#else
       do i = 1, np
+#endif
         this%Corr0(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) &
 &                                        - this%Q0(i, 3) * this%W0(i, 2) &
 &                                        - this%Q0(i, 4) * this%W0(i, 3))
@@ -3406,7 +3566,12 @@ contains
 &                                        + this%Q0(i, 1) * this%W0(i, 3))
       end do
       do j = 1, 4
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+        do i = np0, np2
+#else
         do i = 1, np
+#endif
           this%Corr1(i, j) = this%Corr0(i, j) - this%Q1(i, j)
           this%Q0(i, j) = this%Q0(i, j) + this%Corr1(i, j) * Gear10
           this%Q1(i, j) =                 this%Corr0(i, j)
@@ -3429,7 +3594,12 @@ contains
         Moi31 = this%Molecule%MOI(3) - this%Molecule%MOI(1)
         Moi12 = this%Molecule%MOI(1) - this%Molecule%MOI(2)
         TMoi3 = TimeStep / this%Molecule%MOI(3)
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+        do i = np0, np2
+#else
         do i = 1, np
+#endif
           this%Corr0(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * &
 &                             Moi23) * TMoi1
           this%Corr0(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * &
@@ -3438,14 +3608,24 @@ contains
 &                             Moi12) * TMoi3
         end do
       else
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+        do i = np0, np2
+#else
         do i = 1, np
+#endif
           this%Corr0(i, 1) = pT(i, 1) * TMoi1
           this%Corr0(i, 2) = pT(i, 2) * TMoi2
         end do
       end if
 
       do j = 1, nra
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+        do i = np0, np2
+#else
         do i = 1, np
+#endif
           this%Corr1(i, j) = this%Corr0(i, j) - this%W1(i, j)
           this%W0(i, j) = this%W0(i, j) + this%Corr1(i, j) * Gear10
           this%W1(i, j) = this%Corr0(i, j)
@@ -3456,6 +3636,33 @@ contains
       end do
 
     end if
+
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+! NEW: need an Allgather of Disp (!)
+   
+    fvmret = pv4dBarrier()
+    
+    fvmTmpByteOffBase = this%fvmByteOffDisp + (np0-1)*sizeof( this%Disp(1,1) )
+    fvmTmpByteSize = np1*sizeof( this%Disp(1,1) )
+    
+    !FVM_Allgather
+    do fvmReduceLoopIdx = 1, numVmNodes-1
+      fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+      do fvmTmpIdx = 1, 3 ! x,y,z coordinate; each in a different vmqueue
+        fvmTmpByteOff = fvmTmpByteOffBase + &
+&         np*(fvmTmpIdx-1)*sizeof( this%Disp(1,1) )
+        fvmret = writedma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&         fvmRemoteRank, fvmTmpIdx )
+      end do
+      fvmret = waitonqueue(1)
+      fvmret = waitonqueue(2)
+      fvmret = waitonqueue(3)
+end do
+
+      fvmret = pv4dBarrier()
+
+#endif
 
   end subroutine TComponent_CorrectGear
 
