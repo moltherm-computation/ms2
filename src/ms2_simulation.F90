@@ -11,6 +11,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -31,6 +32,15 @@ module ms2_simulation
   use ms2_global
   use ms2_stopwatch
 
+#if defined PAR_PROF
+  use ms2_profiler
+#endif
+
+#if FVM_VER > 0
+  use libfvmf2003
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -1029,6 +1039,7 @@ eqloop: do
     ! Declare local variables
 #if MPI_VER > 0
     logical :: AnyTerminateProgram
+    !(( not needed if FVM is used; instead uses AtomicCounter ))
 #endif
 	integer:: i
 
@@ -1081,16 +1092,54 @@ eqloop: do
 &       call ErrorsUpdate( this )
 
       ! Check for termination request (caused by signal handler)
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TSimulation_RunSteps: check TerminateProgram' )
+
+#endif
+
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+
       call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
 &       MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
       if( AnyTerminateProgram ) then
         TerminateProgram = .true.
-        exit
       end if
-#else
-      if( TerminateProgram ) exit
+
 #endif
+#if FVM_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+
+      !Allreduce replaced by FVM atomic counter
+      if (TerminateProgram) then
+        fvmret = atomiccntfetchadd(1, 0)
+      endif
+
+      fvmret = pv4dbarrier()
+
+      if ( atomiccntfetchadd(0, 0).gt.0 ) then
+        TerminateProgram = .true.
+      else
+        TerminateProgram = .false.
+        fvmret = pv4dbarrier()
+        if (myRank.eq.NRootProc) then
+          fvmret = atomiccntreset(0)
+        end if
+      end if
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TSimulation_RunSteps: check TerminateProgram' )
+
+#endif
+
+      if( TerminateProgram ) exit
 
       ! Check for too many particles (GE only)
       if( tooManyParticles ) exit
@@ -1696,7 +1745,17 @@ eqloop: do
 
     end if
 
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TSimulation_RestartRead: MPI_Bcast(Step, StepTotal, &
+&      Equilibration, NVTEquilibration)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( Step, 1, MPI_INTEGER, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
     call MPI_Bcast( StepTotal, 1, MPI_INTEGER, &
@@ -1705,6 +1764,37 @@ eqloop: do
 &     NRootProc, MPI_COMM_WORLD, ierror )
     call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast
+    fvmret = readdma(fvmByteOffStep, fvmByteOffStep, sizeof(Step), &
+&     NRootProc, 0)
+    fvmret = readdma(fvmByteOffStepTotal, fvmByteOffStepTotal, &
+&     sizeof(StepTotal), NRootProc, 1)
+    fvmret = readdma(fvmByteOffEquilibration, fvmByteOffEquilibration, &
+&     sizeof(Equilibration), NRootProc, 2)
+    fvmret = readdma(fvmByteOffNVTEquilibration, &
+&     fvmByteOffNVTEquilibration, sizeof(NVTEquilibration), NRootProc, 3)
+    fvmret = waitonqueue(0)
+    fvmret = waitonqueue(1)
+    fvmret = waitonqueue(2)
+    fvmret = waitonqueue(3)
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TSimulation_RestartRead: MPI_Bcast(Step, StepTotal, &
+&      Equilibration, NVTEquilibration)' )
+
 #endif
 
     ! Set current block number

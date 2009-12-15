@@ -11,6 +11,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -32,6 +33,15 @@ module ms2_component
   use ms2_molecule
   use ms2_site
 
+#if defined PAR_PROF
+  use ms2_profiler
+#endif
+
+#if FVM_VER > 0
+  use libfvmf2003
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -45,6 +55,9 @@ module ms2_component
 
     ! Centers of mass positions and their derivatives
     real(RK), pointer :: P0(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffP0
+#endif    
     real(RK), pointer :: P0Save(:, :)
     real(RK), pointer :: P0old(:, :)
     real(RK), pointer :: P1(:, :)
@@ -55,6 +68,9 @@ module ms2_component
 
     ! Quaternion parameters and their derivatives
     real(RK), pointer :: Q0(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffQ0
+#endif
     real(RK), pointer :: Q0Save(:, :)
     real(RK), pointer :: Q0tmp(:, :)
     real(RK), pointer :: Q1(:, :)
@@ -74,15 +90,40 @@ module ms2_component
 
     ! Total forces
     real(RK), pointer :: F(:, :)
-#if MPI_VER > 0
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffF
+#endif
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK), pointer :: FAll(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffFAll
+#endif
+#endif
+
+    ! temporary storage for FVM_(All)Reduce -- preliminary (!)
+#if FVM_VER.GT.0
+    real(RK), pointer :: fvmTmpF(:,:)
+    integer(c_size_t) :: fvmByteOffFvmTmpF
 #endif
 
     ! Total torques
     real(RK), pointer :: T(:, :)
-#if MPI_VER > 0
-    real(RK), pointer :: TAll(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffT
 #endif
+#if MPI_VER > 0 || FVM_VER > 0
+    real(RK), pointer :: TAll(:, :)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffTAll
+#endif
+#endif
+
+    ! temporary storage for FVM_(All)Reduce -- preliminary (!)
+#if FVM_VER > 0
+    real(RK), pointer :: fvmTmpT(:,:)
+    integer(c_size_t) :: fvmByteOffFvmTmpT
+#endif
+
 #if  TRANS == 1
 !TRANSPORT_start
  ! Transport
@@ -143,6 +184,9 @@ module ms2_component
 
     ! Number of particles in component
     integer, pointer :: NPart
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffNPart
+#endif
 
     ! Number of particles in process
     integer, pointer :: NPart0, NPart1, NPart2
@@ -156,12 +200,24 @@ module ms2_component
 
     ! Maximum allowed MC displacements
     real(RK), pointer :: DispTran, DispRot
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffDispTran, fvmByteOffDispRot
+#endif
 
     ! Number of MC attempts and successes
+#if FVM_VER == 0
     integer :: NMoveAttempts, NMoveSuccesses
     integer :: NRotateAttempts, NRotateSuccesses
     integer :: NMoveBiasedAttempts, NMoveBiasedSuccesses
     integer :: NRotateBiasedAttempts, NRotateBiasedSuccesses
+#elif FVM_VER > 0
+    integer, pointer :: NMoveAttempts, NMoveSuccesses
+    integer, pointer :: NMoveBiasedAttempts, NMoveBiasedSuccesses
+    integer(c_size_t) :: fvmByteOffMoveCounters
+    integer, pointer :: NRotateAttempts, NRotateSuccesses
+    integer, pointer :: NRotateBiasedAttempts, NRotateBiasedSuccesses
+    integer(c_size_t) :: fvmByteOffRotateCounters
+#endif
 
     ! Kinetic energy
     real(RK) :: EKinTran, EKinRot
@@ -181,6 +237,9 @@ module ms2_component
     integer           :: NFluctState, NFluctMax
     integer, pointer  :: NState(:), NStateWF(:), NFluctComp(:)
     real(RK), pointer :: WF(:)
+#if FVM_VER > 0
+    integer(c_size_t) :: fvmByteOffNState, fvmByteOffNStateWF, fvmByteOffWF
+#endif
     real(RK)          :: ProbW0, ProbW1, ProbW0V, ProbW1Rho
 !DEBUG
     integer, pointer  :: NFluctUpAttempts(:), NFluctUpSuccesses(:)
@@ -393,8 +452,18 @@ contains
     integer                     :: stat
 
     ! Allocate number of particles in component
+#if FVM_VER == 0
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+#elif FVM_VER > 0
+    this%fvmByteOffNPart = reserveFvmMem( fvmDisp, sizeof(this%NPart) )
+    if (this%fvmByteOffNPart.LT.0) then
+      call AllocationError( -1, 'number of particles' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNPart)
+      call c_f_pointer(fvmPtr, this%NPart)
+    endif
+#endif
 
     ! Allocate number of particles in process
     allocate( this%NPart0, STAT = stat )
@@ -523,24 +592,86 @@ contains
 
     ! Allocate maximum allowed MC displacements
     if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+#if FVM_VER == 0
       allocate( this%DispTran, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
+#elif FVM_VER > 0
+      this%fvmByteOffDispTran = reserveFvmMem( fvmDisp, sizeof(this%DispTran) )
+      if (this%fvmByteOffDispTran.LT.0) then
+        call AllocationError( -1, 'maximum MC displacement' )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffDispTran)
+        call c_f_pointer(fvmPtr, this%DispTran)
+      endif
+      this%fvmByteOffDispRot = reserveFvmMem( fvmDisp, sizeof(this%DispRot) )
+      if (this%fvmByteOffDispRot.LT.0) then
+        call AllocationError( -1, 'maximum MC displacement' )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffDispRot)
+        call c_f_pointer(fvmPtr, this%DispRot)
+      endif
+#endif
     end if
 
     ! Allocate and read weighting factors
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+#if FVM_VER == 0
       allocate( this%WF( 0:this%NFluctMax ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', &
 &       this%NFluctMax + 1 )
+#elif FVM_VER > 0
+      this%fvmByteOffWF = &
+&       reserveFvmMem( fvmDisp, sizeof(this%WF( 0:this%NFluctMax )) )
+      if (this%fvmByteOffWF.LT.0) then
+        call AllocationError( -1, 'fluctuating particle states', &
+&         this%NFluctMax + 1 )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffWF)
+        !FVMF2003_IndexChange:
+        call c_f_pointer(fvmPtr, this%WF, [this%NFluctMax+1])
+      endif
+#endif
       if( this%WFMethod .eq. WFMethodGuess .or. &
 &         this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
+
+#if defined PAR_PROF
+
+        ! Parallel Profiling added by Hendrik Adorf (ITWM)
+        call profileTagBefore( Profiler, &
+&         'TComponent_Construct: Bcast(this.WeightingFactors)' )
+
+#endif
+
 #if MPI_VER > 0
+
         call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
 &         NRootProc, MPI_COMM_WORLD, ierror )
+
 #endif
+#if FVM_VER > 0
+
+        fvmret = pv4dBarrier()
+
+        !FVM_Bcast
+        fvmret = readdma(this%fvmByteOffWF, this%fvmByteOffWF, &
+&         sizeof( this%WF ), NRootProc, 0)
+        fvmret = waitonqueue(0)
+
+        fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+        ! Parallel Profiling added by Hendrik Adorf (ITWM)
+        call profileTagAfter( Profiler, &
+&         'TComponent_Construct: Bcast(this.WeightingFactors)' )
+
+#endif
+      
       end if
     end if
 
@@ -572,8 +703,18 @@ contains
     integer :: stat
 
     ! Allocate number of particles in component
+#if FVM_VER == 0
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+#elif FVM_VER > 0
+    this%fvmByteOffNPart = reserveFvmMem( fvmDisp, sizeof(this%NPart) )
+    if (this%fvmByteOffNPart.LT.0) then
+      call AllocationError( -1, 'number of particles' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNPart)
+      call c_f_pointer(fvmPtr, this%NPart)
+    endif
+#endif
 
     ! Allocate number of particles in process
     allocate( this%NPart0, STAT = stat )
@@ -618,8 +759,18 @@ contains
     integer :: stat
 
     ! Allocate number of particles in component
+#if FVM_VER == 0
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+#elif FVM_VER > 0
+    this%fvmByteOffNPart = reserveFvmMem( fvmDisp, sizeof(this%NPart) )
+    if (this%fvmByteOffNPart.LT.0) then
+      call AllocationError( -1, 'number of particles' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNPart)
+      call c_f_pointer(fvmPtr, this%NPart)
+    endif
+#endif
 
     ! Allocate number of particles in process
     allocate( this%NPart0, STAT = stat )
@@ -690,16 +841,22 @@ contains
     end if
 
     ! Deallocate number of particles in component
+#if FVM_VER == 0
     if( associated( this%NPart ) ) then
       deallocate( this%NPart )
     end if
+#endif
 
-    ! Deallocate maximum allowed MC displacements
-    if( associated( this%DispTran ) ) then
-      deallocate( this%DispTran )
-    end if
-    if( associated( this%DispRot ) ) then
-      deallocate( this%DispRot )
+    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+      ! Deallocate maximum allowed MC displacements
+#if FVM_VER == 0
+      if( associated( this%DispTran ) ) then
+        deallocate( this%DispTran )
+      end if
+      if( associated( this%DispRot ) ) then
+        deallocate( this%DispRot )
+      end if
+#endif
     end if
 
   end subroutine TComponent_Destruct
@@ -823,8 +980,11 @@ contains
     nullify( this%P5 )
     nullify( this%Disp )
     nullify( this%F )
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     nullify( this%FAll )
+#endif
+#if FVM_VER > 0
+    nullify ( this%fvmTmpF )
 #endif
     nullify( this%Q0 )
     nullify( this%Q0Save )
@@ -839,8 +999,11 @@ contains
     nullify( this%W3 )
     nullify( this%W4 )
     nullify( this%T )
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     nullify( this%TAll )
+#endif
+#if FVM_VER > 0
+    nullify ( this%fvmTmpT )
 #endif
     nullify( this%MueX )
     nullify( this%MueY )
@@ -855,6 +1018,16 @@ contains
     nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
+#if FVM_VER > 0
+    nullify( this%NMoveAttempts )
+    nullify( this%NMoveSuccesses )
+    nullify( this%NMoveBiasedAttempts )
+    nullify( this%NMoveBiasedSuccesses )
+    nullify( this%NRotateAttempts )
+    nullify( this%NRotateSuccesses )
+    nullify( this%NRotateBiasedAttempts )
+    nullify( this%NRotateBiasedSuccesses )
+#endif
 #if  TRANS == 1
 !  Transport  !TRANSPORT_start
     nullify(this%KinETran)
@@ -973,9 +1146,69 @@ contains
     this%frc3(:,:)  = 0._RK
 !TRANSPORT_END
 #endif
+
+#if FVM_VER > 0
+    ! Move Counters
+    this%fvmByteOffMoveCounters = reserveFvmMem( fvmDisp, &
+&     sizeof(this%NMoveAttempts) + sizeof(this%NMoveSuccesses) + &
+&     sizeof(this%NMoveBiasedAttempts) + sizeof(this%NMoveBiasedSuccesses) )
+    if (this%fvmByteOffMoveCounters.LT.0) then
+      call AllocationError( -1, 'MoveCounters' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMoveCounters )
+      call c_f_pointer(fvmPtr, this%NMoveAttempts)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMoveCounters + &
+&       sizeof(this%NMoveAttempts) )
+      call c_f_pointer(fvmPtr, this%NMoveSuccesses)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMoveCounters + &
+&       sizeof(this%NMoveAttempts) + sizeof(this%NMoveSuccesses) )
+      call c_f_pointer(fvmPtr, this%NMoveBiasedAttempts)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMoveCounters + &
+&       sizeof(this%NMoveAttempts) + sizeof(this%NMoveSuccesses) +  &
+&       sizeof(this%NMoveBiasedAttempts) )
+      call c_f_pointer(fvmPtr, this%NMoveBiasedSuccesses)
+    endif
+
+    ! Rotate Counters
+    this%fvmByteOffRotateCounters = reserveFvmMem( fvmDisp, &
+&     sizeof(this%NRotateAttempts) + sizeof(this%NRotateSuccesses) +  &
+&     sizeof(this%NRotateBiasedAttempts) + sizeof(this%NRotateBiasedSuccesses) )
+    if (this%fvmByteOffRotateCounters.LT.0) then
+      call AllocationError( -1, 'RotateCounters' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffRotateCounters )
+      call c_f_pointer(fvmPtr, this%NRotateAttempts)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffRotateCounters +  &
+&       sizeof(this%NRotateAttempts) )
+      call c_f_pointer(fvmPtr, this%NRotateSuccesses)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffRotateCounters +  &
+&       sizeof(this%NRotateAttempts) + sizeof(this%NRotateSuccesses) )
+      call c_f_pointer(fvmPtr, this%NRotateBiasedAttempts)
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffRotateCounters +  &
+&       sizeof(this%NRotateAttempts) + sizeof(this%NRotateSuccesses) + &
+&       sizeof(this%NRotateBiasedAttempts) )
+      call c_f_pointer(fvmPtr, this%NRotateBiasedSuccesses)
+    endif
+#endif
+
     ! Centers of mass positions
+#if FVM_VER == 0
     allocate( this%P0( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
+#elif FVM_VER > 0
+    this%fvmByteOffP0 = reserveFvmMem( fvmDisp, sizeof(this%P0(1:np, 1:3 )) )
+    if (this%fvmByteOffP0.LT.0) then
+      call AllocationError( -1, 'particles', np )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffP0)
+      call c_f_pointer(fvmPtr, this%P0, [np,3])
+    endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "P0 Offset: ", this%fvmByteOffP0
+#endif
+
     allocate( this%P0Save( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%P0old( np, 3 ), STAT = stat )
@@ -1004,11 +1237,56 @@ contains
       this%Disp(:, :) = 0._RK
 
       ! Total forces
+#if FVM_VER == 0
       allocate( this%F( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#elif FVM_VER > 0
+      this%fvmByteOffF = reserveFvmMem( fvmDisp, sizeof(this%F( 1:np, 1:3 )) )
+      if (this%fvmByteOffF.LT.0) then
+        call AllocationError( -1, 'particles', np )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffF)
+        call c_f_pointer(fvmPtr, this%F, [np,3])
+      endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "F Offset: ", this%fvmByteOffF
+#endif
+
 #if MPI_VER > 0
       allocate( this%FAll( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#endif
+#if FVM_VER > 0
+      this%fvmByteOffFAll = &
+&       reserveFvmMem( fvmDisp, sizeof(this%FAll( 1:np, 1:3 )) )
+      if (this%fvmByteOffFAll.LT.0) then
+        call AllocationError( -1, 'particles', np )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFAll)
+        call c_f_pointer(fvmPtr, this%FAll, [np,3])
+      endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "FAll Offset: ", this%fvmByteOffFAll
+#endif
+
+      ! temporary storage for FVM_(All)Reduce -- preliminary (!)
+#if FVM_VER > 0
+      this%fvmByteOffFvmTmpF = &
+&       reserveFvmMem( fvmDisp, sizeof(this%fvmTmpF( 1:np, 1:3 )) )
+      if (this%fvmByteOffFvmTmpF.LT.0) then
+        call AllocationError( -1, 'particles', np )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpF)
+        call c_f_pointer(fvmPtr, this%fvmTmpF, [np,3])
+      endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "TmpF Offset: ", this%fvmByteOffFvmTmpF
 #endif
 
     end if
@@ -1016,8 +1294,24 @@ contains
     if( this%Molecule%isElongated ) then
 
       ! Quaternion parameters
+#if FVM_VER == 0
       allocate( this%Q0( np, 4 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#elif FVM_VER > 0
+      this%fvmByteOffQ0 = &
+&       reserveFvmMem( fvmDisp, sizeof(this%Q0( 1:np, 1:4 )) )
+      if (this%fvmByteOffQ0.LT.0) then
+        call AllocationError( -1, 'particles', np )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffQ0)
+        call c_f_pointer(fvmPtr, this%Q0, [np,4])
+      endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "Q0 Offset: ", this%fvmByteOffQ0
+#endif
+
       allocate( this%Q0Save( np, 4 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
 
@@ -1057,12 +1351,59 @@ contains
         end if
 
         ! Total torques
+#if FVM_VER == 0
         allocate( this%T( np, 3 ), STAT = stat )
         call AllocationError( stat, 'particles', np )
+#elif FVM_VER > 0
+        this%fvmByteOffT = &
+&         reserveFvmMem( fvmDisp, sizeof(this%T( 1:np, 1:3 )) )
+        if (this%fvmByteOffT.LT.0) then
+          call AllocationError( -1, 'particles', np )
+        else
+          fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffT)
+          call c_f_pointer(fvmPtr, this%T, [np,3])
+        endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "T Offset: ", this%fvmByteOffT
+#endif
+
 #if MPI_VER > 0
         allocate( this%TAll( np, 3 ), STAT = stat )
         call AllocationError( stat, 'particles', np )
 #endif
+#if FVM_VER > 0
+        this%fvmByteOffTAll = &
+&         reserveFvmMem( fvmDisp, sizeof(this%TAll( 1:np, 1:3 )) )
+        if (this%fvmByteOffTAll.LT.0) then
+          call AllocationError( -1, 'particles', np )
+        else
+          fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffTAll)
+          call c_f_pointer(fvmPtr, this%TAll, [np,3])
+        endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "TAll Offset: ", this%fvmByteOffTAll
+#endif
+
+        ! temporary storage for FVM_(All)Reduce -- preliminary (!)
+#if FVM_VER > 0
+        this%fvmByteOffFvmTmpT = &
+&         reserveFvmMem( fvmDisp, sizeof(this%fvmTmpT( 1:np, 1:3 )) )
+        if (this%fvmByteOffFvmTmpT.LT.0) then
+          call AllocationError( -1, 'particles', np )
+        else
+          fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpT)
+          call c_f_pointer(fvmPtr, this%fvmTmpT, [np,3])
+        endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "TmpT Offset: ", this%fvmByteOffFvmTmpT
+#endif
+
         ! Torques from reaction field
         allocate( this%tRFX( np ), STAT = stat )
         call AllocationError( stat, 'particles', np )
@@ -1194,7 +1535,7 @@ contains
         this%Molecule%SiteQuadrupole(i)%PZTest => this%P0Test(:, 3)
         end if
 #if TRANS==1
-	  if (this%Molecule%isElongated) then
+    if (this%Molecule%isElongated) then
       this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
       else
       this%Molecule%SiteQuadrupole(i)%Q0r => Q00
@@ -1205,10 +1546,43 @@ contains
     ! Fluctuating particle states
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
       nf = this%NFluctMax
+#if FVM_VER == 0
       allocate( this%NState( 0: nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
       allocate( this%NStateWF( 0: nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
+#elif FVM_VER > 0
+      !FVMF2003_IndexChange:
+      this%fvmByteOffNState = &
+&       reserveFvmMem( fvmDisp, sizeof(this%NState( 0: nf )) )
+      if (this%fvmByteOffNState.LT.0) then
+        call AllocationError( -1, 'fluctuating particle states', nf + 1 )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNState)
+        !FVMF2003_IndexChange:
+        call c_f_pointer(fvmPtr, this%NState, [nf+1])
+      endif
+
+#if defined PAR_DEBUG
+    print*, "NState Offset: ", this%fvmByteOffNState
+#endif
+
+      !FVMF2003_IndexChange:
+      this%fvmByteOffNStateWF = &
+&       reserveFvmMem( fvmDisp, sizeof(this%NStateWF( 0: nf )) )
+      if (this%fvmByteOffNStateWF.LT.0) then
+        call AllocationError( -1, 'fluctuating particle states', nf + 1 )
+      else
+        fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNStateWF)
+        !FVMF2003_IndexChange:
+        call c_f_pointer(fvmPtr, this%NStateWF, [nf+1])
+      endif
+#endif
+
+#if defined PAR_DEBUG
+    print*, "NStateWF Offset: ", this%fvmByteOffNStateWF
+#endif
+
 !       allocate( this%NStateBF( nf ), STAT = stat )
 !       call AllocationError( stat, 'fluctuating particle states', nf )
 !       allocate( this%BFSumState( nf ), STAT = stat )
@@ -1249,9 +1623,11 @@ contains
     integer :: i
 
     ! Centers of mass positions and their derivatives
+#if FVM_VER == 0
     if( associated( this%P0 ) ) then
       deallocate( this%P0 )
     end if
+#endif
     if( associated( this%P0Save ) ) then
       deallocate( this%P0Save )
     end if
@@ -1280,14 +1656,18 @@ contains
     end if
 
     ! Total forces
+#if FVM_VER == 0
     if( associated( this%F ) ) then
       deallocate( this%F )
     end if
+#endif
 
     ! Quaternion parameters and their derivatives
+#if FVM_VER == 0
     if( associated( this%Q0 ) ) then
       deallocate( this%Q0 )
     end if
+#endif
     if( associated( this%Q0Save ) ) then
       deallocate( this%Q0Save )
     end if
@@ -1325,9 +1705,11 @@ contains
     end if
 
     ! Total torques
+#if FVM_VER == 0
     if( associated( this%T ) ) then
       deallocate( this%T )
     end if
+#endif
 
     ! Total dipole moment of molecules for reaction field
     if( associated( this%MueX ) ) then
@@ -1458,19 +1840,22 @@ contains
       call Deallocate( this%Molecule%SiteQuadrupole(i) )
     end do
 
-     ! Fluctuating particle states
-    if( associated( this%NState ) ) then
-      deallocate( this%NState )
-    end if
-    if( associated( this%NStateWF ) ) then
-      deallocate( this%NStateWF )
-    end if
+    ! Fluctuating particle states
     if( associated( this%NFluctComp ) ) then
       deallocate( this%NFluctComp )
     end if
-    if( associated( this%WF ) ) then
-      deallocate( this%WF )
-    end if
+    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+#if FVM_VER == 0
+      if( associated( this%WF ) ) then
+        deallocate( this%WF )
+      end if
+      if( associated( this%NState ) ) then
+        deallocate( this%NState )
+      end if
+      if( associated( this%NStateWF ) ) then
+        deallocate( this%NStateWF )
+      end if
+#endif
 !     if( associated( this%NStateBF ) ) then
 !       deallocate( this%NStateBF )
 !     end if
@@ -1478,19 +1863,20 @@ contains
 !       deallocate( this%BFSumState )
 !     end if
 !DEBUG
-    if( associated( this%NFluctUpAttempts ) ) then
-      deallocate( this%NFluctUpAttempts )
-    end if
-    if( associated( this%NFluctUpSuccesses ) ) then
-      deallocate( this%NFluctUpSuccesses )
-    end if
-    if( associated( this%NFluctDownAttempts ) ) then
-      deallocate( this%NFluctDownAttempts )
-    end if
-    if( associated( this%NFluctDownSuccesses ) ) then
-      deallocate( this%NFluctDownSuccesses )
-    end if
+      if( associated( this%NFluctUpAttempts ) ) then
+        deallocate( this%NFluctUpAttempts )
+      end if
+      if( associated( this%NFluctUpSuccesses ) ) then
+        deallocate( this%NFluctUpSuccesses )
+      end if
+      if( associated( this%NFluctDownAttempts ) ) then
+        deallocate( this%NFluctDownAttempts )
+      end if
+      if( associated( this%NFluctDownSuccesses ) ) then
+        deallocate( this%NFluctDownSuccesses )
+      end if
 !DEBUG
+    end if
 
 #if MPI_VER > 0
     if( associated( this%FAll ) ) then
@@ -1738,13 +2124,78 @@ contains
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
 
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+
+    integer :: np0, np2
+
+    np0 = this%NPart0
+    np2 = this%NPart2
+
+#endif
+
     ! Broadcast positions and orientations to all processes
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TComponent_Mol2Atom: Bcast(this.P0, this.Q0)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
 &     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
 &       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+!old version
+    !FVM_Bcast
+    fvmret = readdma(this%fvmByteOffP0, this%fvmByteOffP0, &
+&     sizeof( this%P0(:,:) ), NRootProc, 0)
+
+    if( this%Molecule%isElongated ) then
+
+      !FVM_Bcast
+      fvmret = readdma(this%fvmByteOffQ0, this%fvmByteOffQ0, &
+&       sizeof( this%Q0(:,:) ), NRootProc, 1)
+
+    endif
+
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    !FVM_Allgather
+
+    fvmret = waitonqueue(0)
+    fvmret = waitonqueue(1)
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TComponent_Mol2Atom: Bcast(this.P0, this.Q0)' )
+
+#endif
+
+#if defined PAR_DEBUG
+
+    write(iounit_pardebug, '(A, I10, A)') "size of P0(:,:) = ", &
+&     sizeof( this%P0(:,:) ), " bytes."
+    write(iounit_pardebug, '(A)') "current positions (after Bcast):"
+    do pardbgidx1 = 1, size(this%P0(:,1))
+      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+    end do
+
 #endif
 
     ! Assign local variables
@@ -2643,13 +3094,23 @@ contains
     end if
 
     ! Reduce forces and torques from all processes
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
     if( this%Molecule%isElongated ) then
-     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
-&      MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+      call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
     end if
+
 #if  TRANS == 1
 ! Transport  !TRANSPORT_start
     call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
@@ -2674,6 +3135,59 @@ contains
 #endif
 
 #endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Reduce
+    if ( myRank.eq.NRootProc ) then
+      this%FAll(:,:) = this%F(:,:)
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
+&         sizeof( this%F(:,:) ), fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
+      end do
+    end if
+
+    if( this%Molecule%isElongated ) then
+
+      !FVM_Reduce
+      if ( myRank.eq.NRootProc ) then
+        this%TAll(:,:) = this%T(:,:)
+        do fvmReduceLoopIdx = 1, numVmNodes-1
+          fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+          fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
+&           sizeof( this%T(:,:) ), fvmRemoteRank, 0)
+          fvmret = waitonqueue(0)
+          this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
+        end do
+      end if
+
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+
+#endif
+
+#if defined PAR_DEBUG
+
+    write(iounit_pardebug, '(A)') "current forces (after Bcast):"
+    do pardbgidx1 = 1, size(this%FAll(:,1))
+      write(iounit_pardebug, '(3F10.3)') this%FAll(pardbgidx1,:)
+    end do
+
+#endif
+
 
   end subroutine TComponent_Atom2Mol
 
@@ -2691,16 +3205,37 @@ contains
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: np, nra
+    integer :: np
+    integer :: nra
     integer :: i, j
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    integer :: np0, np2
+#endif
 
     ! Assign local variables
     np = this%NPart
+#if FVM_VER > 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+    np0 = this%NPart0
+    np2 = this%NPart2
+#endif
     nra = this%Molecule%NDFRot
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A)') "positions before PredictGear:"
+    do pardbgidx1 = 1, size(this%P0(:,1))
+      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+    end do
+#endif
 
     ! Predict COM positions and their derivatives
     do j = 1, 3
+!#if FVM_VER > 0
+!      do i = np0, np2
+!#else
       do i = 1, np
+!#endif
         this%P0(i, j) = this%P0(i, j) &
 &                     + this%P1(i, j) &
 &                     + this%P2(i, j) &
@@ -2724,11 +3259,22 @@ contains
       end do
     end do
 
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A)') "positions after PredictGear:"
+    do pardbgidx1 = 1, size(this%P0(:,1))
+      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+    end do
+#endif
+
     if( this%Molecule%IsElongated ) then
 
       ! Predict quaternion parameters and their derivatives
       do j = 1, 4
+!#if FVM_VER > 0
+!        do i = np0, np2
+!#else
         do i = 1, np
+!#endif
           this%Q0(i, j) = this%Q0(i, j) &
 &                       + this%Q1(i, j) &
 &                       + this%Q2(i, j) &
@@ -2748,7 +3294,11 @@ contains
 
       ! Predict angular velocities and their derivatives
       do j = 1, nra
+!#if FVM_VER > 0
+!        do i = np0, np2
+!#else
         do i = 1, np
+!#endif
           this%W0(i, j) = this%W0(i, j) &
 &                       + this%W1(i, j) &
 &                       + this%W2(i, j) &
@@ -2800,7 +3350,7 @@ contains
     nra = this%Molecule%NDFRot
 
     ! Correct COM positions and their derivatives
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     pF => this%FAll(:, :)
 #else
     pF => this%F(:, :)
@@ -2867,7 +3417,7 @@ contains
       end do
 
       ! Correct angular velocities and their derivatives
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       pT => this%TAll(:, :)
 #else
       pT => this%T(:, :)
@@ -3009,7 +3559,7 @@ contains
     BoxLengthInv = 1._RK / this%BoxLength
     MassInv = 1._RK / this%Molecule%Mass
     np = this%NPart
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     pF => this%FAll(:, :)
 #else
     pF => this%F(:, :)
@@ -3027,7 +3577,7 @@ contains
       nra = this%Molecule%NDFRot
       TMoi1 = TimeStep / this%Molecule%MOI(1)
       TMoi2 = TimeStep / this%Molecule%MOI(2)
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       pT => this%TAll(:, :)
 #else
       pT => this%T(:, :)
@@ -3235,7 +3785,7 @@ contains
 
     ! Increase NPart
     this%NPart = this%NPart + 1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     this%NPart1 = 1 + (this%NPart - 1) / NProcs
     this%NPart0 = 1 + this%NPart1 * NProc
     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
@@ -3277,7 +3827,7 @@ contains
 
     ! Remove last particle
     this%NPart = this%NPart - 1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     this%NPart1 = 1 + (this%NPart - 1) / NProcs
     this%NPart0 = 1 + this%NPart1 * NProc
     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
@@ -3585,7 +4135,16 @@ contains
 
     end if
 
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TComponent_RestartRead: Bcast(several data)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
     call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_DOUBLE_PRECISION, &
@@ -3625,6 +4184,85 @@ contains
       call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
 &       NRootProc, MPI_COMM_WORLD, ierror )
     end if
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast: int NPart, double P0(:,:)
+    fvmret = readdma(this%fvmByteOffP0, this%fvmByteOffP0, &
+&      sizeof( this%P0(:,:) ), NRootProc, 0)
+    fvmret = readdma(this%fvmByteOffNPart, this%fvmByteOffNPart, &
+&     sizeof( this%NPart ), NRootProc, 1)
+    fvmret = waitonqueue(0)
+    fvmret = waitonqueue(1)
+
+    if( this%Molecule%isElongated ) then
+
+      !FVM_Bcast: double Q0(:,:)
+      fvmret = readdma(this%fvmByteOffQ0, this%fvmByteOffQ0, &
+&        sizeof( this%Q0(:,:) ), NRootProc, 0)
+      fvmret = waitonqueue(0)
+
+    end if
+
+    if( SimulationType.eq.MonteCarlo ) then
+
+     !FVM_Bcast: double DispTran, int NMoveAttempts, int NMoveSuccesses,
+     !  int NMoveBiasedAttempts, int NMoveBiasedSuccesses
+     fvmret = readdma( this%fvmByteOffMoveCounters, &
+&       this%fvmByteOffMoveCounters, sizeof(this%NMoveAttempts) + &
+&       sizeof(this%NMoveSuccesses) + sizeof(this%NMoveBiasedAttempts) + &
+&       sizeof(this%NMoveBiasedSuccesses), NRootProc, 0 )
+     fvmret = readdma(this%fvmByteOffDispTran, &
+&       this%fvmByteOffDispTran, sizeof(this%DispTran), NRootProc, 1)
+     fvmret = waitonqueue(0)
+     fvmret = waitonqueue(1)
+
+     if( this%Molecule%isElongated ) then
+
+       !FVM_Bcast: double DispRot, int NRotateAttempts,
+       !  int NRotateSuccesses, int NRotateBiasedAttempts,
+       !  int NRotateBiasedSuccesses
+       fvmret = readdma( this%fvmByteOffRotateCounters, &
+&        this%fvmByteOffRotateCounters, sizeof(this%NRotateAttempts) + &
+&        sizeof(this%NRotateSuccesses) + sizeof(this%NRotateBiasedAttempts) + &
+&        sizeof(this%NRotateBiasedSuccesses), NRootProc, 0 )
+       fvmret = readdma(this%fvmByteOffDispRot, &
+&        this%fvmByteOffDispRot, sizeof(this%DispRot), NRootProc, 1)
+       fvmret = waitonqueue(0)
+       fvmret = waitonqueue(1)
+
+     end if
+
+   end if
+
+   if( this%ChemPotMethod.eq.ChemPotMethodGradIns ) then
+
+     !FVM_Bcast: double WF(:), int NState(:), int NStateWF(:)
+     fvmret = readdma(this%fvmByteOffWF, this%fvmByteOffWF, &
+&      sizeof( this%WF ), NRootProc, 0)
+     fvmret = readdma(this%fvmByteOffNState, this%fvmByteOffNState, &
+&      sizeof( this%NState ) , NRootProc, 1)
+     fvmret = readdma(this%fvmByteOffNStateWF, this%fvmByteOffNStateWF, &
+&      sizeof( this%NStateWF ), NRootProc, 2)
+     fvmret = waitonqueue(0)
+     fvmret = waitonqueue(1)
+     fvmret = waitonqueue(2)
+
+   end if
+
+   fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+   ! Parallel Profiling added by Hendrik Adorf (ITWM)
+   call profileTagAfter( Profiler, &
+&    'TComponent_RestartRead: Bcast(several data)' )
+
 #endif
 
     ! Update old positions
@@ -3649,7 +4287,7 @@ subroutine TComponent_ForceTransport( this )
     ! Declare arguments
     type(TComponent)  :: this
 #if TRANS==1    
-	integer           :: i, j, k, nra
+    integer           :: i, j, k, nra
     real(RK), pointer :: pftc1(:,:), pftc2(:,:), pftc3(:,:)
     real(RK), pointer :: pfrc1(:,:), pfrc2(:,:), pfrc3(:,:)
     real(RK)          :: BoxLength_dt

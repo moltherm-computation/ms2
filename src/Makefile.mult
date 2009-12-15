@@ -80,7 +80,7 @@ gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
 	@gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
 	-g -O0 -fdefault-real-8 -Wall \
-	-o ms2dbg.gfortran_dbg $(PROGS)
+	-o ms2.gfortran_dbg $(PROGS)
 	@rm -f *.o *.mod
 
 gfortran:
@@ -108,7 +108,7 @@ ifort_dbg:
 	@echo "Compiling debug version using IFORT..."
 	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
 	-g -r8 -O0 -warn all -check all -debug all \
-	-o ms2dbg.ifort_dbg $(PROGS)
+	-o ms2.ifort_dbg $(PROGS)
 	@rm -f *.o *.mod *.il
 
 ifort:
@@ -132,6 +132,23 @@ ifort_mpi:
 	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
 	-r8 -O3 -ipo -vec_report0 \
 	-o ms2mpi.ifort $(PROGS)
+	@rm -f *.o *.mod *.il
+
+ifort_papi:
+	@echo "Compiling with PAPI support using IFORT..."
+	# -I<papi-path>/include -L<papi-path>/lib
+	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DUSE_PAPI -fpp \
+	-r8 -O3 -vec_report0 \
+	-lpapi \
+	-o ms2.ifort_papi $(PROGS)
+	@rm -f *.o *.mod *.il
+
+vt:
+	@echo "Compiling using VAMPIRTRACE..."
+	# -I<mpi-path>/include -I<mpi-path>/lib -L<mpi-path>/lib
+	@vtf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O3 \
+	-o ms2vt $(PROGS)
 	@rm -f *.o *.mod *.il
 
 nehalem:
@@ -175,9 +192,15 @@ jump_mpi:
 	-o ms2mpi $(PROGS)
 
 sx_dbg:
+	# loop-level profiler: -loopprof
 	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
-	-g -EP  \
-	-o ms2 $(PROGS)
+	-g -EP -ftrace \
+	-o ms2_dbg $(PROGS)
+
+sx_mpi_dbg:
+	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
+	-g -EP \
+	-o ms2mpi_dbg $(PROGS)
 
 sx8:
 	# NEC SX8R: -sx8r

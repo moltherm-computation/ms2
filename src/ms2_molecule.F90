@@ -11,6 +11,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -30,6 +31,15 @@ module ms2_molecule
   use ms2_global
   use ms2_site
 
+#if defined PAR_PROF
+  use ms2_profiler
+#endif
+
+#if FVM_VER > 0
+  use libfvmf2003
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -134,7 +144,9 @@ contains
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
+#if FVM_VER == 0
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
+#endif
 
     ! Nullify pointers.
     nullify( this%SiteLJ126 )
@@ -238,7 +250,17 @@ contains
           read( iounit_potmod, * ) scalegeo, scalesig, scaleeps, scaleest
         end do
       end if
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TMolecule_Construct: Bcast(several scales)' )
+
+#endif
+
 #if MPI_VER > 0
+
       call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
       call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
@@ -247,7 +269,38 @@ contains
 &       MPI_COMM_WORLD, ierror )
       call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
 #endif
+#if FVM_VER > 0
+
+      fvmret = pv4dBarrier()
+
+      !FVM_Bcast
+      fvmret = readdma(fvmByteOffScalegeo, fvmByteOffScalegeo, &
+&       sizeof(scalegeo), NRootProc, 0)
+      fvmret = readdma(fvmByteOffScalesig, fvmByteOffScalesig, &
+&       sizeof(scalesig), NRootProc, 1)
+      fvmret = readdma(fvmByteOffScaleeps, fvmByteOffScaleeps, &
+&       sizeof(scaleeps), NRootProc, 2)
+      fvmret = readdma(fvmByteOffScaleest, fvmByteOffScaleest, &
+&       sizeof(scaleest), NRootProc, 3)
+      fvmret = waitonqueue(0)
+      fvmret = waitonqueue(1)
+      fvmret = waitonqueue(2)
+      fvmret = waitonqueue(3)
+
+      fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TMolecule_Construct: Bcast(several scales)' )
+
+#endif
+
       if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
 &         scaleeps > 1._RK .or. scaleest > 1._RK ) &
 &       call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )

@@ -11,6 +11,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -35,6 +36,15 @@ module ms2_global
   use IFPORT
 #endif
 
+#if defined PAR_PROF
+  use ms2_profiler
+#endif
+
+#if FVM_VER > 0
+  use libfvmf2003
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -178,6 +188,25 @@ module ms2_global
 #else
   integer, parameter :: iounit_visual  = iounit_start + 9
 #endif
+#if defined PAR_PROF
+  ! Parallel Profiling added by Hendrik Adorf (ITWM)
+  integer, parameter :: iounit_trace   = 1
+  integer, parameter :: iounit_runtime = 2
+#endif
+
+#if defined PAR_DEBUG
+  !iounit
+  integer, parameter :: iounit_pardebug = 3
+  !debug file
+  character(200) :: ParDebugFileName
+  !loop indices
+  integer :: pardbgidx1, pardbgidx2
+  !loop indices temp storage
+!  integer :: pardbgidx1ref, pardbgidx2ref
+  !display flag
+!  logical :: pardbgdisplay = .false.
+#endif
+
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
 
@@ -185,9 +214,25 @@ module ms2_global
   integer, parameter :: IOBufferLength = 1024
 
   ! Declare input/output buffer strings
+#if FVM_VER > 0
+  character(IOBufferLength), pointer :: IOBuffer
+  integer(c_size_t) :: fvmByteOffIOBuffer
+#else
   character(IOBufferLength) :: IOBuffer
+#endif
   character(IOBufferLength) :: ErrorBuffer
   !character(IOBufferLength) :: MessageBuffer
+
+  ! to be used in Global_FileReadParameter:
+#if FVM_VER > 0
+
+  character(IOBufferLength), pointer :: parametervalue_global
+  integer(c_size_t) :: fvmByteOffParametervalue_global
+
+  integer, pointer :: status_global
+  integer(c_size_t) :: fvmByteOffStatus_global
+
+#endif
 
   ! Define comment character
   character, parameter :: CommentSign = '#'
@@ -468,14 +513,39 @@ module ms2_global
   ! Radii for second virial coefficient
   real(RK) :: MinRadius, MaxRadius
 
+  ! NEW in FVMF2003-Version: 
+  !  formerly local variables in ms2_molecule::Construct are now becoming 
+  !  global variables
+#if FVM_VER > 0
+  real(RK), pointer :: scalegeo, scalesig, scaleeps, scaleest
+  integer(c_size_t) :: fvmByteOffScalegeo, fvmByteOffScalesig, &
+&   fvmByteOffScaleeps, fvmByteOffScaleest
+#endif
+
   ! Number of current time step
+#if FVM_VER > 0
+  integer, pointer :: Step, StepTotal
+  integer(c_size_t) :: fvmByteOffStep, fvmByteOffStepTotal
+#else
   integer :: Step, StepTotal
+#endif
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction
+#if FVM_VER > 0
+  logical, pointer :: Equilibration, NVTEquilibration
+  integer(c_size_t) :: fvmByteOffEquilibration, fvmByteOffNVTEquilibration
+#else
+  logical :: Equilibration, NVTEquilibration
+#endif
+  logical :: MCOverlapReduction
 
   ! Restart flag
+#if FVM_VER > 0
+  logical, pointer :: Restart
+  integer(c_size_t) :: fvmByteOffRestart
+#else
   logical :: Restart
+#endif
 
   ! Too many particles flag (in GE runs)
   logical :: tooManyParticles
@@ -532,19 +602,63 @@ module ms2_global
   ! Internal variable of FileReadParameter
   integer :: FileReadParameter_LineNumber = 0
 
-  ! MPI variables
+  ! MPI/FVM (i.e. PARALLEL) variables
 #if MPI_VER > 0
   integer :: ierror
+#endif
+#if MPI_VER > 0 || FVM_VER > 0
+
   integer :: NProcs
   integer :: NProc
   integer :: NRootProc
   logical :: RootProc
+
 #else
+
   integer, parameter :: NProcs    = 1
   integer, parameter :: NProc     = 0
   integer, parameter :: NRootProc = NProc
   logical, parameter :: RootProc  = .true.
+
 #endif
+#if defined PAR_PROF
+  ! Parallel Profiling added by Hendrik Adorf (ITWM)
+
+  character(200) :: TraceFileName
+  character(200) :: RuntimeFileName
+#if FVM_VER > 0
+  character(100), pointer :: ProfilingPath
+  integer(c_size_t) :: fvmByteOffProfilingPath
+#else
+  character(100) :: ProfilingPath
+#endif
+
+  type(TProfiler) :: Profiler
+
+#endif
+
+#if FVM_VER > 0
+
+  !FVM data
+  integer :: myRank
+  integer :: numVmNodes
+  type(c_ptr) :: myVmStartPtr
+  
+  !FVM helpers
+  integer :: fvmret
+  integer :: fvmReduceLoopIdx
+  integer :: fvmRemoteRank
+  type(fvmDispenser) :: fvmDisp
+  type(c_ptr) :: fvmPtr
+
+  !FVM startup arguments
+  integer :: fvmNumArgs
+  integer :: fvmByteSize
+  character(LEN=300) :: fvmNameStr, fvmFinalStr = ''
+  character(LEN=300) :: fvmArgStr
+
+#endif
+
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flag for catched terminate signal
@@ -559,7 +673,6 @@ module ms2_global
 #else
   logical, parameter :: TerminateProgram = .false.
 #endif
-
 
 
 !==============================================================!
@@ -740,14 +853,237 @@ contains
     integer                   :: narg, dot, stat, i
     character(IOBufferLength) :: buffer
 #endif
+#if defined PAR_PROF || defined PAR_DEBUG
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    character(4) :: MyProcNumChar
+#endif
 
-    ! Initialize MPI
+    ! Initialize MPI/FVM
 #if MPI_VER > 0
     call MPI_Init( ierror )
     call MPI_Comm_size( MPI_COMM_WORLD, NProcs, ierror )
     call MPI_Comm_rank( MPI_COMM_WORLD, NProc, ierror )
     NRootProc = 0
     RootProc = NProc == NRootProc
+#endif
+#if FVM_VER > 0
+
+    !prepare FVM start arguments
+    fvmNumArgs = iargc()
+    call getarg(0, fvmNameStr)
+    fvmNameStr = trim(fvmNameStr)
+    do i = 1, fvmNumArgs
+      call getarg(i, fvmArgStr)
+      fvmFinalStr = trim(fvmFinalStr)//' '//trim(fvmArgStr)
+    end do
+    fvmNumArgs = fvmNumArgs + 1
+    fvmFinalStr = trim(fvmFinalStr)
+    fvmByteSize = 4*1024*1024
+
+    !start FVM
+    fvmret = startpv4dvm(fvmNumArgs, fvmNameStr//fvmFinalStr, '', fvmByteSize)
+    if (fvmret.ne.0) then
+      print*, "ERROR: FVM could not start! Terminating program."
+      call exit(-1)
+    else
+      print*, "FVM started succesfully."
+    end if
+
+    !get FVM data
+    numVmNodes = getnodecount()
+    myRank = getrank()
+    myVmStartPtr = getdmamemptr()
+
+    !set usual (MPI-version) variables
+    NProc = myRank
+    NProcs = numVmNodes
+    NRootProc = 0
+    RootProc = NProc == NRootProc
+
+    !initialize fvmDispenser
+    call constructFvmDispenser(fvmDisp, 0, fvmByteSize)
+
+    !allocate Restart and IOBuffer(IOBufferLength) in FVM memory region
+    fvmByteOffRestart = reserveFvmMem( fvmDisp, sizeof(Restart) )
+    if (fvmByteOffRestart.LT.0) then
+      call AllocationError( -1, 'Restart' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffRestart)
+      call c_f_pointer(fvmPtr, Restart)
+    end if
+    
+    fvmByteOffIOBuffer = reserveFvmMem( fvmDisp, sizeof(IOBuffer) )
+    if (fvmByteOffIOBuffer.LT.0) then
+      call AllocationError( -1, 'IOBuffer' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffIOBuffer)
+      call c_f_pointer(fvmPtr, IOBuffer)
+    end if
+
+#if defined PAR_DEBUG
+    print*, "IOBuffer Offset: ", fvmByteOffIOBuffer
+#endif
+
+    !allocate parametervalue_global(IOBufferLength) and status_global,
+    !  that are (FVM) helpers used in Global_ReadFileParameter
+    fvmByteOffParametervalue_global = &
+&     reserveFvmMem( fvmDisp, sizeof(parametervalue_global) )
+    if (fvmByteOffParametervalue_global.LT.0) then
+      call AllocationError( -1, 'parametervalue_global' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffParametervalue_global)
+      call c_f_pointer(fvmPtr, parametervalue_global)
+    end if
+
+#if defined PAR_DEBUG
+    print*, "parametervalue_global Offset: ", fvmByteOffParametervalue_global
+#endif
+
+    fvmByteOffStatus_global = reserveFvmMem( fvmDisp, sizeof(status_global) )
+    if (fvmByteOffStatus_global.LT.0) then
+      call AllocationError( -1, 'status_global' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffStatus_global)
+      call c_f_pointer(fvmPtr, status_global)
+    end if
+
+#if defined PAR_DEBUG
+    print*, "status_global Offset: ", fvmByteOffStatus_global
+#endif
+
+    !allocate int Step, int StepTotal, logical Equilibration,
+    !  logical NVTEquilibration in FVM memory region
+    !  (they are transmitted in ms2_simulation)
+    fvmByteOffStep = reserveFvmMem( fvmDisp, sizeof(Step) )
+    if (fvmByteOffStep.LT.0) then
+      call AllocationError( -1, 'Step' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffStep)
+      call c_f_pointer(fvmPtr, Step)
+    end if
+
+    fvmByteOffStepTotal = reserveFvmMem( fvmDisp, sizeof(StepTotal) )
+    if (fvmByteOffStepTotal.LT.0) then
+      call AllocationError( -1, 'StepTotal' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffStepTotal)
+      call c_f_pointer(fvmPtr, StepTotal)
+    end if
+
+    fvmByteOffEquilibration = reserveFvmMem( fvmDisp, sizeof(Equilibration) )
+    if (fvmByteOffEquilibration.LT.0) then
+      call AllocationError( -1, 'Equilibration' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffEquilibration)
+      call c_f_pointer(fvmPtr, Equilibration)
+    end if
+
+    fvmByteOffNVTEquilibration = &
+&     reserveFvmMem( fvmDisp, sizeof(NVTEquilibration) )
+    if (fvmByteOffNVTEquilibration.LT.0) then
+      call AllocationError( -1, 'NVTEquilibration' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffNVTEquilibration)
+      call c_f_pointer(fvmPtr, NVTEquilibration)
+    end if
+
+    !allocate real*8 scalegeo, real*8 scalesig, real*8 scaleeps,
+    !  real*8 scaleest in FVM memory region
+    !  (they are used in ms2_molecule::Construct and were only local
+    !  variables formerly (!))
+    fvmByteOffScalegeo = reserveFvmMem( fvmDisp, sizeof(scalegeo) )
+    if (fvmByteOffScalegeo.LT.0) then
+      call AllocationError( -1, 'scalegeo' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffScalegeo)
+      call c_f_pointer(fvmPtr, scalegeo)
+    end if
+
+    fvmByteOffScalesig = reserveFvmMem( fvmDisp, sizeof(scalesig) )
+    if (fvmByteOffScalesig.LT.0) then
+      call AllocationError( -1, 'scalesig' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffScalesig)
+      call c_f_pointer(fvmPtr, scalesig)
+    end if
+
+    fvmByteOffScaleeps = reserveFvmMem( fvmDisp, sizeof(scaleeps) )
+    if (fvmByteOffScaleeps.LT.0) then
+      call AllocationError( -1, 'scaleeps' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffScaleeps)
+      call c_f_pointer(fvmPtr, scaleeps)
+    end if
+
+    fvmByteOffScaleest = reserveFvmMem( fvmDisp, sizeof(scaleest) )
+    if (fvmByteOffScaleest.LT.0) then
+      call AllocationError( -1, 'scaleest' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffScaleest)
+      call c_f_pointer(fvmPtr, scaleest)
+    end if
+
+    !reset counters that will be in use
+    if (RootProc) then
+      fvmret = atomiccntreset(0)
+      fvmret = atomiccntreset(1)
+    end if
+
+#endif
+
+    ! prepare parallel profiling
+#if defined PAR_PROF
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+
+    write(MyProcNumChar, '(I0)') NProc
+
+#if FVM_VER > 0
+    !allocate FVM memory for ProfilingPath string
+    fvmByteOffProfilingPath = reserveFvmMem( fvmDisp, sizeof(ProfilingPath) )
+    if (fvmByteOffProfilingPath.LT.0) then
+      call AllocationError( -1, 'ProfilingPath' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, fvmByteOffProfilingPath)
+      call c_f_pointer(fvmPtr, ProfilingPath)
+    end if
+#endif
+
+    if (RootProc) then
+      call getarg(2, ProfilingPath)
+    end if
+
+#if MPI_VER > 0
+
+    call MPI_Bcast( ProfilingPath, sizeof(ProfilingPath), MPI_CHARACTER, &
+&     NRootProc, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    !FVM_Bcast
+    fvmret = pv4dBarrier()
+    fvmret = readdma(fvmByteOffProfilingPath, fvmByteOffProfilingPath, &
+&     sizeof(ProfilingPath), NRootProc, 0)
+    fvmret = waitonqueue(0)
+    fvmret = pv4dBarrier()
+
+#endif
+
+    RuntimeFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.rtm'
+    TraceFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.trc'
+
+    call constructProfiler( Profiler, TraceFileName, RuntimeFileName, &
+&     iounit_trace, iounit_runtime )
+
+#endif
+
+#if defined PAR_DEBUG
+
+    write(MyProcNumChar, '(I0)') NProc
+    ParDebugFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.dbg'
+    open(unit = iounit_pardebug, file = trim(ParDebugFileName), &
+&      action = 'readwrite', status = 'replace', position = 'append')
+
 #endif
 
 !DEBUG
@@ -822,9 +1158,40 @@ contains
       OutputNameTag = trim( buffer )             ! possible truncation
     end if
 
-#if MPI_VER > 0
-    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, MPI_COMM_WORLD, ierror )
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'Global_InitializeProgram: Bcast(Restart)' )
+
 #endif
+
+#if MPI_VER > 0
+
+    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast
+    fvmret = readdma(fvmByteOffRestart, fvmByteOffRestart, &
+&     sizeof(Restart), NRootProc, 0)
+    fvmret = waitonqueue(0)
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'Global_InitializeProgram: Bcast(Restart)' )
+
+#endif
+
 #endif
 
     ! Open log file
@@ -833,11 +1200,17 @@ contains
     ! Update log file
 #if MPI_VER > 0
     write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
-#else
-    write( IOBuffer, '("sequential Version")' )
-#endif
     call LogWrite
     call LogWriteBlank
+#elif FVM_VER > 0
+    write( IOBuffer, '(I4, " FVM nodes initialized")' ) numVmNodes
+    call LogWrite
+    call LogWriteBlank
+#else
+    write( IOBuffer, '("sequential Version")' )
+    call LogWrite
+    call LogWriteBlank
+#endif
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
@@ -901,10 +1274,45 @@ contains
 !   close(999)
 !DEBUG
 
-    ! Finalize MPI
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'Global_FinalizeProgram: Finalize' )
+
+#endif
+
+    ! Finalize MPI/FVM
 #if MPI_VER > 0
+    
+    ! Finalize MPI
     call MPI_Barrier( MPI_COMM_WORLD, ierror )
     call MPI_Finalize( ierror )
+
+#endif
+#if FVM_VER > 0
+
+    !Finalize FVM
+    fvmret = pv4dbarrier()
+    fvmret = shutdownpv4dvm()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'Global_FinalizeProgram: Finalize' )
+
+    ! destruct Profiler
+    call destructProfiler(Profiler)
+
+#endif
+
+#if defined PAR_DEBUG
+
+    close(iounit_pardebug)
+
 #endif
 
   end subroutine Global_FinalizeProgram
@@ -1016,18 +1424,66 @@ contains
     integer, intent(in), optional :: NPart
 
     ! Declare local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     logical :: ok, okAll
 #endif
 
     ! Check for allocation error
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'Global_AllocationError: check ok' )
+
+#endif
+
 #if MPI_VER > 0
+
     ok = stat == 0
+
     call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
 &     MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    ok = stat == 0
+
+    !Allreduce replaced by FVM global atomic counter
+    if (ok.eq..false.) then
+      fvmret = atomiccntfetchadd(1, 1)
+    end if
+
+    fvmret = pv4dbarrier()
+
+    if ( atomiccntfetchadd(0, 1).gt.0 ) then
+      okAll = .false.
+    else
+      fvmret = pv4dbarrier()
+      if (myRank.eq.NRootProc) then
+        fvmret = atomiccntreset(1)
+      end if
+      okAll = .true.
+    end if
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'Global_AllocationError: check ok' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     if( okAll ) return
+
 #else
+
     if( stat == 0 ) return
+
 #endif
 
     ! Terminate program
@@ -1458,7 +1914,6 @@ contains
 
     character(IOBufferLength) :: parametervalue
 
-
     ! Declare local variables
     integer                   :: stat, comment_pos, linesread, i
     character(FileNameLength) :: fn
@@ -1533,13 +1988,63 @@ contains
     ! Broadcast parameter to other processes
     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
     !  Better broadcast the integer, float parametervalues, instead of the string?)
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'Global_FileReadParameter: Bcast(parametervalue, status)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( parametervalue, len(parametervalue), &
 &     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+    
     if( present(status) ) then
       call MPI_Bcast( status, 1, &
 &       MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
     end if
+
+#endif
+#if FVM_VER > 0
+    
+    parametervalue_global = parametervalue
+    if ( present(status) ) then
+      status_global = status
+    endif
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast
+    fvmret = readdma(fvmByteOffParametervalue_global, &
+&     fvmByteOffParametervalue_global, sizeof(parametervalue_global), &
+&     NRootProc, 0)
+
+    if ( present(status) ) then
+      !FVM_Bcast
+      fvmret = readdma(fvmByteOffStatus_global, &
+&       fvmByteOffStatus_global, sizeof(status_global), NRootProc, 1)
+    end if
+
+    fvmret = waitonqueue(0)
+    fvmret = waitonqueue(1)
+
+    fvmret = pv4dBarrier()
+
+    parametervalue = parametervalue_global
+    if ( present(status) ) then
+      status = status_global
+    endif
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'Global_FileReadParameter: Bcast(parametervalue, status)' )
+
 #endif
 
 !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &

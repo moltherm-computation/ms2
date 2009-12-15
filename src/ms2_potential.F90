@@ -26,6 +26,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -661,14 +662,14 @@ contains
 #endif
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
 #endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
     EvenN = mod( N1, 2 ) == 0
@@ -737,7 +738,7 @@ contains
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, i1
@@ -898,7 +899,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     else ! Site-site cutoff
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, merge( i1 - 1, i1, SameComponent )
@@ -913,7 +914,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PYi = PY1(i)
         PZi = PZ1(i)
 
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         if( SameComponent ) then
           j0 = i + 1
           j1 = i + N2
@@ -1173,7 +1174,7 @@ loop1:do k = 1, this%NInCutoff(np)
 
     else ! Site-site cutoff
 
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
 loop2:do j = this%Site2%NPart0, this%Site2%NPart2
 #else
@@ -1342,12 +1343,12 @@ loop2:do j = 1, N
 #endif
 
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
     ! Assign local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
 #else
@@ -1406,7 +1407,7 @@ loop2:do j = 1, N
 !TRANSPORT_END
 #endif
     ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do i = i0, i1
 #else
     do i = 1, i1
@@ -1858,12 +1859,12 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, Viriallocal
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
     ! Assign local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
 #else
@@ -1900,7 +1901,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     TZ2 => this%Site2%TZ
 
     ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do i = i0, i1
 #else
     do i = 1, i1
@@ -2269,12 +2270,12 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, VirialLocal
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
     ! Assign local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
 #else
@@ -2311,7 +2312,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     TZ2 => this%Site2%TZ
 
     ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do i = i0, i1
 #else
     do i = 1, i1
@@ -2687,12 +2688,12 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, Viriallocal
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
     ! Assign local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
 #else
@@ -2729,7 +2730,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     TZ1 => this%Site1%TZ
 
     ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do i = i0, i1
 #else
     do i = 1, i1
@@ -3142,14 +3143,14 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
     EvenN = mod( N1, 2 ) == 0
@@ -3228,7 +3229,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, i1
@@ -3418,7 +3419,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     else ! Site-site cutoff
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, merge( i1 - 1, i1, SameComponent )
@@ -3438,7 +3439,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         if( SameComponent ) then
           j0 = i + 1
           j1 = i + N2
@@ -3999,14 +4000,14 @@ loop2:do j = 1, j1
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
     EvenN = mod( N1, 2 ) == 0
@@ -4056,7 +4057,7 @@ loop2:do j = 1, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, i1
@@ -4146,7 +4147,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     else ! Site-site cutoff
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, merge( i1 - 1, i1, SameComponent )
@@ -4166,7 +4167,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         TXi = TX1(i)
         TYi = TY1(i)
         TZi = TZ1(i)
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         if( SameComponent ) then
           j0 = i + 1
           j1 = i + N2
@@ -4729,12 +4730,12 @@ loop2:do j = 1, j1
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, VirialLocal
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
     ! Assign local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
 #else
@@ -4771,7 +4772,7 @@ loop2:do j = 1, j1
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do i = i0, i1
 #else
     do i = 1, i1
@@ -5161,14 +5162,14 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
     EvenN = mod( N1, 2 ) == 0
@@ -5218,7 +5219,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, i1
@@ -5308,7 +5309,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     else ! Site-site cutoff
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, merge( i1 - 1, i1, SameComponent )
@@ -5328,7 +5329,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         TXi = TX1(i)
         TYi = TY1(i)
         TZi = TZ1(i)
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         if( SameComponent ) then
           j0 = i + 1
           j1 = i + N2
@@ -5927,14 +5928,14 @@ loop2:do j = 1, j1
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
     EvenN = mod( N1, 2 ) == 0
@@ -6012,7 +6013,7 @@ loop2:do j = 1, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, i1
@@ -6216,7 +6217,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     else ! Site-site cutoff
 
       ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = i0, i1
 #else
       do i = 1, merge( i1 - 1, i1, SameComponent )
@@ -6236,7 +6237,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         if( SameComponent ) then
           j0 = i + 1
           j1 = i + N2

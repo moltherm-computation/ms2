@@ -11,6 +11,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -34,6 +35,15 @@ module ms2_ensemble
   use ms2_interaction
   use ms2_site
 
+#if defined PAR_PROF
+  use ms2_profiler
+#endif
+
+#if FVM_VER > 0
+  use libfvmf2003
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -64,8 +74,13 @@ module ms2_ensemble
     integer, pointer :: NPartMax
 
     ! Number of particles in ensemble
-    integer :: NPart, NPartInitial
-    integer :: NPartLBound, NPartUBound
+#if FVM_VER > 0
+    integer, pointer :: NPart
+    integer(c_size_t) :: fvmByteOffNPart
+#else    
+    integer :: NPart
+#endif
+    integer :: NPartInitial, NPartLBound, NPartUBound
 
     ! Maximum number of test particles
     integer :: NTestMax
@@ -103,13 +118,24 @@ module ms2_ensemble
     real(RK) :: LiqBetaT, VarLiqBetaT, LiqdHdP, VarLiqdHdP
 
     ! Current values of temperature, pressure, density
-    real(RK) :: Temperature, Pressure, Density
+#if FVM_VER > 0
+    real(RK), pointer :: Temperature, fvmTmpChemPot
+    integer(c_size_t) :: fvmByteOffTemperature, fvmByteOffFvmTmpChemPot
+#else
+    real(RK) :: Temperature
+#endif
+    real(RK) ::  Pressure, Density
 
     ! Velocity scaling factor for temperature control
     real(RK) :: scale
 
     ! Virial
+#if FVM_VER > 0
+    real(RK), pointer :: Virial, fvmTmpVirial
+    integer(c_size_t) :: fvmByteOffVirial, fvmByteOffFvmTmpVirial
+#else
     real(RK) :: Virial
+#endif
 
     ! Scale coefficients for LJ126 epsilon and sigma
     real(RK), pointer :: ScaleEpsilon(:, :), ScaleSigma(:, :)
@@ -125,27 +151,55 @@ module ms2_ensemble
 
     ! Maximum cutoff radius
     real(RK) :: RCutoffMax2
+#if FVM_VER > 0
+    integer, pointer :: NRCutoffMax
+    integer(c_size_t) :: fvmByteOffNRCutoffMax
+#else
     integer  :: NRCutoffMax
+#endif
 
     ! Volume of simulation box and its derivatives
-    real(RK) :: Volume0, Volume1, Volume2, Volume3, Volume4, Volume5
+#if FVM_VER > 0    
+    real(RK), pointer :: Volume0
+    integer(c_size_t) :: fvmByteOffVolume0
+#else
+    real(RK) :: Volume0
+#endif
+    real(RK) :: Volume1, Volume2, Volume3, Volume4, Volume5
 
     ! Length of simulation box
     real(RK), pointer :: BoxLength
 
     ! Maximum allowed MC displacements
+#if FVM_VER > 0
+    real(RK), pointer :: DispVol
+    integer(c_size_t) :: fvmByteOffDispVol
+#else
     real(RK) :: DispVol
+#endif
 
     ! Number of MC attempts and successes
+#if FVM_VER > 0
+    integer, pointer :: NResizeAttempts, NResizeSuccesses
+    integer, pointer :: NInsertAttempts, NInsertSuccesses
+    integer, pointer :: NDeleteAttempts, NDeleteSuccesses
+    integer(c_size_t) :: fvmByteOffMCCounters
+#else
     integer :: NResizeAttempts, NResizeSuccesses
     integer :: NInsertAttempts, NInsertSuccesses
     integer :: NDeleteAttempts, NDeleteSuccesses
+#endif
 
     ! Kinetic energy
     real(RK) :: EKin, EKinTran, EKinRot
 
     ! Potential energy
+#if FVM_VER > 0
+    real(RK), pointer :: EPot, fvmTmpEPot
+    integer(c_size_t) :: fvmByteOffEPot, fvmByteOffFvmTmpEPot
+#else
     real(RK) :: EPot
+#endif
 
     ! Potential energy of test particles
     real(RK), pointer :: EPotTest(:)
@@ -564,6 +618,28 @@ contains
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
     call AllocationError( stat, 'simulation box length' )
+
+#if FVM_VER > 0
+
+    ! Allocate NPart
+    this%fvmByteOffNPart = reserveFvmMem( fvmDisp, sizeof(this%NPart) )
+    if (this%fvmByteOffNPart.LT.0) then
+      call AllocationError( -1, 'NPart' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNPart)
+      call c_f_pointer (fvmPtr, this%NPart)
+    end if
+
+    !Allocate Volume0
+    this%fvmByteOffVolume0 = reserveFvmMem( fvmDisp, sizeof(this%Volume0) )
+    if (this%fvmByteOffVolume0.LT.0) then
+      call AllocationError( -1, 'Volume0' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffVolume0)
+      call c_f_pointer (fvmPtr, this%Volume0)
+    end if
+
+#endif
 
     ! Allocate maximum number of particles
     allocate( this%NPartMax, STAT = stat )
@@ -988,6 +1064,19 @@ contains
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
     call AllocationError( stat, 'simulation box length' )
+
+#if FVM_VER > 0
+
+    ! Allocate NPart
+    this%fvmByteOffNPart = reserveFvmMem( fvmDisp, sizeof(this%NPart) )
+    if (this%fvmByteOffNPart.LT.0) then
+      call AllocationError( -1, 'NPart' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNPart)
+      call c_f_pointer (fvmPtr, this%NPart)
+    end if
+
+#endif
 
     ! Allocate maximum number of particles
     allocate( this%NPartMax, STAT = stat )
@@ -1742,6 +1831,22 @@ contains
     nullify( this%P0Test )
     nullify( this%Q0Test )
     nullify( this%EPotTest )
+#if FVM_VER > 0
+    nullify( this%Temperature )
+    nullify( this%FvmTmpChemPot )
+    nullify( this%DispVol )
+    nullify( this%NRCutOffMax )
+    nullify( this%NResizeAttempts )
+    nullify( this%NResizeSuccesses )
+    nullify( this%NInsertAttempts )
+    nullify( this%NInsertSuccesses )
+    nullify( this%NDeleteAttempts )
+    nullify( this%NDeleteSuccesses )
+    nullify( this%EPot )
+    nullify( this%FvmTmpEPot )
+    nullify( this%Virial )
+    nullify( this%FvmTmpVirial )
+#endif
 
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), &
@@ -1762,6 +1867,118 @@ contains
       write( IOBuffer, '("Memory for test particles allocated successfully")' )
       call LogWrite
     end if
+
+#if FVM_VER > 0
+
+    ! Allocate variables needed in FVM memory
+    
+    this%fvmByteOffTemperature = &
+&     reserveFvmMem( fvmDisp, sizeof(this%Temperature) )
+    if (this%fvmByteOffTemperature.LT.0) then
+      call AllocationError( -1, 'Temperature' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffTemperature)
+      call c_f_pointer (fvmPtr, this%Temperature)
+    end if
+
+    this%fvmByteOffFvmTmpChemPot = &
+&     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpChemPot) )
+    if (this%fvmByteOffFvmTmpChemPot.LT.0) then
+      call AllocationError( -1, 'fvmTmpChemPot' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpChemPot)
+      call c_f_pointer (fvmPtr, this%fvmTmpChemPot)
+    end if
+
+    this%fvmByteOffDispVol = reserveFvmMem( fvmDisp, sizeof(this%DispVol) )
+    if (this%fvmByteOffDispVol.LT.0) then
+      call AllocationError( -1, 'DispVol' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffDispVol)
+      call c_f_pointer (fvmPtr, this%DispVol)
+    end if
+
+    this%fvmByteOffNRCutOffMax = &
+&     reserveFvmMem( fvmDisp, sizeof(this%NRCutOffMax) )
+    if (this%fvmByteOffNRCutOffMax.LT.0) then
+      call AllocationError( -1, 'NRCutOffMax' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffNRCutOffMax)
+      call c_f_pointer (fvmPtr, this%NRCutOffMax)
+    end if
+
+    this%fvmByteOffMCCounters = reserveFvmMem( fvmDisp, &
+&     sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) + & 
+&     sizeof(this%NInsertAttempts) + sizeof(this%NInsertSuccesses) + &
+&     sizeof(this%NDeleteAttempts) + sizeof(this%NDeleteSuccesses) )
+    if (this%fvmByteOffMCCounters.LT.0) then
+      call AllocationError( -1, 'MCCounters' )
+    else
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters )
+      call c_f_pointer (fvmPtr, this%NResizeAttempts)
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters + &
+&       sizeof(this%NResizeAttempts) )
+      call c_f_pointer (fvmPtr, this%NResizeSuccesses)
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters + &
+&       sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) )
+      call c_f_pointer (fvmPtr, this%NInsertAttempts)
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters + &
+&       sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) + &
+&       sizeof(this%NInsertAttempts) )
+      call c_f_pointer (fvmPtr, this%NInsertSuccesses)
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters + &
+&       sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) + &
+&       sizeof(this%NInsertAttempts) + sizeof(this%NInsertSuccesses) )
+      call c_f_pointer (fvmPtr, this%NDeleteAttempts)
+
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffMCCounters + &
+&       sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) + &
+&       sizeof(this%NInsertAttempts) + sizeof(this%NInsertSuccesses) + &
+&       sizeof(this%NDeleteAttempts) )
+      call c_f_pointer (fvmPtr, this%NDeleteSuccesses)
+
+    end if
+
+    this%fvmByteOffEPot = reserveFvmMem( fvmDisp, sizeof(this%EPot) )
+    if (this%fvmByteOffEPot.LT.0) then
+      call AllocationError( -1, 'EPot' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffEPot)
+      call c_f_pointer (fvmPtr, this%EPot)
+    end if
+
+    this%fvmByteOffFvmTmpEPot = &
+&     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpEPot) )
+    if (this%fvmByteOffFvmTmpEPot.LT.0) then
+      call AllocationError( -1, 'fvmTmpEPot' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpEPot)
+      call c_f_pointer (fvmPtr, this%fvmTmpEPot)
+    end if
+
+    this%fvmByteOffVirial = reserveFvmMem( fvmDisp, sizeof(this%Virial) )
+    if (this%fvmByteOffVirial.LT.0) then
+      call AllocationError( -1, 'Virial' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffVirial)
+      call c_f_pointer (fvmPtr, this%Virial)
+    end if
+
+    this%fvmByteOffFvmTmpVirial = &
+&     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpVirial) )
+    if (this%fvmByteOffFvmTmpVirial.LT.0) then
+      call AllocationError( -1, 'fvmTmpVirial' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpVirial)
+      call c_f_pointer (fvmPtr, this%fvmTmpVirial)
+    end if
+
+#endif
 
     ! Allocate components
     do i = 1, this%NComponents
@@ -2528,9 +2745,39 @@ loop:do l = 1, NPartInCell
     end if
 
     ! Broadcast temperature
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( this%Temperature, 1, MPI_DOUBLE_PRECISION, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast
+    fvmret = readdma(this%fvmByteOffTemperature, this%fvmByteOffTemperature, &
+&     sizeof(this%Temperature), NRootProc, 0)
+    fvmret = waitonqueue(0)
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+
 #endif
 
   end subroutine TEnsemble_CalculateEKin
@@ -2703,14 +2950,72 @@ loop1:do nc = 1, this%NComponents
     end do
 
     ! Calculate potential energy and virial
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_RunMCStep: Allreduce(GetEnergy, GetVirial)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
     call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#elif FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = GetEnergy( this )
+    this%fvmTmpVirial = GetVirial( this )
+    fvmret = pv4dBarrier() !ensure correct initialization (!)
+    if ( myRank.eq.NRootProc ) then
+      this%EPot = this%fvmTmpEPot
+      this%Virial = this%fvmTmpVirial
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = readdma(this%fvmByteOffFvmTmpVirial, &
+&         this%fvmByteOffFvmTmpVirial, sizeof(this%fvmTmpVirial), &
+&         fvmRemoteRank, 1)
+        fvmret = waitonqueue(0)
+        this%EPot = this%EPot + this%fvmTmpEPot
+        fvmret = waitonqueue(1)
+        this%Virial = this%Virial + this%fvmTmpVirial
+      end do
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffEPot, this%fvmByteOffEPot, &
+&       sizeof(this%EPot), NRootProc, 0)
+      fvmret = readdma(this%fvmByteOffVirial, this%fvmByteOffVirial, &
+&       sizeof(this%Virial), NRootProc, 1)
+      fvmret = waitonqueue(0)
+      fvmret = waitonqueue(1)
+    end if
+
+    fvmret = pv4dBarrier()
+
 #else
+
     this%EPot = GetEnergy( this )
     this%Virial = GetVirial( this )
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_RunMCStep: Allreduce(GetEnergy, GetVirial)' )
+
 #endif
 
     ! Resize simulation box
@@ -3073,11 +3378,17 @@ loop3:    do nc = 1, this%NComponents
     integer :: i
 
     ! Call predictor for each component
+!#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     if( RootProc ) then
+!#endif
       do i = 1, this%NComponents
         call PredictGear( this%Component(i) )
       end do
+!#if FVM_VER == 0
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
     end if
+!#endif 
 
     ! Predict volume of simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
@@ -3103,10 +3414,42 @@ loop3:    do nc = 1, this%NComponents
         this%Volume4 = this%Volume4 &
 &            + 5._RK * this%Volume5
       end if
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+
+#endif
+
 #if MPI_VER > 0
+
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
 #endif
+#if FVM_VER > 0
+
+      fvmret = pv4dBarrier()
+
+      !FVM_Bcast
+      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+&       sizeof(this%Volume0), NRootProc, 0)
+      fvmret = waitonqueue(0)
+
+      fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+
+#endif
+
       call UpdateBoxLength( this )
     end if
 
@@ -3155,10 +3498,42 @@ loop3:    do nc = 1, this%NComponents
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
       end if
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+
+#endif
+
 #if MPI_VER > 0
+
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
 #endif
+#if FVM_VER > 0
+
+      fvmret = pv4dBarrier()
+
+      !FVM_Bcast
+      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+&       sizeof(this%Volume0), NRootProc, 0)
+      fvmret = waitonqueue(0)
+
+      fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+
+#endif
+
       call UpdateBoxLength( this )
     end if
 
@@ -3198,10 +3573,42 @@ loop3:    do nc = 1, this%NComponents
         this%Volume1 = this%Volume1 + this%Volume2
         this%Volume0 = this%Volume0 + this%Volume1
       end if
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_PredictLeapFrog: Bcast(this.Volume0)' )
+
+#endif
+
 #if MPI_VER > 0
+
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
 #endif
+#if FVM_VER > 0
+
+      fvmret = pv4dBarrier()
+
+      !FVM_Bcast
+      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+&       sizeof(this%Volume0), NRootProc, 0)
+      fvmret = waitonqueue(0)
+
+      fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_PredictLeapFrog: Bcast(this.Volume0)' )
+
+#endif
+
       call UpdateBoxLength( this )
     end if
 
@@ -3543,14 +3950,62 @@ loop3:    do nc = 1, this%NComponents
     end do
 
     ! Collect sums from all processes
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Force: Reduce(EPot, Virial)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Reduce( EPot, this%EPot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
     call MPI_Reduce( Virial, this%Virial, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
+
+#elif FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Reduce
+    this%fvmTmpEPot = EPot
+    this%fvmTmpVirial = Virial
+    fvmret = pv4dBarrier() !insure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      this%EPot = this%fvmTmpEPot
+      this%Virial = this%fvmTmpVirial
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = readdma(this%fvmByteOffFvmTmpVirial, &
+&         this%fvmByteOffFvmTmpVirial, sizeof(this%fvmTmpVirial), &
+&         fvmRemoteRank, 1)
+        fvmret = waitonqueue(0)
+        this%EPot = this%EPot + this%fvmTmpEPot
+        fvmret = waitonqueue(1)
+        this%Virial = this%Virial + this%fvmTmpVirial
+      end do
+    end if
+
+    fvmret = pv4dBarrier()
+
 #else
+
     this%EPot = EPot
     this%Virial = Virial
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_Force: Reduce(EPot, Virial)' )
+
 #endif
 
     ! Calculate pressure
@@ -3772,6 +4227,8 @@ loop2:        do nc = 1, this%NComponents
 !           call RestoreState( this )
 
           ! Calculate weighted propabilities
+#if FVM_VER == 0
+
           pc%ProbW0 = pc%ProbW0 + real(pc%NState(0), RK)
           pc%ProbW1 = pc%ProbW1 &
 &           + real( pc%NState(pc%NFluctMax), RK ) / pc%WF( pc%NFluctMax )
@@ -3780,6 +4237,20 @@ loop2:        do nc = 1, this%NComponents
           pc%ProbW1Rho = pc%ProbW1Rho &
 &           + real( pc%NState(pc%NFluctMax), RK ) / pc%WF(pc%NFluctMax) &
 &             * this%Density
+
+#elif FVM_VER > 0
+
+          ! FVMF2003_IndexChange
+          pc%ProbW0 = pc%ProbW0 + real(pc%NState(1), RK)
+          pc%ProbW1 = pc%ProbW1 &
+&           + real( pc%NState(pc%NFluctMax+1), RK ) / pc%WF( pc%NFluctMax+1 )
+          pc%ProbW0V = pc%ProbW0V &
+&           + real(pc%NState(1), RK) / this%Density
+          pc%ProbW1Rho = pc%ProbW1Rho &
+&           + real( pc%NState(pc%NFluctMax+1), RK ) / pc%WF(pc%NFluctMax+1) &
+&             * this%Density
+
+#endif
 
           ! Calculate chemical potential
           ! (long range correction already done in ChangeFluct)
@@ -3796,10 +4267,21 @@ loop2:        do nc = 1, this%NComponents
 
         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. &
 &           ( Equilibration .and. Step == NStepsP ) ) then
+#if FVM_VER == 0
+
           do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) &
 &                               / real(pc%NStateWF(j) + 1, RK)
           end do
+#elif FVM_VER > 0
+
+          ! FVMF2003_IndexChange
+          do j = 2, pc%NFluctMax+1
+            pc%WF(j) = pc%WF(j) * real(pc%NStateWF(1) + 1, RK) &
+&                               / real(pc%NStateWF(j) + 1, RK)
+          end do
+
+#endif
           write( IOBuffer, '("New weighting factors for ",A," calculated:")' ) &
 &           trim( pc%PotModFileName )
           call LogWrite
@@ -3809,6 +4291,8 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, &
 &           '("   --------------------------------  --------  --------")' )
           call LogWrite
+#if FVM_VER == 0
+
           write( IOBuffer, &
 &           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
 &           real(pc%NFluctUpSuccesses(1), RK) / &
@@ -3828,6 +4312,32 @@ loop2:        do nc = 1, this%NComponents
 &             real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call LogWrite
           call LogWriteBlank
+
+#elif FVM_VER > 0
+
+          ! FVMF2003_IndexChange
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(1), pc%WF(1), &
+&           real(pc%NFluctUpSuccesses(1), RK) / &
+&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          call LogWrite
+          do j = 2, pc%NFluctMax
+            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j-1, pc%NStateWF(j), &
+&             pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
+&               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
+&             real(pc%NFluctDownSuccesses(j), RK) / &
+&               real(pc%NFluctDownAttempts(j), RK) * 100._RK
+            call LogWrite
+          end do
+          j = pc%NFluctMax+1
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j-1, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
+&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
+            call LogWrite
+          call LogWriteBlank
+
+#endif
+
           pc%NStateWF(:) = 0
         end if
 
@@ -3843,11 +4353,53 @@ loop2:        do nc = 1, this%NComponents
         end do
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
 &                   / pc%NTestAll
+
+#if defined PAR_PROF
+
+        ! Parallel Profiling added by Hendrik Adorf (ITWM)
+        call profileTagBefore( Profiler, &
+&         'TEnsemble_ChemicalPotential: Reduce(ChemPot)' )
+
+#endif
+
 #if MPI_VER > 0
+
         call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
 &         MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+
+#elif FVM_VER > 0
+
+        fvmret = pv4dBarrier() !???
+
+        !FVM_Reduce
+        this%fvmTmpChemPot = ChemPot
+        fvmret = pv4dBarrier() !ensure correct init (!)
+        if ( myRank.eq.NRootProc ) then
+          pc%ChemPot = this%fvmTmpChemPot
+          do fvmReduceLoopIdx = 1, numVmNodes-1
+            fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+            fvmret = readdma(this%fvmByteOffFvmTmpChemPot, &
+&             this%fvmByteOffFvmTmpChemPot, sizeof(this%fvmTmpChemPot), &
+&             fvmRemoteRank, 0)
+            fvmret = waitonqueue(0)
+            pc%ChemPot = pc%ChemPot + this%fvmTmpChemPot
+          end do
+        end if
+
+        fvmret = pv4dBarrier()
+
 #else
+
         pc%ChemPot = ChemPot
+
+#endif
+
+#if defined PAR_PROF
+
+        ! Parallel Profiling added by Hendrik Adorf (ITWM)
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_ChemicalPotential: Reduce(ChemPot)' )
+
 #endif
 
       case default
@@ -4154,7 +4706,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc
     integer                   :: i
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 
@@ -4183,13 +4735,69 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, nc, np, EPotNew )
 
     ! Apply Metropolis acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Move: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDeltaAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotDeltaAll = EPotDeltaAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDeltaAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotDeltaAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_Move: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
 #else
+
     if( exp( (EPotOld - EPotNew) / this%Temperature ) &
 &       .gt. rnd( 0._RK, 1._RK ) ) then
+
 #endif
 
       ! Accept move
@@ -4230,7 +4838,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc
     integer                   :: i
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 
@@ -4260,13 +4868,69 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, nc, np, EPotNew )
 
     ! Apply Metropolis acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Rotate: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDeltaAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotDeltaAll = EPotDeltaAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDeltaAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotDeltaAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_Rotate: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
 #else
+
     if( exp( (EPotOld - EPotNew) / this%Temperature ) &
 &       .gt. rnd( 0._RK, 1._RK ) ) then
+
 #endif
 
       ! Accept rotation
@@ -4307,7 +4971,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 
@@ -4355,13 +5019,69 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, nc, np, EPotNew )
 
     ! Apply Metropolis acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_MoveBiased: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDeltaAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotDeltaAll = EPotDeltaAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDeltaAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotDeltaAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_MoveBiased: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
 #else
+
     if( exp( (EPotOld - EPotNew) / this%Temperature ) &
 &       .gt. rnd( 0._RK, 1._RK ) ) then
+
 #endif
 
       ! Accept move
@@ -4402,7 +5122,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 
@@ -4443,13 +5163,69 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, nc, np, EPotNew )
 
     ! Apply Metropolis acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_RotateBiased: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDeltaAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotDeltaAll = EPotDeltaAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDeltaAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotDeltaAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_RotateBiased: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
 #else
+
     if( exp( (EPotOld - EPotNew) / this%Temperature ) &
 &       .gt. rnd( 0._RK, 1._RK ) ) then
+
 #endif
 
       ! Accept rotation
@@ -4494,7 +5270,7 @@ loop2:        do nc = 1, this%NComponents
     integer                   :: oldstate, newstate
     integer                   :: ncfnew, npfnew
     real(RK)                  :: EPotOld, EPotNew
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 !DEBUG
@@ -4554,22 +5330,81 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, ncfnew, npfnew, EPotNew )
 
     ! Apply acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_ChangeFluct: Allreduce(EPotOld - EPotNew)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+    
     ! Apply long range corrections
     EPotDeltaAll = EPotDeltaAll &
 &     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
 &     + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
     if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
 &     exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+
+#elif FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDeltaAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotDeltaAll = EPotDeltaAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDeltaAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotDeltaAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+    ! Apply long range corrections
+    EPotDeltaAll = EPotDeltaAll &
+&     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
+&     + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
+    ! FVMF2003_IndexChange
+    if( rnd( 0._RK, 1._RK ) < pc%WF(newstate+1) / pc%WF(oldstate+1) * &
+&     exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+
 #else
+
     ! Apply long range corrections
     EPotOld = EPotOld &
 &     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
 &     + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
     if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
 &     exp( ( EPotOld - EPotNew ) / this%Temperature ) ) then
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_ChangeFluct: Allreduce(EPotOld - EPotNew)' )
+
 #endif
 
       ! Accept
@@ -4643,7 +5478,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: s
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotInsAll
 !DEBUG
 !  logical                   :: accepted, different
@@ -4685,26 +5520,84 @@ loop2:        do nc = 1, this%NComponents
     call Energy( this, nc, np, EPotIns )
 
     ! Apply acceptance criterion
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Insert: Allreduce(EPotIns)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotIns
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotInsAll = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = waitonqueue(0)
+        EPotInsAll = EPotInsAll + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotInsAll
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0)
+      fvmret = waitonqueue(0)
+      EPotInsAll = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_Insert: Allreduce(EPotIns)' )
+
+#endif
+
+#if MPI_VER > 0 || FVM_VER > 0
+
     EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
 &                           + pc%EPotTestCorrRF
+
 !DEBUG
 !  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotInsAll
 !DEBUG
     if( rnd( 0._RK, 1._RK ) .lt. &
 &       ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
 &         * this%Volume0 / np )) then
+
 #else
+
     EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
+
 !DEBUG
 !  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotIns
 !DEBUG
     if( rnd( 0._RK, 1._RK ) .lt. &
 &       ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
 &         * this%Volume0 / np )) then
+
 #endif
 
       ! Accept Insertion
@@ -4794,12 +5687,63 @@ loop2:        do nc = 1, this%NComponents
     this%NDeleteAttempts = this%NDeleteAttempts + 1
 
     ! Calculate particle energy
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Delete: Allreduce(GetEnergy)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#elif FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = GetEnergy( this, nc, np )
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      EPotDel = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma( this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0 )
+        fvmret = waitonqueue(0)
+        EPotDel = EPotDel + this%fvmTmpEPot
+      end do
+      this%fvmTmpEPot = EPotDel
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma( this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), NRootProc, 0 )
+      fvmret = waitonqueue(0)
+      EPotDel = this%fvmTmpEPot
+    end if
+
+    fvmret = pv4dBarrier()
+
 #else
+
     EPotDel = GetEnergy( this, nc, np )
+
 #endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_Delete: Allreduce(GetEnergy)' )
+
+#endif
+
     EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
 !DEBUG
@@ -4957,7 +5901,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK) :: VolumeOld, EPotOld
     real(RK) :: EPotDelta
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     real(RK) :: EPotNew
 #endif
 
@@ -4976,12 +5920,58 @@ loop2:        do nc = 1, this%NComponents
     call Mol2Atom( this )
 
     ! Calculate potential energy and virial at trial position
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
+
     call Energy( this, EPotNew )
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_Resize: Allreduce(EPotNew)' )
+
+#endif
+
+#if MPI_VER > 0
+
     call MPI_Allreduce( EPotNew, this%EPot, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier() !???
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPotNew
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      this%EPot = this%fvmTmpEPot
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma( this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0 )
+        fvmret = waitonqueue(0)
+        this%EPot = this%EPot + this%fvmTmpEPot
+      end do
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      fvmret = readdma( this%fvmByteOffEPot, this%fvmByteOffEPot, &
+&       sizeof(this%EPot), NRootProc, 0 )
+      fvmret = waitonqueue(0)
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
 #else
+
     call Energy( this, this%EPot )
+
 #endif
 
     ! Find potential change
@@ -4997,11 +5987,60 @@ loop2:        do nc = 1, this%NComponents
 
       ! Update energy and virial matrices
       call UpdateEnergy( this )
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_Resize: Allreduce(GetVirial)' )
+
+#endif
+
 #if MPI_VER > 0
+
       call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
 &       MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
+#elif FVM_VER > 0
+
+      fvmret = pv4dBarrier() !???
+
+      !FVM_Allreduce
+      this%fvmTmpVirial = GetVirial( this )
+      fvmret = pv4dBarrier() !ensure correct init (!)
+      if ( myRank.eq.NRootProc ) then
+        this%Virial = this%fvmTmpVirial
+        do fvmReduceLoopIdx = 1, numVmNodes-1
+          fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+          fvmret = readdma(this%fvmByteOffFvmTmpVirial, &
+&           this%fvmByteOffFvmTmpVirial, sizeof(this%fvmTmpVirial), &
+&           fvmRemoteRank, 0)
+          fvmret = waitonqueue(0)
+          this%Virial = this%Virial + this%fvmTmpVirial
+        end do
+        fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+      end if
+      if ( myRank.ne.NRootProc ) then
+        fvmret = pv4dBarrier() !ensure correctly accumulated value (!)
+        fvmret = readdma(this%fvmByteOffVirial, this%fvmByteOffVirial, &
+&         sizeof(this%Virial), NRootProc, 0)
+        fvmret = waitonqueue(0)
+      end if
+
+      fvmret = pv4dBarrier()
+
 #else
+
       this%Virial = GetVirial( this )
+
+#endif
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_Resize: Allreduce(GetVirial)' )
+
 #endif
 
     else
@@ -7305,7 +8344,16 @@ if( RootProc ) then
 
     end if
 
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_RestartRead: Bcast(several stuff)' )
+
+#endif
+
 #if MPI_VER > 0
+
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
     call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
@@ -7331,6 +8379,52 @@ if( RootProc ) then
     end if
     call MPI_Bcast( this%NRCutoffMax, 1, MPI_INTEGER, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
+
+#endif
+#if FVM_VER > 0
+
+    fvmret = pv4dBarrier()
+
+    !FVM_Bcast: double Volume0, int NPart, int NRCutoffMax
+    fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+&       sizeof(this%Volume0), NRootProc, 0)
+    fvmret = readdma(this%fvmByteOffNPart, this%fvmByteOffNPart, &
+&       sizeof(this%NPart), NRootProc, 1)
+    fvmret = readdma(this%fvmByteOffNRCutOffMax, &
+&       this%fvmByteOffNRCutOffMax, sizeof(this%NRCutOffMax), NRootProc, 2)
+    fvmret = waitonqueue(0)
+    fvmret = waitonqueue(1)
+    fvmret = waitonqueue(2)
+
+    if( SimulationType .eq. MonteCarlo ) then
+
+      !FVM_Bcast: double DispVol, MCCounters ( i.e. the six integers
+      !  int NResizeAttempts, int NResizeSuccesses,
+      !  int NInsertAttempts, int NInsertSuccesses,
+      !  int NDeleteAttempts, int NDeleteSuccesses )
+      fvmret = readdma(this%fvmByteOffDispVol, this%fvmByteOffDispVol, &
+&         sizeof(this%DispVol), NRootProc, 0)
+      fvmret = readdma( this%fvmByteOffMCCounters, &
+&         this%fvmByteOffMCCounters, &
+&         sizeof(this%NResizeAttempts) + sizeof(this%NResizeSuccesses) + &
+&         sizeof(this%NInsertAttempts) + sizeof(this%NInsertSuccesses) + &
+&         sizeof(this%NDeleteAttempts) + sizeof(this%NDeleteSuccesses), &
+&         NRootProc, 1 )
+      fvmret = waitonqueue(0)
+      fvmret = waitonqueue(1)
+
+    end if
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_RestartRead: Bcast(several stuff)' )
+
 #endif
 
     ! Read components

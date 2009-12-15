@@ -18,6 +18,7 @@
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#define FVM_VER 0
 #endif
 
 #ifndef TRANS
@@ -94,7 +95,7 @@ module ms2_interaction
 
     ! Numbers of particles
     integer, pointer :: NPart1, NPart2
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
 #endif
@@ -217,7 +218,7 @@ contains
     this%NPart1 => Component1%NPart
     this%NPart2 => Component2%NPart
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     this%NPart10 => Component1%NPart0
     this%NPart12 => Component1%NPart2
     this%NPart20 => Component2%NPart0
@@ -799,7 +800,7 @@ contains
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
     integer           :: i, j, k, i1
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     integer           :: i0
 #endif
 
@@ -882,7 +883,7 @@ contains
       TZ2 => this%tRFZ2
       EPotLocal = 0._RK
 
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       i0 = this%NPart10
       i1 = this%NPart12
       do i = i0, i1
@@ -1850,7 +1851,7 @@ contains
           RZi = RZ1(np)
 
           ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
           do j = this%NPart20, this%NPart22
 #else
@@ -1917,7 +1918,7 @@ contains
           OZi = OZ1(np)
 
           ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
           do j = this%NPart20, this%NPart22
 #else
@@ -1999,7 +2000,7 @@ contains
           OZi = OZ1(np)
 
           ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
           do j = this%NPart20, this%NPart22
 #else
@@ -2090,7 +2091,7 @@ contains
           OZi = OZ1(np)
 
           ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
           do j = this%NPart20, this%NPart22
 #else
@@ -2177,7 +2178,7 @@ contains
           OZi = OZ1(np)
 
           ! Loop over molecules
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
 !CDIR NODEP
           do j = this%NPart20, this%NPart22
 #else
@@ -2320,7 +2321,7 @@ contains
 
     ! Calculate partners within cutoff sphere
     if( this%SameComponent ) then
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       if( this%NPart10 <= (N+1)/2 ) then
         if( this%NPart12 > (N+1)/2 ) then
           do i = this%NPart10, (N+1) / 2
@@ -2346,7 +2347,7 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
           do i = (N+1) / 2 + 1, this%NPart12
 #else
       do i = (N+1) / 2 + 1, N
@@ -2383,7 +2384,7 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
         else
           do i = this%NPart10, this%NPart12
             PXi = PX1(i)
@@ -2444,7 +2445,7 @@ contains
 #endif
     else
       N2 = this%NPart2
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
       do i = this%NPart10, this%NPart12
 #else
       do i = 1, N
@@ -2506,7 +2507,7 @@ contains
     PYi = this%PY1(np)
     PZi = this%PZ1(np)
     NInCutoff = 0
-#if MPI_VER > 0
+#if MPI_VER > 0 || FVM_VER > 0
     do j = this%NPart20, this%NPart22
 #else
     do j = 1, this%NPart2
