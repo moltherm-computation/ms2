@@ -4346,17 +4346,23 @@ loop1:        do nc = 1, this%NComponents
               end do loop1
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
-              nuh = mod(((s-r)/ndf),ndf)
+
+              nuh = 1 + ((s - r) - (np-1) * ndf)
 loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
-                add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
-                if ( nuh .le. add ) then
-                  nuh = add - nuh
-                  exit loop2
-                end if
+                if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop2
               end do loop2
 
+!               nuh = mod(((s-r)/ndf),ndf)
+! loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
+!                 add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
+!                 if ( nuh .le. add ) then
+!                   nuh = add - nuh
+!                   exit loop2
+!                 end if
+!               end do loop2
+
               ! Move or rotate
-              if( nuh < 3 ) then
+              if( mod( s - r, ndf ) < 3 ) then
                 call Move( this, nc, np, nu )
               else
                 call Rotate( this, nc, np, nu )
@@ -4370,14 +4376,20 @@ loop3:        do nc = 1, this%NComponents
               end do loop3
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
-              nuh = mod(((s-r)/ndf),ndf)
+
+              nuh = 1 + ((s - r) - (np-1) * ndf)
 loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
-                add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
-                if ( nuh .le. add ) then
-                  nuh = add - nuh
-                  exit loop4
-                end if
+                if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop4
               end do loop4
+
+!               nuh = mod(((s-r)/ndf),ndf)
+! loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
+!                 add = sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)
+!                 if ( nuh .le. add ) then
+!                   nuh = add - nuh
+!                   exit loop4
+!                 end if
+!               end do loop4
 
               ! Move or rotate biased
               if( mod( s - r, ndf ) < 3 ) then
@@ -4390,14 +4402,18 @@ loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
               r = r - ndfmove - ndfbiased
 ! ist das so ok?? Da gehoert noch ein Faktor  0.1 rein, Gewichtung von oben
               ndf = this%Component(ncf)%Molecule%NDF
-              nuh = mod(r/ndf,ndf)
+              nuh = 1 + ((s - r) - (np-1) * ndf)
 loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
-                add = sum(this%Component(ncf)%Molecule%Unit(1:nu)%NDF)
-                if ( nuh .le. add ) then
-                  nuh = add - nuh
-                  exit loop5
-                end if
+                if (nuh <= sum(this%Component(ncf)%Molecule%Unit(1:nu)%NDF)) exit loop5
               end do loop5
+!               nuh = mod(r/ndf,ndf)
+! loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
+!                 add = sum(this%Component(ncf)%Molecule%Unit(1:nu)%NDF)
+!                 if ( nuh .le. add ) then
+!                   nuh = add - nuh
+!                   exit loop5
+!                 end if
+!               end do loop5
 
               ! Move or rotate fluctuating particle
               if( mod( r, ndf ) < 3 ) then
@@ -4420,6 +4436,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
             end if
 
+            if ( (mod(j,10) .eq. 0) .and. (j .ge. 8400) ) then
+              write(*,*) '1000'
+            end if
           end do giloop
 
 !DEBUG
@@ -5218,7 +5237,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np, nu
 
     ! Declare local variables
-    real(RK)                  :: r(3)
+    real(RK)                  :: r(3), rm(3)
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
@@ -5234,7 +5253,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%NMoveAttempts = pc%NMoveAttempts + 1
 
     ! Save current particle position and energy
-    r(:) = pc%P0(np, :, nu)
+    r(:)  = pc%P0(np, :, nu)
+    rm(:) = pc%Pm0(np, :)
     EPotOld = GetEnergy( this, nc, np, nu )   ! IDF
 
     ! Save the Energies and Virials for a faster MoveRejction
@@ -5265,6 +5285,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
+    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
 
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -5307,6 +5328,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
           pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
 !           this%sinfac_s(nc,1:this%Component(nc)%Molecule%NCharge,np) = this%sinfac_s_old
@@ -5324,8 +5346,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
       else
           pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
-          call Unit2Mol( pc, np )
+!           call Unit2Mol( pc, np )
       end if
     end if
 
@@ -5478,7 +5501,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np, ncf, npf, nu
 
     ! Declare local variables
-    real(RK)                  :: r(3), dr(3), f1, f2
+    real(RK)                  :: r(3), rm(3), dr(3), f1, f2
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc, pcf
@@ -5499,6 +5522,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Save current particle position and energy
     r(:) = pc%P0(np, :, nu)
+    rm(:) = pc%Pm0(np, :)
     EPotOld = GetEnergy( this, nc, np, nu )
 
     ! Apply distance criterion
@@ -5535,6 +5559,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
+    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
 
     ! Apply direction criterion
     dr(:) = pc%P0(np, :, nu) - pcf%P0(npf, :, nu)
@@ -5542,6 +5567,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     f2 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
     if( rnd(0._RK, 1._RK) < (1._RK - f2/f1) ) then
       pc%P0(np, :, nu) = r(:)
+      pc%Pm0(np, :) = rm(:)
       return
     end if
 
@@ -5584,12 +5610,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
-          pc%P0(np, :, nu) = r(:)
+          pc%P0(np, :, nu)  = r(:)
+          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
 
          ! Calculate new COM
-         call Unit2Mol( pc, np )
+!          call Unit2Mol( pc, np )
 
 #ifdef SPME
       else if (LongRange .eq. PME) then
@@ -5599,9 +5626,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
       else
         pc%P0(np, :, nu) = r(:)
+        pc%Pm0(np, :)    = rm(:)
         call Unit2Atom1( pc, np, nu )
         ! Calculate new COM
-        call Unit2Mol( pc, np )
+!         call Unit2Mol( pc, np )
       end if
 
     end if

@@ -1354,22 +1354,22 @@ contains
       ! For Unit Sites as well
       do i = 1, this%NUnit
         do j = 1, this%Unit(i)%NLJ126
-          this%Unit(i)%SiteLJ126(j)%r   = this%Unit(i)%SiteLJ126(j)%r * scalegeo
+!           this%Unit(i)%SiteLJ126(j)%r   = this%Unit(i)%SiteLJ126(j)%r * scalegeo
           this%Unit(i)%SiteLJ126(j)%sig = this%Unit(i)%SiteLJ126(j)%sig * scalesig
           this%Unit(i)%SiteLJ126(j)%eps = this%Unit(i)%SiteLJ126(j)%eps * scaleeps
         end do
         do j = 1, this%Unit(i)%NCharge
-          this%Unit(i)%SiteCharge(j)%r      = this%Unit(i)%SiteCharge(j)%r * scalegeo
+!           this%Unit(i)%SiteCharge(j)%r      = this%Unit(i)%SiteCharge(j)%r * scalegeo
           this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
           this%Unit(i)%SiteCharge(j)%e      = this%Unit(i)%SiteCharge(j)%e * scaleest
         end do
         do j = 1, this%Unit(i)%NDipole
-          this%Unit(i)%SiteDipole(j)%r      = this%Unit(i)%SiteDipole(j)%r * scalegeo
+!           this%Unit(i)%SiteDipole(j)%r      = this%Unit(i)%SiteDipole(j)%r * scalegeo
           this%Unit(i)%SiteDipole(j)%shield = this%Unit(i)%SiteDipole(j)%shield * scalegeo
           this%Unit(i)%SiteDipole(j)%D      = this%Unit(i)%SiteDipole(j)%D * scaleest
         end do
         do j = 1, this%Unit(i)%NQuadrupole
-          this%Unit(i)%SiteQuadrupole(j)%r      = this%Unit(i)%SiteQuadrupole(j)%r * scalegeo
+!           this%Unit(i)%SiteQuadrupole(j)%r      = this%Unit(i)%SiteQuadrupole(j)%r * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
         end do
