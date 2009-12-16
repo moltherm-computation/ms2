@@ -267,7 +267,7 @@ contains
     call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
     call FileReadParameter( this%r(3), iounit_potmod, IdLJ126_r3, .false. )
     call FileReadParameter( this%sig, iounit_potmod, IdLJ126_sig, .false. )
-    call FileReadParameter( this%eps, iounit_potmod, IdLJ126_eps, .false., 1.0E10_RK )
+    call FileReadParameter( this%eps, iounit_potmod, IdLJ126_eps, .false. )
     call FileReadParameter( this%mass, iounit_potmod, IdLJ126_mass, .false. )
 
     ! Convert to SI units

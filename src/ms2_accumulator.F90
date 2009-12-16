@@ -133,6 +133,15 @@ module ms2_accumulator
   interface ErrorCF
     module procedure TAccumulatorCF_Error
   end interface
+  
+  interface RestartSaveCF
+    module procedure TAccumulator_RestartSaveCF
+  end interface
+
+  interface RestartReadCF
+    module procedure TAccumulator_RestartReadCF
+  end interface
+
 contains
 
 !TRANSPORT_END
@@ -582,6 +591,64 @@ contains
 
   end subroutine TAccumulator_RestartRead
 
+!==============================================================!
+!  Subroutine TAccumulator_RestartSaveCF                         !
+!==============================================================!
 
+  subroutine TAccumulator_RestartSaveCF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
+#if  TRANS == 1
+    ! Declare local variables
+    integer :: j
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Save contents to restart file
+   ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
+     
+      do j = 1, NBlocksMaxCF
+       write( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
+      end do 
+      write( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM   
+      write( iounit_restart, '(ES20.12E3)' )  this%AVERAGE 
+      write( iounit_restart, '(ES20.12E3)' )  this%VARIANCE 
+#endif   
+
+  end subroutine TAccumulator_RestartSaveCF
+  
+!==============================================================!
+!  Subroutine TAccumulator_RestartReadCF                        !
+!==============================================================!
+
+  subroutine TAccumulator_RestartReadCF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TAccumulatorCF) :: this
+#if  TRANS == 1
+    ! Declare local variables
+    integer :: j
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Read contents from restart file
+!    read( iounit_restart, '(I10)' ) NBlocksMaxCF
+ 
+
+    do j = 1, NBlocksMaxCF
+       read( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
+      end do 
+      read( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM   
+      read( iounit_restart, '(ES20.12E3)' )  this%AVERAGE 
+      read( iounit_restart, '(ES20.12E3)' )  this%VARIANCE 
+#endif 
+  end subroutine TAccumulator_RestartReadCF
 
 end module ms2_accumulator

@@ -248,15 +248,15 @@ module ms2_ensemble
     integer :: NSpancf,Nviewcf
     real(RK), pointer :: cf_db(:), cf_vs(:), cf_vb(:), cf_c(:)
     real(RK), pointer :: lamda(:, :)
-    real(RK), pointer :: cf_vs_kk(:), cf_vs_kp(:), cf_vs_pp(:)
-    real(RK), pointer :: cf_ct_kk(:), cf_ct_kp(:), cf_ct_pp(:)
-    real(RK), pointer :: cf_cr_kk(:), cf_cr_kp(:), cf_cr_pp(:)
+!    real(RK), pointer :: cf_vs_kk(:), cf_vs_kp(:), cf_vs_pp(:) ! FIX_ME these seem to be artifacts from an old
+!    real(RK), pointer :: cf_ct_kk(:), cf_ct_kp(:), cf_ct_pp(:) ! and obsolete version
+!    real(RK), pointer :: cf_cr_kk(:), cf_cr_kp(:), cf_cr_pp(:)
     real(RK), pointer :: sinte_i(:, :), sinte_lamda(:,:)
     real(RK), pointer :: sinte_db(:), sinte_vs(:), sinte_vb(:)
     real(RK), pointer :: sinte_c(:)
-    real(RK), pointer :: sinte_vs_kk(:), sinte_vs_kp(:), sinte_vs_pp(:)
-    real(RK), pointer :: sinte_ct_kk(:), sinte_ct_kp(:), sinte_ct_pp(:)
-    real(RK), pointer :: sinte_cr_kk(:), sinte_cr_kp(:), sinte_cr_pp(:)
+!    real(RK), pointer :: sinte_vs_kk(:), sinte_vs_kp(:), sinte_vs_pp(:) ! FIX_ME these seem to be artifacts from an old
+!    real(RK), pointer :: sinte_ct_kk(:), sinte_ct_kp(:), sinte_ct_pp(:) ! and obsolete version
+!    real(RK), pointer :: sinte_cr_kk(:), sinte_cr_kp(:), sinte_cr_pp(:)
     real(RK), pointer :: a(:, :), cf_d (:, :), vsk(:, :), vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :)
     real(RK)          :: sc(3),sp(3)
@@ -265,11 +265,11 @@ module ms2_ensemble
     real(RK)         :: ternary_a, ternary_b, ternary_c
     real(RK)         :: binary_d
     real(RK)         :: visco_s
-    real(RK)         :: visco_s_kk, visco_s_kp, visco_s_pp
+!    real(RK)         :: visco_s_kk, visco_s_kp, visco_s_pp
     real(RK)         :: visco_b
     real(RK)         :: conduct
-    real(RK)         :: conduct_t_kk, conduct_t_kp, conduct_t_pp
-    real(RK)         :: conduct_r_kk, conduct_r_kp, conduct_r_pp
+!    real(RK)         :: conduct_t_kk, conduct_t_kp, conduct_t_pp ! FIX_ME these seem to be artifacts from an old
+!    real(RK)         :: conduct_r_kk, conduct_r_kp, conduct_r_pp ! and obsolete version
 
     ! 4.) Transport properties 
 
@@ -277,17 +277,17 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumTer_a, SumTer_b, SumTer_c
     type(TAccumulatorCF)         :: SumBin_d
     type(TAccumulatorCF)         :: SumVisco_s
-    type(TAccumulatorCF)         :: SumVisco_s_kk
-    type(TAccumulatorCF)         :: SumVisco_s_kp
-    type(TAccumulatorCF)         :: SumVisco_s_pp
+!    type(TAccumulatorCF)         :: SumVisco_s_kk  ! FIX_ME these seem to be artifacts from an old
+!    type(TAccumulatorCF)         :: SumVisco_s_kp  ! and obsolete version
+!    type(TAccumulatorCF)         :: SumVisco_s_pp
     type(TAccumulatorCF)         :: SumVisco_b
     type(TAccumulatorCF)         :: SumConduct
-    type(TAccumulatorCF)         :: SumConduct_t_kk
-    type(TAccumulatorCF)         :: SumConduct_t_kp
-    type(TAccumulatorCF)         :: SumConduct_t_pp
-    type(TAccumulatorCF)         :: SumConduct_r_kk
-    type(TAccumulatorCF)         :: SumConduct_r_kp
-    type(TAccumulatorCF)         :: SumConduct_r_pp
+!    type(TAccumulatorCF)         :: SumConduct_t_kk
+!    type(TAccumulatorCF)         :: SumConduct_t_kp
+!    type(TAccumulatorCF)         :: SumConduct_t_pp
+!    type(TAccumulatorCF)         :: SumConduct_r_kk
+!    type(TAccumulatorCF)         :: SumConduct_r_kp
+!    type(TAccumulatorCF)         :: SumConduct_r_pp
 !TRANSPORT_END
 #endif
   end type TEnsemble
@@ -4511,12 +4511,13 @@ loop2:        do nc = 1, this%NComponents
           call LogWrite
 #if FVM_VER == 0
 
-          write( IOBuffer, &
-&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
-&           real(pc%NFluctUpSuccesses(1), RK) / &
-&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
+&           real(pc%NFluctDownAttempts(j), RK) * 100._RK
           call LogWrite
-          do j = 1, pc%NFluctMax - 1
+          
+          do j = pc%NFluctMax - 1, 1, -1
             write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
 &             pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
 &               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
@@ -4524,34 +4525,39 @@ loop2:        do nc = 1, this%NComponents
 &               real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call LogWrite
           end do
-          j = pc%NFluctMax
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
-&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
+          
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
+&           real(pc%NFluctUpSuccesses(1), RK) / &
+&           real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          call LogWrite
+
           call LogWriteBlank
 
 #elif FVM_VER > 0
 
           ! FVMF2003_IndexChange
-          write( IOBuffer, &
-&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(1), pc%WF(1), &
-&           real(pc%NFluctUpSuccesses(1), RK) / &
-&             real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j+1), &
+&           pc%WF(j+1), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
+&           real(pc%NFluctDownAttempts(j), RK) * 100._RK
           call LogWrite
-          do j = 2, pc%NFluctMax
-            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j-1, pc%NStateWF(j), &
-&             pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
+
+          do j = pc%NFluctMax-1, 1, -1
+            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j+1), &
+&             pc%WF(j+1), real(pc%NFluctUpSuccesses(j+1), RK) / &
 &               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
 &             real(pc%NFluctDownSuccesses(j), RK) / &
 &               real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call LogWrite
           end do
-          j = pc%NFluctMax+1
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j-1, pc%NStateWF(j), &
-&           pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
+
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(1), pc%WF(1), &
+&           real(pc%NFluctUpSuccesses(1), RK) / &
+&           real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
+          call LogWrite
+
           call LogWriteBlank
 
 #endif
@@ -7587,7 +7593,7 @@ loop2:        do nc = 1, this%NComponents
         ! Cv
         Average = this%SumCV%Average
         Variance = this%SumCV%Variance
-        write( IOBuffer, '("Isochore heat capacity", T29, "reduced:", 2F20.9)' ) &
+        write( IOBuffer, '("Isochoric heat capacity", T29, "reduced:", 2F20.9)' ) &
 &         Average, Variance
         call FileWrite( this%iounit_errors )
         write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) &
@@ -7833,7 +7839,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Phase equilibria data for GE-ensemble
     if( EnsembleType == EnsembleTypeGE ) then
-      write( IOBuffer, '("PHASE EQUILIBRIA DATA")' )
+      write( IOBuffer, '("PHASE EQUILIBRIUM DATA")' )
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '("---------------------")' )
       call FileWrite( this%iounit_errors )
@@ -8030,7 +8036,7 @@ loop2:        do nc = 1, this%NComponents
         ! Move and rotate acceptance rates
         write( IOBuffer, '("Component ", A)' ) pc%PotModFileName
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '("Acceptance rate moves", T32, "in %:", F20.9)' ) &
+        write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
 &         100._RK * real( pc%NMoveSuccesses, RK ) / real ( pc%NMoveAttempts, RK )
         call FileWrite( this%iounit_errors )
         if( pc%Molecule%IsElongated ) then
@@ -8041,7 +8047,7 @@ loop2:        do nc = 1, this%NComponents
 
         if( pc%NMoveBiasedAttempts > 0 ) then
           ! Biased move and rotate acceptance rates
-          write( IOBuffer, '(T17, "biased moves", T32, "in %:", F20.9)' ) &
+          write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) &
 &          100._RK * real( pc%NMoveBiasedSuccesses, RK ) / &
 &          real ( pc%NMoveBiasedAttempts, RK )
           call FileWrite( this%iounit_errors )
@@ -8336,6 +8342,9 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_RestartSave( this )
 
     implicit none
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -8488,24 +8497,60 @@ if( RootProc ) then
 		write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
 	end do
 
-	if(this%Ncomponents==2)then
+	if (this%Ncomponents==2) then
 		do i = 1, this%Ncorr
 			write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i) 
 		end do
 	end if
 	
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
-	end do
 
    	do i = 1, this%Ncomponents
    		do j = 1, this%Ncorr
 			write( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
 		end do
 	end do 
+	
+	do i = 1, this%Ncomponents*this%Ncomponents
+                do j = 1, this%Ncorr
+                        write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+                end do
+        end do
 
-	endif
+    write( iounit_restart, '(I10)' ) NBlocksMaxCF
+    
+    do i = 1, this%NComponents
+      	call RestartSaveCF( this%Sumself_i(i) )
+    end do
+         
+ 
+    if(this%Ncomponents == 2) then
+     	call RestartSaveCF( this%SumBin_d )
+    end if
+    
+    if(this%Ncomponents == 3) then
+    call RestartSaveCF( this%SumTer_a )
+    call RestartSaveCF( this%SumTer_b )
+    call RestartSaveCF( this%SumTer_c )
+    end if 
+ 
+    call RestartSaveCF( this%SumVisco_s )
+    call RestartSaveCF( this%SumVisco_b )
+    call RestartSaveCF( this%SumConduct )
+
+ 	do i = 1,3
+		write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
+	end do
+
+	do i = 1,3
+		write( iounit_restart, '(ES20.12E3)' )  this%sc(i)
+	end do
+
+endif
 #endif
+#if MPI_VER > 0
+ call MPI_Barrier( MPI_COMM_WORLD, ierror )
+#endif
+
 
   end subroutine TEnsemble_RestartSave
 
@@ -8729,7 +8774,16 @@ if( RootProc ) then
 if( RootProc ) then
 	read( iounit_restart, '(I10)' ) this%Ncorr
 	read( iounit_restart, '(I10)' ) this%Mmess
+end if
 
+#if MPI_VER > 0
+	call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+	call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
+&       MPI_COMM_WORLD, ierror )
+#endif
+
+if( RootProc ) then
 	do i = 1, 3*this%Npart
 		do j = 1, this%Ncorr
 			read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)	
@@ -8771,15 +8825,12 @@ if( RootProc ) then
 		read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
 	end do
 
-	if(this%Ncomponents==2)then
+	if (this%Ncomponents==2) then	
 		do i = 1, this%Ncorr
 			read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i) 
 		end do
 	end if
 	
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
-	end do
 
    	do i = 1, this%Ncomponents
    		do j = 1, this%Ncorr
@@ -8787,11 +8838,46 @@ if( RootProc ) then
 		end do
 	end do 
 
+	do i = 1, this%Ncomponents*this%Ncomponents
+                do j = 1, this%Ncorr
+                        read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+                end do
+        end do
 
 
-	
 
-endif
+     read( iounit_restart, '(I10)' ) NBlocksMaxCF
+
+           
+ 
+    do i = 1, this%NComponents
+      call RestartReadCF( this%Sumself_i(i) )
+    end do
+          
+    if(this%Ncomponents == 2) then
+    	call RestartReadCF( this%SumBin_d )
+    end if
+    
+    if(this%Ncomponents == 3) then
+    call RestartReadCF( this%SumTer_a )
+    call RestartReadCF( this%SumTer_b )
+    call RestartReadCF( this%SumTer_c )
+    end if 
+    
+    call RestartReadCF( this%SumVisco_s )
+    call RestartReadCF( this%SumVisco_b )
+    call RestartReadCF( this%SumConduct )
+
+	do i = 1,3 
+		read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
+	end do 
+
+ 	do i = 1,3
+		read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
+	end do
+
+end if
+
 #endif
 
 

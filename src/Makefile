@@ -22,7 +22,7 @@ ifeq ($(MPI),0)
   ifneq ($(FVM),0)
     F90 = ifort
     # use at least intel/10.1/64
-    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 -DPAR_PROF #-DPAR_DEBUG
+    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 #-DPAR_PROF -DPAR_DEBUG
     #removed '-D_PGF'
     FVMOBJS = /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.o \
               /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.a \

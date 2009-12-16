@@ -422,7 +422,6 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 #if  TRANS == 1
-!Transport properties
 !TRANSPORT_start	
   interface ForceTransport
     module procedure TComponent_ForceTransport
@@ -1502,7 +1501,7 @@ contains
         this%Molecule%SiteCharge(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteCharge(i)%PZTest => this%P0Test(:, 3)
         end if
-#if Trans==1
+#if TRANS==1
 	  if (this%Molecule%isElongated) then
 	  this%Molecule%SiteCharge(i)%Q0r => this%Q0
 	  else

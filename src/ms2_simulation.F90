@@ -242,25 +242,47 @@ contains
     call LogWrite
 
     ! Read unit of length
-    call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
-    UnitLength = UnitLength * Angstroem
-    write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
-&     UnitLength / Angstroem
-    call LogWrite
+    if ( UseReducedUnits ) then
+      ! Set unit of length to 1
+      UnitLength = Angstroem
+      write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
+&       UnitLength / Angstroem
+      call LogWrite
 
-    ! Read unit of energy
-    call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
-    UnitEnergy = UnitEnergy * kBoltzmann
-    write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
-&     UnitEnergy / kBoltzmann
-    call LogWrite
+      ! Set unit of energy to 1
+      UnitEnergy = kBoltzmann
+      write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
+&       UnitEnergy / kBoltzmann
+      call LogWrite
 
-    ! Read unit of mass
-    call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
-    UnitMass = UnitMass * .001_RK / NAvogadro
-    write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
-&     UnitMass * NAvogadro * 1000._RK
-    call LogWrite
+      ! Set unit of mass to 1
+      UnitMass = .001_RK / NAvogadro
+      write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
+&       UnitMass * NAvogadro * 1000._RK
+      call LogWrite
+
+    else
+      ! Read unit of length
+      call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
+      UnitLength = UnitLength * Angstroem
+      write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
+&       UnitLength / Angstroem
+      call LogWrite
+
+      ! Read unit of energy
+      call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
+      UnitEnergy = UnitEnergy * kBoltzmann
+      write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
+&       UnitEnergy / kBoltzmann
+      call LogWrite
+
+      ! Read unit of mass
+      call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
+      UnitMass = UnitMass * .001_RK / NAvogadro
+      write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
+&       UnitMass * NAvogadro * 1000._RK
+      call LogWrite
+    end if
 
     ! Calculate derived reduced units
     UnitVolume = UnitLength**3
