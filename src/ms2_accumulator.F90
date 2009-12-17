@@ -108,6 +108,10 @@ contains
     type(TAccumulator)  :: this
     logical, intent(in) :: UpdateByAverage
 
+    ! Initialize Pointers
+    this%TotalSum  = 0._RK
+    this%NTotalSum = 0
+
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
 
@@ -165,6 +169,9 @@ contains
     call AllocationError( stat, 'output blocks', NBlocksMax )
     allocate( this%NBlockSum( NBlocksMax ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMax )
+
+    this%BlockSum  = 0._RK
+    this%NBlockSum = 0
 
   end subroutine TAccumulator_Allocate
 
