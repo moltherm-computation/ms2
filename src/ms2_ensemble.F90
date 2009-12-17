@@ -4436,9 +4436,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
             end if
 
-            if ( (mod(j,10) .eq. 0) .and. (j .ge. 8400) ) then
-              write(*,*) '1000'
-            end if
           end do giloop
 
 !DEBUG
