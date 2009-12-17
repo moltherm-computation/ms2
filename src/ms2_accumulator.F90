@@ -160,6 +160,10 @@ contains
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
 
+    ! Initialize
+    this%TotalSum = 0._RK
+    this%NTotalSum = 0
+
     ! Allocate arrays
     call Allocate( this )
 
@@ -184,6 +188,9 @@ contains
 
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
+
+    ! Initialize 
+    this%TotalSum = 0._RK
 
     ! Allocate arrays
     call AllocateCF( this )
@@ -248,8 +255,10 @@ contains
     ! Allocate arrays
     allocate( this%BlockSum( NBlocksMax ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMax )
+    this%BlockSum = 0._RK
     allocate( this%NBlockSum( NBlocksMax ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMax )
+    this%NBlockSum = 0
 
   end subroutine TAccumulator_Allocate
 !TRANSPORT_start
@@ -275,6 +284,7 @@ contains
     ! Allocate arrays
     allocate( this%BlockSum( NBlocksMaxCF ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMaxCF )
+    this%BlockSum = 0._RK
 #endif
   end subroutine TAccumulatorCF_Allocate
 !TRANSPORT_END
