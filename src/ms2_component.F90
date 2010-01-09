@@ -145,6 +145,7 @@ module ms2_component
     integer, pointer :: NPart
 
     ! Number of particles in process
+    ! Starting position, Number of Particles, Endposition
     integer, pointer :: NPart0, NPart1, NPart2
 
     ! Number of test particles
@@ -3239,10 +3240,7 @@ contains
     ! Increase NPart
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
-    this%NPart1 = 1 + (this%NPart - 1) / NProcs
-    this%NPart0 = 1 + this%NPart1 * NProc
-    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-    this%NPart1 = this%NPart2 - this%NPart0 + 1
+    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
 #endif
 
     ! Set coordinates and orientation of new particle
@@ -3281,10 +3279,7 @@ contains
     ! Remove last particle
     this%NPart = this%NPart - 1
 #if MPI_VER > 0
-    this%NPart1 = 1 + (this%NPart - 1) / NProcs
-    this%NPart0 = 1 + this%NPart1 * NProc
-    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-    this%NPart1 = this%NPart2 - this%NPart0 + 1
+    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
 #endif
 
   end subroutine TComponent_RemoveParticle

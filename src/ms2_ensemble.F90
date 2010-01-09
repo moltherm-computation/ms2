@@ -1044,10 +1044,7 @@ contains
     do i = 1, this%NComponents
       pc => this%Component(i)
       pc%NPart = NOrient
-      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      pc%NPart0 = 1 + pc%NPart1 * NProc
-      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
     end do
     this%NPartMax = NOrient
     this%NTestMax = 0
@@ -1582,10 +1579,7 @@ contains
     this%NFluctMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
-      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      pc%NPart0 = 1 + pc%NPart1 * NProc
-      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
       if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
       pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )

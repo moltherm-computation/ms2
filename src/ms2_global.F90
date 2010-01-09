@@ -672,6 +672,9 @@ module ms2_global
     module procedure Global_Rrnd
   end interface
 
+  interface ProcRange
+    module procedure Global_GetProcRange
+  end interface
 
 
 !==============================================================!
@@ -777,6 +780,7 @@ contains
         ProgramFileName = trim( buffer )         ! possible truncation?
       end if
       narg = iargc()
+      !narg = command_argument_count()
       if( narg .lt. 1 ) then
         print *, trim( ProgramFileName ), ' Version: ', VersionString
         print *, 'usage: ', trim( ProgramFileName ), &
@@ -790,6 +794,7 @@ contains
         stop
       end if
       call getarg( 1, buffer )
+      !call get_command_argument( 1, buffer )
       buffer = trim( buffer )
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
@@ -1071,7 +1076,7 @@ contains
 #if ARCH == 1
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined __GNUC__ || ARCH == 3
+#if defined _PGF || (defined __GNUC__ && !defined __PATHSCALE__) || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -1982,6 +1987,55 @@ contains
 
   end subroutine IgnoreSignal
 #endif
+
+
+!==============================================================!
+!  Function Global_GetProcRange                                !
+!==============================================================!
+
+  function Global_GetProcRange( overall_size, first_index, last_index ) result( range_size )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in) :: overall_size
+    integer, intent(out) :: first_index, last_index
+
+    ! Declare result
+    integer :: range_size
+    ! the function could return an array containing the indices, but NPart0..NPart2 are already scalar values.
+
+    ! Declare local variables
+    !integer :: range_size0             ! version 1 only: range size for the first process
+
+#if MPI_VER > 0
+    ! original version: last process might get smaller range_size
+    range_size = 1 + (overall_size - 1) / NProcs
+    first_index = 1 + NProc * range_size
+    last_index = min( first_index + range_size - 1, overall_size )
+    range_size = last_index - first_index + 1
+
+    ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
+    !range_size = ceiling( real(overall_size)/NProcs )
+    !range_size0 = mod( overall_size, range_size )
+    !last_index = range_size0 + NProc*range_size
+    !if ( NProc == 0 ) then
+    !  range_size = range_size0
+    !end if
+    !first_index = last_index-range_size+1
+
+    ! alternative version 2: distribute, use round instead of int?
+    !first_index = int(real(NProc)/NProcs*overall_size)+1
+    !last_index = int(real(NProc+1)/NProcs*overall_size)
+    !range_size = last_index - first_index + 1
+
+#else
+    first_index=1
+    last_index = overall_size
+    range_size=overall_size
+#endif
+
+  end function Global_GetProcRange
 
 
 end module ms2_global
