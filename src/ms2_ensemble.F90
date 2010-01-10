@@ -1729,8 +1729,10 @@ contains
     ! Declare local variables
     integer :: i
     integer :: stat
+#if TRANS ==1
     integer :: Npart3
     integer :: Ncomp2
+#endif
 
     ! Nullify pointers
     nullify( this%P0Test )
@@ -5219,8 +5221,11 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j
+    integer                   :: i
     real(RK)                  :: value
+#if TRANS ==1
+    integer                   :: j
+#endif
 
     if( Step == 1 ) then
       ! Reset accumulators
@@ -5817,7 +5822,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     real(RK)                  :: Average, Variance
-    real(RK)                  :: value
+!    real(RK)                  :: value
     type(TComponent), pointer :: pc
     integer                   :: i, j
 
@@ -7074,16 +7079,19 @@ loop2:        do nc = 1, this%NComponents
   subroutine TEnsemble_RestartSave( this )
 
     implicit none
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
+!#if MPI_VER > 0
+!    include 'mpif.h'
+!#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j
+    integer                   :: i
+#if TRANS ==1
+    integer                   :: j
+#endif
 
     ! Save contents to restart file
     write( iounit_restart, '(I10)' ) this%NPart
@@ -7279,9 +7287,9 @@ if( RootProc ) then
 
 endif
 #endif
-#if MPI_VER > 0
- call MPI_Barrier( MPI_COMM_WORLD, ierror )
-#endif
+!#if MPI_VER > 0
+! call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!#endif
 
 
   end subroutine TEnsemble_RestartSave
