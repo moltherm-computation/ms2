@@ -120,6 +120,7 @@ module ms2_component
     integer, pointer :: NPart
 
     ! Number of particles in process
+    ! Starting position, Number of Particles, Endposition
     integer, pointer :: NPart0, NPart1, NPart2
 
     ! Number of test particles
@@ -137,6 +138,12 @@ module ms2_component
     integer :: NRotateAttempts, NRotateSuccesses
     integer :: NMoveBiasedAttempts, NMoveBiasedSuccesses
     integer :: NRotateBiasedAttempts, NRotateBiasedSuccesses
+
+    ! Number of MC attempts and successes for IDF
+    integer :: NMoveMolAttempts, NMoveMolSuccesses
+    integer :: NRotateMolAttempts, NRotateMolSuccesses
+    integer :: NMoveBiasedMolAttempts, NMoveBiasedMolSuccesses
+    integer :: NRotateBiasedMolAttempts, NRotateBiasedMolSuccesses
 
     ! Kinetic energy
     real(RK) :: EKinTran, EKinRot
@@ -2983,7 +2990,6 @@ contains
              this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
              this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
 
-           ! Own Risk
              this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
 &                              this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
              this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
@@ -3114,7 +3120,6 @@ contains
              this%P0(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
 
 
-           ! Own Risk
              this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
 &                              this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
              this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
@@ -3125,66 +3130,6 @@ contains
 &                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
            end do
 
-! ! !            U11(j) = pUnit%Rotation(1, 1)
-! ! !            U12(j) = pUnit%Rotation(1, 2)
-! ! !            U13(j) = pUnit%Rotation(1, 3)
-! ! !            U21(j) = pUnit%Rotation(2, 1)
-! ! !            U22(j) = pUnit%Rotation(2, 2)
-! ! !            U23(j) = pUnit%Rotation(2, 3)
-! ! !            U31(j) = pUnit%Rotation(3, 1)
-! ! !            U32(j) = pUnit%Rotation(3, 2)
-! ! !            U33(j) = pUnit%Rotation(3, 3)
-! ! ! 
-! ! !            ij = (np-1)*nu + j
-! ! !            UA11(ij) = U11(j)*A11 + U12(j)*A21 + U13(j)*A31  ! matrix of rotation for Unit in space-fixed system
-! ! !            UA12(ij) = U11(j)*A12 + U12(j)*A22 + U13(j)*A32
-! ! !            UA13(ij) = U11(j)*A13 + U12(j)*A23 + U13(j)*A33
-! ! !            UA21(ij) = U21(j)*A11 + U22(j)*A21 + U23(j)*A31
-! ! !            UA22(ij) = U21(j)*A12 + U22(j)*A22 + U23(j)*A32
-! ! !            UA23(ij) = U21(j)*A13 + U22(j)*A23 + U23(j)*A33
-! ! !            UA31(ij) = U31(j)*A11 + U32(j)*A21 + U33(j)*A31
-! ! !            UA32(ij) = U31(j)*A12 + U32(j)*A22 + U33(j)*A32
-! ! !            UA33(ij) = U31(j)*A13 + U32(j)*A23 + U33(j)*A33
-! ! ! 
-! ! ! 
-! ! !            T = UA11(ij)+UA22(ij)+UA33(ij)+1._RK
-! ! !            if (T>0) then
-! ! !              S = 0.5_RK/sqrt(T)
-! ! !              qu1 = 0.25_RK/S
-! ! !              qu2 = -(UA32(ij)-UA23(ij))*S
-! ! !              qu3 = -(UA13(ij)-UA31(ij))*S
-! ! !              qu4 = -(UA21(ij)-UA12(ij))*S
-! ! !            else if ( (UA11(ij)>UA22(ij)) .and. (UA11(ij)>UA33(ij)) ) then
-! ! !              S = sqrt(1._RK + UA11(ij) - UA22(ij) - UA33(ij))*2 ! S = 4*qu2
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = 0.25_RK*S
-! ! !              qu3 = (UA12(ij) + UA21(ij))*SInv
-! ! !              qu4 = (UA13(ij) + UA31(ij))*SInv
-! ! !              qu1 = -(UA23(ij) - UA32(ij))*SInv
-! ! !            else if (UA22(ij)>UA33(ij)) then
-! ! !              S = sqrt(1._RK + UA22(ij) - UA11(ij) - UA33(ij))*2 ! S = 4*qu3
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = (UA12(ij)+UA21(ij))*SInv
-! ! !              qu3 = 0.25_RK*S
-! ! !              qu4 = (UA23(ij)+UA32(ij))*SInv
-! ! !              qu1 = -(UA13(ij)-UA31(ij))*SInv
-! ! !            else
-! ! !              S = sqrt(1._RK + UA33(ij) - UA11(ij) - UA22(ij))*2 ! S = 4*qu4
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = (UA13(ij)+UA31(ij))*SInv
-! ! !              qu3 = (UA23(ij)+UA32(ij))*SInv
-! ! !              qu4 = 0.25_RK*S
-! ! !              qu1 = -(UA12(ij)-UA21(ij))*SInv
-! ! !            end if
-! ! !            quinv = 1._RK / sqrt( qu1**2 + qu2**2 + qu3**2 + qu4**2 )
-! ! !            qu1 = qu1 * quinv
-! ! !            qu2 = qu2 * quinv
-! ! !            qu3 = qu3 * quinv
-! ! !            qu4 = qu4 * quinv
-! ! !            this%Q0(np, 1, j) = qu1
-! ! !            this%Q0(np, 2, j) = qu2
-! ! !            this%Q0(np, 3, j) = qu3
-! ! !            this%Q0(np, 4, j) = qu4
         end do
 
     else    ! if Molecule is not Elongated
@@ -3304,7 +3249,6 @@ contains
              this%P0Test(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
              this%P0Test(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
 
-           ! Own Risk
              this%Q0Test(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
 &                                   this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
              this%Q0Test(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
@@ -3315,66 +3259,6 @@ contains
 &                                   this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
            end do
 
-! ! !            U11(j) = pUnit%Rotation(1, 1)
-! ! !            U12(j) = pUnit%Rotation(1, 2)
-! ! !            U13(j) = pUnit%Rotation(1, 3)
-! ! !            U21(j) = pUnit%Rotation(2, 1)
-! ! !            U22(j) = pUnit%Rotation(2, 2)
-! ! !            U23(j) = pUnit%Rotation(2, 3)
-! ! !            U31(j) = pUnit%Rotation(3, 1)
-! ! !            U32(j) = pUnit%Rotation(3, 2)
-! ! !            U33(j) = pUnit%Rotation(3, 3)
-! ! ! 
-! ! !            ij = (np-1)*nu + j
-! ! !            UA11(ij) = U11(j)*A11 + U12(j)*A21 + U13(j)*A31  ! matrix of rotation for Unit in space-fixed system
-! ! !            UA12(ij) = U11(j)*A12 + U12(j)*A22 + U13(j)*A32
-! ! !            UA13(ij) = U11(j)*A13 + U12(j)*A23 + U13(j)*A33
-! ! !            UA21(ij) = U21(j)*A11 + U22(j)*A21 + U23(j)*A31
-! ! !            UA22(ij) = U21(j)*A12 + U22(j)*A22 + U23(j)*A32
-! ! !            UA23(ij) = U21(j)*A13 + U22(j)*A23 + U23(j)*A33
-! ! !            UA31(ij) = U31(j)*A11 + U32(j)*A21 + U33(j)*A31
-! ! !            UA32(ij) = U31(j)*A12 + U32(j)*A22 + U33(j)*A32
-! ! !            UA33(ij) = U31(j)*A13 + U32(j)*A23 + U33(j)*A33
-! ! ! 
-! ! ! 
-! ! !            T = UA11(ij)+UA22(ij)+UA33(ij)+1._RK
-! ! !            if (T>0) then
-! ! !              S = 0.5_RK/sqrt(T)
-! ! !              qu1 = 0.25_RK/S
-! ! !              qu2 = -(UA32(ij)-UA23(ij))*S
-! ! !              qu3 = -(UA13(ij)-UA31(ij))*S
-! ! !              qu4 = -(UA21(ij)-UA12(ij))*S
-! ! !            else if ( (UA11(ij)>UA22(ij)) .and. (UA11(ij)>UA33(ij)) ) then
-! ! !              S = sqrt(1._RK + UA11(ij) - UA22(ij) - UA33(ij))*2 ! S = 4*qu2
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = 0.25_RK*S
-! ! !              qu3 = (UA12(ij) + UA21(ij))*SInv
-! ! !              qu4 = (UA13(ij) + UA31(ij))*SInv
-! ! !              qu1 = -(UA23(ij) - UA32(ij))*SInv
-! ! !            else if (UA22(ij)>UA33(ij)) then
-! ! !              S = sqrt(1._RK + UA22(ij) - UA11(ij) - UA33(ij))*2 ! S = 4*qu3
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = (UA12(ij)+UA21(ij))*SInv
-! ! !              qu3 = 0.25_RK*S
-! ! !              qu4 = (UA23(ij)+UA32(ij))*SInv
-! ! !              qu1 = -(UA13(ij)-UA31(ij))*SInv
-! ! !            else
-! ! !              S = sqrt(1._RK + UA33(ij) - UA11(ij) - UA22(ij))*2 ! S = 4*qu4
-! ! !              SInv = 1._RK/S
-! ! !              qu2 = (UA13(ij)+UA31(ij))*SInv
-! ! !              qu3 = (UA23(ij)+UA32(ij))*SInv
-! ! !              qu4 = 0.25_RK*S
-! ! !              qu1 = -(UA12(ij)-UA21(ij))*SInv
-! ! !            end if
-! ! !            quinv = 1._RK / sqrt( qu1**2 + qu2**2 + qu3**2 + qu4**2 )
-! ! !            qu1 = qu1 * quinv
-! ! !            qu2 = qu2 * quinv
-! ! !            qu3 = qu3 * quinv
-! ! !            qu4 = qu4 * quinv
-! ! !            this%Q0Test(np, 1, j) = qu1
-! ! !            this%Q0Test(np, 2, j) = qu2
-! ! !            this%Q0Test(np, 3, j) = qu3
-! ! !            this%Q0Test(np, 4, j) = qu4
         end do
 
     else    ! if Molecule is not Elongated
@@ -5154,7 +5038,7 @@ contains
     integer :: k
 
     ! Test boundaries of particle arrays
-    if( this%NPart > this%NPartMax ) then
+    if( this%NPart >= this%NPartMax ) then
       tooManyParticles = .true.
       return
     end if
@@ -5162,10 +5046,11 @@ contains
     ! Increase NPart
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
-    this%NPart1 = 1 + (this%NPart - 1) / NProcs
-    this%NPart0 = 1 + this%NPart1 * NProc
-    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-    this%NPart1 = this%NPart2 - this%NPart0 + 1
+    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
+!     this%NPart1 = 1 + (this%NPart - 1) / NProcs
+!     this%NPart0 = 1 + this%NPart1 * NProc
+!     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
+!     this%NPart1 = this%NPart2 - this%NPart0 + 1
 #endif
 
     ! Set coordinates and orientation of new particle

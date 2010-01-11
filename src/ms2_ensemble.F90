@@ -475,10 +475,12 @@ module ms2_ensemble
 
   interface Move
     module procedure TEnsemble_Move
+    module procedure TEnsemble_MoveMol
   end interface
 
   interface Rotate
     module procedure TEnsemble_Rotate
+    module procedure TEnsemble_RotateMol
   end interface
 
   interface MoveBiased
@@ -1291,10 +1293,11 @@ contains
     do i = 1, this%NComponents
       pc => this%Component(i)
       pc%NPart = NOrient
-      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      pc%NPart0 = 1 + pc%NPart1 * NProc
-      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
+!       pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
+!       pc%NPart0 = 1 + pc%NPart1 * NProc
+!       pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
+!       pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
     end do
     this%NPartMax = NOrient
     this%NTestMax = 0
@@ -1955,10 +1958,11 @@ contains
     this%NFluctMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
-      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      pc%NPart0 = 1 + pc%NPart1 * NProc
-      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
+!       pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
+!       pc%NPart0 = 1 + pc%NPart1 * NProc
+!       pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
+!       pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
       if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
       pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
@@ -3047,6 +3051,7 @@ loop:do l = 1, NPartInCell
     integer  :: r, s, t
     integer  :: nc, np, ndf, nu
     integer  :: i
+    integer  :: NPart2
     real(RK) :: rx, sx
     real(RK) :: diffpressure
     real(RK) :: NDFsystem
@@ -3056,34 +3061,29 @@ loop:do l = 1, NPartInCell
 
     ! Outer loop
     NDFsystem = this%NDF
-     do i = 1, NDFsystem / 3
+    do i = 1, NDFsystem / 3
 !    write(*,*) 'just one MC move!'
 !    do i = 1, 1
 
       ! Choose particle randomly
       s = 0
-      t = 0
+!       t = 0        ! Assigned later
       r = rnd( this%NDF )
 loop1:do nc = 1, this%NComponents
         s = s + this%Component(nc)%NDF
         if( r <= s ) exit loop1
       end do loop1
-!       if ( this%Component(nc)%Molecule%NUnit .ne. 1) then
-!          write(*,*) 'MonteCarlo Simulations not yet possible with flexible molecules'
-! #ifdef __INTEL_COMPILER
-!          s = SetTerminateProgram( 1 )
-! #else
-!          call SetTerminateProgram
-! #endif
-!       end if
+
       ndf = this%Component(nc)%Molecule%NDF
       np = 1 + (s - r) / ndf
       t = 1 + ((s - r) - (np-1) * ndf)
-loop4:do nu = 1, this%Component(nc)%Molecule%NUnit
-        if (t <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop4
-      end do loop4
 
-      ! Move or rotate
+      ! Assign Unit
+loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
+        if (t <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop2
+      end do loop2
+
+      ! Move or Rotate Unit
       if( mod( s - r, ndf ) < 3 ) then
         call Move( this, nc, np, nu )
       else
@@ -3091,6 +3091,30 @@ loop4:do nu = 1, this%Component(nc)%Molecule%NUnit
       end if
 
     end do
+
+
+! Special Moves for the simulation of molecules with internal degrees of freedom
+    if ( UseIntDegFreed ) then
+      NPart2 = 2*this%NPart
+      ! Move or Rotate entire Molecule
+      do i = 1, NPart2
+        s = 0
+        r = rnd( NPart2 )
+loop3:  do nc = 1, this%NComponents
+          s = s + 2*this%Component(nc)%NPart
+          if( r <= s ) exit loop3
+        end do loop3
+
+        ! Move or Rotate
+        if( mod( r, 2 ) .eq. 0 ) then
+          call Move( this, nc, np )
+        else
+          call Rotate( this, nc, np )
+        end if
+
+      end do
+    end if
+
 
     ! Calculate potential energy and virial
 #if MPI_VER > 0
@@ -3113,9 +3137,6 @@ loop4:do nu = 1, this%Component(nc)%Molecule%NUnit
     end if
 
     ! Calculate pressure
-!    this%Pressure = this%Density * this%Temperature &
-!&                   + this%Virial / this%Volume0
-
     this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
@@ -3131,18 +3152,18 @@ loop4:do nu = 1, this%Component(nc)%Molecule%NUnit
         do i = 1, 2
           sx = 0._RK
           rx = rnd( 0._RK, 1._RK )
-loop2:    do nc = 1, this%NComponents
+loop4:    do nc = 1, this%NComponents
             sx = sx + this%Component(nc)%Fraction
-            if( rx <= sx ) exit loop2
-          end do loop2
+            if( rx <= sx ) exit loop4
+          end do loop4
           call Insert( this, nc )
 
           s = 0._RK
           r = rnd( this%NPart )
-loop3:    do nc = 1, this%NComponents
+loop5:    do nc = 1, this%NComponents
             s = s + this%Component(nc)%NPart
-            if( r <= s ) exit loop3
-          end do loop3
+            if( r <= s ) exit loop5
+          end do loop5
           np = 1 + s - r
           call Delete( this, nc, np )
 
@@ -3527,7 +3548,7 @@ loop3:    do nc = 1, this%NComponents
     ! Declare local variables
     integer      :: i
 
-    ! Call Mol2Unit for each component
+    ! Call Mol2Resize for each component
     do i = 1, this%NComponents
       call Mol2Resize( this%Component(i), DelBoxFrac )
     end do
@@ -5238,7 +5259,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i, nu1
+    integer                   :: i
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5354,7 +5375,153 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Rotate                                 !
+!  Subroutine TEnsemble_MoveMol                                !
+!==============================================================!
+
+  subroutine TEnsemble_MoveMol( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: rm(3), trans(3)
+    real(RK)                  :: TransMove
+    real(RK)                  :: EPotOld, EPotNew, EPotSum
+    real(RK)                  :: EFourier, EVirial
+    type(TComponent), pointer :: pc
+    integer                   :: i, j
+    integer                   :: NUnit
+#if MPI_VER > 0
+    real(RK)                  :: EPotDeltaAll
+#endif
+
+    ! Assign local variables
+    pc => this%Component(nc)
+    NUnit = pc%Molecule%NUnit
+
+    ! Update number of move attempts
+    pc%NMoveMolAttempts = pc%NMoveMolAttempts + 1
+
+    ! Save current particle position and energy
+    rm(:) = pc%Pm0(np, :)
+    EPotOld = 0._RK
+    EPotNew = 0._RK
+    do i=1, pc%Molecule%NUnit
+      EPotSum = GetEnergy( this, nc, np, i )   ! IDF
+      EPotOld = EPotOld + EPotSum
+    end do
+
+    ! Save the Energies and Virials for a faster MoveRejction
+!     if (LongRange .eq. Ewald) then
+!       EFourier = this%UFourier
+!       DO i=1,pc%Molecule%NCharge
+!         this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+!         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+!         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+!       END DO
+! !       EVirial  = this%EVirial
+! #ifdef SPME
+!     else if (LongRange .eq. PME) then
+!       EFourier = this%UFourier
+!       EVirial  = this%EVirial
+! !       this%qgrida_old = this%qgrida
+!       call chargegrid_min  (this, nc, np)
+! #endif
+!     end if
+
+    ! Generate a trial displacement & Apply periodic boundary conditions
+    do i = 1, 3
+      TransMove = rnd( -pc%DispTran, pc%DispTran )
+      pc%Pm0(np, i) = pc%Pm0(np, i) + TransMove
+      trans(i)  = TransMove
+      do j=1, NUnit
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) + TransMove
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%Pm0(np, i) )
+      end do
+      pc%Pm0(np, i)    = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
+    end do
+
+    ! Convert molecular coordinates to atom positions and calculate Energies
+    do j = 1, NUnit
+      call Unit2Atom1( pc, np, j )
+! 
+! #ifdef SPME
+!     ! Calculate changes in the SPME grid
+!     if (LongRange .eq. PME) then
+!       call chargegrid_plus (this, nc, np)
+!     end if
+! #endif
+
+    ! Calculate particle energy at trial position
+      call Energy( this, nc, np, j, EPotSum )
+      EPotNew = EPotNew + EPotSum
+    end do
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+#else
+    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
+&       .gt. rnd( 0._RK, 1._RK ) ) then
+#endif
+
+      ! Accept move
+      pc%NMoveMolSuccesses = pc%NMoveMolSuccesses + 1
+      do j= 1, NUnit
+        call UpdateEnergy( this, nc, np, j )
+      end do
+
+    else
+
+      ! Reject move
+!       if (LongRange .eq. Ewald) then
+!           this%UFourier = EFourier
+! !         this%EVirial  = EVirial
+!           DO i=1,pc%Molecule%NCharge
+!             this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+!             this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+!             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+!           END DO
+!           pc%P0(np, :, nu) = r(:)
+!           pc%Pm0(np, :) = rm(:)
+!           call Unit2Atom1( pc, np, nu )
+!           call EwaldFourierEnergy(this,nc,np)
+!           call Unit2Mol( pc, np )
+! #ifdef SPME
+!       else if (LongRange .eq. PME) then
+!           this%UFourier = EFourier
+!           this%EVirial  = EVirial
+!           call chargegrid_min  (this, nc, np)
+!           pc%P0(np, :, nu) = r(:)
+!           call Unit2Atom1( pc, np, nu )
+!           call chargegrid_plus (this, nc, np)
+! #endif
+!       else
+          pc%Pm0(np, :) = rm(:)
+          do j=1, NUnit
+            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
+            pc%P0(np, i, j) = pc%P0(np, i, j) - anint( pc%Pm0(np, i) )
+            call Unit2Atom1( pc, np, j )
+          end do
+!       end if
+    end if
+
+  end subroutine TEnsemble_MoveMol
+
+
+
+!==============================================================!
+! !  Subroutine TEnsemble_Rotate                               !
 !==============================================================!
 
   subroutine TEnsemble_Rotate( this, nc, np, nu )
@@ -5375,7 +5542,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i, nu1
+    integer                   :: i
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
@@ -5477,6 +5644,131 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_Rotate
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RotateMol                              !
+!==============================================================!
+
+  subroutine TEnsemble_RotateMol( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments03
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: q(4), dq(3)
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier, EVirial
+    type(TComponent), pointer :: pc
+    integer                   :: i, nu
+#if MPI_VER > 0
+    real(RK)                  :: EPotDeltaAll
+#endif
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of rotation attempts
+    pc%NRotateMolAttempts = pc%NRotateMolAttempts + 1
+
+    ! Save current particle orientation and energy
+    q(:) = pc%Q0(np, :, nu)
+    EPotOld = GetEnergy( this, nc, np, nu )
+
+    ! Save the Energies and Virials for a faster MoveRejction
+!     if (LongRange .eq. Ewald) then
+!       EFourier = this%UFourier
+!       DO i=1,pc%Molecule%NCharge
+!         this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+!         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+!         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+!       END DO
+! !       EVirial  = this%EVirial
+! #ifdef SPME
+!     else if (LongRange .eq. PME) then
+!       EFourier = this%UFourier
+!       EVirial  = this%EVirial
+! !       this%qgrida_old = this%qgrida
+!       call chargegrid_min  (this, nc, np)
+! #endif
+!     end if
+
+    ! Generate a trial rotation
+    do i = 1, 3
+      dq(i) = rnd( -pc%DispRot, pc%DispRot )
+    end do
+    pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+    ! Convert molecular coordinates to atom positions
+    call Unit2Atom1( pc, np, nu )
+
+! #ifdef SPME
+!     if (LongRange .eq. PME) then
+!       call chargegrid_plus (this, nc, np)
+! !       call charge_grid_MCall (this)
+!     end if
+! #endif
+
+    ! Calculate particle energy with trial orientation
+    call Energy( this, nc, np, nu, EPotNew )
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+#else
+    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
+&       .gt. rnd( 0._RK, 1._RK ) ) then
+#endif
+
+      ! Accept rotation
+      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
+      call Unit2Mol( pc, np )
+      call UpdateEnergy( this, nc, np, nu )
+
+    else
+
+      ! Reject move
+!       if (LongRange .eq. Ewald) then
+!         this%UFourier = EFourier
+!         DO i=1,pc%Molecule%NCharge
+!           this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+!           this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+!           this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+!         END DO
+!         pc%Q0(np, :, nu) = q(:)
+!         call Unit2Atom1( pc, np, nu )
+!         call EwaldFourierEnergy(this,nc,np)
+! #ifdef SPME
+!       else if (LongRange .eq. PME) then
+!         this%UFourier = EFourier
+!         this%EVirial  = EVirial
+!         call chargegrid_min  (this, nc, np)
+!         pc%Q0(np, :, 1) = q(:)
+!         call Unit2Atom1( pc, np, nu )
+!         call chargegrid_plus (this, nc, np)
+! !         this%qgrida   = this%qgrida_old
+! #endif
+!       else
+        pc%Q0(np, :, nu) = q(:)
+        call Unit2Atom1( pc, np, nu )
+!       end if
+
+    end if
+
+  end subroutine TEnsemble_RotateMol
 
 
 
@@ -5855,88 +6147,88 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 ! Save states for the Ewald Summation and/or derivates
     if (LongRange .eq. Ewald) then     ! Ewald Summation
-       ! Save the initial state
-       EFourier = this%UFourier
-       EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
-       EVirial  = this%EVirial
-!  Sufficient, since no call to Mol2Atom1 yet
-       DO i=1,pcf%Molecule%NCharge
-         this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
-         this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
-         this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
-       END DO
-
-       ! Calculate new energies
-       call EwaldSelfTerm_Energy(this)
-
-       ! Convert molecular coordinates to atom positions
-       nu= pcfnew%Molecule%NUnit
-       call Mol2Unit1( pcfnew, npfnew, nu )
-       do i = 1, nu
-         call Unit2Atom1( pcfnew, npfnew, i )
-       end do
-
-       ! Calculate particle energy at new fluctuating state
-       call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
-
-       ! Acceptance Criteria
-#if MPI_VER > 0
-       call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
-&        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-       EPotDeltaAll = EPotDeltaAll &
-&        + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
-       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
-&        exp( ( EPotDeltaAll ) / this%Temperature ) ) then
-#else
-       EPotOld = EPotOld &
-&        + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
-       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
-&        exp( ( EPotOld - EPotNew ) / this%Temperature ) ) then
-#endif
-
-         ! Accept
-         pc%NFluctState = newstate
-         ncf = ncfnew
-         npf = npfnew
-         call UpdateEnergy( this, ncf, npf )
-         if( newstate > oldstate ) then
-           pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
-         else
-           pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
-         end if
-
-       else
-         ! Reject
-         if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Q0( npfnew,  1:4, 1:pcfnew%Molecule%NUnit) )
-         else
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ) )
-         end if
-         call RemoveParticle( pcfnew, npfnew )
-         ! Convert molecular coordinates to atom positions
-         call Mol2Unit1( pcfnew, npfnew, nu )
-         do i = 1, nu
-           call Unit2Atom1( pcfnew, npfnew, i )
-         end do
-         call EwaldSelfTerm_Energy(this)
-         DO i=1,pcfnew%Molecule%NCharge
-           this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
-           this%rold(i,2) = pcfnew%Molecule%SiteCharge(i)%RY(npfnew)
-           this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
-         END DO
-         call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
-
-       end if       ! Acceptance Criteria
-
-#ifdef SPME
-! ----------------------------------------------------------------
-    else if (LongRange .eq. PME) then ! PME
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call PMESetup(this)
-      write (*,*) 'Gradual Insertion does not yet work with PME'
-      STOP
-#endif
+!        ! Save the initial state
+!        EFourier = this%UFourier
+!        EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
+!        EVirial  = this%EVirial
+! !  Sufficient, since no call to Mol2Atom1 yet
+!        DO i=1,pcf%Molecule%NCharge
+!          this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
+!          this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
+!          this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
+!        END DO
+! 
+!        ! Calculate new energies
+!        call EwaldSelfTerm_Energy(this)
+! 
+!        ! Convert molecular coordinates to atom positions
+!        nu= pcfnew%Molecule%NUnit
+!        call Mol2Unit1( pcfnew, npfnew, nu )
+!        do i = 1, nu
+!          call Unit2Atom1( pcfnew, npfnew, i )
+!        end do
+! 
+!        ! Calculate particle energy at new fluctuating state
+!        call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
+! 
+!        ! Acceptance Criteria
+! #if MPI_VER > 0
+!        call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+! &        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+!        EPotDeltaAll = EPotDeltaAll &
+! &        + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
+!        if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
+! &        exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+! #else
+!        EPotOld = EPotOld &
+! &        + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
+!        if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
+! &        exp( ( EPotOld - EPotNew ) / this%Temperature ) ) then
+! #endif
+! 
+!          ! Accept
+!          pc%NFluctState = newstate
+!          ncf = ncfnew
+!          npf = npfnew
+!          call UpdateEnergy( this, ncf, npf )
+!          if( newstate > oldstate ) then
+!            pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
+!          else
+!            pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
+!          end if
+! 
+!        else
+!          ! Reject
+!          if( pcf%Molecule%IsElongated ) then
+!            call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Q0( npfnew,  1:4, 1:pcfnew%Molecule%NUnit) )
+!          else
+!            call AddParticle( pcf, pcfnew%Pm0( npfnew, : ) )
+!          end if
+!          call RemoveParticle( pcfnew, npfnew )
+!          ! Convert molecular coordinates to atom positions
+!          call Mol2Unit1( pcfnew, npfnew, nu )
+!          do i = 1, nu
+!            call Unit2Atom1( pcfnew, npfnew, i )
+!          end do
+!          call EwaldSelfTerm_Energy(this)
+!          DO i=1,pcfnew%Molecule%NCharge
+!            this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
+!            this%rold(i,2) = pcfnew%Molecule%SiteCharge(i)%RY(npfnew)
+!            this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
+!          END DO
+!          call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
+! 
+!        end if       ! Acceptance Criteria
+! 
+! #ifdef SPME
+! ! ----------------------------------------------------------------
+!     else if (LongRange .eq. PME) then ! PME
+!       EFourier = this%UFourier
+!       EVirial  = this%EVirial
+!       call PMESetup(this)
+!       write (*,*) 'Gradual Insertion does not yet work with PME'
+!       STOP
+! #endif
 ! ----------------------------------------------------------------
     else   ! REACTION FIELD
        ! Calculate center of mass of that particle
@@ -5984,13 +6276,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
          else
            pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
          end if
-!DEBUG
-!      counter = 0
-!   accepted = .TRUE.
-!DEBUG
 
        else
-
          ! Reject
          if( pcf%Molecule%IsElongated ) then
            call AddParticle( pcf, pcfnew%Pm0( npfnew, : ), pcfnew%Q0( npfnew,  1:4, 1:pcfnew%Molecule%NUnit ) )
@@ -6006,21 +6293,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        end if
 
     end if      ! LongRange - Correction
-!
-!
-!DEBUG
-!  counter = i
-!   call MPI_AllReduce( accepted, unequal, 1, MPI_LOGICAL, MPI_LXOR, MPI_COMM_WORLD, ierror )
-!   if( unequal ) then
-!     write(0, '(I2, ": ", A, " EPotDeltaAll=", F20.16, ", ix=", I0)') &
-! &     NProc, merge( "acc.", "rej.", accepted ), EPotDeltaAll, ix
-!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
-!     write(0, '(I2, ": WFnew=", F12.4, " WFold=", F12.4, " Temp=", F12.8)') &
-! &     NProc, pc%WF(newstate), pc%WF(oldstate), this%Temperature
-!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
-!     stop
-!   end if
-!DEBUG
 
   end subroutine TEnsemble_ChangeFluct
 
@@ -8741,10 +9013,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       Average = this%SumDensity%Average
       Variance = this%SumDensity%Variance
       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
+&       Average, Average * VarPressure / this%SumPressure%Average
+! &       Average, Variance
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) &
-&       Average * UnitDensity, Variance * UnitDensity
+&       Average * UnitDensity, Average * VarPressure / this%SumPressure%Average * UnitDensity
+! &       Average * UnitDensity, Variance * UnitDensity
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -9208,9 +9482,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
+! #if MPI_VER > 0
+!     include 'mpif.h'
+! #endif
 
     ! Declare arguments
     type(TEnsemble) :: this
