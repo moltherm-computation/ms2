@@ -5439,7 +5439,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Generate a trial displacement & Apply periodic boundary conditions
     do i = 1, 3
-      TransMove = rnd( -pc%DispTran, pc%DispTran )
+      TransMove = rnd( -pc%DispMolTran, pc%DispMolTran )
       pc%Pm0(np, i) = pc%Pm0(np, i) + TransMove
       trans(i)  = TransMove
       do j=1, NUnit
@@ -5665,24 +5665,37 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np
 
     ! Declare local variables
-    real(RK)                  :: q(4), dq(3)
-    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: p(3, this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: q(4, this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: dq(3), dq2
+    real(RK)                  :: EPotOld, EPotNew, EPotSum
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
     integer                   :: i, nu
+    integer                   :: NUnit
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
 
     ! Assign local variables
     pc => this%Component(nc)
+    NUnit = pc%Molecule%NUnit
 
     ! Update number of rotation attempts
     pc%NRotateMolAttempts = pc%NRotateMolAttempts + 1
 
-    ! Save current particle orientation and energy
-    q(:) = pc%Q0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    ! Initialization
+    dq2 = 0._RK
+
+    ! Generate a trial rotation
+    do i = 1, 3
+      dq(i) = rnd( -pc%DispMolRot, pc%DispMolRot )
+      dq2   = dq2 - dq(i)*dq(i)
+    end do
+
+    ! Energy calculation
+    EPotOld = 0._RK
+    EPotNew = 0._RK
 
     ! Save the Energies and Virials for a faster MoveRejction
 !     if (LongRange .eq. Ewald) then
@@ -5702,17 +5715,27 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 ! #endif
 !     end if
 
-    ! Generate a trial rotation
-    do i = 1, 3
-      dq(i) = rnd( -pc%DispRot, pc%DispRot )
-    end do
-    pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
-    pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
-    pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+    do i=1, NUnit
+     ! Calculate old Energies
+      EPotSum = GetEnergy( this, nc, np, i )   ! IDF
+      EPotOld = EPotOld + EPotSum
 
-    ! Convert molecular coordinates to atom positions
-    call Unit2Atom1( pc, np, nu )
+     ! Save positions and rotations
+      p(:,i) = pc%P0(np, :, i)
+      q(:,i) = pc%Q0(np, :, i)
+
+     ! Rotate molecule
+      pc%Q0(np, 1, i) = q(1,i) - dq(1) * q(2,i) - dq(2) * q(3,i) - dq(3) * q(4,i)
+      pc%Q0(np, 2, i) = q(2,i) + dq(1) * q(1,i) - dq(2) * q(4,i) + dq(3) * q(3,i)
+      pc%Q0(np, 3, i) = q(3,i) + dq(1) * q(4,i) + dq(2) * q(1,i) - dq(3) * q(2,i)
+      pc%Q0(np, 4, i) = q(4,i) - dq(1) * q(3,i) + dq(2) * q(2,i) + dq(3) * q(1,i)
+
+      pc%P0(np, 1, i) = pc%P0(np, 1, i) * dq2
+      pc%P0(np, 2, i) = pc%P0(np, 2, i) * dq2
+      pc%P0(np, 3, i) = pc%P0(np, 3, i) * dq2
+
+      ! Convert molecular coordinates to atom positions
+      call Unit2Atom1( pc, np, i )
 
 ! #ifdef SPME
 !     if (LongRange .eq. PME) then
@@ -5721,8 +5744,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !     end if
 ! #endif
 
-    ! Calculate particle energy with trial orientation
-    call Energy( this, nc, np, nu, EPotNew )
+      ! Calculate particle energy with trial orientation
+      call Energy( this, nc, np, i, EPotSum )
+      EPotNew = EPotNew + EPotSum
+
+    end do
+
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
@@ -5735,7 +5762,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call Unit2Mol( pc, np )
       call UpdateEnergy( this, nc, np, nu )
 
     else
@@ -5762,8 +5788,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 ! !         this%qgrida   = this%qgrida_old
 ! #endif
 !       else
-        pc%Q0(np, :, nu) = q(:)
-        call Unit2Atom1( pc, np, nu )
+        do i=1,NUnit
+          pc%P0(np, :, i) = p(:,i)
+          pc%Q0(np, :, i) = q(:,i)
+          call Unit2Atom1( pc, np, i )
+        end do
 !       end if
 
     end if
@@ -7633,6 +7662,28 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else if( AccRateRot .lt. AccLowerLimit ) then
         pc%DispRot = pc%DispRot * 0.95_RK
       end if
+
+      ! Update Displacements for entire molecule
+      if ( UseIntDegFreed ) then
+        AccRateTran = real(pc%NMoveMolSuccesses) / real(pc%NMoveMolAttempts)
+        AccRateRot = real(pc%NRotateMolSuccesses) / real(pc%NRotateMolAttempts)
+        ! Update translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. &
+&          ( pc%DispTran .lt. DispTranLimit )) then
+           pc%DispMolTran = pc%DispMolTran * 1.05_RK
+        else if( AccRateTran .lt. AccLowerLimit ) then
+          pc%DispMolTran = pc%DispMolTran * .95_RK
+        end if
+
+        ! Update rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. &
+&          ( pc%DispMolRot .lt. DispRotLimit )) then
+           pc%DispMolRot = pc%DispMolRot * 1.05_RK
+        else if( AccRateRot .lt. AccLowerLimit ) then
+           pc%DispMolRot = pc%DispMolRot * 0.95_RK
+        end if
+      end if
+
     end do
 
     if( ConstantPressure .and. .not. NVTEquilibration ) then

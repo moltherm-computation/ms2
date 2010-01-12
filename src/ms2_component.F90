@@ -132,6 +132,7 @@ module ms2_component
 
     ! Maximum allowed MC displacements
     real(RK), pointer :: DispTran, DispRot
+    real(RK), pointer :: DispMolTran, DispMolRot
 
     ! Number of MC attempts and successes
     integer :: NMoveAttempts, NMoveSuccesses
