@@ -1141,6 +1141,8 @@ contains
         do i = 1, this%NRealComponents
           this%Component(i)%DispTran = DispTranStart
           this%Component(i)%DispRot = DispRotStart
+          this%Component(i)%DispMolTran = DispMolTranStart
+          this%Component(i)%DispMolRot = DispMolRotStart
         end do
 
       end if
@@ -5510,7 +5512,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%Pm0(np, :) = rm(:)
           do j=1, NUnit
             pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, i, j) = pc%P0(np, i, j) - anint( pc%Pm0(np, i) )
+            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%Pm0(np, :) )
             call Unit2Atom1( pc, np, j )
           end do
 !       end if
@@ -7669,7 +7671,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         AccRateRot = real(pc%NRotateMolSuccesses) / real(pc%NRotateMolAttempts)
         ! Update translational displacement
         if(( AccRateTran .gt. AccUpperLimit) .and. &
-&          ( pc%DispTran .lt. DispTranLimit )) then
+&          ( pc%DispMolTran .lt. DispMolTranLimit )) then
            pc%DispMolTran = pc%DispMolTran * 1.05_RK
         else if( AccRateTran .lt. AccLowerLimit ) then
           pc%DispMolTran = pc%DispMolTran * .95_RK
@@ -9183,6 +9185,29 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWrite( this%iounit_errors )
         end if
         call FileWriteBlank( this%iounit_errors )
+
+        ! Maximum translational and rotational displacements
+        if ( UseIntDegFreed ) then
+           ! Move and rotate acceptance rates
+           write( IOBuffer, '("Acceptance rate mol. moves", T32, "in %:", F20.9)' ) &
+&            100._RK * real( pc%NMoveMolSuccesses, RK ) / real ( pc%NMoveMolAttempts, RK )
+           call FileWrite( this%iounit_errors )
+           if( pc%Molecule%IsElongated ) then
+             write( IOBuffer, '(T17, "mol. rotates", T32, "in %:", F20.9)' ) 100._RK &
+&              * real( pc%NRotateMolSuccesses, RK ) / real ( pc%NRotateMolAttempts, RK )
+             call FileWrite( this%iounit_errors )
+           end if
+
+           write( IOBuffer, '("Maximum displ.  mol. trans.", T33, "r`d:", F20.9)' ) &
+             pc%DispMolTran
+           call FileWrite( this%iounit_errors )
+           if( pc%Molecule%IsElongated ) then
+             write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) &
+               pc%DispMolRot
+             call FileWrite( this%iounit_errors )
+           end if
+           call FileWriteBlank( this%iounit_errors )
+        end if
 
         ! Gradual insertion change fluctuating particle acceptance rates
         if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then

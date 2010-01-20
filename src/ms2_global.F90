@@ -467,6 +467,10 @@ module ms2_global
   real(RK), parameter :: DispRotLimit  = 0.150_RK
   real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
+  real(RK), parameter :: DispMolTranStart = 0.020_RK
+  real(RK), parameter :: DispMolTranLimit = 0.150_RK
+  real(RK), parameter :: DispMolRotStart  = 0.050_RK
+  real(RK), parameter :: DispMolRotLimit  = 0.150_RK
 
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100

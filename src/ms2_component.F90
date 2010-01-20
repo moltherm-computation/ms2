@@ -572,6 +572,12 @@ contains
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
+      nullify ( this%DispMolTran )
+      nullify ( this%DispMolRot )
+      allocate( this%DispMolTran, STAT = stat )
+      call AllocationError( stat, 'maximum MC molecule displacement' )
+      allocate( this%DispMolRot, STAT = stat )
+      call AllocationError( stat, 'maximum MC molecule displacement' )
     end if
 
     ! Allocate and read weighting factors
@@ -719,6 +725,8 @@ contains
     ! Set maximum allowed MC displacements
     this%DispTran => comp0%DispTran
     this%DispRot => comp0%DispRot
+    this%DispMolTran => comp0%DispMolTran
+    this%DispMolRot => comp0%DispMolRot
 
     ! Set Degrees of Freedom
     this%Molecule%Unit(1:this%Molecule%NUnit)%NDF = comp0%Molecule%Unit(1:comp0%Molecule%NUnit)%NDF
@@ -775,6 +783,12 @@ contains
       end if
       if( associated( this%DispRot ) ) then
         deallocate( this%DispRot )
+      end if
+      if( associated( this%DispMolTran ) ) then
+        deallocate( this%DispMolTran )
+      end if
+      if( associated( this%DispMolRot ) ) then
+        deallocate( this%DispMolRot )
       end if
     end if
 
@@ -5012,6 +5026,21 @@ contains
       this%DispRot = this%DispRot * .95_RK
     else if( this%DispRot < DispRotLimit ) then
       this%DispRot = this%DispRot * 1.05_RK
+    end if
+
+    if (UseIntDegFreed) then 
+      if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
+        this%DispMolTran = this%DispMolTran * .95_RK
+      else if( this%DispMolTran < DispMolTranLimit ) then
+        this%DispTran = this%DispTran * 1.05_RK
+      end if
+
+      ! Update rotational displacement
+      if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
+        this%DispMolRot = this%DispMolRot * .95_RK
+      else if( this%DispMolRot < DispMolRotLimit ) then
+        this%DispMolRot = this%DispMolRot * 1.05_RK
+      end if
     end if
 
   end subroutine TComponent_UpdateDisplacements
