@@ -1981,11 +1981,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
 #ifdef __INTEL_COMPILER
     ! Declare arguments
     integer, intent(in) :: signum

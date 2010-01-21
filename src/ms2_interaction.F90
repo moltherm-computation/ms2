@@ -236,11 +236,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)           :: this
     integer, intent(in)          :: i1, i2
@@ -639,11 +634,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -786,11 +776,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -876,11 +861,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -916,33 +896,12 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
     ! Deallocate arrays
-    if( associated( this%EPot ) ) then
-      deallocate( this%EPot )
-    end if
-    if( associated( this%EPot1 ) ) then
-      deallocate( this%EPot1 )
-    end if
-    if( associated( this%EPotNew ) ) then
-      deallocate( this%EPotNew )
-    end if
-    if( associated( this%Virial ) ) then
-      deallocate( this%Virial )
-    end if
-    if( associated( this%Virial1 ) ) then
-      deallocate( this%Virial1 )
-    end if
-    if( associated( this%VirialNew ) ) then
-      deallocate( this%VirialNew )
-    end if
+    call DeallocateEPot( this )
+
     if( associated( this%MayerFFunction ) ) then
       deallocate( this%MayerFFunction )
     end if
@@ -984,11 +943,6 @@ contains
 #endif
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)       :: this
@@ -1218,11 +1172,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), pointer    :: EPotTest(:)
@@ -1356,11 +1305,6 @@ contains
    subroutine TInteraction_Energy( this, np, nu, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)   :: this
@@ -2750,7 +2694,7 @@ contains
             PXij = PXi - PX2(j,pcq%Site2%UnitNumber)
             PYij = PYi - PY2(j,pcq%Site2%UnitNumber)
             PZij = PZi - PZ2(j,pcq%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength
+            RXij = (RXij - anint( RXij )) * BoxLength 
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             PXij = (PXij - anint( RXij )) * BoxLength
@@ -3316,11 +3260,6 @@ contains
    subroutine TInteraction_IntraEnergy( this, np, nu, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)   :: this
@@ -5566,11 +5505,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), intent(in) :: BoxLength
@@ -5599,11 +5533,6 @@ contains
   subroutine TInteraction_CalcPartners( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this
@@ -5839,11 +5768,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)  :: this
 !    integer, intent(in) :: nu1, nu2
@@ -5888,7 +5812,6 @@ contains
       PZi = this%PZ1(np, nu1)
 
     ! Calculate partners within cutoff sphere
-
     NInCutoff = 0
 #if MPI_VER > 0
     do j = this%NPart20*this%NUnit2, this%NPart22*this%NUnit2
@@ -5928,11 +5851,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)  :: this
 !    integer, intent(in) :: nu1, nu2
@@ -5979,7 +5897,6 @@ contains
     ! Calculate partners within cutoff sphere
 
     NInCutoff = 0
-
     do j = (np-1)*this%NUnit1+1, np*this%NUnit1
       if( nu .eq. j ) cycle
       PXij = PXi - PX2d(j)
@@ -6006,11 +5923,6 @@ contains
   subroutine TInteraction_CalcPartnersTest( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this

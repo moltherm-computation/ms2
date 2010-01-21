@@ -22,6 +22,7 @@
 #define STOPWATCH_USE_DATIME
 
 #if MPI_VER
+#define MPI_USE_MODULE
 #define STOPWATCH_USE_WTIME
 #else
 #define STOPWATCH_USE_SYSCLK
@@ -44,7 +45,7 @@
 
 module ms2_stopwatch
 
-#if MPI_VER
+#ifdef MPI_USE_MODULE
   use mpi
 #endif
 
@@ -466,9 +467,9 @@ contains
 
     implicit none
 
-!#if MPI_VER
-!    include 'mpif.h'
-!#endif
+#if MPI_VER && !defined(MPI_USE_MODULE)
+    include 'mpif.h'
+#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
 #endif
@@ -527,9 +528,9 @@ contains
     implicit none
 
     ! Include headers
-!#if MPI_VER
-!    include 'mpif.h'
-!#endif
+#if MPI_VER && !defined(MPI_USE_MODULE)
+    include 'mpif.h'
+#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
 #endif
@@ -590,9 +591,9 @@ contains
     implicit none
 
     ! Include headers
-!#if MPI_VER
-!    include 'mpif.h'
-!#endif
+#if MPI_VER && !defined(MPI_USE_MODULE)
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TStopwatch) :: this
@@ -679,9 +680,9 @@ contains
     implicit none
 
     ! Include MPI header
-!#if MPI_VER
-!    include 'mpif.h'
-!#endif
+#if MPI_VER && !defined(MPI_USE_MODULE)
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TStopwatch) :: this
@@ -733,7 +734,7 @@ contains
     write( IOBuffer, &
 &     '(A," wtime    max diff:",I5," h",I3," min",F9.5," sec =",G16.9," (min.",G16.9,") +-",E8.2," sec")' ) &
 &     trim(this%tag_string), &
-&     int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.), &
+&     int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &     this%wtime_diff(1), this%wtime_diff(2), MPI_WTICK()
     call LogWrite
 #endif

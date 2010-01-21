@@ -124,11 +124,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TUnit)            :: this
     logical, intent(in)    :: constraint
@@ -207,11 +202,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TUnit) :: this
 
@@ -253,11 +243,6 @@ contains
   subroutine TUnit_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TUnit) :: this
@@ -307,11 +292,6 @@ contains
   subroutine TUnit_FindCOM( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TUnit) :: this
@@ -372,11 +352,6 @@ contains
   subroutine TUnit_FindMOI( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TUnit) :: this
@@ -643,11 +618,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TUnit) :: this
 
@@ -679,11 +649,6 @@ contains
   subroutine TUnit_FindNDF( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TUnit) :: this

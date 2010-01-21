@@ -595,11 +595,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotLJ126LJ126)        :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -870,11 +865,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
 
@@ -899,11 +889,6 @@ contains
 #endif
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotLJ126LJ126)     :: this
@@ -1231,11 +1216,6 @@ loop2:  do j = j0, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
     real(RK), pointer    :: EPotTest(:)
@@ -1344,11 +1324,6 @@ loop2:  do j = 1, N2
   subroutine TPotLJLJ_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
@@ -1480,11 +1455,6 @@ loop2:do j = 1, N
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
     real(RK), intent(in) :: BoxLength
@@ -1513,11 +1483,6 @@ loop2:do j = 1, N
 &                              Molecule1, Molecule2, RCutoff )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeCharge)      :: this
@@ -1573,11 +1538,6 @@ loop2:do j = 1, N
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeCharge) :: this
 
@@ -1596,11 +1556,6 @@ loop2:do j = 1, N
 &                VirialInter,EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeCharge)   :: this
@@ -1816,11 +1771,6 @@ loop1:do k = 1, this%NInCutoff(unit)
 &           VirialInter,EPotIntra, VirialIntra,  BoxLength, Kappa )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeCharge)   :: this
@@ -2073,11 +2023,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeCharge) :: this
     real(RK), pointer      :: EPotTest(:)
@@ -2184,12 +2129,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !   subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
 !
 !     implicit none
-!
-!     ! Include MPI header
-! #if MPI_VER > 0
-!     include 'mpif.h'
-! #endif
-!
+
 !     ! Declare arguments
 !     type(TPotChargeCharge) :: this
 !     real(RK), pointer      :: EPotTest(:)
@@ -2304,12 +2244,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! ! !   subroutine TPotCC_ChemicalPotential_Ewald( this, EPotTest, BoxLength, kappa )
 ! ! !
 ! ! !     implicit none
-! ! !
-! ! !     ! Include MPI header
-! ! ! #if MPI_VER > 0
-! ! !     include 'mpif.h'
-! ! ! #endif
-! ! !
+
 ! ! !     ! Declare arguments
 ! ! !     type(TPotChargeCharge) :: this
 ! ! !     real(RK), pointer      :: EPotTest(:)
@@ -2422,11 +2357,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeCharge) :: this
     integer, intent(in)    :: np
@@ -2522,11 +2452,6 @@ loop1:  do k = 1, this%NInCutoff(i)
   subroutine TPotCC_Energy_Ewald( this, np, EPot, Virial, BoxLength, Kappa )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeCharge) :: this
@@ -2633,11 +2558,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeDipole)      :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -2692,11 +2612,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeDipole) :: this
 
@@ -2715,11 +2630,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                  VirialInter,EPotIntra, VirialIntra,BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeDipole)   :: this
@@ -2953,11 +2863,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeDipole) :: this
     real(RK), pointer      :: EPotTest(:)
@@ -3077,11 +2982,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeDipole) :: this
     integer, intent(in)    :: np
@@ -3188,11 +3088,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                              Molecule1, Molecule2, RCutoff )
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeQuadrupole)  :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -3247,11 +3142,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
 
@@ -3269,11 +3159,6 @@ loop1:  do k = 1, this%NInCutoff(i)
   &                 VirialInter,EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
@@ -3510,11 +3395,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
     real(RK), pointer          :: EPotTest(:)
@@ -3635,11 +3515,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
     integer, intent(in)        :: np
@@ -3748,11 +3623,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleCharge)      :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -3806,11 +3676,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleCharge) :: this
 
@@ -3829,11 +3694,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 &             EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleCharge)   :: this
@@ -4068,11 +3928,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleCharge) :: this
     real(RK), pointer      :: EPotTest(:)
@@ -4192,11 +4047,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleCharge) :: this
     integer, intent(in)    :: np
@@ -4304,11 +4154,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleDipole)      :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -4366,11 +4211,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleDipole) :: this
 
@@ -4389,11 +4229,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 &        EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleDipole)   :: this
@@ -4685,18 +4520,18 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PYi = PY1(i)
         PZi = PZ1(i)
 #if MPI_VER > 0
-        if( SameComponent ) then
-          j0 = i + 1
-          j1 = i + N2
-          if( EvenN .and. i > N2 ) j1 = j1 - 1
-        else
-          j0 = 1
-          j1 = N1
-        end if
+       if( SameComponent ) then
+         j0 = i + 1
+         j1 = i + N2
+         if( EvenN .and. i > N2 ) j1 = j1 - 1
+       else
+         j0 = 1
+         j1 = N1
+       end if
 loop2:  do ji = j0, j1
-          j = 1 + mod( ji - 1, N1 )
+         j = 1 + mod( ji - 1, N1 )
 #else
-        j0 = merge( i + 1, 1, SameComponent )
+       j0 = merge( i + 1, 1, SameComponent )
 loop2:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -4793,11 +4628,6 @@ loop2:  do j = j0, j1
   subroutine TPotDD_ChemicalPotential( this, EPotTest, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleDipole) :: this
@@ -4998,11 +4828,6 @@ loop2:  do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleDipole) :: this
     integer, intent(in)    :: np
@@ -5189,11 +5014,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleQuadrupole)  :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -5248,11 +5068,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
 
@@ -5271,11 +5086,6 @@ loop2:do j = 1, j1
 &     EPotInter, VirialInter,EPotIntra, VirialIntra,BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
@@ -5575,18 +5385,18 @@ loop1:  do k = 1, this%NInCutoff(unit)
         TYi = TY1(i)
         TZi = TZ1(i)
 #if MPI_VER > 0
-        if( SameComponent ) then
-          j0 = i + 1
-          j1 = i + N2
-          if( EvenN .and. i > N2 ) j1 = j1 - 1
-        else
-          j0 = 1
-          j1 = N1
-        end if
+       if( SameComponent ) then
+         j0 = i + 1
+         j1 = i + N2
+         if( EvenN .and. i > N2 ) j1 = j1 - 1
+       else
+         j0 = 1
+         j1 = N1
+       end if
 loop2:  do ji = j0, j1
-          j = 1 + mod( ji - 1, N1 )
+         j = 1 + mod( ji - 1, N1 )
 #else
-        j0 = merge( i + 1, 1, SameComponent )
+       j0 = merge( i + 1, 1, SameComponent )
 loop2:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -5679,11 +5489,6 @@ loop2:  do j = j0, j1
   subroutine TPotDQ_ChemicalPotential( this, EPotTest, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
@@ -5879,11 +5684,6 @@ loop2:  do j = 1, j1
   subroutine TPotDQ_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
@@ -6084,11 +5884,6 @@ loop2:do j = 1, j1
 &                              Molecule1, Molecule2, RCutoff )
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleCharge)  :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -6143,11 +5938,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
 
@@ -6166,11 +5956,6 @@ loop2:do j = 1, j1
 &       EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
@@ -6407,11 +6192,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
     real(RK), pointer          :: EPotTest(:)
@@ -6532,11 +6312,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
     integer, intent(in)        :: np
@@ -6648,11 +6423,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleDipole)  :: this
     integer, intent(in)         :: i1, i2, j1, j2
@@ -6708,11 +6478,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
 
@@ -6731,11 +6496,6 @@ loop1:  do k = 1, this%NInCutoff(i)
 &             EPotInter, VirialInter,EPotIntra, VirialIntra,BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
@@ -7033,19 +6793,19 @@ loop1:  do k = 1, this%NInCutoff(unit)
         TYi = TY1(i)
         TZi = TZ1(i)
 #if MPI_VER > 0
-        if( SameComponent ) then
-          j0 = i + 1
-          j1 = i + N2
-          if( EvenN .and. i > N2 ) j1 = j1 - 1
-        else
-          j0 = 1
-          j1 = N1
-        end if
+       if( SameComponent ) then
+         j0 = i + 1
+         j1 = i + N2
+         if( EvenN .and. i > N2 ) j1 = j1 - 1
+       else
+         j0 = 1
+         j1 = N1
+       end if
 !CDIR NODEP
 loop2:  do ji = j0, j1
-          j = 1 + mod( ji - 1, N1 )
+         j = 1 + mod( ji - 1, N1 )
 #else
-        j0 = merge( i + 1, 1, SameComponent )
+       j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
 loop2:  do j = j0, j1
 #endif
@@ -7139,11 +6899,6 @@ loop2:  do j = j0, j1
   subroutine TPotQD_ChemicalPotential( this, EPotTest, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
@@ -7341,11 +7096,6 @@ loop2:  do j = 1, j1
   subroutine TPotQD_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
@@ -7549,11 +7299,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
     integer, intent(in)            :: i1, i2, j1, j2
@@ -7609,11 +7354,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
 
@@ -7632,11 +7372,6 @@ loop2:do j = 1, j1
 &          EPotInter, VirialInter, EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
@@ -7960,19 +7695,19 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PYi = PY1(i)
         PZi = PZ1(i)
 #if MPI_VER > 0
-        if( SameComponent ) then
-          j0 = i + 1
-          j1 = i + N2
-          if( EvenN .and. i > N2 ) j1 = j1 - 1
-        else
-          j0 = 1
-          j1 = N1
-        end if
+       if( SameComponent ) then
+         j0 = i + 1
+         j1 = i + N2
+         if( EvenN .and. i > N2 ) j1 = j1 - 1
+       else
+         j0 = 1
+         j1 = N1
+       end if
 !CDIR NODEP
 loop2:  do ji = j0, j1
-          j = 1 + mod( ji - 1, N1 )
+         j = 1 + mod( ji - 1, N1 )
 #else
-        j0 = merge( i + 1, 1, SameComponent )
+       j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
 loop2:  do j = j0, j1
 #endif
@@ -8078,11 +7813,6 @@ loop2:  do j = j0, j1
   subroutine TPotQQ_ChemicalPotential( this, EPotTest, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
@@ -8298,11 +8028,6 @@ loop2:  do j = 1, j1
   subroutine TPotQQ_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
@@ -8533,11 +8258,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotBond)              :: this
     type(TMolecule), intent(in) :: Molecule
@@ -8565,11 +8285,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotBond) :: this
 
@@ -8587,11 +8302,6 @@ loop2:do j = 1, j1
   subroutine TPotBond_Force( this, EPot, Virial, EPotIntra, VirialIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotBond)     :: this
@@ -8631,7 +8341,6 @@ loop2:do j = 1, j1
 #else
      i1 = this%Bond%NPart
 #endif
-
 
      ForConst = this%ForConst
 !     R0 = this%R0/BoxLength
@@ -8757,11 +8466,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotBond) :: this
     real(RK), pointer    :: EPotTest(:)
@@ -8781,11 +8485,6 @@ loop2:do j = 1, j1
   subroutine TPotBond_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotBond) :: this
@@ -8809,11 +8508,6 @@ loop2:do j = 1, j1
 
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotAngle)              :: this
@@ -8844,11 +8538,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotAngle) :: this
 
@@ -8866,11 +8555,6 @@ loop2:do j = 1, j1
   subroutine TPotAngle_Force( this, EPot, Virial, EPotIntra, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotAngle)     :: this
@@ -9043,11 +8727,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotAngle) :: this
     real(RK), pointer    :: EPotTest(:)
@@ -9067,11 +8746,6 @@ loop2:do j = 1, j1
   subroutine TPotAngle_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotAngle) :: this
@@ -9095,11 +8769,6 @@ loop2:do j = 1, j1
 
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDihedral)          :: this
@@ -9133,11 +8802,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDihedral) :: this
 
@@ -9155,11 +8819,6 @@ loop2:do j = 1, j1
   subroutine TPotDihedral_Force( this, EPot, Virial, EPotIntra, VirialIntra,  BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDihedral)     :: this
@@ -9186,7 +8845,6 @@ loop2:do j = 1, j1
     real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl, ForConst, gamma
 
     integer           :: i, j, k, i1, j0, j1, multi
-
 #if MPI_VER > 0
      integer           :: i0
 !    integer           :: N1, N2, ji
@@ -9430,11 +9088,6 @@ loop2:do j = 1, j1
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TPotDihedral) :: this
     real(RK), pointer    :: EPotTest(:)
@@ -9454,11 +9107,6 @@ loop2:do j = 1, j1
   subroutine TPotDihedral_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TPotDihedral) :: this

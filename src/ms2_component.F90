@@ -616,11 +616,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)                      :: this
     character(FileNameLength), intent(in) :: PotModFileName
@@ -665,11 +660,6 @@ contains
   subroutine TComponent_ConstructFluct( this, comp0, state )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)             :: this
@@ -743,11 +733,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -796,8 +781,6 @@ contains
 
 
 
-
-
 !==============================================================!
 !  Subroutine TComponent_Destruct                              !
 !==============================================================!
@@ -805,11 +788,6 @@ contains
   subroutine TComponent_DestructFluct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -849,11 +827,6 @@ contains
   subroutine TComponent_CreateAccumulators( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -897,11 +870,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -943,11 +911,6 @@ contains
   subroutine TComponent_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -1731,11 +1694,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -1898,11 +1856,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -1934,11 +1887,6 @@ contains
   subroutine TComponent_InitIntegratorGear( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -1979,11 +1927,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -2012,11 +1955,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -2035,11 +1973,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -2057,11 +1990,6 @@ contains
   subroutine TComponent_RemoveNetMomentum( this,nu )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -2133,11 +2061,6 @@ contains
   subroutine TComponent_CalculateEKin( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -2366,11 +2289,6 @@ contains
 ! ! !
 ! ! !     implicit none
 ! ! !
-! ! !     ! Include MPI header
-! ! ! #if MPI_VER > 0
-! ! !     include 'mpif.h'
-! ! ! #endif
-! ! !
 ! ! !     ! Declare arguments
 ! ! !     type(TComponent)    :: this
 ! ! !     integer, intent(in) :: n
@@ -2529,11 +2447,6 @@ contains
   subroutine TComponent_Mol2AtomTest( this, np )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -3299,11 +3212,6 @@ contains
   subroutine TComponent_Mol2Resize( this, DelBoxFrac )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     real(RK),intent(in) :: DelBoxFrac
@@ -4383,11 +4291,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -4482,11 +4385,6 @@ contains
   subroutine TComponent_CorrectGear( this, dLogVolumeThird )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)  :: this
@@ -4659,11 +4557,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -4772,11 +4665,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)  :: this
     real(RK)          :: dLogVolumeThird
@@ -4873,11 +4761,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -4895,11 +4778,6 @@ contains
   subroutine TComponent_CorrectVerlet( this, dLogVolumeThird )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -4920,11 +4798,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -4942,11 +4815,6 @@ contains
   subroutine TComponent_CorrectVV( this, dLogVolumeThird )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -4966,11 +4834,6 @@ contains
   subroutine TComponent_ZeroNAttempts( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -5005,11 +4868,6 @@ contains
   subroutine TComponent_UpdateDisplacements( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -5054,11 +4912,6 @@ contains
   subroutine TComponent_AddParticle( this, r, q )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)               :: this
@@ -5109,11 +4962,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)    :: this
     integer, intent(in) :: np
@@ -5161,11 +5009,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)     :: this
     real(RK), intent(in) :: diffpressure
@@ -5184,11 +5027,6 @@ contains
   subroutine TComponent_SaveState( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -5215,11 +5053,6 @@ contains
   subroutine TComponent_RestoreState( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -5250,11 +5083,6 @@ contains
   subroutine TComponent_RestartSave( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this

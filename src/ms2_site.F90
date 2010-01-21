@@ -217,11 +217,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
     integer          :: stat
@@ -266,11 +261,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
 
@@ -288,11 +278,6 @@ contains
   subroutine TSiteLJ126_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteLJ126) :: this
@@ -352,11 +337,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
 
@@ -383,11 +363,6 @@ contains
   subroutine TSiteLJ126_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteLJ126) :: this
@@ -427,11 +402,6 @@ contains
   subroutine TSiteCharge_Construct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -477,11 +447,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteCharge) :: this
 
@@ -499,11 +464,6 @@ contains
   subroutine TSiteCharge_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -563,11 +523,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteCharge) :: this
 
@@ -594,11 +549,6 @@ contains
   subroutine TSiteCharge_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -639,11 +589,6 @@ contains
   subroutine TSiteDipole_Construct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -701,11 +646,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteDipole) :: this
 
@@ -723,11 +663,6 @@ contains
   subroutine TSiteDipole_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -814,11 +749,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteDipole) :: this
 
@@ -855,11 +785,6 @@ contains
   subroutine TSiteDipole_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -908,11 +833,6 @@ contains
   subroutine TSiteQuadrupole_Construct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this
@@ -970,11 +890,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteQuadrupole) :: this
 
@@ -992,11 +907,6 @@ contains
   subroutine TSiteQuadrupole_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this
@@ -1083,11 +993,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteQuadrupole) :: this
 
@@ -1124,11 +1029,6 @@ contains
   subroutine TSiteQuadrupole_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this

@@ -19,9 +19,9 @@
 
 module ms2_simulation
 
-! #ifdef MPI_VER > 0
+!#ifdev MPI_VER > 0
 !  use mpi
-! #endif
+!#endif
 
   use ms2_ensemble
   use ms2_global

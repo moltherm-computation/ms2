@@ -137,12 +137,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-
     ! Declare arguments
     type(TIdfBond) :: this
 
@@ -170,11 +164,6 @@ end subroutine TIdfBond_Construct
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TIdfBond) :: this
 
@@ -190,11 +179,6 @@ end subroutine TIdfBond_Construct
   subroutine TIdfBond_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TIdfBond) :: this
@@ -221,12 +205,6 @@ end subroutine TIdfBond_Construct
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-
     ! Declare arguments
     type(TIdfAngle) :: this
 
@@ -252,11 +230,6 @@ end subroutine TIdfAngle_Construct
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TIdfAngle) :: this
 
@@ -273,11 +246,6 @@ end subroutine TIdfAngle_Construct
   subroutine TIdfAngle_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TIdfAngle) :: this
@@ -301,12 +269,6 @@ end subroutine TIdfAngle_Construct
   subroutine TIdfDihedral_Construct( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
 
     ! Declare arguments
     type(TIdfDihedral) :: this
@@ -339,11 +301,6 @@ end subroutine TIdfDihedral_Construct
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TIdfDihedral) :: this
 
@@ -360,11 +317,6 @@ end subroutine TIdfDihedral_Construct
   subroutine TIdfDihedral_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TIdfDihedral) :: this

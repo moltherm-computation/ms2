@@ -1565,11 +1565,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -1633,11 +1628,6 @@ contains
   subroutine TMolecule_Save( this, fluctstate )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)     :: this
@@ -1766,11 +1756,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -1869,11 +1854,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -1935,11 +1915,6 @@ contains
   subroutine TMolecule_FindMOI( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule) :: this
@@ -2165,11 +2140,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TMolecule) :: this
 
@@ -2205,11 +2175,6 @@ contains
   subroutine TMolecule_FindNDF( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule) :: this
@@ -2266,11 +2231,6 @@ contains
   subroutine TMolecule_FindBondR( this, Bond, j)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)     :: this
@@ -2374,11 +2334,6 @@ end subroutine TMolecule_FindBondR
   subroutine TMolecule_FindAngle( this, Angle, j )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)     :: this
@@ -2527,11 +2482,6 @@ end subroutine TMolecule_FindAngle
   subroutine TMolecule_FindDihedral( this, Dihedral, j )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)         :: this
