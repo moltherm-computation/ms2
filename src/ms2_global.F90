@@ -77,14 +77,19 @@ module ms2_global
 #endif
 
   ! Version of program
-#ifndef _WIN32
+character(*), parameter :: VersionString = 'v12'
 #ifdef __DATE__
-  character(*), parameter :: VersionString = 'v12 ' // __DATE__
+#ifdef __TIME__
+  character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
 #else
-  character(*), parameter :: VersionString = 'v12'
+  character(*), parameter :: CompileTime = __DATE__
 #endif
 #else
-  character(*), parameter :: VersionString = 'v12 Windows'
+#ifdef __TIME__
+  character(*), parameter :: CompileTime = __TIME__
+#else
+  character(*), parameter :: CompileTime = 'unknown compile time'
+#endif
 #endif
 
   ! Name of platform
@@ -739,9 +744,20 @@ contains
 #endif
 
     ! Declare local variables
+    integer :: stat
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
-    integer                   :: narg, dot, stat, i
+    integer                   :: narg, dot, i
     character(IOBufferLength) :: buffer
+#endif
+#if MPI_VER > 0
+    integer                                    :: mpiversion, mpisubversion
+    character*(MPI_MAX_PROCESSOR_NAME)         :: procname
+    integer                                    :: procnamelen
+    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    integer                                    :: hostrank = MPI_PROC_NULL
+    integer                                    :: iorank = MPI_PROC_NULL
+    integer,pointer                            :: ioranks(:)
+    logical                                    :: flag
 #endif
 
     ! Initialize MPI
@@ -782,10 +798,11 @@ contains
       narg = iargc()
       !narg = command_argument_count()
       if( narg .lt. 1 ) then
-        print *, trim( ProgramFileName ), ' Version: ', VersionString
-        print *, 'usage: ', trim( ProgramFileName ), &
-&         ' {<par-file[', ParameterFileExtension, ']|<rst-file>', &
-&         RestartFileExtension, '}'
+        print *, trim( ProgramFileName ) &
+&              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
+        print *, 'usage: ', trim( ProgramFileName ) &
+&              , ' {<par-file[', ParameterFileExtension, ']|<rst-file>' &
+&              , RestartFileExtension, '}'
 
         ! Abort program
 #if MPI_VER > 0
@@ -837,11 +854,50 @@ contains
 
     ! Update log file
 #if MPI_VER > 0
-    write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
+    nullify( procnames )
+    nullify( ioranks )
+    if( RootProc ) then
+      call MPI_Get_version(mpiversion, mpisubversion, ierror)
+      write( IOBuffer, '("MPI Version (running with a MPI",I2,".",I1," library)")' ) mpiversion, mpisubversion
+      call LogWrite
+      write( IOBuffer, '("Number of processes: ",I4)' ) NProcs
+      call LogWrite
+      write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
+      call LogWrite
+      call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
+      if(.not. ierror .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+        write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
+        call LogWrite
+      end if
+      allocate( procnames(NProcs), STAT = stat )
+      allocate( ioranks(NProcs), STAT = stat )
+    end if
+    call MPI_Get_processor_name(procname, procnamelen, ierror)
+    !                         procnamelen might be variable
+    call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+    call MPI_Attr_get(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+    if( RootProc ) then
+      write( IOBuffer, '("rank  I/O processor_name")' )
+      call LogWrite
+      do i = 1,NProcs
+        if( ioranks(i) == MPI_ANY_SOURCE )  then
+          write( IOBuffer, '(I4,"   +  ", A)' ) i-1, procnames(i)
+        else
+          write( IOBuffer, '(I4," ", I4, " ", A)' ) i-1, ioranks(i), procnames(i)
+        end if
+        call LogWrite
+      end do
+      if( associated( ioranks ) ) deallocate( ioranks )
+      if( associated( procnames ) ) deallocate( procnames )
+    end if
 #else
     write( IOBuffer, '("sequential Version")' )
-#endif
     call LogWrite
+#endif
     call LogWriteBlank
 
     ! Set signal handler
@@ -864,7 +920,7 @@ contains
     else
       write( IOBuffer, '("Signal handler set successfully")' )
       call LogWrite
-      call LogWriteBlank
+      !call LogWriteBlank
     end if
 #endif
 
@@ -908,7 +964,7 @@ contains
 
     ! Finalize MPI
 #if MPI_VER > 0
-    call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!    call MPI_Barrier( MPI_COMM_WORLD, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -1096,15 +1152,14 @@ contains
 #else
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
-    write( IOBuffer, &
-&     '("Program ", A, " compiled for ", A)' ) &
-&     trim( ProgramFileName ), Hardware
+    write( IOBuffer, '("Program ", A, " version ", A)' ) &
+&          trim( ProgramFileName ), trim( VersionString )
     call LogWrite
-    write( IOBuffer, '("version ", A)' ) trim( VersionString )
+    write( IOBuffer, '("compiled at ", A, " for ", A)' ) &
+&          CompileTime, Hardware
     call LogWrite
     write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( username ), &
-&     trim( hostname )
+&          trim( username ), trim( hostname )
     call LogWriteTime
     call LogWriteBlank
 
