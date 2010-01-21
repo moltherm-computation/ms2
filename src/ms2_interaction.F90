@@ -732,24 +732,8 @@ contains
     type(TInteraction) :: this
 
     ! Deallocate arrays
-    if( associated( this%EPot ) ) then
-      deallocate( this%EPot )
-    end if
-    if( associated( this%EPot1 ) ) then
-      deallocate( this%EPot1 )
-    end if
-    if( associated( this%EPotNew ) ) then
-      deallocate( this%EPotNew )
-    end if
-    if( associated( this%Virial ) ) then
-      deallocate( this%Virial )
-    end if
-    if( associated( this%Virial1 ) ) then
-      deallocate( this%Virial1 )
-    end if
-    if( associated( this%VirialNew ) ) then
-      deallocate( this%VirialNew )
-    end if
+    call DeallocateEPot( this )
+
     if( associated( this%MayerFFunction ) ) then
       deallocate( this%MayerFFunction )
     end if
