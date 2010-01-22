@@ -869,9 +869,9 @@ contains
         write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
         call LogWrite
       end if
-      allocate( procnames(NProcs), STAT = stat )
-      allocate( ioranks(NProcs), STAT = stat )
     end if
+    allocate( procnames(NProcs), STAT = stat )
+    allocate( ioranks(NProcs), STAT = stat )
     call MPI_Get_processor_name(procname, procnamelen, ierror)
     !                         procnamelen might be variable
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
@@ -891,9 +891,9 @@ contains
         end if
         call LogWrite
       end do
-      if( associated( ioranks ) ) deallocate( ioranks )
-      if( associated( procnames ) ) deallocate( procnames )
     end if
+    if( associated( ioranks ) ) deallocate( ioranks )
+    if( associated( procnames ) ) deallocate( procnames )
 #else
     write( IOBuffer, '("sequential Version")' )
     call LogWrite
