@@ -245,11 +245,11 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNPart                       = 'NParticles'
   character(*), parameter :: IdNComponents                 = 'NComponents'
   character(*), parameter :: IdPotModFileName              = 'PotModel'
-  character(*), parameter :: IdFraction                    = 'MolarFract'
+  character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
-  character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract'
+  character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract:LiqMoleFract'
   character(*), parameter :: IdChemPot                     = 'ChemPot'
   character(*), parameter :: IdVarChemPot                  = 'VarChemPot'
   character(*), parameter :: IdPartialMolarVolume          = 'PartMolVol'
@@ -1498,7 +1498,7 @@ contains
 !  Function Global_FileReadParameter                           !
 !==============================================================!
 
-  function Global_FileReadParameter( iounit, parameterqualifier, &
+  function Global_FileReadParameter( iounit, parameterqualifiers, &
 &                                    rewind_before, status ) &
 &          result (parametervalue)
 
@@ -1512,7 +1512,7 @@ contains
 
     ! Declare arguments
     integer, intent(in)                :: iounit
-    character(*), intent(in)           :: parameterqualifier
+    character(*), intent(in)           :: parameterqualifiers
     logical, intent(in), optional      :: rewind_before
     integer, intent(out), optional     :: status
 
@@ -1522,6 +1522,9 @@ contains
     ! Declare local variables
     integer                   :: stat, comment_pos, linesread, i
     character(FileNameLength) :: fn
+    logical                   :: foundqualifier = .false.
+    character(IOBufferLength) :: parameterqualifier
+    integer                   :: qualifierpos1, qualifierpos2
 
     ! determine filename
     inquire( iounit, NAME = fn )
@@ -1542,12 +1545,12 @@ contains
         ! error reading from file?
         if( stat > 0 ) then
           call Error( "ERROR reading file "//trim(fn)// &
-&                     " while searching for parameter <"//parameterqualifier//">" )
+&                     " while searching for parameter <"//parameterqualifiers//">" )
           !if( present(status) ) status = stat
           !return
         ! end of file reached?
         elseif( stat < 0 ) then
-          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
           parametervalue=""
           if( present(status) ) status = stat
           ! (try to) restore position
@@ -1580,13 +1583,28 @@ contains
           !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
-        if( index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1 ) then
-          ! extract value part (after =)
-          parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-          parametervalue = trim( adjustl( parametervalue ) )
-          if( present(status) ) status = 0
-          exit
-        end if
+        qualifierpos2 = 0
+        do
+          qualifierpos1 = qualifierpos2+1
+          qualifierpos2 = scan(trim(parameterqualifiers(qualifierpos1:)),":")
+          if( qualifierpos2>qualifierpos1 ) then
+            parameterqualifier = parameterqualifiers(qualifierpos1:qualifierpos2-1)
+          else
+            parameterqualifier = parameterqualifiers(qualifierpos1:)
+          end if
+          foundqualifier = index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1
+          if( foundqualifier ) then
+            ! extract value part (after =)
+            parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
+            parametervalue = trim( adjustl( parametervalue ) )
+!            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
+!&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
+            if( present(status) ) status = 0
+            exit
+          end if
+          if ( qualifierpos2<=qualifierpos1 ) exit
+        end do
+        if ( foundqualifier ) exit
       end do
     end if
 
@@ -1603,7 +1621,7 @@ contains
 #endif
 
 !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&                      trim(parameterqualifier),trim(parametervalue); call LogWrite
+!&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
 
   end function Global_FileReadParameter
 
@@ -1664,7 +1682,7 @@ contains
 !  Subroutine Global_FileReadParameter_String                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
   ! for a FileReadParameter polymorphism 
@@ -1679,7 +1697,7 @@ contains
     ! Declare arguments
     character(*), intent(out)          :: parametervariable
     integer, intent(in)                :: iounit
-    character(*), intent(in)           :: parameterqualifier
+    character(*), intent(in)           :: parameterqualifiers
     logical, intent(in), optional      :: rewind_before
     character(*), intent(in), optional :: defaultvalue
     integer, intent(out), optional     :: status
@@ -1689,15 +1707,15 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    parametervariable = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    parametervariable = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",A)' ) &
-&             trim(parameterqualifier), trim(defaultvalue)
+&             trim(parameterqualifiers), trim(defaultvalue)
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1711,7 +1729,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),trim(parametervariable); call LogWrite
+!&          stat,trim(parameterqualifiers),trim(parametervariable); call LogWrite
 
   end subroutine Global_FileReadParameter_String
 
@@ -1720,7 +1738,7 @@ contains
 !  Subroutine Global_FileReadParameter_Int                     !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_Int( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_Int( parametervariable, iounit, parameterqualifiers, &
 &                                         rewind_before, defaultvalue, status )
   ! Global_FileReadParameter_Integer has 32>31 characters!
 
@@ -1729,7 +1747,7 @@ contains
     ! Declare arguments
     integer, intent(out)           :: parametervariable
     integer, intent(in)            :: iounit
-    character(*), intent(in)       :: parameterqualifier
+    character(*), intent(in)       :: parameterqualifiers
     logical, intent(in), optional  :: rewind_before
     integer, intent(in), optional  :: defaultvalue
     integer, intent(out), optional :: status
@@ -1739,17 +1757,17 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
-&             trim(parameterqualifier), defaultvalue
+&             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1763,7 +1781,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_Int
 
@@ -1772,7 +1790,7 @@ contains
 !  Subroutine Global_FileReadParameter_RK                      !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_RK( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_RK( parametervariable, iounit, parameterqualifiers, &
 &                                        rewind_before, defaultvalue, status )
 
     implicit none
@@ -1780,7 +1798,7 @@ contains
     ! Declare arguments
     real(RK), intent(out)          :: parametervariable
     integer, intent(in)            :: iounit
-    character(*), intent(in)       :: parameterqualifier
+    character(*), intent(in)       :: parameterqualifiers
     logical, intent(in), optional  :: rewind_before
     real(RK), intent(in), optional :: defaultvalue
     integer, intent(out), optional :: status
@@ -1791,17 +1809,17 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
-&             trim(parameterqualifier), defaultvalue
+&             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1815,7 +1833,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RK
 
@@ -1824,7 +1842,7 @@ contains
 !  Subroutine Global_FileReadParameter_RKdim1                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_RKdim1( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_RKdim1( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
 
     implicit none
@@ -1832,7 +1850,7 @@ contains
     ! Declare arguments
     real(RK), dimension(:), intent(out)          :: parametervariable
     integer, intent(in)                          :: iounit
-    character(*), intent(in)                     :: parameterqualifier
+    character(*), intent(in)                     :: parameterqualifiers
     logical, intent(in), optional                :: rewind_before
     real(RK), dimension(:), intent(in), optional :: defaultvalue
     integer, intent(out), optional               :: status
@@ -1842,18 +1860,18 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifier)
+        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifiers)
         call LogWrite
         write( IOBuffer, * ) defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1867,7 +1885,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Real Array ",A," =")' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier); call LogWrite
+!&          stat,trim(parameterqualifiers); call LogWrite
 !    write( IOBuffer, * ) parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RKdim1
