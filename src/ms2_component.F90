@@ -135,7 +135,7 @@ module ms2_component
     ! Length of simulation box
     real(RK), pointer :: BoxLength
 
-    ! Molar fraction of this component
+    ! Mole fraction of this component
     real(RK) :: Fraction
 
     ! Maximum number of particles in component
@@ -190,7 +190,7 @@ module ms2_component
 !     real(RK), pointer :: BFSumState(:)
 !DEBUG
 
-    ! Molar fraction in corresponding liquid simulation (for GE ensemble only)
+    ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
 
     ! Long-range corrections
@@ -411,9 +411,9 @@ contains
     ! Read file name for potential model
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
-    ! Read molar fraction of this component
+    ! Read mole fraction of this component
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
-    write( IOBuffer, '("Molar fraction of component ", A, ": ", F9.6)' ) &
+    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
 &     trim( this%PotModFileName ), this%Fraction
     call LogWrite
 
@@ -425,7 +425,7 @@ contains
     this%FluctState = -1
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      ! Read molar fraction of liquid simulation
+      ! Read mole fraction of liquid simulation
       call FileReadParameter( this%LiqFraction, iounit_params , IdLiqFraction, .false. )
 
       ! Read chemical potential and partial molar volume and their
@@ -591,7 +591,7 @@ contains
     ! Set file name for potential model
     this%PotModFileName = PotModFileName
 
-    ! Set molar fraction of this component
+    ! Set mole fraction of this component
     this%Fraction = 1._RK
 
     ! Create potential model
@@ -636,7 +636,7 @@ contains
     ! Copy file name for potential model
     this%PotModFileName = comp0%PotModFileName
 
-    ! Set number of particles and molar fraction of this component
+    ! Set number of particles and mole fraction of this component
     this%NPart = 0
     this%NTest = 0
     this%Fraction = 0._RK

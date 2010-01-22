@@ -1537,7 +1537,7 @@ contains
       this%NPartMax = this%NPart
     end if
 
-    ! Normalize molar fractions
+    ! Normalize mole fractions
     s = 0
     do i = 1, this%NRealComponents
       pc => this%Component(i)
@@ -1549,7 +1549,7 @@ contains
     end do
 
     ! Calculate number of particles in each component
-    ! according to molar fraction
+    ! according to mole fraction
     this%Component(this%NRealComponents)%NPart = this%NPart
     do i = 1, this%NRealComponents - 1
       pc => this%Component(i)
@@ -1558,7 +1558,7 @@ contains
 &       this%Component(this%NRealComponents)%NPart - pc%NPart
     end do
 
-    ! Set molar fractions according to real number of particles
+    ! Set mole fractions according to real number of particles
     ! and calculate number of degrees of freedom
     this%NDFTran = 0
     this%NDFRot = 0
@@ -1594,7 +1594,7 @@ contains
     call LogWrite
     do i = 1, this%NRealComponents
       pc => this%Component(i)
-      write( IOBuffer, '("Molar fraction of ", A, ":", F6.3, &
+      write( IOBuffer, '("Mole fraction of ", A, ":", F6.3, &
 &         ";  number of particles:", I11)' ) &
 &       trim( pc%PotModFileName ), pc%Fraction, pc%NPart
       call LogWrite
@@ -1659,7 +1659,7 @@ contains
     integer                   :: i
     type(TComponent), pointer :: pc
 
-    ! Set molar fractions according to real number of particles
+    ! Set mole fractions according to real number of particles
     ! and calculate number of degrees of freedom
     this%NDFTran = 0
     this%NDFRot = 0
@@ -5264,7 +5264,7 @@ loop2:        do nc = 1, this%NComponents
         call Reset( this%SumCV )
       endif
 
-      ! 4.) Chemical potential and partial molar volumes
+      ! 4.) Chemical potential and partial mole volumes
       do i = 1, this%NRealComponents
         select case( this%Component(i)%ChemPotMethod )
         case( ChemPotMethodGradIns )
@@ -5344,7 +5344,7 @@ loop2:        do nc = 1, this%NComponents
         end if
       end do
 
-      ! Partial molar volume
+      ! Partial mole volume
 !       if( ConstantPressure .and. this%NRealComponents > 1 ) then
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
@@ -5362,7 +5362,7 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Molar fraction of each component
+        ! Mole fraction of each component
         do i = 1, this%NComponents
           write( IOBuffer, '("   FRACT", I2)' ) i
           call FileWriteNoAdvance( this%iounit_result )
@@ -5461,7 +5461,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 !TRANSPORT_END
 #endif
-    ! 4.) Chemical potential and partial molar volumes
+    ! 4.) Chemical potential and partial mole volumes
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       if( pc%CalcChemPot ) then
@@ -5622,7 +5622,7 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(F10.2)' ) this%SumNPart%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Molar fraction of each component
+        ! Mole fraction of each component
         do i = 1, this%NComponents
           pc => this%Component(i)
           write( IOBuffer, '(F10.5)' ) pc%SumFraction%BlockAverage
@@ -5965,7 +5965,7 @@ loop2:        do nc = 1, this%NComponents
     if( EnsembleType .ne. EnsembleTypeGE .or. &
 &       EnsembleType .ne. EnsembleTypeHA ) then
       do i = 1, this%NRealComponents
-        write( IOBuffer, '("Molar fraction of ", A, T36, ":", F20.9)' ) &
+        write( IOBuffer, '("Mole fraction of ", A, T36, ":", F20.9)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), &
 &         this%Component(i)%Fraction
         call FileWrite( this%iounit_errors )
@@ -6128,13 +6128,13 @@ loop2:        do nc = 1, this%NComponents
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA ) then
-      ! Molar fraction
+      ! Mole fraction
       do i = 1, this%NComponents
         pc => this%Component(i)
         Average = pc%SumFraction%Average
         Variance = pc%SumFraction%Variance
         write( IOBuffer, &
-&         '("Molar fraction of ", A, T36, ":", 2F20.9)' ) &
+&         '("Mole fraction of ", A, T36, ":", 2F20.9)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
         call FileWrite( this%iounit_errors )
       end do
@@ -6591,11 +6591,11 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! Molar fractions of liquid phase
+      ! Mole fractions of liquid phase
       do i = 1, this%NComponents
         pc => this%Component(i)
         write( IOBuffer, &
-&         '("Liquid molar fraction of ", A, T36, ":", F20.9)' ) &
+&         '("Liquid mole fraction of ", A, T36, ":", F20.9)' ) &
 &         trim( pc%Molecule%PotModFileName ), pc%LiqFraction
         call FileWrite( this%iounit_errors )
       end do
@@ -6637,7 +6637,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! Molar fractions of vapor phase
+      ! Mole fractions of vapor phase
       do i = 1, this%NComponents
         pc => this%Component(i)
         yvi = pc%SumFraction%Average * &
@@ -6658,7 +6658,7 @@ loop2:        do nc = 1, this%NComponents
         vary(i) = sqrt( pc%SumFraction%Variance**2 + &
 &         sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
         write( IOBuffer, &
-&         '("Vapor molar fraction of ", A, T36, ":", 2F20.9)' ) &
+&         '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
 &         trim( pc%Molecule%PotModFileName ), Average, vary(i)
         call FileWrite( this%iounit_errors )
       end do
@@ -6666,7 +6666,7 @@ loop2:        do nc = 1, this%NComponents
       Average = pc%SumFraction%Average
       Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
       write( IOBuffer, &
-&       '("Vapor molar fraction of ", A, T36, ":", 2F20.9)' ) &
+&       '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
 &       trim( pc%Molecule%PotModFileName ), Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
@@ -7569,7 +7569,7 @@ end if
     ! Update density and box length
     call UpdateBoxLength( this )
 
-    ! Update molar fractions
+    ! Update mole fractions
     call UpdateFractions( this )
 
     if( SimulationType .eq. MolecularDynamics ) then
