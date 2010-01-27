@@ -6689,10 +6689,12 @@ loop2:        do nc = 1, this%NComponents
       Average = this%SumDensity%Average
       Variance = this%SumDensity%Variance
       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
+&       Average, Average * VarPressure / this%SumPressure%Average
+!&       Average, Variance
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) &
-&       Average * UnitDensity, Variance * UnitDensity
+&       Average * UnitDensity, Average * VarPressure / this%SumPressure%Average * UnitDensity
+!&       Average * UnitDensity, Variance * UnitDensity
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
