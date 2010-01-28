@@ -6265,8 +6265,8 @@ loop2:        do nc = 1, this%NComponents
 &         Average / UnitDensity, Variance / UnitDensity
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-        ! CP
-        Average = this%SumCP%Average
+        ! CP - subtract ideal gas contribution of the pressure
+        Average = this%SumCP%Average - 1._RK
         Variance = this%SumCP%Variance
         write( IOBuffer, '("Isobaric heat capacity", T29, "reduced:", 2F20.9)' ) &
 &         Average, Variance
