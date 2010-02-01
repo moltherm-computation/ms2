@@ -315,6 +315,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdQuadrupole_mass             = 'mass'
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+  character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -508,6 +509,7 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
+
 #if  TRANS == 1
 !TRANSPORT_start
   ! Maximum number of blocks CF

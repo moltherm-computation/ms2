@@ -79,6 +79,9 @@ module ms2_ensemble
     ! Mass of piston
     real(RK) :: PistonMass
 
+    ! Optional calculation of pressure
+    logical :: OptPressure
+
     ! Positions and orientations of test particles
     real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
 
@@ -435,9 +438,11 @@ module ms2_ensemble
     module procedure TEnsemble_GetEnergy1
   end interface
 
+! #ifdef PRESSURE
   interface GetVirial
     module procedure TEnsemble_GetVirial
   end interface
+! #endif
 
   interface Move
     module procedure TEnsemble_Move
@@ -560,6 +565,7 @@ contains
     ! Declare local variables
     integer :: i, j
     integer :: stat
+    character( IOBufferLength ) :: str
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -704,6 +710,22 @@ contains
       end if
       write( IOBuffer, '("Mass of piston: ", F12.9)' ) this%PistonMass
       call LogWrite
+    end if
+
+    call FileReadParameter( str, iounit_params , IdOptPressure, .true., "yes" )
+    select case( str )
+      case( 'YES', 'Yes', 'yes' )
+        this%OptPressure = .true.
+      case( 'NO', 'No', 'no')
+        this%OptPressure = .false.
+      case default
+        call Error( 'Select yes/no for calculation of pressure '// &
+&         ProgramFileName//ConfigFileExtension )
+    end select
+    if ( EnsembleType .eq. EnsembleTypeGE .and. .not. this%OptPressure ) then
+      write(IOBuffer, '("For GE simulations, please set Logical OptPressure to yes")' )
+      call LogWrite
+      call Error( ' ms2 has to quit' )
     end if
 
     ! Read initial number of particles in ensemble
@@ -1260,6 +1282,7 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
       do i = 1, this%NComponents, 2
         do j = i + 1, this%NComponents, 2
+          this%Interaction(i,j)%OptPressure = this%OptPressure
           call Construct( &
 &           this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
@@ -1276,6 +1299,7 @@ contains
     else
       do i = 1, this%NComponents
         do j = 1, this%NComponents
+          this%Interaction(i,j)%OptPressure = this%OptPressure
           call Construct( &
 &           this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
@@ -2702,11 +2726,15 @@ loop1:do nc = 1, this%NComponents
 #if MPI_VER > 0
     call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      if ( this%OptPressure ) then
+        call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
+&         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+      end if
 #else
     this%EPot = GetEnergy( this )
-    this%Virial = GetVirial( this )
+    if ( this%OptPressure ) then
+      this%Virial = GetVirial( this )
+    endif
 #endif
 
     ! Resize simulation box
@@ -2718,9 +2746,11 @@ loop1:do nc = 1, this%NComponents
 &       this%NRCutoffMax = this%NRCutoffMax + 1
     end if
 
-    ! Calculate pressure
-    this%Pressure = this%Density * this%Temperature &
-&                   + this%Virial / this%Volume0
+    if ( this%OptPressure ) then
+      ! Calculate pressure
+      this%Pressure = this%Density * this%Temperature &
+&                     + this%Virial / this%Volume0
+    end if
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
 
@@ -3912,7 +3942,9 @@ loop2:        do nc = 1, this%NComponents
         n1 = pi%NPart1
         n2 = pi%NPart2
         pi%EPot(1:n1, 1:n2) = pi%EPotNew(1:n1, 1:n2)
-        pi%Virial(1:n1, 1:n2) = pi%VirialNew(1:n1, 1:n2)
+        if ( this%OptPressure ) then
+          pi%Virial(1:n1, 1:n2) = pi%VirialNew(1:n1, 1:n2)
+        end if
       end do
     end do
 
@@ -3942,9 +3974,13 @@ loop2:        do nc = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2
       pi%EPot(np, 1:n) = pi%EPot1(1:n)
-      pi%Virial(np, 1:n) = pi%Virial1(1:n)
+      if ( this%OptPressure ) then
+        pi%Virial(np, 1:n) = pi%Virial1(1:n)
+      end if
       this%Interaction(i, nc)%EPot(1:n, np) = pi%EPot1(1:n)
-      this%Interaction(i, nc)%Virial(1:n, np) = pi%Virial1(1:n)
+      if ( this%OptPressure ) then
+        this%Interaction(i, nc)%Virial(1:n, np) = pi%Virial1(1:n)
+      end if
     end do
 
   end subroutine TEnsemble_UpdateEnergy1
@@ -3983,7 +4019,9 @@ loop2:        do nc = 1, this%NComponents
 
           ! Save new energy matrix
           pi%EPotNew(np, 1:n) = pi%EPot1(1:n)
-          pi%VirialNew(np, 1:n) = pi%Virial1(1:n)
+          if ( this%OptPressure ) then
+            pi%VirialNew(np, 1:n) = pi%Virial1(1:n)
+          end if
 
           ! Sum energy
           E = E + sum( pi%EPot1(1:n) )
@@ -4821,14 +4859,20 @@ loop2:        do nc = 1, this%NComponents
         pi => this%Interaction(nc, i)
         n2 = pi%NPart2
         pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
-        pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
+        if ( this%OptPressure ) then
+          pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
+        end if
         this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
-        this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
+        if ( this%OptPressure ) then
+          this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
+        endif
       end do
 
       ! Zero diagonal elements
       this%Interaction(nc, nc)%EPot(np, np) = 0._RK
-      this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+      if ( this%OptPressure ) then
+        this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+      end if
 
       this%NPart = this%NPart - 1
 
@@ -4909,24 +4953,32 @@ loop2:        do nc = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n2 = pi%NPart2
       ESave(1:n2) = pi%EPot(np, :)
-      VSave(1:n2) = pi%Virial(np, :)
+      if ( this%OptPressure ) then
+        VSave(1:n2) = pi%Virial(np, :)
+      end if
       if( i .eq. nc ) then
         ESave(np) = pi%EPot(np, n2)
-        VSave(np) = pi%Virial(np, n2)
+        if ( this%OptPressure ) then
+          VSave(np) = pi%Virial(np, n2)
+        end if
       end if
       pi%EPot(np, :) = pi%EPot(n1, :)
-      pi%Virial(np, :) = pi%Virial(n1, :)
       this%Interaction(i, nc)%EPot(:, np) = pi%EPot(n1, :)
-      this%Interaction(i, nc)%Virial(:, np) = pi%Virial(n1, :)
       pi%EPot(n1, :) = ESave(1:n2)
-      pi%Virial(n1, :) = VSave(1:n2)
       this%Interaction(i, nc)%EPot(:, n1) = ESave(1:n2)
-      this%Interaction(i, nc)%Virial(:, n1) = VSave(1:n2)
+      if ( this%OptPressure ) then
+        pi%Virial(np, :) = pi%Virial(n1, :)
+        this%Interaction(i, nc)%Virial(:, np) = pi%Virial(n1, :)
+        pi%Virial(n1, :) = VSave(1:n2)
+        this%Interaction(i, nc)%Virial(:, n1) = VSave(1:n2)
+      end if
     end do
 
     ! Zero diagonal elements
     this%Interaction(nc, nc)%EPot(np, np) = 0._RK
-    this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+    if ( this%OptPressure ) then
+      this%Interaction(nc, nc)%Virial(np, np) = 0._RK
+    end if
 
     ! Set new particle number
     np = n1
@@ -4994,12 +5046,14 @@ loop2:        do nc = 1, this%NComponents
 
       ! Update energy and virial matrices
       call UpdateEnergy( this )
+      if ( this%OptPressure ) then
 #if MPI_VER > 0
-      call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+        call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
+&         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
 #else
-      this%Virial = GetVirial( this )
+        this%Virial = GetVirial( this )
 #endif
+      end if
 
     else
 
@@ -5528,11 +5582,24 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       ! Pressure
-      write( IOBuffer, '(F10.5)' ) this%SumPressure%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F10.5)' ) this%SumPressure%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
+      if( SimulationType .eq. MolecularDynamics ) then
+        write( IOBuffer, '(F10.5)' ) this%SumPressure%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumPressure%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+      else
+        if ( this%OptPressure ) then
+          write( IOBuffer, '(F10.5)' ) this%SumPressure%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(F10.5)' ) this%SumPressure%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        else
+          write( IOBuffer, '(F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
+      end if
       ! Density
       write( IOBuffer, '(F10.5)' ) this%SumDensity%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
@@ -6070,15 +6137,32 @@ loop2:        do nc = 1, this%NComponents
     call FileWriteBlank( this%iounit_errors )
 
     ! Pressure
-    Average = this%SumPressure%Average
-    Variance = this%SumPressure%Variance
-    write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) &
-&     Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
-&     Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+    if( SimulationType .eq. MolecularDynamics ) then
+       Average = this%SumPressure%Average
+       Variance = this%SumPressure%Variance
+       write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) &
+&        Average, Variance
+       call FileWrite( this%iounit_errors )
+       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
+&        Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+       call FileWrite( this%iounit_errors )
+       call FileWriteBlank( this%iounit_errors )
+    else
+       if ( this%OptPressure ) then
+         Average = this%SumPressure%Average
+         Variance = this%SumPressure%Variance
+       else
+         Average = this%RefPressure
+         Variance = 0._RK
+       end if
+       write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) &
+&        Average, Variance
+       call FileWrite( this%iounit_errors )
+       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
+&        Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+       call FileWrite( this%iounit_errors )
+       call FileWriteBlank( this%iounit_errors )
+    end if
 
     ! Density
     Average = this%SumDensity%Average
@@ -6612,6 +6696,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWriteBlank( this%iounit_errors )
 
       ! Vapor pressure
+    if ( this%OptPressure ) then
       Average = this%SumPressure%Average
       Variance = this%SumPressure%Variance
       NN = 0._RK
@@ -6746,6 +6831,7 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(76("="))' )
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
+    end if
 
     end if
 
