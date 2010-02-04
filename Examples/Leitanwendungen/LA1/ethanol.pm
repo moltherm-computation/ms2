@@ -1,7 +1,7 @@
 NSiteTypes =   2
 
 SiteType   =   LJ126
-NSites     =   4
+NSites     =   3
 
 x          =  -1.470767e+00 
 y          =  -3.383511e-01 
@@ -28,14 +28,6 @@ z          =  +6.571264e-17
 sigma      =   3.149559
 epsilon    =  85.053449
 mass       =  16.0
-
-x          =  +2.049156e+00
-y          =  -8.587295e-02
-z          =  +1.839679e-16
-
-sigma      =   2.0
-epsilon    =   0.0
-mass       =   0.0
 
 SiteType   =   CHARGE
 NSites     =   3
