@@ -117,6 +117,13 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'generic platform'
 #endif
 
+! define platform-specific path separator
+#ifdef _WIN32
+  character(*), parameter :: FileSep = '\'
+#else
+  character(*), parameter :: FileSep = '/'
+#endif
+
   ! Extension of configuration file.
   character(*), parameter :: ConfigFileExtension = '.cfg'
 
@@ -690,17 +697,27 @@ character(*), parameter :: VersionString = 'v12'
 
 #if !( defined _WIN32 || defined __GNUC__ )
 
-  ! Command line arguments
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+  ! Command line arguments
   integer, external :: iargc
   external getarg
 #endif
 
 #ifndef __INTEL_COMPILER
 
-  ! Flush of I/O units
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+  ! Flush of I/O units
   external flush
+
+  ! change current directory
+#if defined _PGF
+  integer, external :: chdir
+!#elif defined 
+  !external chdir
+#endif
+
+  ! Signal handler
+  integer, external :: signal
 #endif
 
   ! User name from console
@@ -708,11 +725,6 @@ character(*), parameter :: VersionString = 'v12'
   character(256), external :: getlog
 #elif ARCH == 2 || ARCH==3
   external getlog
-#endif
-
-  ! Signal handler
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-  integer, external :: signal
 #endif
 
   ! Host name
@@ -787,18 +799,17 @@ contains
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( RootProc ) then
       call getarg( 0, buffer )
-#ifdef _WIN32
-      i = index( buffer, '\', BACK=.true. )
-#else
-      i = index( buffer, '/', BACK=.true. )
-#endif
+      i = scan( buffer, FileSep, BACK=.true. )
       if( i > 0 ) then
         ProgramFileName = trim( buffer( i+1:len( buffer ) ) )
       else
         ProgramFileName = trim( buffer )         ! possible truncation?
       end if
+#if defined __PATHSCALE__
+      narg = command_argument_count()
+#else
       narg = iargc()
-      !narg = command_argument_count()
+#endif
       if( narg .lt. 1 ) then
         print *, trim( ProgramFileName ) &
 &              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
@@ -815,6 +826,26 @@ contains
       call getarg( 1, buffer )
       !call get_command_argument( 1, buffer )
       buffer = trim( buffer )
+      ! separate directory and filename
+      i = scan(buffer, FileSep, .true.)
+      if( i>0 ) then
+        ! path includes directory
+#if defined __INTEL_COMPILER || defined __PATHSCALE__ || defined _PGF
+        stat = chdir( buffer(:max(i-1,1)) )
+#elif ARCH==3 || defined __GNUC__
+        call chdir( buffer(:max(i-1,1)), stat )
+#else
+        print *, 'chdir not supported!'
+        stat=-1
+        i=0
+#endif
+        if( stat==0 ) then
+          print *, 'chdir to', trim(buffer(:max(i-1,1)))
+        else
+          print *, 'cannot change to ', trim(buffer(:max(i-1,1))), ' stat=', stat
+        end if
+        buffer=trim(buffer(i+1:))
+      end if
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
@@ -867,7 +898,7 @@ contains
       write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
       call LogWrite
       call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
-      if(.not. ierror .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
         call LogWrite
       end if
@@ -1134,7 +1165,7 @@ contains
 #if ARCH == 1
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || (defined __GNUC__ && !defined __PATHSCALE__) || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -2084,7 +2115,7 @@ contains
     !integer :: range_size0             ! version 1 only: range size for the first process
 
 #if MPI_VER > 0
-    ! original version: last process might get smaller range_size
+    ! original version 0: last process might get smaller range_size
     range_size = 1 + (overall_size - 1) / NProcs
     first_index = 1 + NProc * range_size
     last_index = min( first_index + range_size - 1, overall_size )
