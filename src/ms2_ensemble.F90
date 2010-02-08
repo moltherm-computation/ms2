@@ -5889,9 +5889,11 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     real(RK)                  :: Average, Variance
-!    real(RK)                  :: value
     type(TComponent), pointer :: pc
     integer                   :: i, j
+#if  TRANS == 1
+    real(RK)                  :: value
+#endif
 
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid

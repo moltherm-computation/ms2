@@ -80,8 +80,8 @@ pgf_mpi:
 
 gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
-	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
-	-g -O0 -fdefault-real-8 -Wall \
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DTRANS=1 \
+	-g -O0 -fdefault-real-8 -Wall -fbounds-check \
 	-o ms2.gfortran_dbg $(PROGS)
 	rm -f *.o *.mod
 
@@ -101,7 +101,7 @@ gfortran_mpi_dbg:
 
 gfortran_mpi:
 	@echo "Compiling using MPI_GFORTRAN..."
-	mpif90 -DTRANS=1 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
 	-O3 -fdefault-real-8 \
 	-o ms2mpi.gfortran $(PROGS)
 	rm -f *.o *.mod
@@ -134,6 +134,13 @@ ifort_mpi:
 	-r8 -O3 -ipo -vec_report0 \
 	-o ms2mpi.ifort $(PROGS)
 	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	rm -f *.o *.mod *.il
+
+ifort_impi:
+	@echo "Compiling using MPI_IFORT..."
+	mpiifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2impi.ifort $(PROGS)
 	rm -f *.o *.mod *.il
 
 ifort_papi:
