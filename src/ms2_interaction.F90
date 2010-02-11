@@ -5111,13 +5111,26 @@ contains
         RXi=pbo%Bond%RX1(np)
         RYi=pbo%Bond%RY1(np)
         RZi=pbo%Bond%RZ1(np)
-        RXij = (RXi - pbo%Bond%RX2(np)) * BoxLength
-        RYij = (RYi - pbo%Bond%RY2(np)) * BoxLength
-        RZij = (RZi - pbo%Bond%RZ2(np)) * BoxLength
+        RXij = (RXi - pbo%Bond%RX2(np))
+        RYij = (RYi - pbo%Bond%RY2(np))
+        RZij = (RZi - pbo%Bond%RZ2(np))
+        RXij = (RXij - anint(RXij)) * BoxLength
+        RYij = (RYij - anint(RYij)) * BoxLength
+        RZij = (RZij - anint(RZij)) * BoxLength
         RSquared=RXij**2+RYij**2+RZij**2
         R=dsqrt(RSquared) ! Bond length
         ! Deviation from equilibrium
         dR=R-this%PotBond(bi)%R0
+!        if (dR .gt. Boxlength / 2._RK) then
+!          write(*,*) 'Boxlaenge ueberschritten'
+!        end if
+!        if (dR .gt. 1._RK) then
+!          write(*,*) 'Abweichung gross'
+!        end if
+!         if (dR .lt. 0.001_RK) then
+!           write(*,*) 'Abstand klein ueberschritten'
+!         end if
+!        write(*,*) dR, np, nu
         ! Potential parameter
         F0 = dR*this%PotBond(bi)%ForConst
         ! Energy of the bond
@@ -5138,7 +5151,7 @@ contains
         PZij = (PZi - pbo%Bond%PZ2(np)) * BoxLength
 
         ! Contribution to virial
-        VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
+        VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
         Virial(unit2) = Virial(unit2) + Third * VirialLocal
       end do ! bonds
 
@@ -5158,12 +5171,18 @@ contains
         RYk=pan%Angle%RY3(np)
         RZk=pan%Angle%RZ3(np)
 
-        RXij = (RXi - pan%Angle%RX2(np)) * BoxLength
-        RYij = (RYi - pan%Angle%RY2(np)) * BoxLength
-        RZij = (RZi - pan%Angle%RZ2(np)) * BoxLength
-        RXkj = (RXk - pan%Angle%RX2(np)) * BoxLength
-        RYkj = (RYk - pan%Angle%RY2(np)) * BoxLength
-        RZkj = (RZk - pan%Angle%RZ2(np)) * BoxLength
+        RXij = (RXi - pan%Angle%RX2(np))
+        RYij = (RYi - pan%Angle%RY2(np))
+        RZij = (RZi - pan%Angle%RZ2(np))
+        RXkj = (RXk - pan%Angle%RX2(np))
+        RYkj = (RYk - pan%Angle%RY2(np))
+        RZkj = (RZk - pan%Angle%RZ2(np))
+        RXij = (RXij - anint(RXij)) * BoxLength
+        RYij = (RYij - anint(RYij)) * BoxLength
+        RZij = (RZij - anint(RZij)) * BoxLength
+        RXkj = (RXkj - anint(RXkj)) * BoxLength
+        RYkj = (RYkj - anint(RYkj)) * BoxLength
+        RZkj = (RZkj - anint(RZkj)) * BoxLength
 
         RijSquared=RXij**2+RYij**2+RZij**2
         RkjSquared=RXkj**2+RYkj**2+RZkj**2

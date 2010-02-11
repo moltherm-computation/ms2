@@ -106,7 +106,7 @@ module ms2_component
     ! Length of simulation box
     real(RK), pointer :: BoxLength
 
-    ! Molar fraction of this component
+    ! Mole fraction of this component
     real(RK) :: Fraction
 
     ! Maximum number of particles in component
@@ -178,7 +178,7 @@ module ms2_component
 !     real(RK), pointer :: BFSumState(:)
 !DEBUG
 
-    ! Molar fraction in corresponding liquid simulation (for GE ensemble only)
+    ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
 
     ! Long-range corrections
@@ -448,9 +448,9 @@ contains
     ! Read file name for potential model
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
-    ! Read molar fraction of this component
+    ! Read mole fraction of this component
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
-    write( IOBuffer, '("Molar fraction of component ", A, ": ", F9.6)' ) &
+    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
 &     trim( this%PotModFileName ), this%Fraction
     call LogWrite
 
@@ -5145,6 +5145,12 @@ contains
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
       write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
 &       this%NMoveBiasedSuccesses
+      if ( UseIntDegFreed ) then
+        write( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
+        write( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
+        write( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, &
+&         this%NMoveBiasedMolSuccesses
+      end if
     end if
 
     if( this%Molecule%isElongated ) then
@@ -5216,6 +5222,13 @@ contains
 &         this%NRotateSuccesses
         write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
 &         this%NRotateBiasedSuccesses
+        if ( UseIntDegFreed ) then
+          write( iounit_restart, '(ES20.12E3)' ) this%DispMolRot
+          write( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, &
+&           this%NRotateMolSuccesses
+          write( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, &
+&           this%NRotateBiasedMolSuccesses
+        end if
       end if
 
     end if
@@ -5314,6 +5327,12 @@ contains
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
         read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
 &         this%NMoveBiasedSuccesses
+        if ( UseIntDegFreed ) then
+          read( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
+          read( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
+          read( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, &
+&           this%NMoveBiasedMolSuccesses
+        end if
       end if
 
       if( this%Molecule%isElongated ) then
@@ -5385,6 +5404,14 @@ contains
 &           this%NRotateSuccesses
           read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
 &           this%NRotateBiasedSuccesses
+          if ( UseIntDegFreed ) then
+            read( iounit_restart, '(ES20.12E3)' ) this%DispMolRot
+            read( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, &
+&             this%NRotateMolSuccesses
+            read( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, &
+&             this%NRotateBiasedMolSuccesses
+          end if
+
         end if
       end if
 
@@ -5415,6 +5442,18 @@ contains
 &       MPI_COMM_WORLD, ierror )
       call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+      if ( UseIntDegFreed ) then
+        call MPI_Bcast( this%DispMolTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%NMoveMolAttempts, 1, MPI_INTEGER, NRootProc, &
+&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%NMoveMolSuccesses, 1, MPI_INTEGER, NRootProc, &
+&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%NMoveBiasedMolAttempts, 1, MPI_INTEGER, NRootProc, &
+&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%NMoveBiasedMolSuccesses, 1, MPI_INTEGER, NRootProc, &
+&         MPI_COMM_WORLD, ierror )
+      end if
       if( this%Molecule%isElongated ) then
         call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &         MPI_COMM_WORLD, ierror )
@@ -5426,6 +5465,18 @@ contains
 &         MPI_COMM_WORLD, ierror )
         call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
 &         NRootProc, MPI_COMM_WORLD, ierror )
+        if ( UseIntDegFreed ) then
+          call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+&           MPI_COMM_WORLD, ierror )
+          call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
+&           MPI_COMM_WORLD, ierror )
+          call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
+&           MPI_COMM_WORLD, ierror )
+          call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
+&           MPI_COMM_WORLD, ierror )
+          call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
+&           NRootProc, MPI_COMM_WORLD, ierror )
+        end if
       end if
     end if
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then

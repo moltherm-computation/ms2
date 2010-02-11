@@ -21,8 +21,9 @@
 
 #define STOPWATCH_USE_DATIME
 
+! For the full support of the stopwatch, please comment line 26 in!
 #if MPI_VER
-#define MPI_USE_MODULE
+! #define MPI_USE_MODULE
 #define STOPWATCH_USE_WTIME
 #else
 #define STOPWATCH_USE_SYSCLK

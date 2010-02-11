@@ -1930,7 +1930,7 @@ contains
     call LogWrite
     do i = 1, this%NRealComponents
       pc => this%Component(i)
-      write( IOBuffer, '("Molar fraction of ", A, ":", F6.3, &
+      write( IOBuffer, '("Mole fraction of ", A, ":", F6.3, &
 &         ";  number of particles:", I11)' ) &
 &       trim( pc%PotModFileName ), pc%Fraction, pc%NPart
       call LogWrite
@@ -2869,6 +2869,7 @@ loop:do l = 1, NPartInCell
     end if
 
     ! Run MD simulation step
+!     write(*,*) 'No Prediction in MD'
     call Predict( this )
     call Unit2Atom( this )
     call Force( this )
@@ -2914,6 +2915,9 @@ loop:do l = 1, NPartInCell
 
     ! Outer loop
     NDFsystem = this%NDF
+!     if (Step == 109) then
+!        write(*,*) 'halt'
+!     end if 
     do i = 1, NDFsystem / 3
 !    write(*,*) 'just one MC move!'
 !    do i = 1, 1
@@ -2937,10 +2941,14 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
       end do loop2
 
       ! Move or Rotate Unit
-      if( mod( s - r, ndf ) < 3 ) then
-        call Move( this, nc, np, nu )
+      if ( this%Component(nc)%Molecule%Unit(nu)%isElongated ) then
+        if( mod( s - r, ndf ) < 3 ) then
+          call Move( this, nc, np, nu )
+        else
+            call Rotate( this, nc, np, nu )
+        end if
       else
-        call Rotate( this, nc, np, nu )
+        call Move( this, nc, np, nu )
       end if
 
     end do
@@ -2958,11 +2966,16 @@ loop3:  do nc = 1, this%NComponents
           if( r <= s ) exit loop3
         end do loop3
 
+        ! Specify molecule
+        np = int((r+1)/2)
+
         ! Move or Rotate
         if( mod( r, 2 ) .eq. 0 ) then
           call Move( this, nc, np )
         else
-          call Rotate( this, nc, np )
+!           if ( this%Component(nc)%Molecule%isElongated ) then
+!             call Rotate( this, nc, np )
+!           end if
         end if
 
       end do
@@ -5025,7 +5038,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Unit2Mol( pc, np )
 
     ! Apply periodic boundary conditions
-    pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
+!     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%Pm0(np, :) )
+!     pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+    pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
     pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
 
     ! Convert molecular coordinates to atom positions
@@ -5167,7 +5182,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       trans(i)  = TransMove
       do j=1, NUnit
         pc%P0(np, i, j ) = pc%P0(np, i, j ) + TransMove
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%Pm0(np, i) )
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
       end do
       pc%Pm0(np, i)    = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
     end do
@@ -5233,7 +5248,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%Pm0(np, :) = rm(:)
           do j=1, NUnit
             pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%Pm0(np, :) )
+            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
             call Unit2Atom1( pc, np, j )
           end do
 !       end if
@@ -7677,7 +7692,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Molar fraction of each component
+        ! Mole fraction of each component
         do i = 1, this%NComponents
           write( IOBuffer, '("   FRACT", I2)' ) i
           call FileWriteNoAdvance( this%iounit_result )
@@ -7992,7 +8007,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         write( IOBuffer, '(F10.2)' ) this%SumNPart%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Molar fraction of each component
+        ! Mole fraction of each component
         do i = 1, this%NComponents
           pc => this%Component(i)
           write( IOBuffer, '(F10.5)' ) pc%SumFraction%BlockAverage
@@ -8212,7 +8227,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( EnsembleType .ne. EnsembleTypeGE .or. &
 &       EnsembleType .ne. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NRealComponents
-        write( IOBuffer, '("Molar fraction of ", A, T36, ":", F20.9)' ) &
+        write( IOBuffer, '("Mole fraction of ", A, T36, ":", F20.9)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), &
 &         this%Component(i)%Fraction
         call FileWrite( this%iounit_errors )
@@ -8380,13 +8395,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-      ! Molar fraction
+      ! Mole fraction
       do i = 1, this%NComponents
         pc => this%Component(i)
         Average = pc%SumFraction%Average
         Variance = pc%SumFraction%Variance
         write( IOBuffer, &
-&         '("Molar fraction of ", A, T36, ":", 2F20.9)' ) &
+&         '("Mole fraction of ", A, T36, ":", 2F20.9)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
         call FileWrite( this%iounit_errors )
       end do
@@ -8517,8 +8532,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &         Average / UnitDensity, Variance / UnitDensity
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-        ! CP
-        Average = this%SumCP%Average
+        ! CP - subtract ideal gas contribution of the pressure
+        Average = this%SumCP%Average - 1._RK
         Variance = this%SumCP%Variance
         write( IOBuffer, '("Isobaric heat capacity", T29, "reduced:", 2F20.9)' ) &
 &         Average, Variance
@@ -8628,11 +8643,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! Molar fractions of liquid phase
+      ! Mole fractions of liquid phase
       do i = 1, this%NComponents
         pc => this%Component(i)
         write( IOBuffer, &
-&         '("Liquid molar fraction of ", A, T36, ":", F20.9)' ) &
+&         '("Liquid mole fraction of  ", A, T36, ":", F20.9)' ) &
 &         trim( pc%Molecule%PotModFileName ), pc%LiqFraction
         call FileWrite( this%iounit_errors )
       end do
@@ -8674,7 +8689,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! Molar fractions of vapor phase
+      ! Mole fractions of vapor phase
       do i = 1, this%NComponents
         pc => this%Component(i)
         yvi = pc%SumFraction%Average * &
@@ -9562,10 +9577,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Initialize energy matrix
       call Unit2Atom( this )
+!      this%Component(1)%Molecule%NBond = 0
       call Energy( this, this%EPot )
       call UpdateEnergy( this )
-!     write(*,*) 'Changes in 8505'
-!       this%Virial = GetVirial(this)
+
+!    write(*,*) 'Changes in 9569'
+!      this%Virial = GetVirial(this)
 
     end if
 

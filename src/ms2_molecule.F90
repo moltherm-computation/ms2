@@ -386,7 +386,6 @@ contains
        nullify( this%BoPartner )
        allocate (this%BondCount(this%NSite), STAT = stat)
        call AllocationError( stat, 'BondCount', this%NSite )
-       this%BondCount = 0
        allocate (this%BoPartner(this%NLJ126,this%NSite), STAT = stat)
        call AllocationError( stat, 'BoPartner', this%NSite )
        nullify( this%AngleCount )
@@ -401,6 +400,11 @@ contains
        call AllocationError( stat, 'DihedralCount', this%NSite*2 )
        allocate (this%DihedralPartner(this%NLJ126,this%NSite*2), STAT = stat)
        call AllocationError( stat, 'DihedralPartner', this%NSite*2 )
+
+       ! Initialize
+       this%BondCount = 0
+       this%AngleCount = 0
+       this%DihedralCount = 0
 
 
        if( this%NLJ126 > 0 ) then

@@ -54,14 +54,19 @@ module ms2_global
 #endif
 
   ! Version of program
-#ifndef _WIN32
+character(*), parameter :: VersionString = 'v12'
 #ifdef __DATE__
-  character(*), parameter :: VersionString = 'v12 ' // __DATE__
+#ifdef __TIME__
+  character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
 #else
-  character(*), parameter :: VersionString = 'v12'
+  character(*), parameter :: CompileTime = __DATE__
 #endif
 #else
-  character(*), parameter :: VersionString = 'v12 Windows'
+#ifdef __TIME__
+  character(*), parameter :: CompileTime = __TIME__
+#else
+  character(*), parameter :: CompileTime = 'unknown compile time'
+#endif
 #endif
 
   ! Name of platform
@@ -210,11 +215,11 @@ module ms2_global
   character(*), parameter :: IdNPart                       = 'NParticles'
   character(*), parameter :: IdNComponents                 = 'NComponents'
   character(*), parameter :: IdPotModFileName              = 'PotModel'
-  character(*), parameter :: IdFraction                    = 'MolarFract'
+  character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
-  character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract'
+  character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract:LiqMoleFract'
   character(*), parameter :: IdChemPot                     = 'ChemPot'
   character(*), parameter :: IdVarChemPot                  = 'VarChemPot'
   character(*), parameter :: IdPartialMolarVolume          = 'PartMolVol'
@@ -461,10 +466,10 @@ module ms2_global
   real(RK) :: AccUpperLimit,AccLowerLimit
 
   ! MC acceptance rate auto-adjustment parameters
-  real(RK), parameter :: DispTranStart = 0.020_RK
-  real(RK), parameter :: DispTranLimit = 0.150_RK
-  real(RK), parameter :: DispRotStart  = 0.050_RK
-  real(RK), parameter :: DispRotLimit  = 0.150_RK
+  real(RK), parameter :: DispTranStart = 0.0020_RK
+  real(RK), parameter :: DispTranLimit = 0.0150_RK
+  real(RK), parameter :: DispRotStart  = 0.0050_RK
+  real(RK), parameter :: DispRotLimit  = 0.0150_RK
   real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
   real(RK), parameter :: DispMolTranStart = 0.020_RK
@@ -752,9 +757,20 @@ contains
 #endif
 
     ! Declare local variables
+    integer :: stat
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
-    integer                   :: narg, dot, stat, i
+    integer                   :: narg, dot, i
     character(IOBufferLength) :: buffer
+#endif
+#if MPI_VER > 0
+    integer                                    :: mpiversion, mpisubversion
+    character*(MPI_MAX_PROCESSOR_NAME)         :: procname
+    integer                                    :: procnamelen
+    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    integer                                    :: hostrank = MPI_PROC_NULL
+    integer                                    :: iorank = MPI_PROC_NULL
+    integer,pointer                            :: ioranks(:)
+    logical                                    :: flag
 #endif
 
     ! Initialize MPI
@@ -795,10 +811,11 @@ contains
       narg = iargc()
       !narg = command_argument_count()
       if( narg .lt. 1 ) then
-        print *, trim( ProgramFileName ), ' Version: ', VersionString
-        print *, 'usage: ', trim( ProgramFileName ), &
-&         ' {<par-file[', ParameterFileExtension, ']|<rst-file>', &
-&         RestartFileExtension, '}'
+        print *, trim( ProgramFileName ) &
+&              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
+        print *, 'usage: ', trim( ProgramFileName ) &
+&              , ' {<par-file[', ParameterFileExtension, ']|<rst-file>' &
+&              , RestartFileExtension, '}'
 
         ! Abort program
 #if MPI_VER > 0
@@ -850,11 +867,50 @@ contains
 
     ! Update log file
 #if MPI_VER > 0
-    write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
+    nullify( procnames )
+    nullify( ioranks )
+    if( RootProc ) then
+      call MPI_Get_version(mpiversion, mpisubversion, ierror)
+      write( IOBuffer, '("MPI Version (running with a MPI",I2,".",I1," library)")' ) mpiversion, mpisubversion
+      call LogWrite
+      write( IOBuffer, '("Number of processes: ",I4)' ) NProcs
+      call LogWrite
+      write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
+      call LogWrite
+      call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
+      if(.not. ierror .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+        write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
+        call LogWrite
+      end if
+    end if
+    allocate( procnames(NProcs), STAT = stat )
+    allocate( ioranks(NProcs), STAT = stat )
+    call MPI_Get_processor_name(procname, procnamelen, ierror)
+    !                         procnamelen might be variable
+    call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+    call MPI_Attr_get(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+    if( RootProc ) then
+      write( IOBuffer, '("rank  I/O processor_name")' )
+      call LogWrite
+      do i = 1,NProcs
+        if( ioranks(i) == MPI_ANY_SOURCE )  then
+          write( IOBuffer, '(I4,"   +  ", A)' ) i-1, procnames(i)
+        else
+          write( IOBuffer, '(I4," ", I4, " ", A)' ) i-1, ioranks(i), procnames(i)
+        end if
+        call LogWrite
+      end do
+    end if
+    if( associated( ioranks ) ) deallocate( ioranks )
+    if( associated( procnames ) ) deallocate( procnames )
 #else
     write( IOBuffer, '("sequential Version")' )
-#endif
     call LogWrite
+#endif
     call LogWriteBlank
 
     ! Set signal handler
@@ -877,7 +933,7 @@ contains
     else
       write( IOBuffer, '("Signal handler set successfully")' )
       call LogWrite
-      call LogWriteBlank
+!       call LogWriteBlank
     end if
 #endif
 
@@ -921,7 +977,7 @@ contains
 
     ! Finalize MPI
 #if MPI_VER > 0
-    call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -1107,15 +1163,15 @@ contains
 #else
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
-    write( IOBuffer, &
-&     '("Program ", A, " compiled for ", A)' ) &
-&     trim( ProgramFileName ), Hardware
+    write( IOBuffer, '("Program ", A, " version ", A)' ) &
+&          trim( ProgramFileName ), trim( VersionString )
+
     call LogWrite
-    write( IOBuffer, '("version ", A)' ) trim( VersionString )
+    write( IOBuffer, '("compiled at ", A, " for ", A)' ) &
+&          CompileTime, Hardware
     call LogWrite
     write( IOBuffer, '("started by ", A," on ", A)' ) &
-&     trim( username ), &
-&     trim( hostname )
+&          trim( username ), trim( hostname )
     call LogWriteTime
     call LogWriteBlank
 
@@ -1479,7 +1535,7 @@ contains
 !  Function Global_FileReadParameter                           !
 !==============================================================!
 
-  function Global_FileReadParameter( iounit, parameterqualifier, &
+  function Global_FileReadParameter( iounit, parameterqualifiers, &
 &                                    rewind_before, status ) &
 &          result (parametervalue)
 
@@ -1493,11 +1549,14 @@ contains
 
     ! Declare arguments
     integer, intent(in)                :: iounit
-    character(*), intent(in)           :: parameterqualifier
+    character(*), intent(in)           :: parameterqualifiers
     logical, intent(in), optional      :: rewind_before
     integer, intent(out), optional     :: status
 
     character(IOBufferLength) :: parametervalue
+    logical                   :: foundqualifier = .false.
+    character(IOBufferLength) :: parameterqualifier
+    integer                   :: qualifierpos1, qualifierpos2
 
 
     ! Declare local variables
@@ -1523,7 +1582,7 @@ contains
         ! error reading from file?
         if( stat > 0 ) then
           call Error( "ERROR reading file "//trim(fn)// &
-&                     " while searching for parameter <"//parameterqualifier//">" )
+&                     " while searching for parameter <"//parameterqualifiers//">" )
           !if( present(status) ) status = stat
           !return
         ! end of file reached?
@@ -1561,13 +1620,30 @@ contains
           !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
-        if( index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1 ) then
-          ! extract value part (after =)
-          parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-          parametervalue = trim( adjustl( parametervalue ) )
-          if( present(status) ) status = 0
-          exit
-        end if
+
+        qualifierpos2 = 0
+        do
+          qualifierpos1 = qualifierpos2+1
+          qualifierpos2 = scan(trim(parameterqualifiers(qualifierpos1:)),":")
+          if( qualifierpos2>qualifierpos1 ) then
+            parameterqualifier = parameterqualifiers(qualifierpos1:qualifierpos2-1)
+          else
+            parameterqualifier = parameterqualifiers(qualifierpos1:)
+          end if
+          foundqualifier = index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1
+          if( foundqualifier ) then
+            ! extract value part (after =)
+            parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
+            parametervalue = trim( adjustl( parametervalue ) )
+!            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
+!&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
+            if( present(status) ) status = 0
+            exit
+          end if
+          if ( qualifierpos2<=qualifierpos1 ) exit
+        end do
+        if ( foundqualifier ) exit
+
       end do
 
     end if
@@ -1641,7 +1717,7 @@ contains
 !  Subroutine Global_FileReadParameter_String                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
   ! for a FileReadParameter polymorphism 
@@ -1651,7 +1727,7 @@ contains
     ! Declare arguments
     character(*), intent(out)          :: parametervariable
     integer, intent(in)                :: iounit
-    character(*), intent(in)           :: parameterqualifier
+    character(*), intent(in)           :: parameterqualifiers
     logical, intent(in), optional      :: rewind_before
     character(*), intent(in), optional :: defaultvalue
     integer, intent(out), optional     :: status
@@ -1661,15 +1737,15 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    parametervariable = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    parametervariable = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",A)' ) &
-&             trim(parameterqualifier), trim(defaultvalue)
+&             trim(parameterqualifiers), trim(defaultvalue)
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1692,7 +1768,7 @@ contains
 !  Subroutine Global_FileReadParameter_Int                     !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_Int( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_Int( parametervariable, iounit, parameterqualifiers, &
 &                                         rewind_before, defaultvalue, status )
   ! Global_FileReadParameter_Integer has 32>31 characters!
 
@@ -1701,7 +1777,7 @@ contains
     ! Declare arguments
     integer, intent(out)           :: parametervariable
     integer, intent(in)            :: iounit
-    character(*), intent(in)       :: parameterqualifier
+    character(*), intent(in)       :: parameterqualifiers
     logical, intent(in), optional  :: rewind_before
     integer, intent(in), optional  :: defaultvalue
     integer, intent(out), optional :: status
@@ -1711,17 +1787,17 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
-&             trim(parameterqualifier), defaultvalue
+&             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1744,7 +1820,7 @@ contains
 !  Subroutine Global_FileReadParameter_RK                      !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_RK( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_RK( parametervariable, iounit, parameterqualifiers, &
 &                                        rewind_before, defaultvalue, status )
 
     implicit none
@@ -1752,7 +1828,7 @@ contains
     ! Declare arguments
     real(RK), intent(out)          :: parametervariable
     integer, intent(in)            :: iounit
-    character(*), intent(in)       :: parameterqualifier
+    character(*), intent(in)       :: parameterqualifiers
     logical, intent(in), optional  :: rewind_before
     real(RK), intent(in), optional :: defaultvalue
     integer, intent(out), optional :: status
@@ -1763,17 +1839,17 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
         write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
-&             trim(parameterqualifier), defaultvalue
+&             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
@@ -1796,7 +1872,7 @@ contains
 !  Subroutine Global_FileReadParameter_RKdim1                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_RKdim1( parametervariable, iounit, parameterqualifier, &
+  subroutine Global_FileReadParameter_RKdim1( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
 
     implicit none
@@ -1804,7 +1880,7 @@ contains
     ! Declare arguments
     real(RK), dimension(:), intent(out)          :: parametervariable
     integer, intent(in)                          :: iounit
-    character(*), intent(in)                     :: parameterqualifier
+    character(*), intent(in)                     :: parameterqualifiers
     logical, intent(in), optional                :: rewind_before
     real(RK), dimension(:), intent(in), optional :: defaultvalue
     integer, intent(out), optional               :: status
@@ -1814,18 +1890,18 @@ contains
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    buffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifier)
+        write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifiers)
         call LogWrite
         write( IOBuffer, * ) defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else
-        call Error( "Could not find parameter <"//parameterqualifier//">" )
+        call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if

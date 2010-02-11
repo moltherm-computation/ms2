@@ -25,7 +25,7 @@ module ms2_simulation
 
   use ms2_ensemble
   use ms2_global
-!   use ms2_stopwatch
+  use ms2_stopwatch
 
 
 
@@ -894,16 +894,16 @@ contains
     integer :: StepStart, StepEnd
     integer :: i
     logical :: NPartsOk
-!     type(TStopwatch) :: RunTimer,RunStepsTimer
+    type(TStopwatch) :: RunTimer,RunStepsTimer
 
     tooManyParticles = .false.
 
-! !     ! Stopwatch
-! !     call Construct(RunTimer,"TSimulation_Run",CStopwatch_useStartBarrier)
-! !     call Construct(RunStepsTimer)
-! ! 
-! !     call start_Timer(RunTimer)
-! !     call logwritestart_Timer(RunTimer)
+    ! Stopwatch
+    call Construct(RunTimer,"TSimulation_Run",CStopwatch_useStartBarrier)
+    call Construct(RunStepsTimer)
+
+    call start_Timer(RunTimer)
+    call logwritestart_Timer(RunTimer)
 
     if( Restart ) then
       call RestartRead( this )
@@ -932,18 +932,18 @@ contains
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
       SimulationType = MonteCarlo
-! ! !       !call LogWriteTime
-! ! !       ! Stopwatch
-! ! !       call Timer_setTag(RunStepsTimer,"MC overlap reduction")
-! ! !       call start_Timer(RunStepsTimer)
-! ! !       call logwritestart_Timer(RunStepsTimer)
+      !call LogWriteTime
+      ! Stopwatch
+      call Timer_setTag(RunStepsTimer,"MC overlap reduction")
+      call start_Timer(RunStepsTimer)
+      call logwritestart_Timer(RunStepsTimer)
 
       call RunSteps( this, StepStart, StepEnd )
 
-! ! !       ! Stopwatch
-! ! !       call stop_Timer(RunStepsTimer)
-! ! !       call logwritestop_Timer(RunStepsTimer)
-! ! ! 
+      ! Stopwatch
+      call stop_Timer(RunStepsTimer)
+      call logwritestop_Timer(RunStepsTimer)
+
       if( .not. TerminateProgram ) then
         write( IOBuffer, '("MC overlap reduction completed")' )
         MCOverlapReduction = .false.
@@ -970,17 +970,17 @@ eqloop: do
         else
           write( IOBuffer, '("Starting NVT equilibration")' )
         end if
-! ! !         ! Stopwatch
-! ! ! !         call LogWriteTime
-! ! !         call Timer_setTag(RunStepsTimer,"NVT equilibration")
-! ! !         call start_Timer(RunStepsTimer)
-! ! !         call logwritestart_Timer(RunStepsTimer)
+        ! Stopwatch
+!         call LogWriteTime
+        call Timer_setTag(RunStepsTimer,"NVT equilibration")
+        call start_Timer(RunStepsTimer)
+        call logwritestart_Timer(RunStepsTimer)
 
         call RunSteps( this, StepStart, StepEnd )
 
-! ! !         ! Stopwatch
-! ! !         call stop_Timer(RunStepsTimer)
-! ! !         call logwritestop_Timer(RunStepsTimer)
+        ! Stopwatch
+        call stop_Timer(RunStepsTimer)
+        call logwritestop_Timer(RunStepsTimer)
 
         if( .not. TerminateProgram ) then
           write( IOBuffer, '("NVT equilibration completed")' )
@@ -1004,17 +1004,17 @@ eqloop: do
             write( IOBuffer, '("Starting GE equilibration")' )
           end if
 
-! ! !           ! Stopwatch
-! ! ! !           call LogWriteTime
-! ! !           call Timer_setTag(RunStepsTimer,"GE equilibration")
-! ! !           call start_Timer(RunStepsTimer)
-! ! !           call logwritestart_Timer(RunStepsTimer)
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"GE equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
 
-! ! !           ! Stopwatch
-! ! !           call stop_Timer(RunStepsTimer)
-! ! !           call logwritestop_Timer(RunStepsTimer)
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1047,17 +1047,17 @@ eqloop: do
             write( IOBuffer, '("Starting HA equilibration")' )
           end if
 
-! ! !           ! Stopwatch
-! ! ! !           call LogWriteTime
-! ! !           call Timer_setTag(RunStepsTimer,"HA equilibration")
-! ! !           call start_Timer(RunStepsTimer)
-! ! !           call logwritestart_Timer(RunStepsTimer)
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"HA equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
 
-! ! !           ! Stopwatch
-! ! !           call stop_Timer(RunStepsTimer)
-! ! !           call logwritestop_Timer(RunStepsTimer)
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1089,18 +1089,18 @@ eqloop: do
           else
             write( IOBuffer, '("Starting NPT equilibration")' )
           end if
-! ! ! 
-! ! !           ! Stopwatch
-! ! ! !           call LogWriteTime
-! ! !           call Timer_setTag(RunStepsTimer,"NPT equilibration")
-! ! !           call start_Timer(RunStepsTimer)
-! ! !           call logwritestart_Timer(RunStepsTimer)
+
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"NPT equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
 
-! ! !           ! Stopwatch
-! ! !           call stop_Timer(RunStepsTimer)
-! ! !           call logwritestop_Timer(RunStepsTimer)
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             write( IOBuffer, '("NPT equilibration completed")' )
@@ -1120,17 +1120,17 @@ eqloop: do
             write( IOBuffer, '("Starting Gibbs equilibration")' )
           end if
 
-! ! !           ! Stopwatch
-! ! ! !           call LogWriteTime
-! ! !           call Timer_setTag(RunStepsTimer,"Gibbs Ensemble")
-! ! !           call start_Timer(RunStepsTimer)
-! ! !           call logwritestart_Timer(RunStepsTimer)
+          ! Stopwatch
+!           call LogWriteTime
+          call Timer_setTag(RunStepsTimer,"Gibbs Ensemble")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
 
           call RunSteps( this, StepStart, StepEnd )
 
-! ! !           ! Stopwatch
-! ! !           call stop_Timer(RunStepsTimer)
-! ! !           call logwritestop_Timer(RunStepsTimer)
+          ! Stopwatch
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
@@ -1202,18 +1202,18 @@ eqloop: do
       else
         write( IOBuffer, '("Starting simulation")' )
       end if
-! ! ! 
-! ! !       ! Stopwatch
-! ! !       call Timer_setTag(RunStepsTimer,"simulation")
-! ! !       call start_Timer(RunStepsTimer)
-! ! !       call logwritestart_Timer(RunStepsTimer)
-! ! ! !       call LogWriteTime
+
+      ! Stopwatch
+      call Timer_setTag(RunStepsTimer,"simulation")
+      call start_Timer(RunStepsTimer)
+      call logwritestart_Timer(RunStepsTimer)
+!       call LogWriteTime
 
       call RunSteps( this, StepStart, StepEnd )
 
-! ! !       ! Stopwatch
-! ! !       call stop_Timer(RunStepsTimer)
-! ! !       call logwritestop_Timer(RunStepsTimer)
+      ! Stopwatch
+      call stop_Timer(RunStepsTimer)
+      call logwritestop_Timer(RunStepsTimer)
 
       if( .not. TerminateProgram ) then
         write( IOBuffer, '("Simulation completed")' )
@@ -1237,9 +1237,9 @@ eqloop: do
     end if
     call RestartSave( this )
 
-! ! !     ! Stopwatch
-! ! !     call stop_Timer(RunTimer)
-! ! !     call logwritestop_Timer(RunTimer)
+    ! Stopwatch
+    call stop_Timer(RunTimer)
+    call logwritestop_Timer(RunTimer)
 
   end subroutine TSimulation_Run
 
