@@ -44,6 +44,12 @@ module ms2_global
   use libfvmf2003
   use fvmf2003extensions
   use, intrinsic :: iso_c_binding
+
+  ! PAPI
+#if defined PAR_PROF
+!#include "f90papi.h"
+#endif
+
 #endif
 
 
@@ -192,6 +198,11 @@ module ms2_global
   ! Parallel Profiling added by Hendrik Adorf (ITWM)
   integer, parameter :: iounit_trace   = 1
   integer, parameter :: iounit_runtime = 2
+  integer, parameter :: iounit_forcetrace = 201
+  integer, parameter :: iounit_forceruntime = 202
+  integer, parameter :: iounit_cutofftrace = 301
+  integer, parameter :: iounit_cutoffruntime = 302
+  integer, parameter :: iounit_NInCutoff = 400
 #endif
 
 #if defined PAR_DEBUG
@@ -205,6 +216,13 @@ module ms2_global
 !  integer :: pardbgidx1ref, pardbgidx2ref
   !display flag
 !  logical :: pardbgdisplay = .false.
+#endif
+
+#if defined FORCE_DEBUG
+  !iounit
+  integer, parameter :: iounit_forcedebug = 4
+  !debug file
+  character(200) :: ForceDebugFileName
 #endif
 
   ! Define number of output files for each ensemble
@@ -626,15 +644,22 @@ module ms2_global
 
   character(200) :: TraceFileName
   character(200) :: RuntimeFileName
+  character(200) :: ForceTrace
+  character(200) :: ForceRuntime
+  character(200) :: CutoffTrace
+  character(200) :: CutoffRuntime
+  character(200) :: NInCutoffFile
+
+  type(TProfiler) :: Profiler
+  type(TProfiler) :: ForceProf, CutoffProf
+
+#endif
+
 #if FVM_VER > 0
   character(100), pointer :: ProfilingPath
   integer(c_size_t) :: fvmByteOffProfilingPath
 #else
   character(100) :: ProfilingPath
-#endif
-
-  type(TProfiler) :: Profiler
-
 #endif
 
 #if FVM_VER > 0
@@ -672,6 +697,17 @@ module ms2_global
 
 #else
   logical, parameter :: TerminateProgram = .false.
+#endif
+
+#if FVM_VER > 0 && defined PAR_PROF
+! PAPI
+!  integer(c_int)            :: PAPI_check
+!  integer(c_int), parameter :: PAPI_numEvents = 2
+!  integer(c_int)            :: PAPI_events(PAPI_numEvents)
+!  integer(c_long_long)      :: PAPI_values(PAPI_numEvents)
+!  integer(c_long_long)      :: PAPI_accum_values(PAPI_numEvents)
+!  integer, parameter        :: iounit_papi = 0
+!  character(200)            :: PAPI_fileName
 #endif
 
 
@@ -853,7 +889,7 @@ contains
     integer                   :: narg, dot, stat, i
     character(IOBufferLength) :: buffer
 #endif
-#if defined PAR_PROF || defined PAR_DEBUG
+#if defined PAR_PROF || defined PAR_DEBUG || defined FORCE_DEBUG
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
     character(4) :: MyProcNumChar
 #endif
@@ -920,7 +956,7 @@ contains
       call c_f_pointer(fvmPtr, IOBuffer)
     end if
 
-#if defined PAR_DEBUG
+#if defined PAR_DEBUG || defined FORCE_DEBUG
     print*, "IOBuffer Offset: ", fvmByteOffIOBuffer
 #endif
 
@@ -935,7 +971,7 @@ contains
       call c_f_pointer(fvmPtr, parametervalue_global)
     end if
 
-#if defined PAR_DEBUG
+#if defined PAR_DEBUG || defined FORCE_DEBUG
     print*, "parametervalue_global Offset: ", fvmByteOffParametervalue_global
 #endif
 
@@ -947,7 +983,7 @@ contains
       call c_f_pointer(fvmPtr, status_global)
     end if
 
-#if defined PAR_DEBUG
+#if defined PAR_DEBUG || defined FORCE_DEBUG
     print*, "status_global Offset: ", fvmByteOffStatus_global
 #endif
 
@@ -1032,7 +1068,7 @@ contains
 #endif
 
     ! prepare parallel profiling
-#if defined PAR_PROF
+#if defined PAR_PROF || PAR_DEBUG
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
 
     write(MyProcNumChar, '(I0)') NProc
@@ -1069,11 +1105,32 @@ contains
 
 #endif
 
+#endif
+
+#if defined PAR_PROF
+
     RuntimeFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.rtm'
     TraceFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.trc'
 
     call constructProfiler( Profiler, TraceFileName, RuntimeFileName, &
 &     iounit_trace, iounit_runtime )
+
+    ForceRuntime = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'_frc.rtm'
+    ForceTrace = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'_frc.trc'
+
+    call constructProfiler( ForceProf, ForceTrace, ForceRuntime, &
+&     iounit_forcetrace, iounit_forceruntime )
+
+    CutoffRuntime = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'_cop.rtm'
+    CutoffTrace = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'_cop.trc'
+
+    call constructProfiler( CutoffProf, CutoffTrace, CutoffRuntime, &
+&     iounit_cutofftrace, iounit_cutoffruntime )
+
+    NInCutoffFile = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.nic'
+
+    open( unit = iounit_NInCutoff, file = trim(NInCutoffFile), &
+&      action = 'readwrite', status = 'replace', position = 'append' )
 
 #endif
 
@@ -1083,6 +1140,15 @@ contains
     ParDebugFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.dbg'
     open(unit = iounit_pardebug, file = trim(ParDebugFileName), &
 &      action = 'readwrite', status = 'replace', position = 'append')
+
+#endif
+
+#if defined FORCE_DEBUG
+
+    write(MyProcNumChar, '(I0)') NProc
+    ForceDebugFileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.frc'
+    open(unit = iounit_forcedebug, file = trim(ForceDebugFileName), &
+&     action = 'readwrite', status = 'replace', position = 'append')
 
 #endif
 
@@ -1250,6 +1316,14 @@ contains
     BuckinghamsInSI = sqrt( 1E69_8 / (4._8 * Pi * VacuumPermittivity) )
 #endif
 
+#if FVM_VER > 0 && defined PAR_PROF
+   ! init PAPI
+!   PAPI_events(1) = PAPI_L1_DCM
+!   PAPI_events(2) = PAPI_L1_DCA
+!   PAPI_accum_values(:) = 0
+!   PAPI_fileName = '/scratch/adorf/'//trim(ProfilingPath)//'proc'//trim(MyProcNumChar)//'.papi'
+#endif
+
   end subroutine Global_InitializeProgram
 
 
@@ -1273,6 +1347,14 @@ contains
 !DEBUG
 !   close(999)
 !DEBUG
+
+#if FVM_VER > 0 && defined PAR_PROF
+  ! PAPI
+!  open(unit = iounit_papi, file = trim(PAPI_fileName), &
+!    action = 'readwrite', status = 'replace', position = 'append')
+!  write(iounit_papi, '(2I)') PAPI_accum_values(1), PAPI_accum_values(2)
+!  close(iounit_papi)
+#endif
 
 #if defined PAR_PROF
 
@@ -1306,12 +1388,22 @@ contains
 
     ! destruct Profiler
     call destructProfiler(Profiler)
+    call destructProfiler(ForceProf)
+    call destructProfiler(CutoffProf)
+
+    close(iounit_NInCutoff)
 
 #endif
 
 #if defined PAR_DEBUG
 
     close(iounit_pardebug)
+
+#endif
+
+#if defined FORCE_DEBUG
+
+     close(iounit_forcedebug)
 
 #endif
 

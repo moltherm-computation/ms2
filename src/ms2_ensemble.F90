@@ -2514,7 +2514,7 @@ loop:do l = 1, NPartInCell
     do pardbgidx1 = 1, this%NComponents
       write(iounit_pardebug, '(A)') "velocities after net momentum removal:"
       do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
-        write(iounit_pardebug, '(3F10.3)') &
+        write(iounit_pardebug, '(3F25.16)') &
 &         this%Component(pardbgidx1)%P1(pardbgidx2,:)
       end do
     end do
@@ -2528,7 +2528,7 @@ loop:do l = 1, NPartInCell
     do pardbgidx1 = 1, this%NComponents
       write(iounit_pardebug, '(A)') "velocities after initial rescaling:"
       do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
-        write(iounit_pardebug, '(3F20.10)') &
+        write(iounit_pardebug, '(3F25.16)') &
 &         this%Component(pardbgidx1)%P1(pardbgidx2,:)
       end do
     end do
@@ -2778,7 +2778,7 @@ loop:do l = 1, NPartInCell
       this%EKin = this%EKinTran + this%EKinRot
 
 #if defined PAR_DEBUG
-      write(iounit_pardebug, '(A, F10.3)') "my EKin: ", this%EKin
+      write(iounit_pardebug, '(A, F25.16)') "my EKin: ", this%EKin
 #endif
 
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
@@ -2823,8 +2823,8 @@ loop:do l = 1, NPartInCell
 
 #if defined PAR_DEBUG
 
-      write(iounit_pardebug, '(A, F10.3)') "EKin: ", this%EKin
-      write(iounit_pardebug, '(A, F10.3)') "Temp: ", this%Temperature
+      write(iounit_pardebug, '(A, F25.16)') "EKin: ", this%EKin
+      write(iounit_pardebug, '(A, F25.16)') "Temp: ", this%Temperature
       
 #endif
 
@@ -2851,7 +2851,7 @@ loop:do l = 1, NPartInCell
 #endif
 
 #if defined PAR_DEBUG
-      write(iounit_pardebug, '(A, F10.3)') "scale: ", this%scale
+      write(iounit_pardebug, '(A, F25.16)') "scale: ", this%scale
 #endif
 
     ! Broadcast temperature
@@ -3559,15 +3559,25 @@ loop3:    do nc = 1, this%NComponents
 
 #endif
 #if FVM_VER > 0
+!**********************************************************
+!old version (Predictor/Corrector not parallelized)
+!**********************************************************
+!
+!      fvmret = pv4dBarrier()
+!
+!      !FVM_Bcast
+!      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
+!&       sizeof(this%Volume0), NRootProc, 0)
+!      fvmret = waitonqueue(0)
+!
+!      fvmret = pv4dBarrier()
+!
+!**********************************************************
+!new version (Predictor/Corrector parallelized)
+!**********************************************************
+!parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
-      fvmret = pv4dBarrier()
-
-      !FVM_Bcast
-      fvmret = readdma(this%fvmByteOffVolume0, this%fvmByteOffVolume0, &
-&       sizeof(this%Volume0), NRootProc, 0)
-      fvmret = waitonqueue(0)
-
-      fvmret = pv4dBarrier()
+      !no communication needed
 
 #endif
 
@@ -4090,11 +4100,11 @@ loop3:    do nc = 1, this%NComponents
     end do
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F20.10)') "Density: ", this%Density
-    write(iounit_pardebug, '(A, F20.10)') "EPotCorrLJ: ", this%EPotCorrLJ
-    write(iounit_pardebug, '(A, F20.10)') "EPotCorrRF: ", this%EPotCorrRF
-    write(iounit_pardebug, '(A, F20.10)') "VirialCorrLJ: ", this%VirialCorrLJ
-    write(iounit_pardebug, '(A, F20.10)') "BoxLength: ", this%BoxLength
+!    write(iounit_pardebug, '(A, F25.16)') "Density: ", this%Density
+!    write(iounit_pardebug, '(A, F25.16)') "EPotCorrLJ: ", this%EPotCorrLJ
+!    write(iounit_pardebug, '(A, F25.16)') "EPotCorrRF: ", this%EPotCorrRF
+!   write(iounit_pardebug, '(A, F25.16)') "VirialCorrLJ: ", this%VirialCorrLJ
+!    write(iounit_pardebug, '(A, F25.16)') "BoxLength: ", this%BoxLength
 #endif
 
     ! Zero potential
@@ -4106,6 +4116,10 @@ loop3:    do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: id = ", i
+  write(iounit_forcedebug, '(A, I)') "ComponentB: id = ", j
+#endif
         call Force( this%Interaction( i, j ), &
 &                   EPot, Virial, this%BoxLength )
       end do
@@ -4169,8 +4183,8 @@ loop3:    do nc = 1, this%NComponents
     this%fvmTmpVirial = Virial
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
-    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
+    write(iounit_pardebug, '(A, F25.16)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F25.16)') "fvmTmpVirial: ", this%fvmTmpVirial
 #endif
     
     fvmret = pv4dBarrier() !insure correct init (!)
@@ -4221,8 +4235,8 @@ loop3:    do nc = 1, this%NComponents
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A, F10.3)') "EPot: ", this%EPot
-    write(iounit_pardebug, '(A, F10.3)') "Virial: ", this%Virial
+    write(iounit_pardebug, '(A, F25.16)') "EPot: ", this%EPot
+    write(iounit_pardebug, '(A, F25.16)') "Virial: ", this%Virial
 
 #endif
 

@@ -22,7 +22,7 @@ ifeq ($(MPI),0)
   ifneq ($(FVM),0)
     F90 = ifort
     # use at least intel/10.1/64
-    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 #-DPAR_PROF -DPAR_DEBUG
+    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 -DPAR_PROF -DPAR_DEBUG -DFORCE_DEBUG
     #removed '-D_PGF'
     FVMOBJS = /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.o \
               /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.a \
@@ -67,7 +67,7 @@ all: $(PROG)
 $(PROG): $(OBJS)
 ifneq ($(FVM),0)
 	$(F90) $(LDFLAGS) $(F90FLAGS) -o $@ $(OBJS) $(FVMOBJS) \
-	-L/u/herc/adorf/lib/PV-4D -libverbs12 -lPv4dVM4 \
+	-L/u/herc/adorf/lib/PV-4D -libverbs12 -lPv4dVM4BETA \
 	-lPv4dDaemon -lcrypto -lstdc++ \
 	-Wl,-rpath=/u/herc/adorf/lib:/opt/cluster/Intel/cce/9.1.047/lib
 else

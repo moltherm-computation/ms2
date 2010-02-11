@@ -1931,9 +1931,9 @@ contains
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A)') "velocities after init:"
+    write(iounit_pardebug, '(A)') "my velocities after init:"
     do pardbgidx1 = this%NPart0, this%NPart2
-      write(iounit_pardebug, '(3F10.3)') this%P1(pardbgidx1,:)
+      write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
     end do
 
 #endif
@@ -2114,7 +2114,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F10.3)') "my EKinTran: ", this%EKinTran
+    write(iounit_pardebug, '(A, F25.16)') "my EKinTran: ", this%EKinTran
 #endif
 
     ! Calculate rotational kinetic energy
@@ -2131,7 +2131,7 @@ contains
     end do
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F10.3)') "my EKinRot: ", this%EKinRot
+    write(iounit_pardebug, '(A, F25.16)') "my EKinRot: ", this%EKinRot
 #endif
 
   end subroutine TComponent_CalculateEKin
@@ -2287,11 +2287,11 @@ contains
 
     write(iounit_pardebug, '(A)') "current positions (after Bcast):"
     do pardbgidx1 = 1, np
-      write(iounit_pardebug, '(3F20.10)') this%P0(pardbgidx1,:)
+      write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
     end do
     write(iounit_pardebug, '(A)') "current quaternions (after Bcast):"
     do pardbgidx1 = 1, np
-      write(iounit_pardebug, '(3F20.10)') this%Q0(pardbgidx1,:)
+      write(iounit_pardebug, '(3F25.16)') this%Q0(pardbgidx1,:)
     end do
 
 #endif
@@ -3312,10 +3312,17 @@ contains
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A)') "current forces (after Bcast):"
-    do pardbgidx1 = 1, size(this%FAll(:,1))
-      write(iounit_pardebug, '(3F10.3)') this%FAll(pardbgidx1,:)
+    write(iounit_pardebug, '(A)') "my current forces (after Bcast):"
+    do pardbgidx1 = this%NPart0, this%NPart2     !1, size(this%FAll(:,1))
+      write(iounit_pardebug, '(3F25.16)') this%FAll(pardbgidx1,:)
     end do
+
+    if( this%Molecule%isElongated ) then
+      write(iounit_pardebug, '(A)') "my current torques (after Bcast):"
+      do pardbgidx1 = this%NPart0, this%NPart2   !1, size(this%TAll(:,1))
+        write(iounit_pardebug, '(3F25.16)') this%TAll(pardbgidx1,:)
+      end do
+    end if
 
 #endif
 
@@ -3384,13 +3391,13 @@ contains
     end do
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A)') "positions after PredictGear:"
+    write(iounit_pardebug, '(A)') "my positions after PredictGear:"
     do pardbgidx1 = this%NPart0, this%NPart2 
-      write(iounit_pardebug, '(3F10.3)') this%P0(pardbgidx1,:)
+      write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
     end do
-    write(iounit_pardebug, '(A)') "velocities after PredictGear:"
+    write(iounit_pardebug, '(A)') "my velocities after PredictGear:"
     do pardbgidx1 = this%NPart0, this%NPart2
-      write(iounit_pardebug, '(3F20.10)') this%P1(pardbgidx1,:)
+      write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
     end do
 #endif
 
@@ -3521,13 +3528,6 @@ contains
         ! Calculate displacement
         this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
 
-#if defined PAR_DEBUG
-        write(iounit_pardebug, '(A)') "velocities after correction:"
-        do pardbgidx1 = this%NPart0, this%NPart2
-          write(iounit_pardebug, '(3F20.10)') this%P1(pardbgidx1,:)
-        end do
-#endif
-
         ! Check for conservation of particles in primary cell
 #if ARCH == 1
         if( this%P0(i, j) < -.5_RK ) then
@@ -3541,6 +3541,17 @@ contains
         this%P0old(i, j) = this%P0(i, j)
       end do
     end do
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A)') "my positions after CorrectGear:"
+    do pardbgidx1 = this%NPart0, this%NPart2
+      write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
+    end do
+    write(iounit_pardebug, '(A)') "my velocities after correction:"
+    do pardbgidx1 = this%NPart0, this%NPart2
+      write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
+    end do
+#endif
 
     if( this%Molecule%isElongated ) then
 

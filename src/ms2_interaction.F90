@@ -806,14 +806,30 @@ contains
     integer           :: i0
 #endif
 
+#if defined PAR_PROF
+    call profileTagBefore(CutoffProf, 'CalcCutoffPartners')
+#endif
+
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
+#if defined PAR_PROF
+    call profileTagAfter(CutoffProf, 'CalcCutoffPartners')
+#endif
+
+#if defined PAR_PROF
+    call profileTagBefore(ForceProf, 'CalcForce')
+#endif
+
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: LJ-Site No. ", i
+  write(iounit_forcedebug, '(A, I)') "ComponentB: LJ-Site No. ", j
+#endif
         call Force( this%PotLJ126LJ126( i, j ), &
 &         EPot, Virial, BoxLength )
       end do
@@ -822,6 +838,10 @@ contains
     ! Calculate point charge forces
     do i = 1, this%N1Charge
       do j = 1, this%N2Charge
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: C-Site No. ", i
+  write(iounit_forcedebug, '(A, I)') "ComponentB: C-Site No. ", j
+#endif
         call Force( this%PotChargeCharge( i, j ), &
 &         EPot, Virial, BoxLength )
       end do
@@ -923,6 +943,10 @@ contains
 
       EPot = EPot + this%RFConst2 * EPotlocal
     end if
+
+#if defined PAR_PROF
+    call profileTagAfter(ForceProf, 'CalcForce')
+#endif
 
   end subroutine TInteraction_Force
 
@@ -2307,6 +2331,11 @@ contains
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff
  
+#if FVM_VER > 0 && defined PAR_PROF
+    ! PAPI
+!    call PAPIF_start_counters(PAPI_events, PAPI_numEvents, PAPI_check)
+#endif
+
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
@@ -2348,6 +2377,11 @@ contains
           end if
         end do
         this%NInCutoff(i) = NInCutoff
+
+#if defined PAR_PROF
+   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#endif
+        
       end do
 #if MPI_VER > 0 || FVM_VER > 0
           do i = (N+1) / 2 + 1, this%NPart12
@@ -2385,6 +2419,11 @@ contains
           end if
         end do
         this%NInCutoff(i) = NInCutoff
+
+#if defined PAR_PROF
+   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#endif
+
       end do
 #if MPI_VER > 0 || FVM_VER > 0
         else
@@ -2407,6 +2446,11 @@ contains
               end if
             end do
             this%NInCutoff(i) = NInCutoff
+
+#if defined PAR_PROF
+   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#endif
+
           end do
         end if
       else
@@ -2442,6 +2486,11 @@ contains
             end if
           end do
           this%NInCutoff(i) = NInCutoff
+
+#if defined PAR_PROF
+   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#endif
+
         end do
       end if
 #endif
@@ -2470,8 +2519,19 @@ contains
           end if
         end do
         this%NInCutoff(i) = NInCutoff
+
+#if defined PAR_PROF
+   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#endif
+
       end do
     end if
+
+#if FVM_VER > 0 && defined PAR_PROF
+  ! PAPI
+!  call PAPIF_stop_counters(PAPI_values, PAPI_numEvents, PAPI_check)
+!  PAPI_accum_values(:) = PAPI_accum_values(:) + PAPI_values(:)
+#endif
 
   end subroutine TInteraction_CalcPartners
 

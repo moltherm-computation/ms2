@@ -752,6 +752,13 @@ contains
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i) 
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F25.16)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
+#endif
+        
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx(i)
@@ -801,6 +808,12 @@ loop1:  do k = 1, this%NInCutoff(i)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F25.16, A)') "particle no. ", j, &
+&   " at position ", RX2(j), RY2(j), RZ2(j), " is an LJLJ-partner"
+#endif
+
 #if TRANS==1
           PXijB= PXij * BoxLength
           PYijB= PYij * BoxLength
@@ -812,11 +825,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
 
 #if defined PAR_DEBUG
-       write(iounit_pardebug, '(A, 3F20.10)') "Rxi, Ryi, Rzi:", RXi, RYi, RZi
-       write(iounit_pardebug, '(A, 3F20.10)') "Rx2, Ry2, Rz2:", &
-&        RX2(j), RY2(j), RZ2(j)
-       write(iounit_pardebug, '(A, F20.10)') "SigmaSquared: ", SigmaSquared
-       write(iounit_pardebug, '(A, F20.10)') "RijSquaredInv: ", RijSquaredInv
+!       write(iounit_pardebug, '(A, 3F25.16)') "Rxi, Ryi, Rzi:", RXi, RYi, RZi
+!       write(iounit_pardebug, '(A, 3F25.16)') "Rx2, Ry2, Rz2:", &
+!&        RX2(j), RY2(j), RZ2(j)
+!       write(iounit_pardebug, '(A, F25.16)') "SigmaSquared: ", SigmaSquared
+!       write(iounit_pardebug, '(A, F25.16)') "RijSquaredInv: ", RijSquaredInv
 #endif
 
 #if TRANS==1
@@ -843,6 +856,15 @@ loop1:  do k = 1, this%NInCutoff(i)
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F25.16)') "partial EPot   = ", &
+&   Rij6Inv * (Rij6Inv - 1._RK)
+  write(iounit_forcedebug, '(A, 1F25.16)') "partial Virial = ", &
+&   PXij * FXij + PYij * FYij + PZij * FZij
+  write(iounit_forcedebug, '(A, 3F25.16)') "partial Force  = ", FXij, FYij, FZij
+#endif
+
 #if  TRANS == 1
           !TRANSPORT_start
           VSxi   = VSxi + FXij * PYijB
@@ -975,12 +997,12 @@ loop2:  do j = j0, j1
     end if
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F20.10)') "EPot LJLJ: ", EPot
-    write(iounit_pardebug, '(A, F20.10)') "Virial LJLJ: ", Virial
-    write(iounit_pardebug, '(A, F20.10)') "Epsilon4: ", Epsilon4
-    write(iounit_pardebug, '(A, F20.10)') "EPotLocal: ", EPotLocal
-    write(iounit_pardebug, '(A, F20.10)') "Third: ", Third
-    write(iounit_pardebug, '(A, F20.10)') "VirialLocal: ", VirialLocal
+!    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
+!    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
+!    write(iounit_pardebug, '(A, F25.16)') "Epsilon4: ", Epsilon4
+!    write(iounit_pardebug, '(A, F25.16)') "EPotLocal: ", EPotLocal
+!    write(iounit_pardebug, '(A, F25.16)') "Third: ", Third
+!    write(iounit_pardebug, '(A, F25.16)') "VirialLocal: ", VirialLocal
 #endif
 
     ! Update potential energy and virial
@@ -988,8 +1010,8 @@ loop2:  do j = j0, j1
     Virial = Virial + Third * VirialLocal * BoxLength
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F20.10)') "EPot LJLJ: ", EPot
-    write(iounit_pardebug, '(A, F20.10)') "Virial LJLJ: ", Virial
+    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
+    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
 #endif
 
   end subroutine TPotLJLJ_Force
@@ -1444,6 +1466,13 @@ loop2:do j = 1, N
       PXi = PX1(i)
       PYi = PY1(i)
       PZi = PZ1(i)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F25.16)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
+#endif
+
 #if  TRANS == 1
       !TRANSPORT_start
       VSxi= VSx(i)
@@ -1493,6 +1522,12 @@ loop1:do k = 1, this%NInCutoff(i)
         PXij = (PXij - anint( PXij )) * BoxLength
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F25.16, A)') "particle no. ", j, &
+&   " at position ", RX2(j), RY2(j), RZ2(j), " is an CC-partner"
+#endif
+
 #if TRANS==1
         r1x  = ( RXi-PXi ) * BoxLength
         r1y  = ( RYi-PYi ) * BoxLength
@@ -1530,6 +1565,15 @@ loop1:do k = 1, this%NInCutoff(i)
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F25.16)') "partial EPot   = ", &
+&   EPotLocal1
+  write(iounit_forcedebug, '(A, 1F25.16)') "partial Virial = ", &
+&   EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+  write(iounit_forcedebug, '(A, 3F25.16)') "partial Force  = ", FXij, FYij, FZij
+#endif
+
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi   = VSxi + FXij * PYij
