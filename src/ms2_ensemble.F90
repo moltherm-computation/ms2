@@ -5346,7 +5346,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call Unit2Mol( pc, np )
+!       call Unit2Mol( pc, np )
       call UpdateEnergy( this, nc, np, nu )
 
     else
@@ -5409,7 +5409,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: EPotOld, EPotNew, EPotSum
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i, nu
+    integer                   :: i
     integer                   :: NUnit
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
@@ -5499,8 +5499,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 
       ! Accept rotation
-      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
+      pc%NRotateMolSuccesses = pc%NRotateMolSuccesses + 1
+      do i=1,NUnit
+        call UpdateEnergy( this, nc, np, i )
+      end do
 
     else
 
