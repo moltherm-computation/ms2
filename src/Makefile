@@ -70,6 +70,11 @@ ifneq ($(FVM),0)
 	-L/u/herc/adorf/lib/PV-4D -libverbs12 -lPv4dVM4BETA \
 	-lPv4dDaemon -lcrypto -lstdc++ \
 	-Wl,-rpath=/u/herc/adorf/lib:/opt/cluster/Intel/cce/9.1.047/lib
+#
+        #-L/opt/cluster/libs/papi-3.5.0/lib64 \
+        #-lpapi \
+        #-rpath=...:/opt/cluster/libs/papi-3.5.0/lib64
+#
 else
 	$(F90) $(LDFLAGS) -o $@ $(OBJS)
 endif
@@ -82,7 +87,11 @@ clean:
 %.mod %.o: %.F90
 ifneq ($(FVM),0)
 	$(F90) $(CPPFLAGS) $(F90FLAGS) \
-	-I/u/herc/adorf/include/FVM-Fortran -c $<
+	-I/u/herc/adorf/include/FVM-Fortran \
+        -c $<
+#
+        #-I/opt/cluster/libs/papi-3.5.0/include \
+#
 else
 	$(F90) $(CPPFLAGS) $(F90FLAGS) -c $<
 endif
