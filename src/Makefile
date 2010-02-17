@@ -22,7 +22,7 @@ ifeq ($(MPI),0)
   ifneq ($(FVM),0)
     F90 = ifort
     # use at least intel/10.1/64
-    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 -DPAR_PROF -DPAR_DEBUG -DFORCE_DEBUG
+    CPPFLAGS = -DARCH=2 -DFORTRAN=2003 -DMPI_VER=0 -DFVM_VER=1 -DFVM_ALLREDUCE=1 -DPAR_PROF #-DPAR_DEBUG -DFORCE_PROF -DFORCE_DEBUG
     #removed '-D_PGF'
     FVMOBJS = /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.o \
               /u/herc/adorf/lib/FVM-Fortran/libfvmf2003.a \
@@ -67,9 +67,10 @@ all: $(PROG)
 $(PROG): $(OBJS)
 ifneq ($(FVM),0)
 	$(F90) $(LDFLAGS) $(F90FLAGS) -o $@ $(OBJS) $(FVMOBJS) \
-	-L/u/herc/adorf/lib/PV-4D -libverbs12 -lPv4dVM4BETA \
-	-lPv4dDaemon -lcrypto -lstdc++ \
-	-Wl,-rpath=/u/herc/adorf/lib:/opt/cluster/Intel/cce/9.1.047/lib
+	-L/opt/cluster/PV-4D.pspro/lib64 \
+        -libverbs12 -lPv4dVM4BETA -lPv4dDaemon \
+        -lcrypto -lstdc++ \
+	-Wl,-rpath=/opt/cluster/PV-4D.pspro/lib64:/opt/cluster/Intel/cce/9.1.047/lib
 #
         #-L/opt/cluster/libs/papi-3.5.0/lib64 \
         #-lpapi \

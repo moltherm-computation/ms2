@@ -50,6 +50,14 @@ module ms2_component
 
   type TComponent
 
+    ! FVMPrefetching: Inbox
+#if FVM_VER > 0
+    integer, pointer  :: Inbox(:)
+    integer(c_size_t) :: fvmByteOffInbox
+    integer, pointer  :: ToInboxField
+    integer(c_size_t) :: fvmByteOffToInboxField
+#endif
+    
     ! Positions and orientations of test particles
     real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
 
@@ -192,6 +200,11 @@ module ms2_component
 #endif
 
     ! Number of particles in process
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer :: currentNPart0, currentNPart1, currentNPart2
+    integer, pointer :: writebackNPart0, writebackNPart1, writebackNPart2
+#endif
     integer, pointer :: NPart0, NPart1, NPart2
 
     ! Number of test particles
@@ -342,6 +355,10 @@ module ms2_component
     module procedure TComponent_Mol2Atom
   end interface
 
+  interface FVMPrefetchedMol2Atom
+    module procedure TComponent_FVMPrefetchedMol2Atom
+  end interface
+
   interface Mol2Atom1
     module procedure TComponent_Mol2Atom1
   end interface
@@ -453,6 +470,33 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: stat
 
+#if FVM_VER > 0
+!FVMPrefetching
+
+    ! Allocate Inbox
+    this%fvmByteOffInbox = reserveFvmMem( fvmDisp, &
+&     sizeof( this%Inbox(1:numVmNodes) ) )
+    if (this%fvmByteOffInbox.LT.0) then
+      call AllocationError( -1, 'Inbox' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffInbox)
+      call c_f_pointer(fvmPtr, this%Inbox, [numVmNodes])
+    endif
+
+    this%fvmByteOffToInboxField = reserveFvmMem( fvmDisp, &
+&     sizeof( this%ToInboxField ) )
+    if (this%fvmByteOffToInboxField.LT.0) then
+      call AllocationError( -1, 'ToInboxField' )
+    else
+      fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffToInboxField)
+      call c_f_pointer(fvmPtr, this%ToInboxField)
+    endif
+
+    ! Initialize Inbox and ToInboxField later, after NPart1 has been set
+    ! (this happens in TEnsemble_Construct)
+
+#endif
+    
     ! Allocate number of particles in component
 #if FVM_VER == 0
     allocate( this%NPart, STAT = stat )
@@ -474,6 +518,22 @@ contains
     call AllocationError( stat, 'number of particles' )
     allocate( this%NPart2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+
+    ! FVMPrefetching: Allocate current number of processed particles
+    allocate( this%currentNPart0, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%currentNPart1, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%currentNPart2, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+
+    ! FVMPrefetching: Allocate number of particles to be written back
+    allocate( this%writebackNPart0, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%writebackNPart1, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%writebackNPart2, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
 
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
@@ -726,6 +786,22 @@ contains
     allocate( this%NPart2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
+    ! FVMPrefetching: Allocate current number of processed particles
+    allocate( this%currentNPart0, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%currentNPart1, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%currentNPart2, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+
+    ! FVMPrefetching: Allocate number of particles to be written back
+    allocate( this%writebackNPart0, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%writebackNPart1, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+    allocate( this%writebackNPart2, STAT = stat )
+    call AllocationError( stat, 'current number of processed particles' )
+
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
     call AllocationError( stat, 'number of test particles' )
@@ -781,6 +857,9 @@ contains
     call AllocationError( stat, 'number of particles' )
     allocate( this%NPart2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+
+    ! FVMPrefetching: Allocate current number of processed particles
+    ! *** ??? ***
 
     ! Allocate number of particles in component
     allocate( this%NTest, STAT = stat )
@@ -840,6 +919,28 @@ contains
     end if
     if( associated( this%NPart2 ) ) then
       deallocate( this%NPart2 )
+    end if
+
+    ! FVMPrefetching: Deallocate current number of processed particles
+    if( associated( this%currentNPart0 ) ) then
+      deallocate( this%currentNPart0 )
+    end if
+    if( associated( this%currentNPart1 ) ) then
+      deallocate( this%currentNPart1 )
+    end if
+    if( associated( this%currentNPart2 ) ) then
+      deallocate( this%currentNPart2 )
+    end if
+
+    ! FVMPrefetching: Deallocate number of particles to be written back
+    if( associated( this%writebackNPart0 ) ) then
+      deallocate( this%writebackNPart0 )
+    end if
+    if( associated( this%writebackNPart1 ) ) then
+      deallocate( this%writebackNPart1 )
+    end if
+    if( associated( this%writebackNPart2 ) ) then
+      deallocate( this%writebackNPart2 )
     end if
 
     ! Deallocate number of particles in component
@@ -1208,7 +1309,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "P0 Offset: ", this%fvmByteOffP0
+    write(iounit_pardebug, '(A, I)') "P0 Offset: ", this%fvmByteOffP0
 #endif
 
     allocate( this%P0Save( np, 3 ), STAT = stat )
@@ -1266,7 +1367,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "F Offset: ", this%fvmByteOffF
+    write(iounit_pardebug, '(A, I)') "F Offset: ", this%fvmByteOffF
 #endif
 
 #if MPI_VER > 0
@@ -1285,7 +1386,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "FAll Offset: ", this%fvmByteOffFAll
+    write(iounit_pardebug, '(A, I)') "FAll Offset: ", this%fvmByteOffFAll
 #endif
 
       ! temporary storage for FVM_(All)Reduce -- preliminary (!)
@@ -1301,7 +1402,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "TmpF Offset: ", this%fvmByteOffFvmTmpF
+    write(iounit_pardebug, '(A, I)') "TmpF Offset: ", this%fvmByteOffFvmTmpF
 #endif
 
     end if
@@ -1324,7 +1425,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "Q0 Offset: ", this%fvmByteOffQ0
+    write(iounit_pardebug, '(A, I)') "Q0 Offset: ", this%fvmByteOffQ0
 #endif
 
       allocate( this%Q0Save( np, 4 ), STAT = stat )
@@ -1381,7 +1482,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "T Offset: ", this%fvmByteOffT
+    write(iounit_pardebug, '(A, I)') "T Offset: ", this%fvmByteOffT
 #endif
 
 #if MPI_VER > 0
@@ -1400,7 +1501,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "TAll Offset: ", this%fvmByteOffTAll
+    write(iounit_pardebug, '(A, I)') "TAll Offset: ", this%fvmByteOffTAll
 #endif
 
         ! temporary storage for FVM_(All)Reduce -- preliminary (!)
@@ -1416,7 +1517,7 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "TmpT Offset: ", this%fvmByteOffFvmTmpT
+    write(iounit_pardebug, '(A, I)') "TmpT Offset: ", this%fvmByteOffFvmTmpT
 #endif
 
         ! Torques from reaction field
@@ -1579,7 +1680,7 @@ contains
       endif
 
 #if defined PAR_DEBUG
-    print*, "NState Offset: ", this%fvmByteOffNState
+    write(iounit_pardebug, '(A, I)') "NState Offset: ", this%fvmByteOffNState
 #endif
 
       !FVMF2003_IndexChange:
@@ -1595,7 +1696,8 @@ contains
 #endif
 
 #if defined PAR_DEBUG
-    print*, "NStateWF Offset: ", this%fvmByteOffNStateWF
+    write(iounit_pardebug, '(A, I)') "NStateWF Offset: ", &
+&     this%fvmByteOffNStateWF
 #endif
 
 !       allocate( this%NStateBF( nf ), STAT = stat )
@@ -2303,7 +2405,7 @@ contains
     if( this%Molecule%isElongated ) then
 
       ! Loop over molecules
-      do i = 1, np
+      do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
         ! Positions and quaternions of particle i
         PX(i) = this%P0(i, 1)
         PY(i) = this%P0(i, 2)
@@ -2346,7 +2448,7 @@ contains
         r1 = pLJ126%r(1) * BoxLengthInv
         r2 = pLJ126%r(2) * BoxLengthInv
         r3 = pLJ126%r(3) * BoxLengthInv
-        do i = 1, np
+        do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
           pLJ126%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pLJ126%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pLJ126%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
@@ -2359,7 +2461,7 @@ contains
         r1 = pCharge%r(1) * BoxLengthInv
         r2 = pCharge%r(2) * BoxLengthInv
         r3 = pCharge%r(3) * BoxLengthInv
-        do i = 1, np
+        do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
           pCharge%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pCharge%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pCharge%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
@@ -2375,7 +2477,7 @@ contains
         or1 = pDipole%or(1)
         or2 = pDipole%or(2)
         or3 = pDipole%or(3)
-        do i = 1, np
+        do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
           pDipole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pDipole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pDipole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
@@ -2394,7 +2496,7 @@ contains
         or1 = pQuadrupole%or(1)
         or2 = pQuadrupole%or(2)
         or3 = pQuadrupole%or(3)
-        do i = 1, np
+        do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
           pQuadrupole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pQuadrupole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pQuadrupole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
@@ -2409,7 +2511,7 @@ contains
         mue1 = this%Molecule%Mue(1)
         mue2 = this%Molecule%Mue(2)
         mue3 = this%Molecule%Mue(3)
-        do i = 1, np
+        do i = 1, np ! FVM_Prefetching: i = currentNPart0, currentNPart2
           this%MueX(i) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
           this%MueY(i) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
           this%MueZ(i) = mue1 * A13(i) + mue2 * A23(i) + mue3 * A33(i)
@@ -2421,7 +2523,7 @@ contains
       ! Loop over LJ126 sites in molecule
       do i = 1, this%Molecule%NLJ126
         pLJ126 => this%Molecule%SiteLJ126(i)
-        do j = 1, np
+        do j = 1, np ! FVM_Prefetching: j = currentNPart0, currentNPart2
           pLJ126%RX(j) = this%P0(j, 1)
           pLJ126%RY(j) = this%P0(j, 2)
           pLJ126%RZ(j) = this%P0(j, 3)
@@ -2431,6 +2533,176 @@ contains
     end if
 
   end subroutine TComponent_Mol2Atom
+
+
+
+!==============================================================!
+!  Subroutine TComponent_FVMPrefetchedMol2Atom                 !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TComponent_FVMPrefetchedMol2Atom( this, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PX(np), PY(np), PZ(np)
+    real(RK)                       :: q1, q2, q3, q4, qinv
+    real(RK)                       :: A11(np), A12(np), A13(np)
+    real(RK)                       :: A21(np), A22(np), A23(np)
+    real(RK)                       :: A31(np), A32(np), A33(np)
+    real(RK)                       :: r1, r2, r3, or1, or2, or3
+    real(RK)                       :: mue1, mue2, mue3
+    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteCharge), pointer     :: pCharge
+    type(TSiteDipole), pointer     :: pDipole
+    type(TSiteQuadrupole), pointer :: pQuadrupole
+    integer                        :: i, j
+    integer                        :: currentNp0, currentNp1, currentNp2
+
+    ! Assign local variables
+    currentNp0 = this%currentNPart0
+    currentNp1 = this%currentNPart1
+    currentNp2 = this%currentNPart2
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    ! Check number of rotation axes
+    if( this%Molecule%isElongated ) then
+
+      ! Loop over molecules
+      do i = currentNp0, currentNp2
+        ! Positions and quaternions of particle i
+        PX(i) = this%P0(i, 1)
+        PY(i) = this%P0(i, 2)
+        PZ(i) = this%P0(i, 3)
+        q1 = this%Q0(i, 1)
+        q2 = this%Q0(i, 2)
+        q3 = this%Q0(i, 3)
+        q4 = this%Q0(i, 4)
+        ! Normalise quaternions
+!FVMPrefetching: this has already been done!
+!  (in TEnsemble_FVMPrefetchedMol2AtomForce)
+#if ARCH == 3
+!        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+!        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+!        q1 = q1 * qinv
+!        q2 = q2 * qinv
+!        q3 = q3 * qinv
+!        q4 = q4 * qinv
+!        this%Q0(i, 1) = q1
+!        this%Q0(i, 2) = q2
+!        this%Q0(i, 3) = q3
+!        this%Q0(i, 4) = q4
+        ! Calculate rotation matrix elements   ! FIXME Hier ist was doppelt, diese Berechnung wird nochmals gemacht
+        A11(i) = q1**2 + q2**2 - q3**2 - q4**2
+        A12(i) = 2._RK * (q2 * q3 + q1 * q4)
+        A13(i) = 2._RK * (q2 * q4 - q1 * q3)
+        A21(i) = 2._RK * (q2 * q3 - q1 * q4)
+        A22(i) = q1**2 - q2**2 + q3**2 - q4**2
+        A23(i) = 2._RK * (q3 * q4 + q1 * q2)
+        A31(i) = 2._RK * (q2 * q4 + q1 * q3)
+        A32(i) = 2._RK * (q3 * q4 - q1 * q2)
+        A33(i) = q1**2 - q2**2 - q3**2 + q4**2
+      end do
+
+      ! Loop over LJ126 sites in molecule
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        r1 = pLJ126%r(1) * BoxLengthInv
+        r2 = pLJ126%r(2) * BoxLengthInv
+        r3 = pLJ126%r(3) * BoxLengthInv
+        do i = currentNp0, currentNp2
+          pLJ126%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pLJ126%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pLJ126%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over charge sites in molecule
+      do j = 1, this%Molecule%NCharge
+        pCharge => this%Molecule%SiteCharge(j)
+        r1 = pCharge%r(1) * BoxLengthInv
+        r2 = pCharge%r(2) * BoxLengthInv
+        r3 = pCharge%r(3) * BoxLengthInv
+        do i = currentNp0, currentNp2
+          pCharge%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pCharge%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pCharge%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over dipole sites in molecule
+      do j = 1, this%Molecule%NDipole
+        pDipole => this%Molecule%SiteDipole(j)
+        r1 = pDipole%r(1) * BoxLengthInv
+        r2 = pDipole%r(2) * BoxLengthInv
+        r3 = pDipole%r(3) * BoxLengthInv
+        or1 = pDipole%or(1)
+        or2 = pDipole%or(2)
+        or3 = pDipole%or(3)
+        do i = currentNp0, currentNp2
+          pDipole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pDipole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pDipole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pDipole%OX(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+          pDipole%OY(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+          pDipole%OZ(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
+        end do
+      end do
+
+      ! Loop over quadrupole sites in molecule
+      do j = 1, this%Molecule%NQuadrupole
+        pQuadrupole => this%Molecule%SiteQuadrupole(j)
+        r1 = pQuadrupole%r(1) * BoxLengthInv
+        r2 = pQuadrupole%r(2) * BoxLengthInv
+        r3 = pQuadrupole%r(3) * BoxLengthInv
+        or1 = pQuadrupole%or(1)
+        or2 = pQuadrupole%or(2)
+        or3 = pQuadrupole%or(3)
+        do i = currentNp0, currentNp2
+          pQuadrupole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pQuadrupole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pQuadrupole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pQuadrupole%OX(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+          pQuadrupole%OY(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+          pQuadrupole%OZ(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
+        end do
+      end do
+
+      ! Rotate total dipole moment
+      if( CutoffMode .eq. CenterofMass ) then
+        mue1 = this%Molecule%Mue(1)
+        mue2 = this%Molecule%Mue(2)
+        mue3 = this%Molecule%Mue(3)
+        do i = currentNp0, currentNp2
+          this%MueX(i) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
+          this%MueY(i) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
+          this%MueZ(i) = mue1 * A13(i) + mue2 * A23(i) + mue3 * A33(i)
+        end do
+      end if
+
+    else
+
+      ! Loop over LJ126 sites in molecule
+      do i = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(i)
+        do j = currentNp0, currentNp2
+          pLJ126%RX(j) = this%P0(j, 1)
+          pLJ126%RY(j) = this%P0(j, 2)
+          pLJ126%RZ(j) = this%P0(j, 3)
+        end do
+      end do
+
+    end if
+
+  end subroutine TComponent_FVMPrefetchedMol2Atom
 
 
 
@@ -2815,7 +3087,12 @@ contains
       ! Loop over LJ126 sites in molecule
       do j = 1, this%Molecule%NLJ126
         pLJ126 => this%Molecule%SiteLJ126(j)
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
         do i = 1, np
+#endif        
           fx = pLJ126%FX(i)
           fy = pLJ126%FY(i)
           fz = pLJ126%FZ(i)
@@ -2834,15 +3111,15 @@ contains
           cy  = pLJ126%cLJy(i) 
           cz  = pLJ126%cLJz(i) 
           tux = pLJ126%tuLJx(i)
-		  tuy = pLJ126%tuLJy(i)
-		  tuz = pLJ126%tuLJz(i)
-		  tlx = pLJ126%tlLJx(i)
-		  tly = pLJ126%tlLJy(i)
-		  tlz = pLJ126%tlLJz(i)
-		  tdx = pLJ126%tdLJx(i)
-		  tdy = pLJ126%tdLJy(i)
-		  tdz = pLJ126%tdLJz(i)
-		  !TRANSPORT_END
+          tuy = pLJ126%tuLJy(i)
+          tuz = pLJ126%tuLJz(i)
+          tlx = pLJ126%tlLJx(i)
+          tly = pLJ126%tlLJy(i)
+          tlz = pLJ126%tlLJz(i)
+          tdx = pLJ126%tdLJx(i)
+          tdy = pLJ126%tdLJy(i)
+          tdz = pLJ126%tdLJz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pLJ126%RX(i) - RX(i) ) * BoxLength
           r1y = ( pLJ126%RY(i) - RY(i) ) * BoxLength
@@ -2889,7 +3166,12 @@ contains
       ! Loop over charge sites in molecule
       do j = 1, this%Molecule%NCharge
         pCharge => this%Molecule%SiteCharge(j)
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
         do i = 1, np
+#endif
           fx = pCharge%FX(i)
           fy = pCharge%FY(i)
           fz = pCharge%FZ(i)
@@ -2907,16 +3189,16 @@ contains
           cx  = pCharge%cCx(i) 
           cy  = pCharge%cCy(i) 
           cz  = pCharge%cCz(i) 
-		  tux = pCharge%tuCx(i)
-		  tuy = pCharge%tuCy(i)
+          tux = pCharge%tuCx(i)
+          tuy = pCharge%tuCy(i)
           tuz = pCharge%tuCz(i)
-		  tlx = pCharge%tlCx(i)
-		  tly = pCharge%tlCy(i)
-		  tlz = pCharge%tlCz(i)
-		  tdx = pCharge%tdCx(i)
-		  tdy = pCharge%tdCy(i)
-		  tdz = pCharge%tdCz(i)
-		  !TRANSPORT_END
+          tlx = pCharge%tlCx(i)
+          tly = pCharge%tlCy(i)
+          tlz = pCharge%tlCz(i)
+          tdx = pCharge%tdCx(i)
+          tdy = pCharge%tdCy(i)
+          tdz = pCharge%tdCz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
           r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
@@ -2963,7 +3245,12 @@ contains
       ! Loop over dipole sites in molecule
       do j = 1, this%Molecule%NDipole
         pDipole => this%Molecule%SiteDipole(j)
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
         do i = 1, np
+#endif
           fx = pDipole%FX(i)
           fy = pDipole%FY(i)
           fz = pDipole%FZ(i)
@@ -3043,7 +3330,12 @@ contains
       ! Loop over quadrupole sites in molecule
       do j = 1, this%Molecule%NQuadrupole
         pQuadrupole => this%Molecule%SiteQuadrupole(j)
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
         do i = 1, np
+#endif
           fx = pQuadrupole%FX(i)
           fy = pQuadrupole%FY(i)
           fz = pQuadrupole%FZ(i)
@@ -3120,7 +3412,12 @@ contains
         end do
       end do
 
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
       do i = 1, np
+#endif
         ! Add torques from reaction field
         tx = this%T(i, 1) + this%tRFX(i)
         ty = this%T(i, 2) + this%tRFY(i)
@@ -3146,7 +3443,12 @@ contains
       ! Loop over LJ126 sites in molecule
       do j = 1, this%Molecule%NLJ126
         pLJ126 => this%Molecule%SiteLJ126(j)
+#if FVM_VER > 0
+! FVMPrefetching
+        do i = this%NPart0, this%NPart2
+#else
         do i = 1, np
+#endif
 #if  TRANS == 1
         !TRANSPORT_start
           vsx = pLJ126%vsLJx(i) 
@@ -3195,8 +3497,8 @@ contains
 #if defined PAR_PROF
 
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
-    call profileTagBefore( Profiler, &
-&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+!    call profileTagBefore( Profiler, &
+!&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
 
 #endif
 
@@ -3235,7 +3537,15 @@ contains
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier()
+! FVMPrefetching: no communication needed !!!
+! BUT we need to copy F/T to FAll/TAll (!!!)
+
+    this%FAll(:,:) = this%F(:,:)
+    if( this%Molecule%isElongated ) then
+      this%TAll(:,:) = this%T(:,:)
+    end if
+    
+!    fvmret = pv4dBarrier()
 
 !**********************************************************
 !old version (Predictor/Corrector not parallelized)
@@ -3275,54 +3585,61 @@ contains
 !new version (Predictor/Corrector parallelized)
 !**********************************************************
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
-
-    !FVM_Allreduce
-    this%FAll(:,:) = this%F(:,:)
-    do fvmReduceLoopIdx = 1, numVmNodes-1
-      fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
-      fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
-&       sizeof( this%F(:,:) ), fvmRemoteRank, 0)
-      fvmret = waitonqueue(0)
-      this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
-    end do
-
-    if( this%Molecule%isElongated ) then
-
-      !FVM_Allreduce
-      this%TAll(:,:) = this%T(:,:)
-      do fvmReduceLoopIdx = 1, numVmNodes-1
-        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
-        fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
-&         sizeof( this%T(:,:) ), fvmRemoteRank, 0)
-        fvmret = waitonqueue(0)
-        this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
-      end do
-
-    end if
-
+!
+!    !FVM_Allreduce
+!    this%FAll(:,:) = this%F(:,:)
+!    do fvmReduceLoopIdx = 1, numVmNodes-1
+!      fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+!      fvmret = readdma(this%fvmByteOffFvmTmpF, this%fvmByteOffF, &
+!&       sizeof( this%F(:,:) ), fvmRemoteRank, 0)
+!      fvmret = waitonqueue(0)
+!      this%FAll(:,:) = this%FAll(:,:) + this%fvmTmpF(:,:)
+!    end do
+!
+!    if( this%Molecule%isElongated ) then
+!
+!      !FVM_Allreduce
+!      this%TAll(:,:) = this%T(:,:)
+!      do fvmReduceLoopIdx = 1, numVmNodes-1
+!        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+!        fvmret = readdma(this%fvmByteOffFvmTmpT, this%fvmByteOffT, &
+!&         sizeof( this%T(:,:) ), fvmRemoteRank, 0)
+!        fvmret = waitonqueue(0)
+!        this%TAll(:,:) = this%TAll(:,:) + this%fvmTmpT(:,:)
+!      end do
+!
+!    end if
+!
 #endif
 
 #if defined PAR_PROF
 
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
-    call profileTagAfter( Profiler, &
-&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+!    call profileTagAfter( Profiler, &
+!&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
 
 #endif
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A)') "my current forces (after Bcast):"
+  !if ( modulo(DebugWriteCounter, 10) .eq. 0 ) then
+  !if ( DebugWriteCounter < 100 )  then
+
+    write(iounit_pardebug, '(A, I)') "DebugWriteCounter = ", DebugWriteCounter
+
+    write(iounit_pardebug, '(A)') "my current forces:"
     do pardbgidx1 = this%NPart0, this%NPart2     !1, size(this%FAll(:,1))
       write(iounit_pardebug, '(3F25.16)') this%FAll(pardbgidx1,:)
     end do
 
     if( this%Molecule%isElongated ) then
-      write(iounit_pardebug, '(A)') "my current torques (after Bcast):"
+      write(iounit_pardebug, '(A)') "my current torques:"
       do pardbgidx1 = this%NPart0, this%NPart2   !1, size(this%TAll(:,1))
         write(iounit_pardebug, '(3F25.16)') this%TAll(pardbgidx1,:)
       end do
     end if
+
+  !end if
 
 #endif
 
@@ -3391,14 +3708,26 @@ contains
     end do
 
 #if defined PAR_DEBUG
+
+  !if ( modulo(DebugWriteCounter, 10) .eq. 0 ) then
+  !if ( DebugWriteCounter < 100 )  then
+
+    write(iounit_pardebug, '(A, I)') "DebugWriteCounter = ", DebugWriteCounter
+
     write(iounit_pardebug, '(A)') "my positions after PredictGear:"
+    !"not-a-number positions after PredictGear:"
     do pardbgidx1 = this%NPart0, this%NPart2 
-      write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
+      !if ( this%P0(pardbgidx1,1)*this%P0(pardbgidx1,2)*this%P0(pardbgidx1,3).ne.this%P0(pardbgidx1,1)*this%P0(pardbgidx1,2)*this%P0(pardbgidx1,3) ) then
+        write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
+      !end if
     end do
     write(iounit_pardebug, '(A)') "my velocities after PredictGear:"
     do pardbgidx1 = this%NPart0, this%NPart2
       write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
     end do
+    
+  !end if
+    
 #endif
 
     if( this%Molecule%IsElongated ) then
@@ -3543,14 +3872,23 @@ contains
     end do
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A)') "my positions after CorrectGear:"
-    do pardbgidx1 = this%NPart0, this%NPart2
-      write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
-    end do
-    write(iounit_pardebug, '(A)') "my velocities after correction:"
-    do pardbgidx1 = this%NPart0, this%NPart2
-      write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
-    end do
+
+  !if ( modulo(DebugWriteCounter, 10) .eq. 0 ) then
+  !if ( DebugWriteCounter < 100 )  then
+
+    write(iounit_pardebug, '(A, I)') "DebugWriteCounter = ", DebugWriteCounter
+
+        write(iounit_pardebug, '(A)') "my positions after CorrectGear:"
+        do pardbgidx1 = this%NPart0, this%NPart2
+          write(iounit_pardebug, '(3F25.16)') this%P0(pardbgidx1,:)
+        end do
+        write(iounit_pardebug, '(A)') "my velocities after CorrectGear:"
+        do pardbgidx1 = this%NPart0, this%NPart2
+          write(iounit_pardebug, '(3F25.16)') this%P1(pardbgidx1,:)
+        end do
+
+  !end if
+
 #endif
 
     if( this%Molecule%isElongated ) then
@@ -3650,7 +3988,11 @@ contains
 #if FVM_VER > 0
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 ! NEW: need an Allgather of Disp (!)
-   
+
+#if defined PAR_PROF
+    call profileTagBefore(Profiler, 'CorrectGear: Allgather Disp')
+#endif
+
     fvmret = pv4dBarrier()
     
     fvmTmpByteOffBase = this%fvmByteOffDisp + (np0-1)*sizeof( this%Disp(1,1) )
@@ -3668,9 +4010,13 @@ contains
       fvmret = waitonqueue(1)
       fvmret = waitonqueue(2)
       fvmret = waitonqueue(3)
-end do
+    end do
 
-      fvmret = pv4dBarrier()
+    fvmret = pv4dBarrier()
+
+#if defined PAR_PROF
+      call profileTagAfter(Profiler, 'CorrectGear: Allgather Disp')
+#endif
 
 #endif
 

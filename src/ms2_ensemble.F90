@@ -35,7 +35,7 @@ module ms2_ensemble
   use ms2_interaction
   use ms2_site
 
-#if defined PAR_PROF
+#if defined PAR_PROF || defined FORCE_PROF
   use ms2_profiler
 #endif
 
@@ -131,8 +131,14 @@ module ms2_ensemble
 
     ! Virial
 #if FVM_VER > 0
+#if FVM_ALLREDUCE == 0
     real(RK), pointer :: Virial, fvmTmpVirial
     integer(c_size_t) :: fvmByteOffVirial, fvmByteOffFvmTmpVirial
+#elif FVM_ALLREDUCE > 0    
+!using ***NATIVE*** FVM_Allreduce
+    real(RK) :: Virial, fvmTmpVirial
+    type(c_ptr) :: VirialPtr, fvmTmpVirialPtr
+#endif
 #else
     real(RK) :: Virial
 #endif
@@ -195,14 +201,26 @@ module ms2_ensemble
 
 #if FVM_VER > 0
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
+#if FVM_ALLREDUCE == 0
     real(RK), pointer :: fvmTmpEKin1, fvmTmpEKin2
     integer(c_size_t) :: fvmByteOffFvmTmpEKin1, fvmByteOffFvmTmpEKin2
+#elif FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+    real(RK) :: fvmTmpEKin
+    type(c_ptr) :: EKinPtr, fvmTmpEKinPtr
+#endif
 #endif
 
     ! Potential energy
 #if FVM_VER > 0
+#if FVM_ALLREDUCE == 0
     real(RK), pointer :: EPot, fvmTmpEPot
     integer(c_size_t) :: fvmByteOffEPot, fvmByteOffFvmTmpEPot
+#elif FVM_ALLREDUCE > 0    
+!using ***NATIVE*** FVM_Allreduce
+    real(RK) :: EPot, fvmTmpEPot
+    type(c_ptr) :: EPotPtr, fvmTmpEPotPtr
+#endif
 #else
     real(RK) :: EPot
 #endif
@@ -428,6 +446,10 @@ module ms2_ensemble
     module procedure TEnsemble_Mol2Atom
   end interface
 
+  interface FVMPrefetchedMol2AtomForce
+    module procedure TEnsemble_FVMPrefetchedMol2AtomForce
+  end interface
+  
   interface Atom2Mol
     module procedure TEnsemble_Atom2Mol
   end interface
@@ -474,6 +496,14 @@ module ms2_ensemble
 
   interface Force
     module procedure TEnsemble_Force
+  end interface
+
+  interface FVMPrefetchedZeroForce
+    module procedure TEnsemble_FVMPrefetchedZeroForce
+  end interface
+
+  interface FVMPrefetchedAccumulatePotVir
+    module procedure TEnsemble_FVMPrefetchedAccumulatePotVir
   end interface
 
   interface ChemicalPotential
@@ -860,6 +890,13 @@ contains
 
     ! Calculate initial number of particles of each component
     call CalculateNPart( this )
+
+    ! init Inbox and ToInboxField NOW
+    do i = 1, this%NComponents
+      this%Component(i)%Inbox(:) = 0
+      this%Component(i)%Inbox(1+myRank) = this%Component(i)%NPart1
+      this%Component(i)%ToInboxField = this%Component(i)%NPart1
+    end do
 
     ! Calculate maximum numbers of sites in components
     call FindNSiteMax( this )
@@ -1677,10 +1714,24 @@ contains
     this%NFluctMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
-      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      pc%NPart0 = 1 + pc%NPart1 * NProc
-      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      !pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
+      !pc%NPart0 = 1 + pc%NPart1 * NProc
+      !pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
+      !pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+      !use alternative distribution scheme:
+      pc%NPart1 = pc%NPart/NProcs
+      pc%NPart0 = 1 + pc%NPart1*NProc
+      if ( myRank < (pc%NPart - pc%NPart1*NProcs) ) then
+        pc%NPart1 = pc%NPart1 + 1
+        pc%NPart0 = pc%NPart0 + myRank
+      else
+        pc%NPart0 = pc%NPart0 + (pc%NPart - pc%NPart1*NProcs)
+      end if
+      pc%NPart2 = pc%NPart0 + pc%NPart1 - 1
+#if defined PAR_DEBUG
+      write(iounit_pardebug, '(A)') "NPart1,0,2: "
+      write(iounit_pardebug, '(3I)') pc%NPart1, pc%NPart0, pc%NPart2
+#endif
       if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
       pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
@@ -1848,10 +1899,10 @@ contains
     nullify( this%NInsertSuccesses )
     nullify( this%NDeleteAttempts )
     nullify( this%NDeleteSuccesses )
-    nullify( this%EPot )
-    nullify( this%FvmTmpEPot )
-    nullify( this%Virial )
-    nullify( this%FvmTmpVirial )
+!    nullify( this%EPot )
+!    nullify( this%FvmTmpEPot )
+!    nullify( this%Virial )
+!    nullify( this%FvmTmpVirial )
 #endif
 
     ! Allocate scale coefficients for sigma and epsilon
@@ -1949,7 +2000,15 @@ contains
       call c_f_pointer (fvmPtr, this%NDeleteSuccesses)
 
     end if
-    
+ 
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+     this%EKinPtr = c_loc(this%EKin)
+     this%fvmTmpEKinPtr = c_loc(this%fvmTmpEKin)
+
+#elif FVM_ALLREDUCE == 0
+
     this%fvmByteOffFvmTmpEKin1 = &
 &     reserveFvmMem( fvmDisp, sizeof(this%fvmTmpEKin1) )
     if (this%fvmByteOffFvmTmpEKin1.LT.0) then
@@ -1967,7 +2026,17 @@ contains
       fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpEKin2)
       call c_f_pointer (fvmPtr, this%fvmTmpEKin2)
     end if
-    
+
+#endif
+
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+     this%EPotPtr = c_loc(this%EPot)
+     this%fvmTmpEPotPtr = c_loc(this%fvmTmpEPot)
+
+#elif FVM_ALLREDUCE == 0
+
     this%fvmByteOffEPot = reserveFvmMem( fvmDisp, sizeof(this%EPot) )
     if (this%fvmByteOffEPot.LT.0) then
       call AllocationError( -1, 'EPot' )
@@ -1985,6 +2054,16 @@ contains
       call c_f_pointer (fvmPtr, this%fvmTmpEPot)
     end if
 
+#endif
+
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+     this%VirialPtr = c_loc(this%Virial)
+     this%fvmTmpVirialPtr = c_loc(this%fvmTmpVirial)
+
+#elif FVM_ALLREDUCE == 0
+
     this%fvmByteOffVirial = reserveFvmMem( fvmDisp, sizeof(this%Virial) )
     if (this%fvmByteOffVirial.LT.0) then
       call AllocationError( -1, 'Virial' )
@@ -2001,6 +2080,8 @@ contains
       fvmPtr = incCPtr(myVmStartPtr, this%fvmByteOffFvmTmpVirial)
       call c_f_pointer (fvmPtr, this%fvmTmpVirial)
     end if
+
+#endif
 
 #endif
 
@@ -2514,7 +2595,7 @@ loop:do l = 1, NPartInCell
     do pardbgidx1 = 1, this%NComponents
       write(iounit_pardebug, '(A)') "velocities after net momentum removal:"
       do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
-        write(iounit_pardebug, '(3F25.16)') &
+        write(iounit_pardebug, '(3F10.3)') &
 &         this%Component(pardbgidx1)%P1(pardbgidx2,:)
       end do
     end do
@@ -2528,7 +2609,7 @@ loop:do l = 1, NPartInCell
     do pardbgidx1 = 1, this%NComponents
       write(iounit_pardebug, '(A)') "velocities after initial rescaling:"
       do pardbgidx2 = 1, this%Component(pardbgidx1)%NPart
-        write(iounit_pardebug, '(3F25.16)') &
+        write(iounit_pardebug, '(3F20.10)') &
 &         this%Component(pardbgidx1)%P1(pardbgidx2,:)
       end do
     end do
@@ -2778,7 +2859,7 @@ loop:do l = 1, NPartInCell
       this%EKin = this%EKinTran + this%EKinRot
 
 #if defined PAR_DEBUG
-      write(iounit_pardebug, '(A, F25.16)') "my EKin: ", this%EKin
+      write(iounit_pardebug, '(A, F10.3)') "my EKin: ", this%EKin
 #endif
 
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
@@ -2794,6 +2875,8 @@ loop:do l = 1, NPartInCell
 
 #if FVM_VER > 0
 
+#if FVM_ALLREDUCE == 0
+
       !FVM_Allreduce
       this%fvmTmpEKin1 = this%EKin
       fvmret = pv4dBarrier() !ensure correct init
@@ -2807,6 +2890,15 @@ loop:do l = 1, NPartInCell
       end do
 
       fvmret = pv4dBarrier()
+
+#elif FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+      this%fvmTmpEKin = this%EKin
+      fvmret = pv4dBarrier() !ensure correct init
+      fvmret = allreduceVM(this%fvmTmpEKinPtr, this%EKinPtr, 1, 2, 3)
+      
+#endif
 
 #endif
       
@@ -2823,8 +2915,8 @@ loop:do l = 1, NPartInCell
 
 #if defined PAR_DEBUG
 
-      write(iounit_pardebug, '(A, F25.16)') "EKin: ", this%EKin
-      write(iounit_pardebug, '(A, F25.16)') "Temp: ", this%Temperature
+      write(iounit_pardebug, '(A, F10.3)') "EKin: ", this%EKin
+      write(iounit_pardebug, '(A, F10.3)') "Temp: ", this%Temperature
       
 #endif
 
@@ -2851,15 +2943,15 @@ loop:do l = 1, NPartInCell
 #endif
 
 #if defined PAR_DEBUG
-      write(iounit_pardebug, '(A, F25.16)') "scale: ", this%scale
+      write(iounit_pardebug, '(A, F10.3)') "scale: ", this%scale
 #endif
 
     ! Broadcast temperature
 #if defined PAR_PROF
 
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
-    call profileTagBefore( Profiler, &
-&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+!    call profileTagBefore( Profiler, &
+!&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
 
 #endif
 
@@ -2897,8 +2989,8 @@ loop:do l = 1, NPartInCell
 #if defined PAR_PROF
 
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
-    call profileTagAfter( Profiler, &
-&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+!    call profileTagAfter( Profiler, &
+!&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
 
 #endif
 
@@ -2938,7 +3030,7 @@ loop:do l = 1, NPartInCell
     type(TEnsemble) :: this
 
     ! Declare local variables
-!     integer :: i
+     integer :: i
 
     ! Calculate new initial density
     this%RefDensity = this%RefDensity * real( this%NPart, RK ) &
@@ -2952,6 +3044,13 @@ loop:do l = 1, NPartInCell
 
     ! Calculate number of particles of each component
     call CalculateNPart( this )
+
+    ! reset Inbox and ToInboxField
+    do i = 1, this%NComponents
+      this%Component(i)%Inbox(:) = 0
+      this%Component(i)%Inbox(1+myRank) = this%Component(i)%NPart1
+      this%Component(i)%ToInboxField = this%Component(i)%NPart1
+    end do
 
     ! Calculate long-range corrections
     call CalculateCorr( this )
@@ -2998,9 +3097,17 @@ loop:do l = 1, NPartInCell
     end if
 
     ! Run MD simulation step
+#if defined PAR_DEBUG
+    DebugWriteCounter = DebugWriteCounter + 1
+#endif
     call Predict( this )
+#if FVM_VER > 0
+! FVMPrefetching
+    call FVMPrefetchedMol2AtomForce( this )
+#else
     call Mol2Atom( this )
     call Force( this )
+#endif
     call ChemicalPotential( this )
     call Atom2Mol( this )
     call Correct( this )
@@ -3089,7 +3196,18 @@ loop1:do nc = 1, this%NComponents
 
 #elif FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+     this%fvmTmpEPot = GetEnergy( this )
+     this%fvmTmpVirial = GetVirial( this )
+     fvmret = pv4dBarrier() !ensure correct initialization (!)
+     fvmret = allreduceVM(this%fvmTmpEPotPtr, this%EPotPtr, 1, 2, 3)
+     fvmret = allreduceVM(this%fvmTmpVirialPtr, this%VirialPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = GetEnergy( this )
@@ -3124,6 +3242,8 @@ loop1:do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #else
 
@@ -3404,6 +3524,1218 @@ loop3:    do nc = 1, this%NComponents
 
 
 !==============================================================!
+!  Subroutine TEnsemble_FVMPrefetchedMol2AtomForce             !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TEnsemble_FVMPrefetchedMol2AtomForce( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    type(TSiteLJ126), pointer      :: pslj
+    type(TSiteCharge), pointer     :: psc
+    type(TSiteDipole), pointer     :: psd
+    type(TSiteQuadrupole), pointer :: psq
+    real(RK)          :: q1, q2, q3, q4, qinv
+    real(RK)          :: EPot, Virial, ETmp, VirTmp
+    integer(c_size_t) :: fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize
+    integer           :: fvmTmpIdx
+    integer           :: np0, np1, np2, npmax
+    integer           :: gapReactRecv
+    integer           :: remoteRankWait, remoteRankSend
+!    integer           :: checkWait
+!    logical           :: anyIsElongated
+    integer           :: i, j, k, n
+
+#if defined FORCE_DEBUG
+    write(iounit_forcedebug, '(A)') "WW-partners: new version"
+#endif
+
+    !init currentNPart0, 1, 2 and normalize quaternions
+    ! (TComponent_FVMPrefetchedMol2Atom needs normalized quaternions)
+    do i = 1, this%NComponents
+
+      this%Component(i)%currentNPart0 = this%Component(i)%NPart0
+      this%Component(i)%currentNPart1 = this%Component(i)%NPart1
+      this%Component(i)%currentNPart2 = this%Component(i)%NPart2
+
+      do j = this%Component(i)%NPart0, this%Component(i)%NPart2
+
+        q1 = this%Component(i)%Q0(j, 1)
+        q2 = this%Component(i)%Q0(j, 2)
+        q3 = this%Component(i)%Q0(j, 3)
+        q4 = this%Component(i)%Q0(j, 4)
+#if ARCH == 3
+        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+        q1 = q1 * qinv
+        q2 = q2 * qinv
+        q3 = q3 * qinv
+        q4 = q4 * qinv
+
+        this%Component(i)%Q0(j, 1) = q1
+        this%Component(i)%Q0(j, 2) = q2
+        this%Component(i)%Q0(j, 3) = q3
+        this%Component(i)%Q0(j, 4) = q4
+
+      end do
+
+    end do
+
+#if defined PAR_PROF
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_FVMPrefetchedMol2AtomForce: set remote Inbox' )
+#endif
+    ! set remote Inboxes
+    do n = 1, numVmNodes/2
+      fvmRemoteRank = modulo(myRank - n, numVmNodes)
+      do i = 1, this%NComponents
+        fvmTmpByteOff = this%Component(i)%fvmByteOffInbox + &
+&          myRank*sizeof( this%Component(i)%Inbox(1) )
+        fvmTmpByteSize = sizeof( this%Component(i)%Inbox(1) )
+        this%Component(i)%ToInboxField = this%Component(i)%NPart1
+        fvmret = writedma( this%Component(i)%fvmByteOffToInboxField, &
+&         fvmTmpByteOff, fvmTmpByteSize, fvmRemoteRank, 0 )
+      end do
+      fvmret = waitonqueue(0)
+    end do
+#if defined PAR_PROF
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_FVMPrefetchedMol2AtomForce: set remote Inbox' )
+#endif
+
+#if defined FORCE_PROF
+    call profileTagBefore(ForceProf, 'FVMPrefetchedZeroForce')
+#endif
+
+    !initial zeroing
+    EPot = 0._RK
+    Virial = 0._RK
+    call FVMPrefetchedZeroForce( this, EPot, Virial )
+    !zero level of EPot, Virial is returned
+
+#if defined FORCE_PROF
+    call profileTagAfter(ForceProf, 'FVMPrefetchedZeroForce')
+#endif
+
+    !start loop (two steps, if admitted by numVmNodes)
+    do n = 1, min(2, numVmNodes/2)
+
+      remoteRankWait = modulo(myRank+n, numVmNodes)
+
+      !double buffering loop
+      do i = 1, this%NComponents
+
+        !get Inbox, post reads, compute
+#if defined PAR_PROF
+        call profileTagBefore( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait for Inbox' )
+#endif
+
+        do
+          np1 = this%Component(i)%Inbox(1+remoteRankWait)
+        if (np1.ne.0) exit
+        end do
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait for Inbox' )
+#endif
+
+        np0 = 1 + modulo( (this%Component(i)%currentNPart0+ &
+&         this%Component(i)%currentNPart1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+        npmax = this%Component(i)%NPartMax
+
+        fvmTmpByteOffBase = this%Component(i)%fvmByteOffP0 + &
+&         (np0-1)*sizeof( this%Component(i)%P0(1,1) )
+        fvmTmpByteSize = np1*sizeof( this%Component(i)%P0(1,1) )
+
+        do fvmTmpIdx = 1, 3 ! x,y,z each in a different vmqueue
+          fvmTmpByteOff = fvmTmpByteOffBase + &
+&           npmax*(fvmTmpIdx-1)*sizeof( this%Component(i)%P0(1,1) )
+          fvmret = readdma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankWait, 0 ) !fvmTmpIdx !multiple queues no advantage
+        end do
+
+        if ( this%Component(i)%Molecule%isElongated ) then
+
+          fvmTmpByteOffBase = this%Component(i)%fvmByteOffQ0 + &
+&           (np0-1)*sizeof( this%Component(i)%Q0(1,1) )
+          fvmTmpByteSize = np1*sizeof( this%Component(i)%Q0(1,1) )
+
+          do fvmTmpIdx = 1, 4 ! 1,i,j,k each in a different vmqueue
+            fvmTmpByteOff = fvmTmpByteOffBase + &
+&             npmax*(fvmTmpIdx-1)*sizeof( this%Component(i)%Q0(1,1) )
+            fvmret = readdma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&             remoteRankWait, 0 ) !fvmTmpIdx+3 !multiple queues no advantage
+          end do
+
+        endif
+
+        !compute
+#if defined FORCE_PROF
+        call profileTagBefore(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+        call FVMPrefetchedMol2Atom( this%Component(i), npmax )
+
+#if defined FORCE_PROF
+        call profileTagAfter(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+        do j = 1, i
+#if defined FORCE_DEBUG
+        write(iounit_forcedebug, '(A, I)') "ComponentA: id = ", i
+#endif
+     
+          if (n.eq.1) then
+            ETmp = EPot
+            VirTmp = Virial
+          end if
+        
+          call FVMPrefetchedForce( this%Interaction( i, j ), &
+&           EPot, Virial, this%BoxLength )
+
+          if (n.eq.1) then
+            EPot = ETmp + (EPot - ETmp)/2
+            Virial = VirTmp + (Virial - VirTmp)/2
+          end if
+
+        end do
+
+        !complete loading (waitonqueues)
+#if defined PAR_PROF
+       call profileTagBefore( Profiler, &
+&        'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+        ! ensure completion of READs
+        fvmret = waitonqueue(0) !multiple queues no advantage
+!        do j = 1, 3
+!          fvmret = waitonqueue(j) ! wait for x,y,z coordinate
+!        end do
+!        if ( this%Component(i)%Molecule%isElongated ) then
+!          do j = 1, 4
+!            fvmret = waitonqueue(j+3) ! wait for 1,i,j,k quaternion
+!          end do
+!        end if
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+      end do !double buffering loop
+
+      !prepare next step
+      do i = 1, this%NComponents
+
+        this%Component(i)%writebackNPart0 = this%Component(i)%currentNPart0
+        this%Component(i)%writebackNPart1 = this%Component(i)%currentNPart1
+        this%Component(i)%writebackNPart2 = this%Component(i)%currentNPart2
+
+        this%Component(i)%currentNPart0 = 1 + &
+&         modulo( (this%Component(i)%currentNPart0 + &
+&         this%Component(i)%currentNPart1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+
+        this%Component(i)%currentNPart1 = &
+&         this%Component(i)%Inbox(1+remoteRankWait)
+
+        this%Component(i)%currentNPart2 = 1 + &
+&         modulo( (this%Component(i)%currentNPart0+&
+&         this%Component(i)%currentNPart1-1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+
+        !reset Inbox to zero
+        this%Component(i)%Inbox(1+remoteRankWait) = 0
+
+      end do
+
+    end do !start loop
+
+
+    !main loop
+    do n = 3, numVmNodes/2 !only my right half needs to be read
+
+      remoteRankWait = modulo(myRank+n, numVmNodes)
+      remoteRankSend = modulo(myRank+n-2, numVmNodes)
+
+      !double buffering loop
+      do i = 1, this%NComponents
+
+        !get Inbox, post reads, post writes, compute
+#if defined PAR_PROF
+        call profileTagBefore( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait for Inbox' )
+#endif
+
+        do
+          np1 = this%Component(i)%Inbox(1+remoteRankWait)
+        if (np1.ne.0) exit
+        end do
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait for Inbox' )
+#endif
+
+        np0 = 1 + modulo( (this%Component(i)%currentNPart0+ &
+&         this%Component(i)%currentNPart1) - 1, this%Component(i)%NPart )
+!        np2 = 1 + modulo( (np0+np1-1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+        npmax = this%Component(i)%NPartMax
+
+        fvmTmpByteOffBase = this%Component(i)%fvmByteOffP0 + &
+&         (np0-1)*sizeof( this%Component(i)%P0(1,1) )
+        fvmTmpByteSize = np1*sizeof( this%Component(i)%P0(1,1) )
+
+        do fvmTmpIdx = 1, 3 ! x,y,z each in a different vmqueue
+          fvmTmpByteOff = fvmTmpByteOffBase + &
+&           npmax*(fvmTmpIdx-1)*sizeof( this%Component(i)%P0(1,1) )
+          fvmret = readdma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankWait, 0 ) !fvmTmpIdx !multiple queues no advantage
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0)') "readdma returns: ", fvmret
+#endif
+        end do
+
+        if ( this%Component(i)%Molecule%isElongated ) then
+
+          fvmTmpByteOffBase = this%Component(i)%fvmByteOffQ0 + &
+&           (np0-1)*sizeof( this%Component(i)%Q0(1,1) )
+          fvmTmpByteSize = np1*sizeof( this%Component(i)%Q0(1,1) )
+
+          do fvmTmpIdx = 1, 4 ! 1,i,j,k each in a different vmqueue
+            fvmTmpByteOff = fvmTmpByteOffBase + &
+&             npmax*(fvmTmpIdx-1)*sizeof( this%Component(i)%Q0(1,1) )
+            fvmret = readdma( fvmTmpByteOff, fvmTmpByteOff, fvmTmpByteSize, &
+&             remoteRankWait, 0 ) !fvmTmpIdx+3 !multiple queues no advantage
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0)') "readdma returns: ", fvmret
+#endif
+          end do
+
+        endif
+
+        
+        np0 = this%Component(i)%writebackNPart0
+        np1 = this%Component(i)%writebackNPart1
+        gapReactRecv = this%Component(i)%NPart/numVmNodes + 1 
+        ! (this is the lenght of an F/TReactRecv block)
+        
+        do k = 1, this%Component(i)%Molecule%NLJ126
+        
+          pslj => this%Component(i)%Molecule%SiteLJ126(k)
+        
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( pslj%FReactX(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( pslj%FReactY(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( pslj%FReactZ(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact LJ no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') pslj%FReactX(j), &
+&             pslj%FReactY(j), pslj%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NCharge
+        
+          psc => this%Component(i)%Molecule%SiteCharge(k)
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psc%FReactX(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psc%FReactY(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psc%FReactZ(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact C no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') psc%FReactX(j), &
+&             psc%FReactY(j), psc%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NDipole
+        
+          psd => this%Component(i)%Molecule%SiteDipole(k)
+          
+          fvmTmpByteOffBase = psd%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psd%FReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psd%FReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psd%FReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psd%TReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psd%TReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psd%TReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do  
+
+        do k = 1, this%Component(i)%Molecule%NQuadrupole 
+
+          psq => this%Component(i)%Molecule%SiteQuadrupole(k)
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psq%FReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psq%FReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psq%FReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psq%TReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psq%TReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psq%TReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do
+
+        !compute
+#if defined FORCE_PROF
+        call profileTagBefore(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+        call FVMPrefetchedMol2Atom( this%Component(i), npmax )
+        
+#if defined FORCE_PROF
+        call profileTagAfter(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+        do j = 1, i
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: id = ", i
+#endif
+          call FVMPrefetchedForce( this%Interaction( i, j ), &
+&           EPot, Virial, this%BoxLength )
+        end do
+
+       !complete loading and writing back (waitonqueues)
+#if defined PAR_PROF
+       call profileTagBefore( Profiler, &
+&        'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+        ! ensure completion of READs and WRITEs
+        fvmret = waitonqueue(0) !multiple queues no advantage
+!        do j = 1, 6
+!          fvmret = waitonqueue(j) !wait for x,y,z coordinate and Sites
+                     ! (and, 'accidentally', also wait for 1,i,j quaternion)
+#if defined PAR_DEBUG
+          j = 0 !multiple queues no advantage
+          write(iounit_pardebug, '(A, I0, A, I0)') "queue ", j, " returns: ", fvmret
+#endif       
+!        end do
+!        if ( this%Component(i)%Molecule%isElongated ) then
+!          fvmret = waitonqueue(7) !wait for the k quaternion
+#if defined PAR_DEBUG
+!          write(iounit_pardebug, '(A, I0)') "queue 7 returns: ", fvmret
+#endif
+!        end if
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif       
+
+      end do !double buffering loop
+
+      !prepare next step 
+      do i = 1, this%NComponents
+
+        this%Component(i)%writebackNPart0 = this%Component(i)%currentNPart0
+        this%Component(i)%writebackNPart1 = this%Component(i)%currentNPart1
+        this%Component(i)%writebackNPart2 = this%Component(i)%currentNPart2
+
+        this%Component(i)%currentNPart0 = 1 + &
+&         modulo( (this%Component(i)%currentNPart0 + &
+&         this%Component(i)%currentNPart1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+
+        this%Component(i)%currentNPart1 = &
+&         this%Component(i)%Inbox(1+remoteRankWait)
+
+        this%Component(i)%currentNPart2 = 1 + &
+&         modulo( (this%Component(i)%currentNPart0+&
+&         this%Component(i)%currentNPart1-1) - 1, this%Component(i)%NPart )
+        ! (( since 1 + mod(x-1,N) lies in [1,N] ))
+
+        !reset Inbox to zero
+        this%Component(i)%Inbox(1+remoteRankWait) = 0
+
+      end do
+
+    end do !main loop
+
+
+    !last two steps (just computation and writeback, no loading)
+    
+    !last step no. one (of two)
+    remoteRankSend = modulo(myRank+numVmNodes/2-1, numVmNodes)
+
+    do i = 1, this%NComponents
+
+      if (numVmNodes.gt.3) then
+
+        !post writes
+        np0 = this%Component(i)%writebackNPart0
+        np1 = this%Component(i)%writebackNPart1
+        gapReactRecv = this%Component(i)%NPart/numVmNodes + 1
+        ! (this is the lenght of an F/TReactRecv block)
+        
+        do k = 1, this%Component(i)%Molecule%NLJ126
+        
+          pslj => this%Component(i)%Molecule%SiteLJ126(k)
+        
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( pslj%FReactX(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( pslj%FReactY(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( pslj%FReactZ(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact LJ no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') pslj%FReactX(j), &
+&             pslj%FReactY(j), pslj%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NCharge
+        
+          psc => this%Component(i)%Molecule%SiteCharge(k)
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psc%FReactX(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psc%FReactY(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psc%FReactZ(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact C no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') psc%FReactX(j), &
+&             psc%FReactY(j), psc%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NDipole
+        
+          psd => this%Component(i)%Molecule%SiteDipole(k)
+          
+          fvmTmpByteOffBase = psd%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psd%FReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psd%FReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psd%FReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+          
+          fvmTmpByteOffBase = psd%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psd%TReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psd%TReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psd%TReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do  
+
+        do k = 1, this%Component(i)%Molecule%NQuadrupole 
+
+          psq => this%Component(i)%Molecule%SiteQuadrupole(k)
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psq%FReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psq%FReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psq%FReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psq%TReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psq%TReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psq%TReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do
+
+      end if
+
+      !compute
+#if defined FORCE_PROF
+      call profileTagBefore(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+      call FVMPrefetchedMol2Atom( this%Component(i), npmax )
+
+#if defined FORCE_PROF
+      call profileTagAfter(ForceProf, 'FVMPrefetchedMol2Atom')
+#endif
+
+      do j = 1, i
+
+#if defined FORCE_DEBUG
+      write(iounit_forcedebug, '(A, I)') "ComponentA: id = ", i
+#endif
+
+        if ( numVmNodes/2 .eq. (numVmNodes+1)/2 )  then !i.e. if even
+          ETmp = EPot
+          VirTmp = Virial
+        end if
+
+        call FVMPrefetchedForce( this%Interaction( i, j ), &
+&         EPot, Virial, this%BoxLength )
+
+        if ( numVmNodes/2 .eq. (numVmNodes+1)/2 ) then
+          EPot = ETmp + (EPot-ETmp)/2
+          Virial = VirTmp + (Virial-VirTmp)/2
+        end if
+
+      end do
+
+      !complete writing back (waitonqueues)
+#if defined PAR_PROF
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+      ! ensure completion of WRITEs
+      fvmret = waitonqueue(0) !multiple queues no advantage
+!      do j = 1, 6
+!        fvmret = waitonqueue(j) !wait for Sites (Force/Torque)
+!      end do
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+    end do !loop over components
+
+    !prepare next step
+    do i = 1, this%NComponents
+      this%Component(i)%writebackNPart0 = this%Component(i)%currentNPart0
+      this%Component(i)%writebackNPart1 = this%Component(i)%currentNPart1
+      this%Component(i)%writebackNPart2 = this%Component(i)%currentNPart2
+    end do
+
+    !last step no. two (of two)
+    if ( (numVmNodes+1)/2.ne.numVmNodes/2 ) then !i.e. if uneven
+
+      remoteRankSend = modulo(myRank+numVmNodes/2, numVmNodes)
+
+      do i = 1, this%NComponents
+
+        !post writes
+        np0 = this%Component(i)%writebackNPart0
+        np1 = this%Component(i)%writebackNPart1
+        gapReactRecv = this%Component(i)%NPart/numVmNodes + 1
+        ! (this is the lenght of an F/TReactRecv block)
+        
+        do k = 1, this%Component(i)%Molecule%NLJ126
+        
+          pslj => this%Component(i)%Molecule%SiteLJ126(k)
+        
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( pslj%FReactX(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( pslj%FReactY(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = pslj%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( pslj%FReactZ(1) )
+          fvmTmpByteOff = pslj%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( pslj%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( pslj%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact LJ no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') pslj%FReactX(j), &
+&             pslj%FReactY(j), pslj%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NCharge
+        
+          psc => this%Component(i)%Molecule%SiteCharge(k)
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psc%FReactX(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psc%FReactY(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psc%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psc%FReactZ(1) )
+          fvmTmpByteOff = psc%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psc%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psc%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+#if defined PAR_DEBUG
+          write(iounit_pardebug, '(A, I0, A, I0)') "FReact C no. " , k, &
+&           "; sending to node ", remoteRankSend
+          write(iounit_pardebug, '(A, I0, A, I0)') "np0 = ", np0, &
+&           "; np1 = ", np1
+          do j = np0, np0+np1-1
+            write(iounit_pardebug, '(3F25.16)') psc%FReactX(j), &
+&             psc%FReactY(j), psc%FReactZ(j)
+          end do
+#endif
+
+        end do
+
+        do k = 1, this%Component(i)%Molecule%NDipole
+        
+          psd => this%Component(i)%Molecule%SiteDipole(k)
+          
+          fvmTmpByteOffBase = psd%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psd%FReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psd%FReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psd%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psd%FReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+           
+          fvmTmpByteOffBase = psd%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psd%TReactX(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psd%TReactY(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psd%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psd%TReactZ(1) )
+          fvmTmpByteOff = psd%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psd%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psd%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do  
+
+        do k = 1, this%Component(i)%Molecule%NQuadrupole 
+
+          psq => this%Component(i)%Molecule%SiteQuadrupole(k)
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactX + &
+&           (np0-1)*sizeof( psq%FReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !1 !multiple queues no advantage
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactY + &
+&           (np0-1)*sizeof( psq%FReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !2
+
+          fvmTmpByteOffBase = psq%fvmByteOffFReactZ + &
+&           (np0-1)*sizeof( psq%FReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffFReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%FReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%FReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !3
+
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactX + &
+&           (np0-1)*sizeof( psq%TReactX(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvX + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvX(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactX(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !4
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactY + &
+&           (np0-1)*sizeof( psq%TReactY(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvY + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvY(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactY(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !5
+
+          fvmTmpByteOffBase = psq%fvmByteOffTReactZ + &
+&           (np0-1)*sizeof( psq%TReactZ(1) )
+          fvmTmpByteOff = psq%fvmByteOffTReactRecvZ + &
+&           myRank*gapReactRecv*sizeof( psq%TReactRecvZ(1,1) )
+          fvmTmpByteSize = np1*sizeof( psq%TReactZ(1) )
+          fvmret = writedma( fvmTmpByteOffBase, fvmTmpByteOff, fvmTmpByteSize, &
+&           remoteRankSend, 0 ) !6
+
+        end do
+
+        !complete loading and writing back (waitonqueues)
+#if defined PAR_PROF
+        call profileTagBefore( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+
+        ! ensure completion of WRITEs
+        fvmret = waitonqueue(0) !multiple queues no advantage
+!        do j = 1, 6
+!          fvmret = waitonqueue(j) !wait for Sites (Force/Torque)
+!        end do
+
+#if defined PAR_PROF
+        call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: ensure completion of writes' )
+#endif
+   
+      end do !loop over components
+
+    end if !uneven
+
+    !all steps completed. now, wait for reaction forces and sum them up
+
+#if defined PAR_PROF
+    call profileTagBefore( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait after force calculation' )
+#endif
+
+    fvmret = pv4dBarrier() !i.e. reaction forces are all there
+
+#if defined PAR_PROF
+    call profileTagAfter( Profiler, &
+&         'TEnsemble_FVMPrefetchedMol2AtomForce: wait after force calculation' )
+#endif
+
+    do i = 1, this%NComponents
+
+      np0 = this%Component(i)%NPart0
+      np1 = this%Component(i)%NPart1
+      np2 = this%Component(i)%NPart2
+
+      do k = 1, this%Component(i)%Molecule%NLJ126
+
+         pslj => this%Component(i)%Molecule%SiteLJ126(k)
+
+#if defined PAR_DEBUG
+         do n = 1, numVmNodes
+           write(iounit_pardebug, '(A, I0, A, I0)') "reactio for LJ no. ", k, &
+&            " from nodeRank ", n-1
+           do j = 1, np1
+             write(iounit_pardebug, '(3F25.16)') &
+&              pslj%FReactRecvX(j, n), &
+&              pslj%FReactRecvY(j, n), &
+&              pslj%FReactRecvZ(j, n)
+           end do
+         end do
+#endif
+
+         do j = 1, np1
+           pslj%FX(np0+j-1) = pslj%FX(np0+j-1) + &
+&            sum( pslj%FReactRecvX(j, 1:numVmNodes) )
+           pslj%FY(np0+j-1) = pslj%FY(np0+j-1) + &
+&            sum( pslj%FReactRecvY(j, 1:numVmNodes) )
+           pslj%FZ(np0+j-1) = pslj%FZ(np0+j-1) + &
+&            sum( pslj%FReactRecvZ(j, 1:numVmNodes) )
+         end do
+        
+      end do
+
+      do k = 1, this%Component(i)%Molecule%NCharge
+
+         psc => this%Component(i)%Molecule%SiteCharge(k)
+
+#if defined PAR_DEBUG
+         do n = 1, numVmNodes
+           write(iounit_pardebug, '(A, I0, A, I0)') "reactio for C no. ", k, &
+&            " from nodeRank ", n-1
+           do j = 1, np1
+             write(iounit_pardebug, '(3F25.16)') &
+&              psc%FReactRecvX(j, n), &
+&              psc%FReactRecvY(j, n), &
+&              psc%FReactRecvZ(j, n)
+           end do
+         end do
+#endif
+
+         do j = 1, np1
+           psc%FX(np0+j-1) = psc%FX(np0+j-1) + &
+&            sum( psc%FReactRecvX(j, 1:numVmNodes) )
+           psc%FY(np0+j-1) = psc%FY(np0+j-1) + &
+&            sum( psc%FReactRecvY(j, 1:numVmNodes) )
+           psc%FZ(np0+j-1) = psc%FZ(np0+j-1) + &
+&            sum( psc%FReactRecvZ(j, 1:numVmNodes) )
+         end do
+
+      end do
+
+      do k = 1, this%Component(i)%Molecule%NDipole
+
+         psd => this%Component(i)%Molecule%SiteDipole(k)
+
+         do j = 1, np1
+           psd%FX(np0+j-1) = psd%FX(np0+j-1) + &
+&            sum( psd%FReactRecvX(j, 1:numVmNodes) )
+           psd%FY(np0+j-1) = psd%FY(np0+j-1) + &
+&            sum( psd%FReactRecvY(j, 1:numVmNodes) )
+           psd%FZ(np0+j-1) = psd%FZ(np0+j-1) + &
+&            sum( psd%FReactRecvZ(j, 1:numVmNodes) )
+           psd%TX(np0+j-1) = psd%TX(np0+j-1) + &
+&            sum( psd%TReactRecvX(j, 1:numVmNodes) )
+           psd%TY(np0+j-1) = psd%TY(np0+j-1) + &
+&            sum( psd%TReactRecvY(j, 1:numVmNodes) )
+           psd%TZ(np0+j-1) = psd%TZ(np0+j-1) + &
+&            sum( psd%TReactRecvZ(j, 1:numVmNodes) )
+         end do
+
+      end do
+
+      do k = 1, this%Component(i)%Molecule%NQuadrupole
+
+         psq => this%Component(i)%Molecule%SiteQuadrupole(k)
+
+         do j = 1, np1
+           psq%FX(np0+j-1) = psq%FX(np0+j-1) + &
+&            sum( psq%FReactRecvX(j, 1:numVmNodes) )
+           psq%FY(np0+j-1) = psq%FY(np0+j-1) + &
+&            sum( psq%FReactRecvY(j, 1:numVmNodes) )
+           psq%FZ(np0+j-1) = psq%FZ(np0+j-1) + &
+&            sum( psq%FReactRecvZ(j, 1:numVmNodes) )
+           psq%TX(np0+j-1) = psq%TX(np0+j-1) + &
+&            sum( psq%TReactRecvX(j, 1:numVmNodes) )
+           psq%TY(np0+j-1) = psq%TY(np0+j-1) + &
+&            sum( psq%TReactRecvY(j, 1:numVmNodes) )
+           psq%TZ(np0+j-1) = psq%TZ(np0+j-1) + &
+&            sum( psq%TReactRecvZ(j, 1:numVmNodes) )
+         end do
+
+      end do
+
+    end do
+
+    ! finished. now, compute overall EPot, Virial
+    call FVMPrefetchedAccumulatePotVir( this, EPot, Virial )
+
+    ! now that all P0, Q0 have been loaded, build old CutoffPartner-List
+    ! in order to ensure that calls to TPotential_ChemicalPotential and 
+    ! to TPotential_Energy are still working
+    ! (inefficient! to be improved later...)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A)') "WW-partners: old version"
+#endif
+
+!    do i = 1, this%NComponents
+!      do j = i, this%NComponents
+!        call CalcCutoffPartners( this%Interaction( i, j ) )
+!      end do
+!    end do
+
+  end subroutine TEnsemble_FVMPrefetchedMol2AtomForce
+
+
+
+!==============================================================!
 !  Subroutine TEnsemble_Atom2Mol                               !
 !==============================================================!
 
@@ -3547,8 +4879,8 @@ loop3:    do nc = 1, this%NComponents
 #if defined PAR_PROF
 
       ! Parallel Profiling added by Hendrik Adorf (ITWM)
-      call profileTagBefore( Profiler, &
-&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+!      call profileTagBefore( Profiler, &
+!&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
 
 #endif
 
@@ -3576,16 +4908,16 @@ loop3:    do nc = 1, this%NComponents
 !new version (Predictor/Corrector parallelized)
 !**********************************************************
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
-
-      !no communication needed
-
+!
+!      !no communication needed
+!
 #endif
 
 #if defined PAR_PROF
 
       ! Parallel Profiling added by Hendrik Adorf (ITWM)
-      call profileTagAfter( Profiler, &
-&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+!      call profileTagAfter( Profiler, &
+!&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
 
 #endif
 
@@ -3655,8 +4987,8 @@ loop3:    do nc = 1, this%NComponents
 #if defined PAR_PROF
 
       ! Parallel Profiling added by Hendrik Adorf (ITWM)
-      call profileTagBefore( Profiler, &
-&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+!      call profileTagBefore( Profiler, &
+!&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
 
 #endif
 
@@ -3693,8 +5025,8 @@ loop3:    do nc = 1, this%NComponents
 #if defined PAR_PROF
 
       ! Parallel Profiling added by Hendrik Adorf (ITWM)
-      call profileTagAfter( Profiler, &
-&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+!      call profileTagAfter( Profiler, &
+!&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
 
 #endif
 
@@ -4100,11 +5432,11 @@ loop3:    do nc = 1, this%NComponents
     end do
 
 #if defined PAR_DEBUG
-!    write(iounit_pardebug, '(A, F25.16)') "Density: ", this%Density
-!    write(iounit_pardebug, '(A, F25.16)') "EPotCorrLJ: ", this%EPotCorrLJ
-!    write(iounit_pardebug, '(A, F25.16)') "EPotCorrRF: ", this%EPotCorrRF
-!   write(iounit_pardebug, '(A, F25.16)') "VirialCorrLJ: ", this%VirialCorrLJ
-!    write(iounit_pardebug, '(A, F25.16)') "BoxLength: ", this%BoxLength
+    write(iounit_pardebug, '(A, F20.10)') "Density: ", this%Density
+    write(iounit_pardebug, '(A, F20.10)') "EPotCorrLJ: ", this%EPotCorrLJ
+    write(iounit_pardebug, '(A, F20.10)') "EPotCorrRF: ", this%EPotCorrRF
+    write(iounit_pardebug, '(A, F20.10)') "VirialCorrLJ: ", this%VirialCorrLJ
+    write(iounit_pardebug, '(A, F20.10)') "BoxLength: ", this%BoxLength
 #endif
 
     ! Zero potential
@@ -4116,10 +5448,6 @@ loop3:    do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I)') "ComponentA: id = ", i
-  write(iounit_forcedebug, '(A, I)') "ComponentB: id = ", j
-#endif
         call Force( this%Interaction( i, j ), &
 &                   EPot, Virial, this%BoxLength )
       end do
@@ -4178,13 +5506,28 @@ loop3:    do nc = 1, this%NComponents
 !**********************************************************
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+     this%fvmTmpEPot = EPot
+     this%fvmTmpVirial = Virial
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
+#endif
+     fvmret = pv4dBarrier() !insure correct init (!)
+     fvmret = allreduceVM(this%fvmTmpEPotPtr, this%EPotPtr, 1, 2, 3)
+     fvmret = allreduceVM(this%fvmTmpVirialPtr, this%VirialPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
     !FVM_Allreduce
     this%fvmTmpEPot = EPot
     this%fvmTmpVirial = Virial
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F25.16)') "fvmTmpEPot: ", this%fvmTmpEPot
-    write(iounit_pardebug, '(A, F25.16)') "fvmTmpVirial: ", this%fvmTmpVirial
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
 #endif
     
     fvmret = pv4dBarrier() !insure correct init (!)
@@ -4218,6 +5561,8 @@ loop3:    do nc = 1, this%NComponents
     
     fvmret = pv4dBarrier()
 
+#endif
+
 #else
 
     this%EPot = EPot
@@ -4235,8 +5580,8 @@ loop3:    do nc = 1, this%NComponents
 
 #if defined PAR_DEBUG
 
-    write(iounit_pardebug, '(A, F25.16)') "EPot: ", this%EPot
-    write(iounit_pardebug, '(A, F25.16)') "Virial: ", this%Virial
+    write(iounit_pardebug, '(A, F10.3)') "EPot: ", this%EPot
+    write(iounit_pardebug, '(A, F10.3)') "Virial: ", this%Virial
 
 #endif
 
@@ -4244,6 +5589,340 @@ loop3:    do nc = 1, this%NComponents
     this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
 
   end subroutine TEnsemble_Force
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_FVMPrefetchedZeroForce                 !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TEnsemble_FVMPrefetchedZeroForce( this, EPot, Virial )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+    real(RK)        :: EPot, Virial    
+
+    ! Declare local variables
+    integer                   :: i, j
+    type(TComponent), pointer :: pc
+
+    ! Zero forces
+    do i = 1, this%NComponents
+      pc => this%Component(i)
+      do j = 1, this%Component(i)%Molecule%NLJ126
+        pc%Molecule%SiteLJ126(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%FZ(1:pc%NPart) = 0._RK
+        !FVM_READ_HALF
+        pc%Molecule%SiteLJ126(j)%FReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%FReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%FReactZ(1:pc%NPart) = 0._RK
+!        pc%Molecule%SiteLJ126(j)%FReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteLJ126(j)%FReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteLJ126(j)%FReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+#if  TRANS == 1
+        !TRANSPORT_start
+        pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJx(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJy(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJz(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJx(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJy(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJz(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJz(1:pc%Npart) = 0._RK
+        !TRANSPORT_END
+#endif
+      end do
+      do j = 1, this%Component(i)%Molecule%NCharge
+        pc%Molecule%SiteCharge(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
+        !FVM_READ_HALF
+        pc%Molecule%SiteCharge(j)%FReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%FReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%FReactZ(1:pc%NPart) = 0._RK
+ !       pc%Molecule%SiteCharge(j)%FReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+ !       pc%Molecule%SiteCharge(j)%FReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+ !       pc%Molecule%SiteCharge(j)%FReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+#if  TRANS == 1
+        !TRANSPORT_start
+        pc%Molecule%SiteCharge(j)%vsCx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsCy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsCz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCx(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCy(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCz(1:pc%Npart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vbCx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vbCy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vbCz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%cCx(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%cCy(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%cCz(1:pc%Npart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCx(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCy(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCz(1:pc%Npart) = 0._RK
+        !TRANSPORT_END
+#endif
+      end do
+      do j = 1, this%Component(i)%Molecule%NDipole
+        pc%Molecule%SiteDipole(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%FZ(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%TX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%TY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%TZ(1:pc%NPart) = 0._RK
+        !FVM_READ_HALF
+        pc%Molecule%SiteDipole(j)%FReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%FReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%FReactZ(1:pc%NPart) = 0._RK
+!        pc%Molecule%SiteDipole(j)%FReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteDipole(j)%FReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteDipole(j)%FReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+        pc%Molecule%SiteDipole(j)%TReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%TReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%TReactZ(1:pc%NPart) = 0._RK
+!        pc%Molecule%SiteDipole(j)%TReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteDipole(j)%TReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteDipole(j)%TReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+#if  TRANS == 1
+        !TRANSPORT_start
+        pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%vsDz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%vsuDx(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteDipole(j)%vsuDy(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteDipole(j)%vsuDz(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteDipole(j)%vbDx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%vbDy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%vbDz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%cDx(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteDipole(j)%cDy(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteDipole(j)%cDz(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteDipole(j)%tuDx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tuDy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tuDz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tlDx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tlDy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tlDz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tdDx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tdDy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteDipole(j)%tdDz(1:pc%NPart) = 0._RK
+        !TRANSPORT_END
+#endif
+      end do
+      do j = 1, this%Component(i)%Molecule%NQuadrupole
+        pc%Molecule%SiteQuadrupole(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%FZ(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TZ(1:pc%NPart) = 0._RK
+        !FVM_READ_HALF
+        pc%Molecule%SiteQuadrupole(j)%FReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%FReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%FReactZ(1:pc%NPart) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%FReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%FReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%FReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TReactX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TReactY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%TReactZ(1:pc%NPart) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%TReactRecvX(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%TReactRecvY(1:pc%NPart1,1:numVmNodes) = 0._RK
+!        pc%Molecule%SiteQuadrupole(j)%TReactRecvZ(1:pc%NPart1,1:numVmNodes) = 0._RK
+#if  TRANS == 1
+        !TRANSPORT_start
+        pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vsQz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vsuQx(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vsuQy(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vsuQz(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vbQx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vbQy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%vbQz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%cQx(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%cQy(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%cQz(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tuQx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tuQy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tuQz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tlQx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tlQy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tlQz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tdQx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tdQy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteQuadrupole(j)%tdQz(1:pc%NPart) = 0._RK
+        !TRANSPORT_END
+#endif
+      end do
+      if( pc%Molecule%isElongated ) then
+        pc%tRFX(:) = 0._RK
+        pc%tRFY(:) = 0._RK
+        pc%tRFZ(:) = 0._RK
+      end if
+#if  TRANS == 1
+      !TRANSPORT_start
+      do j = 1, this%Component(i)%Npart
+        this%Component(i)%fs(j, 1)    = 0._RK
+        this%Component(i)%fs(j, 2)    = 0._RK
+        this%Component(i)%fs(j, 3)    = 0._RK
+        this%Component(i)%fb(j, 1)    = 0._RK
+        this%Component(i)%fb(j, 2)    = 0._RK
+        this%Component(i)%fb(j, 3)    = 0._RK
+        this%Component(i)%ftc(j, 1)   = 0._RK
+        this%Component(i)%ftc(j, 2)   = 0._RK
+        this%Component(i)%ftc(j, 3)   = 0._RK
+        this%Component(i)%frc(j, 1)   = 0._RK
+        this%Component(i)%frc(j, 2)   = 0._RK
+        this%Component(i)%frc(j, 3)   = 0._RK
+      end do
+      !TRANSPORT_END
+#endif
+    end do
+
+    ! Zero potential
+    EPot = this%Density * this%EPotCorrLJ + this%EPotCorrRF
+
+    ! Zero virial
+    Virial = this%Density * this%VirialCorrLJ
+
+  end subroutine TEnsemble_FVMPrefetchedZeroForce
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_FVMPrefetchedAccumulatePotVir          !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TEnsemble_FVMPrefetchedAccumulatePotVir( this, EPot, Virial )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+    real(RK)        :: EPot, Virial
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_FVMPrefetchedAccumulatePotVir: Allreduce(EPot, Virial)' )
+
+#endif
+
+#if FVM_VER > 0
+
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPot
+    this%fvmTmpVirial = Virial
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
+#endif
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, this%EPotPtr, 1, 2, 3)
+    fvmret = allreduceVM(this%fvmTmpVirialPtr, this%VirialPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+    !FVM_Allreduce
+    this%fvmTmpEPot = EPot
+    this%fvmTmpVirial = Virial
+
+#if defined PAR_DEBUG
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpEPot: ", this%fvmTmpEPot
+    write(iounit_pardebug, '(A, F20.10)') "fvmTmpVirial: ", this%fvmTmpVirial
+#endif
+
+    fvmret = pv4dBarrier() !ensure correct init (!)
+    if ( myRank.eq.NRootProc ) then
+      this%EPot = this%fvmTmpEPot
+      this%Virial = this%fvmTmpVirial
+      do fvmReduceLoopIdx = 1, numVmNodes-1
+        fvmRemoteRank = modulo(myRank + fvmReduceLoopIdx, numVmNodes)
+        fvmret = readdma(this%fvmByteOffFvmTmpEPot, &
+&         this%fvmByteOffFvmTmpEPot, sizeof(this%fvmTmpEPot), &
+&         fvmRemoteRank, 0)
+        fvmret = readdma(this%fvmByteOffFvmTmpVirial, &
+&         this%fvmByteOffFvmTmpVirial, sizeof(this%fvmTmpVirial), &
+&         fvmRemoteRank, 1)
+        fvmret = waitonqueue(0)
+        this%EPot = this%EPot + this%fvmTmpEPot
+        fvmret = waitonqueue(1)
+        this%Virial = this%Virial + this%fvmTmpVirial
+      end do
+    fvmret = pv4dBarrier()
+    end if
+    if ( myRank.ne.NRootProc ) then
+      fvmret = pv4dBarrier() !wait for accumulated value
+      fvmret = readdma(this%fvmByteOffEPot, this%fvmByteOffEPot, &
+&       sizeof(this%EPot), NRootProc, 0)
+      fvmret = readdma(this%fvmByteOffVirial, this%fvmByteOffVirial, &
+&       sizeof(this%Virial), NRootProc, 1)
+      fvmret = waitonqueue(0)
+      fvmret = waitonqueue(1)
+    endif
+
+    fvmret = pv4dBarrier()
+
+#endif
+
+    this%EPot = this%EPot !/ 2
+    this%Virial = this%Virial !/ 2
+
+#else
+
+    this%EPot = EPot
+    this%Virial = Virial
+
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_FVMPrefetchedAccumulatePotVir: Allreduce(EPot, Virial)' )
+
+#endif
+
+#if defined PAR_DEBUG
+
+    write(iounit_pardebug, '(A, F10.3)') "EPot: ", this%EPot
+    write(iounit_pardebug, '(A, F10.3)') "Virial: ", this%Virial
+
+#endif
+
+    ! Calculate pressure
+    this%Pressure = this%Density * this%Temperature + &
+&     this%Virial / this%Volume0
+
+  end subroutine TEnsemble_FVMPrefetchedAccumulatePotVir
 
 
 
@@ -4947,9 +6626,15 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDeltaAllPtr
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDeltaAllPtr = c_loc(EPotDeltaAll)
+#endif
 
     ! Update number of move attempts
     pc%NMoveAttempts = pc%NMoveAttempts + 1
@@ -4989,7 +6674,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDeltaAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotOld - EPotNew
@@ -5016,6 +6710,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -5079,9 +6775,15 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDeltaAllPtr
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDeltaAllPtr = c_loc(EPotDeltaAll)
+#endif
 
     ! Update number of rotation attempts
     pc%NRotateAttempts = pc%NRotateAttempts + 1
@@ -5122,7 +6824,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDeltaAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotOld - EPotNew
@@ -5149,6 +6860,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -5212,6 +6925,9 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDeltaAllPtr
+#endif
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -5219,6 +6935,9 @@ loop2:        do nc = 1, this%NComponents
     ! Assign local variables
     pc => this%Component(nc)
     pcf => this%Component(ncf)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDeltaAllPtr = c_loc(EPotDeltaAll)
+#endif
 
     ! Update number of move attempts
     pc%NMoveBiasedAttempts = pc%NMoveBiasedAttempts + 1
@@ -5273,7 +6992,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDeltaAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotOld - EPotNew
@@ -5300,6 +7028,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -5363,6 +7093,9 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDeltaAllPtr
+#endif
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -5370,6 +7103,9 @@ loop2:        do nc = 1, this%NComponents
     ! Assign local variables
     pc => this%Component(nc)
     pcf => this%Component(ncf)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDeltaAllPtr = c_loc(EPotDeltaAll)
+#endif
 
     ! Update number of rotation attempts
     pc%NRotateBiasedAttempts = pc%NRotateBiasedAttempts + 1
@@ -5417,7 +7153,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDeltaAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotOld - EPotNew
@@ -5444,6 +7189,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -5511,6 +7258,9 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0 || FVM_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDeltaAllPtr
+#endif
 !DEBUG
 !   logical :: accepted, unequal
 !DEBUG
@@ -5519,6 +7269,9 @@ loop2:        do nc = 1, this%NComponents
     pc => this%Component(nc)
     pcf => this%Component(ncf)
     oldstate = pc%NFluctState
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDeltaAllPtr = c_loc(EPotDeltaAll)
+#endif
 
     if( oldstate .eq. 0 ) then
       if( rnd( 0._RK, 1._RK ) < .5_RK ) then
@@ -5590,7 +7343,16 @@ loop2:        do nc = 1, this%NComponents
 
 #elif FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotOld - EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDeltaAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotOld - EPotNew
@@ -5617,6 +7379,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
     ! Apply long range corrections
     EPotDeltaAll = EPotDeltaAll &
@@ -5722,9 +7486,15 @@ loop2:        do nc = 1, this%NComponents
 !  logical                   :: accepted, different
 !DEBUG
 #endif
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotInsAllPtr
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotInsAllPtr = c_loc(EPotInsAll)
+#endif
 
     ! Update number of insert attempts
     this%NInsertAttempts = this%NInsertAttempts + 1
@@ -5774,7 +7544,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotIns
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotInsAllPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotIns
@@ -5801,6 +7580,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -5917,9 +7698,15 @@ loop2:        do nc = 1, this%NComponents
 !  logical                     :: accepted, different
 !#endif
 !DEBUG
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    type(c_ptr) :: EPotDelPtr
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
+#if FVM_VER > 0 && FVM_ALLREDUCE > 0
+    EPotDelPtr = c_loc(EPotDel)
+#endif
 
     ! Update number of delete attempts
     this%NDeleteAttempts = this%NDeleteAttempts + 1
@@ -5940,7 +7727,16 @@ loop2:        do nc = 1, this%NComponents
 
 #elif FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = GetEnergy( this, nc, np )
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, EPotDelPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = GetEnergy( this, nc, np )
@@ -5967,6 +7763,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #else
 
@@ -6178,7 +7976,16 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if FVM_VER > 0
 
-    fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
+
+    this%fvmTmpEPot = EPotNew
+    fvmret = pv4dBarrier() !insure correct init (!)
+    fvmret = allreduceVM(this%fvmTmpEPotPtr, this%EPotPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!    fvmret = pv4dBarrier() !???
 
     !FVM_Allreduce
     this%fvmTmpEPot = EPotNew
@@ -6203,6 +8010,8 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     fvmret = pv4dBarrier()
+
+#endif
 
 #endif
 
@@ -6241,8 +8050,17 @@ loop2:        do nc = 1, this%NComponents
 
 #elif FVM_VER > 0
 
-      fvmret = pv4dBarrier() !???
+#if FVM_ALLREDUCE > 0
+!using ***NATIVE*** FVM_Allreduce
 
+      this%fvmTmpVirial = GetVirial( this )
+      fvmret = pv4dBarrier() !insure correct init (!)
+      fvmret = allreduceVM(this%fvmTmpVirialPtr, this%VirialPtr, 1, 2, 3)
+
+#elif FVM_ALLREDUCE == 0
+
+!      fvmret = pv4dBarrier() !???
+!
       !FVM_Allreduce
       this%fvmTmpVirial = GetVirial( this )
       fvmret = pv4dBarrier() !ensure correct init (!)
@@ -6266,6 +8084,8 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       fvmret = pv4dBarrier()
+
+#endif
 
 #else
 

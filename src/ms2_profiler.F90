@@ -3,7 +3,7 @@
 !          contains TProfiler class                            !
 !> \author Hendrik Adorf (ITWM)                                !
 !> \date   March 2009                                          !
-!> Comment: Timer is awkward; do not use across months (!)     !
+!> Comment: A Microsecond Timer                                !
 !==============================================================!
 
 #ifndef ARCH
@@ -20,15 +20,19 @@
 
 module ms2_profiler
 
+#if FVM_VER > 0
+  use fvmf2003extensions
+#endif
+
 !==============================================================!
 !  Type TProfiler                                              !
 !==============================================================!
 
   type TProfiler
 
-    real(4) :: StartTime
-    real(4) :: PreviousTimeTag
-    real(4) :: OverallCommunicationTime
+    real(8) :: StartTime
+    real(8) :: PreviousTimeTag
+    real(8) :: OverallCommunicationTime
   
     integer :: iounitRuntime
     integer :: iounitTrace
@@ -70,13 +74,13 @@ contains
     integer         :: iounitNumberRuntime
 
     !local variables
-    real(4)         :: TimeTag
-    character(8)    :: dummyDate
-    character(10)   :: dummyTime
-    character(5)    :: dummyZone
-    integer         :: time(8)
-    real(4)         :: millisec
-    real(4)         :: timeSec
+    real(8)         :: timeTag, time
+!    character(8)    :: dummyDate
+!    character(10)   :: dummyTime
+!    character(5)    :: dummyZone
+!    integer         :: time(8)
+!    real(4)         :: millisec
+!    real(4)         :: timeSec
  
     this%iounitTrace   = iounitNumberTrace
     this%iounitRuntime = iounitNumberRuntime
@@ -88,15 +92,19 @@ contains
     
     this%OverallCommunicationTime = 0.0
     
-    call date_and_time(dummyDate, dummyTime, dummyZone, time)
-    millisec = time(8)
-    timeSec = time(3)*3600*24 + time(5)*3600 + &
-&     time(6)*60 + time(7) + millisec/1000 
+!    call date_and_time(dummyDate, dummyTime, dummyZone, time)
+!    millisec = time(8)
+!    timeSec = time(3)*3600*24 + time(5)*3600 + &
+!&     time(6)*60 + time(7) + millisec/1000 
+!
+!    this%StartTime = timeSec
+!    timeTag = timeSec - this%StartTime
 
-    this%StartTime = timeSec
-    TimeTag = timeSec - this%StartTime
-    
-    write(this%iounitTrace, '(F10.3, A)') TimeTag, &
+    call vmTimer(time)
+    this%StartTime = time
+    timeTag = time - this%StartTime
+
+    write(this%iounitTrace, '(F18.6, A)') timeTag, &
 &     ' COMPLETED TProfiler_Construct'
 
   end subroutine TProfiler_Construct
@@ -130,23 +138,27 @@ contains
     character(*)  :: tagStr
 
     !local variables
-    real(4)         :: TimeTag
-    character(8)    :: dummyDate
-    character(10)   :: dummyTime
-    character(5)    :: dummyZone
-    integer         :: time(8)
-    real(4)         :: millisec
-    real(4)         :: timeSec
+    real(8)         :: timeTag, time
+!    character(8)    :: dummyDate
+!    character(10)   :: dummyTime
+!    character(5)    :: dummyZone
+!    integer         :: time(8)
+!    real(4)         :: millisec
+!    real(4)         :: timeSec
 
-    call date_and_time(dummyDate, dummyTime, dummyZone, time)
-    millisec = time(8)
-    timeSec = time(3)*3600*24 + time(5)*3600 + &
-&     time(6)*60 + time(7) + millisec/1000
+!    call date_and_time(dummyDate, dummyTime, dummyZone, time)
+!    millisec = time(8)
+!    timeSec = time(3)*3600*24 + time(5)*3600 + &
+!&     time(6)*60 + time(7) + millisec/1000
+!
+!    timeTag = timeSec - this%StartTime
+!    this%PreviousTimeTag = timeTag
 
-    TimeTag = timeSec - this%StartTime
-    this%PreviousTimeTag = TimeTag
+    call vmTimer(time)
+    timeTag = time - this%StartTime
+    this%PreviousTimeTag = timeTag
 
-    write(this%iounitTrace, '(F10.3, A)') TimeTag, &
+    write(this%iounitTrace, '(F18.6, A)') timeTag, &
 &     trim(' REACHED '//trim(tagStr) )
 
   end subroutine TProfiler_Before
@@ -164,29 +176,34 @@ contains
     character(*)  :: tagStr
 
     !local variables
-    real(4)         :: TimeTag
-    character(8)    :: dummyDate
-    character(10)   :: dummyTime
-    character(5)    :: dummyZone
-    integer         :: time(8)
-    real(4)         :: millisec
-    real(4)         :: timeSec
+    real(8)         :: timeTag, time
+!    character(8)    :: dummyDate
+!    character(10)   :: dummyTime
+!    character(5)    :: dummyZone
+!    integer         :: time(8)
+!    real(4)         :: millisec
+!    real(4)         :: timeSec
 
-    call date_and_time(dummyDate, dummyTime, dummyZone, time)
-    millisec = time(8)
-    timeSec = time(3)*3600*24 + time(5)*3600 + &
-&     time(6)*60 + time(7) + millisec/1000
+!    call date_and_time(dummyDate, dummyTime, dummyZone, time)
+!    millisec = time(8)
+!    timeSec = time(3)*3600*24 + time(5)*3600 + &
+!&     time(6)*60 + time(7) + millisec/1000
+!
+!    TimeTag = timeSec - this%StartTime
+!    this%OverallCommunicationTime = this%OverallCommunicationTime + &
+!&     (TimeTag - this%PreviousTimeTag)
 
-    TimeTag = timeSec - this%StartTime
+    call vmTimer(time)
+    timeTag = time - this%StartTime
     this%OverallCommunicationTime = this%OverallCommunicationTime + &
-&     (TimeTag - this%PreviousTimeTag)
+&     (timeTag - this%PreviousTimeTag)
 
-    write(this%iounitRuntime, '(F10.3, A, F10.3, A, F6.2)') &
-&     TimeTag, ' ', this%OverallCommunicationTime, ' ', &
-&     (this%OverallCommunicationTime/TimeTag)*100
+    write(this%iounitRuntime, '(F18.6, A, F18.6, A, F6.2)') &
+&     timeTag, ' ', this%OverallCommunicationTime, ' ', &
+&     (this%OverallCommunicationTime/timeTag)*100
 !    backspace this%iounitRuntime ! why does it not work?
 
-    write(this%iounitTrace, '(F10.3, A)') TimeTag, &
+    write(this%iounitTrace, '(F18.6, A)') timeTag, &
 &     trim(' COMPLETED '//trim(tagStr) )
 
   end subroutine TProfiler_After

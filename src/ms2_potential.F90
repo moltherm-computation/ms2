@@ -62,6 +62,11 @@ module ms2_potential
     real(RK)                  :: SigmaSquared
     real(RK)                  :: Epsilon4, Epsilon48
     real(RK)                  :: BoxlengthInv, BoxLengthThird
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotLJ126LJ126
@@ -78,6 +83,10 @@ module ms2_potential
     module procedure TPotLJLJ_Force
   end interface
 
+  interface FVMPrefetchedForce
+    module procedure TPotLJLJ_FVMPrefetchedForce
+  end interface
+  
   interface ChemicalPotential
     module procedure TPotLJLJ_ChemicalPotential
   end interface
@@ -104,6 +113,11 @@ module ms2_potential
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotChargeCharge
@@ -118,6 +132,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotCC_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotCC_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -142,6 +160,11 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotChargeDipole
@@ -156,6 +179,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotCD_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotCD_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -180,6 +207,11 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotChargeQuadrupole
@@ -194,6 +226,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotCQ_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotCQ_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -217,6 +253,11 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotDipoleCharge
@@ -231,6 +272,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotDC_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotDC_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -254,6 +299,11 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotDipoleDipole
@@ -268,6 +318,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotDD_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotDD_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -291,6 +345,11 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotDipoleQuadrupole
@@ -305,6 +364,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotDQ_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotDQ_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -327,6 +390,11 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotQuadrupoleCharge
@@ -341,6 +409,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQC_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotQC_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -364,6 +436,11 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotQuadrupoleDipole
@@ -378,6 +455,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQD_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotQD_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -400,6 +481,11 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer          :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer          :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
   end type TPotQuadrupoleQuadrupole
@@ -414,6 +500,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQQ_Force
+  end interface
+
+  interface FVMPrefetchedForce
+    module procedure TPotQQ_FVMPrefetchedForce
   end interface
 
   interface ChemicalPotential
@@ -752,13 +842,6 @@ contains
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i) 
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I, A, 3F25.16)') "particle no. ", i, &
-&   ", at position ", RXi, RYi, RZi
-  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
-#endif
-        
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx(i)
@@ -808,12 +891,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I, A, 3F25.16, A)') "particle no. ", j, &
-&   " at position ", RX2(j), RY2(j), RZ2(j), " is an LJLJ-partner"
-#endif
-
 #if TRANS==1
           PXijB= PXij * BoxLength
           PYijB= PYij * BoxLength
@@ -856,15 +933,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, 1F25.16)') "partial EPot   = ", &
-&   Rij6Inv * (Rij6Inv - 1._RK)
-  write(iounit_forcedebug, '(A, 1F25.16)') "partial Virial = ", &
-&   PXij * FXij + PYij * FYij + PZij * FZij
-  write(iounit_forcedebug, '(A, 3F25.16)') "partial Force  = ", FXij, FYij, FZij
-#endif
-
 #if  TRANS == 1
           !TRANSPORT_start
           VSxi   = VSxi + FXij * PYijB
@@ -1010,11 +1078,482 @@ loop2:  do j = j0, j1
     Virial = Virial + Third * VirialLocal * BoxLength
 
 #if defined PAR_DEBUG
-    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
-    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
+!    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
+!    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
 #endif
 
   end subroutine TPotLJLJ_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotLJLJ_FVMPrefetchedForce                      !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TPotLJLJ_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotLJ126LJ126)     :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+     !TRANSPORT_END
+#endif
+
+    real(RK)          :: SigmaSquared
+    real(RK)          :: SigmaInv
+    real(RK)          :: Epsilon4, Epsilon48
+    real(RK)          :: RCutoffSquared
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: FXij, FYij, FZij, Fij
+    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: EPotLocal, VirialLocal
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txi ,  tyi  , tzi
+    real(RK)          :: UU ,  Uxi,  Uyi, Uzi, RijSInvNorm
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    real(RK)          :: PXijB, PYijB, PZijB
+!TRANSPORT_END
+#endif
+    logical           :: SameComponent
+    integer           :: i, j, k
+    integer           :: i0, i1!, j0, j1!, ji
+!    integer           :: N1, N2
+!    logical           :: EvenN
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    N1 = this%Site2%NPart
+!    N2 = N1 / 2
+!    EvenN = mod( N1, 2 ) == 0
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    SigmaSquared = this%SigmaSquared
+    SigmaInv     = 1._RK/Sqrt(this%SigmaSquared)
+    Epsilon4 = this%Epsilon4
+    Epsilon48 = this%Epsilon48
+    RCutoffSquared = this%RCutoffSquaredScaled
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! assign Force Pointers later!    
+#if  TRANS == 1
+    !TRANSPORT_start
+    VSx => this%site1%vsLJx
+    VSy => this%site1%vsLJy
+    VSz => this%site1%vsLJz
+    VSux=> this%site1%vsuLJx
+    VSuy=> this%site1%vsuLJy
+    VSuz=> this%site1%vsuLJz
+    VBx => this%site1%vbLJx
+    VBy => this%site1%vbLJy
+    VBz => this%site1%vbLJz
+    Cx  => this%site1%cLJx
+    Cy  => this%site1%cLJy
+    Cz  => this%site1%cLJz
+    tux => this%site1%tuLJx
+    tuy => this%site1%tuLJy
+    tuz => this%site1%tuLJz
+    tlx => this%site1%tlLJx
+    tly => this%site1%tlLJy
+    tlz => this%site1%tlLJz
+    tdx => this%site1%tdLJx
+    tdy => this%site1%tdLJy
+    tdz => this%site1%tdLJz
+    q1  => this%site1%Q0r(:, 1)
+    q2  => this%site1%Q0r(:, 2)
+    q3  => this%site1%Q0r(:, 3)
+    q4  => this%site1%Q0r(:, 4)
+!TRANSPORT_END
+#endif
+
+    if( CutoffMode.eq.CenterofMass ) then
+
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+
+      i0 = this%Site1%NPart0
+      i1 = this%Site1%NPart2
+
+      do i = i0, i1
+
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff1(i-i0+1)
+#endif
+
+#if  TRANS == 1
+! *** NEED TO MODIFY TRANSPORT ? ***
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = RXij - anint( PXij )
+          RYij = RYij - anint( PYij )
+          RZij = RZij - anint( PZij )
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+&   " at position ", RX2(j), RY2(j), RZ2(j), " is an LJLJ-partner"
+#endif
+
+#if TRANS==1
+          PXijB= PXij * BoxLength
+          PYijB= PYij * BoxLength
+          PZijB= PZij * BoxLength
+          r1x  = ( RXi-PXi ) * BoxLength
+          r1y  = ( RYi-PYi ) * BoxLength
+          r1z  = ( RZi-PZi ) * BoxLength
+#endif
+          RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+
+#if defined PAR_DEBUG
+!    if (RijSquaredInv.ne.RijSquaredInv) then
+!      write(iounit_pardebug, '(A, I)') "NInCutoff = ", this%NInCutoff1(i)
+!      write(iounit_pardebug, '(A, I)') "k = ", k
+!      write(iounit_pardebug, '(A, 3F25.16)') "Rxi, Ryi, Rzi:", RXi, RYi, RZi
+!      write(iounit_pardebug, '(A, 3F25.16)') "Rx2, Ry2, Rz2:", &
+!&       RX2(j), RY2(j), RZ2(j)
+!      write(iounit_pardebug, '(A, F25.16)') "SigmaSquared: ", SigmaSquared
+!      write(iounit_pardebug, '(A, F25.16)') "RijSquaredInv: ", RijSquaredInv
+!    end if
+#endif
+
+#if TRANS==1
+          RijSInvNorm   = Sqrt(RijSquaredInv)
+#endif
+          Rij6Inv = RijSquaredInv**3
+#if TRANS==1
+          UU   = RijSInvNorm*Epsilon4*Rij6Inv*(Rij6Inv - 1._RK)*SigmaInv
+          !TRANSPORT_start
+          Uxi  = UU*RXij
+          Uyi  = UU*RYij
+          Uzi  = UU*RZij
+          !TRANSPORT_END
+#endif
+          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          FXij = Fij * RXij
+          FYij = Fij * RYij
+          FZij = Fij * RZij
+          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          FXi = FXi + FXij
+          FYi = FYi + FYij
+          FZi = FZi + FZij
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial EPot   = ", &
+&   Rij6Inv * (Rij6Inv - 1._RK)
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial Virial = ", &
+&   PXij * FXij + PYij * FYij + PZij * FZij
+  write(iounit_forcedebug, '(A, 3F10.3)') "partial Force  = ", FXij, FYij, FZij
+#endif
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+#if  TRANS == 1
+          !TRANSPORT_start
+          VSxi   = VSxi + FXij * PYijB
+          VSyi   = VSyi + FXij * PZijB
+          VSzi   = VSzi + FYij * PZijB
+          VSuxi  = VSuxi+ FYij * PXijB
+          VSuyi  = VSuyi+ FZij * PXijB
+          VSuzi  = VSuzi+ FZij * PYijB
+          VBxi   = VBxi + FXij * PXijB
+          VByi   = VByi + FYij * PYijB
+          VBzi   = VBzi + FZij * PZijB
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
+          txii   = r1y * FZij - r1z * FYij
+          tyii   = r1z * FXij - r1x * FZij
+          tzii   = r1x * FYij - r1y * FXij
+          txi    = A11 * txii + A12 * tyii + A13 * tzii
+          tyi    = A21 * txii + A22 * tyii + A23 * tzii
+          tzi    = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXijB*tyi
+          tuyi   = tuyi + PXijB*tzi
+          tuzi   = tuzi + PYijB*tzi
+          tlxi   = tlxi + PYijB*txi
+          tlyi   = tlyi + PZijB*txi
+          tlzi   = tlzi + PZijB*tyi
+          tdxi   = tdxi + PXijB*txi
+          tdyi   = tdyi + PYijB*tyi
+          tdzi   = tdzi + PZijB*tzi
+          !TRANSPORT_END
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+        !TRANSPORT_END
+#endif
+      end do
+
+      ! *** new if FVMPrefetching: ***
+      ! run over component 2
+      if (.not.SameComponent) then
+
+        !reassign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        i0 = this%Site2%NPart0
+        i1 = this%Site2%NPart2
+
+        do i = i0, i1
+ 
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff2(i-i0+1)
+#endif
+
+          ! *** NO TRANSPORT ?! ***
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+#if defined PAR_DEBUG
+!            write(iounit_pardebug, '(A, I)') "i = ", i
+!            write(iounit_pardebug, '(A, I)') "NInCutoff = ", this%NInCutoff2(i)
+!            write(iounit_pardebug, '(A, I)') "k = ", k
+!            write(iounit_pardebug, '(A, I)') "j = ", j
+#endif
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = RXij - anint( PXij )
+            RYij = RYij - anint( PYij )
+            RZij = RZij - anint( PZij )
+            PXij = PXij - anint( PXij )
+            PYij = PYij - anint( PYij )
+            PZij = PZij - anint( PZij )
+
+            RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+&   " at position ", RX1(j), RY1(j), RZ1(j), " is an LJLJ-partner"
+#endif
+
+#if defined PAR_DEBUG
+!    if (RijSquaredInv.ne.RijSquaredInv) then
+!      write(iounit_pardebug, '(A, I)') "NInCutoff = ", this%NInCutoff2(i)
+!      write(iounit_pardebug, '(A, I)') "k = ", k
+!      write(iounit_pardebug, '(A, 3F25.16)') "Rxi, Ryi, Rzi:", RXi, RYi, RZi
+!      write(iounit_pardebug, '(A, 3F25.16)') "Rx2, Ry2, Rz2:", &
+!&       RX2(j), RY2(j), RZ2(j)
+!      write(iounit_pardebug, '(A, F25.16)') "SigmaSquared: ", SigmaSquared
+!      write(iounit_pardebug, '(A, F25.16)') "RijSquaredInv: ", RijSquaredInv
+!    end if
+#endif
+
+            Rij6Inv = RijSquaredInv**3
+            EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+            FXij = Fij * RXij
+            FYij = Fij * RYij
+            FZij = Fij * RZij
+            VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+            FXi = FXi + FXij
+            FYi = FYi + FYij
+            FZi = FZi + FZij
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial EPot   = ", &
+&   Rij6Inv * (Rij6Inv - 1._RK)
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial Virial = ", &
+&   PXij * FXij + PYij * FYij + PZij * FZij
+  write(iounit_forcedebug, '(A, 3F10.3)') "partial Force  = ", FXij, FYij, FZij
+#endif
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+
+        end do
+
+      end if ! (not SameComponent)
+
+    else ! Site-site cutoff
+
+      ! *** not implemented ***
+
+    end if
+
+#if defined PAR_DEBUG
+!    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
+!    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
+!    write(iounit_pardebug, '(A, F25.16)') "Epsilon4: ", Epsilon4
+!    write(iounit_pardebug, '(A, F25.16)') "EPotLocal: ", EPotLocal
+!    write(iounit_pardebug, '(A, F25.16)') "Third: ", Third
+!    write(iounit_pardebug, '(A, F25.16)') "VirialLocal: ", VirialLocal
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + Epsilon4 * EPotLocal
+    Virial = Virial + Third * VirialLocal * BoxLength
+
+#if defined PAR_DEBUG
+!    write(iounit_pardebug, '(A, F25.16)') "EPot LJLJ: ", EPot
+!    write(iounit_pardebug, '(A, F25.16)') "Virial LJLJ: ", Virial
+#endif
+
+  end subroutine TPotLJLJ_FVMPrefetchedForce
 
 
 
@@ -1466,13 +2005,6 @@ loop2:do j = 1, N
       PXi = PX1(i)
       PYi = PY1(i)
       PZi = PZ1(i)
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I, A, 3F25.16)') "particle no. ", i, &
-&   ", at position ", RXi, RYi, RZi
-  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
-#endif
-
 #if  TRANS == 1
       !TRANSPORT_start
       VSxi= VSx(i)
@@ -1522,12 +2054,6 @@ loop1:do k = 1, this%NInCutoff(i)
         PXij = (PXij - anint( PXij )) * BoxLength
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I, A, 3F25.16, A)') "particle no. ", j, &
-&   " at position ", RX2(j), RY2(j), RZ2(j), " is an CC-partner"
-#endif
-
 #if TRANS==1
         r1x  = ( RXi-PXi ) * BoxLength
         r1y  = ( RYi-PYi ) * BoxLength
@@ -1565,15 +2091,6 @@ loop1:do k = 1, this%NInCutoff(i)
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
-
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, 1F25.16)') "partial EPot   = ", &
-&   EPotLocal1
-  write(iounit_forcedebug, '(A, 1F25.16)') "partial Virial = ", &
-&   EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
-  write(iounit_forcedebug, '(A, 3F25.16)') "partial Force  = ", FXij, FYij, FZij
-#endif
-
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi   = VSxi + FXij * PYij
@@ -1641,6 +2158,424 @@ loop1:do k = 1, this%NInCutoff(i)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCC_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotCC_FVMPrefetchedForce                        !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TPotCC_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeCharge)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    !TRANSPORT_END
+#endif
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ                                             ! Site-Site-Einheitvektor
+    real(RK)          :: RijInv
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txi ,  tyi  , tzi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi, RijSInvNorm
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    real(RK)          :: Rij2
+!TRANSPORT_END
+#endif
+    logical           :: SameComponent
+    integer           :: i, j, k, i0, i1
+
+    ! Assign local variables
+     SameComponent = this%SameComponent
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+#if  TRANS == 1
+    !TRANSPORT_start
+    VSx => this%site1%vsCx
+    VSy => this%site1%vsCy
+    VSz => this%site1%vsCz
+    VSux=> this%site1%vsuCx
+    VSuy=> this%site1%vsuCy
+    VSuz=> this%site1%vsuCz
+    VBx => this%site1%vbCx
+    VBy => this%site1%vbCy
+    VBz => this%site1%vbCz
+    Cx  => this%site1%cCx
+    Cy  => this%site1%cCy
+    Cz  => this%site1%cCz
+    tux => this%site1%tuCx
+    tuy => this%site1%tuCy
+    tuz => this%site1%tuCz
+    tlx => this%site1%tlCx
+    tly => this%site1%tlCy
+    tlz => this%site1%tlCz
+    tdx => this%site1%tdCx
+    tdy => this%site1%tdCy
+    tdz => this%site1%tdCz
+    q1  => this%site1%Q0r(:, 1)
+    q2  => this%site1%Q0r(:, 2)
+    q3  => this%site1%Q0r(:, 3)
+    q4  => this%site1%Q0r(:, 4)
+!TRANSPORT_END
+#endif
+
+    ! Loop over molecules
+
+    !assign force pointers
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FReactX
+    FY2 => this%Site2%FReactY
+    FZ2 => this%Site2%FReactZ
+
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+    
+    do i = i0, i1
+    
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff1(i-i0+1)
+#endif
+
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VSuxi= VSux(i)
+      VSuyi= VSuy(i)
+      VSuzi= VSuz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+      Cxi = Cx(i)
+      Cyi = Cy(i)
+      Czi = Cz(i)
+      tuxi = tux(i)
+      tuyi = tuy(i)
+      tuzi = tuz(i)
+      tlxi = tlx(i)
+      tlyi = tly(i)
+      tlzi = tlz(i)
+      tdxi = tdx(i)
+      tdyi = tdy(i)
+      tdzi = tdz(i)
+      A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+      A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+      A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+      A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+      A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+      A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+      A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+      A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+      A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+      !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff1(i-i0+1)
+        j = this%CutoffPartner1(k, i-i0+1)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+&   " at position ", RX2(j), RY2(j), RZ2(j), " is a CC-partner"
+#endif
+
+#if TRANS==1
+        r1x  = ( RXi-PXi ) * BoxLength
+        r1y  = ( RYi-PYi ) * BoxLength
+        r1z  = ( RZi-PZi ) * BoxLength
+#endif
+#if ARCH == 3
+        RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+#else
+        RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+#endif
+#if TRANS==1
+        Rij2   = RXij**2 + RYij**2 + RZij**2
+#endif
+        eX = RXij * RijInv
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        EPotLocal1 = Epsilon * RijInv
+        EPotLocal  = EPotLocal + EPotLocal1
+#if TRANS==1
+        UU        = Epsilon * RijInv + this%RFConstant * Rij2
+        !TRANSPORT_start vielleicht
+        Uxi       = UU * eX
+        Uyi       = UU * eY
+        Uzi       = UU * eZ
+        !TRANSPORT_END
+#endif
+        VirialLocal = VirialLocal + EPotLocal1 * RijInv &
+&                       * (eX * PXij + eY * PYij + eZ * PZij)
+        FXij = EPotLocal1 * RijInv * eX
+        FYij = EPotLocal1 * RijInv * eY
+        FZij = EPotLocal1 * RijInv * eZ
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+
+        ! *** write reactio to special field (FReactX,Y,Z) ***
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial EPot   = ", &
+&   EPotLocal1
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial Virial = ", &
+&   EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+  write(iounit_forcedebug, '(A, 3F10.3)') "partial Force  = ", FXij, FYij, FZij
+#endif
+
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VSuxi  = VSuxi+ FYij * PXij
+        VSuyi  = VSuyi+ FZij * PXij
+        VSuzi  = VSuzi+ FZij * PYij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+        Cxi    = Cxi  + Uxi
+        Cyi    = Cyi  + Uyi
+        Czi    = Czi  + Uzi
+        txii   = r1y * FZij - r1z * FYij
+        tyii   = r1z * FXij - r1x * FZij
+        tzii   = r1x * FYij - r1y * FXij
+        txi    = A11 * txii + A12 * tyii + A13 * tzii
+        tyi    = A21 * txii + A22 * tyii + A23 * tzii
+        tzi    = A31 * txii + A32 * tyii + A33 * tzii
+        tuxi   = tuxi + PXij*tyi
+        tuyi   = tuyi + PXij*tzi
+        tuzi   = tuzi + PYij*tzi
+        tlxi   = tlxi + PYij*txi
+        tlyi   = tlyi + PZij*txi
+        tlzi   = tlzi + PZij*tyi
+        tdxi   = tdxi + PXij*txi
+        tdyi   = tdyi + PYij*tyi
+        tdzi   = tdzi + PZij*tzi
+        !TRANSPORT_END
+#endif
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VSux(i)= VSuxi
+      VSuy(i)= VSuyi
+      VSuz(i)= VSuzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+      Cx(i)  = Cxi
+      Cy(i)  = Cyi
+      Cz(i)  = Czi
+      tux(i) = tuxi
+      tuy(i) = tuyi
+      tuz(i) = tuzi
+      tlx(i) = tlxi
+      tly(i) = tlyi
+      tlz(i) = tlzi
+      tdx(i) = tdxi
+      tdy(i) = tdyi
+      tdz(i) = tdzi
+      !TRANSPORT_END
+#endif
+    end do
+
+     ! *** new if FVMPrefetching: ***
+     ! run over component 2
+    if (.not.SameComponent) then
+
+      !reassign force pointers
+      FX1 => this%Site1%FReactX
+      FY1 => this%Site1%FReactY
+      FZ1 => this%Site1%FReactZ
+      FX2 => this%Site2%FX
+      FY2 => this%Site2%FY
+      FZ2 => this%Site2%FZ
+
+      i0 = this%Site2%NPart0
+      i1 = this%Site2%NPart2
+
+      do i = i0, i1
+
+        RXi = RX2(i)
+        RYi = RY2(i)
+        RZi = RZ2(i)
+        FXi = FX2(i)
+        FYi = FY2(i)
+        FZi = FZ2(i)
+        PXi = PX2(i)
+        PYi = PY2(i)
+        PZi = PZ2(i)
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+&   ", at position ", RXi, RYi, RZi
+  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff2(i-i0+1)
+#endif
+
+        do k = 1, this%NInCutoff2(i-i0+1)
+          j = this%CutoffPartner2(k, i-i0+1)
+          
+          RXij = RXi - RX1(j)
+          RYij = RYi - RY1(j)
+          RZij = RZi - RZ1(j)
+          PXij = PXi - PX1(j)
+          PYij = PYi - PY1(j)
+          PZij = PZi - PZ1(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+&   " at position ", RX1(j), RY1(j), RZ1(j), " is a CC-partner"
+#endif
+
+#if ARCH == 3
+          RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+#else
+          RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          EPotLocal1 = Epsilon * RijInv
+          EPotLocal  = EPotLocal + EPotLocal1
+          VirialLocal = VirialLocal + EPotLocal1 * RijInv &
+&                       * (eX * PXij + eY * PYij + eZ * PZij)
+          FXij = EPotLocal1 * RijInv * eX
+          FYij = EPotLocal1 * RijInv * eY
+          FZij = EPotLocal1 * RijInv * eZ
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX1(j) = FX1(j) - FXij
+          FY1(j) = FY1(j) - FYij
+          FZ1(j) = FZ1(j) - FZij
+
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial EPot   = ", &
+&   EPotLocal1
+  write(iounit_forcedebug, '(A, 1F10.3)') "partial Virial = ", &
+&   EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+  write(iounit_forcedebug, '(A, 3F10.3)') "partial Force  = ", FXij, FYij, FZij
+#endif
+
+        end do
+
+        FX2(i) = FXi
+        FY2(i) = FYi
+        FZ2(i) = FZi
+
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCC_FVMPrefetchedForce
 
 
 
@@ -2034,6 +2969,251 @@ loop1:do k = 1, this%NInCutoff(i)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCD_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotCD_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotCD_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeDipole)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+    
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: EPotLocal, Viriallocal
+    integer           :: i, j, k, i0, i1
+    logical           :: SameComponent
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign torque pointers later)
+
+    ! Loop over molecules
+
+    !assign force pointers
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FReactX
+    FY2 => this%Site2%FReactY
+    FZ2 => this%Site2%FReactZ
+
+    !assign torque pointers
+    TX2 => this%Site2%TReactX
+    TY2 => this%Site2%TReactY
+    TZ2 => this%Site2%TReactZ
+
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+
+    do i = i0, i1
+
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff1(i-i0+1)
+        j = this%CutoffPartner1(k, i-i0+1)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        OXj = OX2(j)
+        OYj = OY2(j)
+        OZj = OZ2(j)
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv                                                      ! Einheitsabstandvektor nach Price
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXj * ex + OYj * eY + OZj * eZ                              ! cos(alpha) nach Price
+        CosTheta3 = 3._RK * CosTheta
+        Epsilon1 = Epsilon * RijSquaredInv
+        Epsilon2 = Epsilon1 * RijInv
+        EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
+        FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
+        FYij = Epsilon2 * ( CosTheta3 * eY - OYj )  
+        FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+
+        ! *** write reactio to special field (F/TReactX,Y,Z) ***
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+        TX2(j) = TX2(j) - Epsilon1 * eX
+        TY2(j) = TY2(j) - Epsilon1 * eY
+        TZ2(j) = TZ2(j) - Epsilon1 * eZ
+
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+    end do
+
+     ! FVMPrefetching: run over component 2
+    if (.not.SameComponent) then
+ 
+      !reassign force pointers
+      FX1 => this%Site1%FReactX
+      FY1 => this%Site1%FReactY
+      FZ1 => this%Site1%FReactZ
+      FX2 => this%Site2%FX
+      FY2 => this%Site2%FY
+      FZ2 => this%Site2%FZ
+
+      !reassign torque pointers
+      TX2 => this%Site2%TX
+      TY2 => this%Site2%TY
+      TZ2 => this%Site2%TZ
+
+      i0 = this%Site2%NPart0
+      i1 = this%Site2%NPart2
+
+      do i = i0, i1
+
+        RXi = RX2(i)
+        RYi = RY2(i)
+        RZi = RZ2(i)
+        FXi = FX2(i)
+        FYi = FY2(i)
+        FZi = FZ2(i)
+        PXi = PX2(i)
+        PYi = PY2(i)
+        PZi = PZ2(i)
+
+        do k = 1, this%NInCutoff2(i-i0+1)
+	  j = this%CutoffPartner2(k, i-i0+1)
+          
+	  RXij = RXi - RX1(j)
+	  RYij = RYi - RY1(j)
+	  RZij = RZi - RZ1(j)
+	  PXij = PXi - PX1(j)
+	  PYij = PYi - PY1(j)
+	  PZij = PZi - PZ1(j)
+	  RXij = (RXij - anint( PXij )) * BoxLength
+	  RYij = (RYij - anint( PYij )) * BoxLength
+	  RZij = (RZij - anint( PZij )) * BoxLength
+	  PXij = (PXij - anint( PXij )) * BoxLength
+	  PYij = (PYij - anint( PYij )) * BoxLength
+	  PZij = (PZij - anint( PZij )) * BoxLength
+          ! 2nd component has dipole
+	  OXj = OX2(j)
+	  OYj = OY2(j)
+	  OZj = OZ2(j)
+	  RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+	  RijInv = sqrt( RijSquaredInv )
+	  eX = RXij * RijInv                                                      ! Einheitsabstandvektor nach Price
+	  eY = RYij * RijInv
+	  eZ = RZij * RijInv
+	  CosTheta  = OXj * ex + OYj * eY + OZj * eZ                              ! cos(alpha) nach Price
+	  CosTheta3 = 3._RK * CosTheta
+	  Epsilon1 = Epsilon * RijSquaredInv
+	  Epsilon2 = Epsilon1 * RijInv
+	  EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
+	  FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
+	  FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
+	  FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
+	  VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+	  FXi    = FXi    + FXij
+	  FYi    = FYi    + FYij
+	  FZi    = FZi    + FZij
+	  TX2(j) = TX2(j) - Epsilon1 * eX                                         ! Uebereinstimmung mit Price
+	  TY2(j) = TY2(j) - Epsilon1 * eY
+	  TZ2(j) = TZ2(j) - Epsilon1 * eZ
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX1(j) = FX1(j) - FXij
+          FY1(j) = FY1(j) - FYij
+          FZ1(j) = FZ1(j) - FZij
+
+        end do
+
+        FX2(i) = FXi
+        FY2(i) = FYi
+        FZ2(i) = FZi
+
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCD_FVMPrefetchedForce
+
 
 
 !==============================================================!
@@ -2446,6 +3626,253 @@ loop1:do k = 1, this%NInCutoff(i)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCQ_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotCQ_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotCQ_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeQuadrupole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta2, CosAux
+    real(RK)          :: EPotLocal, VirialLocal
+    integer           :: i, j, k, i0, i1
+    logical           :: SameComponent
+
+    ! Assign local variables
+     SameComponent = this%SameComponent
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign torque pointers later)
+
+    ! Loop over molecules
+
+    !assign force pointers
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FReactX
+    FY2 => this%Site2%FReactY
+    FZ2 => this%Site2%FReactZ
+
+    !assign torque pointers
+    TX2 => this%Site2%TReactX
+    TY2 => this%Site2%TReactY
+    TZ2 => this%Site2%TReactZ
+
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+
+    do i = i0, i1
+
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff1(i-i0+1)
+        j = this%CutoffPartner1(k, i-i0+1)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength                               ! Abstandsvektor von Q nach C wie bei Price
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        OXj = OX2(j)                                                            ! Orientierungsvektor Quadrupol
+        OYj = OY2(j)
+        OZj = OZ2(j)
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+        Epsilon1 = Epsilon * RijSquaredInv * RijInv
+        EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+        CosTheta2 = 2._RK * CosTheta
+        CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+        Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                     ! F2 nach Price bzw. Kraft auf Punktladung
+        FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
+        FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+
+        ! *** write reactio to special field (F/TReactX,Y,Z) ***
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+        TX2(j) = TX2(j) - Epsilon1 * CosTheta2 * eX 
+        TY2(j) = TY2(j) - Epsilon1 * CosTheta2 * eY
+        TZ2(j) = TZ2(j) - Epsilon1 * CosTheta2 * eZ
+
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+    end do
+
+! FVMPrefetching: run over component 2     
+    if (.not.SameComponent) then
+
+      !reassign force pointers
+      FX1 => this%Site1%FReactX
+      FY1 => this%Site1%FReactY
+      FZ1 => this%Site1%FReactZ
+      FX2 => this%Site2%FX
+      FY2 => this%Site2%FY
+      FZ2 => this%Site2%FZ
+
+      !reassign torque pointers
+      TX2 => this%Site2%TX
+      TY2 => this%Site2%TY
+      TZ2 => this%Site2%TZ
+
+      i0 = this%Site2%NPart0
+      i1 = this%Site2%NPart2
+
+      do i = i0, i1
+
+        RXi = RX2(i)
+        RYi = RY2(i)
+        RZi = RZ2(i)
+        FXi = FX2(i)
+        FYi = FY2(i)
+        FZi = FZ2(i)
+        PXi = PX2(i)
+        PYi = PY2(i)
+        PZi = PZ2(i)
+
+        do k = 1, this%NInCutoff2(i-i0+1)
+
+          j = this%CutoffPartner2(k, i-i0+1)
+          RXij = RXi - RX1(j)
+          RYij = RYi - RY1(j)
+          RZij = RZi - RZ1(j)
+          PXij = PXi - PX1(j)
+          PYij = PYi - PY1(j)
+          PZij = PZi - PZ1(j)
+          RXij = (RXij - anint( PXij )) * BoxLength                               ! Abstandsvektor von Q nach C wie bei Price
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          ! component 2 has quadrupole
+          OXj = OX2(j)                                                            ! Orientierungsvektor Quadrupol
+          OYj = OY2(j)
+          OZj = OZ2(j)
+          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijInv = sqrt( RijSquaredInv )
+          eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+          Epsilon1 = Epsilon * RijSquaredInv * RijInv
+          EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+          CosTheta2 = 2._RK * CosTheta
+          CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+          Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+          FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                     ! F2 nach Price bzw. Kraft auf Punktladung
+          FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
+          FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+          ! component 2 has quadrupole
+          TX2(j) = TX2(j) - Epsilon1 * CosTheta2 * eX
+          TY2(j) = TY2(j) - Epsilon1 * CosTheta2 * eY
+          TZ2(j) = TZ2(j) - Epsilon1 * CosTheta2 * eZ
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX1(j) = FX1(j) - FXij
+          FY1(j) = FY1(j) - FYij
+          FZ1(j) = FZ1(j) - FZij
+
+        end do
+
+        FX2(i) = FXi
+        FY2(i) = FYi
+        FZ2(i) = FZi
+
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCQ_FVMPrefetchedForce
 
 
 
@@ -2869,6 +4296,262 @@ loop1:do k = 1, this%NInCutoff(i)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDC_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotDC_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotDC_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleCharge)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: EPotLocal, Viriallocal
+    integer           :: i, j, k, i0, i1
+    logical           :: SameComponent
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+! (assign torque pointers later)
+
+    ! Loop over molecules
+
+    !assign force pointers
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FReactX
+    FY2 => this%Site2%FReactY
+    FZ2 => this%Site2%FReactZ
+
+    !assign torque pointers
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+
+    do i = i0, i1
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+      OXi = OX1(i)
+      OYi = OY1(i)
+      OZi = OZ1(i)
+      TXi = TX1(i)
+      TYi = TY1(i)
+      TZi = TZ1(i)
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff1(i-i0+1)
+        j = this%CutoffPartner1(k, i-i0+1)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! -cos(alpha) bei Price
+        CosTheta3 = 3._RK * CosTheta
+        Epsilon1 = Epsilon * RijSquaredInv
+        Epsilon2 = Epsilon1 * RijInv
+        EPotLocal  = EPotLocal - Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
+        FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
+        FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
+        FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+        ! component 1 has dipole
+        TXi = TXi + Epsilon1 * eX
+        TYi = TYi + Epsilon1 * eY
+        TZi = TZi + Epsilon1 * eZ
+
+        ! *** write reactio to special field (FReactX,Y,Z) ***
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+      ! component 1 has dipole
+      TX1(i) = TXi
+      TY1(i) = TYi
+      TZ1(i) = TZi
+    end do
+
+! FVMPRefetching: run over component 2
+    if (.not.SameComponent) then
+
+      !reassign force pointers
+      FX1 => this%Site1%FReactX
+      FY1 => this%Site1%FReactY
+      FZ1 => this%Site1%FReactZ
+      FX2 => this%Site2%FX
+      FY2 => this%Site2%FY
+      FZ2 => this%Site2%FZ
+
+      !reassign torque pointers
+      TX1 => this%Site1%TReactX
+      TY1 => this%Site1%TReactY
+      TZ1 => this%Site1%TReactZ
+
+      i0 = this%Site2%NPart0
+      i1 = this%Site2%NPart2
+
+      do i = i0, i1
+
+        RXi = RX2(i)
+        RYi = RY2(i)
+        RZi = RZ2(i)
+        FXi = FX2(i)
+        FYi = FY2(i)
+        FZi = FZ2(i)
+        PXi = PX2(i)
+        PYi = PY2(i)
+        PZi = PZ2(i)
+        ! component 1 has dipole
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+
+        do k = 1, this%NInCutoff2(i-i0+1)
+          j = this%CutoffPartner2(k, i-i0+1)
+
+          RXij = RXi - RX1(j)
+          RYij = RYi - RY1(j)
+          RZij = RZi - RZ1(j)
+          PXij = PXi - PX1(j)
+          PYij = PYi - PY1(j)
+          PZij = PZi - PZ1(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+
+          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijInv = sqrt( RijSquaredInv )
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! -cos(alpha) bei Price
+          CosTheta3 = 3._RK * CosTheta
+          Epsilon1 = Epsilon * RijSquaredInv
+          Epsilon2 = Epsilon1 * RijInv
+          EPotLocal  = EPotLocal - Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
+          FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
+          FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
+          FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+
+          ! *** write reactio to special field (F/TReactX,Y,Z) ***
+          FX1(j) = FX1(j) - FXij
+          FY1(j) = FY1(j) - FYij
+          FZ1(j) = FZ1(j) - FZij
+          TXi = TXi + Epsilon1 * eX
+          TYi = TYi + Epsilon1 * eY
+          TZi = TZi + Epsilon1 * eZ
+
+        end do 
+
+        FX2(i) = FXi
+        FY2(i) = FYi
+        FZ2(i) = FZi
+
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDC_FVMPrefetchedForce
 
 
 
@@ -3600,6 +5283,490 @@ loop2:  do j = j0, j1
 
 
 !==============================================================!
+!  Subroutine TPotDD_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotDD_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleDipole)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK)          :: RFConstant2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    !TRANSPORT_END
+#endif
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij3Inv, Rij4Inv3
+    real(RK)          :: CosThetai, CosThetaj, CosGammaij
+    real(RK)          :: CosThetai3, CosThetaj3
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i0, i1
+!    integer           :: N1, N2, j1, j0, ji
+!    logical           :: EvenN
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    N1 = this%Site2%NPart
+!    N2 = N1 / 2
+!    EvenN = mod( N1, 2 ) == 0
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    RFConstant2 = 2._RK * this%RFConstant
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign toruqe pointer later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+#if  TRANS == 1
+    !TRANSPORT_start
+    VSx => this%site1%vsDx
+    VSy => this%site1%vsDy
+    VSz => this%site1%vsDz
+    VSux=> this%site1%vsuDx
+    VSuy=> this%site1%vsuDy
+    VSuz=> this%site1%vsuDz
+    VBx => this%site1%vbDx
+    VBy => this%site1%vbDy
+    VBz => this%site1%vbDz
+    Cx  => this%site1%cDx
+    Cy  => this%site1%cDy
+    Cz  => this%site1%cDz
+    tux => this%site1%tuDx
+    tuy => this%site1%tuDy
+    tuz => this%site1%tuDz
+    tlx => this%site1%tlDx
+    tly => this%site1%tlDy
+    tlz => this%site1%tlDz
+    tdx => this%site1%tdDx
+    tdy => this%site1%tdDy
+    tdz => this%site1%tdDz
+    q1  => this%site1%Q0r(:, 1)
+    q2  => this%site1%Q0r(:, 2)
+    q3  => this%site1%Q0r(:, 3)
+    q4  => this%site1%Q0r(:, 4)
+!TRANSPORT_END
+#endif
+    if ( CutoffMode.eq.CenterofMass ) then
+
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+
+      !assign torque pointers
+      TX1 => this%Site1%TX
+      TY1 => this%Site1%TY
+      TZ1 => this%Site1%TZ
+      TX2 => this%Site2%TReactX
+      TY2 => this%Site2%TReactY
+      TZ2 => this%Site2%TReactZ
+
+      ! Loop over molecules
+      i0 = this%site1%NPart0
+      i1 = this%site1%NPart2
+
+      do i = i0, i1
+
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+#else
+          RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetai3 = 3._RK * CosThetai
+          CosThetaj3 = 3._RK * CosThetaj
+          Tmp = CosGammaij - CosThetai * CosThetaj3
+          Rij3Inv = Epsilon * RijInv**3
+          Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+          EPotLocal = EPotLocal +  Rij3Inv * Tmp
+!           EPotLocal = EPotLocal +  Rij3Inv * Tmp - RFConstant2 * CosGammaij
+#if TRANS==1
+          UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          !TRANSPORT_start
+          Uxi       = UU * eX
+          Uyi       = UU * eY
+          Uzi       = UU * eZ
+          !TRANSPORT_END
+#endif
+          FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                     - (eX * CosThetaj - OXj) * CosThetai)
+          FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                     - (eY * CosThetaj - OYj) * CosThetai)
+          FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                     - (eZ * CosThetaj - OZj) * CosThetai)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+ 
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+
+#if TRANS==1
+          FTXi   = Rij3Inv * (eX * CosThetaj3 - OXj) + OXj * RFConstant2
+          FTYi   = Rij3Inv * (eY * CosThetaj3 - OYj) + OYj * RFConstant2
+          FTZi   = Rij3Inv * (eZ * CosThetaj3 - OZj) + OZj * RFConstant2
+#endif
+
+          TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
+          TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
+          TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+
+          ! *** write reactio to special field (TReactX,Y,Z) ***
+          TX2(j) = TX2(j) + Rij3Inv * (eX * CosThetai3 - OXi)
+          TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi)
+          TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi)
+
+#if  TRANS == 1
+          !TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
+          txii   = OYi * FTZi - OZi * FTYi
+          tyii   = OZi * FTXi - OXi * FTZi
+          tzii   = OXi * FTYi - OYi * FTXi
+          txir   = A11 * txii + A12 * tyii + A13 * tzii
+          tyir   = A21 * txii + A22 * tyii + A23 * tzii
+          tzir   = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXij*tyir
+          tuyi   = tuyi + PXij*tzir
+          tuzi   = tuzi + PYij*tzir
+          tlxi   = tlxi + PYij*txir    
+          tlyi   = tlyi + PZij*txir    
+          tlzi   = tlzi + PZij*tyir    
+          tdxi   = tdxi + PXij*txir    
+          tdyi   = tdyi + PYij*tyir    
+          tdzi   = tdzi + PZij*tzir    
+          !TRANSPORT_END
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+        !TRANSPORT_END
+#endif
+      end do
+
+      ! FVMPrefetching: run over component 2
+      if (.not.SameComponent) then
+
+        !reassign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        !reassign torque pointers
+        TX1 => this%Site1%TReactX
+        TY1 => this%Site1%TReactY
+        TZ1 => this%Site1%TReactZ
+        TX2 => this%Site2%TX
+        TY2 => this%Site2%TY
+        TZ2 => this%Site2%TZ
+
+        i0 = this%site2%NPart0
+        i1 = this%site2%NPart2
+
+        do i = i0, i1
+
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          OXi = OX2(i)
+          OYi = OY2(i)
+          OZi = OZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          TXi = TX2(i)
+          TYi = TY2(i)
+          TZi = TZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+
+          ! *** TRANSPORT ? ***
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            PXij = (PXij - anint( PXij )) * BoxLength
+            PYij = (PYij - anint( PYij )) * BoxLength
+            PZij = (PZij - anint( PZij )) * BoxLength
+            OXj = OX1(j)
+            OYj = OY1(j)
+            OZj = OZ1(j)
+#if ARCH == 3
+            RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+#else
+            RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            CosThetai3 = 3._RK * CosThetai
+            CosThetaj3 = 3._RK * CosThetaj
+            Tmp = CosGammaij - CosThetai * CosThetaj3
+            Rij3Inv = Epsilon * RijInv**3
+            Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+            EPotLocal = EPotLocal +  Rij3Inv * Tmp
+
+            FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                       - (eX * CosThetaj - OXj) * CosThetai)
+            FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                       - (eY * CosThetaj - OYj) * CosThetai)
+            FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                       - (eZ * CosThetaj - OZj) * CosThetai)
+            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+            FXi    = FXi    + FXij
+            FYi    = FYi    + FYij
+            FZi    = FZi    + FZij
+            TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
+            TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
+            TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+            ! *** write reactio to special field (TReactX,Y,Z) ***
+            TX1(j) = TX1(j) + Rij3Inv * (eX * CosThetai3 - OXi)
+            TY1(j) = TY1(j) + Rij3Inv * (eY * CosThetai3 - OYi)
+            TZ1(j) = TZ1(j) + Rij3Inv * (eZ * CosThetai3 - OZi)
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+          TX2(i) = TXi
+          TY2(i) = TYi
+          TZ2(i) = TZi
+
+        end do
+
+      end if
+
+    else ! Site-site cutoff
+
+      ! *** not implemented ***
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDD_FVMPrefetchedForce
+
+
+
+!==============================================================!
 !  Subroutine TPotDD_ChemicalPotential                         !
 !==============================================================!
 
@@ -4325,6 +6492,337 @@ loop2:  do j = j0, j1
 
 
 !==============================================================!
+!  Subroutine TPotDQ_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotDQ_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleQuadrupole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij4Inv
+    real(RK)          :: CosThetai, CosThetaj, CosThetaj2, CosGammaij
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i0, i1
+!    integer           :: N1, N2, ji, j0, j1
+!    logical           :: EvenN
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    N1 = this%Site2%NPart
+!    N2 = N1 / 2
+!    EvenN = mod( N1, 2 ) == 0
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign torque pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    if( CutoffMode .eq. CenterofMass ) then
+
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+
+      !assign torque pointers
+      TX1 => this%Site1%TX
+      TY1 => this%Site1%TY
+      TZ1 => this%Site1%TZ
+      TX2 => this%Site2%TReactX
+      TY2 => this%Site2%TReactY
+      TZ2 => this%Site2%TReactZ
+
+      ! Loop over molecules
+      i0 = this%Site1%NPart0
+      i1 = this%Site1%NPart2
+
+      do i = i0, i1
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetaj2 = CosThetaj**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
+&                      - CosThetai * (5._RK * CosThetaj2 - 1))
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
+          dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+          dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+          ! *** write reactio to special field (TReactX,Y,Z) ***
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+      ! FVMPrefetching: run over component 2
+      if (.not.SameComponent) then
+
+        !assign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        !assign torque pointers
+        TX1 => this%Site1%TReactX
+        TY1 => this%Site1%TReactY
+        TZ1 => this%Site1%TReactZ
+        TX2 => this%Site2%TX
+        TY2 => this%Site2%TY
+        TZ2 => this%Site2%TZ
+ 
+        !loop over molecules
+        i0 = this%Site2%NPart0
+        i1 = this%Site2%NPart2
+
+        do i = i0, i1
+
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          OXi = OX2(i)
+          OYi = OY2(i)
+          OZi = OZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          TXi = TX2(i)
+          TYi = TY2(i)
+          TZi = TZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            PXij = (PXij - anint( PXij )) * BoxLength
+            PYij = (PYij - anint( PYij )) * BoxLength
+            PZij = (PZij - anint( PZij )) * BoxLength
+            OXj = OX1(j)
+            OYj = OY1(j)
+            OZj = OZ1(j)
+            RijSquared = RXij**2 + RYij**2 + RZij**2
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosThetaj2 = CosThetaj**2
+            CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+            Rij4Inv = Epsilon / RijSquared**2
+            EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
+  &                      - CosThetai * (5._RK * CosThetaj2 - 1))
+            EPotLocal = EPotLocal + EPotLocal1
+            dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
+            dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+            dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+            Tmp = -4._RK * RijInv * EPotLocal1
+            FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+  &                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+            FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+  &                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+            FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+  &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+            FXi    = FXi    + FXij
+            FYi    = FYi    + FYij
+            FZi    = FZi    + FZij
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+            ! *** write reactio to special field (TReactX,Y,Z) ***
+            TX1(j) = TX1(j) - eX * dCosThetaj - OXi * dCosGammaij
+            TY1(j) = TY1(j) - eY * dCosThetaj - OYi * dCosGammaij
+            TZ1(j) = TZ1(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+          TX2(i) = TXi
+          TY2(i) = TYi
+          TZ2(i) = TZi
+
+        end do
+
+      end if
+
+    else ! Site-site cutoff
+
+      ! *** not implemented ***
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDQ_FVMPrefetchedForce
+
+
+
+!==============================================================!
 !  Subroutine TPotDQ_ChemicalPotential                         !
 !==============================================================!
 
@@ -4916,6 +7414,272 @@ loop1:do k = 1, this%NInCutoff(i)
 
 
 !==============================================================!
+!  Subroutine TPotQC_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotQC_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleCharge) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta2, CosAux
+    real(RK)          :: EPotLocal, VirialLocal
+    integer           :: i, j, k, i0, i1
+    logical           :: SameComponent
+
+    ! Assign local variables
+     SameComponent = this%SameComponent
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+! (assign force pointers later)
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force and torque pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    ! Loop over molecules
+
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+
+      !assign torque pointers
+      TX1 => this%Site1%TX
+      TY1 => this%Site1%TY
+      TZ1 => this%Site1%TZ
+
+      i0 = this%Site1%NPart0
+      i1 = this%Site1%NPart2
+
+      do i = i0, i1
+
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        ! component 1 has quadrupole
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijInv = sqrt( RijSquaredInv )
+          eX = - RXij * RijInv                                                    ! Normierter Abstandsvektor nach Price
+          eY = - RYij * RijInv
+          eZ = - RZij * RijInv
+          CosTheta  = OXi * ex + OYi * eY + OZi * eZ       ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
+          Epsilon1 = Epsilon * RijSquaredInv * RijInv
+          EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+          CosTheta2 = 2._RK * CosTheta
+          CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+          Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+          FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi )                     ! Kraft auf die Punktladung, sprich F2
+          FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
+          FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
+          VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+          FXi    = FXi    - FXij
+          FYi    = FYi    - FYij
+          FZi    = FZi    - FZij
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+
+          ! component 1 has quadrupole
+          TXi    = TXi - Epsilon1*CosTheta2*eX
+          TYi    = TYi - Epsilon1*CosTheta2*eY
+          TZi    = TZi - Epsilon1*CosTheta2*eZ
+
+        end do loop1
+
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        ! component 1 has quadrupole
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+
+      end do
+
+      ! FVMPrefetching: run over component 2
+      if (.not.SameComponent) then
+
+        !reassign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        !reassign torque pointers
+        TX1 => this%Site1%TReactX
+        TY1 => this%Site1%TReactY
+        TZ1 => this%Site1%TReactZ
+
+        i0 = this%Site2%NPart0
+        i1 = this%Site2%NPart2
+
+        do i = i0, i1
+
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+          ! component 1 has quadrupole
+          OXi = OX1(i)
+          OYi = OY1(i)
+          OZi = OZ1(i)
+          TXi = TX1(i)
+          TYi = TY1(i)
+          TZi = TZ1(i)
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            PXij = (PXij - anint( PXij )) * BoxLength
+            PYij = (PYij - anint( PYij )) * BoxLength
+            PZij = (PZij - anint( PZij )) * BoxLength
+
+            RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+            RijInv = sqrt( RijSquaredInv )
+            eX = - RXij * RijInv                                                    ! Normierter Abstandsvektor nach Price
+            eY = - RYij * RijInv
+            eZ = - RZij * RijInv
+            CosTheta  = OXi * ex + OYi * eY + OZi * eZ       ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
+            Epsilon1 = Epsilon * RijSquaredInv * RijInv
+            EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+            CosTheta2 = 2._RK * CosTheta
+            CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+            Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+            FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi )                     ! Kraft auf die Punktladung, sprich F2
+            FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
+            FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
+            VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+            FXi    = FXi    - FXij
+            FYi    = FYi    - FYij
+            FZi    = FZi    - FZij
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+            ! *** write reactio to special field (TReactX,Y,Z) ***
+            TXi    = TXi - Epsilon1*CosTheta2*eX
+            TYi    = TYi - Epsilon1*CosTheta2*eY
+            TZi    = TZi - Epsilon1*CosTheta2*eZ
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+
+        end do
+
+      end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQC_FVMPrefetchedForce
+
+
+
+!==============================================================!
 !  Subroutine TPotQC_ChemicalPotential                         !
 !==============================================================!
 
@@ -5485,6 +8249,338 @@ loop2:  do j = j0, j1
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQD_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotQD_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotQD_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleDipole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij4Inv
+    real(RK)          :: CosThetai, CosThetaj, CosThetai2, CosGammaij
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i0, i1
+!    integer           :: N1, N2, j0, j1, ji
+!    logical           :: EvenN
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    N1 = this%Site2%NPart
+!    N2 = N1 / 2
+!    EvenN = mod( N1, 2 ) == 0
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign torque pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    if( CutoffMode .eq. CenterofMass ) then
+      
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+ 
+      !assign torque pointers
+      TX1 => this%Site1%TX
+      TY1 => this%Site1%TY
+      TZ1 => this%Site1%TZ
+      TX2 => this%Site2%TReactX
+      TY2 => this%Site2%TReactY
+      TZ2 => this%Site2%TReactZ
+
+      ! Loop over molecules
+      i0 = this%Site1%NPart0
+      i1 = this%Site1%NPart2
+
+      do i = i0, i1
+
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetai2 = CosThetai**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
+&                                  - CosGammaij * CosThetai)
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
+          dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
+          dCosGammaij = -2._RK * Rij4Inv * CosThetai
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+          ! *** write reactio to special field (TReactX,Y,Z) ***
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+      ! FVMPrefetching: run over component 2
+      if (.not.SameComponent) then
+
+        !reassign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        !reassign torque pointers
+        TX1 => this%Site1%TReactX
+        TY1 => this%Site1%TReactY
+        TZ1 => this%Site1%TReactZ
+        TX2 => this%Site2%TX
+        TY2 => this%Site2%TY
+        TZ2 => this%Site2%TZ
+
+        i0 = this%Site2%NPart0
+        i1 = this%Site2%NPart2
+
+        do i = i0, i1
+
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          OXi = OX2(i)
+          OYi = OY2(i)
+          OZi = OZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          TXi = TX2(i)
+          TYi = TY2(i)
+          TZi = TZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            PXij = (PXij - anint( PXij )) * BoxLength
+            PYij = (PYij - anint( PYij )) * BoxLength
+            PZij = (PZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
+            OXj = OX1(j)
+            OYj = OY1(j)
+            OZj = OZ1(j)
+
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosThetai2 = CosThetai**2
+            CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+            Rij4Inv = Epsilon / RijSquared**2
+            EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
+  &                                  - CosGammaij * CosThetai)
+            EPotLocal = EPotLocal + EPotLocal1
+            dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
+            dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
+            dCosGammaij = -2._RK * Rij4Inv * CosThetai
+            Tmp = -4._RK * RijInv * EPotLocal1
+            FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+  &                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+            FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+  &                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+            FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+  &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+            FXi    = FXi    + FXij
+            FYi    = FYi    + FYij
+            FZi    = FZi    + FZij
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+            ! *** write reactio to special field (TReactX,Y,Z) ***
+            TX1(j) = TX1(j) - eX * dCosThetaj - OXi * dCosGammaij
+            TY1(j) = TY1(j) - eY * dCosThetaj - OYi * dCosGammaij
+            TZ1(j) = TZ1(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+          TX2(i) = TXi
+          TY2(i) = TYi
+          TZ2(i) = TZi
+
+        end do
+
+      end if
+
+    else ! Site-site cutoff
+
+      ! *** not implemented ***
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQD_FVMPrefetchedForce
 
 
 
@@ -6405,6 +9501,519 @@ loop2:  do j = j0, j1
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQQ_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotQQ_FVMPrefetchedForce                        !
+!==============================================================!
+
+  subroutine TPotQQ_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleQuadrupole) :: this
+    real(RK), intent(in out)       :: EPot
+    real(RK), intent(in out)       :: Virial
+    real(RK), intent(in)           :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    !TRANSPORT_END
+#endif
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij5Inv
+    real(RK)          :: CosThetai, CosThetaj, CosGammaij
+    real(RK)          :: CosThetaiSquared, CosThetajSquared
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i0, i1
+!    integer           :: N1, N2, j0, j1, ji
+!    logical           :: EvenN
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+!    N1 = this%Site2%NPart
+!    N2 = N1 / 2
+!    EvenN = mod( N1, 2 ) == 0
+!    i0 = this%Site1%NPart0
+!    i1 = this%Site1%NPart2
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    FX1 => this%Site1%FX
+!    FY1 => this%Site1%FY
+!    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+! (assign force pointers later)
+!    TX1 => this%Site1%TX
+!    TY1 => this%Site1%TY
+!    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+! (assign torque pointers later)
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+#if  TRANS == 1
+    !TRANSPORT_start
+    VSx => this%site1%vsQx
+    VSy => this%site1%vsQy
+    VSz => this%site1%vsQz
+    VSux=> this%site1%vsuQx
+    VSuy=> this%site1%vsuQy
+    VSuz=> this%site1%vsuQz
+    VBx => this%site1%vbQx
+    VBy => this%site1%vbQy
+    VBz => this%site1%vbQz
+    Cx  => this%site1%cQx
+    Cy  => this%site1%cQy
+    Cz  => this%site1%cQz
+    tux => this%site1%tuQx
+    tuy => this%site1%tuQy
+    tuz => this%site1%tuQz
+    tlx => this%site1%tlQx
+    tly => this%site1%tlQy
+    tlz => this%site1%tlQz
+    tdx => this%site1%tdQx
+    tdy => this%site1%tdQy
+    tdz => this%site1%tdQz
+    q1  => this%site1%Q0r(:, 1)
+    q2  => this%site1%Q0r(:, 2)
+    q3  => this%site1%Q0r(:, 3)
+    q4  => this%site1%Q0r(:, 4)
+!TRANSPORT_END
+#endif
+    if( CutoffMode .eq. CenterofMass ) then
+
+      !assign force pointers
+      FX1 => this%Site1%FX
+      FY1 => this%Site1%FY
+      FZ1 => this%Site1%FZ
+      FX2 => this%Site2%FReactX
+      FY2 => this%Site2%FReactY
+      FZ2 => this%Site2%FReactZ
+
+      !assign torque pointers
+      TX1 => this%Site1%TX
+      TY1 => this%Site1%TY
+      TZ1 => this%Site1%TZ
+      TX2 => this%Site2%TReactX
+      TY2 => this%Site2%TReactY
+      TZ2 => this%Site2%TReactZ
+
+      ! Loop over molecules
+      i0 = this%Site1%NPart0
+      i1 = this%Site1%NPart1
+
+      do i = i0, i1
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetaiSquared = CosThetai**2
+          CosThetajSquared = CosThetaj**2
+          Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+#if ARCH == 1
+          Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+#else
+          Rij5Inv = Epsilon * RijInv**5
+#endif
+          EPotLocal1 = Rij5Inv * (1._RK &
+&           - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&           - 15._RK * CosThetaiSquared * CosThetajSquared &
+&           + 2._RK * Tmp**2)
+#if  TRANS == 1
+!TRANSPORT_start
+          Uxi     = EPotLocal1 * eX
+          Uyi     = EPotLocal1 * eY
+          Uzi     = EPotLocal1 * eZ
+          !TRANSPORT_END
+#endif
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                - 30._RK * CosThetai * CosThetajSquared &
+&                                - 20._RK * CosThetaj * Tmp)
+          dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                - 30._RK * CosThetaj * CosThetaiSquared &
+&                                - 20._RK * CosThetai * Tmp)
+          dCosGammaij = 4._RK * Rij5Inv * Tmp
+          Tmp = -5._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij 
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+
+          ! *** write reactio to special field (FReactX,Y,Z) ***
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+
+#if TRANS==1
+          FTXi   = - eX * dCosThetai - OXj * dCosGammaij
+          FTYi   = - eY * dCosThetai - OYj * dCosGammaij
+          FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
+#endif
+
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+          ! *** write reactio to special field (TReactX,Y,Z) ***
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+#if  TRANS == 1
+          !TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
+          txii   = OYi * FTZi - OZi * FTYi
+          tyii   = OZi * FTXi - OXi * FTZi
+          tzii   = OXi * FTYi - OYi * FTXi
+          txir   = A11 * txii + A12 * tyii + A13 * tzii
+          tyir   = A21 * txii + A22 * tyii + A23 * tzii
+          tzir   = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXij*tyir
+          tuyi   = tuyi + PXij*tzir
+          tuzi   = tuzi + PYij*tzir
+          tlxi   = tlxi + PYij*txir    
+          tlyi   = tlyi + PZij*txir    
+          tlzi   = tlzi + PZij*tyir    
+          tdxi   = tdxi + PXij*txir    
+          tdyi   = tdyi + PYij*tyir    
+          tdzi   = tdzi + PZij*tzir    
+          !TRANSPORT_END
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+        !TRANSPORT_END
+#endif
+      end do
+
+      ! FVMPrefetching: run over component 2
+      if (.not.SameComponent) then
+
+        !reassign force pointers
+        FX1 => this%Site1%FReactX
+        FY1 => this%Site1%FReactY
+        FZ1 => this%Site1%FReactZ
+        FX2 => this%Site2%FX
+        FY2 => this%Site2%FY
+        FZ2 => this%Site2%FZ
+
+        !reassign torque pointers
+        TX1 => this%Site1%TReactX
+        TY1 => this%Site1%TReactY
+        TZ1 => this%Site1%TReactZ
+        TX2 => this%Site2%TX
+        TY2 => this%Site2%TY
+        TZ2 => this%Site2%TZ
+
+        i0 = this%Site2%NPart0
+        i1 = this%Site2%NPart1
+
+        do i = i0, i1
+
+          RXi = RX2(i)
+          RYi = RY2(i)
+          RZi = RZ2(i)
+          OXi = OX2(i)
+          OYi = OY2(i)
+          OZi = OZ2(i)
+          FXi = FX2(i)
+          FYi = FY2(i)
+          FZi = FZ2(i)
+          TXi = TX2(i)
+          TYi = TY2(i)
+          TZi = TZ2(i)
+          PXi = PX2(i)
+          PYi = PY2(i)
+          PZi = PZ2(i)
+
+          ! *** TRANSPORT ? ***
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            RXij = RXi - RX1(j)
+            RYij = RYi - RY1(j)
+            RZij = RZi - RZ1(j)
+            PXij = PXi - PX1(j)
+            PYij = PYi - PY1(j)
+            PZij = PZi - PZ1(j)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            PXij = (PXij - anint( PXij )) * BoxLength
+            PYij = (PYij - anint( PYij )) * BoxLength
+            PZij = (PZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
+            OXj = OX1(j)
+            OYj = OY1(j)
+            OZj = OZ1(j)
+
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            CosThetaiSquared = CosThetai**2
+            CosThetajSquared = CosThetaj**2
+            Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+#if ARCH == 1
+            Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+#else
+            Rij5Inv = Epsilon * RijInv**5
+#endif
+            EPotLocal1 = Rij5Inv * (1._RK &
+&             - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&             - 15._RK * CosThetaiSquared * CosThetajSquared &
+&             + 2._RK * Tmp**2)
+            EPotLocal = EPotLocal + EPotLocal1
+            dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                   - 30._RK * CosThetai * CosThetajSquared &
+&                                   - 20._RK * CosThetaj * Tmp)
+            dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                   - 30._RK * CosThetaj * CosThetaiSquared &
+&                                   - 20._RK * CosThetai * Tmp)
+            dCosGammaij = 4._RK * Rij5Inv * Tmp
+            Tmp = -5._RK * RijInv * EPotLocal1
+            FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                      + (eX * CosThetaj - OXj) * dCosThetaj)
+            FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                      + (eY * CosThetaj - OYj) * dCosThetaj)
+            FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                      + (eZ * CosThetaj - OZj) * dCosThetaj)
+            VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij 
+            FXi    = FXi    + FXij
+            FYi    = FYi    + FYij
+            FZi    = FZi    + FZij
+
+            ! *** write reactio to special field (FReactX,Y,Z) ***
+            FX1(j) = FX1(j) - FXij
+            FY1(j) = FY1(j) - FYij
+            FZ1(j) = FZ1(j) - FZij
+
+            TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+            TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+            TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+            ! *** write reactio to special field (TReactX,Y,Z) ***
+            TX1(j) = TX1(j) - eX * dCosThetaj - OXi * dCosGammaij
+            TY1(j) = TY1(j) - eY * dCosThetaj - OYi * dCosGammaij
+            TZ1(j) = TZ1(j) - eZ * dCosThetaj - OZi * dCosGammaij
+
+          end do
+
+          FX2(i) = FXi
+          FY2(i) = FYi
+          FZ2(i) = FZi
+          TX2(i) = TXi
+          TY2(i) = TYi
+          TZ2(i) = TZi
+
+        end do
+
+      end if
+
+    else ! Site-site cutoff
+
+      ! *** not implemented ***
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQQ_FVMPrefetchedForce
 
 
 

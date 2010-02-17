@@ -26,6 +26,11 @@ module ms2_site
 
   use ms2_global
 
+#if FVM_VER > 0
+!FVM_READ_HALF
+  use fvmf2003extensions
+  use, intrinsic :: iso_c_binding
+#endif
 
 
 !==============================================================!
@@ -41,6 +46,17 @@ module ms2_site
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
+#if FVM_VER > 0
+!FVM_READ_HALF
+    real(RK), pointer :: FReactX(:), FReactY(:), FReactZ(:)
+    integer(c_size_t) :: fvmByteOffFReactX
+    integer(c_size_t) :: fvmByteOffFReactY
+    integer(c_size_t) :: fvmByteOffFReactZ
+    real(RK), pointer :: FReactRecvX(:,:), FReactRecvY(:,:), FReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffFReactRecvX
+    integer(c_size_t) :: fvmByteOffFReactRecvY
+    integer(c_size_t) :: fvmByteOffFReactRecvZ
+#endif    
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
@@ -94,6 +110,17 @@ module ms2_site
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
+#if FVM_VER > 0
+!FVM_READ_HALF
+    real(RK), pointer :: FReactX(:), FReactY(:), FReactZ(:)
+    integer(c_size_t) :: fvmByteOffFReactX
+    integer(c_size_t) :: fvmByteOffFReactY
+    integer(c_size_t) :: fvmByteOffFReactZ
+    real(RK), pointer :: FReactRecvX(:,:), FReactRecvY(:,:), FReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffFReactRecvX
+    integer(c_size_t) :: fvmByteOffFReactRecvY
+    integer(c_size_t) :: fvmByteOffFReactRecvZ
+#endif    
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
@@ -150,6 +177,25 @@ module ms2_site
     real(RK), pointer :: OX(:), OY(:), OZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
     real(RK), pointer :: TX(:), TY(:), TZ(:)
+#if FVM_VER > 0
+!FVM_READ_HALF
+    real(RK), pointer :: FReactX(:), FReactY(:), FReactZ(:)
+    integer(c_size_t) :: fvmByteOffFReactX
+    integer(c_size_t) :: fvmByteOffFReactY
+    integer(c_size_t) :: fvmByteOffFReactZ
+    real(RK), pointer :: FReactRecvX(:,:), FReactRecvY(:,:), FReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffFReactRecvX
+    integer(c_size_t) :: fvmByteOffFReactRecvY
+    integer(c_size_t) :: fvmByteOffFReactRecvZ
+    real(RK), pointer :: TReactX(:), TReactY(:), TReactZ(:)
+    integer(c_size_t) :: fvmByteOffTReactX
+    integer(c_size_t) :: fvmByteOffTReactY
+    integer(c_size_t) :: fvmByteOffTReactZ
+    real(RK), pointer :: TReactRecvX(:,:), TReactRecvY(:,:), TReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffTReactRecvX
+    integer(c_size_t) :: fvmByteOffTReactRecvY
+    integer(c_size_t) :: fvmByteOffTReactRecvZ
+#endif
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
@@ -206,6 +252,25 @@ module ms2_site
     real(RK), pointer :: OX(:), OY(:), OZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
     real(RK), pointer :: TX(:), TY(:), TZ(:)
+#if FVM_VER > 0
+!FVM_READ_HALF
+    real(RK), pointer :: FReactX(:), FReactY(:), FReactZ(:)
+    integer(c_size_t) :: fvmByteOffFReactX
+    integer(c_size_t) :: fvmByteOffFReactY
+    integer(c_size_t) :: fvmByteOffFReactZ
+    real(RK), pointer :: FReactRecvX(:,:), FReactRecvY(:,:), FReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffFReactRecvX
+    integer(c_size_t) :: fvmByteOffFReactRecvY
+    integer(c_size_t) :: fvmByteOffFReactRecvZ
+    real(RK), pointer :: TReactX(:), TReactY(:), TReactZ(:)
+    integer(c_size_t) :: fvmByteOffTReactX
+    integer(c_size_t) :: fvmByteOffTReactY
+    integer(c_size_t) :: fvmByteOffTReactZ
+    real(RK), pointer :: TReactRecvX(:,:), TReactRecvY(:,:), TReactRecvZ(:,:)
+    integer(c_size_t) :: fvmByteOffTReactRecvX
+    integer(c_size_t) :: fvmByteOffTReactRecvY
+    integer(c_size_t) :: fvmByteOffTReactRecvZ
+#endif
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
@@ -318,6 +383,10 @@ contains
     ! Declare local variables
     integer :: np, nt
     integer :: stat
+#if FVM_VER > 0
+!FVM_READ_HALF
+    integer :: np1
+#endif
 
     ! Assign local variables
     np = this%NPartMax
@@ -333,6 +402,15 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+#if FVM_VER > 0
+!FVM_READ_HALF
+    nullify( this%FReactX )
+    nullify( this%FReactY )
+    nullify( this%FReactZ )
+    nullify( this%FReactRecvX )
+    nullify( this%FReactRecvY )
+    nullify( this%FReactRecvZ )
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsLJx )
@@ -373,6 +451,72 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if FVM_VER > 0
+!FVM_READ_HALF
+
+    np1 = this%NPart/numVmNodes + 1
+
+    this%fvmByteOffFReactX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactX(1:np)) )
+    if (this%fvmByteOffFReactX.LT.0) then
+      call AllocationError( -1, 'FReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactX )
+      call c_f_pointer( fvmPtr, this%FReactX, [np] )
+    endif
+
+    this%fvmByteOffFReactY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactY(1:np)) )
+    if (this%fvmByteOffFReactY.LT.0) then
+      call AllocationError( -1, 'FReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactY )
+      call c_f_pointer( fvmPtr, this%FReactY, [np] )
+    endif
+
+    this%fvmByteOffFReactZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactZ(1:np)) )
+    if (this%fvmByteOffFReactZ.LT.0) then
+      call AllocationError( -1, 'FReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactZ )
+      call c_f_pointer( fvmPtr, this%FReactZ, [np] )
+    endif
+
+    this%fvmByteOffFReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvX.LT.0) then
+      call AllocationError( -1, 'FReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvX )
+      call c_f_pointer( fvmPtr, this%FReactRecvX, [np1,numVmNodes] )
+      !init
+      this%FReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvY.LT.0) then
+      call AllocationError( -1, 'FReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvY )
+      call c_f_pointer( fvmPtr, this%FReactRecvY, [np1,numVmNodes] )
+      !init
+      this%FReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvZ.LT.0) then
+      call AllocationError( -1, 'FReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvZ )
+      call c_f_pointer( fvmPtr, this%FReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%FReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+#endif
 #if  TRANS == 1
 !TRANSPORT_start
       allocate( this%vsLJx( np ), STAT = stat )
@@ -648,6 +792,10 @@ contains
     ! Declare local variables
     integer :: np, nt
     integer :: stat
+#if FVM_VER > 0
+!FVM_READ_HALF
+    integer :: np1
+#endif
 
     ! Assign local variables
     np = this%NPartMax
@@ -663,6 +811,15 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+#if FVM_VER > 0
+!FVM_READ_HALF
+    nullify( this%FReactX )
+    nullify( this%FReactY )
+    nullify( this%FReactZ )
+    nullify( this%FReactRecvX )
+    nullify( this%FReactRecvY )
+    nullify( this%FReactRecvZ )
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsCx )
@@ -704,6 +861,72 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if FVM_VER > 0
+!FVM_READ_HALF
+
+    np1 = this%NPart/numVmNodes + 1
+
+    this%fvmByteOffFReactX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactX(1:np)) )
+    if (this%fvmByteOffFReactX.LT.0) then
+      call AllocationError( -1, 'FReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactX )
+      call c_f_pointer( fvmPtr, this%FReactX, [np] )
+    endif
+
+    this%fvmByteOffFReactY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactY(1:np)) )
+    if (this%fvmByteOffFReactY.LT.0) then
+      call AllocationError( -1, 'FReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactY )
+      call c_f_pointer( fvmPtr, this%FReactY, [np] )
+    endif
+
+    this%fvmByteOffFReactZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactZ(1:np)) )
+    if (this%fvmByteOffFReactZ.LT.0) then
+      call AllocationError( -1, 'FReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactZ )
+      call c_f_pointer( fvmPtr, this%FReactZ, [np] )
+    endif
+
+    this%fvmByteOffFReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvX.LT.0) then
+      call AllocationError( -1, 'FReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvX )
+      call c_f_pointer( fvmPtr, this%FReactRecvX, [np1,numVmNodes] )
+      !init
+      this%FReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvY.LT.0) then
+      call AllocationError( -1, 'FReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvY )
+      call c_f_pointer( fvmPtr, this%FReactRecvY, [np1,numVmNodes] )
+      !init
+      this%FReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvZ.LT.0) then
+      call AllocationError( -1, 'FReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvZ )
+      call c_f_pointer( fvmPtr, this%FReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%FReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+#endif
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsCx( np ), STAT = stat )
@@ -980,6 +1203,10 @@ contains
     ! Declare local variables
     integer :: np, nt
     integer :: stat
+#if FVM_VER > 0
+!FVM_READ_HALF
+    integer :: np1
+#endif
 
     ! Assign local variables
     np = this%NPartMax
@@ -1004,6 +1231,21 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+#if FVM_VER > 0
+!FVM_READ_HALF
+    nullify( this%FReactX )
+    nullify( this%FReactY )
+    nullify( this%FReactZ )
+    nullify( this%FReactRecvX )
+    nullify( this%FReactRecvY )
+    nullify( this%FReactRecvZ )
+    nullify( this%TReactX )
+    nullify( this%TReactY )
+    nullify( this%TReactZ )
+    nullify( this%TReactRecvX )
+    nullify( this%TReactRecvY )
+    nullify( this%TReactRecvZ )
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsDx )
@@ -1056,6 +1298,130 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if FVM_VER > 0
+!FVM_READ_HALF
+
+    np1 = this%NPart/numVmNodes + 1
+
+    this%fvmByteOffFReactX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactX(1:np)) )
+    if (this%fvmByteOffFReactX.LT.0) then
+      call AllocationError( -1, 'FReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactX )
+      call c_f_pointer( fvmPtr, this%FReactX, [np] )
+    endif
+
+    this%fvmByteOffFReactY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactY(1:np)) )
+    if (this%fvmByteOffFReactY.LT.0) then
+      call AllocationError( -1, 'FReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactY )
+      call c_f_pointer( fvmPtr, this%FReactY, [np] )
+    endif
+
+    this%fvmByteOffFReactZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactZ(1:np)) )
+    if (this%fvmByteOffFReactZ.LT.0) then
+      call AllocationError( -1, 'FReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactZ )
+      call c_f_pointer( fvmPtr, this%FReactZ, [np] )
+    endif
+
+    this%fvmByteOffFReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvX.LT.0) then
+      call AllocationError( -1, 'FReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvX )
+      call c_f_pointer( fvmPtr, this%FReactRecvX, [np1,numVmNodes] )
+      !init
+      this%FReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvY.LT.0) then
+      call AllocationError( -1, 'FReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvY )
+      call c_f_pointer( fvmPtr, this%FReactRecvY, [np1,numVmNodes] )
+      !init
+      this%FReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvZ.LT.0) then
+      call AllocationError( -1, 'FReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvZ )
+      call c_f_pointer( fvmPtr, this%FReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%FReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+
+    this%fvmByteOffTReactX = reserveFvmMem( fvmDisp, sizeof(this%TReactX(1:np)) )
+    if (this%fvmByteOffTReactX.LT.0) then
+      call AllocationError( -1, 'TReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactX )
+      call c_f_pointer( fvmPtr, this%TReactX, [np] )
+    endif
+
+    this%fvmByteOffTReactY = reserveFvmMem( fvmDisp, sizeof(this%TReactY(1:np)) )
+    if (this%fvmByteOffTReactY.LT.0) then
+      call AllocationError( -1, 'TReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactY )
+      call c_f_pointer( fvmPtr, this%TReactY, [np] )
+    endif
+
+    this%fvmByteOffTReactZ = reserveFvmMem( fvmDisp, sizeof(this%TReactZ(1:np)) )
+    if (this%fvmByteOffTReactZ.LT.0) then
+      call AllocationError( -1, 'TReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactZ )
+      call c_f_pointer( fvmPtr, this%TReactZ, [np] )
+    endif
+
+    this%fvmByteOffTReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvX.LT.0) then
+      call AllocationError( -1, 'TReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvX )
+      call c_f_pointer( fvmPtr, this%TReactRecvX, [np1,numVmNodes] )
+      !init
+      this%TReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffTReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvY.LT.0) then
+      call AllocationError( -1, 'TReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvY )
+      call c_f_pointer( fvmPtr, this%TReactRecvY, [np1,numVmNodes] )
+      !init
+      this%TReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffTReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvZ.LT.0) then
+      call AllocationError( -1, 'TReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvZ )
+      call c_f_pointer( fvmPtr, this%TReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%TReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+#endif
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsDx( np ), STAT = stat )
@@ -1383,6 +1749,10 @@ contains
     ! Declare local variables
     integer :: np, nt
     integer :: stat
+#if FVM_VER > 0
+!FVM_READ_HALF
+    integer :: np1
+#endif
 
     ! Assign local variables
     np = this%NPartMax
@@ -1407,6 +1777,21 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+#if FVM_VER > 0
+!FVM_READ_HALF
+    nullify( this%FReactX )
+    nullify( this%FReactY )
+    nullify( this%FReactZ )
+    nullify( this%FReactRecvX )
+    nullify( this%FReactRecvY )
+    nullify( this%FReactRecvZ )
+    nullify( this%TReactX )
+    nullify( this%TReactY )
+    nullify( this%TReactZ )
+    nullify( this%TReactRecvX )
+    nullify( this%TReactRecvY )
+    nullify( this%TReactRecvZ )
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsQx )
@@ -1462,6 +1847,127 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if FVM_VER > 0
+!FVM_READ_HALF
+
+    np1 = this%NPart/numVmNodes + 1
+
+    this%fvmByteOffFReactX = reserveFvmMem( fvmDisp, sizeof(this%FReactX(1:np)) )
+    if (this%fvmByteOffFReactX.LT.0) then
+      call AllocationError( -1, 'FReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactX )
+      call c_f_pointer( fvmPtr, this%FReactX, [np] )
+    endif
+
+    this%fvmByteOffFReactY = reserveFvmMem( fvmDisp, sizeof(this%FReactY(1:np)) )
+    if (this%fvmByteOffFReactY.LT.0) then
+      call AllocationError( -1, 'FReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactY )
+      call c_f_pointer( fvmPtr, this%FReactY, [np] )
+    endif
+
+    this%fvmByteOffFReactZ = reserveFvmMem( fvmDisp, sizeof(this%FReactZ(1:np)) )
+    if (this%fvmByteOffFReactZ.LT.0) then
+      call AllocationError( -1, 'FReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactZ )
+      call c_f_pointer( fvmPtr, this%FReactZ, [np] )
+    endif
+
+    this%fvmByteOffFReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvX.LT.0) then
+      call AllocationError( -1, 'FReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvX )
+      call c_f_pointer( fvmPtr, this%FReactRecvX, [np1,numVmNodes] )
+      !init
+      this%FReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvY.LT.0) then
+      call AllocationError( -1, 'FReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvY )
+      call c_f_pointer( fvmPtr, this%FReactRecvY, [np1,numVmNodes] )
+      !init
+      this%FReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffFReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%FReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffFReactRecvZ.LT.0) then
+      call AllocationError( -1, 'FReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffFReactRecvZ )
+      call c_f_pointer( fvmPtr, this%FReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%FReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+
+    this%fvmByteOffTReactX = reserveFvmMem( fvmDisp, sizeof(this%TReactX(1:np)) )
+    if (this%fvmByteOffTReactX.LT.0) then
+      call AllocationError( -1, 'TReactX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactX )
+      call c_f_pointer( fvmPtr, this%TReactX, [np] )
+    endif
+
+    this%fvmByteOffTReactY = reserveFvmMem( fvmDisp, sizeof(this%TReactY(1:np)) )
+    if (this%fvmByteOffTReactY.LT.0) then
+      call AllocationError( -1, 'TReactY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactY )
+      call c_f_pointer( fvmPtr, this%TReactY, [np] )
+    endif
+
+    this%fvmByteOffTReactZ = reserveFvmMem( fvmDisp, sizeof(this%TReactZ(1:np)) )
+    if (this%fvmByteOffTReactZ.LT.0) then
+      call AllocationError( -1, 'TReactZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactZ )
+      call c_f_pointer( fvmPtr, this%TReactZ, [np] )
+    endif
+
+    this%fvmByteOffTReactRecvX = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvX(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvX.LT.0) then
+      call AllocationError( -1, 'TReactRecvX' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvX )
+      call c_f_pointer( fvmPtr, this%TReactRecvX, [np1,numVmNodes] )
+      !init
+      this%TReactRecvX(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffTReactRecvY = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvY(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvY.LT.0) then
+      call AllocationError( -1, 'TReactRecvY' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvY )
+      call c_f_pointer( fvmPtr, this%TReactRecvY, [np1,numVmNodes] )
+      !init
+      this%TReactRecvY(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+    this%fvmByteOffTReactRecvZ = reserveFvmMem( fvmDisp, &
+&     sizeof(this%TReactRecvZ(1:np1,1:numVmNodes)) )
+    if (this%fvmByteOffTReactRecvZ.LT.0) then
+      call AllocationError( -1, 'TReactRecvZ' )
+    else
+      fvmPtr = incCPtr( myVmStartPtr, this%fvmByteOffTReactRecvZ )
+      call c_f_pointer( fvmPtr, this%TReactRecvZ, [np1,numVmNodes] )
+      !init
+      this%TReactRecvZ(1:np1,1:numVmNodes) = 0._RK
+    endif
+
+#endif
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsQx( np ), STAT = stat )

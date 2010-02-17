@@ -10,7 +10,7 @@
 !==============================================================!
 ! ChangeLog                                                    !
 !==============================================================!
-! 04/07/09  PotQuadrupoleDipole erg�nzt                        !
+! 04/07/09  PotQuadrupoleDipole ergaenzt                       !
 !                                                              !
 !==============================================================!
 
@@ -39,6 +39,10 @@ module ms2_interaction
   use ms2_component
   use ms2_site
 
+#if defined FORCE_PROF
+! PAPI
+!#include "f90papi.h"
+#endif
 
 
 !==============================================================!
@@ -71,6 +75,11 @@ module ms2_interaction
     real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
 
     ! Arrays for center of mass cutoff
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer :: NInCutoff1(:), CutoffPartner1(:, :)
+    integer, pointer :: NInCutoff2(:), CutoffPartner2(:, :)
+#endif
     integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
@@ -95,6 +104,11 @@ module ms2_interaction
 
     ! Numbers of particles
     integer, pointer :: NPart1, NPart2
+#if FVM_VER > 0
+! FVMPrefetching
+    integer, pointer :: currentNPart10, currentNPart11, currentNPart12
+    integer, pointer :: currentNPart20, currentNPart21, currentNPart22
+#endif
 #if MPI_VER > 0 || FVM_VER > 0
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
@@ -149,6 +163,10 @@ module ms2_interaction
   interface Force
     module procedure TInteraction_Force
   end interface
+  
+  interface FVMPrefetchedForce
+    module procedure TInteraction_FVMPrefetchedForce
+  end interface
 
   interface ChemicalPotential
     module procedure TInteraction_ChemicalPotential
@@ -165,6 +183,10 @@ module ms2_interaction
   interface CalcCutoffPartners
     module procedure TInteraction_CalcPartners
     module procedure TInteraction_CalcPartners1
+  end interface
+
+  interface FVMPrefetchedCalcCutoffPartners
+    module procedure TInteraction_FVMPrefetchedCalcPartners
   end interface
 
   interface CalcCutoffPartnersTest
@@ -218,6 +240,15 @@ contains
     this%NPart1 => Component1%NPart
     this%NPart2 => Component2%NPart
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
+#if FVM_VER > 0
+! FVMPrefetching
+    this%currentNPart10 => Component1%currentNPart0
+    this%currentNPart11 => Component1%currentNPart1
+    this%currentNPart12 => Component1%currentNPart2
+    this%currentNPart20 => Component2%currentNPart0
+    this%currentNPart21 => Component2%currentNPart1
+    this%currentNPart22 => Component2%currentNPart2
+#endif
 #if MPI_VER > 0 || FVM_VER > 0
     this%NPart10 => Component1%NPart0
     this%NPart12 => Component1%NPart2
@@ -316,6 +347,13 @@ contains
 &           RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
           this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotLJ126LJ126(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotLJ126LJ126(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotLJ126LJ126(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotLJ126LJ126(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -333,6 +371,13 @@ contains
 &           Component2%Molecule, RCutoffDipoleDipole )
           this%PotChargeCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeCharge(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotChargeCharge(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotChargeCharge(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotChargeCharge(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotChargeCharge(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -350,6 +395,13 @@ contains
 &           Component2%Molecule, RCutoffDipoleDipole )
           this%PotChargeDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeDipole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotChargeDipole(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotChargeDipole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotChargeDipole(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotChargeDipole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -367,6 +419,13 @@ contains
 &           Component2%Molecule, RCutoffDipoleDipole )
           this%PotChargeQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotChargeQuadrupole(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotChargeQuadrupole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotChargeQuadrupole(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotChargeQuadrupole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -384,6 +443,13 @@ contains
 &           Component2%Molecule, RCutoffDipoleDipole )
           this%PotDipoleCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleCharge(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotDipoleCharge(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotDipoleCharge(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotDipoleCharge(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotDipoleCharge(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -401,6 +467,13 @@ contains
 &           RCutoffDipoleDipole, RFEpsilon )
           this%PotDipoleDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleDipole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotDipoleDipole(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotDipoleDipole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotDipoleDipole(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotDipoleDipole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -418,6 +491,13 @@ contains
 &           RCutoffDipoleQuadrupole )
           this%PotDipoleQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotDipoleQuadrupole(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotDipoleQuadrupole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotDipoleQuadrupole(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotDipoleQuadrupole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -435,6 +515,13 @@ contains
 &           Component2%Molecule, RCutoffDipoleDipole )
           this%PotQuadrupoleCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleCharge(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotQuadrupoleCharge(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotQuadrupoleCharge(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotQuadrupoleCharge(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotQuadrupoleCharge(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -452,6 +539,13 @@ contains
 &           RCutoffDipoleQuadrupole )
           this%PotQuadrupoleDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleDipole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+          this%PotQuadrupoleDipole(j1, j2)%NInCutoff1 => this%NInCutoff1
+          this%PotQuadrupoleDipole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+          this%PotQuadrupoleDipole(j1, j2)%NInCutoff2 => this%NInCutoff2
+          this%PotQuadrupoleDipole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -470,6 +564,13 @@ contains
 &           RCutoffQuadrupoleQuadrupole )
           this%PotQuadrupoleQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
+#if FVM_VER > 0
+! FVMPrefetching
+       this%PotQuadrupoleQuadrupole(j1, j2)%NInCutoff1 => this%NInCutoff1
+       this%PotQuadrupoleQuadrupole(j1, j2)%CutoffPartner1 => this%CutoffPartner1
+       this%PotQuadrupoleQuadrupole(j1, j2)%NInCutoff2 => this%NInCutoff2
+       this%PotQuadrupoleQuadrupole(j1, j2)%CutoffPartner2 => this%CutoffPartner2
+#endif
         end do
       end do
     end if
@@ -628,6 +729,13 @@ contains
     nullify( this%VirialNew )
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
+#if FVM_VER > 0
+! FVMPrefetching
+    nullify( this%NInCutoff1 )
+    nullify( this%CutoffPartner1 )
+    nullify( this%NInCutoff2 )
+    nullify( this%CutoffPartner2 )
+#endif
 
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. &
@@ -680,6 +788,19 @@ contains
       call AllocationError( stat, 'particles', N1 )
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
+#if FVM_VER > 0
+! FVMPrefetching
+      N1 = this%NPart1 / numVmNodes + 1
+      N2 = this%NPart2 / numVmNodes + 1
+      allocate( this%NInCutoff1(N1), STAT = stat )
+      call AllocationError( stat, 'particles', N1 )
+      allocate( this%CutoffPartner1(N2, N1), STAT = stat )
+      call AllocationError( stat, 'particles', N1 * N2 )
+      allocate( this%NInCutoff2(N2), STAT = stat )         !prev: N1
+      call AllocationError( stat, 'particles', N1 )
+      allocate( this%CutoffPartner2(N1, N2), STAT = stat ) !prev: N2, N1
+      call AllocationError( stat, 'particles', N1 * N2 )
+#endif
     end if
 
   end subroutine TInteraction_Allocate
@@ -775,6 +896,21 @@ contains
     if( associated( this%CutoffPartner ) ) then
       deallocate( this%CutoffPartner )
     end if
+#if FVM_VER > 0
+! FVMPrefetching
+    if( associated( this%NInCutoff1 ) ) then
+      deallocate( this%NInCutoff1 )
+    end if
+    if( associated( this%CutoffPartner1 ) ) then
+      deallocate( this%CutoffPartner1 )
+    end if
+    if( associated( this%NInCutoff2 ) ) then
+      deallocate( this%NInCutoff2 )
+    end if
+    if( associated( this%CutoffPartner2 ) ) then
+      deallocate( this%CutoffPartner2 )
+    end if
+#endif
 
   end subroutine TInteraction_Deallocate
 
@@ -806,30 +942,14 @@ contains
     integer           :: i0
 #endif
 
-#if defined PAR_PROF
-    call profileTagBefore(CutoffProf, 'CalcCutoffPartners')
-#endif
-
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
-#if defined PAR_PROF
-    call profileTagAfter(CutoffProf, 'CalcCutoffPartners')
-#endif
-
-#if defined PAR_PROF
-    call profileTagBefore(ForceProf, 'CalcForce')
-#endif
-
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I)') "ComponentA: LJ-Site No. ", i
-  write(iounit_forcedebug, '(A, I)') "ComponentB: LJ-Site No. ", j
-#endif
         call Force( this%PotLJ126LJ126( i, j ), &
 &         EPot, Virial, BoxLength )
       end do
@@ -838,10 +958,6 @@ contains
     ! Calculate point charge forces
     do i = 1, this%N1Charge
       do j = 1, this%N2Charge
-#if defined FORCE_DEBUG
-  write(iounit_forcedebug, '(A, I)') "ComponentA: C-Site No. ", i
-  write(iounit_forcedebug, '(A, I)') "ComponentB: C-Site No. ", j
-#endif
         call Force( this%PotChargeCharge( i, j ), &
 &         EPot, Virial, BoxLength )
       end do
@@ -854,7 +970,6 @@ contains
 &         EPot, Virial, BoxLength )
       end do
     end do
-
 
     ! Calculate dipolar forces
     do i = 1, this%N1Dipole
@@ -871,7 +986,6 @@ contains
 &         EPot, Virial, BoxLength )
       end do
     end do
-
 
     ! Calculate quadrupolar forces
     do i = 1, this%N1Quadrupole
@@ -933,7 +1047,6 @@ contains
           TX2(j) = TX2(j) - RFTX
           TY2(j) = TY2(j) - RFTY
           TZ2(j) = TZ2(j) - RFTZ
-
           EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
         end do
         TX1(i) = TX1(i) + TXi
@@ -942,13 +1055,230 @@ contains
       end do
 
       EPot = EPot + this%RFConst2 * EPotlocal
+      
     end if
 
-#if defined PAR_PROF
-    call profileTagAfter(ForceProf, 'CalcForce')
+  end subroutine TInteraction_Force
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_FVMPrefetchedForce                  !
+!==============================================================!
+
+  subroutine TInteraction_FVMPrefetchedForce( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
+    real(RK)          :: RFTX, RFTY, RFTZ
+    real(RK)          :: EPotLocal, TXi, TYi, TZi
+    integer           :: i, j, k, i0, i1
+
+    ! Calculate interactions partners within cutoff sphere
+
+#if defined FORCE_PROF
+    call profileTagBefore(ForceProf, 'FVMPrefetchedCalcCutoffPartners')
+#endif
+ 
+    if( CutoffMode .eq. CenterofMass ) then
+      call FVMPrefetchedCalcCutoffPartners( this )
+    end if
+
+#if defined FORCE_PROF
+    call profileTagAfter(ForceProf, 'FVMPrefetchedCalcCutoffPartners')
 #endif
 
-  end subroutine TInteraction_Force
+#if defined FORCE_PROF
+    call profileTagBefore(ForceProf, 'FVMPrefetchedForce')
+#endif
+
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: LJ-Site No. ", i
+  write(iounit_forcedebug, '(A, I)') "ComponentB: LJ-Site No. ", j
+  write(iounit_forcedebug, '(A, I, A, I)') "ComponentA: currentNPart0 = ", &
+&   this%currentNPart10, "; currentNPart2 = ", this%currentNPart12
+  write(iounit_forcedebug, '(A, I, A, I)') "ComponentB: currentNPart0 = ", &
+&   this%currentNPart20, "; currentNPart2 = ", this%currentNPart22
+#endif
+        call FVMPrefetchedForce( this%PotLJ126LJ126( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+    end do
+
+    ! Calculate point charge forces
+    do i = 1, this%N1Charge
+      do j = 1, this%N2Charge
+#if defined FORCE_DEBUG
+  write(iounit_forcedebug, '(A, I)') "ComponentA: C-Site No. ", i
+  write(iounit_forcedebug, '(A, I)') "ComponentB: C-Site No. ", j
+  write(iounit_forcedebug, '(A, I, A, I)') "ComponentA: currentNPart0 = ", &
+&   this%currentNPart10, "; currentNPart2 = ", this%currentNPart12
+  write(iounit_forcedebug, '(A, I, A, I)') "ComponentB: currentNPart0 = ", &
+&   this%currentNPart20, "; currentNPart2 = ", this%currentNPart22
+#endif
+        call FVMPrefetchedForce( this%PotChargeCharge( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Dipole
+        call FVMPrefetchedForce( this%PotChargeDipole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Quadrupole
+        call FVMPrefetchedForce( this%PotChargeQuadrupole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+    end do
+
+    ! Calculate dipolar forces
+    do i = 1, this%N1Dipole
+      do j = 1, this%N2Charge
+        call FVMPrefetchedForce( this%PotDipoleCharge( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Dipole
+        call FVMPrefetchedForce( this%PotDipoleDipole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Quadrupole
+        call FVMPrefetchedForce( this%PotDipoleQuadrupole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+    end do
+
+    ! Calculate quadrupolar forces
+    do i = 1, this%N1Quadrupole
+      do j = 1, this%N2Charge
+        call FVMPrefetchedForce( this%PotQuadrupoleCharge( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Dipole
+        call FVMPrefetchedForce( this%PotQuadrupoleDipole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+      do j = 1, this%N2Quadrupole
+        call FVMPrefetchedForce( this%PotQuadrupoleQuadrupole( i, j ), &
+&         EPot, Virial, BoxLength )
+      end do
+    end do
+
+    ! Explicit reaction field contribution
+    if ( this%ReactionField ) then
+
+      MueX1 => this%MueX1
+      MueY1 => this%MueY1
+      MueZ1 => this%MueZ1
+      MueX2 => this%MueX2
+      MueY2 => this%MueY2
+      MueZ2 => this%MueZ2
+      TX1 => this%tRFX1
+      TY1 => this%tRFY1
+      TZ1 => this%tRFZ1
+      TX2 => this%tRFX2
+      TY2 => this%tRFY2
+      TZ2 => this%tRFZ2
+      EPotLocal = 0._RK
+
+      i0 = this%NPart10
+      i1 = this%NPart12
+
+      do i = i0, i1
+
+        TXi = 0._RK
+        TYi = 0._RK
+        TZi = 0._RK
+        mueXi = MueX1(i)
+        mueYi = MueY1(i)
+        mueZi = MueZ1(i)
+
+        do k = 1, this%NInCutoff1(i-i0+1)
+          j = this%CutoffPartner1(k, i-i0+1)
+
+          mueXj = MueX2(j)
+          mueYj = MueY2(j)
+          mueZj = MueZ2(j)
+          RFTX = this%RFConst2 * (mueZi * mueYj - mueYi * mueZj)
+          RFTY = this%RFConst2 * (mueXi * mueZj - mueZi * mueXj)
+          RFTZ = this%RFConst2 * (mueYi * mueXj - mueXi * mueYj)
+          TXi = TXi + RFTX
+          TYi = TYi + RFTY
+          TZi = TZi + RFTZ
+!          TX2(j) = TX2(j) - RFTX
+!          TY2(j) = TY2(j) - RFTY
+!          TZ2(j) = TZ2(j) - RFTZ
+          EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+
+        end do
+
+        TX1(i) = TX1(i) + TXi
+        TY1(i) = TY1(i) + TYi
+        TZ1(i) = TZ1(i) + TZi
+
+      end do
+
+      if (.not.this%SameComponent) then
+
+        i0 = this%NPart20
+        i1 = this%NPart22
+
+        do i = i0, i1
+
+          TXi = 0._RK
+          TYi = 0._RK
+          TZi = 0._RK
+          mueXi = MueX2(i)
+          mueYi = MueY2(i)
+          mueZi = MueZ2(i)
+
+          do k = 1, this%NInCutoff2(i-i0+1)
+            j = this%CutoffPartner2(k, i-i0+1)
+
+            mueXj = MueX1(j)
+            mueYj = MueY1(j)
+            mueZj = MueZ1(j)
+            RFTX = this%RFConst2 * (mueZi * mueYj - mueYi * mueZj)
+            RFTY = this%RFConst2 * (mueXi * mueZj - mueZi * mueXj)
+            RFTZ = this%RFConst2 * (mueYi * mueXj - mueXi * mueYj)
+            TXi = TXi + RFTX
+            TYi = TYi + RFTY
+            TZi = TZi + RFTZ
+!            TX2(j) = TX2(j) - RFTX
+!            TY2(j) = TY2(j) - RFTY
+!            TZ2(j) = TZ2(j) - RFTZ
+            EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+
+          end do
+
+          TX2(i) = TX2(i) + TXi
+          TY2(i) = TY2(i) + TYi
+          TZ2(i) = TZ2(i) + TZi
+
+        end do
+
+      end if
+
+      EPot = EPot + this%RFConst2 * EPotlocal
+
+    end if
+
+#if defined FORCE_PROF
+    call profileTagAfter(ForceProf, 'FVMPrefetchedForce')
+#endif
+
+  end subroutine TInteraction_FVMPrefetchedForce
 
 
 
@@ -2331,11 +2661,6 @@ contains
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff
  
-#if FVM_VER > 0 && defined PAR_PROF
-    ! PAPI
-!    call PAPIF_start_counters(PAPI_events, PAPI_numEvents, PAPI_check)
-#endif
-
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
@@ -2353,17 +2678,29 @@ contains
     ! Calculate partners within cutoff sphere
     if( this%SameComponent ) then
 #if MPI_VER > 0 || FVM_VER > 0
+
       if( this%NPart10 <= (N+1)/2 ) then
         if( this%NPart12 > (N+1)/2 ) then
           do i = this%NPart10, (N+1) / 2
+
 #else
+
       do i = 1, (N+1) / 2
+
 #endif
+
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
         NInCutoff = this%NInCutoff(i)
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (equal components), at position ", PXi, PYi, PZi
+#endif
+
         do j = i + 1, (N/2) + i
+
           PXij = PXi - PX2(j)
           PYij = PYi - PY2(j)
           PZij = PZi - PZ2(j)
@@ -2374,25 +2711,41 @@ contains
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
           end if
+
         end do
+
         this%NInCutoff(i) = NInCutoff
 
-#if defined PAR_PROF
-   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
-#endif
-        
       end do
+
 #if MPI_VER > 0 || FVM_VER > 0
-          do i = (N+1) / 2 + 1, this%NPart12
+
+      do i = (N+1) / 2 + 1, this%NPart12
+
 #else
+
       do i = (N+1) / 2 + 1, N
+
 #endif
+
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
         NInCutoff = this%NInCutoff(i)
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (equal components), at position ", PXi, PYi, PZi
+#endif
+
         do j = 1, i - N/2 - 1
+
           PXij = PXi - PX2(j)
           PYij = PYi - PY2(j)
           PZij = PZi - PZ2(j)
@@ -2403,9 +2756,17 @@ contains
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
           end if
+
         end do
+
         do j = i + 1, N
+
           PXij = PXi - PX2(j)
           PYij = PYi - PY2(j)
           PZij = PZi - PZ2(j)
@@ -2416,23 +2777,41 @@ contains
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
           end if
+
         end do
+
         this%NInCutoff(i) = NInCutoff
 
-#if defined PAR_PROF
-   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
 #endif
 
       end do
+
 #if MPI_VER > 0 || FVM_VER > 0
+
         else
+
           do i = this%NPart10, this%NPart12
+
             PXi = PX1(i)
             PYi = PY1(i)
             PZi = PZ1(i)
             NInCutoff = this%NInCutoff(i)
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (same components), at position ", PXi, PYi, PZi
+#endif
+
             do j = i + 1, N/2 + i
+
               PXij = PXi - PX2(j)
               PYij = PYi - PY2(j)
               PZij = PZi - PZ2(j)
@@ -2443,23 +2822,41 @@ contains
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
                 this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
               end if
+
             end do
+
             this%NInCutoff(i) = NInCutoff
 
-#if defined PAR_PROF
-   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
 #endif
 
           end do
+
         end if
+
       else
+
         do i = this%NPart10, this%NPart12
+
           PXi = PX1(i)
           PYi = PY1(i)
           PZi = PZ1(i)
           NInCutoff = this%NInCutoff(i)
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (same components), at position ", PXi, PYi, PZi
+#endif
+
           do j = 1, i - N/2 - 1
+
             PXij = PXi - PX2(j)
             PYij = PYi - PY2(j)
             PZij = PZi - PZ2(j)
@@ -2470,9 +2867,17 @@ contains
             if( RijSquared < RCutoff ) then
               NInCutoff = NInCutoff + 1
               this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
             end if
+
           end do
+
           do j = i + 1, N
+
             PXij = PXi - PX2(j)
             PYij = PYi - PY2(j)
             PZij = PZi - PZ2(j)
@@ -2483,29 +2888,53 @@ contains
             if( RijSquared < RCutoff ) then
               NInCutoff = NInCutoff + 1
               this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
             end if
+
           end do
+
           this%NInCutoff(i) = NInCutoff
 
-#if defined PAR_PROF
-   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
 #endif
 
         end do
+
       end if
+
 #endif
+
     else
+
       N2 = this%NPart2
+
 #if MPI_VER > 0 || FVM_VER > 0
+
       do i = this%NPart10, this%NPart12
+
 #else
+
       do i = 1, N
+
 #endif
+
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
         NInCutoff = this%NInCutoff(i)
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (different components), at position ", PXi, PYi, PZi
+#endif
+
         do j = 1, N2
+
           PXij = PXi - PX2(j)
           PYij = PYi - PY2(j)
           PZij = PZi - PZ2(j)
@@ -2516,24 +2945,223 @@ contains
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in different component)"
+#endif
           end if
+
         end do
+
         this%NInCutoff(i) = NInCutoff
 
-#if defined PAR_PROF
-   write(iounit_NInCutoff, '(I)') this%NInCutoff(i)
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", this%NInCutoff(i)
 #endif
 
       end do
+
     end if
 
-#if FVM_VER > 0 && defined PAR_PROF
+  end subroutine TInteraction_CalcPartners
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_FVMPrefetchedCalcPartners           !
+!==============================================================!
+! by Hendrik Adorf, ITWM, Kaiserslautern, 2010
+
+  subroutine TInteraction_FVMPrefetchedCalcPartners ( this )
+
+    implicit none
+
+    !Declare arguments
+    type(TInteraction)  :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, N, N2, NInCutoff
+
+#if defined PAR_PROF
+    ! PAPI
+!    call PAPIF_start_counters(PAPI_events, PAPI_numEvents, PAPI_check)
+#endif
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+    this%NInCutoff1(:) = 0
+    this%NInCutoff2(:) = 0
+    this%CutoffPartner1(:, :) = 0
+    this%CutoffPartner2(:, :) = 0
+
+    ! Assign local pointers
+    PX1 => this%PX1
+    PY1 => this%PY1
+    PZ1 => this%PZ1
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+
+    ! Calculate partners within cutoff sphere
+    if( this%SameComponent ) then
+
+      do i = this%NPart10, this%NPart12
+
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        NInCutoff = this%NInCutoff1(i-this%NPart10+1)
+        !NInCutoff = 0
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (equal components), at position ", PXi, PYi, PZi
+!  write(iounit_forcedebug, '(A, I)') "currentNPart20: ", this%currentNPart20
+!  write(iounit_forcedebug, '(A, I)') "currentNPart22: ", this%currentNPart22
+#endif
+
+        do j = this%currentNPart20, this%currentNPart22
+
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( (RijSquared < RCutoff) .and. (RijSquared.ne.0._RK) ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner1(NInCutoff, i-this%NPart10+1) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in same component)"
+#endif
+          end if
+
+        end do
+
+        this%NInCutoff1(i-this%NPart10+1) = NInCutoff
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", &
+!&    this%NInCutoff1(i-this%NPart10+1)
+#endif
+
+      end do
+
+    else
+
+      ! 1) owned(comp1) x (comp2)
+  
+      do i = this%NPart10, this%NPart12
+
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        NInCutoff = this%NInCutoff1(i-this%NPart10+1)
+        !NInCutoff = 0
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (different components) at position ", PXi, PYi, PZi
+!  write(iounit_forcedebug, '(A, I)') "currentNPart20: ", this%currentNPart20
+!  write(iounit_forcedebug, '(A, I)') "currentNPart22: ", this%currentNPart22
+#endif
+
+        do j = this%currentNPart20, this%currentNPart22
+
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner1(NInCutoff, i-this%NPart10+1) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in different component)"
+#endif
+          end if
+
+        end do
+
+        this%NInCutoff1(i-this%NPart10+1) = NInCutoff
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", &
+!&    this%NInCutoff1(i-this%NPart10+1)
+#endif
+
+      end do
+
+      ! 2) owned(comp2) x (comp1)
+
+      do i = this%NPart20, this%NPart22
+
+        PXi = PX2(i)
+        PYi = PY2(i)
+        PZi = PZ2(i)
+        NInCutoff = this%NInCutoff2(i-this%NPart20+1)
+        !NInCutoff = 0
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3)') "particle no. ", i, &
+!&   " (different components), at position ", PXi, PYi, PZi
+!  write(iounit_forcedebug, '(A, I)') "currentNPart10: ", this%currentNPart10
+!  write(iounit_forcedebug, '(A, I)') "currentNPart12: ", this%currentNPart12
+#endif
+
+        do j = this%currentNPart10, this%currentNPart12
+
+          PXij = PXi - PX1(j)
+          PYij = PYi - PY1(j)
+          PZij = PZi - PZ1(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner2(NInCutoff, i-this%NPart20+1) = j
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I, A, 3F10.3, A)') "particle no. ", j, &
+!&   " at position ", PX2(j), PY2(j), PZ2(j), &
+!&   " is a WW-partner (in different component)"
+#endif
+          end if
+
+        end do
+
+        this%NInCutoff2(i-this%NPart20+1) = NInCutoff
+
+#if defined FORCE_DEBUG
+!  write(iounit_forcedebug, '(A, I)') "NInCutoff = ", &
+!&    this%NInCutoff2(i-this%NPart20+1)
+#endif
+
+      end do
+
+
+    end if
+
+#if defined PAR_PROF
   ! PAPI
 !  call PAPIF_stop_counters(PAPI_values, PAPI_numEvents, PAPI_check)
 !  PAPI_accum_values(:) = PAPI_accum_values(:) + PAPI_values(:)
 #endif
 
-  end subroutine TInteraction_CalcPartners
+  end subroutine TInteraction_FVMPrefetchedCalcPartners
 
 
 
