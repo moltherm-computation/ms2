@@ -83,9 +83,11 @@ module ms2_potential
     module procedure TPotLJLJ_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotLJLJ_FVMPrefetchedForce
   end interface
+#endif  
   
   interface ChemicalPotential
     module procedure TPotLJLJ_ChemicalPotential
@@ -134,9 +136,11 @@ module ms2_potential
     module procedure TPotCC_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotCC_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotCC_ChemicalPotential
@@ -181,9 +185,11 @@ module ms2_potential
     module procedure TPotCD_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotCD_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotCD_ChemicalPotential
@@ -228,9 +234,11 @@ module ms2_potential
     module procedure TPotCQ_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotCQ_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotCQ_ChemicalPotential
@@ -274,9 +282,11 @@ module ms2_potential
     module procedure TPotDC_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotDC_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotDC_ChemicalPotential
@@ -320,9 +330,11 @@ module ms2_potential
     module procedure TPotDD_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotDD_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotDD_ChemicalPotential
@@ -366,9 +378,11 @@ module ms2_potential
     module procedure TPotDQ_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotDQ_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotDQ_ChemicalPotential
@@ -411,9 +425,11 @@ module ms2_potential
     module procedure TPotQC_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotQC_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotQC_ChemicalPotential
@@ -457,9 +473,11 @@ module ms2_potential
     module procedure TPotQD_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotQD_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotQD_ChemicalPotential
@@ -502,9 +520,11 @@ module ms2_potential
     module procedure TPotQQ_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedForce
     module procedure TPotQQ_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TPotQQ_ChemicalPotential
@@ -1085,7 +1105,7 @@ loop2:  do j = j0, j1
   end subroutine TPotLJLJ_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotLJLJ_FVMPrefetchedForce                      !
 !==============================================================!
@@ -1554,7 +1574,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
 #endif
 
   end subroutine TPotLJLJ_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -2160,7 +2180,7 @@ loop1:do k = 1, this%NInCutoff(i)
   end subroutine TPotCC_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotCC_FVMPrefetchedForce                        !
 !==============================================================!
@@ -2576,7 +2596,7 @@ loop1:do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCC_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -2971,7 +2991,7 @@ loop1:do k = 1, this%NInCutoff(i)
   end subroutine TPotCD_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotCD_FVMPrefetchedForce                        !
 !==============================================================!
@@ -3213,7 +3233,7 @@ loop1:do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCD_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -3628,7 +3648,7 @@ loop1:do k = 1, this%NInCutoff(i)
   end subroutine TPotCQ_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotCQ_FVMPrefetchedForce                        !
 !==============================================================!
@@ -3873,7 +3893,7 @@ loop1:do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCQ_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -4298,7 +4318,7 @@ loop1:do k = 1, this%NInCutoff(i)
   end subroutine TPotDC_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotDC_FVMPrefetchedForce                        !
 !==============================================================!
@@ -4552,7 +4572,7 @@ loop1:do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDC_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -5281,7 +5301,7 @@ loop2:  do j = j0, j1
   end subroutine TPotDD_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotDD_FVMPrefetchedForce                        !
 !==============================================================!
@@ -5763,7 +5783,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDD_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -6490,7 +6510,7 @@ loop2:  do j = j0, j1
   end subroutine TPotDQ_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotDQ_FVMPrefetchedForce                        !
 !==============================================================!
@@ -6819,7 +6839,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDQ_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -7412,7 +7432,7 @@ loop1:do k = 1, this%NInCutoff(i)
   end subroutine TPotQC_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotQC_FVMPrefetchedForce                        !
 !==============================================================!
@@ -7676,7 +7696,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQC_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -8251,7 +8271,7 @@ loop2:  do j = j0, j1
   end subroutine TPotQD_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotQD_FVMPrefetchedForce                        !
 !==============================================================!
@@ -8581,7 +8601,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQD_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -9503,7 +9523,7 @@ loop2:  do j = j0, j1
   end subroutine TPotQQ_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TPotQQ_FVMPrefetchedForce                        !
 !==============================================================!
@@ -10014,7 +10034,7 @@ loop1:  do k = 1, this%NInCutoff1(i-i0+1)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQQ_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!

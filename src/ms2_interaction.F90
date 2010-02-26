@@ -164,9 +164,11 @@ module ms2_interaction
     module procedure TInteraction_Force
   end interface
   
+#if FVM_VER > 0  
   interface FVMPrefetchedForce
     module procedure TInteraction_FVMPrefetchedForce
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TInteraction_ChemicalPotential
@@ -185,9 +187,11 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners1
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedCalcCutoffPartners
     module procedure TInteraction_FVMPrefetchedCalcPartners
   end interface
+#endif
 
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
@@ -1061,7 +1065,7 @@ contains
   end subroutine TInteraction_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TInteraction_FVMPrefetchedForce                  !
 !==============================================================!
@@ -1279,7 +1283,7 @@ contains
 #endif
 
   end subroutine TInteraction_FVMPrefetchedForce
-
+#endif
 
 
 !==============================================================!
@@ -2967,7 +2971,7 @@ contains
   end subroutine TInteraction_CalcPartners
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TInteraction_FVMPrefetchedCalcPartners           !
 !==============================================================!
@@ -3162,7 +3166,7 @@ contains
 #endif
 
   end subroutine TInteraction_FVMPrefetchedCalcPartners
-
+#endif
 
 
 !==============================================================!

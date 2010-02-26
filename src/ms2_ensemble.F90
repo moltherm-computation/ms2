@@ -446,9 +446,11 @@ module ms2_ensemble
     module procedure TEnsemble_Mol2Atom
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedMol2AtomForce
     module procedure TEnsemble_FVMPrefetchedMol2AtomForce
   end interface
+#endif   
   
   interface Atom2Mol
     module procedure TEnsemble_Atom2Mol
@@ -498,6 +500,7 @@ module ms2_ensemble
     module procedure TEnsemble_Force
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedZeroForce
     module procedure TEnsemble_FVMPrefetchedZeroForce
   end interface
@@ -505,6 +508,7 @@ module ms2_ensemble
   interface FVMPrefetchedAccumulatePotVir
     module procedure TEnsemble_FVMPrefetchedAccumulatePotVir
   end interface
+#endif
 
   interface ChemicalPotential
     module procedure TEnsemble_ChemicalPotential
@@ -891,12 +895,14 @@ contains
     ! Calculate initial number of particles of each component
     call CalculateNPart( this )
 
+#if FVM_VER > 0
     ! init Inbox and ToInboxField NOW
     do i = 1, this%NComponents
       this%Component(i)%Inbox(:) = 0
       this%Component(i)%Inbox(1+myRank) = this%Component(i)%NPart1
       this%Component(i)%ToInboxField = this%Component(i)%NPart1
     end do
+#endif
 
     ! Calculate maximum numbers of sites in components
     call FindNSiteMax( this )
@@ -1714,10 +1720,12 @@ contains
     this%NFluctMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
-      !pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
-      !pc%NPart0 = 1 + pc%NPart1 * NProc
-      !pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
-      !pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+#if FVM_VER==0
+      pc%NPart1 = 1 + (pc%NPart - 1) / NProcs
+      pc%NPart0 = 1 + pc%NPart1 * NProc
+      pc%NPart2 = min( pc%NPart0 + pc%NPart1 - 1, pc%NPart )
+      pc%NPart1 = pc%NPart2 - pc%NPart0 + 1
+#elif FVM_VER > 0
       !use alternative distribution scheme:
       pc%NPart1 = pc%NPart/NProcs
       pc%NPart0 = 1 + pc%NPart1*NProc
@@ -1728,6 +1736,7 @@ contains
         pc%NPart0 = pc%NPart0 + (pc%NPart - pc%NPart1*NProcs)
       end if
       pc%NPart2 = pc%NPart0 + pc%NPart1 - 1
+#endif
 #if defined PAR_DEBUG
       write(iounit_pardebug, '(A)') "NPart1,0,2: "
       write(iounit_pardebug, '(3I)') pc%NPart1, pc%NPart0, pc%NPart2
@@ -2864,6 +2873,7 @@ loop:do l = 1, NPartInCell
 
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
       !only have partial EKin now, need to Allreduce
+#if FVM_VER > 0
 
 #if defined PAR_PROF
 
@@ -2872,8 +2882,6 @@ loop:do l = 1, NPartInCell
 &       'TEnsemble_CalculateEKin: Allreduce(this.EKin)' )
 
 #endif
-
-#if FVM_VER > 0
 
 #if FVM_ALLREDUCE == 0
 
@@ -2900,8 +2908,6 @@ loop:do l = 1, NPartInCell
       
 #endif
 
-#endif
-      
 #if defined PAR_PROF
 
       ! Parallel Profiling added by Hendrik Adorf (ITWM)
@@ -2910,6 +2916,8 @@ loop:do l = 1, NPartInCell
 
 #endif
 
+#endif
+      
       ! Calculate temperature
       this%Temperature = 2._RK * this%EKin / this%NDF
 
@@ -2947,18 +2955,26 @@ loop:do l = 1, NPartInCell
 #endif
 
     ! Broadcast temperature
+#if MPI_VER > 0
+
 #if defined PAR_PROF
 
     ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!    call profileTagBefore( Profiler, &
-!&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+    call profileTagBefore( Profiler, &
+&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
 
 #endif
 
-#if MPI_VER > 0
-
     call MPI_Bcast( this%Temperature, 1, MPI_DOUBLE_PRECISION, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
+
+#endif
 
 #endif
 #if FVM_VER > 0
@@ -2983,14 +2999,6 @@ loop:do l = 1, NPartInCell
 
     !do not need any communication here 
     !instead: Allreduce EKin (see above)
-
-#endif
-
-#if defined PAR_PROF
-
-    ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!    call profileTagAfter( Profiler, &
-!&     'TEnsemble_CalculateEKin: Bcast(this.Temperature)' )
 
 #endif
 
@@ -3045,12 +3053,14 @@ loop:do l = 1, NPartInCell
     ! Calculate number of particles of each component
     call CalculateNPart( this )
 
+#if FVM_VER > 0
     ! reset Inbox and ToInboxField
     do i = 1, this%NComponents
       this%Component(i)%Inbox(:) = 0
       this%Component(i)%Inbox(1+myRank) = this%Component(i)%NPart1
       this%Component(i)%ToInboxField = this%Component(i)%NPart1
     end do
+#endif
 
     ! Calculate long-range corrections
     call CalculateCorr( this )
@@ -3522,7 +3532,7 @@ loop3:    do nc = 1, this%NComponents
   end subroutine TEnsemble_Mol2Atom
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TEnsemble_FVMPrefetchedMol2AtomForce             !
 !==============================================================!
@@ -4732,7 +4742,7 @@ loop3:    do nc = 1, this%NComponents
 !    end do
 
   end subroutine TEnsemble_FVMPrefetchedMol2AtomForce
-
+#endif
 
 
 !==============================================================!
@@ -4876,18 +4886,27 @@ loop3:    do nc = 1, this%NComponents
       end if
 #endif
 
-#if defined PAR_PROF
-
-      ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!      call profileTagBefore( Profiler, &
-!&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
-
-#endif
 
 #if MPI_VER > 0
 
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+
+#endif
+
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
+
+#endif
 
 #endif
 #if FVM_VER > 0
@@ -4913,13 +4932,6 @@ loop3:    do nc = 1, this%NComponents
 !
 #endif
 
-#if defined PAR_PROF
-
-      ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!      call profileTagAfter( Profiler, &
-!&       'TEnsemble_PredictGear: Bcast(this.Volume0)' )
-
-#endif
 
       call UpdateBoxLength( this )
     end if
@@ -4984,18 +4996,27 @@ loop3:    do nc = 1, this%NComponents
       end if
 #endif
 
-#if defined PAR_PROF
-
-      ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!      call profileTagBefore( Profiler, &
-!&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
-
-#endif
 
 #if MPI_VER > 0
 
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagBefore( Profiler, &
+&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+
+#endif
+
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
+
+#if defined PAR_PROF
+
+      ! Parallel Profiling added by Hendrik Adorf (ITWM)
+      call profileTagAfter( Profiler, &
+&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
+
+#endif
 
 #endif
 #if FVM_VER > 0
@@ -5019,14 +5040,6 @@ loop3:    do nc = 1, this%NComponents
 !parallelizing Predictor/Corrector; Hendrik Adorf (ITWM)
 
       !no communication needed
-
-#endif
-
-#if defined PAR_PROF
-
-      ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!      call profileTagAfter( Profiler, &
-!&       'TEnsemble_CorrectGear: Bcast(this.Volume0)' )
 
 #endif
 
@@ -5591,7 +5604,7 @@ loop3:    do nc = 1, this%NComponents
   end subroutine TEnsemble_Force
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TEnsemble_FVMPrefetchedZeroForce                 !
 !==============================================================!
@@ -5810,9 +5823,9 @@ loop3:    do nc = 1, this%NComponents
     Virial = this%Density * this%VirialCorrLJ
 
   end subroutine TEnsemble_FVMPrefetchedZeroForce
+#endif
 
-
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TEnsemble_FVMPrefetchedAccumulatePotVir          !
 !==============================================================!
@@ -5923,6 +5936,7 @@ loop3:    do nc = 1, this%NComponents
 &     this%Virial / this%Volume0
 
   end subroutine TEnsemble_FVMPrefetchedAccumulatePotVir
+#endif
 
 
 

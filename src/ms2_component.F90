@@ -355,9 +355,11 @@ module ms2_component
     module procedure TComponent_Mol2Atom
   end interface
 
+#if FVM_VER > 0
   interface FVMPrefetchedMol2Atom
     module procedure TComponent_FVMPrefetchedMol2Atom
   end interface
+#endif
 
   interface Mol2Atom1
     module procedure TComponent_Mol2Atom1
@@ -519,6 +521,7 @@ contains
     allocate( this%NPart2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
+#if FVM_VER > 0
     ! FVMPrefetching: Allocate current number of processed particles
     allocate( this%currentNPart0, STAT = stat )
     call AllocationError( stat, 'current number of processed particles' )
@@ -534,6 +537,7 @@ contains
     call AllocationError( stat, 'current number of processed particles' )
     allocate( this%writebackNPart2, STAT = stat )
     call AllocationError( stat, 'current number of processed particles' )
+#endif
 
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
@@ -786,6 +790,7 @@ contains
     allocate( this%NPart2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
+#if FVM_VER > 0
     ! FVMPrefetching: Allocate current number of processed particles
     allocate( this%currentNPart0, STAT = stat )
     call AllocationError( stat, 'current number of processed particles' )
@@ -801,6 +806,7 @@ contains
     call AllocationError( stat, 'current number of processed particles' )
     allocate( this%writebackNPart2, STAT = stat )
     call AllocationError( stat, 'current number of processed particles' )
+#endif
 
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
@@ -921,6 +927,7 @@ contains
       deallocate( this%NPart2 )
     end if
 
+#if FVM_VER > 0
     ! FVMPrefetching: Deallocate current number of processed particles
     if( associated( this%currentNPart0 ) ) then
       deallocate( this%currentNPart0 )
@@ -942,6 +949,7 @@ contains
     if( associated( this%writebackNPart2 ) ) then
       deallocate( this%writebackNPart2 )
     end if
+#endif
 
     ! Deallocate number of particles in component
 #if FVM_VER == 0
@@ -2535,7 +2543,7 @@ contains
   end subroutine TComponent_Mol2Atom
 
 
-
+#if FVM_VER > 0
 !==============================================================!
 !  Subroutine TComponent_FVMPrefetchedMol2Atom                 !
 !==============================================================!
@@ -2703,7 +2711,7 @@ contains
     end if
 
   end subroutine TComponent_FVMPrefetchedMol2Atom
-
+#endif
 
 
 !==============================================================!
@@ -3504,6 +3512,14 @@ contains
 
 #if MPI_VER > 0
 
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagBefore( Profiler, &
+&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+
+#endif
+
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
     if( this%Molecule%isElongated ) then
@@ -3532,6 +3548,14 @@ contains
     call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
 &       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
 !TRANSPORT_END
+#endif
+
+#if defined PAR_PROF
+
+    ! Parallel Profiling added by Hendrik Adorf (ITWM)
+    call profileTagAfter( Profiler, &
+&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
+
 #endif
 
 #endif
@@ -3610,14 +3634,6 @@ contains
 !
 !    end if
 !
-#endif
-
-#if defined PAR_PROF
-
-    ! Parallel Profiling added by Hendrik Adorf (ITWM)
-!    call profileTagAfter( Profiler, &
-!&     'TComponent_Atom2Mol: Reduce(this.F, this.T)' )
-
 #endif
 
 #if defined PAR_DEBUG

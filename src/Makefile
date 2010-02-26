@@ -77,7 +77,10 @@ ifneq ($(FVM),0)
         #-rpath=...:/opt/cluster/libs/papi-3.5.0/lib64
 #
 else
-	$(F90) $(LDFLAGS) -o $@ $(OBJS)
+	$(F90) $(LDFLAGS) -o $@ $(OBJS) \
+        /u/herc/adorf/lib/fortran/musectimer.o \
+        /u/herc/adorf/lib/fortran/musectimer.a \
+        -lstdc++
 endif
 
 clean:
@@ -94,7 +97,9 @@ ifneq ($(FVM),0)
         #-I/opt/cluster/libs/papi-3.5.0/include \
 #
 else
-	$(F90) $(CPPFLAGS) $(F90FLAGS) -c $<
+	$(F90) $(CPPFLAGS) $(F90FLAGS) \
+        -I/u/herc/adorf/include/fortran \
+        -c $<
 endif
 
 ########################################

@@ -3,7 +3,7 @@
 !          contains TProfiler class                            !
 !> \author Hendrik Adorf (ITWM)                                !
 !> \date   March 2009                                          !
-!> Comment: A Microsecond Timer                                !
+!> Comment: uses a microsecond timer                           !
 !==============================================================!
 
 #ifndef ARCH
@@ -22,7 +22,10 @@ module ms2_profiler
 
 #if FVM_VER > 0
   use fvmf2003extensions
+#elif FVM_VER==0
+  use musectimer
 #endif
+
 
 !==============================================================!
 !  Type TProfiler                                              !
@@ -100,7 +103,11 @@ contains
 !    this%StartTime = timeSec
 !    timeTag = timeSec - this%StartTime
 
+#if FVM_VER > 0
     call vmTimer(time)
+#elif FVM_VER==0
+    call timer(time)
+#endif
     this%StartTime = time
     timeTag = time - this%StartTime
 
@@ -154,7 +161,11 @@ contains
 !    timeTag = timeSec - this%StartTime
 !    this%PreviousTimeTag = timeTag
 
+#if FVM_VER > 0
     call vmTimer(time)
+#elif FVM_VER==0
+    call timer(time)
+#endif    
     timeTag = time - this%StartTime
     this%PreviousTimeTag = timeTag
 
@@ -193,7 +204,11 @@ contains
 !    this%OverallCommunicationTime = this%OverallCommunicationTime + &
 !&     (TimeTag - this%PreviousTimeTag)
 
+#if FVM_VER > 0
     call vmTimer(time)
+#elif FVM_VER==0
+    call timer(time)
+#endif    
     timeTag = time - this%StartTime
     this%OverallCommunicationTime = this%OverallCommunicationTime + &
 &     (timeTag - this%PreviousTimeTag)
