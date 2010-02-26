@@ -2895,6 +2895,11 @@ contains
           this%Qm0(i, 2) = q2
           this%Qm0(i, 3) = q3
           this%Qm0(i, 4) = q4
+!          print *, 'q1=', q1
+!          print *, 'q2=', q2
+!          print *, 'q3=', q3
+!          print *, 'q4=', q4
+
 
           ! Calculate rotation matrix elements
           A11(i) = q1**2 + q2**2 - q3**2 - q4**2
@@ -2906,6 +2911,10 @@ contains
           A31(i) = 2._RK * (q2 * q4 + q1 * q3)
           A32(i) = 2._RK * (q3 * q4 - q1 * q2)
           A33(i) = q1**2 - q2**2 - q3**2 + q4**2
+
+! determinant = ( A11(i)*A22(i)*A33(i)+A12(i)*A23(i)*A31(i)+A13(i)*A21(i)*A32(i)) - &
+!&                       ( A13(i)*A22(i)*A31(i)+A23(i)*A32(i)*A11(i)+A33(i)*A12(i)*A21(i))
+!        print *, 'detA =', determinant
 
         end do
 
@@ -2926,6 +2935,10 @@ contains
 &                              this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
              this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
 &                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
+!           print *, 'this%Q0(i,1,j)=', this%Q0(i,1,j)
+!           print *, 'this%Q0(i,2,j)=', this%Q0(i,2,j)
+!           print *, 'this%Q0(i,3,j)=', this%Q0(i,3,j)
+!           print *, 'this%Q0(i,4,j)=', this%Q0(i,4,j)
            end do
          end do
 
@@ -4886,7 +4899,7 @@ contains
       this%DispRot = this%DispRot * 1.05_RK
     end if
 
-    if (UseIntDegFreed) then 
+    if (UseIntDegFreed) then
       if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
         this%DispMolTran = this%DispMolTran * .95_RK
       else if( this%DispMolTran < DispMolTranLimit ) then

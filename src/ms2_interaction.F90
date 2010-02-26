@@ -30,8 +30,6 @@ module ms2_interaction
   use ms2_component
   use ms2_site
 
-
-
 !==============================================================!
 !  Type TInteraction                                           !
 !==============================================================!
@@ -839,14 +837,14 @@ contains
 
     if( CutoffMode .eq. CenterofMass ) then
       N1 = max( N1, this%NTest1 )
-      allocate( this%NInCutoff(N1*this%NUnitMax), STAT = stat )
-      call AllocationError( stat, 'particles', N1*this%NUnitMax )
-      allocate( this%CutoffPartner(N2*this%NUnitMax, N1*this%NUnitMax), STAT = stat )
+!      allocate( this%NInCutoff(N1*this%NUnitMax), STAT = stat )
+!      call AllocationError( stat, 'particles', N1*this%NUnitMax )
+!      allocate( this%CutoffPartner(N2*this%NUnitMax, N1*this%NUnitMax), STAT = stat )
+!      call AllocationError( stat, 'particles', N1 * N2 )
+      allocate( this%NInCutoff(N1), STAT = stat )
+      call AllocationError( stat, 'particles', N1 )
+      allocate( this%CutoffPartner(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
-!      allocate( this%ScaleCoeff(this%NPartMax*this%NUnitMax , N1*this%NUnitMax), STAT = stat )
-!      call AllocationError( stat, 'particles', this%NPartMax*this%NUnitMax )
-!      allocate( this%Intra(this%NPartMax*this%NUnitMax , N1*this%NUnitMax), STAT = stat )
-!      call AllocationError( stat, 'particles', this%NPartMax*this%NUnitMax )
     end if
 
   end subroutine TInteraction_Allocate
@@ -936,10 +934,10 @@ contains
 !==============================================================!
 #ifndef ABL
   subroutine TInteraction_Force( this, EPot, Virial, &
-&             EPotIntra, EPotInter, VirialIntra, VirialInter, BoxLength )
+&             EPotIntra, EPotIntra_Bond, EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, VirialIntra, VirialInter, BoxLength )
 #else
   subroutine TInteraction_Force( this, EPot, Virial, &
-&             EPotIntra, EPotInter, VirialIntra, VirialInter, BoxLength,C1,C2)
+&             EPotIntra, EPotIntra_Bond, EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, VirialIntra, VirialInter, BoxLength,C1,C2)
 #endif
 
     implicit none
@@ -949,6 +947,10 @@ contains
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Bond
+    real(RK), intent(in out) :: EPotIntra_Angle
+    real(RK), intent(in out) :: EPotIntra_Dihedral
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in out) :: VirialInter
@@ -964,10 +966,10 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
-    real(RK)          :: EPotLocalInter, EPotLocalIntra
+    real(RK)          :: EPotLocalIntra_Nonbonded
     integer           :: i, j, k, i1
     integer           :: iu, u, u2, ju, nu1, nu2
-    logical           :: intra
+    logical           :: intra, add, addlocal
 #if MPI_VER > 0
     integer           :: i0
 #endif
@@ -976,17 +978,21 @@ contains
     real(RK)          :: eps1,eps2,fac
 #endif
 
+
     ! Calculate interactions partners within cutoff sphere
+
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
+
     ! Calculate Lennard-Jones forces
+
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
 #ifndef ABL
        call Force( this%PotLJ126LJ126( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 #else
         call Force( this%PotLJ126LJ126( i, j ), &
 &         EPot, Virial, BoxLength,  AblSig, AblEps,eps1,eps2)
@@ -1004,86 +1010,95 @@ contains
       end do
     end do
 
+
     ! Calculate point charge forces
+
     do i = 1, this%N1Charge
       if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
 	do j = 1, this%N2Charge
           call Force( this%PotChargeCharge( i, j ), &
-&       	  EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength, this%Kappa )
+&       	  EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength, this%Kappa )
 	end do
       else
 	do j = 1, this%N2Charge
           call Force( this%PotChargeCharge( i, j ), &
-&       	  EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&       	  EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
     	end do
       end if
       do j = 1, this%N2Dipole
         call Force( this%PotChargeDipole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Quadrupole
         call Force( this%PotChargeQuadrupole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
     end do
 
 
     ! Calculate dipolar forces
+
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
         call Force( this%PotDipoleCharge( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Dipole
         call Force( this%PotDipoleDipole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Quadrupole
         call Force( this%PotDipoleQuadrupole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
     end do
 
 
     ! Calculate quadrupolar forces
+
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
         call Force( this%PotQuadrupoleCharge( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Dipole
         call Force( this%PotQuadrupoleDipole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Quadrupole
         call Force( this%PotQuadrupoleQuadrupole( i, j ), &
-&         EPot, Virial, EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&         EPot, Virial, EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
     end do
 
+
 ! Inner Degrees of Freedom
     ! Calculate bond forces
+
     if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
       do i = 1, this%NBond
-        call Force( this%PotBond(i), EPot, Virial, EPotIntra, VirialIntra, BoxLength)
+        call Force( this%PotBond(i), EPot, Virial, EPotIntra_Bond, VirialIntra, BoxLength)
       end do
     end if
 
     ! Calculate angle forces
+
     if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
       do i = 1, this%NAngle
-        call Force( this%PotAngle(i), EPot, Virial, EPotIntra, BoxLength)
+        call Force( this%PotAngle(i), EPot, Virial, EPotIntra_Angle, BoxLength)
       end do
     end if
 
 
     ! Calculate dihedral forces
+
     if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
       do i = 1, this%NDihedral
-        call Force( this%PotDihedral(i), EPot, Virial, EPotIntra,VirialIntra,  BoxLength)
+        call Force( this%PotDihedral(i), EPot, Virial, EPotIntra_Dihedral, VirialIntra,  BoxLength)
       end do
     end if
 
+    EPotIntra = EPotIntra_Bond + EPotIntra_Angle + EPotIntra_Dihedral + EPotIntra_Nonbonded
 
     ! Explicit reaction field contribution
     if ( this%ReactionField ) then
@@ -1100,8 +1115,9 @@ contains
       TY2 => this%tRFY2
       TZ2 => this%tRFZ2
       EPotLocal = 0._RK
-      EPotLocalInter = 0._RK
-      EPotLocalIntra = 0._RK
+!      EPotLocalInter = 0._RK
+!      EPotLocalIntra = 0._RK
+!      EPotLocalIntra_Nonbonded = 0._RK
       nu1 = this%NUnit1  ! Number of units in molecule of first component
       nu2 = this%NUnit2
 
@@ -1143,8 +1159,9 @@ contains
             TX2(ju, u2) = TX2(ju, u2) - RFTX
             TY2(ju, u2) = TY2(ju, u2) - RFTY
             TZ2(ju, u2) = TZ2(ju, u2) - RFTZ
-            EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
-              EPotLocalInter = EPotLocalInter + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+            add = mueXi * mueXj + mueYi * mueYj + mueZi * mueZj
+            EPotLocal = EPotLocal + add
+!            EPotLocalInter = EPotLocalInter + add
 !            print *, 'EPotLocalInter from Interaction_Force=', EPotLocalInter
           end do
           TX1(i, u) = TX1(i, u) + TXi
@@ -1153,11 +1170,16 @@ contains
         end do
       end do
 
-      EPot = EPot + this%RFConst2 * EPotLocal
-      EPotInter = EPotInter + this%RFConst2 * EPotLocalInter
-      if (IntraLJEl) then
-        EPotIntra = EPotIntra + this%RFConst2 * EPotLocalIntra
-      end if
+      addlocal= this%RFConst2 * EPotLocal
+      EPot = EPot + addlocal
+!      print * ,'EPot=', EPot
+      EPotInter = EPotInter + addlocal
+!      EPotInter = EPotInter + this%RFConst2 * EPotLocalInter
+!
+!      if (IntraLJEl) then
+!        EPotIntra = EPotIntra + this%RFConst2 * EPotLocalIntra
+!        EPotIntra_Nonbonded=EPotIntra_Nonbonded + this%RFConst2 * EPotLocalIntra_Nonbonded
+!      end if
     end if
 
   end subroutine TInteraction_Force
@@ -2694,7 +2716,7 @@ contains
             PXij = PXi - PX2(j,pcq%Site2%UnitNumber)
             PYij = PYi - PY2(j,pcq%Site2%UnitNumber)
             PZij = PZi - PZ2(j,pcq%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength 
+            RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             PXij = (PXij - anint( RXij )) * BoxLength
@@ -5563,9 +5585,10 @@ contains
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
-    integer           :: i, j, N, N2, NInCutoff
+    integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
     integer           :: NU, NU2
     integer           :: k, l, m, start
+
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
@@ -5585,30 +5608,34 @@ contains
     PY2 => this%PY2
     PZ2 => this%PZ2
 
+
     do i=1, N
       do k=1, NU
-        PX1d((i-1)*NU+k) = PX1(i, k)
-        PY1d((i-1)*NU+k) = PY1(i, k)
-        PZ1d((i-1)*NU+k) = PZ1(i, k)
+        ik = (i-1)*NU+k
+        PX1d(ik) = PX1(i, k)
+        PY1d(ik) = PY1(i, k)
+        PZ1d(ik) = PZ1(i, k)
       end do
     end do
 
     do i=1, N2
       do k=1, NU2
-        PX2d((i-1)*NU2+k) = PX2(i, k)
-        PY2d((i-1)*NU2+k) = PY2(i, k)
-        PZ2d((i-1)*NU2+k) = PZ2(i, k)
+        ik=(i-1)*NU2+k
+        PX2d(ik) = PX2(i, k)
+        PY2d(ik) = PY2(i, k)
+        PZ2d(ik) = PZ2(i, k)
       end do
     end do
 
     ! Calculate partners within cutoff sphere
+    NNU=N*NU
     if( this%SameComponent ) then
 #if MPI_VER > 0
-      if( this%NPart10*NU <= (N*NU+1)/2 ) then
-        if( this%NPart12*NU > (N*NU+1)/2 ) then
-          do i = (this%NPart10-1)*NU+1, (N*NU+1) / 2
+      if( this%NPart10*NU <= (NNU+1)/2 ) then
+        if( this%NPart12*NU > (NNU+1)/2 ) then
+          do i = (this%NPart10-1)*NU+1, (NNU+1) / 2
 #else
-        do i = 1, (N*NU+1) / 2
+        do i = 1, (NNU+1) / 2
 #endif
         PXi = PX1d(i)
         PYi = PY1d(i)
@@ -5619,7 +5646,8 @@ contains
         else
           m = INT(i/NU)
         end if
-        do j = NU*m+1, (N*NU/2) + i ! without intramolecular interaction
+        NUm=NU*m
+        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
           PXij = PXi - PX2d(j)
           PYij = PYi - PY2d(j)
           PZij = PZi - PZ2d(j)
@@ -5634,10 +5662,11 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
+
 #if MPI_VER > 0
-          do i = (N*NU+1) / 2 + 1, this%NPart12*NU
+          do i = (NNU+1) / 2 + 1, this%NPart12*NU
 #else
-      do i = (N*NU+1) / 2 + 1, N*NU
+      do i = (NNU+1) / 2 + 1, NNU
 #endif
         PXi = PX1d(i)
         PYi = PY1d(i)
@@ -5650,7 +5679,7 @@ contains
           m = INT(i/NU)
         end if
 !new
-        do j = 1, i - N*NU/2 - 1 ! richtig!
+        do j = 1, i - NNU/2 - 1 ! richtig!
           PXij = PXi - PX2d(j)
           PYij = PYi - PY2d(j)
           PZij = PZi - PZ2d(j)
@@ -5663,7 +5692,7 @@ contains
             this%CutoffPartner(NInCutoff, i) = j
           end if
         end do
-        do j = m*NU+1, N*NU
+        do j = m*NU+1, NNU
           PXij = PXi - PX2d(j)
           PYij = PYi - PY2d(j)
           PZij = PZi - PZ2d(j)
@@ -5678,6 +5707,8 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
+
+
 #if MPI_VER > 0
         else
            do i = (this%NPart10-1)*NU+1, this%NPart12*NU
@@ -5748,7 +5779,7 @@ contains
       end if
 #endif
     else
-      N2 = this%NPart2
+!      N2 = this%NPart2
 #if MPI_VER > 0
       do i = (this%NPart10-1)*NU+1, this%NPart12*NU
 #else
@@ -5774,6 +5805,7 @@ contains
         this%NInCutoff(i) = NInCutoff
       end do
     end if
+
 
   end subroutine TInteraction_CalcPartners
 

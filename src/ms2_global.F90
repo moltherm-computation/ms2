@@ -236,6 +236,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
   character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
+  character(*), parameter :: IdPrintIDF                    = 'printIDF'      ! print contributions to inramolecular energy
   character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
   character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 electrostatic & LJ interaction incl/excl
   character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs must be included/excluded from non-bonded inter.
@@ -352,6 +353,10 @@ character(*), parameter :: VersionString = 'v12'
   ! Use integral degrees of freedom
   logical :: UseIntDegFreed
 
+  ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
+  logical :: printIDF
+
+
   ! Shake tolerance for constraint bonds in the case of IDF
   real(RK) :: Shake
   integer, parameter :: Maxit = 100 ! Maximum allowed iterations for QShake
@@ -436,7 +441,7 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: SiteSite     = 1
   integer, parameter :: CenterofMass = 2
   integer            :: CutoffMode
-!   integer            :: 
+!   integer            ::
 
   ! Type of LongRange Mode
   character(80)      :: LongRangeString
@@ -1720,7 +1725,7 @@ contains
   subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
-  ! for a FileReadParameter polymorphism 
+  ! for a FileReadParameter polymorphism
 
     implicit none
 

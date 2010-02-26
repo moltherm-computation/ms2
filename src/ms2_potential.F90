@@ -881,11 +881,11 @@ contains
 
 #ifdef ABL
   subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
-&           VirialInter, EPotIntra, VirialIntra, BoxLength,&
+&           VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength,&
 &           VirAblSig, VirAblEps, eps1,eps2)
 #else
   subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
-&           VirialInter, EPotIntra, VirialIntra, BoxLength )
+&           VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 #endif
 
     implicit none
@@ -896,7 +896,7 @@ contains
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 #ifdef ABL
@@ -1191,7 +1191,8 @@ loop2:  do j = j0, j1
 
     if (IntraLJEl) then
       ! Update Intra potential energy and virial
-      EPotIntra = EPotIntra + Epsilon4 * EPotLocalIntra
+!      EPotIntra = EPotIntra + Epsilon4 * EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + Epsilon4 * EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra * BoxLength
     end if
 
@@ -1553,7 +1554,7 @@ loop2:do j = 1, N
 !==============================================================!
 
   subroutine TPotCC_Force( this, EPot, Virial, EPotInter, &
-&                VirialInter,EPotIntra, VirialIntra, BoxLength )
+&                VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -1563,7 +1564,7 @@ loop2:do j = 1, N
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
@@ -1754,7 +1755,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-       EPotIntra = EPotIntra + EPotLocalIntra
+!       EPotIntra = EPotIntra + EPotLocalIntra
+       EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
        VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -1768,7 +1770,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 !==============================================================!
 
   subroutine TPotCC_Force_Ewald( this, EPot, Virial, EPotInter, &
-&           VirialInter,EPotIntra, VirialIntra,  BoxLength, Kappa )
+&           VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength, Kappa )
 
     implicit none
 
@@ -1778,7 +1780,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
     real(RK), intent(in)     :: Kappa
@@ -2005,7 +2007,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-       EPotIntra = EPotIntra + EPotLocalIntra
+!       EPotIntra = EPotIntra + EPotLocalIntra
+       EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
        VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -2627,7 +2630,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   subroutine TPotCD_Force( this, EPot, Virial, EPotInter, &
-&                  VirialInter,EPotIntra, VirialIntra,BoxLength )
+&                  VirialInter, EPotIntra_Nonbonded, VirialIntra,BoxLength )
 
     implicit none
 
@@ -2637,7 +2640,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
 
     real(RK), intent(in)     :: BoxLength
@@ -2847,7 +2850,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-        EPotIntra = EPotIntra + EPotLocalIntra
+!        EPotIntra = EPotIntra + EPotLocalIntra
+        EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
         VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -3156,7 +3160,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   subroutine TPotCQ_Force( this, EPot, Virial, EPotInter, &
-  &                 VirialInter,EPotIntra, VirialIntra, BoxLength )
+  &                 VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -3166,7 +3170,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in out)   :: EPotInter
     real(RK), intent(in out)   :: VirialInter
-    real(RK), intent(in out)   :: EPotIntra
+    real(RK), intent(in out)   :: EPotIntra_Nonbonded
     real(RK), intent(in out)   :: VirialIntra
     real(RK), intent(in)       :: BoxLength
 
@@ -3378,7 +3382,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -3691,7 +3696,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   subroutine TPotDC_Force( this, EPot, Virial, &
-&             EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&             EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -3701,7 +3706,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
@@ -3912,7 +3917,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -4226,7 +4232,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   subroutine TPotDD_Force( this, EPot, Virial, &
-&        EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&        EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -4236,7 +4242,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialInter
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
@@ -4612,7 +4618,8 @@ loop2:  do j = j0, j1
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if ( IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -5083,7 +5090,7 @@ loop2:do j = 1, j1
 !==============================================================!
 
   subroutine TPotDQ_Force( this, EPot, Virial, &
-&     EPotInter, VirialInter,EPotIntra, VirialIntra,BoxLength )
+&     EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra,BoxLength )
 
     implicit none
 
@@ -5093,7 +5100,7 @@ loop2:do j = 1, j1
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in out)   :: EPotInter
     real(RK), intent(in out)   :: VirialInter
-    real(RK), intent(in out)   :: EPotIntra
+    real(RK), intent(in out)   :: EPotIntra_Nonbonded
     real(RK), intent(in out)   :: VirialIntra
     real(RK), intent(in)       :: BoxLength
 
@@ -5474,7 +5481,8 @@ loop2:  do j = j0, j1
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+ !     EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -5953,7 +5961,7 @@ loop2:do j = 1, j1
 !==============================================================!
 
   subroutine TPotQC_Force( this, EPot, Virial, &
-&       EPotInter, VirialInter,EPotIntra, VirialIntra, BoxLength )
+&       EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -5963,7 +5971,7 @@ loop2:do j = 1, j1
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in out)   :: EPotInter
     real(RK), intent(in out)   :: VirialInter
-    real(RK), intent(in out)   :: EPotIntra
+    real(RK), intent(in out)   :: EPotIntra_Nonbonded
     real(RK), intent(in out)   :: VirialIntra
     real(RK), intent(in)       :: BoxLength
 
@@ -6176,7 +6184,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     EPotInter = EPotInter + EPotLocalInter
     VirialInter = VirialInter + Third * VirialLocalInter
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -6493,7 +6502,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   subroutine TPotQD_Force( this, EPot, Virial, &
-&             EPotInter, VirialInter,EPotIntra, VirialIntra,BoxLength )
+&             EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra,BoxLength )
 
     implicit none
 
@@ -6503,7 +6512,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in out)   :: EPotInter
     real(RK), intent(in out)   :: VirialInter
-    real(RK), intent(in out)   :: EPotIntra
+    real(RK), intent(in out)   :: EPotIntra_Nonbonded
     real(RK), intent(in out)   :: VirialIntra
     real(RK), intent(in)       :: BoxLength
 
@@ -6884,7 +6893,8 @@ loop2:  do j = j0, j1
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -7369,7 +7379,7 @@ loop2:do j = 1, j1
 !==============================================================!
 
   subroutine TPotQQ_Force( this, EPot, Virial, &
-&          EPotInter, VirialInter, EPotIntra, VirialIntra, BoxLength )
+&          EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
 
     implicit none
 
@@ -7379,7 +7389,7 @@ loop2:do j = 1, j1
     real(RK), intent(in out)       :: Virial
     real(RK), intent(in out)       :: EPotInter
     real(RK), intent(in out)       :: VirialInter
-    real(RK), intent(in out)       :: EPotIntra
+    real(RK), intent(in out)       :: EPotIntra_Nonbonded
     real(RK), intent(in out)       :: VirialIntra
     real(RK), intent(in)           :: BoxLength
 
@@ -7798,7 +7808,8 @@ loop2:  do j = j0, j1
     VirialInter = VirialInter + Third * VirialLocalInter
 
     if (IntraLJEl) then
-      EPotIntra = EPotIntra + EPotLocalIntra
+!      EPotIntra = EPotIntra + EPotLocalIntra
+      EPotIntra_Nonbonded = EPotIntra_Nonbonded + EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra
     end if
 
@@ -8299,7 +8310,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotBond_Force                                   !
 !==============================================================!
 
-  subroutine TPotBond_Force( this, EPot, Virial, EPotIntra, VirialIntra, BoxLength )
+  subroutine TPotBond_Force( this, EPot, Virial, EPotIntra_Bond, VirialIntra, BoxLength )
 
     implicit none
 
@@ -8307,7 +8318,7 @@ loop2:do j = 1, j1
     type(TPotBond)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Bond
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
@@ -8451,7 +8462,8 @@ loop2:do j = 1, j1
        Virial = Virial + Third * VirialLocal
 
      ! Update Intra potential energy and virial
-       EPotIntra = EPotIntra + EPotLocal
+!       EPotIntra = EPotIntra + EPotLocal
+       EPotIntra_Bond = EPotIntra_Bond + EPotLocal
        VirialIntra = VirialIntra + Third * VirialLocal
 
   end subroutine TPotBond_Force
@@ -8552,7 +8564,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotAngle_Force                                   !
 !==============================================================!
 
-  subroutine TPotAngle_Force( this, EPot, Virial, EPotIntra, BoxLength )
+  subroutine TPotAngle_Force( this, EPot, Virial, EPotIntra_Angle, BoxLength )
 
     implicit none
 
@@ -8560,7 +8572,7 @@ loop2:do j = 1, j1
     type(TPotAngle)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Angle
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -8713,7 +8725,9 @@ loop2:do j = 1, j1
      EPot = EPot + EPotLocal
 
     ! Update potential energy, no contribution to virial!
-     EPotIntra = EPotIntra + EPotLocal
+!     EPotIntra = EPotIntra + EPotLocal
+     EPotIntra_Angle = EPotIntra_Angle + EPotLocal
+
 
   end subroutine TPotAngle_Force
 
@@ -8816,7 +8830,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotDihedral_Force                                   !
 !==============================================================!
 
-  subroutine TPotDihedral_Force( this, EPot, Virial, EPotIntra, VirialIntra,  BoxLength )
+  subroutine TPotDihedral_Force( this, EPot, Virial, EPotIntra_Dihedral, VirialIntra,  BoxLength )
 
     implicit none
 
@@ -8824,7 +8838,7 @@ loop2:do j = 1, j1
     type(TPotDihedral)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
-    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Dihedral
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
@@ -9076,7 +9090,9 @@ loop2:do j = 1, j1
      EPot = EPot +  EPotLocal
 
     ! Update Intra potential energy
-     EPotIntra = EPotIntra +  EPotLocal
+!     EPotIntra = EPotIntra +  EPotLocal
+     EPotIntra_Dihedral = EPotIntra_Dihedral +  EPotLocal
+
 
   end subroutine TPotDihedral_Force
 

@@ -33,7 +33,7 @@ module ms2_unit
     integer  :: NSites
 
     ! SiteIds in a unit
-    integer, allocatable :: SiteIds(:) 
+    integer, allocatable :: SiteIds(:)
 
     ! Geometry of unit
     logical :: isElongated, is3D
@@ -358,7 +358,7 @@ contains
 
     ! Declare local variables
     integer  :: i
-    real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3)
+    real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3), determinant
     real(RK) :: qu1,qu2,qu3,qu4,quinv
     real(RK) :: T,S,SInv
 
@@ -446,9 +446,13 @@ contains
     end do
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) &
 &     this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
- 
+
     ! Calculate inverse of rotation matrix - from body coordinate to space axes
     Rot2(:,:) = transpose(rotation)
+
+    determinant = ( Rot2(1,1)*Rot2(2,2)*Rot2(3,3)+Rot2(1,2)*Rot2(2,3)*Rot2(3,1)+Rot2(1,3)*Rot2(2,1)*Rot2(3,2)) - &
+    &                       ( Rot2(1,3)*Rot2(2,2)*Rot2(3,1)+Rot2(2,3)*Rot2(3,2)*Rot2(1,1)+Rot2(3,3)*Rot2(1,2)*Rot2(2,1))
+!    print *, 'detUnit =', determinant
 
 
 
@@ -599,7 +603,7 @@ contains
           d(j) = d(i)
           d(i) = p
           q(:) = v(:, i)
-          v(:, i) = v(:, j)
+          v(:, i) = -v(:, j)
           v(:, j) = q(:)
         end if
       end do

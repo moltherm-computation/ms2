@@ -644,7 +644,7 @@ contains
 
 
     ! Read type of simulation with/without internal degree of freedom
-       ! Read type of MD simulation with/without internal degree of freedom  
+       ! Read type of MD simulation with/without internal degree of freedom
        call FileReadParameter( str, iounit_params , IdUseIntDegFreed, .true., "off" )
        select case( str )
        case( 'ON', 'On', 'on', 'YES', 'yes' )
@@ -660,21 +660,35 @@ contains
        write( IOBuffer, '("Using internal degree of freedom: ", A)' ) trim( str )
        call LogWrite
 
+       ! Read printIDF parameter - to print all contributions to inramolecular energy if need
+       if (UseIntDegFreed) then
+         call FileReadParameter( str, iounit_params , IdPrintIDF, .true., "off" )
+         select case( str )
+           case( 'ON', 'On', 'on', 'YES', 'yes' )
+             printIDF = .true.
+           case( 'OFF', 'off', 'no', 'No' )
+             printIDF = .false.
+           case default
+             call Error( trim( str )//'To print contributions to intramolecular energy use &
+&        on or yes' )
+           end select
+         end if
+
        ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
        if ( UseIntDegFreed ) then
          call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
-         if ( Shake > 0 ) then 
+         if ( Shake > 0 ) then
            str = 'yes'
-         else 
-           str = 'no, all bonds can vibrate' 
+         else
+           str = 'no, all bonds can vibrate'
          end if
          write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
          call LogWrite
-         if (str == 'yes') then 
+         if (str == 'yes') then
            write( IOBuffer, '("Shake tolerance: ", F9.6)' ) &
 &          Shake
            call LogWrite
-        end if   
+        end if
     end if
 
         ! Read parameters for intramolecular nonbonded interactions
@@ -682,7 +696,7 @@ contains
       ! 1-5 intramolecular nonbonded interactions
       call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "no" )
       select case( str )
-      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
+      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction
         IntraLJEl = .true.
         str = 'Include all intramolecular 1-5 nonbonded interactions'
       case( 'OFF', 'off', 'no', 'No' )
@@ -696,10 +710,10 @@ contains
       call LogWrite
 
             ! 1-4 intramolecular nonbonded interactions
-      if (IntraLJEl) then 
+      if (IntraLJEl) then
         call FileReadParameter( str, iounit_params , IdLJEl14, .true., "no" )
         select case( str )
-        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
+        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction
             LJEl14 = .true.
           str = 'Include all intramolecular 1-4 nonbonded interactions'
         case( 'OFF', 'off', 'no', 'No' )
@@ -712,7 +726,7 @@ contains
         write( IOBuffer, '("Intramolecular nonbonded interactions: ", A)' ) trim( str )
         call LogWrite
       end if
-    end if  
+    end if
 
 
     ! Read number of ensembles
@@ -1177,11 +1191,11 @@ eqloop: do
 !         write( IOBuffer, '("  (adjustment of weigthing factors)")' )
 !       end if
 !       call LogWriteTime
-! 
+!
 !       do i = 1, this%NEnsembles
 !         call GradInsInit( this%Ensemble(i) )
 !       end do
-! 
+!
 !       if( .not. TerminateProgram ) then
 !         write( IOBuffer, '("GradIns initialization completed")' )
 !         GradInsInitialization = .false.
@@ -1525,27 +1539,27 @@ eqloop: do
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       if( Restart ) then
 !         ! Open result file
 !         call FileAppend( this%iounit_result, &
 ! &         trim( OutputNameTag )//ResultFileExtension )
-! 
+!
 !         ! Open running average result file
 !         call FileAppend( this%iounit_runave, &
 ! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
+!
 !       else
 !         ! Open result file
 !         call FileRewrite( this%iounit_result, &
 ! &         trim( OutputNameTag )//ResultFileExtension )
-! 
+!
 !         ! Open running average result file
 !         call FileRewrite( this%iounit_runave, &
 ! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
+!
 !       end if
-! 
+!
 !     end if
 
     ! Open ensemble result files
@@ -1582,33 +1596,33 @@ eqloop: do
 
 !     ! Generate simulation result files
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Update result header
 !       if( Step == 1 ) then
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
-! 
+!
 !         ! Number of steps
 !         write( IOBuffer, '("     NR")' )
 !         call FileWriteNoAdvance( this%iounit_result )
 !         call FileWriteNoAdvance( this%iounit_runave )
-! 
+!
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
 !       end if
-! 
+!
 !       ! Update result files
 !       if( mod( Step, BlockSize ) == 0 ) then
-! 
+!
 !         ! Number of steps
 !         write( IOBuffer, '(I7)' ) Step
 !         call FileWriteNoAdvance( this%iounit_result )
 !         call FileWriteNoAdvance( this%iounit_runave )
-! 
+!
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
 !       end if
-! 
+!
 !     end if
 
     ! Update ensemble result files
@@ -1646,13 +1660,13 @@ eqloop: do
     end do
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Close running average result file
 !       call FileClose( this%iounit_runave )
-! 
+!
 !       ! Close result file
 !       call FileClose( this%iounit_result )
-! 
+!
 !     end if
 
   end subroutine TSimulation_ResultClose
@@ -1684,11 +1698,11 @@ eqloop: do
     call LogWrite
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Open final result file
 !       call FileRewrite( this%iounit_errors, &
 ! &       trim( OutputNameTag )//ErrorsFileExtension )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
@@ -1698,7 +1712,7 @@ eqloop: do
 !       write( IOBuffer, '(T24, "----------------------")' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Simulation type
 !       write( IOBuffer, '("Simulation type", T36, ":", 9X, A)' ) &
 ! &       trim( SimulationTypeString )
@@ -1712,7 +1726,7 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !       end if
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Number of steps
 !       write( IOBuffer, '("Number of NVT equilibration steps", T36, ":", I10)' ) &
 ! &       NStepsV
@@ -1724,7 +1738,7 @@ eqloop: do
 ! &       Step
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Time step
 !       if( SimulationType .eq. MolecularDynamics ) then
 !         write( IOBuffer, '("Time step", T29, "reduced:", F20.9)' ) &
@@ -1735,7 +1749,7 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !         call FileWriteBlank( this%iounit_errors )
 !       end if
-! 
+!
 !       ! Acceptance rate
 !       if( SimulationType .eq. MonteCarlo ) then
 !         write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) &
@@ -1743,13 +1757,13 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !         call FileWriteBlank( this%iounit_errors )
 !       end if
-! 
+!
 !       ! Number of ensembles
 !       write( IOBuffer, '("Number of ensembles", T36, ":", I10)' ) &
 ! &       this%NEnsembles
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! System of units
 !       write( IOBuffer, '("Unit of length", T36, ":", F20.9, " A")' ) &
 ! &       UnitLength / Angstroem
@@ -1761,7 +1775,7 @@ eqloop: do
 ! &       UnitMass * NAvogadro * 1000._RK
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
@@ -1771,15 +1785,15 @@ eqloop: do
 !       write( IOBuffer, '(76("-"))' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Close final result file
 !       call FileClose( this%iounit_errors )
-! 
+!
 !     end if
 
     ! Save ensemble results
