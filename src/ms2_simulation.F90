@@ -27,8 +27,8 @@ module ms2_simulation
 !  use mpi
 !#endif
 
-  use ms2_ensemble
   use ms2_global
+  use ms2_ensemble
   use ms2_stopwatch
 
 
@@ -166,7 +166,7 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
-	real                        :: hilf  
+    real                        :: hilf  
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -1027,10 +1027,12 @@ eqloop: do
     integer, intent(in) :: StepStart, StepEnd
 
     ! Declare local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
 #endif
+#if TRANS==1
 	integer:: i
+#endif
 
     ! Run simulation steps
     do Step = StepStart, StepEnd
