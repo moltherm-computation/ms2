@@ -2549,6 +2549,7 @@ loop:do l = 1, NPartInCell
 
     ! Broadcast temperature
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Bcast( this%Temperature, 1, MPI_DOUBLE_PRECISION, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
 #endif
@@ -2724,6 +2725,7 @@ loop1:do nc = 1, this%NComponents
 
     ! Calculate potential energy and virial
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
       if ( this%OptPressure ) then
@@ -2955,11 +2957,18 @@ loop3:    do nc = 1, this%NComponents
       ! Declare local variables
       integer :: i
 
-      ! Return if no values to integrate
-      if( n < 1 ) return
-
       ! Initialize result
       integral = 0._RK
+
+      ! Return if no values to integrate
+      !if( n < 1 ) return
+      if( n < 3 ) then
+        print *,"ERROR: TEnsemble_RunSVCStep simpson: n=",n,"<3"	! DEBUG
+        return
+        ! could automatically use
+        ! - a trapazoidal rule for n=2
+        ! - a quadrilateral rule for n=1
+      end if
 
       ! Calculate integral via Simpson's rule
       do i = 3, n, 2
@@ -3130,6 +3139,7 @@ loop3:    do nc = 1, this%NComponents
 &            + 5._RK * this%Volume5
       end if
 #if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
 #endif
@@ -3182,6 +3192,7 @@ loop3:    do nc = 1, this%NComponents
         this%Volume5 = this%Volume5 + Corr * Gear25
       end if
 #if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
 #endif
@@ -3225,6 +3236,7 @@ loop3:    do nc = 1, this%NComponents
         this%Volume0 = this%Volume0 + this%Volume1
       end if
 #if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
       call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
 #endif
@@ -3570,6 +3582,7 @@ loop3:    do nc = 1, this%NComponents
 
     ! Collect sums from all processes
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Reduce( EPot, this%EPot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
     call MPI_Reduce( Virial, this%Virial, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
@@ -3871,6 +3884,7 @@ loop2:        do nc = 1, this%NComponents
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
 &                   / pc%NTestAll
 #if MPI_VER > 0
+        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
 &         MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
 #else
@@ -4189,9 +4203,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc
     integer                   :: i
-#if MPI_VER > 0
-    real(RK)                  :: EPotDeltaAll
-#endif
+    real(RK)                  :: EPotDelta
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4219,14 +4231,16 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 #else
-    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
-&       .gt. rnd( 0._RK, 1._RK ) ) then
+    EPotDelta = EPotOld - EPotNew
 #endif
 
+    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
+    if( EPotDelta .gt. 0._RK .or. &
+&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np )
@@ -4265,9 +4279,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc
     integer                   :: i
-#if MPI_VER > 0
-    real(RK)                  :: EPotDeltaAll
-#endif
+    real(RK)                  :: EPotDelta
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4296,13 +4308,16 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 #else
-    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
-&       .gt. rnd( 0._RK, 1._RK ) ) then
+    EPotDelta = EPotOld - EPotNew
 #endif
+
+    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
+    if( EPotDelta .gt. 0._RK .or. &
+&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
@@ -4342,9 +4357,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
-#if MPI_VER > 0
-    real(RK)                  :: EPotDeltaAll
-#endif
+    real(RK)                  :: EPotDelta
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -4391,13 +4404,16 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 #else
-    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
-&       .gt. rnd( 0._RK, 1._RK ) ) then
+    EPotDelta = EPotOld - EPotNew
 #endif
+
+    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
+    if( EPotDelta .gt. 0._RK .or. &
+&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 
       ! Accept move
       pc%NMoveBiasedSuccesses = pc%NMoveBiasedSuccesses + 1
@@ -4437,9 +4453,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: EPotOld, EPotNew
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
-#if MPI_VER > 0
-    real(RK)                  :: EPotDeltaAll
-#endif
+    real(RK)                  :: EPotDelta
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -4479,13 +4493,16 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
+    call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-    if( exp( EPotDeltaAll / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 #else
-    if( exp( (EPotOld - EPotNew) / this%Temperature ) &
-&       .gt. rnd( 0._RK, 1._RK ) ) then
+    EPotDelta = EPotOld - EPotNew
 #endif
+
+    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
+    if( EPotDelta .gt. 0._RK .or. &
+&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 
       ! Accept rotation
       pc%NRotateBiasedSuccesses = pc%NRotateBiasedSuccesses + 1
@@ -4590,6 +4607,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
     ! Apply long range corrections
@@ -4721,6 +4739,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
     EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
@@ -4830,6 +4849,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate particle energy
 #if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
 #else
@@ -5027,6 +5047,7 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate potential energy and virial at trial position
 #if MPI_VER > 0
     call Energy( this, EPotNew )
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotNew, this%EPot, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
 #else
@@ -5039,7 +5060,9 @@ loop2:        do nc = 1, this%NComponents
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
 
     ! Apply Metropolis acceptance criterion
-    if( exp( -EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    ! for EPotDelta/this%Temperature<-709.78271 an overflow still might occur for double precision exp
+    if( EPotDelta .lt. 0._RK .or. &
+&       exp( -EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
 
       ! Accept volume change
       this%NResizeSuccesses = this%NResizeSuccesses + 1
@@ -5048,6 +5071,7 @@ loop2:        do nc = 1, this%NComponents
       call UpdateEnergy( this )
       if ( this%OptPressure ) then
 #if MPI_VER > 0
+        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
 &         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
 #else
@@ -7440,6 +7464,7 @@ endif
 #if MPI_VER > 0
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
 &     MPI_COMM_WORLD, ierror )
     if( SimulationType .eq. MonteCarlo ) then
@@ -7712,10 +7737,6 @@ end if
     real(RK) :: tempf(3), virf(3)
     real(RK), pointer :: pfb(:,:), pfs(:,:), pftc(:,:), pfrc(:,:)
 
-    ! Variables de ayuda
-    integer :: hilfe
-    real    :: rval1
-
     Npart3 = 3*this%Npart
     Npart2 = 2*this%Npart
     Ncomp2 = this%NComponents*this%NComponents
@@ -7727,6 +7748,7 @@ end if
       do i = 1, this%NComponents
         call ForceTransport( this%Component(i) )
 #if MPI_VER > 0
+        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_DOUBLE_PRECISION, &
 &       NRootProc, MPI_COMM_WORLD, ierror )
 #endif
