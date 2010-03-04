@@ -166,7 +166,6 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
-    real                        :: hilf  
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -720,7 +719,7 @@ contains
     type(TStopwatch) :: RunTimer,RunStepsTimer
 
     tooManyParticles = .false.
-    call Construct(RunTimer,"TSimulation_Run",CStopwatch_useStartBarrier)
+    call Construct(RunTimer,"TSimulation_Run",CStopwatch_doMPIStartBarrier)
     call Construct(RunStepsTimer)
 
     call start_Timer(RunTimer)
