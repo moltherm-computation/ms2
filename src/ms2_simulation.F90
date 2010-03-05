@@ -194,24 +194,32 @@ contains
 &       ProgramFileName//ConfigFileExtension )
     end select
 #endif
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    write( IOBuffer, '(T18, "Reading Simulation Input")')
+    call LogWrite
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     write( IOBuffer, '("Parameter file name: ", A)' ) trim( ParameterFileName )
     call LogWrite
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
     call FileClose( iounit_config )
 #endif
-    call LogWriteBlank
+!    call LogWriteBlank
 
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
     call LogWriteBlank
-    write( IOBuffer, '("Reading parameters of simulation")' )
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T14, "Reading parameters of simulation")' )
     call LogWrite
 
     ! Read name tag for output files
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
     call FileReadParameter( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
 #endif
-    write( IOBuffer, '("Name tag for output files: ", A)' ) &
+    write( IOBuffer, '("Name tag for output: ",T26, A)' ) &
 &     trim( OutputNameTag )
     call LogWrite
 
@@ -227,29 +235,30 @@ contains
     case default
       call Error( trim( str )//' system of units is not implemented' )
     end select
-    write( IOBuffer, '("System of units: ", A)' ) trim( str )
+    write( IOBuffer, '("System of units: ",T26, A)' ) trim( str )
     call LogWrite
 
     ! Read unit of length
     call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
     UnitLength = UnitLength * Angstroem
-    write( IOBuffer, '("Unit of length: ", F6.3, " A")' ) &
+    write( IOBuffer, '("Unit of length: ",T23, F8.3, " A")' ) &
 &     UnitLength / Angstroem
     call LogWrite
 
     ! Read unit of energy
     call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
     UnitEnergy = UnitEnergy * kBoltzmann
-    write( IOBuffer, '("Unit of energy: ", F8.3, " K")' ) &
+    write( IOBuffer, '("Unit of energy: ",T23, F8.3, " K")' ) &
 &     UnitEnergy / kBoltzmann
     call LogWrite
 
     ! Read unit of mass
     call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
     UnitMass = UnitMass * .001_RK / NAvogadro
-    write( IOBuffer, '("Unit of mass: ", F8.3, " a.u.")' ) &
+    write( IOBuffer, '("Unit of mass:   ",T23, F8.3, " a.u.")' ) &
 &     UnitMass * NAvogadro * 1000._RK
     call LogWrite
+    call LogWriteBlank
 
     ! Calculate derived reduced units
     UnitVolume = UnitLength**3
@@ -280,7 +289,7 @@ contains
     case default
       call Error( trim( str )//' simulation is not implemented' )
     end select
-    write( IOBuffer, '("Simulation type: ", A)' ) trim( SimulationTypeString )
+    write( IOBuffer, '("Simulation type: ",T26, A)' ) trim( SimulationTypeString )
     call LogWrite
 
     ! Read parameters specific to given simulation type
@@ -288,12 +297,12 @@ contains
 
       ! Read number of orientations
       call FileReadParameter( NOrient, iounit_params , IdNOrient, .true. )
-      write( IOBuffer, '("Number of orientations: ", I7)' ) NOrient
+      write( IOBuffer, '("Number of orientations: ",T21, I7)' ) NOrient
       call LogWrite
 
       ! Read number of steps
       call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
-      write( IOBuffer, '("Number of radial steps: ", I7)' ) NSteps
+      write( IOBuffer, '("Number of radial steps: ",T21, I7)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
@@ -301,7 +310,7 @@ contains
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
-      write( IOBuffer, '("Minimum radius: ", F8.3, " A")' ) &
+      write( IOBuffer, '("Minimum radius: ",T23, F8.3, " A")' ) &
 &       MinRadius * UnitLength / Angstroem
       call LogWrite
 
@@ -310,7 +319,7 @@ contains
       if( .not. UseReducedUnits ) then
         MaxRadius = MaxRadius / UnitLength * Angstroem
       end if
-      write( IOBuffer, '("Maximum radius: ", F8.3, " A")' ) &
+      write( IOBuffer, '("Maximum radius: ",T23, F8.3, " A")' ) &
 &       MaxRadius * UnitLength / Angstroem
       call LogWrite
 
@@ -349,16 +358,16 @@ contains
         case default
           call Error( trim( str )//' integrator is not implemented' )
         end select
-        write( IOBuffer, '("Integrator type: ", A)' ) &
+        write( IOBuffer, '("Integrator type: ",T26, A)' ) &
 &         trim( IntegratorTypeString )
         call LogWrite
 
         ! Time step
         call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
-        write( IOBuffer, '("Time step: ", F9.6, " fs")' ) &
+        write( IOBuffer, '("Time step: ",T26, F8.6, " fs")' ) &
 &         TimeStep * UnitTime * 1E15_RK
         call LogWrite
-        write( IOBuffer, '("Reduced time step: ", F8.6)' ) TimeStep
+        write( IOBuffer, '("Reduced time step: ",T26, F8.6)' ) TimeStep
         call LogWrite
         TimeStep2 = .5_RK * TimeStep
         TimeStepSquared = TimeStep**2
@@ -375,7 +384,7 @@ contains
         else if( Acceptance > 0.95_RK ) then
           Acceptance = 0.95_RK
         end if
-        write( IOBuffer, '("Acceptance rate: ", F6.2, "%")' ) &
+        write( IOBuffer, '("Acceptance rate: ",T24, F6.2, "%")' ) &
 &         Acceptance * 100._RK
         call LogWrite
         AccUpperLimit = Acceptance * 1.1_RK
@@ -419,7 +428,8 @@ contains
       case default
         call Error( trim( str )//' ensemble is not implemented' )
       end select
-      write( IOBuffer, '("Ensemble type: ", A)' ) trim( EnsembleTypeString )
+      call LogWriteBlank
+      write( IOBuffer, '("Ensemble type: ",T26, A)' ) trim( EnsembleTypeString )
       call LogWrite
 
       ! Check whether simulation type is applicable to ensemble type
@@ -433,10 +443,11 @@ contains
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
       ! Read number of MC overlap reduction steps
+      call LogWriteBlank
       if( SimulationType .eq. MolecularDynamics ) then
         call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
         if( NStepsMC > 0 ) then
-          write( IOBuffer, '("Number of MC overlap reduction steps: ", I7)' ) &
+          write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) &
 &           NStepsMC
           call LogWrite
           MCOverlapReduction = .true.
@@ -454,7 +465,7 @@ contains
 
       ! Read number of NVT equilibration steps
       call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
-      write( IOBuffer, '("Number of NVT equilibration steps: ", I7)' ) &
+      write( IOBuffer, '("Number of NVT equilibration steps: ",T40, I7)' ) &
 &       NStepsV
       call LogWrite
 
@@ -462,18 +473,18 @@ contains
       if( ConstantPressure ) then
         if( EnsembleType .eq. EnsembleTypeHA ) then
           call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
-          write( IOBuffer, '("Number of HA equilibration steps: ", I7)' ) &
+          write( IOBuffer, '("Number of HA equilibration steps: ",T40, I7)' ) &
 &           NStepsP
           call LogWrite
         else
           call FileReadParameter( NStepsP, iounit_params , IdNStepsP, .true., 0 )
-          write( IOBuffer, '("Number of NPT equilibration steps: ", I7)' ) &
+          write( IOBuffer, '("Number of NPT equilibration steps: ",T40, I7)' ) &
 &           NStepsP
           call LogWrite
         end if
       else if( EnsembleType .eq. EnsembleTypeGE ) then
         call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
-        write( IOBuffer, '("Number of GE equilibration steps: ", I7)' ) &
+        write( IOBuffer, '("Number of GE equilibration steps: ",T40, I7)' ) &
 &         NStepsP
         call LogWrite
       else
@@ -482,8 +493,9 @@ contains
 
       ! Read number of production steps
       call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
-      write( IOBuffer, '("Number of production steps: ", I7)' ) NSteps
+      write( IOBuffer, '("Number of production steps: ",T40, I7)' ) NSteps
       call LogWrite
+      call LogWriteBlank
 
       ! Read frequency of updating result file
       call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., 0 )
@@ -534,6 +546,7 @@ contains
         write( IOBuffer, '("Visualization files will not be created")' )
       end if
       call LogWrite
+      call LogWriteBlank
 
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
@@ -541,20 +554,22 @@ contains
       case( 'COM', 'com', 'CenterOfMass', 'CenterofMass', 'centerofmass' )
         CutoffMode = CenterofMass
         CutoffModeString = 'Center of Mass'
-        write( IOBuffer, '("Cutoff mode: ", A)' ) trim( CutoffModeString )
+        write( IOBuffer, '("Cutoff mode: ",T26, A)' ) trim( CutoffModeString )
       case( 'Site', 'site', 'Site-Site', 'site-site' )
         CutoffMode = SiteSite
         CutoffModeString = 'Site-Site'
+        write( IOBuffer, '("Cutoff mode: ",T26, A)' ) trim( CutoffModeString )
       case default
         call Error( trim( str )//' is not a valid cutoff mode' )
       end select
       call LogWrite
+      call LogWriteBlank
 
     end if
 
     ! Read number of ensembles
     call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
-    write( IOBuffer, '("Number of ensembles:", I3)' ) this%NEnsembles
+    write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
 #if  TRANS == 1
 !TRANSPORT_start
@@ -570,7 +585,7 @@ contains
 	case default
 	  call Error( 'No Transport properties' )
     end select
-	write( IOBuffer, '("Transport properties:", A)' ) trim(CorrfunModeString)    
+	write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)    
 	call LogWrite
 !TRANSPORT_END
 #endif
@@ -597,8 +612,12 @@ contains
 !DEBUG
 
     ! Close parameter file
-    call LogWriteBlank
     call FileClose( iounit_params )
+    write( IOBuffer, '(T13, "Reading Simulation Input successful")')
+    call LogWrite
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    call LogWriteBlank
 
     ! Create accumulators
     call CreateAccumulators( this )
@@ -613,6 +632,13 @@ contains
 #endif
     ! Open result and visualisation files
     call LogWriteBlank
+    call LogWriteBlank
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    write( IOBuffer, '(T17, "Start Simulation")')
+    call LogWrite
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
 
@@ -1030,7 +1056,7 @@ eqloop: do
     logical :: AnyTerminateProgram
 #endif
 #if TRANS==1
-	integer:: i
+    integer:: i
 #endif
 
     ! Run simulation steps

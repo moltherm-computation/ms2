@@ -412,6 +412,10 @@ contains
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T13, "Reading components for ensemble", I3)') comp
+    call LogWrite
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
     write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
 &     trim( this%PotModFileName ), this%Fraction
@@ -462,7 +466,7 @@ contains
       select case( str )
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
-        str = 'none method'
+        str = 'no calculation'
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom
         str = 'Widom''s test particle method'
@@ -479,7 +483,9 @@ contains
 &       call Error( 'Gradual insertion is only allowed for MonteCarlo simulation' )
       write( IOBuffer, &
 &       '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
-&       trim( this%PotModFilename ), trim( str )
+&       trim( this%PotModFilename )
+      call LogWrite
+      write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
 
       ! Read number of test particles
@@ -487,7 +493,7 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) &
 &         call Error( 'Number of test particles need to be > 0' )
-        write( IOBuffer, '("Number of test particles:", I11 )' ) this%NTest
+        write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
       end if
 
       ! Read weighting factors method
@@ -551,6 +557,11 @@ contains
       call AllocationError( stat, 'fluctuating particle components', &
 &       this%NFluctMax + 1 )
     end if
+
+    write( IOBuffer, '(T8, "Reading components for ensemble", I3, " successful")') comp
+    call LogWrite
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
 
   end subroutine TComponent_Construct
 

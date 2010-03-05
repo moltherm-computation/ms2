@@ -884,6 +884,8 @@ contains
 
     ! Open log file
     call LogOpen
+    write( IOBuffer, '("Parallelization:")' )
+    call LogWrite
 
     ! Update log file
 #if MPI_VER > 0
@@ -947,6 +949,8 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
       call Warning('Cannot set signal handler')
@@ -1185,6 +1189,14 @@ contains
 #else
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
+    call LogWriteBlank
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    write( IOBuffer, '("*                Molecular Simulation 2                   *")')
+    call LogWrite
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
     call LogWrite
@@ -1195,6 +1207,8 @@ contains
 &          trim( username ), trim( hostname )
     call LogWriteTime
     call LogWriteBlank
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
 
   end subroutine Global_LogOpen
 
@@ -1218,8 +1232,12 @@ contains
 
     ! Close log file
     call LogWriteBlank
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     call FileClose( iounit_log )
 
   end subroutine Global_LogClose
@@ -1973,6 +1991,8 @@ contains
     am = nearest(1._RK, -1._RK) / huge(ix)
 
     write( IOBuffer, '("Random number generator initialized")' )
+    call LogWrite
+    write( IOBuffer, '("-----------------------------------------------------------")')
     call LogWrite
     call LogWriteBlank
 

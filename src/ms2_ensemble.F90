@@ -578,7 +578,9 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '("Reading parameters of ensemble", I3)' ) &
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) &
 &     this%EnsembleNumber
     call LogWrite
 
@@ -645,61 +647,61 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Temperature: ", F9.3, " K")' ) &
+    write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) &
 &     this%RefTemperature * UnitTemperature
     call LogWrite
     if( ConstantPressure ) then
-      write( IOBuffer, '("Pressure: ", F9.3, " MPa")' ) &
+      write( IOBuffer, '("Pressure: ",T26, F9.3, " MPa")' ) &
 &       this%RefPressure * UnitPressure * 1E-6_RK
       call LogWrite
     end if
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      write( IOBuffer, '("Pressure0: ", F9.6, " MPa")' ) &
+      write( IOBuffer, '("Pressure0: ",T26, F12.6, " MPa")' ) &
 &       this%RefPressure * UnitPressure * 1E-6_RK
       call LogWrite
-      write( IOBuffer, '("Liquid density: ", F9.6, " (", F9.6, ") mol/l")' ) &
+      write( IOBuffer, '("Liquid density: ",T26, F12.6, " (", F13.6, ") mol/l")' ) &
 &       this%LiqDensity * UnitDensity, this%VarLiqDensity * UnitDensity
       call LogWrite
-      write( IOBuffer, '("Liquid enthalpy: ", F9.2, " (", F9.2, ") J/mol")' ) &
+      write( IOBuffer, '("Liquid enthalpy: ",T26, F8.2, " (", F9.2, ") J/mol")' ) &
 &       this%LiqEnthalpy * UnitEnergy * NAvogadro, &
 &       this%VarLiqEnthalpy * UnitEnergy * NAvogadro
       call LogWrite
-      write( IOBuffer, '("Liquid betaT: ", F8.6, "( ", F8.6, ") 1/MPa")' ) &
+      write( IOBuffer, '("Liquid betaT: ",T26, F12.6, "( ", F13.6, ") 1/MPa")' ) &
 &       this%LiqBetaT / UnitPressure * 1E6_RK, &
 &       this%VarLiqBetaT / UnitPressure * 1E6_RK
       call LogWrite
-      write( IOBuffer, '("Liquid dHdP: ", F8.6, "( ", F8.6, ") l/mol")' ) &
+      write( IOBuffer, '("Liquid dHdP: ",T26, F12.6, "( ", F13.6, ") l/mol")' ) &
 &       this%LiqdHdP / UnitDensity, this%VarLiqdHdP / UnitDensity
       call LogWrite
     end if
-    write( IOBuffer, '("Density: ", F9.3, " mol/l")' ) &
+    write( IOBuffer, '("Density: ", T26, F9.3, " mol/l")' ) &
 &     this%RefDensity * UnitDensity
     call LogWrite
-    write( IOBuffer, '("Reduced temperature: ", F9.6)' ) this%RefTemperature
+    write( IOBuffer, '("Reduced temperature: ", T26, F12.6)' ) this%RefTemperature
     call LogWrite
     if( ConstantPressure ) then
-      write( IOBuffer, '("Reduced pressure: ", F9.6)' ) this%RefPressure
+      write( IOBuffer, '("Reduced pressure: ",T26, F12.6)' ) this%RefPressure
       call LogWrite
     end if
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      write( IOBuffer, '("Reduced pressure0: ", F9.6)' ) this%RefPressure
+      write( IOBuffer, '("Reduced pressure0: ",T26, F12.6)' ) this%RefPressure
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid density: ", F9.6, " (", F9.6, ")")' ) &
+&       '("Reduced liquid density: ",T26, F9.6, " (", F12.6, ")")' ) &
 &       this%LiqDensity, this%VarLiqDensity
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid enthalpy: ", F9.4, " (", F9.4, ")")' ) &
+&       '("Reduced liquid enthalpy: ", T26, F9.4, " (", F11.4, ")")' ) &
 &       this%LiqEnthalpy, this%VarLiqEnthalpy
       call LogWrite
-      write( IOBuffer, '("Reduced liquid betaT: ", F8.6, "( ", F8.6, ")")' ) &
+      write( IOBuffer, '("Reduced liquid betaT: ",T26, F12.6, "( ", F13.6, ")")' ) &
 &       this%LiqBetaT, this%VarLiqBetaT
       call LogWrite
-      write( IOBuffer, '("Reduced liquid dHdP: ", F8.4, "( ", F8.4, ")")' ) &
+      write( IOBuffer, '("Reduced liquid dHdP: ",T26, F10.4, "( ", F11.4, ")")' ) &
 &       this%LiqdHdP, this%VarLiqdHdP
       call LogWrite
     end if
-    write( IOBuffer, '("Reduced density: ", F9.6)' ) this%RefDensity
+    write( IOBuffer, '("Reduced density: ",T26, F12.6)' ) this%RefDensity
     call LogWrite
 
     ! Read mass of piston
@@ -708,7 +710,7 @@ contains
       if( .not. UseReducedUnits ) then
 !        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
       end if
-      write( IOBuffer, '("Mass of piston: ", F12.9)' ) this%PistonMass
+      write( IOBuffer, '("Mass of piston: ",T26, F15.9)' ) this%PistonMass
       call LogWrite
     end if
 
@@ -716,8 +718,12 @@ contains
     select case( str )
       case( 'YES', 'Yes', 'yes' )
         this%OptPressure = .true.
+        write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
+        call LogWrite
       case( 'NO', 'No', 'no')
         this%OptPressure = .false.
+        write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
+        call LogWrite
       case default
         call Error( 'Select yes/no for calculation of pressure '// &
 &         ProgramFileName//ConfigFileExtension )
@@ -739,7 +745,7 @@ contains
 
     ! Read number of components in ensemble
     call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
-    write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
+    write( IOBuffer, '("Number of components:",T28, I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
       write( ErrorBuffer, &
@@ -756,16 +762,16 @@ contains
 
       ! Read legth of the correlation function
       call FileReadParameter( this%Ncorr , iounit_params , IdCorrlength )
-      write( IOBuffer, '("Length of CorrFunction:", I4)' ) this%Ncorr
+      write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%Ncorr
       call LogWrite
 
       ! Read time span between correlations
       call FileReadParameter( this%NSpancf , iounit_params , IdSpancf )
-      write( IOBuffer, '("Time Span between cf:", I3)' ) this%NSpancf 
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpancf 
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
-      write( IOBuffer, '("Print cf each:", I5)' ) this%Nviewcf 
+      write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf 
       call LogWrite
 
       ! Read frequency of updating result file CF
@@ -840,7 +846,8 @@ contains
         this%RCutoffLJ126LJ126 = 0.9*0.5*(this%NPart / &
 &          (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
       end if
-      write( IOBuffer, '("Reduced center of mass cutoff radius: ", F6.3)' ) &
+      call LogWriteBlank
+      write( IOBuffer, '("Reduced center of mass cutoff radius: ",T45, F6.3)' ) &
 &       this%RCutoffLJ126LJ126
       call LogWrite
       this%RCutoffDipoleDipole = this%RCutoffLJ126LJ126
@@ -850,19 +857,19 @@ contains
       if( this%NLJ126Max > 0 ) then
         call FileReadParameter( this%RCutoffLJ126LJ126, iounit_params , IdRCutoffLJ126LJ126, .false. )
         write( IOBuffer, &
-&         '("Lennard-Jones cutoff radius: ", F6.3, " sigma")' ) &
+&         '("Lennard-Jones cutoff radius: ",T45, F6.3, " sigma")' ) &
 &         this%RCutoffLJ126LJ126
         call LogWrite
       end if
       if( this%NDipoleMax > 0 ) then
         call FileReadParameter( this%RCutoffDipoleDipole, iounit_params , IdRCutoffDipoleDipole, .false. )
-        write( IOBuffer, '("Reduced dipole-dipole cutoff radius: ", F8.3)' ) &
+        write( IOBuffer, '("Reduced dipole-dipole cutoff radius: ",T42, F8.3)' ) &
 &         this%RCutoffDipoleDipole
         call LogWrite
         if( this%NQuadrupoleMax > 0 ) then
           call FileReadParameter( this%RCutoffDipoleQuadrupole, iounit_params , IdRCutoffDipoleQuadrupole, .false. )
           write( IOBuffer, &
-&           '("Reduced dipole-quadrupole cutoff radius: ", F8.3)' ) &
+&           '("Reduced dipole-quadrupole cutoff radius: ",T42, F8.3)' ) &
 &           this%RCutoffDipoleQuadrupole
           call LogWrite
         end if
@@ -870,7 +877,7 @@ contains
       if( this%NQuadrupoleMax > 0 ) then
         call FileReadParameter( this%RCutoffQuadrupoleQuadrupole, iounit_params , IdRCutoffQuadrupoleQuadrupole, .false. )
         write( IOBuffer, &
-&         '("Reduced quadrupole-quadrupole cutoff radius: ", F8.3)' ) &
+&         '("Reduced quadrupole-quadrupole cutoff radius: ",T42, F8.3)' ) &
 &         this%RCutoffQuadrupoleQuadrupole
         call LogWrite
       end if
@@ -879,8 +886,9 @@ contains
     ! Read characteristic dielectric constant
     this%RFEpsilon = 0._RK
     if(( this%NDipoleMax > 0 ) .or. ( this%NChargeMax > 0 )) then
+      call LogWriteBlank
       call FileReadParameter( this%RFEpsilon, iounit_params , IdRFEpsilon, .false. )
-      write( IOBuffer, '("Characteristic dielectric constant: ", E16.9)' ) &
+      write( IOBuffer, '("Characteristic dielectric constant: ",T41, E16.5)' ) &
 &       this%RFEpsilon
       call LogWrite
     end if
@@ -890,31 +898,34 @@ contains
 
     ! Calculate long-range corrections
     call CalculateCorr( this )
+    call LogWriteBlank
+    write( IOBuffer, '("Cutoff correction to")' ) 
+    call LogWrite
     write( IOBuffer, &
-&     '("Cutoff correction to potential energy from LJ:", F12.8)' ) &
+&     '("- potential energy from LJ",T44, F12.8)' ) &
 &     this%EPotCorrLJ * NProcs / this%NPart
     call LogWrite
     write( IOBuffer, &
-&     '("Cutoff correction to pressure from LJ        :", F12.8)' ) &
+&     '("- pressure from LJ ",T44 F12.8)' ) &
 &     this%VirialCorrLJ * NProcs / this%NPart
     call LogWrite
 
     do i = 1, this%NRealComponents
       write( IOBuffer, &
-&       '("Cutoff correction to chem. pot. of ", A, " from LJ:", F12.8)' ) &
+&       '("- chem. pot. of ", A, " from LJ",T44, F12.8)' ) &
 &       trim( this%Component(i)%PotModFileName ), &
 &       this%Component(i)%EPotTestCorrLJ
       call LogWrite
     end do
 
     write( IOBuffer, &
-&     '("Cutoff correction to potential energy from reaction field:", F12.8)' ) &
+&     '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &     this%EPotCorrRF * NProcs / this%NPart
     call LogWrite
 
     do i = 1, this%NRealComponents
       write( IOBuffer, &
-&       '("Cutoff correction to chem. pot. of ", A, " from reaction field:", F12.8)' ) &
+&       '("- chem. pot. of ", A, " from RF",T44, F12.8)' ) &
 &       trim( this%Component(i)%PotModFileName ), &
 &       this%Component(i)%EPotTestCorrRF
       call LogWrite
@@ -984,6 +995,13 @@ contains
 #if  TRANS == 1
     this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
 #endif
+
+    write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') &
+&          this%EnsembleNumber
+    call LogWrite
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+ 
   end subroutine TEnsemble_Construct
 
 
@@ -1614,16 +1632,18 @@ contains
     this%Volume0 = this%NPart / this%RefDensity
 
     ! Update log file
-    write( IOBuffer, '("Number of particles:", I11)' ) this%NPart
+    write( IOBuffer, '("Number of particles:",T36, I11)' ) this%NPart
     call LogWrite
     do i = 1, this%NRealComponents
       pc => this%Component(i)
-      write( IOBuffer, '("Mole fraction of ", A, ":", F6.3, &
-&         ";  number of particles:", I11)' ) &
-&       trim( pc%PotModFileName ), pc%Fraction, pc%NPart
+      write( IOBuffer, '("Mole fraction of ", A, ":",T45, F6.3)' ) &
+&       trim( pc%PotModFileName ), pc%Fraction
+      call LogWrite
+      write( IOBuffer, '(T10,"->  number of particles: ",T36, I11)' ) &
+&       pc%NPart
       call LogWrite
       if( pc%NTestAll > 0 ) then
-        write( IOBuffer, '("Number of test particles:", I11)' ) pc%NTestAll
+        write( IOBuffer, '("Number of test particles:",T36, I11)' ) pc%NTestAll
         call LogWrite
       end if
     end do
@@ -1779,6 +1799,7 @@ contains
       call AllocationError( stat, 'test particles', this%NTestMax )
       allocate( this%EPotTest( this%NTestMax ), STAT = stat )
       call AllocationError( stat, 'test particles', this%NTestMax )
+      call LogWriteBlank
       write( IOBuffer, '("Memory for test particles allocated successfully")' )
       call LogWrite
     end if
@@ -2151,8 +2172,13 @@ contains
     xl(1) = 1._RK / real( NCells1dim(1), RK )
     xl(2) = 1._RK / real( NCells1dim(2), RK )
     xl(3) = 1._RK / real( NCells1dim(3), RK )
-    write( IOBuffer, '("Initialize positions:",I3," *",I4,"x",I4,"x",I4," cells FCC lattice with",I3," molecules/cell")' ) &
-&          NPartInCell, ( NCells1dim(i), i=1,3 ), NPartInCell
+    call LogWriteBlank
+    write( IOBuffer, '("Initialize positions:")' ) 
+    call LogWrite
+    write( IOBuffer, '(T10,"FCC lattice: " I3," *",I4,"x",I4,"x",I4," cells")' ) &
+&          NPartInCell, ( NCells1dim(i), i=1,3 )
+    call LogWrite
+    write( IOBuffer, '(T10, "with",I3," molecules/cell")' ) NPartInCell
     call LogWrite
 loop:do l = 1, NPartInCell
       do i = 1, NCells1dim(1)
@@ -4234,13 +4260,16 @@ loop2:        do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
 #else
     EPotDelta = EPotOld - EPotNew
+
 #endif
 
     ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
     if( EPotDelta .gt. 0._RK .or. &
 &       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np )
@@ -4311,8 +4340,10 @@ loop2:        do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
 #else
     EPotDelta = EPotOld - EPotNew
+
 #endif
 
     ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
@@ -4407,8 +4438,10 @@ loop2:        do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
 #else
     EPotDelta = EPotOld - EPotNew
+
 #endif
 
     ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
@@ -4496,8 +4529,10 @@ loop2:        do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+
 #else
     EPotDelta = EPotOld - EPotNew
+
 #endif
 
     ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
@@ -6034,7 +6069,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Acceptance rate
     if( SimulationType .eq. MonteCarlo ) then
-      write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) &
+      write( IOBuffer, '("Acceptance rate", T34, ":", F20.9)' ) &
 &       Acceptance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
