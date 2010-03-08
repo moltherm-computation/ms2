@@ -477,9 +477,10 @@ module ms2_potential
     type(TIdfBond), pointer   :: Bond
     integer                   :: Site1, Site2
     integer                   :: Unit1, Unit2
-    real(RK)                  :: ForConst, R0
-    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
-    real(RK)                  :: BoxlengthInv, BoxLengthThird
+    real(RK),pointer          :: ForConst 
+    real(RK)                  :: R0
+!    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
+!    real(RK)                  :: BoxlengthInv, BoxLengthThird
 
   end type TPotBond
 
@@ -514,9 +515,10 @@ module ms2_potential
     type(TIdfAngle), pointer  :: Angle
     integer                   :: Site1, Site2, Site3
     integer                   :: Unit1, Unit2, Unit3
-    real(RK)                  :: ForConst, Angle0
-    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
-    real(RK)                  :: BoxlengthInv, BoxLengthThird
+    real(RK),pointer          :: ForConst
+    real(RK)                  :: Angle0
+!    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
+!    real(RK)                  :: BoxlengthInv, BoxLengthThird
 
   end type TPotAngle
 
@@ -552,9 +554,10 @@ module ms2_potential
     integer                      :: Site1, Site2, Site3, Site4
     integer                      :: Unit1, Unit2, Unit3, Unit4
     integer                      :: multi
-    real(RK)                     :: ForConst, gamma
-    real(RK)                     :: EPotCorr, VirialCorr, EPotTestCorr
-    real(RK)                     :: BoxlengthInv, BoxLengthThird
+    real(RK),pointer             :: ForConst
+    real(RK)                     :: gamma
+!    real(RK)                     :: EPotCorr, VirialCorr, EPotTestCorr
+!    real(RK)                     :: BoxlengthInv, BoxLengthThird
 
   end type TPotDihedral
 
@@ -8281,7 +8284,7 @@ loop2:do j = 1, j1
     this%Site2 = this%Bond%SiteId2
     this%Unit1 = this%Bond%UnitId1
     this%Unit2 = this%Bond%UnitId2
-    this%ForConst = this%Bond%ForConst
+    this%ForConst => this%Bond%ForConst
     this%R0 = this%Bond%R0
 
   end subroutine TPotBond_Construct
@@ -8535,7 +8538,7 @@ loop2:do j = 1, j1
     this%Unit1 = this%Angle%UnitId1
     this%Unit2 = this%Angle%UnitId2
     this%Unit3 = this%Angle%UnitId3
-    this%ForConst = this%Angle%ForConst
+    this%ForConst => this%Angle%ForConst
     this%Angle0 = this%Angle%Angle0
 
   end subroutine TPotAngle_Construct
@@ -8800,7 +8803,7 @@ loop2:do j = 1, j1
     this%Unit2 = this%Dihedral%UnitId2
     this%Unit3 = this%Dihedral%UnitId3
     this%Unit4 = this%Dihedral%UnitId4
-    this%ForConst = this%Dihedral%ForConst
+    this%ForConst => this%Dihedral%ForConst
     this%gamma = this%Dihedral%gamma*Pi/180
     this%multi = this%Dihedral%multi
 

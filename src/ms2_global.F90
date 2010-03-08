@@ -92,6 +92,13 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'generic platform'
 #endif
 
+! define platform-specific path separator
+#ifdef _WIN32
+  character(*), parameter :: FileSep = '\'
+#else
+  character(*), parameter :: FileSep = '/'
+#endif
+
   ! Extension of configuration file.
   character(*), parameter :: ConfigFileExtension = '.cfg'
 
@@ -315,6 +322,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14' ! Scale 1-4 electrostatic interactions by this factor
 ! Chemical Potential
   character(*), parameter :: IdNFluct                      = 'NFluct'
+  character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -355,7 +363,6 @@ character(*), parameter :: VersionString = 'v12'
 
   ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
   logical :: printIDF
-
 
   ! Shake tolerance for constraint bonds in the case of IDF
   real(RK) :: Shake
@@ -441,7 +448,6 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: SiteSite     = 1
   integer, parameter :: CenterofMass = 2
   integer            :: CutoffMode
-!   integer            ::
 
   ! Type of LongRange Mode
   character(80)      :: LongRangeString
@@ -479,7 +485,7 @@ character(*), parameter :: VersionString = 'v12'
   real(RK), parameter :: DispVolLimit  = 0.100_RK
   real(RK), parameter :: DispMolTranStart = 0.020_RK
   real(RK), parameter :: DispMolTranLimit = 0.150_RK
-  real(RK), parameter :: DispMolRotStart  = 0.050_RK
+  real(RK), parameter :: DispMolRotStart  = 0.00050_RK
   real(RK), parameter :: DispMolRotLimit  = 0.150_RK
 
   ! Frequency of updating MC displacements
@@ -717,6 +723,16 @@ character(*), parameter :: VersionString = 'v12'
   ! Flush of I/O units
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   external flush
+
+  ! change current directory
+#if defined _PGF
+  integer, external :: chdir
+!#elif defined 
+  !external chdir
+#endif
+
+  ! Signal handler
+  integer, external :: signal
 #endif
 
   ! User name from console
@@ -724,11 +740,6 @@ character(*), parameter :: VersionString = 'v12'
   character(256), external :: getlog
 #elif ARCH == 2 || ARCH==3
   external getlog
-#endif
-
-  ! Signal handler
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-  integer, external :: signal
 #endif
 
   ! Host name
@@ -803,18 +814,17 @@ contains
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( RootProc ) then
       call getarg( 0, buffer )
-#ifdef _WIN32
-      i = index( buffer, '\', BACK=.true. )
-#else
-      i = index( buffer, '/', BACK=.true. )
-#endif
+      i = scan( buffer, FileSep, BACK=.true. )
       if( i > 0 ) then
         ProgramFileName = trim( buffer( i+1:len( buffer ) ) )
       else
         ProgramFileName = trim( buffer )         ! possible truncation?
       end if
+#if defined __PATHSCALE__
+      narg = command_argument_count()
+#else
       narg = iargc()
-      !narg = command_argument_count()
+#endif
       if( narg .lt. 1 ) then
         print *, trim( ProgramFileName ) &
 &              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
@@ -831,6 +841,26 @@ contains
       call getarg( 1, buffer )
       !call get_command_argument( 1, buffer )
       buffer = trim( buffer )
+      ! separate directory and filename
+      i = scan(buffer, FileSep, .true.)
+      if( i>0 ) then
+        ! path includes directory
+#if defined __INTEL_COMPILER || defined __PATHSCALE__ || defined _PGF
+        stat = chdir( buffer(:max(i-1,1)) )
+#elif ARCH==3 || defined __GNUC__
+        call chdir( buffer(:max(i-1,1)), stat )
+#else
+        print *, 'chdir not supported!'
+        stat=-1
+        i=0
+#endif
+        if( stat==0 ) then
+          print *, 'chdir to', trim(buffer(:max(i-1,1)))
+        else
+          print *, 'cannot change to ', trim(buffer(:max(i-1,1))), ' stat=', stat
+        end if
+        buffer=trim(buffer(i+1:))
+      end if
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
@@ -869,6 +899,8 @@ contains
 
     ! Open log file
     call LogOpen
+    write( IOBuffer, '("Parallelization:")' )
+    call LogWrite
 
     ! Update log file
 #if MPI_VER > 0
@@ -883,7 +915,7 @@ contains
       write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
       call LogWrite
       call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
-      if(.not. ierror .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
         call LogWrite
       end if
@@ -932,6 +964,8 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
       call Warning('Cannot set signal handler')
@@ -1148,7 +1182,7 @@ contains
 #if ARCH == 1
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || (defined __GNUC__ && !defined __PATHSCALE__) || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -1168,6 +1202,14 @@ contains
 #else
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
+    call LogWriteBlank
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    write( IOBuffer, '("*                Molecular Simulation 2                   *")')
+    call LogWrite
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
+    call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
 
@@ -1179,6 +1221,8 @@ contains
 &          trim( username ), trim( hostname )
     call LogWriteTime
     call LogWriteBlank
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
 
   end subroutine Global_LogOpen
 
@@ -1197,8 +1241,12 @@ contains
 
     ! Close log file
     call LogWriteBlank
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
+    write( IOBuffer, '("***********************************************************")')
+    call LogWrite
     call FileClose( iounit_log )
 
   end subroutine Global_LogClose
@@ -1559,14 +1607,14 @@ contains
     integer, intent(out), optional     :: status
 
     character(IOBufferLength) :: parametervalue
-    logical                   :: foundqualifier = .false.
-    character(IOBufferLength) :: parameterqualifier
-    integer                   :: qualifierpos1, qualifierpos2
 
 
     ! Declare local variables
     integer                   :: stat, comment_pos, linesread, i
     character(FileNameLength) :: fn
+    logical                   :: foundqualifier = .false.
+    character(IOBufferLength) :: parameterqualifier
+    integer                   :: qualifierpos1, qualifierpos2
 
     ! determine filename
     inquire( iounit, NAME = fn )
@@ -1592,7 +1640,7 @@ contains
           !return
         ! end of file reached?
         elseif( stat < 0 ) then
-          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifier//">" )
+          !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
           parametervalue=""
           if( present(status) ) status = stat
           ! (try to) restore position
@@ -1666,7 +1714,7 @@ contains
 #endif
 
 !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&                      trim(parameterqualifier),trim(parametervalue); call LogWrite
+!&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
 
   end function Global_FileReadParameter
 
@@ -1725,7 +1773,7 @@ contains
   subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
-  ! for a FileReadParameter polymorphism
+  ! for a FileReadParameter polymorphism 
 
     implicit none
 
@@ -1764,7 +1812,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),trim(parametervariable); call LogWrite
+!&          stat,trim(parameterqualifiers),trim(parametervariable); call LogWrite
 
   end subroutine Global_FileReadParameter_String
 
@@ -1816,7 +1864,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_Int
 
@@ -1868,7 +1916,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),parametervariable; call LogWrite
+!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RK
 
@@ -1920,7 +1968,7 @@ contains
 
 !    inquire( iounit, NAME = fn )
 !    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Real Array ",A," =")' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier); call LogWrite
+!&          stat,trim(parameterqualifiers); call LogWrite
 !    write( IOBuffer, * ) parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RKdim1
@@ -1945,7 +1993,7 @@ contains
     if( .not. RootProc ) return
 
     ! Write parameter to file
-    write( iounit, '(A, T17, "=", A)' ) trim( parameter ), trim( IOBuffer )
+    write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
 
   end subroutine Global_FileWriteParameter
 
@@ -1977,6 +2025,8 @@ contains
     am = nearest(1._RK, -1._RK) / huge(ix)
 
     write( IOBuffer, '("Random number generator initialized")' )
+    call LogWrite
+    write( IOBuffer, '("-----------------------------------------------------------")')
     call LogWrite
     call LogWriteBlank
 

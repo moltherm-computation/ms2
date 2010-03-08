@@ -304,7 +304,8 @@ module ms2_component
 
   interface Mol2Unit
     module procedure TComponent_Mol2Unit
-  end interface
+    module procedure TComponent_Mol2UnitRotate
+end interface
 
   interface Mol2Unit1
     module procedure TComponent_Mol2Unit1
@@ -334,6 +335,14 @@ module ms2_component
   interface Unit2Mol
     module procedure TComponent_Unit2Mol
     module procedure TComponent_Unit2Mol1
+  end interface
+  
+  interface Flex2Rigid
+    module procedure TComponent_Flex2Rigid
+  end interface
+  
+  interface Rigid2Flex
+    module procedure TComponent_Rigid2Flex
   end interface
 
   interface PredictGear
@@ -449,6 +458,10 @@ contains
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T13, "Reading components for ensemble", I3)') comp
+    call LogWrite
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
     write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
 &     trim( this%PotModFileName ), this%Fraction
@@ -462,7 +475,7 @@ contains
     this%FluctState = -1
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
-      ! Read molar fraction of liquid simulation
+      ! Read mole fraction of liquid simulation
       call FileReadParameter( this%LiqFraction, iounit_params , IdLiqFraction, .false. )
 
       ! Read chemical potential and partial molar volume and their
@@ -499,7 +512,7 @@ contains
       select case( str )
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
-        str = 'none method'
+        str = 'no calculation'
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom
         str = 'Widom''s test particle method'
@@ -516,7 +529,9 @@ contains
 &       call Error( 'Gradual insertion is only allowed for MonteCarlo simulation' )
       write( IOBuffer, &
 &       '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
-&       trim( this%PotModFilename ), trim( str )
+&       trim( this%PotModFilename )
+      call LogWrite
+      write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
 
       ! Read number of test particles
@@ -524,7 +539,7 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) &
 &         call Error( 'Number of test particles need to be > 0' )
-        write( IOBuffer, '("Number of test particles:", I11 )' ) this%NTest
+        write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
       end if
 
       ! Read weighting factors method
@@ -604,6 +619,11 @@ contains
 &       this%NFluctMax + 1 )
     end if
 
+    write( IOBuffer, '(T8, "Reading components for ensemble", I3, " successful")') comp
+    call LogWrite
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+
   end subroutine TComponent_Construct
 
 
@@ -643,7 +663,7 @@ contains
     ! Set file name for potential model
     this%PotModFileName = PotModFileName
 
-    ! Set molar fraction of this component
+    ! Set mole fraction of this component
     this%Fraction = 1._RK
 
     ! Create potential model
@@ -691,7 +711,7 @@ contains
     ! Copy file name for potential model
     this%PotModFileName = comp0%PotModFileName
 
-    ! Set number of particles and molar fraction of this component
+    ! Set number of particles and mole fraction of this component
     this%NPart = 0
     this%NTest = 0
     this%Fraction = 0._RK
@@ -2895,11 +2915,6 @@ contains
           this%Qm0(i, 2) = q2
           this%Qm0(i, 3) = q3
           this%Qm0(i, 4) = q4
-!          print *, 'q1=', q1
-!          print *, 'q2=', q2
-!          print *, 'q3=', q3
-!          print *, 'q4=', q4
-
 
           ! Calculate rotation matrix elements
           A11(i) = q1**2 + q2**2 - q3**2 - q4**2
@@ -2911,10 +2926,6 @@ contains
           A31(i) = 2._RK * (q2 * q4 + q1 * q3)
           A32(i) = 2._RK * (q3 * q4 - q1 * q2)
           A33(i) = q1**2 - q2**2 - q3**2 + q4**2
-
-! determinant = ( A11(i)*A22(i)*A33(i)+A12(i)*A23(i)*A31(i)+A13(i)*A21(i)*A32(i)) - &
-!&                       ( A13(i)*A22(i)*A31(i)+A23(i)*A32(i)*A11(i)+A33(i)*A12(i)*A21(i))
-!        print *, 'detA =', determinant
 
         end do
 
@@ -2935,10 +2946,6 @@ contains
 &                              this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
              this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
 &                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-!           print *, 'this%Q0(i,1,j)=', this%Q0(i,1,j)
-!           print *, 'this%Q0(i,2,j)=', this%Q0(i,2,j)
-!           print *, 'this%Q0(i,3,j)=', this%Q0(i,3,j)
-!           print *, 'this%Q0(i,4,j)=', this%Q0(i,4,j)
            end do
          end do
 
@@ -3257,9 +3264,12 @@ contains
 !         this%Pm0(i,2) = this%Pm0(i,2) * DelBoxFrac
 !         this%Pm0(i,3) = this%Pm0(i,3) * DelBoxFrac
         do j=1,nu
-          this%P0(i,1,j) = (this%P0(i,1,j) - this%Pm0(i,1) ) / DelBoxFrac + this%Pm0(i,1)
-          this%P0(i,2,j) = (this%P0(i,2,j) - this%Pm0(i,2) ) / DelBoxFrac + this%Pm0(i,2)
-          this%P0(i,3,j) = (this%P0(i,3,j) - this%Pm0(i,3) ) / DelBoxFrac + this%Pm0(i,3)
+!           this%P0(i,1,j) = (this%P0(i,1,j) - this%Pm0(i,1) ) / DelBoxFrac + this%Pm0(i,1)
+!           this%P0(i,2,j) = (this%P0(i,2,j) - this%Pm0(i,2) ) / DelBoxFrac + this%Pm0(i,2)
+!           this%P0(i,3,j) = (this%P0(i,3,j) - this%Pm0(i,3) ) / DelBoxFrac + this%Pm0(i,3)
+          this%P0(i,1,j) = (this%P0(i,1,j) + this%Pm0(i,1) ) - this%Pm0(i,3)/DelBoxFrac
+          this%P0(i,2,j) = (this%P0(i,2,j) + this%Pm0(i,2) ) - this%Pm0(i,2)/DelBoxFrac 
+          this%P0(i,3,j) = (this%P0(i,3,j) + this%Pm0(i,3) ) - this%Pm0(i,3)/DelBoxFrac
         end do
       end do
     end if
@@ -4297,6 +4307,162 @@ contains
 
 
 !==============================================================!
+!  Subroutine TComponent_Unit2Atom1 (per molecule)             !
+!==============================================================!
+
+  subroutine TComponent_Mol2UnitRotate( this, np, dq )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    real(RK),intent(in) :: dq(3)
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PX, PY, PZ
+    real(RK)                       :: A11, A12, A13
+    real(RK)                       :: A21, A22, A23
+    real(RK)                       :: A31, A32, A33
+    real(RK)                       :: r1, r2, r3
+    real(RK)                       :: q1, q2, q3,q4
+    integer                        :: i, ik
+    integer                        :: nup
+
+    ! Broadcast positions and orientations to all processes
+#if MPI_VER > 0
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+#endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    ! Calculate rotation matrix elements
+    q1 = 1._RK
+    q2 = dq(1)
+    q3 = dq(2)
+    q4 = dq(3)
+
+    A11 = q2**2 - q3**2 - q4**2 + q1**2
+    A12 = 2._RK * (q2 * q3 + q4*q1)
+    A13 = 2._RK * (q2 * q4 - q3*q1)
+    A21 = 2._RK * (q2 * q3 - q4*q1)
+    A22 = - q2**2 + q3**2 - q4**2 + q1**2
+    A23 = 2._RK * (q3 * q4 + q2*q1)
+    A31 = 2._RK * (q2 * q4 + q3*q1)
+    A32 = 2._RK * (q3 * q4 - q2*q1)
+    A33 = - q2**2 - q3**2 + q4**2 + q1**2
+
+    nup = this%Molecule%NUnit
+
+    do i=1,nup
+      ! Check number of rotation axes
+      ik = (np-1)*nup+i
+      ! Positions and quaternions of unit k in particle i
+      PX = this%P0(np, 1, i)
+      PY = this%P0(np, 2, i)
+      PZ = this%P0(np, 3, i)
+      
+      q1 = this%Q0(np, 1, i)
+      q2 = this%Q0(np, 2, i)
+      q3 = this%Q0(np, 3, i)
+      q4 = this%Q0(np, 4, i)
+
+      ! Loop over LJ126 sites in unit
+      r1 = (PX-this%Pm0(np,1)) * BoxLengthInv
+      r2 = (PY-this%Pm0(np,2)) * BoxLengthInv
+      r3 = (PZ-this%Pm0(np,3)) * BoxLengthInv
+
+      this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
+      this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
+      this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
+      
+      this%Q0(np, 1, i) = q1 - dq(1) * q2 - dq(2) * q3 - dq(3) * q4
+      this%Q0(np, 2, i) = q2 + dq(1) * q1 - dq(2) * q4 + dq(3) * q3
+      this%Q0(np, 3, i) = q3 + dq(1) * q4 + dq(2) * q1 - dq(3) * q2
+      this%Q0(np, 4, i) = q4 - dq(1) * q3 + dq(2) * q2 + dq(3) * q1
+
+    end do
+
+  end subroutine TComponent_Mol2UnitRotate
+
+
+
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Flex2Rigid                            !
+!==============================================================!
+
+  subroutine TComponent_Flex2Rigid( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)     :: this
+
+    ! Declare local variables
+!     type(TMolecule), pointer :: pm
+    integer :: i
+    
+!     pm => this%Molecule
+    
+    do i=1, this%Molecule%NBond
+      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
+    end do
+    do i=1, this%Molecule%NAngle
+      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst * 1e10_RK
+    end do
+    do i=1, this%Molecule%NDihedral
+      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst * 1e10_RK
+    end do
+    
+  end subroutine TComponent_Flex2Rigid
+
+
+!==============================================================!
+!  Subroutine TComponent_Rigid2Flex                            !
+!==============================================================!
+
+  subroutine TComponent_Rigid2Flex( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)     :: this
+
+    ! Declare local variables
+!     type(TMolecule), pointer :: pm
+    integer :: i
+    
+!     pm => this%Molecule
+    
+    do i=1, this%Molecule%NBond
+      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
+    end do
+    do i=1, this%Molecule%NAngle
+      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst / 1e10_RK
+    end do
+    do i=1, this%Molecule%NDihedral
+      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst / 1e10_RK
+    end do
+    
+  end subroutine TComponent_Rigid2Flex
+
+
+
+!==============================================================!
 !  Subroutine TComponent_PredictGear                           !
 !==============================================================!
 
@@ -4899,7 +5065,7 @@ contains
       this%DispRot = this%DispRot * 1.05_RK
     end if
 
-    if (UseIntDegFreed) then
+    if (UseIntDegFreed) then 
       if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
         this%DispMolTran = this%DispMolTran * .95_RK
       else if( this%DispMolTran < DispMolTranLimit ) then
@@ -5441,8 +5607,13 @@ contains
 &     MPI_COMM_WORLD, ierror )
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_DOUBLE_PRECISION, &
 &     NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_DOUBLE_PRECISION, &
+&     NRootProc, MPI_COMM_WORLD, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_DOUBLE_PRECISION, &
+&       NRootProc, MPI_COMM_WORLD, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_DOUBLE_PRECISION, &
 &       NRootProc, MPI_COMM_WORLD, ierror )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
       call MPI_Bcast( this%DispTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &

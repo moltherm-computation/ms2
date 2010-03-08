@@ -494,6 +494,7 @@ contains
       this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
       this%NUnit   = this%NNotConstraint+this%NConstraint ! total number of units
       if (this%NUnit==1) IntraLJEl=.false.
+
     else !  No IDF,  rigid molecule
         this%NUnit = 1
         this%NConstraint = 1 ! Only one constrained unit for the whole molecule
@@ -2123,7 +2124,7 @@ contains
           d(j) = d(i)
           d(i) = p
           q(:) = v(:, i)
-          v(:, i) = -v(:, j)
+          v(:, i) = v(:, j)
           v(:, j) = q(:)
         end if
       end do
