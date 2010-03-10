@@ -3267,7 +3267,7 @@ contains
 !           this%P0(i,1,j) = (this%P0(i,1,j) - this%Pm0(i,1) ) / DelBoxFrac + this%Pm0(i,1)
 !           this%P0(i,2,j) = (this%P0(i,2,j) - this%Pm0(i,2) ) / DelBoxFrac + this%Pm0(i,2)
 !           this%P0(i,3,j) = (this%P0(i,3,j) - this%Pm0(i,3) ) / DelBoxFrac + this%Pm0(i,3)
-          this%P0(i,1,j) = (this%P0(i,1,j) + this%Pm0(i,1) ) - this%Pm0(i,3)/DelBoxFrac
+          this%P0(i,1,j) = (this%P0(i,1,j) + this%Pm0(i,1) ) - this%Pm0(i,1)/DelBoxFrac
           this%P0(i,2,j) = (this%P0(i,2,j) + this%Pm0(i,2) ) - this%Pm0(i,2)/DelBoxFrac 
           this%P0(i,3,j) = (this%P0(i,3,j) + this%Pm0(i,3) ) - this%Pm0(i,3)/DelBoxFrac
         end do

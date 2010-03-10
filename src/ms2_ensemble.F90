@@ -806,15 +806,15 @@ contains
       write( IOBuffer, '("Liquid density: ",T26, F12.6, " (", F13.6, ") mol/l")' ) &
 &       this%LiqDensity * UnitDensity, this%VarLiqDensity * UnitDensity
       call LogWrite
-      write( IOBuffer, '("Liquid enthalpy: ",T26, F8.2, " (", F9.2, ") J/mol")' ) &
+      write( IOBuffer, '("Liquid enthalpy: ",T22, F16.6, " (", F13.6, ") J/mol")' ) &
 &       this%LiqEnthalpy * UnitEnergy * NAvogadro, &
 &       this%VarLiqEnthalpy * UnitEnergy * NAvogadro
       call LogWrite
-      write( IOBuffer, '("Liquid betaT: ",T26, F12.6, "( ", F13.6, ") 1/MPa")' ) &
+      write( IOBuffer, '("Liquid betaT: ",T26, F12.6, " (", F13.6, ") 1/MPa")' ) &
 &       this%LiqBetaT / UnitPressure * 1E6_RK, &
 &       this%VarLiqBetaT / UnitPressure * 1E6_RK
       call LogWrite
-      write( IOBuffer, '("Liquid dHdP: ",T26, F12.6, "( ", F13.6, ") l/mol")' ) &
+      write( IOBuffer, '("Liquid dHdP: ",T26, F12.6, " (", F13.6, ") l/mol")' ) &
 &       this%LiqdHdP / UnitDensity, this%VarLiqdHdP / UnitDensity
       call LogWrite
     end if
@@ -831,17 +831,17 @@ contains
       write( IOBuffer, '("Reduced pressure0: ",T26, F12.6)' ) this%RefPressure
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid density: ",T26, F9.6, " (", F12.6, ")")' ) &
+&       '("Reduced liquid density: ",T29, F9.6, " (", F13.6, ")")' ) &
 &       this%LiqDensity, this%VarLiqDensity
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid enthalpy: ",T26, F9.4, " (", F11.4, ")")' ) &
+&       '("Reduced liquid enthalpy: ", T28, F10.6, " (", F13.6, ")")' ) &
 &       this%LiqEnthalpy, this%VarLiqEnthalpy
       call LogWrite
-      write( IOBuffer, '("Reduced liquid betaT: ",T26, F12.6, "( ", F13.6, ")")' ) &
+      write( IOBuffer, '("Reduced liquid betaT: ",T26, F12.6, " (", F13.6, ")")' ) &
 &       this%LiqBetaT, this%VarLiqBetaT
       call LogWrite
-      write( IOBuffer, '("Reduced liquid dHdP: ",T26, F10.4, "( ", F11.4, ")")' ) &
+      write( IOBuffer, '("Reduced liquid dHdP: ",T26, F12.6, " (", F13.4, ")")' ) &
 &       this%LiqdHdP, this%VarLiqdHdP
       call LogWrite
     end if
@@ -1197,10 +1197,15 @@ contains
         ! Set initial values of maximum allowed MC displacements
         this%DispVol = DispVolStart
         do i = 1, this%NRealComponents
-          this%Component(i)%DispTran = DispTranStart
-          this%Component(i)%DispRot = DispRotStart
-          this%Component(i)%DispMolTran = DispMolTranStart
-          this%Component(i)%DispMolRot = DispMolRotStart
+          if ( .not. UseIntDegFreed ) then
+            this%Component(i)%DispTran = DispMolTranStart
+            this%Component(i)%DispRot = DispMolRotStart
+          else
+            this%Component(i)%DispTran = DispTranStart
+            this%Component(i)%DispRot = DispRotStart
+            this%Component(i)%DispMolTran = DispMolTranStart
+            this%Component(i)%DispMolRot = DispMolRotStart
+          end if
         end do
 
       end if
@@ -1303,7 +1308,9 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '("Reading parameters of ensemble", I3)' ) &
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) &
 &     this%EnsembleNumber
     call LogWrite
 
@@ -1314,15 +1321,15 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Temperature: ", F9.3, " K")' ) &
-&     this%Temperature * UnitTemperature
+    write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) &
+&     this%RefTemperature * UnitTemperature
     call LogWrite
-    write( IOBuffer, '("Reduced temperature: ", F9.6)' ) this%Temperature
+    write( IOBuffer, '("Reduced temperature: ",T26, F12.6)' ) this%RefTemperature
     call LogWrite
 
     ! Read number of components in ensemble
     call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
-    write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
+    write( IOBuffer, '("Number of components:",T28, I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
       write( ErrorBuffer, &
@@ -3360,7 +3367,7 @@ loop5:    do nc = 1, this%NComponents
         ! could automatically use
         ! - a trapazoidal rule for n=2
         ! - a quadrilateral rule for n=1
-      end if
+!       end if
 
 
       ! Calculate integral via Simpson's rule
@@ -4783,6 +4790,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
               ! Sum energy
               E = E + sum( pi%EPot1(1:n) )
+! 	      write(*,*) np,nu,E
            end do
            if (UseIntDegFreed) then
                E = E + 2*(sum(pi%EPotAngle((np-1)*NAngle+1:np*NAngle)) +&
@@ -6883,9 +6891,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     PSave(:) = pc%Pm0(np, :)
     pc%Pm0(np, :) = pc%Pm0(n1, :)
     pc%Pm0(n1, :) = PSave(:)
-    P0Save(1:3,1:nu) = pc%P0(np, 1:3, 1:nu )
-    pc%P0(np,1:3,1:nu) = pc%P0(n1,1:3,1:nu)
-    pc%P0(n1,1:3,1:nu) = P0Save(1:3,1:nu)
+    P0Save(:,1:nu) = pc%P0(np,:,1:nu )
+    pc%P0(np,:,1:nu) = pc%P0(n1,:,1:nu)
+    pc%P0(n1,:,1:nu) = P0Save(:,1:nu)
 
     if( pc%Molecule%IsElongated ) then
       QSave(:) = pc%Qm0(np, :)
@@ -6924,7 +6932,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%Interaction(i, nc)%EPot(:, ((n1-1)*pi%NUnit1+k)) = ESave(1:n2)
         if (this%OptPressure) then
           pi%Virial(jk, :) = pi%Virial(((n1-1)*pi%NUnit1+k), :)
-          this%Interaction(i, nc)%Virial(:, ((np-1)*pi%NUnit1+k)) = pi%Virial(n1, :)
+          this%Interaction(i, nc)%Virial(:,((np-1)*pi%NUnit1+k)) = pi%Virial(n1,:)
           pi%Virial(((n1-1)*pi%NUnit1+k), :) = VSave(1:n2)
           this%Interaction(i, nc)%Virial(:, ((n1-1)*pi%NUnit1+k)) = VSave(1:n2)
         end if
@@ -6978,8 +6986,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     EPotOld = this%EPot
     BoxLengthOld = this%BoxLength
     if (LongRange .eq. Ewald) then
-!        UIntra  = this%UIntra
-!        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
 #ifdef SPME
@@ -6989,15 +6995,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        UFourier= this%UFourier
        EVirial = this%EVirial
 #endif
-!     else if (LongRange .eq. ExtRField) then
-! #if MPI_VER > 0
-!       call Energy( this, EPotNew )
-!       call MPI_Allreduce( EPotNew, this%EPot, 1, &
-! &        MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
-! #else
-!       call Energy( this, this%EPot )
-! #endif
-!       EPotOld = this%EPot
     end if
 
     ! Generate a trial volume change
@@ -7008,6 +7005,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     DelBoxL = this%BoxLength / BoxLengthOld
     call Mol2Resize( this, DelBoxL )
     call Unit2Atom( this )
+!     write(*,*) 'resize'
 
     ! Calculate potential energy and virial at trial position
 #if MPI_VER > 0
@@ -7018,11 +7016,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #else
     call Energy( this, this%EPot )
 #endif
+!     write(*,*) this%Epot, EpotOld
 
     ! Find potential change
     EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) &
 &     + this%EPot - EPotOld &
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+! &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+!     write(*,*) EPotDelta
 
     ! Apply Metropolis acceptance criterion
     ! for EPotDelta/this%Temperature<-709.78271 an overflow still might occur for double precision exp
@@ -7039,8 +7040,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
 &         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         this%VirialInter = this%Virial - this%VirialIntra
 #else
-        this%Virial = GetVirial( this )
+         this%Virial = GetVirial( this )
+         this%VirialIntra = GetVirialIntra( this )
+         this%VirialInter = this%Virial - this%VirialIntra
 #endif
       end if
 
@@ -7049,27 +7055,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Reject volume change
       this%Volume0 = VolumeOld
       call UpdateBoxLength( this )
-
-
-
       call Mol2Resize( this, 1._RK / DelBoxL )
 !       call Mol2Unit( this )
       call Unit2Atom( this )
       this%EPot = EPotOld
       if (LongRange .eq. Ewald) then
-!          this%UIntra = UIntra
-!          this%EVirialIntra = EVirialIntra
          this%UFourier = UFourier
          call Energy(this,this%Epot)
-!          this%EVirial = EVirial
 #if MPI_VER > 0
          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
          call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
 &            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , &
+&            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+         this%VirialInter = this%Virial - this%VirialIntra
 #else
          this%EPot = GetEnergy(this)
          this%Virial = GetVirial( this )
+         this%VirialIntra = GetVirialIntra( this )
+         this%VirialInter = this%Virial - this%VirialIntra
 #endif
 #ifdef SPME
       else if (LongRange .eq. PME) then
