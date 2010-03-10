@@ -297,12 +297,12 @@ contains
 
       ! Read number of orientations
       call FileReadParameter( NOrient, iounit_params , IdNOrient, .true. )
-      write( IOBuffer, '("Number of orientations: ",T21, I7)' ) NOrient
+      write( IOBuffer, '("Number of orientations: ",T24, I7)' ) NOrient
       call LogWrite
 
       ! Read number of steps
       call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
-      write( IOBuffer, '("Number of radial steps: ",T21, I7)' ) NSteps
+      write( IOBuffer, '("Number of radial steps: ",T24, I7)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
@@ -310,7 +310,7 @@ contains
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
-      write( IOBuffer, '("Minimum radius: ",T23, F8.3, " A")' ) &
+      write( IOBuffer, '("Minimum radius: ",T27, F8.3, " A")' ) &
 &       MinRadius * UnitLength / Angstroem
       call LogWrite
 
@@ -319,7 +319,7 @@ contains
       if( .not. UseReducedUnits ) then
         MaxRadius = MaxRadius / UnitLength * Angstroem
       end if
-      write( IOBuffer, '("Maximum radius: ",T23, F8.3, " A")' ) &
+      write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) &
 &       MaxRadius * UnitLength / Angstroem
       call LogWrite
 

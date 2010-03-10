@@ -662,15 +662,15 @@ contains
       write( IOBuffer, '("Liquid density: ",T26, F12.6, " (", F13.6, ") mol/l")' ) &
 &       this%LiqDensity * UnitDensity, this%VarLiqDensity * UnitDensity
       call LogWrite
-      write( IOBuffer, '("Liquid enthalpy: ",T26, F8.2, " (", F9.2, ") J/mol")' ) &
+      write( IOBuffer, '("Liquid enthalpy: ",T22, F16.6, " (", F13.6, ") J/mol")' ) &
 &       this%LiqEnthalpy * UnitEnergy * NAvogadro, &
 &       this%VarLiqEnthalpy * UnitEnergy * NAvogadro
       call LogWrite
-      write( IOBuffer, '("Liquid betaT: ",T26, F12.6, "( ", F13.6, ") 1/MPa")' ) &
+      write( IOBuffer, '("Liquid betaT: ",T26, F12.6, " (", F13.6, ") 1/MPa")' ) &
 &       this%LiqBetaT / UnitPressure * 1E6_RK, &
 &       this%VarLiqBetaT / UnitPressure * 1E6_RK
       call LogWrite
-      write( IOBuffer, '("Liquid dHdP: ",T26, F12.6, "( ", F13.6, ") l/mol")' ) &
+      write( IOBuffer, '("Liquid dHdP: ",T26, F12.6, " (", F13.6, ") l/mol")' ) &
 &       this%LiqdHdP / UnitDensity, this%VarLiqdHdP / UnitDensity
       call LogWrite
     end if
@@ -687,17 +687,17 @@ contains
       write( IOBuffer, '("Reduced pressure0: ",T26, F12.6)' ) this%RefPressure
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid density: ",T26, F9.6, " (", F12.6, ")")' ) &
+&       '("Reduced liquid density: ",T29, F9.6, " (", F13.6, ")")' ) &
 &       this%LiqDensity, this%VarLiqDensity
       call LogWrite
       write( IOBuffer, &
-&       '("Reduced liquid enthalpy: ", T26, F9.4, " (", F11.4, ")")' ) &
+&       '("Reduced liquid enthalpy: ", T28, F10.6, " (", F13.6, ")")' ) &
 &       this%LiqEnthalpy, this%VarLiqEnthalpy
       call LogWrite
-      write( IOBuffer, '("Reduced liquid betaT: ",T26, F12.6, "( ", F13.6, ")")' ) &
+      write( IOBuffer, '("Reduced liquid betaT: ",T26, F12.6, " (", F13.6, ")")' ) &
 &       this%LiqBetaT, this%VarLiqBetaT
       call LogWrite
-      write( IOBuffer, '("Reduced liquid dHdP: ",T26, F10.4, "( ", F11.4, ")")' ) &
+      write( IOBuffer, '("Reduced liquid dHdP: ",T26, F12.6, " (", F13.4, ")")' ) &
 &       this%LiqdHdP, this%VarLiqdHdP
       call LogWrite
     end if
@@ -1036,7 +1036,9 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '("Reading parameters of ensemble", I3)' ) &
+    write( IOBuffer, '("-----------------------------------------------------------")')
+    call LogWrite
+    write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) &
 &     this%EnsembleNumber
     call LogWrite
 
@@ -1047,15 +1049,15 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Temperature: ", F9.3, " K")' ) &
-&     this%Temperature * UnitTemperature
+    write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) &
+&     this%RefTemperature * UnitTemperature
     call LogWrite
-    write( IOBuffer, '("Reduced temperature: ", F9.6)' ) this%Temperature
+    write( IOBuffer, '("Reduced temperature: ",T26, F12.6)' ) this%RefTemperature
     call LogWrite
 
     ! Read number of components in ensemble
     call FileReadParameter( this%NComponents, iounit_params , IdNComponents, .false. )
-    write( IOBuffer, '("Number of components:", I3)' ) this%NComponents
+    write( IOBuffer, '("Number of components:",T28, I3)' ) this%NComponents
     call LogWrite
     if( this%NComponents <= 0 ) then
       write( ErrorBuffer, &
@@ -2987,14 +2989,14 @@ loop3:    do nc = 1, this%NComponents
       integral = 0._RK
 
       ! Return if no values to integrate
-      !if( n < 1 ) return
-      if( n < 3 ) then
-        print *,"ERROR: TEnsemble_RunSVCStep simpson: n=",n,"<3"	! DEBUG
-        return
+      if( n < 1 ) return
+!       if( n < 3 ) then
+!         print *,"ERROR: TEnsemble_RunSVCStep simpson: n=",n,"<3"	! DEBUG
+!         return
         ! could automatically use
         ! - a trapazoidal rule for n=2
         ! - a quadrilateral rule for n=1
-      end if
+!       end if
 
       ! Calculate integral via Simpson's rule
       do i = 3, n, 2
