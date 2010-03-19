@@ -3241,8 +3241,10 @@ contains
 
     ! Declare local variables
     real(RK)            :: BoxLengthInv
+    real(RK)            :: PXij, PYij,PZij
     integer             :: nu, np
     integer             :: i, j
+    
 
     ! Calculate positions of units after global resize
     nu = this%Molecule%NUnit
@@ -3255,21 +3257,18 @@ contains
       end do
     else
       do i=1, np
-!         scalex = (DelBoxFac-1._RK ) * this%Pm0(i,1)
-!         scaley = (DelBoxFac-1._RK )* this%Pm0(i,2)
-!         scalez = (DelBoxFac-1._RK )* this%Pm0(i,3)
-
-        ! New molecular center of masses
-!         this%Pm0(i,1) = this%Pm0(i,1) * DelBoxFrac
-!         this%Pm0(i,2) = this%Pm0(i,2) * DelBoxFrac
-!         this%Pm0(i,3) = this%Pm0(i,3) * DelBoxFrac
         do j=1,nu
-!           this%P0(i,1,j) = (this%P0(i,1,j) - this%Pm0(i,1) ) / DelBoxFrac + this%Pm0(i,1)
-!           this%P0(i,2,j) = (this%P0(i,2,j) - this%Pm0(i,2) ) / DelBoxFrac + this%Pm0(i,2)
-!           this%P0(i,3,j) = (this%P0(i,3,j) - this%Pm0(i,3) ) / DelBoxFrac + this%Pm0(i,3)
-          this%P0(i,1,j) = (this%P0(i,1,j) + this%Pm0(i,1) ) - this%Pm0(i,1)/DelBoxFrac
-          this%P0(i,2,j) = (this%P0(i,2,j) + this%Pm0(i,2) ) - this%Pm0(i,2)/DelBoxFrac 
-          this%P0(i,3,j) = (this%P0(i,3,j) + this%Pm0(i,3) ) - this%Pm0(i,3)/DelBoxFrac
+          PXij = this%P0(i,1,j) - this%Pm0(i,1)
+          PYij = this%P0(i,2,j) - this%Pm0(i,2)
+          PZij = this%P0(i,3,j) - this%Pm0(i,3)
+
+          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
+          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
+          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
+
+          this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
+          this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
+          this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
         end do
       end do
     end if
@@ -4293,9 +4292,13 @@ contains
 
     do i=1,this%Molecule%NUnit
       mass = mass + this%Molecule%Unit(i)%Mass
-      PX   = PX   + this%P0(np,1,i)*this%Molecule%Unit(i)%Mass
-      PY   = PY   + this%P0(np,2,i)*this%Molecule%Unit(i)%Mass
-      PZ   = PZ   + this%P0(np,3,i)*this%Molecule%Unit(i)%Mass
+      PX   = PX   + (this%P0(np,1,i)-&
+&          anint(this%P0(np,1,i)-this%Pm0(np,1)) )*this%Molecule%Unit(i)%Mass
+      PY   = PY   + (this%P0(np,2,i) - &
+&          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*this%Molecule%Unit(i)%Mass
+      PZ   = PZ   + ( this%P0(np,3,i) - &
+&          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*this%Molecule%Unit(i)%Mass
+
     end do
 
     this%Pm0(np,1) = PX / mass
@@ -5450,8 +5453,13 @@ contains
       if( np > this%NPartMax ) &
 &       call Error( 'Not enough memory to read particles from restart file' )
       this%NPart = np
-      read( iounit_restart, '(I10)' ) nu
-      this%Molecule%NUnit = nu
+      if (UseIntDegFreed) then
+        read( iounit_restart, '(I10)' ) nu
+        this%Molecule%NUnit = nu
+      else 
+        nu = 1
+        this%Molecule%NUnit = nu
+      end if
 
       ! Centers of mass positions
       do i = 1, np

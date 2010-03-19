@@ -478,14 +478,14 @@ character(*), parameter :: VersionString = 'v12'
 
   ! MC acceptance rate auto-adjustment parameters
   real(RK), parameter :: DispTranStart = 0.0020_RK
-  real(RK), parameter :: DispTranLimit = 0.0150_RK
+  real(RK), parameter :: DispTranLimit = 0.150_RK
   real(RK), parameter :: DispRotStart  = 0.0050_RK
-  real(RK), parameter :: DispRotLimit  = 0.0150_RK
+  real(RK), parameter :: DispRotLimit  = 0.150_RK
   real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
   real(RK), parameter :: DispMolTranStart = 0.020_RK
   real(RK), parameter :: DispMolTranLimit = 0.150_RK
-  real(RK), parameter :: DispMolRotStart  = 0.00050_RK
+  real(RK), parameter :: DispMolRotStart  = 0.050_RK
   real(RK), parameter :: DispMolRotLimit  = 0.150_RK
 
   ! Frequency of updating MC displacements

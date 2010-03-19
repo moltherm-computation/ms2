@@ -386,19 +386,19 @@ contains
        nullify( this%BoPartner )
        allocate (this%BondCount(this%NSite), STAT = stat)
        call AllocationError( stat, 'BondCount', this%NSite )
-       allocate (this%BoPartner(this%NLJ126,this%NSite), STAT = stat)
+       allocate (this%BoPartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite), STAT = stat)
        call AllocationError( stat, 'BoPartner', this%NSite )
        nullify( this%AngleCount )
        nullify( this%AnglePartner )
-       allocate (this%AngleCount(this%NSite), STAT = stat)
+       allocate (this%AngleCount(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral), STAT = stat)
        call AllocationError( stat, 'AngleCount', this%NSite )
-       allocate (this%AnglePartner(this%NLJ126,this%NSite), STAT = stat)
+       allocate (this%AnglePartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite), STAT = stat)
        call AllocationError( stat, 'AnglePartner', this%NSite )
        nullify( this%DihedralCount )
        nullify( this%DihedralPartner )
        allocate (this%DihedralCount(this%NSite*2), STAT = stat)
        call AllocationError( stat, 'DihedralCount', this%NSite*2 )
-       allocate (this%DihedralPartner(this%NLJ126,this%NSite*2), STAT = stat)
+       allocate (this%DihedralPartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite*2), STAT = stat)
        call AllocationError( stat, 'DihedralPartner', this%NSite*2 )
 
        ! Initialize
@@ -2288,7 +2288,7 @@ if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
             r1(2)=this%SiteCharge(i)%r(2)
             r1(3)=this%SiteCharge(i)%r(3)
             Site1 = .true.
-            Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
+            Bond%UnitId1=this%SiteCharge(i)%UnitNumber
             this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
             this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
@@ -2296,7 +2296,7 @@ if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
             r2(2)=this%SiteCharge(i)%r(2)
             r2(3)=this%SiteCharge(i)%r(3)
             Site2 = .true.
-            Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
+            Bond%UnitId2=this%SiteCharge(i)%UnitNumber
             this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
             this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
@@ -2403,7 +2403,7 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
             r1(2)=this%SiteCharge(i)%r(2)
             r1(3)=this%SiteCharge(i)%r(3)
             Site1 = .true.
-            Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
+            Angle%UnitId1=this%SiteCharge(i)%UnitNumber
             this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
             this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
@@ -2411,7 +2411,7 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
             r2(2)=this%SiteCharge(i)%r(2)
             r2(3)=this%SiteCharge(i)%r(3)
             Site2 = .true.
-            Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
+            Angle%UnitId2=this%SiteCharge(i)%UnitNumber
             this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
             this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
@@ -2419,7 +2419,7 @@ if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) th
             r3(2)=this%SiteCharge(i)%r(2)
             r3(3)=this%SiteCharge(i)%r(3)
             Site3 = .true.
-            Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
+            Angle%UnitId3=this%SiteCharge(i)%UnitNumber
             this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
             this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
@@ -2543,22 +2543,22 @@ end subroutine TMolecule_FindAngle
      do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
             Site1 = .true.
-            Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
+            Dihedral%UnitId1=this%SiteCharge(i)%UnitNumber
             this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
             this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
             Site2 = .true.
-            Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
+            Dihedral%UnitId2=this%SiteCharge(i)%UnitNumber
             this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
             this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
             Site3 = .true.
-            Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
+            Dihedral%UnitId3=this%SiteCharge(i)%UnitNumber
             this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
             this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
             Site4 = .true.
-            Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
+            Dihedral%UnitId4=this%SiteCharge(i)%UnitNumber
             this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
             this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
         end if

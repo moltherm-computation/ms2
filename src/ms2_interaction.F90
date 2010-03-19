@@ -1436,7 +1436,7 @@ contains
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    BoxLengthThird = 1._RK/3._RK * BoxLength
+    BoxLengthThird = Third * BoxLength
     PXi = this%PX1(np,nu)
     PYi = this%PY1(np,nu)
     PZi = this%PZ1(np,nu)
@@ -2375,8 +2375,17 @@ contains
           mueZi = this%MueZ1(np,nu)
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            nu2 = mod(j,this%NUnit2) + 1
-            jk = int(j/this%NUnit2)
+            if (mod(j,this%NUnit2)==0) then
+              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
+              nu2 = this%NUnit2 ! number of unit in molecule
+            else
+              jk = INT(j/this%NUnit2)+1
+              nu2 = mod(j,this%NUnit2)
+            end if
+
+!             nu2 = mod(j,this%NUnit2) + 1
+!             jk = int(j/this%NUnit2)+1
+
 !             if ( mod(j-pqq%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
 !               if (mod(j,this%NUnit2)==0) then
 !                  jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
