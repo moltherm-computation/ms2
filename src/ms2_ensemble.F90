@@ -714,20 +714,26 @@ contains
       call LogWrite
     end if
 
-    call FileReadParameter( str, iounit_params , IdOptPressure, .true., "yes" )
-    select case( str )
-      case( 'YES', 'Yes', 'yes' )
-        this%OptPressure = .true.
-        write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
-        call LogWrite
-      case( 'NO', 'No', 'no')
-        this%OptPressure = .false.
-        write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
-        call LogWrite
-      case default
-        call Error( 'Select yes/no for calculation of pressure '// &
-&         ProgramFileName//ConfigFileExtension )
-    end select
+    ! Read optional pressure calculation
+    this%OptPressure = .true.
+    if( SimulationType .eq. MonteCarlo ) then
+      call FileReadParameter( str, iounit_params , IdOptPressure, .true., "yes" )
+      select case( str )
+        case( 'YES', 'Yes', 'yes' )
+          this%OptPressure = .true.
+          write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
+          call LogWrite
+        case( 'NO', 'No', 'no')
+          this%OptPressure = .false.
+          write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
+          call LogWrite
+        case default
+          call Error( 'Select yes/no for calculation of pressure '// &
+&           ProgramFileName//ConfigFileExtension )
+      end select
+      if ( .not. ConstantPressure .and. .not. this%OptPressure) &
+&          call Error( 'Pressure Calculation in NVT necessary' )
+    end if
     if ( EnsembleType .eq. EnsembleTypeGE .and. .not. this%OptPressure ) then
       write(IOBuffer, '("For GE simulations, please set Logical OptPressure to yes")' )
       call LogWrite
@@ -2766,7 +2772,6 @@ loop1:do nc = 1, this%NComponents
       this%Virial = GetVirial( this )
     endif
 #endif
-
     ! Resize simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
       call Resize( this )
@@ -4399,9 +4404,6 @@ loop2:        do nc = 1, this%NComponents
     pc => this%Component(nc)
     pcf => this%Component(ncf)
 
-    ! Update number of move attempts
-    pc%NMoveBiasedAttempts = pc%NMoveBiasedAttempts + 1
-
     ! Save current particle position and energy
     r(:) = pc%P0(np, :)
     EPotOld = GetEnergy( this, nc, np )
@@ -4411,6 +4413,9 @@ loop2:        do nc = 1, this%NComponents
     dr(:) = ( dr(:) - anint( dr(:) ) ) * this%BoxLength
     f1 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
     if( rnd(0._RK, 1._RK) < (1._RK - f1) ) return
+
+    ! Update number of move attempts
+    pc%NMoveBiasedAttempts = pc%NMoveBiasedAttempts + 1
 
     ! Generate a trial displacement
     do i = 1, 3
@@ -4497,9 +4502,6 @@ loop2:        do nc = 1, this%NComponents
     pc => this%Component(nc)
     pcf => this%Component(ncf)
 
-    ! Update number of rotation attempts
-    pc%NRotateBiasedAttempts = pc%NRotateBiasedAttempts + 1
-
     ! Save current particle orientation and energy
     q(:) = pc%Q0(np, :)
     EPotOld = GetEnergy( this, nc, np )
@@ -4510,6 +4512,9 @@ loop2:        do nc = 1, this%NComponents
     f1 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
     if( rnd(0._RK, 1._RK) < (1._RK - f1) ) return
 !     if( rnd(0._RK, 1._RK) > f1 ) return
+
+    ! Update number of rotation attempts
+    pc%NRotateBiasedAttempts = pc%NRotateBiasedAttempts + 1
 
     ! Generate a trial rotation
     do i = 1, 3
@@ -5426,12 +5431,12 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       ! Pressure
-      write( IOBuffer, '("     DRUCK")' )
+      write( IOBuffer, '("     PRESS")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Density
-      write( IOBuffer, '("    DICHTE")' )
+      write( IOBuffer, '("   DENSITY")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
@@ -6967,14 +6972,26 @@ loop2:        do nc = 1, this%NComponents
           call FileWrite( this%iounit_errors )
           write(IOBuffer, '("  --------  --------")')
           call FileWrite( this%iounit_errors )
-          do j = 1, pc%NFluctMax
+          write(IOBuffer, '(2F10.4)') &
+&             0._RK, &
+&             real(pc%NFluctDownSuccesses(pc%NFluctMax), RK) / &
+&               real(pc%NFluctDownAttempts(pc%NFluctMax), RK) * 100._RK
+            call FileWrite( this%iounit_errors )
+          do j = pc%NFluctMax -1, 1, -1
             write(IOBuffer, '(2F10.4)') &
-&             real(pc%NFluctUpSuccesses(j), RK) / &
-&               real(pc%NFluctUpAttempts(j), RK) * 100._RK, &
+&             real(pc%NFluctUpSuccesses(j+1), RK) / &
+&               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, &
 &             real(pc%NFluctDownSuccesses(j), RK) / &
 &               real(pc%NFluctDownAttempts(j), RK) * 100._RK
             call FileWrite( this%iounit_errors )
           end do
+          write(IOBuffer, '(2F10.4)') &
+&             real(pc%NFluctUpSuccesses(1), RK) / &
+&               real(pc%NFluctUpAttempts(1), RK) * 100._RK, &
+&             0._RK
+            call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
         end if
       end do
 

@@ -1100,7 +1100,7 @@ contains
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    BoxLengthThird = 1./3. * BoxLength
+    BoxLengthThird = Third * BoxLength
     PXi = this%PX1(np)
     PYi = this%PY1(np)
     PZi = this%PZ1(np)
