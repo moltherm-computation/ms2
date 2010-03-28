@@ -1655,7 +1655,7 @@ contains
               eX = - RXij * RijInv                                              ! Normierter Abstandsvektor nach Price
               eY = - RYij * RijInv
               eZ = - RZij * RijInv
-              CosThetai = OXi * ex + OYi * eY + OZi * eZ                        ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
+              CosThetai = OXi * ex + OYi * eY + OZi * eZ ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
               EPotLocal = Epsilon * RijSquaredInv * RijInv &
 &                          * ( CosThetai * CosThetai - Third )
               if ( this%OptPressure ) then
@@ -2372,7 +2372,7 @@ contains
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff
- 
+
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1

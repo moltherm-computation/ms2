@@ -132,7 +132,7 @@ module ms2_accumulator
   interface ErrorCF
     module procedure TAccumulatorCF_Error
   end interface
-  
+
   interface RestartSaveCF
     module procedure TAccumulator_RestartSaveCF
   end interface
@@ -184,12 +184,12 @@ contains
 
     ! Declare arguments
     type(TAccumulatorCF):: this
-    logical, intent(in) :: UpdateByAverage 
+    logical, intent(in) :: UpdateByAverage
 
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
 
-    ! Initialize 
+    ! Initialize
     this%TotalSum = 0._RK
 
     ! Allocate arrays
@@ -278,9 +278,10 @@ contains
     ! Declare arguments
     type(TAccumulatorCF) :: this
 
+#if TRANS==1
     ! Declare local variables
     integer :: stat
-#if TRANS==1
+
     ! Allocate arrays
     allocate( this%BlockSum( NBlocksMaxCF ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMaxCF )
@@ -499,16 +500,16 @@ contains
 
     ! Declare arguments
     type(TAccumulatorCF) :: this
+    integer :: Mmess
 #if TRANS==1
     ! Declare local variables
     real(RK) :: Tau(NBlockSizesCF)
-#endif
     real(RK) :: BlockAverage
     real(RK) :: sx1, sx2, sxy
     real(RK) :: TauSum, TauInf
-    integer :: i, j, k, Mmess
+    integer :: i, j
+
     ! Calculate average
-#if TRANS==1
     this%Average = this%TotalSum / Mmess
 
     ! Calculate variance
@@ -619,17 +620,17 @@ contains
 
     ! Save contents to restart file
    ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
-     
+
       do j = 1, NBlocksMaxCF
        write( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
-      end do 
-      write( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM   
-      write( iounit_restart, '(ES20.12E3)' )  this%AVERAGE 
-      write( iounit_restart, '(ES20.12E3)' )  this%VARIANCE 
-#endif   
+      end do
+      write( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM
+      write( iounit_restart, '(ES20.12E3)' )  this%AVERAGE
+      write( iounit_restart, '(ES20.12E3)' )  this%VARIANCE
+#endif
 
   end subroutine TAccumulator_RestartSaveCF
-  
+
 !==============================================================!
 !  Subroutine TAccumulator_RestartReadCF                        !
 !==============================================================!
@@ -649,15 +650,14 @@ contains
 
     ! Read contents from restart file
 !    read( iounit_restart, '(I10)' ) NBlocksMaxCF
- 
 
     do j = 1, NBlocksMaxCF
        read( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
-      end do 
-      read( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM   
-      read( iounit_restart, '(ES20.12E3)' )  this%AVERAGE 
-      read( iounit_restart, '(ES20.12E3)' )  this%VARIANCE 
-#endif 
+      end do
+      read( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM
+      read( iounit_restart, '(ES20.12E3)' )  this%AVERAGE
+      read( iounit_restart, '(ES20.12E3)' )  this%VARIANCE
+#endif
   end subroutine TAccumulator_RestartReadCF
 
 end module ms2_accumulator

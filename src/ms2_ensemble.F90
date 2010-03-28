@@ -214,7 +214,7 @@ module ms2_ensemble
 !    real(RK)         :: conduct_t_kk, conduct_t_kp, conduct_t_pp ! FIX_ME these seem to be artifacts from an old
 !    real(RK)         :: conduct_r_kk, conduct_r_kp, conduct_r_pp ! and obsolete version
 
-    ! 4.) Transport properties 
+    ! 4.) Transport properties
 
     type(TAccumulatorCF),pointer :: Sumself_i(:)
     type(TAccumulatorCF)         :: SumTer_a, SumTer_b, SumTer_c
@@ -578,7 +578,7 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) &
 &     this%EnsembleNumber
@@ -773,11 +773,11 @@ contains
 
       ! Read time span between correlations
       call FileReadParameter( this%NSpancf , iounit_params , IdSpancf )
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpancf 
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpancf
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
-      write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf 
+      write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf
       call LogWrite
 
       ! Read frequency of updating result file CF
@@ -905,7 +905,7 @@ contains
     ! Calculate long-range corrections
     call CalculateCorr( this )
     call LogWriteBlank
-    write( IOBuffer, '("Cutoff correction to")' ) 
+    write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
     write( IOBuffer, &
 &     '("- potential energy from LJ",T44, F12.8)' ) &
@@ -1005,9 +1005,9 @@ contains
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') &
 &          this%EnsembleNumber
     call LogWrite
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
- 
+
   end subroutine TEnsemble_Construct
 
 
@@ -1042,7 +1042,7 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) &
 &     this%EnsembleNumber
@@ -1826,7 +1826,7 @@ contains
 #if  TRANS == 1
 !TRANSPORT_start
       Npart3 = 3*this%Npart
-      Ncomp2 = this%NComponents*this%NComponents      
+      Ncomp2 = this%NComponents*this%NComponents
 
     ! Allocate correlation fucntions
      if( CorrfunMode .eq. active ) then
@@ -1929,7 +1929,7 @@ contains
 
       this%sc(:) = 0._RK
       this%sp(:) = 0._RK
-	end if
+    end if
     !TRANSPORT_END
 #endif
 
@@ -2181,7 +2181,7 @@ contains
     xl(2) = 1._RK / real( NCells1dim(2), RK )
     xl(3) = 1._RK / real( NCells1dim(3), RK )
     call LogWriteBlank
-    write( IOBuffer, '("Initialize positions:")' ) 
+    write( IOBuffer, '("Initialize positions:")' )
     call LogWrite
     write( IOBuffer, '(T10,"FCC lattice: " I3," *",I4,"x",I4,"x",I4," cells")' ) &
 &          NPartInCell, ( NCells1dim(i), i=1,3 )
@@ -2691,7 +2691,7 @@ loop:do l = 1, NPartInCell
     call Atom2Mol( this )
     call Correct( this )
 #if  TRANS == 1
-!TRANSPORT_start		
+!TRANSPORT_start
     if( .not.Equilibration.and.(CorrfunMode .eq. active) )then
       call CalCorrFun( this )
          if((this%Mmess.gt.0).and.(mod(Step, this%NSpancf).eq.0))then
@@ -2996,7 +2996,7 @@ loop3:    do nc = 1, this%NComponents
       ! Return if no values to integrate
       if( n < 1 ) return
 !       if( n < 3 ) then
-!         print *,"ERROR: TEnsemble_RunSVCStep simpson: n=",n,"<3"	! DEBUG
+!         print *,"ERROR: TEnsemble_RunSVCStep simpson: n=",n,"<3" ! DEBUG
 !         return
         ! could automatically use
         ! - a trapazoidal rule for n=2
@@ -4237,6 +4237,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i
     real(RK)                  :: EPotDelta
+    logical                   :: accepted
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4273,9 +4274,9 @@ loop2:        do nc = 1, this%NComponents
 
 #endif
 
-    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
-    if( EPotDelta .gt. 0._RK .or. &
-&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    accepted = EPotDelta > 0._RK
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( accepted ) then
 
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
@@ -4316,6 +4317,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i
     real(RK)                  :: EPotDelta
+    logical                   :: accepted
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4353,9 +4355,9 @@ loop2:        do nc = 1, this%NComponents
 
 #endif
 
-    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
-    if( EPotDelta .gt. 0._RK .or. &
-&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    accepted = EPotDelta > 0._RK
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( accepted ) then
 
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
@@ -4396,6 +4398,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
     real(RK)                  :: EPotDelta
+    logical                   :: accepted
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -4451,9 +4454,9 @@ loop2:        do nc = 1, this%NComponents
 
 #endif
 
-    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
-    if( EPotDelta .gt. 0._RK .or. &
-&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    accepted = EPotDelta > 0._RK
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( accepted ) then
 
       ! Accept move
       pc%NMoveBiasedSuccesses = pc%NMoveBiasedSuccesses + 1
@@ -4494,6 +4497,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
     real(RK)                  :: EPotDelta
+    logical                   :: accepted
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -4542,9 +4546,9 @@ loop2:        do nc = 1, this%NComponents
 
 #endif
 
-    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
-    if( EPotDelta .gt. 0._RK .or. &
-&       exp( EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    accepted = EPotDelta > 0._RK
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( accepted ) then
 
       ! Accept rotation
       pc%NRotateBiasedSuccesses = pc%NRotateBiasedSuccesses + 1
@@ -4656,15 +4660,15 @@ loop2:        do nc = 1, this%NComponents
     EPotDeltaAll = EPotDeltaAll &
 &     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
 &     + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
-    if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
-&     exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+    if( exp( ( EPotDeltaAll ) / this%Temperature ) > &
+&       pc%WF(oldstate) / pc%WF(newstate) * rnd( 0._RK, 1._RK ) ) then
 #else
     ! Apply long range corrections
     EPotOld = EPotOld &
 &     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
 &     + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
-    if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
-&     exp( ( EPotOld - EPotNew ) / this%Temperature ) ) then
+    if( exp( ( EPotOld - EPotNew ) / this%Temperature ) > &
+&       pc%WF(oldstate) / pc%WF(newstate) * rnd( 0._RK, 1._RK ) ) then
 #endif
 
       ! Accept
@@ -4789,18 +4793,20 @@ loop2:        do nc = 1, this%NComponents
 !DEBUG
 !  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotInsAll
 !DEBUG
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) &
-&         * this%Volume0 / np )) then
+
+    ! check if (pc%ChemPot-EPotInsAll)/this%Temperature>exp_arg_max ?
+    if( exp( ( pc%ChemPot - EPotInsAll ) / this%Temperature ) > &
+&       np / this%Volume0 * rnd( 0._RK, 1._RK ) ) then
 #else
     EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
 !DEBUG
 !  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotIns
 !DEBUG
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( pc%ChemPot - EPotIns / this%Temperature ) &
-&         * this%Volume0 / np )) then
+
+    ! check if (pc%ChemPot-EPotIns)/this%Temperature>exp_arg_max ?
+    if( exp( ( pc%ChemPot - EPotIns ) / this%Temperature ) > &
+&       np / this%Volume0 * rnd( 0._RK, 1._RK ) ) then
 #endif
 
       ! Accept Insertion
@@ -4907,9 +4913,9 @@ loop2:        do nc = 1, this%NComponents
 !DEBUG
 
     ! Apply acceptance criterion
-    if( rnd( 0._RK, 1._RK ) .lt. &
-&       ( exp( EPotDel / this%Temperature - pc%ChemPot ) &
-&         * this%Density * pc%Fraction )) then
+    ! check if EPotDel/this%Temperature-pc%ChemPot>exp_arg_max ?
+    if( exp( EPotDel / this%Temperature - pc%ChemPot ) > &
+&       rnd( 0._RK, 1._RK ) / this%Density / pc%Fraction ) then
 
       ! Accept Deletion
       this%NDeleteSuccesses = this%NDeleteSuccesses + 1
@@ -5071,6 +5077,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
     real(RK) :: EPotNew
 #endif
+    logical  :: accepted
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -5102,9 +5109,9 @@ loop2:        do nc = 1, this%NComponents
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
 
     ! Apply Metropolis acceptance criterion
-    ! for EPotDelta/this%Temperature<-709.78271 an overflow still might occur for double precision exp
-    if( EPotDelta .lt. 0._RK .or. &
-&       exp( -EPotDelta / this%Temperature ) .gt. rnd( 0._RK, 1._RK ) ) then
+    accepted = EPotDelta < 0._RK
+    if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( accepted ) then
 
       ! Accept volume change
       this%NResizeSuccesses = this%NResizeSuccesses + 1
@@ -5556,7 +5563,7 @@ loop2:        do nc = 1, this%NComponents
 &         - this%SumEPotVirial%Average ) + this%SumVirial%Average ) )
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &       * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
-	endif
+    endif
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
     if( mod( Step - this%Ncorr, BlockSizeCF * this%NSpancf ) == 0 .and. &
@@ -5781,7 +5788,7 @@ loop2:        do nc = 1, this%NComponents
       if(this%Ncomponents==2)then
         write( IOBuffer, '(T5,"D_12")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-      end if 
+      end if
       if(this%Ncomponents==3)then
           write( IOBuffer, '(T4, "D_ijk", I2)') i
           call FileWriteNoAdvance( this%iounit_rescf )
@@ -5806,7 +5813,7 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       if( this%Ncomponents == 3 ) then
-           write( IOBuffer, '(T6,"IntDijk")' ) 
+           write( IOBuffer, '(T6,"IntDijk")' )
            call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
@@ -6519,7 +6526,7 @@ loop2:        do nc = 1, this%NComponents
       value = this%Ncorr*TimeStep
       write( IOBuffer, '("Length ACF  ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK 
+      write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
       call FileWrite( this%iounit_errors )
 
       call FileWriteBlank( this%iounit_errors )
@@ -6527,7 +6534,7 @@ loop2:        do nc = 1, this%NComponents
       value = this%NSpancf*TimeStep
       write( IOBuffer, '("Time span between ACF ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK 
+      write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
       call FileWrite( this%iounit_errors )
 
       call FileWriteBlank( this%iounit_errors )
@@ -6616,12 +6623,12 @@ loop2:        do nc = 1, this%NComponents
           Variance = this%Sumself_i(i)%Variance
           end if
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' )  & 
+          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' )  &
 &          trim( this%Component(i)%Molecule%PotModFileName ), this%selfd_i(i), Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' )  this%selfd_i(i)*value, Variance*value
           call FileWrite( this%iounit_errors )
-         end do 
+         end do
           call FileWriteBlank( this%iounit_errors )
 
           if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
@@ -6636,7 +6643,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", 2F20.9)' ) this%visco_s, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) this%visco_s*value, Variance*value
-          call FileWrite( this%iounit_errors )  
+          call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
           if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
@@ -6650,7 +6657,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) this%visco_b, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) this%visco_b*value, Variance*value
-          call FileWrite( this%iounit_errors )  
+          call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
           if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
@@ -6665,7 +6672,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
-          call FileWrite( this%iounit_errors )  
+          call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
       else
@@ -6679,12 +6686,12 @@ loop2:        do nc = 1, this%NComponents
         end if
 
          do i = 1, this%NComponents
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' )  & 
+          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' )  &
 &          trim( this%Component(i)%Molecule%PotModFileName ), 0._8
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._8
           call FileWrite( this%iounit_errors )
-         end do 
+         end do
           call FileWriteBlank( this%iounit_errors )
 
           write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", F20.9)' )  0._8
@@ -7361,97 +7368,95 @@ loop2:        do nc = 1, this%NComponents
 
 #if TRANS ==1
 if( RootProc ) then
-	write( iounit_restart, '(I10)' ) this%Ncorr
-	write( iounit_restart, '(I10)' ) this%Mmess
+    write( iounit_restart, '(I10)' ) this%Ncorr
+    write( iounit_restart, '(I10)' ) this%Mmess
 
-	do i = 1, 3*this%Npart
-		do j = 1, this%Ncorr
-			write( iounit_restart, '(ES20.12E3)' )  this%a( i, j)	
-		end do
-	end do
-	
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:) 
-	end do
-	
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(ES20.12E3)' ) this%cf_c(i) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i) 
-	end do
-	do i = 1, this%Ncorr
-		write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
-	end do
-
-	if (this%Ncomponents==2) then
-		do i = 1, this%Ncorr
-			write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i) 
-		end do
-	end if
-	
-
-   	do i = 1, this%Ncomponents
-   		do j = 1, this%Ncorr
-			write( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
-		end do
-	end do 
-	
-	do i = 1, this%Ncomponents*this%Ncomponents
-                do j = 1, this%Ncorr
-                        write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
-                end do
+    do i = 1, 3*this%Npart
+        do j = 1, this%Ncorr
+            write( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
+    end do
+
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
+    end do
+
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
+    end do
+    do i = 1, this%Ncorr
+        write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
+    end do
+
+    if (this%Ncomponents==2) then
+        do i = 1, this%Ncorr
+            write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
+        end do
+    end if
+
+    do i = 1, this%Ncomponents
+      do j = 1, this%Ncorr
+        write( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
+      end do
+    end do
+
+    do i = 1, this%Ncomponents*this%Ncomponents
+      do j = 1, this%Ncorr
+        write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+      end do
+    end do
 
     write( iounit_restart, '(I10)' ) NBlocksMaxCF
-    
+
     do i = 1, this%NComponents
-      	call RestartSaveCF( this%Sumself_i(i) )
+      call RestartSaveCF( this%Sumself_i(i) )
     end do
-         
- 
+
     if(this%Ncomponents == 2) then
-     	call RestartSaveCF( this%SumBin_d )
+      call RestartSaveCF( this%SumBin_d )
     end if
-    
+
     if(this%Ncomponents == 3) then
     call RestartSaveCF( this%SumTer_a )
     call RestartSaveCF( this%SumTer_b )
     call RestartSaveCF( this%SumTer_c )
-    end if 
- 
+    end if
+
     call RestartSaveCF( this%SumVisco_s )
     call RestartSaveCF( this%SumVisco_b )
     call RestartSaveCF( this%SumConduct )
 
- 	do i = 1,3
-		write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
-	end do
+    do i = 1,3
+      write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
+    end do
 
-	do i = 1,3
-		write( iounit_restart, '(ES20.12E3)' )  this%sc(i)
-	end do
+    do i = 1,3
+      write( iounit_restart, '(ES20.12E3)' )  this%sc(i)
+    end do
 
 endif
 #endif
@@ -7626,109 +7631,104 @@ endif
 
 #if TRANS ==1
 if( RootProc ) then
-	read( iounit_restart, '(I10)' ) this%Ncorr
-	read( iounit_restart, '(I10)' ) this%Mmess
+    read( iounit_restart, '(I10)' ) this%Ncorr
+    read( iounit_restart, '(I10)' ) this%Mmess
 end if
 
 #if MPI_VER > 0
-	call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
+    call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
-	call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
+    call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
 #endif
 
 if( RootProc ) then
-	do i = 1, 3*this%Npart
-		do j = 1, this%Ncorr
-			read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)	
-		end do
-	end do
-	
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:) 
-	end do
-	
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(ES20.12E3)' ) this%cf_c(i) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i) 
-	end do
-	do i = 1, this%Ncorr
-		read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i) 
-	end do
-
-	if (this%Ncomponents==2) then	
-		do i = 1, this%Ncorr
-			read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i) 
-		end do
-	end if
-	
-
-   	do i = 1, this%Ncomponents
-   		do j = 1, this%Ncorr
-			read( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
-		end do
-	end do 
-
-	do i = 1, this%Ncomponents*this%Ncomponents
-                do j = 1, this%Ncorr
-                        read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
-                end do
+    do i = 1, 3*this%Npart
+        do j = 1, this%Ncorr
+            read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
+    end do
 
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
+    end do
 
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
+    end do
+    do i = 1, this%Ncorr
+        read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
+    end do
 
-     read( iounit_restart, '(I10)' ) NBlocksMaxCF
+    if (this%Ncomponents==2) then
+        do i = 1, this%Ncorr
+            read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
+        end do
+    end if
 
-           
- 
+    do i = 1, this%Ncomponents
+        do j = 1, this%Ncorr
+            read( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
+        end do
+    end do
+
+    do i = 1, this%Ncomponents*this%Ncomponents
+        do j = 1, this%Ncorr
+            read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+        end do
+    end do
+
+    read( iounit_restart, '(I10)' ) NBlocksMaxCF
+
     do i = 1, this%NComponents
       call RestartReadCF( this%Sumself_i(i) )
     end do
-          
+
     if(this%Ncomponents == 2) then
-    	call RestartReadCF( this%SumBin_d )
+      call RestartReadCF( this%SumBin_d )
     end if
-    
+
     if(this%Ncomponents == 3) then
     call RestartReadCF( this%SumTer_a )
     call RestartReadCF( this%SumTer_b )
     call RestartReadCF( this%SumTer_c )
-    end if 
-    
+    end if
+
     call RestartReadCF( this%SumVisco_s )
     call RestartReadCF( this%SumVisco_b )
     call RestartReadCF( this%SumConduct )
 
-	do i = 1,3 
-		read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
-	end do 
+    do i = 1,3
+        read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
+    end do
 
- 	do i = 1,3
-		read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
-	end do
+    do i = 1,3
+        read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
+    end do
 
 end if
 
@@ -7761,7 +7761,7 @@ end if
   end subroutine TEnsemble_RestartRead
 
 
-! TRANSPORT ab hier 
+! TRANSPORT ab hier
 !==============================================================!
 !  Subroutine TEnsemble_CalCorrFun                             !
 !==============================================================!
@@ -7814,7 +7814,7 @@ end if
        np = this%Component(i)%Npart
 #if MPI_VER > 0
        pfb => this%Component(i)%fbAll(:,:)
-#else 
+#else
        pfb => this%Component(i)%fb(:,:)
 #endif
        do k =1, 3
@@ -7888,7 +7888,7 @@ end if
 #if MPI_VER > 0
        pfb => this%Component(i)%fbAll(:,:)
        pfs => this%Component(i)%fsAll(:,:)
-#else 
+#else
        pfb => this%Component(i)%fb(:,:)
        pfs => this%Component(i)%fs(:,:)
 #endif
@@ -7913,7 +7913,7 @@ end if
      do i = 1, this%Ncomponents
        if (i.eq.1) then
          j0 = 0
-         k  = this%Component(i)%Npart 
+         k  = this%Component(i)%Npart
        else
          j0 = k
          k  = k + this%Component(i)%Npart
@@ -7961,7 +7961,7 @@ end if
 
               this%vbk(Mindex, k) = this%vbk(Mindex, k) + this%Component(i)%KinETran(j,k)
 
-              this%vckt(Mindex, k)= this%vckt(Mindex, k) + this%Component(i)%P1(j, k)*EKinTran(i,j)*  & 
+              this%vckt(Mindex, k)= this%vckt(Mindex, k) + this%Component(i)%P1(j, k)*EKinTran(i,j)*  &
      &                              this%Component(i)%Molecule%Mass*BoxLength_dt
 
               this%vckr(Mindex, k)= this%vckr(Mindex, k) + this%Component(i)%P1(j, k)*EKinRot(i,j)*  &
@@ -7979,7 +7979,7 @@ end if
 
 
       if (Mindex .eq. this%Ncorr) then
-         CFindex = 1                       !index of t = t0 
+         CFindex = 1                       !index of t = t0
          else
             CFindex = Mindex +1
       end if
@@ -7997,7 +7997,7 @@ end if
                  k  = this%Component(i)%Npart
                  else
                   j0 = k
-                  k  = k + this%Component(i)%Npart  
+                  k  = k + this%Component(i)%Npart
               end if
               do j = 1, this%Component(i)%Npart
                  sx(i,nmess)  = sx(i, nmess) + this%a(j+j0            , nmess)
@@ -8024,11 +8024,11 @@ end if
          end if
 
 !Calculate auto-correlation functions
-	!Nur selbstdiffusion
+         !Nur selbstdiffusion
          do i = 1, this%Ncomponents
             if (i.eq.1) then
                j0 = 0
-               k  = this%Component(i)%Npart 
+               k  = this%Component(i)%Npart
             else
                   j0 = k
                   k  = k + this%Component(i)%Npart
@@ -8058,7 +8058,7 @@ end if
            if (this%Ncomponents .gt. 1)then
                nc = this%NComponents
                k = 1
-	       do i = 1, nc
+               do i = 1, nc
                   do j = 1,nc
                   this%lamda(k, nmess) = this%lamda(k, nmess) + sx(i, CFindex)*sx(j, s) &
                                                               + sy(i, CFindex)*sy(j, s) &
@@ -8135,7 +8135,7 @@ end if
     type(TEnsemble) :: this
 #if TRANS==1
     ! Declare local varibles
-    integer  :: i, k 
+    integer  :: i, k
     integer  :: ncomp2
     real(RK) :: helpvar, det, deter1, deter2, deter3, deter4
     real(RK) :: x1, x2, x3
@@ -8166,11 +8166,11 @@ end if
         this%sinte_db = simpson( this%cf_db(:)/this%cf_db(1), TimeStep, this%NCorr )
 
         this%binary_d = (((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1)) * &
-&        				(this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
-&                       ((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1)) * &
-&						(this%Component(1)%Fraction/this%Component(2)%Fraction)) - &
-&                       (this%sinte_lamda(2,this%NCorr)*this%lamda(2,1)) - &
-&						(this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
+&                         (this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
+&                        ((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1)) * &
+&                         (this%Component(1)%Fraction/this%Component(2)%Fraction)) - &
+&                         (this%sinte_lamda(2,this%NCorr)*this%lamda(2,1)) - &
+&                         (this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
 
 !      this%binary_d = this%sinte_db( this%NCorr ) * this%cf_db(1)* (1._RK /(3._RK *this%Component(1)%Npart * this%Mmess) * &
 !&       ( (this%Component(1)%Fraction * this%Component(1)%Molecule%Mass + &
@@ -8195,7 +8195,6 @@ end if
 &                              ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
 &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
- 
        deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
 &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
 &                        ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
@@ -8223,15 +8222,14 @@ end if
 
       det = (deter1*deter4)-(deter2*deter3)
 
-	B11 =  deter4 * (1._RK/det)
-        B12 = -deter2 * (1._RK/det)
-        B21 = -deter3 * (1._RK/det)
-        B22 =  deter1 * (1._RK/det)
+      B11 =  deter4 * (1._RK/det)
+      B12 = -deter2 * (1._RK/det)
+      B21 = -deter3 * (1._RK/det)
+      B22 =  deter1 * (1._RK/det)
 
-
-        this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) ) 
-        this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
-        this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
+      this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
+      this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
+      this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
 
      end if
 
@@ -8370,9 +8368,9 @@ end if
 !     EPot = GetEnergy( this )
 !     write(*,*) (EPot - this%Density * this%EPotCorrLJ - &
 ! &     this%EPotCorrRF) / real( this%NPart, 8 )
-! 
+!
 !     i = system('./igi')
-! 
+!
 !     stop
 
   end subroutine TEnsemble_DbgWrite

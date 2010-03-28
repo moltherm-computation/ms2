@@ -23,7 +23,7 @@
 
 module ms2_global
 
-!#ifdev MPI_VER > 0
+!#if MPI_VER > 0
 !  use mpi
 !#endif
 
@@ -97,15 +97,19 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'alpha'
 #elif ARCH == 2
 #ifdef _WIN32
-  character(*), parameter :: Hardware = 'Win32'
+  character(*), parameter :: Hardware = 'pc/win32'
 #elif defined __INTEL_COMPILER
-  character(*), parameter :: Hardware = 'Linux/Ifort'
+  character(*), parameter :: Hardware = 'pc/ifort'
+#elif defined __SUNPRO_F90
+  character(*), parameter :: Hardware = 'pc/sunF90'
+#elif defined __PATHSCALE__
+  character(*), parameter :: Hardware = 'pc/pathf9X'
 #elif defined _PGF
-  character(*), parameter :: Hardware = 'Linux/PGF'
+  character(*), parameter :: Hardware = 'pc/PGF'
 #elif defined __GNUC__
-  character(*), parameter :: Hardware = 'Linux/GFortran'
+  character(*), parameter :: Hardware = 'pc/gfortran'
 #else
-  character(*), parameter :: Hardware = 'Linux/any'
+  character(*), parameter :: Hardware = 'pc/any'
 #endif
 #elif ARCH == 3
   character(*), parameter :: Hardware = 'NEC SX-8'
@@ -151,7 +155,7 @@ character(*), parameter :: VersionString = 'v12'
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
 #if  TRANS == 1
- 
+
 !TRANSPORT_start
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
@@ -324,6 +328,10 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNFluct                      = 'NFluct'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
+  ! limits
+  real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
+  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
+
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
 
@@ -437,7 +445,7 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: WFMethodOptSet = 3
 #if  TRANS == 1
 !TRANSPORT_start
-  ! Correlation function status 
+  ! Correlation function status
   character(80)      :: CorrfunModeString
   integer, parameter :: active                 = 1
   integer, parameter :: inactive               = 2
@@ -712,7 +720,7 @@ character(*), parameter :: VersionString = 'v12'
   ! change current directory
 #if defined _PGF
   integer, external :: chdir
-!#elif defined 
+!#elif defined
   !external chdir
 #endif
 
@@ -814,8 +822,8 @@ contains
         print *, trim( ProgramFileName ) &
 &              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
         print *, 'usage: ', trim( ProgramFileName ) &
-&              , ' {<par-file[', ParameterFileExtension, ']|<rst-file>' &
-&              , RestartFileExtension, '}'
+&              , ' {<par-file[', ParameterFileExtension &
+&              , ']|<rst-file>', RestartFileExtension, '}'
 
         ! Abort program
 #if MPI_VER > 0
@@ -949,7 +957,7 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '("72(1H-)")')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -965,6 +973,10 @@ contains
     call Randomize( seed = 5333 )
 
     ! Define some constants
+
+    !limits_RK_MAX = huge(limits_RK_MAX)
+    exp_arg_max = log(limits_RK_MAX)
+
 #ifdef SINGLEPRECISION
     DebyesInSI = real( sqrt( 1E49_8 / (4._8 * real(Pi, 8) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
@@ -1190,24 +1202,24 @@ contains
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '("************************************************************************")')
     call LogWrite
-    write( IOBuffer, '("*                Molecular Simulation 2                   *")')
+    write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '("************************************************************************")')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
     call LogWrite
-    write( IOBuffer, '("compiled at ", A, " for ", A)' ) &
-&          CompileTime, Hardware
+    write( IOBuffer, '("compiled at ", A, " for ", A, " with RK", I2)' ) &
+&          CompileTime, Hardware, RK
     call LogWrite
     write( IOBuffer, '("started by ", A," on ", A)' ) &
 &          trim( username ), trim( hostname )
     call LogWriteTime
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine Global_LogOpen
@@ -1232,11 +1244,11 @@ contains
 
     ! Close log file
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call FileClose( iounit_log )
 
@@ -1736,7 +1748,7 @@ contains
   subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
-  ! for a FileReadParameter polymorphism 
+  ! for a FileReadParameter polymorphism
 
     implicit none
 
@@ -1992,7 +2004,7 @@ contains
 
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     call LogWriteBlank
 

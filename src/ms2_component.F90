@@ -361,7 +361,7 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 #if  TRANS == 1
-!TRANSPORT_start	
+!TRANSPORT_start
   interface ForceTransport
     module procedure TComponent_ForceTransport
   end interface
@@ -412,7 +412,7 @@ contains
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     write( IOBuffer, '(T13, "Reading components for ensemble", I3)') comp
     call LogWrite
@@ -560,7 +560,7 @@ contains
 
     write( IOBuffer, '(T8, "Reading components for ensemble", I3, " successful")') comp
     call LogWrite
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine TComponent_Construct
@@ -818,8 +818,9 @@ contains
     integer :: np, ntest, nf
     integer :: i
     integer :: stat
+#if  TRANS == 1
     real(RK), pointer:: Q00(: , :)
-
+#endif
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -896,11 +897,10 @@ contains
     nullify( this%frc1All )
     nullify( this%frc2All )
     nullify( this%frc3All )
-
 #endif
 
-    ! Tranport
-    
+    ! Transport
+
     allocate( this%KinETran( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
@@ -1134,13 +1134,13 @@ contains
         this%Molecule%SiteLJ126(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteLJ126(i)%PZTest => this%P0Test(:, 3)
         end if
-#if TRANS==1	  
-	  if (this%Molecule%isElongated) then
-	  this%Molecule%SiteLJ126(i)%Q0r => this%Q0
-	  else 
-	  this%Molecule%SiteLJ126(i)%Q0r => Q00
-	  end if
-#endif    
+#if TRANS==1
+        if (this%Molecule%isElongated) then
+          this%Molecule%SiteLJ126(i)%Q0r => this%Q0
+        else
+          this%Molecule%SiteLJ126(i)%Q0r => Q00
+        end if
+#endif
     end do
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
@@ -1157,12 +1157,12 @@ contains
         this%Molecule%SiteCharge(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteCharge(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteCharge(i)%PZTest => this%P0Test(:, 3)
-        end if
+      end if
 #if TRANS==1
-	  if (this%Molecule%isElongated) then
-	  this%Molecule%SiteCharge(i)%Q0r => this%Q0
-	  else
-  	  this%Molecule%SiteCharge(i)%Q0r => Q00
+      if (this%Molecule%isElongated) then
+        this%Molecule%SiteCharge(i)%Q0r => this%Q0
+      else
+        this%Molecule%SiteCharge(i)%Q0r => Q00
       end if
 #endif
     end do
@@ -1183,10 +1183,10 @@ contains
         this%Molecule%SiteDipole(i)%PZTest => this%P0Test(:, 3)
         end if
 #if TRANS==1
-	  if (this%Molecule%isElongated) then
-      this%Molecule%SiteDipole(i)%Q0r => this%Q0
+      if (this%Molecule%isElongated) then
+        this%Molecule%SiteDipole(i)%Q0r => this%Q0
       else
-      this%Molecule%SiteDipole(i)%Q0r => Q00
+        this%Molecule%SiteDipole(i)%Q0r => Q00
       end if
 #endif
     end do
@@ -1207,11 +1207,11 @@ contains
         this%Molecule%SiteQuadrupole(i)%PZTest => this%P0Test(:, 3)
         end if
 #if TRANS==1
-	  if (this%Molecule%isElongated) then
-      this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
+      if (this%Molecule%isElongated) then
+        this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
       else
-      this%Molecule%SiteQuadrupole(i)%Q0r => Q00
-      end if 
+        this%Molecule%SiteQuadrupole(i)%Q0r => Q00
+      end if
 #endif
     end do
 
@@ -2222,18 +2222,18 @@ contains
     real(RK)                       :: BoxLength
     real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
-    real(RK)                       :: fx, fy, fz, tx, ty, tz 
+    real(RK)                       :: fx, fy, fz, tx, ty, tz
 #if  TRANS == 1
     !TRANSPORT_start
-	real(RK)                       :: vsx,vsy,vsz 
-	real(RK)                       :: vsux,vsuy,vsuz 
-	real(RK)                       :: vbx,vby,vbz
-	real(RK)                       :: cx, cy, cz
-    real(RK)                       :: tux, tuy, tuz, tlx, tly, tlz, tdx, tdy, tdz 
-	real(RK)                       :: BoxLength_dt    
+    real(RK)                       :: vsx,vsy,vsz
+    real(RK)                       :: vsux,vsuy,vsuz
+    real(RK)                       :: vbx,vby,vbz
+    real(RK)                       :: cx, cy, cz
+    real(RK)                       :: tux, tuy, tuz, tlx, tly, tlz, tdx, tdy, tdz
+    real(RK)                       :: BoxLength_dt
 #endif
 !TRANSPORT_END
-  
+
   real(RK)                       :: A11, A12, A13, A21, A22, A23, &
 &                                     A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
@@ -2287,28 +2287,28 @@ contains
           fz = pLJ126%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
-          vsx = pLJ126%vsLJx(i) 
-          vsy = pLJ126%vsLJy(i) 
-          vsz = pLJ126%vsLJz(i) 
-          vsux= pLJ126%vsuLJx(i) 
-          vsuy= pLJ126%vsuLJy(i) 
-          vsuz= pLJ126%vsuLJz(i) 
-          vbx = pLJ126%vbLJx(i) 
-          vby = pLJ126%vbLJy(i) 
-          vbz = pLJ126%vbLJz(i) 
-          cx  = pLJ126%cLJx(i) 
-          cy  = pLJ126%cLJy(i) 
-          cz  = pLJ126%cLJz(i) 
+          vsx = pLJ126%vsLJx(i)
+          vsy = pLJ126%vsLJy(i)
+          vsz = pLJ126%vsLJz(i)
+          vsux= pLJ126%vsuLJx(i)
+          vsuy= pLJ126%vsuLJy(i)
+          vsuz= pLJ126%vsuLJz(i)
+          vbx = pLJ126%vbLJx(i)
+          vby = pLJ126%vbLJy(i)
+          vbz = pLJ126%vbLJz(i)
+          cx  = pLJ126%cLJx(i)
+          cy  = pLJ126%cLJy(i)
+          cz  = pLJ126%cLJz(i)
           tux = pLJ126%tuLJx(i)
-		  tuy = pLJ126%tuLJy(i)
-		  tuz = pLJ126%tuLJz(i)
-		  tlx = pLJ126%tlLJx(i)
-		  tly = pLJ126%tlLJy(i)
-		  tlz = pLJ126%tlLJz(i)
-		  tdx = pLJ126%tdLJx(i)
-		  tdy = pLJ126%tdLJy(i)
-		  tdz = pLJ126%tdLJz(i)
-		  !TRANSPORT_END
+          tuy = pLJ126%tuLJy(i)
+          tuz = pLJ126%tuLJz(i)
+          tlx = pLJ126%tlLJx(i)
+          tly = pLJ126%tlLJy(i)
+          tlz = pLJ126%tlLJz(i)
+          tdx = pLJ126%tdLJx(i)
+          tdy = pLJ126%tdLJy(i)
+          tdz = pLJ126%tdLJz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pLJ126%RX(i) - RX(i) ) * BoxLength
           r1y = ( pLJ126%RY(i) - RY(i) ) * BoxLength
@@ -2361,28 +2361,28 @@ contains
           fz = pCharge%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
-          vsx = pCharge%vsCx(i) 
-          vsy = pCharge%vsCy(i) 
-          vsz = pCharge%vsCz(i) 
-          vsux= pCharge%vsuCx(i) 
-          vsuy= pCharge%vsuCy(i) 
-          vsuz= pCharge%vsuCz(i) 
-          vbx = pCharge%vbCx(i) 
-          vby = pCharge%vbCy(i) 
-          vbz = pCharge%vbCz(i) 
-          cx  = pCharge%cCx(i) 
-          cy  = pCharge%cCy(i) 
-          cz  = pCharge%cCz(i) 
-		  tux = pCharge%tuCx(i)
-		  tuy = pCharge%tuCy(i)
+          vsx = pCharge%vsCx(i)
+          vsy = pCharge%vsCy(i)
+          vsz = pCharge%vsCz(i)
+          vsux= pCharge%vsuCx(i)
+          vsuy= pCharge%vsuCy(i)
+          vsuz= pCharge%vsuCz(i)
+          vbx = pCharge%vbCx(i)
+          vby = pCharge%vbCy(i)
+          vbz = pCharge%vbCz(i)
+          cx  = pCharge%cCx(i)
+          cy  = pCharge%cCy(i)
+          cz  = pCharge%cCz(i)
+          tux = pCharge%tuCx(i)
+          tuy = pCharge%tuCy(i)
           tuz = pCharge%tuCz(i)
-		  tlx = pCharge%tlCx(i)
-		  tly = pCharge%tlCy(i)
-		  tlz = pCharge%tlCz(i)
-		  tdx = pCharge%tdCx(i)
-		  tdy = pCharge%tdCy(i)
-		  tdz = pCharge%tdCz(i)
-		  !TRANSPORT_END
+          tlx = pCharge%tlCx(i)
+          tly = pCharge%tlCy(i)
+          tlz = pCharge%tlCz(i)
+          tdx = pCharge%tdCx(i)
+          tdy = pCharge%tdCy(i)
+          tdz = pCharge%tdCz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
           r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
@@ -2435,28 +2435,28 @@ contains
           fz = pDipole%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
-          vsx = pDipole%vsDx(i) 
-          vsy = pDipole%vsDy(i) 
-          vsz = pDipole%vsDz(i) 
-          vsux= pDipole%vsuDx(i) 
-          vsuy= pDipole%vsuDy(i) 
-          vsuz= pDipole%vsuDz(i) 
-          vbx = pDipole%vbDx(i) 
-          vby = pDipole%vbDy(i) 
+          vsx = pDipole%vsDx(i)
+          vsy = pDipole%vsDy(i)
+          vsz = pDipole%vsDz(i)
+          vsux= pDipole%vsuDx(i)
+          vsuy= pDipole%vsuDy(i)
+          vsuz= pDipole%vsuDz(i)
+          vbx = pDipole%vbDx(i)
+          vby = pDipole%vbDy(i)
           vbz = pDipole%vbDz(i)
-          cx  = pDipole%cDx(i) 
-          cy  = pDipole%cDy(i) 
-          cz  = pDipole%cDz(i) 
-     	  tux = pDipole%tuDx(i)
-		  tuy = pDipole%tuDy(i)
-		  tuz = pDipole%tuDz(i)
-		  tlx = pDipole%tlDx(i)
-		  tly = pDipole%tlDy(i)
-		  tlz = pDipole%tlDz(i)
-		  tdx = pDipole%tdDx(i)
-		  tdy = pDipole%tdDy(i)
-		  tdz = pDipole%tdDz(i)
-		  !TRANSPORT_END
+          cx  = pDipole%cDx(i)
+          cy  = pDipole%cDy(i)
+          cz  = pDipole%cDz(i)
+          tux = pDipole%tuDx(i)
+          tuy = pDipole%tuDy(i)
+          tuz = pDipole%tuDz(i)
+          tlx = pDipole%tlDx(i)
+          tly = pDipole%tlDy(i)
+          tlz = pDipole%tlDz(i)
+          tdx = pDipole%tdDx(i)
+          tdy = pDipole%tdDy(i)
+          tdz = pDipole%tdDz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
           r1y = ( pDipole%RY(i) - ry(i) ) * BoxLength
@@ -2515,28 +2515,28 @@ contains
           fz = pQuadrupole%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
-          vsx = pQuadrupole%vsQx(i) 
-          vsy = pQuadrupole%vsQy(i) 
-          vsz = pQuadrupole%vsQz(i) 
-          vsux= pQuadrupole%vsuQx(i) 
-          vsuy= pQuadrupole%vsuQy(i) 
-          vsuz= pQuadrupole%vsuQz(i) 
-          vbx = pQuadrupole%vbQx(i) 
-          vby = pQuadrupole%vbQy(i) 
-          vbz = pQuadrupole%vbQz(i) 
-          cx  = pQuadrupole%cQx(i) 
-          cy  = pQuadrupole%cQy(i) 
-          cz  = pQuadrupole%cqz(i) 
-     	  tux = pQuadrupole%tuQx(i)
-		  tuy = pQuadrupole%tuQy(i)
-		  tuz = pQuadrupole%tuQz(i)
-		  tlx = pQuadrupole%tlQx(i)
-		  tly = pQuadrupole%tlQy(i)
-		  tlz = pQuadrupole%tlQz(i)
-		  tdx = pQuadrupole%tdQx(i)
-		  tdy = pQuadrupole%tdQy(i)
-		  tdz = pQuadrupole%tdQz(i)
-		  !TRANSPORT_END
+          vsx = pQuadrupole%vsQx(i)
+          vsy = pQuadrupole%vsQy(i)
+          vsz = pQuadrupole%vsQz(i)
+          vsux= pQuadrupole%vsuQx(i)
+          vsuy= pQuadrupole%vsuQy(i)
+          vsuz= pQuadrupole%vsuQz(i)
+          vbx = pQuadrupole%vbQx(i)
+          vby = pQuadrupole%vbQy(i)
+          vbz = pQuadrupole%vbQz(i)
+          cx  = pQuadrupole%cQx(i)
+          cy  = pQuadrupole%cQy(i)
+          cz  = pQuadrupole%cqz(i)
+          tux = pQuadrupole%tuQx(i)
+          tuy = pQuadrupole%tuQy(i)
+          tuz = pQuadrupole%tuQz(i)
+          tlx = pQuadrupole%tlQx(i)
+          tly = pQuadrupole%tlQy(i)
+          tlz = pQuadrupole%tlQz(i)
+          tdx = pQuadrupole%tdQx(i)
+          tdy = pQuadrupole%tdQy(i)
+          tdz = pQuadrupole%tdQz(i)
+          !TRANSPORT_END
 #endif
           r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
           r1y = ( pQuadrupole%RY(i) - ry(i) ) * BoxLength
@@ -2615,18 +2615,18 @@ contains
         do i = 1, np
 #if  TRANS == 1
         !TRANSPORT_start
-          vsx = pLJ126%vsLJx(i) 
-          vsy = pLJ126%vsLJy(i) 
-          vsz = pLJ126%vsLJz(i) 
-          vsux= pLJ126%vsuLJx(i) 
-          vsuy= pLJ126%vsuLJy(i) 
-          vsuz= pLJ126%vsuLJz(i) 
-          vbx = pLJ126%vbLJx(i) 
-          vby = pLJ126%vbLJy(i) 
-          vbz = pLJ126%vbLJz(i) 
-          cx  = pLJ126%cLJx(i) 
-          cy  = pLJ126%cLJy(i) 
-          cz  = pLJ126%cLJz(i) 
+          vsx = pLJ126%vsLJx(i)
+          vsy = pLJ126%vsLJy(i)
+          vsz = pLJ126%vsLJz(i)
+          vsux= pLJ126%vsuLJx(i)
+          vsuy= pLJ126%vsuLJy(i)
+          vsuz= pLJ126%vsuLJz(i)
+          vbx = pLJ126%vbLJx(i)
+          vby = pLJ126%vbLJy(i)
+          vbz = pLJ126%vbLJz(i)
+          cx  = pLJ126%cLJx(i)
+          cy  = pLJ126%cLJy(i)
+          cz  = pLJ126%cLJz(i)
           !TRANSPORT_END
 #endif
           this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
@@ -3657,8 +3657,8 @@ subroutine TComponent_ForceTransport( this )
 
     ! Declare arguments
     type(TComponent)  :: this
-#if TRANS==1    
-	integer           :: i, j, k, nra
+#if TRANS==1
+    integer           :: i, j, k, nra
     real(RK), pointer :: pftc1(:,:), pftc2(:,:), pftc3(:,:)
     real(RK), pointer :: pfrc1(:,:), pfrc2(:,:), pfrc3(:,:)
     real(RK)          :: BoxLength_dt
@@ -3714,12 +3714,12 @@ subroutine TComponent_ForceTransport( this )
 
 
 
-! Calculate kinetic energy / molecule 
+! Calculate kinetic energy / molecule
 
    do j = 1, 3
      do i = 1, this%NPart
 
-       this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j) 
+       this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
 
      end do
    end do

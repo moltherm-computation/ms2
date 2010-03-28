@@ -750,7 +750,7 @@ contains
         FZi = FZ1(i)
         PXi = PX1(i)
         PYi = PY1(i)
-        PZi = PZ1(i) 
+        PZi = PZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx(i)
@@ -811,7 +811,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
 #if TRANS==1
           RijSInvNorm   = Sqrt(RijSquaredInv)
-#endif          
+#endif
           Rij6Inv = RijSquaredInv**3
 #if TRANS==1
           UU   = RijSInvNorm*Epsilon4*Rij6Inv*(Rij6Inv - 1._RK)*SigmaInv
@@ -1334,7 +1334,7 @@ loop2:do j = 1, N
     real(RK)          :: tdxi,  tdyi,  tdzi
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: UU, Uxi,  Uyi, Uzi, RijSInvNorm
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)          :: Rij2
@@ -1480,7 +1480,7 @@ loop1:do k = 1, this%NInCutoff(i)
         RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
 #endif
 #if TRANS==1
-        Rij2   = RXij**2 + RYij**2 + RZij**2 
+        Rij2   = RXij**2 + RYij**2 + RZij**2
 #endif
         eX = RXij * RijInv
         eY = RYij * RijInv
@@ -1491,8 +1491,8 @@ loop1:do k = 1, this%NInCutoff(i)
         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
         Uxi       = UU * eX
-        Uyi       = UU * eY 
-        Uzi       = UU * eZ 
+        Uyi       = UU * eY
+        Uzi       = UU * eZ
         !TRANSPORT_END
 #endif
         VirialLocal = VirialLocal + EPotLocal1 * RijInv &
@@ -1529,11 +1529,11 @@ loop1:do k = 1, this%NInCutoff(i)
         tuxi   = tuxi + PXij*tyi
         tuyi   = tuyi + PXij*tzi
         tuzi   = tuzi + PYij*tzi
-        tlxi   = tlxi + PYij*txi    
-        tlyi   = tlyi + PZij*txi    
-        tlzi   = tlzi + PZij*tyi    
-        tdxi   = tdxi + PXij*txi    
-        tdyi   = tdyi + PYij*tyi    
+        tlxi   = tlxi + PYij*txi
+        tlyi   = tlyi + PZij*txi
+        tlzi   = tlzi + PZij*tyi
+        tdxi   = tdxi + PXij*txi
+        tdyi   = tdyi + PYij*tyi
         tdzi   = tdzi + PZij*tzi
         !TRANSPORT_END
 #endif
@@ -1555,7 +1555,7 @@ loop1:do k = 1, this%NInCutoff(i)
       Cx(i)  = Cxi
       Cy(i)  = Cyi
       Cz(i)  = Czi
-      tux(i) = tuxi 
+      tux(i) = tuxi
       tuy(i) = tuyi
       tuz(i) = tuzi
       tlx(i) = tlxi
@@ -1599,7 +1599,6 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
     real(RK)          :: RijInv, RijSquared
     real(RK)          :: EPotLocal
     integer           :: i, j, k, i1
@@ -1704,7 +1703,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK)          :: RFConstant2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
@@ -1943,7 +1941,7 @@ loop1:do k = 1, this%NInCutoff(i)
         Epsilon2 = Epsilon1 * RijInv
         EPotLocal  = EPotLocal + Epsilon1 * CosTheta                            ! Uebereinstimmumg mit Price
         FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
-        FYij = Epsilon2 * ( CosTheta3 * eY - OYj )  
+        FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
         FXi    = FXi    + FXij
@@ -1995,7 +1993,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
     integer           :: i, j, k, i1
 #if ARCH == 3
@@ -2106,7 +2104,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK)          :: RFConstant2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
@@ -2364,7 +2361,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
-        TX2(j) = TX2(j) - Epsilon1 * CosTheta2 * eX 
+        TX2(j) = TX2(j) - Epsilon1 * CosTheta2 * eX
         TY2(j) = TY2(j) - Epsilon1 * CosTheta2 * eY
         TZ2(j) = TZ2(j) - Epsilon1 * CosTheta2 * eZ
       end do loop1
@@ -2485,7 +2482,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           eZ = RZij * RijInv
           CosTheta  = OXj * ex + OYj * eY + OZj * eZ
           EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * RijInv &
-&                        * ( CosTheta * CosTheta - Third )     
+&                        * ( CosTheta * CosTheta - Third )
         end do loop1
 #if ARCH == 3
         if( .not. hit ) then
@@ -2520,7 +2517,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK)          :: RFConstant2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
@@ -2831,7 +2827,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
     integer           :: i, j, k, i1
 #if ARCH == 3
@@ -2905,7 +2901,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
-          CosTheta  = OXi * ex + OYi * eY + OZi * eZ 
+          CosTheta  = OXi * ex + OYi * eY + OZi * eZ
           EPotLocal = EPotLocal - Epsilon * RijSquaredInv * CosTheta
         end do loop1
 #if ARCH == 3
@@ -2942,7 +2938,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK)          :: RFConstant2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
@@ -3121,7 +3116,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
     real(RK)          :: UU, Uxi,  Uyi, Uzi
-    real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     !TRANSPORT_END
 #endif
@@ -3373,12 +3367,12 @@ loop1:  do k = 1, this%NInCutoff(i)
           tuxi   = tuxi + PXij*tyir
           tuyi   = tuyi + PXij*tzir
           tuzi   = tuzi + PYij*tzir
-          tlxi   = tlxi + PYij*txir    
-          tlyi   = tlyi + PZij*txir    
-          tlzi   = tlzi + PZij*tyir    
-          tdxi   = tdxi + PXij*txir    
-          tdyi   = tdyi + PYij*tyir    
-          tdzi   = tdzi + PZij*tzir    
+          tlxi   = tlxi + PYij*txir
+          tlyi   = tlyi + PZij*txir
+          tlzi   = tlzi + PZij*tyir
+          tdxi   = tdxi + PXij*txir
+          tdyi   = tdyi + PYij*tyir
+          tdzi   = tdzi + PZij*tzir
           !TRANSPORT_END
 #endif
         end do loop1
@@ -3677,7 +3671,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
@@ -3721,7 +3715,7 @@ loop2:  do j = 1, j1
         endif
 #else
         EPotTest(i) = EPotTest(i) + EPotLocal
-#endif        
+#endif
       end do
 
     end if
@@ -4289,7 +4283,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest
@@ -4334,7 +4328,7 @@ loop2:  do j = j0, j1
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -5453,7 +5447,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest
@@ -5498,7 +5492,7 @@ loop2:  do j = j0, j1
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -5563,7 +5557,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 #if ARCH == 3
         hit = .false.
-#endif	
+#endif
 !CDIR NODEP
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
@@ -5608,7 +5602,7 @@ loop2:  do j = 1, j1
         endif
 #else
         EPotTest(i) = EPotTest(i) + EPotLocal
-#endif        
+#endif
       end do
 
     end if
@@ -5904,8 +5898,7 @@ loop2:do j = 1, j1
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU, Uxi,  Uyi, Uzi
-    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     !TRANSPORT_END
 #endif
@@ -6130,7 +6123,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eY * CosThetaj - OYj) * dCosThetaj)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij 
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -6171,12 +6164,12 @@ loop1:  do k = 1, this%NInCutoff(i)
           tuxi   = tuxi + PXij*tyir
           tuyi   = tuyi + PXij*tzir
           tuzi   = tuzi + PYij*tzir
-          tlxi   = tlxi + PYij*txir    
-          tlyi   = tlyi + PZij*txir    
-          tlzi   = tlzi + PZij*tyir    
-          tdxi   = tdxi + PXij*txir    
-          tdyi   = tdyi + PYij*tyir    
-          tdzi   = tdzi + PZij*tzir    
+          tlxi   = tlxi + PYij*txir
+          tlyi   = tlyi + PZij*txir
+          tlzi   = tlzi + PZij*tyir
+          tdxi   = tdxi + PXij*txir
+          tdyi   = tdyi + PYij*tyir
+          tdzi   = tdzi + PZij*tzir
           !TRANSPORT_END
 #endif
         end do loop1
@@ -6375,7 +6368,7 @@ loop2:  do j = j0, j1
     integer           :: i, j, k, i1, j1
 #if ARCH == 3
     logical           :: hit
-#endif    
+#endif
 
     ! Assign local variables
     i1 = this%Site1%NTest

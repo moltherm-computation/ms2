@@ -155,14 +155,14 @@ module ms2_site
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 #if  TRANS == 1
     !TRANSPORT_start
-	real(RK), pointer :: vsDx(:), vsDy(:), vsDz(:)
-	real(RK), pointer :: vsuDx(:), vsuDy(:), vsuDz(:)
-	real(RK), pointer :: vbDx(:), vbDy(:), vbDz(:)
-	real(RK), pointer :: cDx(:),  cDy(:),  cDz(:)
-	real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
-	real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
-	real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
-	real(RK), pointer :: Q0r(:,:)
+    real(RK), pointer :: vsDx(:), vsDy(:), vsDz(:)
+    real(RK), pointer :: vsuDx(:), vsuDy(:), vsuDz(:)
+    real(RK), pointer :: vbDx(:), vbDy(:), vbDz(:)
+    real(RK), pointer :: cDx(:),  cDy(:),  cDz(:)
+    real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
+    real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
+    real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
+    real(RK), pointer :: Q0r(:,:)
 !TRANSPORT_END
 #endif
   end type TSiteDipole
@@ -379,19 +379,19 @@ contains
       allocate( this%vsLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%vsLJz( np ), STAT = stat )
-      call AllocationError( stat, 'particles', np )   
+      call AllocationError( stat, 'particles', np )
       allocate( this%vsuLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%vsuLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%vsuLJz( np ), STAT = stat )
-      call AllocationError( stat, 'particles', np )   
+      call AllocationError( stat, 'particles', np )
       allocate( this%vbLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%vbLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%vbLJz( np ), STAT = stat )
-      call AllocationError( stat, 'particles', np ) 
+      call AllocationError( stat, 'particles', np )
       allocate( this%cLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       allocate( this%cLJy( np ), STAT = stat )
@@ -476,67 +476,67 @@ contains
 #if  TRANS == 1
     !TRANSPORT_start
     if( associated( this%vsLJx ) ) then
-   	  deallocate( this%vsLJx )
+      deallocate( this%vsLJx )
     end if
     if( associated( this%vsLJy ) ) then
-   	  deallocate( this%vsLJy )
+      deallocate( this%vsLJy )
     end if
     if( associated( this%vsLJz ) ) then
-   	  deallocate( this%vsLJz )
+      deallocate( this%vsLJz )
     end if
     if( associated( this%vsuLJx ) ) then
-   	  deallocate( this%vsuLJx )
+      deallocate( this%vsuLJx )
     end if
     if( associated( this%vsuLJy ) ) then
-   	  deallocate( this%vsuLJy )
+      deallocate( this%vsuLJy )
     end if
     if( associated( this%vsuLJz ) ) then
-   	  deallocate( this%vsuLJz )
+      deallocate( this%vsuLJz )
     end if
     if( associated( this%vbLJx ) ) then
-   	  deallocate( this%vbLJx )
+     deallocate( this%vbLJx )
     end if
     if( associated( this%vbLJy ) ) then
-   	  deallocate( this%vbLJy )
+      deallocate( this%vbLJy )
     end if
     if( associated( this%vbLJz ) ) then
-   	  deallocate( this%vbLJz )
+      deallocate( this%vbLJz )
     end if
     if( associated( this%cLJx ) ) then
-   	  deallocate( this%cLJx )
+      deallocate( this%cLJx )
     end if
     if( associated( this%cLJy ) ) then
-   	  deallocate( this%cLJy )
+      deallocate( this%cLJy )
     end if
     if( associated( this%cLJz ) ) then
-   	  deallocate( this%cLJz )
+      deallocate( this%cLJz )
     end if
     if( associated( this%tuLJx ) ) then
-   	  deallocate( this%tuLJx )
+      deallocate( this%tuLJx )
     end if
     if( associated( this%tuLJy ) ) then
-   	  deallocate( this%tuLJy )
+      deallocate( this%tuLJy )
     end if
     if( associated( this%tuLJz ) ) then
-   	  deallocate( this%tuLJz )
+      deallocate( this%tuLJz )
     end if
     if( associated( this%tlLJx ) ) then
-   	  deallocate( this%tlLJx )
+      deallocate( this%tlLJx )
     end if
     if( associated( this%tlLJy ) ) then
-   	  deallocate( this%tlLJy )
+      deallocate( this%tlLJy )
     end if
     if( associated( this%tlLJz ) ) then
-   	  deallocate( this%tlLJz )
+      deallocate( this%tlLJz )
     end if
     if( associated( this%tdLJx ) ) then
-   	  deallocate( this%tdLJx )
+      deallocate( this%tdLJx )
     end if
     if( associated( this%tdLJy ) ) then
-   	  deallocate( this%tdLJy )
+      deallocate( this%tdLJy )
     end if
     if( associated( this%tdLJz ) ) then
-   	  deallocate( this%tdLJz )
+      deallocate( this%tdLJz )
     end if
 !     if( associated( this%Q0r ) ) deallocate( this%Q0r )   ! FIXME merkwürdige allocationsprobleme - tauchen mehrfach auf...
 !TRANSPORT_END
@@ -809,16 +809,16 @@ contains
     if( associated( this%vsCx ) )  then
       deallocate( this%vsCx )
     end if
-    if( associated( this%vsCy ) ) then 
+    if( associated( this%vsCy ) ) then
       deallocate( this%vsCy )
     end if
     if( associated( this%vsCz ) ) then
       deallocate( this%vsCz )
     end if
-    if( associated( this%vbCx ) ) then 
+    if( associated( this%vbCx ) ) then
       deallocate( this%vbCx )
     end if
-    if( associated( this%vbCy ) ) then 
+    if( associated( this%vbCy ) ) then
       deallocate( this%vbCy )
     end if
     if( associated( this%vbCz ) ) then
@@ -827,10 +827,10 @@ contains
     if( associated( this%cCx ) ) then
       deallocate( this%cCx )
     end if
-    if( associated( this%cCy ) ) then 
+    if( associated( this%cCy ) ) then
       deallocate( this%cCy )
     end if
-    if( associated( this%cCz ) ) then 
+    if( associated( this%cCz ) ) then
       deallocate( this%cCz )
     end if
     if( associated( this%tuCx ) ) then
@@ -851,7 +851,7 @@ contains
     if( associated( this%tlCz ) ) then
       deallocate( this%tlCz )
     end if
-    if( associated( this%tdCx ) ) then 
+    if( associated( this%tdCx ) ) then
       deallocate( this%tdCx )
     end if
     if( associated( this%tdCy ) ) then
@@ -1192,67 +1192,67 @@ contains
 #if  TRANS == 1
     !TRANSPORT_start
     if( associated( this%vsDx ) ) then
-   	  deallocate( this%vsDx )
+      deallocate( this%vsDx )
     end if
     if( associated( this%vsDy ) ) then
-   	  deallocate( this%vsDy )
+      deallocate( this%vsDy )
     end if
     if( associated( this%vsDz ) ) then
-   	  deallocate( this%vsDz )
+      deallocate( this%vsDz )
     end if
     if( associated( this%vsuDx ) ) then
-   	  deallocate( this%vsuDx )
+      deallocate( this%vsuDx )
     end if
     if( associated( this%vsuDy ) ) then
-   	  deallocate( this%vsuDy )
+      deallocate( this%vsuDy )
     end if
     if( associated( this%vsuDz ) ) then
-   	  deallocate( this%vsuDz )
+      deallocate( this%vsuDz )
     end if
     if( associated( this%vbDx ) ) then
-   	  deallocate( this%vbDx )
+      deallocate( this%vbDx )
     end if
     if( associated( this%vbDy ) ) then
-   	  deallocate( this%vbDy )
+      deallocate( this%vbDy )
     end if
     if( associated( this%vbDz ) ) then
-   	  deallocate( this%vbDz )
+      deallocate( this%vbDz )
     end if
     if( associated( this%cDx ) ) then
-   	  deallocate( this%cDx )
+      deallocate( this%cDx )
     end if
     if( associated( this%cDy ) ) then
-   	  deallocate( this%cDy )
+      deallocate( this%cDy )
     end if
     if( associated( this%cDz ) ) then
-   	  deallocate( this%cDz )
+      deallocate( this%cDz )
     end if
     if( associated( this%tuDx ) ) then
-   	  deallocate( this%tuDx )
+      deallocate( this%tuDx )
     end if
     if( associated( this%tuDy ) ) then
-   	  deallocate( this%tuDy )
+      deallocate( this%tuDy )
     end if
     if( associated( this%tuDz ) ) then
-   	  deallocate( this%tuDz )
+      deallocate( this%tuDz )
     end if
     if( associated( this%tlDx ) ) then
-   	  deallocate( this%tlDx )
+      deallocate( this%tlDx )
     end if
     if( associated( this%tlDy ) ) then
-   	  deallocate( this%tlDy )
+      deallocate( this%tlDy )
     end if
     if( associated( this%tlDz ) ) then
-   	  deallocate( this%tlDz )
+      deallocate( this%tlDz )
     end if
     if( associated( this%tdDx ) ) then
-   	  deallocate( this%tdDx )
+      deallocate( this%tdDx )
     end if
     if( associated( this%tdDy ) ) then
-   	  deallocate( this%tdDy )
+      deallocate( this%tdDy )
     end if
     if( associated( this%tdDz ) ) then
-   	  deallocate( this%tdDz )
+      deallocate( this%tdDz )
     end if
 !     if( associated( this%Q0r ) ) deallocate( this%Q0r )
 !TRANSPORT_END

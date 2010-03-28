@@ -55,8 +55,8 @@ module ms2_simulation
     integer :: iounit_errors
 #if  TRANS == 1
 !TRANSPORT_start
-	! I/O unit for correlation function
-	integer :: iounit_rescf  
+    ! I/O unit for correlation function
+    integer :: iounit_rescf
 !TRANSPORT_END
 #endif
   end type TSimulation
@@ -194,11 +194,11 @@ contains
 &       ProgramFileName//ConfigFileExtension )
     end select
 #endif
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
-    write( IOBuffer, '(T18, "Reading Simulation Input")')
+    write( IOBuffer, '(T24, "Reading Simulation Input")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     write( IOBuffer, '("Parameter file name: ", A)' ) trim( ParameterFileName )
     call LogWrite
@@ -210,9 +210,9 @@ contains
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
-    write( IOBuffer, '(T14, "Reading parameters of simulation")' )
+    write( IOBuffer, '(T20, "Reading parameters of simulation")' )
     call LogWrite
 
     ! Read name tag for output files
@@ -573,20 +573,20 @@ contains
     call LogWrite
 #if  TRANS == 1
 !TRANSPORT_start
-	! Read correlation function mode
-    call FileReadParameter( str , iounit_params , IdCorrFun ) 
-	select case( str )
+    ! Read correlation function mode
+    call FileReadParameter( str , iounit_params , IdCorrFun )
+    select case( str )
     case( 'ja', 'yes' , 'ok' )
-	  CorrfunMode = active
-	  CorrfunModeString = 'Include transport properties'
+      CorrfunMode = active
+      CorrfunModeString = 'Include transport properties'
     case( 'nein', 'no' )
-	  CorrfunMode = inactive
-	  CorrfunModeString = 'No transport properties'
-	case default
-	  call Error( 'No Transport properties' )
+      CorrfunMode = inactive
+      CorrfunModeString = 'No transport properties'
+    case default
+      call Error( 'No Transport properties' )
     end select
-	write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)    
-	call LogWrite
+    write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)
+    call LogWrite
 !TRANSPORT_END
 #endif
     ! Create ensembles
@@ -613,9 +613,9 @@ contains
 
     ! Close parameter file
     call FileClose( iounit_params )
-    write( IOBuffer, '(T13, "Reading Simulation Input successful")')
+    write( IOBuffer, '(T18, "Reading Simulation Input successful")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call LogWriteBlank
 
@@ -627,17 +627,16 @@ contains
     this%iounit_runave = iounit_runave
     this%iounit_errors = iounit_errors
 #if  TRANS == 1
-	this%iounit_rescf  = iounit_rescf  !TRANSPORT_thisline
-
+    this%iounit_rescf  = iounit_rescf  !TRANSPORT_thisline
 #endif
     ! Open result and visualisation files
     call LogWriteBlank
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
-    write( IOBuffer, '(T17, "Start Simulation")')
+    write( IOBuffer, '(T28, "Start Simulation")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
@@ -969,11 +968,11 @@ eqloop: do
 !         write( IOBuffer, '("  (adjustment of weigthing factors)")' )
 !       end if
 !       call LogWriteTime
-! 
+!
 !       do i = 1, this%NEnsembles
 !         call GradInsInit( this%Ensemble(i) )
 !       end do
-! 
+!
 !       if( .not. TerminateProgram ) then
 !         write( IOBuffer, '("GradIns initialization completed")' )
 !         GradInsInitialization = .false.
@@ -1069,22 +1068,22 @@ eqloop: do
       if( BlockSize > 0 ) then
         NBlocks = 1 + (Step - 1) / BlockSize
         NBlockSizes = int( sqrt( real( Step / BlockSize, RK ) ) )
-  
+
 #if TRANS==1
       ! Run simulation step
-	  if(( CorrfunMode == active ).and.(.not. Equilibration )) then
-         do i = 1, this%Nensembles
-		 if ( Step >= this%ensemble(i)%Ncorr ) then
-			if ( Step >= this%ensemble(i)%Ncorr )then 
+        if(( CorrfunMode == active ).and.(.not. Equilibration )) then
+        do i = 1, this%Nensembles
+          if ( Step >= this%ensemble(i)%Ncorr ) then
+            if ( Step >= this%ensemble(i)%Ncorr )then
               NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr )/ ( BlockSizeCF * this%ensemble(i)%NSpancf )
-			  NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   )) 
-          		else
-			  NBlocksCF     = 0
-			  NBlockSizesCF = 0 
-			end if 
-		 end if	  
-         end do
-	  end if
+              NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   ))
+            else
+              NBlocksCF     = 0
+              NBlockSizesCF = 0
+            end if
+          end if
+        end do
+      end if
 #endif
     end if
       select case( SimulationType )
@@ -1266,27 +1265,27 @@ eqloop: do
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       if( Restart ) then
 !         ! Open result file
 !         call FileAppend( this%iounit_result, &
 ! &         trim( OutputNameTag )//ResultFileExtension )
-! 
+!
 !         ! Open running average result file
 !         call FileAppend( this%iounit_runave, &
 ! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
+!
 !       else
 !         ! Open result file
 !         call FileRewrite( this%iounit_result, &
 ! &         trim( OutputNameTag )//ResultFileExtension )
-! 
+!
 !         ! Open running average result file
 !         call FileRewrite( this%iounit_runave, &
 ! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
+!
 !       end if
-! 
+!
 !     end if
 
     ! Open ensemble result files
@@ -1323,33 +1322,33 @@ eqloop: do
 
 !     ! Generate simulation result files
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Update result header
 !       if( Step == 1 ) then
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
-! 
+!
 !         ! Number of steps
 !         write( IOBuffer, '("     NR")' )
 !         call FileWriteNoAdvance( this%iounit_result )
 !         call FileWriteNoAdvance( this%iounit_runave )
-! 
+!
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
 !       end if
-! 
+!
 !       ! Update result files
 !       if( mod( Step, BlockSize ) == 0 ) then
-! 
+!
 !         ! Number of steps
 !         write( IOBuffer, '(I7)' ) Step
 !         call FileWriteNoAdvance( this%iounit_result )
 !         call FileWriteNoAdvance( this%iounit_runave )
-! 
+!
 !         call FileWriteBlank( this%iounit_result )
 !         call FileWriteBlank( this%iounit_runave )
 !       end if
-! 
+!
 !     end if
 
     ! Update ensemble result files
@@ -1387,13 +1386,13 @@ eqloop: do
     end do
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Close running average result file
 !       call FileClose( this%iounit_runave )
-! 
+!
 !       ! Close result file
 !       call FileClose( this%iounit_result )
-! 
+!
 !     end if
 
   end subroutine TSimulation_ResultClose
@@ -1425,11 +1424,11 @@ eqloop: do
     call LogWrite
 
 !     if( this%NEnsembles > 1 ) then
-! 
+!
 !       ! Open final result file
 !       call FileRewrite( this%iounit_errors, &
 ! &       trim( OutputNameTag )//ErrorsFileExtension )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
@@ -1439,7 +1438,7 @@ eqloop: do
 !       write( IOBuffer, '(T24, "----------------------")' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Simulation type
 !       write( IOBuffer, '("Simulation type", T36, ":", 9X, A)' ) &
 ! &       trim( SimulationTypeString )
@@ -1453,7 +1452,7 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !       end if
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Number of steps
 !       write( IOBuffer, '("Number of NVT equilibration steps", T36, ":", I10)' ) &
 ! &       NStepsV
@@ -1465,7 +1464,7 @@ eqloop: do
 ! &       Step
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Time step
 !       if( SimulationType .eq. MolecularDynamics ) then
 !         write( IOBuffer, '("Time step", T29, "reduced:", F20.9)' ) &
@@ -1476,7 +1475,7 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !         call FileWriteBlank( this%iounit_errors )
 !       end if
-! 
+!
 !       ! Acceptance rate
 !       if( SimulationType .eq. MonteCarlo ) then
 !         write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) &
@@ -1484,13 +1483,13 @@ eqloop: do
 !         call FileWrite( this%iounit_errors )
 !         call FileWriteBlank( this%iounit_errors )
 !       end if
-! 
+!
 !       ! Number of ensembles
 !       write( IOBuffer, '("Number of ensembles", T36, ":", I10)' ) &
 ! &       this%NEnsembles
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! System of units
 !       write( IOBuffer, '("Unit of length", T36, ":", F20.9, " A")' ) &
 ! &       UnitLength / Angstroem
@@ -1502,7 +1501,7 @@ eqloop: do
 ! &       UnitMass * NAvogadro * 1000._RK
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
@@ -1512,15 +1511,15 @@ eqloop: do
 !       write( IOBuffer, '(76("-"))' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Separator
 !       write( IOBuffer, '(76("="))' )
 !       call FileWrite( this%iounit_errors )
 !       call FileWriteBlank( this%iounit_errors )
-! 
+!
 !       ! Close final result file
 !       call FileClose( this%iounit_errors )
-! 
+!
 !     end if
 
     ! Save ensemble results
