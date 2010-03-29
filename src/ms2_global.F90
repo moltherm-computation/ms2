@@ -21,6 +21,23 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
+!           __GFORTRAN__
+#if defined __GNUC__
+! the gfortran preprocessor seems not to support the # operator
+#define MACRODEF_STRINGIFY(x) "x"
+#else
+#define MACRODEF_STRINGIFY(x) #x
+#endif
+#define MACRODEF_TO_STRING(x)  MACRODEF_STRINGIFY(x)
+
+#if defined(__GNUC__)
+# if defined(__GNUC_PATCHLEVEL__)
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+# else
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
+# endif
+#endif
+
 module ms2_global
 
 !#if MPI_VER > 0
@@ -112,7 +129,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'pc/any'
 #endif
 #elif ARCH == 3
-  character(*), parameter :: Hardware = 'NEC SX-8'
+  character(*), parameter :: Hardware = 'NEC SX'
 #elif ARCH == 4
   character(*), parameter :: Hardware = 'IBM p690'
 !#elif ARCH == 5
@@ -901,15 +918,27 @@ contains
     nullify( ioranks )
     if( RootProc ) then
       call MPI_Get_version(mpiversion, mpisubversion, ierror)
-      write( IOBuffer, '("MPI Version (running with a MPI",I2,".",I1," library)")' ) mpiversion, mpisubversion
+      write( IOBuffer, '("MPI version        :",I2,".",I1)' ) mpiversion, mpisubversion
       call LogWrite
-      write( IOBuffer, '("Number of processes: ",I4)' ) NProcs
+!            OPEN_MPI etc only defined in mpi.h, i.e. the C version?
+!#if defined OPEN_MPI
+!      write( IOBuffer, '("MPI library        : OpenMPI",I2,".",I1,".",I1)' ) &
+!&           OMPI_MAJOR_VERSION, OMPI_MINOR_VERSION, OMPI_RELEASE_VERSION
+!              MPICH2 also seems to be only defined in mpi.h...
+!#elif defined MPICH2
+!      write( IOBuffer, '("MPI library        : MPICH2 ",I2,",",I4)' ) &
+!&           MPICH2_VERSION, MPICH2_NUMVERSION
+!#else
+!      write( IOBuffer, '("MPI library        : unknown")' )
+!#endif
       call LogWrite
-      write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
+      write( IOBuffer, '("Number of processes:",I4)' ) NProcs
+      call LogWrite
+      write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
       call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
-        write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
+        write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
       end if
     end if
@@ -957,7 +986,7 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '("72(1H-)")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -1212,11 +1241,35 @@ contains
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
     call LogWrite
-    write( IOBuffer, '("compiled at ", A, " for ", A, " with RK", I2)' ) &
-&          CompileTime, Hardware, RK
+    write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
     call LogWrite
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&          trim( username ), trim( hostname )
+! cmp. http://predef.sourceforge.net/precomp.html
+!           __GFORTRAN__
+#if defined __GNUC__
+    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) &
+&          __GNUC_VERSION__
+#elif defined __INTEL_COMPILER
+    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) &
+&         __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
+#elif defined __PGI
+    write( IOBuffer, '("Compiler version     : PGI pgf")' )
+#elif defined __SUNPRO_F95
+    write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
+#elif defined __SUNPRO_F90
+    write( IOBuffer, '("Compiler version     : SUN studio sunf90 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F90)
+#else
+!                                                         __VERSION__
+    write( IOBuffer, '("Compiler version     : unknown")' )
+#endif
+    call LogWrite
+    write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
+    call LogWrite
+    write( IOBuffer, '("Real Kind            :", I2)' ) RK
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '("Hostname             : ", A)' ) trim( hostname )
+    call LogWrite
+    write( IOBuffer, '("started by user ", A)' ) trim( username )
     call LogWriteTime
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')

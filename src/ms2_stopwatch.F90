@@ -846,7 +846,7 @@ contains
 &       trim(this%tag_string), sysclk_diff_sec
       call LogWrite
       write( IOBuffer, &
-&       '(T4,"=",I5,"h",I3,"min",F9.5,"sec (+i*",I5,"h",I3,"min",F9.5,"sec)")' ) &
+&       '(T18,"=",I5,"h",I3,"min",F9.5,"sec (+i*",I5,"h",I3,"min",F9.5,"sec)")' ) &
 &       int(sysclk_diff_sec)/3600, mod(int(sysclk_diff_sec),3600)/60, amod(sysclk_diff_sec,60.), &
 &       int(sysclk_max_sec)/3600, mod(int(sysclk_max_sec),3600)/60, amod(sysclk_max_sec,60.)
       call LogWrite
@@ -935,7 +935,7 @@ contains
       papi_flpops_diff = this%papi_flpops_stop - this%papi_flpops_start
       papi_mflops = papi_flpops_diff/1.0E6/papi_proc_time_diff
       write( IOBuffer, &
-&       '(A," PAPI             : real time",G16.9,"sec, proc time",G16.9,"sec ;", &
+&       '(T2,A," PAPI             : real time",G16.9,"sec, proc time",G16.9,"sec ;", &
 &         I16," FlOps,",G16.9," MFlOps/sec")' ) &
 &       trim(this%tag_string), &
 &       papi_real_time_diff, papi_proc_time_diff, &
