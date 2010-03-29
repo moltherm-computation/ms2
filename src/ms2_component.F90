@@ -233,6 +233,10 @@ module ms2_component
     module procedure TComponent_Destruct
   end interface
 
+  interface DestructFluct
+    module procedure TComponent_DestructFluct
+  end interface
+
   interface Allocate
     module procedure TComponent_Allocate
   end interface
@@ -717,6 +721,43 @@ contains
 
   end subroutine TComponent_Destruct
 
+
+!==============================================================!
+!  Subroutine TComponent_DestructFluct                         !
+!==============================================================!
+
+  subroutine TComponent_DestructFluct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent) :: this
+
+    ! Destroy potential model
+    call Destruct( this%Molecule )
+
+    ! Deallocate number of test particles
+    if( associated( this%NTest ) ) then
+      deallocate( this%NTest )
+    end if
+
+    ! Deallocate number of particles in process
+    if( associated( this%NPart0 ) ) then
+      deallocate( this%NPart0 )
+    end if
+    if( associated( this%NPart1 ) ) then
+      deallocate( this%NPart1 )
+    end if
+    if( associated( this%NPart2 ) ) then
+      deallocate( this%NPart2 )
+    end if
+
+    ! Deallocate number of particles in component
+    if( associated( this%NPart ) ) then
+      deallocate( this%NPart )
+    end if
+
+  end subroutine TComponent_DestructFluct
 
 
 !==============================================================!

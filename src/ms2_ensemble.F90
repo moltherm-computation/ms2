@@ -438,11 +438,9 @@ module ms2_ensemble
     module procedure TEnsemble_GetEnergy1
   end interface
 
-! #ifdef PRESSURE
   interface GetVirial
     module procedure TEnsemble_GetVirial
   end interface
-! #endif
 
   interface Move
     module procedure TEnsemble_Move
@@ -1276,7 +1274,11 @@ contains
 
     ! Destroy components
     do i = 1, this%NComponents
-      call Destruct( this%Component(i) )
+      if ( i .le. this%NRealComponents ) then
+        call Destruct( this%Component(i) )
+      else
+        call DestructFluct( this%Component(i) )
+      end if
     end do
     if( associated( this%Component ) ) then
       deallocate( this%Component )
@@ -3655,20 +3657,15 @@ loop3:    do nc = 1, this%NComponents
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
     type(TComponent), pointer :: pc
-!    type(TComponent), pointer :: pcf
-!DEBUG
-    integer                   :: nstate( 0:this%NFluctMax ), counter
-!DEBUG
+    integer                   :: nstate( 0:this%NFluctMax )
 
     ! No calculation of chemical potential in equilibration
     if( Equilibration ) then
       do i = 1, this%NRealComponents
         this%Component(i)%CalcChemPot = .false.
         this%Component(i)%ChemPot = 0._RK
-!DEBUG
         this%Component(i)%ChemPot1 = 0._RK
         this%Component(i)%ChemPot2 = 0._RK
-!DEBUG
       end do
 
       if( NVTEquilibration ) return
@@ -3733,10 +3730,7 @@ loop3:    do nc = 1, this%NComponents
           ndfchange = this%NDF * 10
           ndfcp = ndfmove + ndfbiased + ndffluct + ndfchange
           pc%NState(:) = 1
-!DEBUG
-  nstate = 0
-  counter = 0
-!DEBUG
+          nstate = 0
 
           ! Set fluctuating particle
           ncf = pc%NFluctComp( pc%NFluctState )
@@ -3761,6 +3755,9 @@ loop1:        do nc = 1, this%NComponents
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
 
+              ! Acceleration of MC Moves
+              if (np .gt. this%Component(nc)%NPart) cycle
+
               ! Move or rotate
               if( mod( s - r, ndf ) < 3 ) then
                 call Move( this, nc, np )
@@ -3776,6 +3773,9 @@ loop2:        do nc = 1, this%NComponents
               end do loop2
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + (s - r) / ndf
+
+              ! Acceleration of MC Moves
+              if (np .gt. this%Component(nc)%NPart) cycle
 
               ! Move or rotate biased
               if( mod( s - r, ndf ) < 3 ) then
@@ -3798,50 +3798,16 @@ loop2:        do nc = 1, this%NComponents
             else
 
               ! Change fluctuating particle
-              call ChangeFluct( this, i, ncf, npf, counter )
-!DEBUG
-!               pc%NState(pc%NFluctState) = pc%NState(pc%NFluctState) + 1
-!               pc%NStateWF(pc%NFluctState) = pc%NStateWF(pc%NFluctState) + 1
-  if( maxcounter > 0 .and. counter > maxcounter ) exit giloop
-  nstate(pc%NFluctState) = nstate(pc%NFluctState) + 1
-!DEBUG
+              call ChangeFluct( this, i, ncf, npf )
+              nstate(pc%NFluctState) = nstate(pc%NFluctState) + 1
 
             end if
 
           end do giloop
 
-!DEBUG
-  pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
-  if( maxcounter > 0 .and. counter > maxcounter ) then
-    write( IOBuffer, &
-&     '("GradIns abgebrochen. Zeitschritt: ", I0, "  FluctState: ", I0)') &
-&     Step, pc%NFluctState
-    call LogWrite
-    write( IOBuffer, '("NStates:")' )
-    call LogWrite
-    do j = 0, pc%NFluctMax
-      write( IOBuffer, '(I10)' ) nstate(j)
-      call LogWrite
-    end do
-  else
-    pc%NState = pc%NState + nstate(0:pc%NFluctMax)
-  end if
-!DEBUG
+          pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
+          pc%NState = pc%NState + nstate(0:pc%NFluctMax)
 
-          ! Reset fluctuating particle
-!           if( .not. ncf == i ) then
-!             pcf => this%Component( ncf )
-!             if( pcf%Molecule%IsElongated ) then
-!               call AddParticle( pc, pcf%P0( npf, : ), pcf%Q0( npf, : ) )
-!             else
-!               call AddParticle( pc, pcf%P0( npf, : ) )
-!             end if
-!             call RemoveParticle( pcf, npf )
-!             pc%NFluctState = 0
-!           end if
-
-          ! Restore saved state
-!           call RestoreState( this )
 
           ! Calculate weighted propabilities
           pc%ProbW0 = pc%ProbW0 + real(pc%NState(0), RK)
@@ -3856,10 +3822,8 @@ loop2:        do nc = 1, this%NComponents
           ! Calculate chemical potential
           ! (long range correction already done in ChangeFluct)
           pc%ChemPot = pc%ProbW0 / pc%ProbW1Rho
-!DEBUG
           pc%ChemPot1 = pc%ProbW0 / pc%ProbW1
           pc%ChemPot2 = pc%ProbW0V / pc%ProbW1
-!DEBUG
 
         else
           !pc%CalcChemPot = .false.
@@ -4570,7 +4534,7 @@ loop2:        do nc = 1, this%NComponents
 !  Subroutine TEnsemble_ChangeFluct                            !
 !==============================================================!
 
-  subroutine TEnsemble_ChangeFluct( this, nc, ncf, npf, counter )
+  subroutine TEnsemble_ChangeFluct( this, nc, ncf, npf )
 
     implicit none
 
@@ -4583,9 +4547,6 @@ loop2:        do nc = 1, this%NComponents
     type(TEnsemble)        :: this
     integer, intent(in)    :: nc
     integer, intent(inout) :: ncf, npf
-!DEBUG
-    integer, intent(inout) :: counter
-!DEBUG
 
     ! Declare local variables
     type(TComponent), pointer :: pc, pcf, pcfnew
@@ -4595,9 +4556,6 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
-!DEBUG
-!   logical :: accepted, unequal
-!DEBUG
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4608,9 +4566,6 @@ loop2:        do nc = 1, this%NComponents
       if( rnd( 0._RK, 1._RK ) < .5_RK ) then
         npf = rnd( pcf%NPart )
         call Move2End( this, ncf, npf )
-!DEBUG
-  counter = 0
-!DEBUG
       end if
       newstate = 1
       pc%NFluctUpAttempts( newstate ) = pc%NFluctUpAttempts( newstate ) + 1
@@ -4626,10 +4581,6 @@ loop2:        do nc = 1, this%NComponents
         pc%NFluctDownAttempts( oldstate ) = pc%NFluctDownAttempts( oldstate ) + 1
       end if
     end if
-
-!DEBUG
-  counter = counter + 1
-!DEBUG
 
     ! Get old energy of fluctuating particle
     EPotOld = GetEnergy( this, ncf, npf )
@@ -4681,10 +4632,6 @@ loop2:        do nc = 1, this%NComponents
       else
         pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
       end if
-!DEBUG
-  counter = 0
-!   accepted = .TRUE.
-!DEBUG
 
     else
 
@@ -4695,24 +4642,8 @@ loop2:        do nc = 1, this%NComponents
         call AddParticle( pcf, pcfnew%P0( npfnew, : ) )
       end if
       call RemoveParticle( pcfnew, npfnew )
-!DEBUG
-!   accepted = .FALSE.
-!DEBUG
 
     end if
-!DEBUG
-!  counter = i
-!   call MPI_AllReduce( accepted, unequal, 1, MPI_LOGICAL, MPI_LXOR, MPI_COMM_WORLD, ierror )
-!   if( unequal ) then
-!     write(0, '(I2, ": ", A, " EPotDeltaAll=", F20.16, ", ix=", I0)') &
-! &     NProc, merge( "acc.", "rej.", accepted ), EPotDeltaAll, ix
-!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
-!     write(0, '(I2, ": WFnew=", F12.4, " WFold=", F12.4, " Temp=", F12.8)') &
-! &     NProc, pc%WF(newstate), pc%WF(oldstate), this%Temperature
-!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
-!     stop
-!   end if
-!DEBUG
 
   end subroutine TEnsemble_ChangeFluct
 
@@ -4744,9 +4675,6 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: s
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll
-!DEBUG
-!  logical                   :: accepted, different
-!DEBUG
 #endif
 
     ! Assign local variables
@@ -4790,9 +4718,6 @@ loop2:        do nc = 1, this%NComponents
 &     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
     EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
 &                           + pc%EPotTestCorrRF
-!DEBUG
-!  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotInsAll
-!DEBUG
 
     ! check if (pc%ChemPot-EPotInsAll)/this%Temperature>exp_arg_max ?
     if( exp( ( pc%ChemPot - EPotInsAll ) / this%Temperature ) > &
@@ -4800,9 +4725,6 @@ loop2:        do nc = 1, this%NComponents
 #else
     EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
-!DEBUG
-!  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotIns
-!DEBUG
 
     ! check if (pc%ChemPot-EPotIns)/this%Temperature>exp_arg_max ?
     if( exp( ( pc%ChemPot - EPotIns ) / this%Temperature ) > &
@@ -4824,38 +4746,13 @@ loop2:        do nc = 1, this%NComponents
       ! Update long range correction
       call CalculateCorr( this )
 
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .TRUE.
-!#endif
-!DEBUG
-
     else
 
       ! Reject Insertion
       call RemoveParticle( pc, np )
       this%NPart = this%NPart - 1
 
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .FALSE.
-!#endif
-!DEBUG
-
     end if
-
-!DEBUG
-!#if MPI_VER > 0
-!  call MPI_Allreduce( accepted, different, 1, MPI_LOGICAL, MPI_LXOR, &
-!&   MPI_COMM_WORLD, ierror )
-!  if( different ) then
-!    write(0, '(I2, ": Insert of comp. ", I0, A, " at step ", I0)') &
-!&     NProc, nc, merge("    accepted", "not accepted", accepted), step
-!    write(0, '(I2, ": Next random number = ", F12.10)') NProc, rnd(0._RK, 1._RK)
-!    stop
-!  end if
-!#endif
-!DEBUG
 
   end subroutine TEnsemble_Insert
 
@@ -4883,11 +4780,6 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
     integer                     :: i, n1, n2
-!DEBUG
-!#if MPI_VER > 0
-!  logical                     :: accepted, different
-!#endif
-!DEBUG
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -4905,12 +4797,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
     EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ &
 &                     + pc%EPotTestCorrRF
-!DEBUG
-!  write(0, '(I2, ": EPotDel = ", F12.6)') NProc, EPotDel
-!#if MPI_VER > 0
-!  accepted = .FALSE.
-!#endif
-!DEBUG
 
     ! Apply acceptance criterion
     ! check if EPotDel/this%Temperature-pc%ChemPot>exp_arg_max ?
@@ -4953,26 +4839,7 @@ loop2:        do nc = 1, this%NComponents
       ! Update long range correction
       call CalculateCorr( this )
 
-!DEBUG
-!#if MPI_VER > 0
-!  accepted = .TRUE.
-!#endif
-!DEBUG
-
     end if
-
-!DEBUG
-!#if MPI_VER > 0
-!  call MPI_Allreduce( accepted, different, 1, MPI_LOGICAL, MPI_LXOR, &
-!&   MPI_COMM_WORLD, ierror )
-!  if( different ) then
-!    write(0, '(I2, ": Delete of comp. ", I0, A, " at step ", I0)') &
-!&     NProc, nc, merge("    accepted", "not accepted", accepted), step
-!    write(0, '(I2, ": Next random number = ", F12.10)') NProc, rnd(0._RK, 1._RK)
-!    stop
-!  end if
-!#endif
-!DEBUG
 
   end subroutine TEnsemble_Delete
 
@@ -5248,10 +5115,6 @@ loop2:        do nc = 1, this%NComponents
       call SaveState( this%Component(i) )
     end do
 
-    ! Save current random number
-!     ixsave = ix
-!     iysave = iy
-
   end subroutine TEnsemble_SaveState
 
 
@@ -5277,10 +5140,6 @@ loop2:        do nc = 1, this%NComponents
 
     call Energy( this, this%EPot )
     call UpdateEnergy( this )
-
-    ! Restore current random number
-!     ix = ixsave
-!     iy = iysave
 
   end subroutine TEnsemble_RestoreState
 
