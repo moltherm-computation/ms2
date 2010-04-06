@@ -5382,18 +5382,8 @@ contains
         RSquared=RXij**2+RYij**2+RZij**2
         R=dsqrt(RSquared) ! Bond length
         ! Deviation from equilibrium
-        unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu, or u1 if u2==nu
+        unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu
         dR=R-this%PotBond(bi)%R0
-! !         if (abs(dR) .ge. 0.75_RK*this%PotBond(bi)%R0) then
-! !           EPot(unit2) = 1e33_RK
-! !           Virial(unit2) = 1e33_RK
-! !         else
-! ! !        if (dR .gt. Boxlength / 2._RK) then
-! ! !          write(*,*) 'Boxlaenge ueberschritten'
-! ! !        end if
-! ! !        if (dR .gt. 1._RK) then
-! ! !          write(*,*) 'Abweichung gross'
-! ! !        end if
         ! Potential parameter
           F0 = dR*this%PotBond(bi)%ForConst
 
@@ -5424,7 +5414,6 @@ contains
             VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij) / NProcs
             Virial(unit2) = Virial(unit2) + Third * VirialLocal
           end if
-!         end if
       end do ! bonds
 
       ! Angle Interaction
@@ -5436,7 +5425,8 @@ contains
         u1 = pan%Unit1 ! unit1 of angle
         u2 = pan%Unit2 ! unit2 of angle
         u3 = pan%Unit3 ! unit2 of angle
-        ! Assign pointers to site positions
+
+        ! Positions
         RXi=pan%Angle%RX1(np)
         RYi=pan%Angle%RY1(np)
         RZi=pan%Angle%RZ1(np)
@@ -5444,23 +5434,29 @@ contains
         RYk=pan%Angle%RY3(np)
         RZk=pan%Angle%RZ3(np)
 
-        RXij = (RXi - pan%Angle%RX2(np))
-        RYij = (RYi - pan%Angle%RY2(np))
-        RZij = (RZi - pan%Angle%RZ2(np))
-        RXkj = (RXk - pan%Angle%RX2(np))
-        RYkj = (RYk - pan%Angle%RY2(np))
-        RZkj = (RZk - pan%Angle%RZ2(np))
-        RXij = (RXij - anint(RXij)) * BoxLength
-        RYij = (RYij - anint(RYij)) * BoxLength
-        RZij = (RZij - anint(RZij)) * BoxLength
-        RXkj = (RXkj - anint(RXkj)) * BoxLength
-        RYkj = (RYkj - anint(RYkj)) * BoxLength
-        RZkj = (RZkj - anint(RZkj)) * BoxLength
+        if ( .not. pan%orientation1 ) then 
+          ! Assign pointers to site positions
+          RXij = (RXi - pan%Angle%RX2(np))
+          RYij = (RYi - pan%Angle%RY2(np))
+          RZij = (RZi - pan%Angle%RZ2(np))
+          RXij = (RXij - anint(RXij)) * BoxLength
+          RYij = (RYij - anint(RYij)) * BoxLength
+          RZij = (RZij - anint(RZij)) * BoxLength
+        end if
 
-        RijSquared=RXij**2+RYij**2+RZij**2
-        RkjSquared=RXkj**2+RYkj**2+RZkj**2
+        if ( .not. pan%orientation2 ) then
+          RXkj = (RXk - pan%Angle%RX2(np))
+          RYkj = (RYk - pan%Angle%RY2(np))
+          RZkj = (RZk - pan%Angle%RZ2(np))
+          RXkj = (RXkj - anint(RXkj)) * BoxLength
+          RYkj = (RYkj - anint(RYkj)) * BoxLength
+          RZkj = (RZkj - anint(RZkj)) * BoxLength
+        end if
+
 
         ! Calculate angle
+        RijSquared=RXij**2+RYij**2+RZij**2
+        RkjSquared=RXkj**2+RYkj**2+RZkj**2
         RijRkj=dsqrt(RijSquared*RkjSquared)
         cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
         if( cosa .gt. 1._RK ) cosa = 1._RK
@@ -5470,78 +5466,12 @@ contains
         ! Deviation from equilibrium
         dAngle = Angle - this%PotAngle(bi)%Angle0
 
-!         if (abs(dAngle) .ge. 0.75* this%PotAngle(bi)%Angle0 ) then
-!           this%EPot1Angle(bi) = 1E33_RK
-!         else
 
           ! Calculate energy
           ! Derivative of the energy
           abc = dAngle*this%PotAngle(bi)%ForConst
 
           this%EPot1Angle(bi) = abc*dAngle / NProcs
-!         end if
-! 
-!           if (np == 18) then
-! 	     write(*,*) 'Angle', rijsquared,rkjsquared, dangle, abc*dangle
-! 	  end if
-
-! need = .true.
-! ! ! !         if (u1==nu .and. need) then
-! ! ! !           need = .false.
-! ! ! !           if ((u1 .ne. u2) .and. (u1 .ne. u3)) then
-!             unit1=(np-1) * this%NUnit1 + u1
-!             unit2=(np-1) * this%NUnit1 + u2
-!             unit3=(np-1) * this%NUnit1 + u3
-!             EPot(unit1) = EPot(unit1) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-!             EPot(unit2) = EPot(unit2) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-!             EPot(unit3) = EPot(unit3) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-
-
-! ! !           else
-! ! !             unit1=(np-1) * this%NUnit1 +nu
-! ! !             unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
-! ! !             EPot(unit1) = EPot(unit1) + abc*dAngle * Third
-! ! !             EPot(unitX) = EPot(unitX) + abc*dAngle * 2._RK * Third
-! ! !           end if
-! ! !         end if
-! ! ! 
-! ! !         if (u2==nu .and. need) then
-! ! !           need = .false.
-! ! !           if ((u2 .ne. u1) .and. (u2 .ne. u3)) then
-! ! !             unit1=(np-1) * this%NUnit1 + u1
-! ! !             unit2=(np-1) * this%NUnit1 + u2
-! ! !             unit3=(np-1) * this%NUnit1 + u3
-! ! !             EPot(unit1) = EPot(unit1) + abc*dAngle * Third ! abc*dAngle/3
-! ! !             EPot(unit2) = EPot(unit2) + abc*dAngle * Third ! abc*dAngle/3
-! ! !             EPot(unit3) = EPot(unit3) + abc*dAngle * Third ! abc*dAngle/3
-! ! !            ! damit der Beitrag zu 2/3 gezaehlt.
-! ! !            ! Jeder Beitrag wird 3x gezaehlt und am Ende durch 2 dividiert!
-! ! !           else
-! ! !             unit2=(np-1) * this%NUnit1 +nu
-! ! !             unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
-! ! !             EPot(unit2) = EPot(unit2) + abc*dAngle
-! ! !             EPot(unitX) = EPot(unitX) + abc*dAngle
-! ! !            ! damit der Beitrag voll gezaehlt.
-! ! !            ! Jeder Beitrag wird 2x gezaehlt und am Ende durch 2 dividiert!
-! ! !           end if
-! ! !         end if
-! ! ! 
-! ! !         if (u3==nu .and. need) then
-! ! !           need = .false.
-! ! !           if ((u3 .ne. u1) .and. (u3 .ne. u2)) then
-! ! !             unit1=(np-1) * this%NUnit1 + u1
-! ! !             unit2=(np-1) * this%NUnit1 + u2
-! ! !             unit3=(np-1) * this%NUnit1 + u3
-! ! !             EPot(unit1) = EPot(unit1) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-! ! !             EPot(unit2) = EPot(unit2) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-! ! !             EPot(unit3) = EPot(unit3) + abc*dAngle * Third ! abc*dAngle/2 * coeffIntra
-! ! !           else
-! ! !             unit3=(np-1) * this%NUnit1 +nu
-! ! !             unitX=(np-1) * this%NUnit1 +u1+u2+u3-nu-nu
-! ! !             EPot(unit3) = EPot(unit3) + abc*dAngle
-! ! !             EPot(unitX) = EPot(unitX) + abc*dAngle
-! ! !           end if
-! ! !         end if
       end do  ! Angle Interaction
 
       ! Dihedral/Torsions Interaction
@@ -5648,184 +5578,6 @@ contains
 
         this%EPot1To(bi) = EPotAdd / NProcs
 
-! !         need = .true.
-! !              unit1=(np-1) * this%NUnit1 + u1
-! !              unit2=(np-1) * this%NUnit1 + u2
-! !              unit3=(np-1) * this%NUnit1 + u3
-! !              unit4=(np-1) * this%NUnit1 + u4
-! !              unitnu=(np-1)* this%NUnit1 + nu
-! !              EPot(unit1) = EPot(unit1)+EPotAdd / 6._RK
-! !              EPot(unit2) = EPot(unit2)+EPotAdd / 6._RK
-! !              EPot(unit3) = EPot(unit3)+EPotAdd / 6._RK
-! !              EPot(unit4) = EPot(unit4)+EPotAdd / 6._RK
-! !              EPot(unitnu) = EPot(unitnu)+EPotAdd / 3._RK
-
-
-
-! ! !         if (u1==nu .and. need) then
-! ! !            need = .false.
-! ! !            if ((u1 .ne. u2) .and. (u1 .ne. u3) .and. (u1 .ne. u4 )) then
-! ! !              unit2=(np-1) * this%NUnit1 + u2
-! ! !              unit3=(np-1) * this%NUnit1 + u3
-! ! !              unit4=(np-1) * this%NUnit1 + u4
-! ! !              EPot(unit2) = EPot(unit2)+EPotAdd / 6._RK
-! ! !              EPot(unit3) = EPot(unit3)+EPotAdd / 6._RK
-! ! !              EPot(unit4) = EPot(unit4)+EPotAdd / 6._RK
-! ! !            else
-! ! !              a1=((u1+u2+u3-3*nu)==0)
-! ! !              a2=((u1+u3+u4-3*nu)==0)
-! ! !              a3=((u1+u2+u4-3*nu)==0)
-! ! !              if (a1 .or. a2 .or. a3) then
-! ! !                unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
-! ! !                EPot(unitX) = EPot(unitX)+EPotAdd
-! ! !              else
-! ! !                b1=(u1 == u2)
-! ! !                b2=(u1 == u3)
-! ! !                b3=(u1 == u4)
-! ! !                if (b1) then
-! ! !                  unit3=(np-1) * this%NUnit1 + u3
-! ! !                  unit4=(np-1) * this%NUnit1 + u4
-! ! !                  EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !                  EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !                end if
-! ! !                if (b2) then
-! ! !                  unit2=(np-1) * this%NUnit1 + u2
-! ! !                  unit4=(np-1) * this%NUnit1 + u4
-! ! !                  EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !                  EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !                end if
-! ! !                if (b3) then
-! ! !                  unit2=(np-1) * this%NUnit1 + u2
-! ! !                  unit3=(np-1) * this%NUnit1 + u3
-! ! !                  EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !                  EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !                end if
-! ! !              end if
-! ! !            end if
-! ! !         end if ! u1==nu
-! ! !         if (u2==nu .and. need) then
-! ! !           need = .false.
-! ! !           if ((u2 .ne. u1) .and. (u2 .ne. u3) .and. (u2 .ne. u4 )) then
-! ! !             unit1=(np-1) * this%NUnit1 + u1
-! ! !             unit3=(np-1) * this%NUnit1 + u3
-! ! !             unit4=(np-1) * this%NUnit1 + u4
-! ! !             EPot(unit1) = EPot(unit1)+EPotAdd / 6._RK
-! ! !             EPot(unit3) = EPot(unit3)+EPotAdd / 6._RK
-! ! !             EPot(unit4) = EPot(unit4)+EPotAdd / 6._RK
-! ! !           else
-! ! !             a1=((u1+u2+u3-3*nu)==0)
-! ! !             a2=((u2+u3+u4-3*nu)==0)
-! ! !             a3=((u1+u2+u4-3*nu)==0)
-! ! !             if (a1 .or. a2 .or. a3) then
-! ! !               unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
-! ! !               EPot(unitX) = EPot(unitX)+EPotAdd
-! ! !             else
-! ! !               b1=(u2 == u1)
-! ! !               b2=(u2 == u3)
-! ! !               b3=(u2 == u4)
-! ! !               if (b1) then
-! ! !                 unit3=(np-1) * this%NUnit1 + u3
-! ! !                 unit4=(np-1) * this%NUnit1 + u4
-! ! !                 EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !                 EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b2) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit4=(np-1) * this%NUnit1 + u4
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b3) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit3=(np-1) * this%NUnit1 + u3
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !               end if
-! ! !             end if
-! ! !           end if
-! ! !         end if ! u2==nu
-! ! !         if (u3==nu .and. need) then
-! ! !           need = .false.
-! ! !           if ((u3 .ne. u1) .and. (u3 .ne. u2) .and. (u3 .ne. u4 )) then
-! ! !             unit1=(np-1) * this%NUnit1 + u1
-! ! !             unit2=(np-1) * this%NUnit1 + u2
-! ! !             unit4=(np-1) * this%NUnit1 + u4
-! ! !             EPot(unit1) = EPot(unit1)+EPotAdd / 6._RK
-! ! !             EPot(unit2) = EPot(unit2)+EPotAdd / 6._RK
-! ! !             EPot(unit4) = EPot(unit4)+EPotAdd / 6._RK
-! ! !           else
-! ! !             a1=((u1+u2+u3-3*nu)==0)
-! ! !             a2=((u2+u3+u4-3*nu)==0)
-! ! !             a3=((u1+u3+u4-3*nu)==0)
-! ! !             if (a1 .or. a2 .or. a3) then
-! ! !               unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
-! ! !               EPot(unitX) = EPot(unitX)+EPotAdd
-! ! !             else
-! ! !               b1=(u3 == u1)
-! ! !               b2=(u3 == u2)
-! ! !               b3=(u3 == u4)
-! ! !               if (b1) then
-! ! !                 unit2=(np-1) * this%NUnit2 + u2
-! ! !                 unit4=(np-1) * this%NUnit1 + u4
-! ! !                 EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !                 EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b2) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit4=(np-1) * this%NUnit1 + u4
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit4) = EPot(unit4)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b3) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit2=(np-1) * this%NUnit1 + u2
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !               end if
-! ! !             end if
-! ! !           end if
-! ! !         end if ! u3==nu
-! ! !         if (u4==nu .and. need) then
-! ! !           need = .false.
-! ! !           if ((u4 .ne. u1) .and. (u4 .ne. u2) .and. (u4 .ne. u3 )) then
-! ! !             unit1=(np-1) * this%NUnit1 + u1
-! ! !             unit2=(np-1) * this%NUnit1 + u2
-! ! !             unit3=(np-1) * this%NUnit1 + u3
-! ! !             EPot(unit1) = EPot(unit1)+EPotAdd / 6._RK
-! ! !             EPot(unit2) = EPot(unit2)+EPotAdd / 6._RK
-! ! !             EPot(unit3) = EPot(unit3)+EPotAdd / 6._RK
-! ! !           else
-! ! !             a1=((u1+u2+u4-3*nu)==0)
-! ! !             a2=((u2+u3+u4-3*nu)==0)
-! ! !             a3=((u1+u3+u4-3*nu)==0)
-! ! !             if (a1 .or. a2 .or. a3) then
-! ! !               unitX=(np-1) * this%NUnit1 + u1+u2+u3+u4-3*nu
-! ! !               EPot(unitX) = EPot(unitX)+EPotAdd
-! ! !             else
-! ! !               b1=(u4 == u1)
-! ! !               b2=(u4 == u2)
-! ! !               b3=(u4 == u3)
-! ! !               if (b1) then
-! ! !                 unit2=(np-1) * this%NUnit2 + u2
-! ! !                 unit3=(np-1) * this%NUnit1 + u3
-! ! !                 EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !                 EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b2) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit3=(np-1) * this%NUnit1 + u3
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit3) = EPot(unit3)+EPotAdd * Third
-! ! !               end if
-! ! !               if (b3) then
-! ! !                 unit1=(np-1) * this%NUnit1 + u1
-! ! !                 unit2=(np-1) * this%NUnit1 + u2
-! ! !                 EPot(unit1) = EPot(unit1)+EPotAdd * Third
-! ! !                 EPot(unit2) = EPot(unit2)+EPotAdd * Third
-! ! !               end if
-! ! !             end if
-! ! !           end if
-! ! !         end if ! u4==nu
       end do ! Dihedral Interaction
 
 

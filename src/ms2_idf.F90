@@ -70,6 +70,7 @@ module ms2_idf
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
+    logical           :: orientation1, orientation2
 
 
   end type TIdfAngle
@@ -104,8 +105,15 @@ module ms2_idf
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:)
+    real(RK), pointer :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: RX3(:), RY3(:), RZ3(:)
+    real(RK), pointer :: RX4(:), RY4(:), RZ4(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:)
+    real(RK), pointer :: FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: FX3(:), FY3(:), FZ3(:)
+    real(RK), pointer :: FX4(:), FY4(:), FZ4(:)
+    logical           :: orientation1, orientation2
 !    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
 !    real(RK)          :: Sigma1, Sigma4, Epsilon1, Epsilon4
 
@@ -130,7 +138,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TIdfBond_Construct                             !
+!  Subroutine TIdfBond_Construct                               !
 !==============================================================!
 
   subroutine TIdfBond_Construct( this )

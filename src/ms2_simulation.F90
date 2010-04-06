@@ -196,11 +196,11 @@ contains
 &       ProgramFileName//ConfigFileExtension )
     end select
 #endif
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
-    write( IOBuffer, '(T18, "Reading Simulation Input")')
+    write( IOBuffer, '(T24, "Reading Simulation Input")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     write( IOBuffer, '("Parameter file name: ", A)' ) trim( ParameterFileName )
     call LogWrite
@@ -212,9 +212,9 @@ contains
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
-    write( IOBuffer, '(T14,"Reading parameters of simulation")' )
+    write( IOBuffer, '(T20,"Reading parameters of simulation")' )
     call LogWrite
 
     ! Read name tag for output files
@@ -791,9 +791,9 @@ contains
 
     ! Close parameter file
     call FileClose( iounit_params )
-    write( IOBuffer, '(T13, "Reading Simulation Input successful")')
+    write( IOBuffer, '(T18, "Reading Simulation Input successful")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call LogWriteBlank
 
@@ -808,11 +808,11 @@ contains
     ! Open result and visualisation files
     call LogWriteBlank
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
-    write( IOBuffer, '(T17, "Start Simulation")')
+    write( IOBuffer, '(T28, "Start Simulation")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )

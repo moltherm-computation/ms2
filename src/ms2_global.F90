@@ -18,6 +18,23 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
+!           __GFORTRAN__
+#if defined __GNUC__
+! the gfortran preprocessor seems not to support the # operator
+#define MACRODEF_STRINGIFY(x) "x"
+#else
+#define MACRODEF_STRINGIFY(x) #x
+#endif
+#define MACRODEF_TO_STRING(x)  MACRODEF_STRINGIFY(x)
+
+#if defined(__GNUC__)
+# if defined(__GNUC_PATCHLEVEL__)
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+# else
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
+# endif
+#endif
+
 module ms2_global
 
 #ifdef _WIN32
@@ -74,20 +91,26 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'alpha'
 #elif ARCH == 2
 #ifdef _WIN32
-  character(*), parameter :: Hardware = 'Win32'
+  character(*), parameter :: Hardware = 'pc/win32'
 #elif defined __INTEL_COMPILER
-  character(*), parameter :: Hardware = 'Linux/Ifort'
+  character(*), parameter :: Hardware = 'pc/ifort'
+#elif defined __SUNPRO_F90
+  character(*), parameter :: Hardware = 'pc/sunF90'
+#elif defined __PATHSCALE__
+  character(*), parameter :: Hardware = 'pc/pathf9X'
 #elif defined _PGF
-  character(*), parameter :: Hardware = 'Linux/PGF'
+  character(*), parameter :: Hardware = 'pc/PGF'
 #elif defined __GNUC__
-  character(*), parameter :: Hardware = 'Linux/GFortran'
+  character(*), parameter :: Hardware = 'pc/gfortran'
 #else
-  character(*), parameter :: Hardware = 'Linux/any'
+  character(*), parameter :: Hardware = 'pc/any'
 #endif
 #elif ARCH == 3
-  character(*), parameter :: Hardware = 'NEC SX-8'
+  character(*), parameter :: Hardware = 'NEC SX'
 #elif ARCH == 4
   character(*), parameter :: Hardware = 'IBM p690'
+!#elif ARCH == 5
+!  character(*), parameter :: Hardware = 'Cray XT5'
 #else
   character(*), parameter :: Hardware = 'generic platform'
 #endif
@@ -324,8 +347,12 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNFluct                      = 'NFluct'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
+  ! limits
+  real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
+  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
+
   ! (Almost) zero for mass of inertia
-  real(RK), parameter :: Zero = 1E-10_RK
+  real(RK), parameter :: Zero = 1E-07_RK
 
   ! Contribution limit in chemical potential by Widom
   real(RK), parameter :: ContributionLimit = 708.3964185
@@ -720,8 +747,8 @@ character(*), parameter :: VersionString = 'v12'
 
 #ifndef __INTEL_COMPILER
 
-  ! Flush of I/O units
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+  ! Flush of I/O units
   external flush
 
   ! change current directory
@@ -829,8 +856,8 @@ contains
         print *, trim( ProgramFileName ) &
 &              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
         print *, 'usage: ', trim( ProgramFileName ) &
-&              , ' {<par-file[', ParameterFileExtension, ']|<rst-file>' &
-&              , RestartFileExtension, '}'
+&              , ' {<par-file[', ParameterFileExtension &
+&              , ']|<rst-file>', RestartFileExtension, '}'
 
         ! Abort program
 #if MPI_VER > 0
@@ -908,15 +935,15 @@ contains
     nullify( ioranks )
     if( RootProc ) then
       call MPI_Get_version(mpiversion, mpisubversion, ierror)
-      write( IOBuffer, '("MPI Version (running with a MPI",I2,".",I1," library)")' ) mpiversion, mpisubversion
+      write( IOBuffer, '("MPI version        :",I2,".",I1)' ) mpiversion, mpisubversion
       call LogWrite
-      write( IOBuffer, '("Number of processes: ",I4)' ) NProcs
+      write( IOBuffer, '("Number of processes:",I4)' ) NProcs
       call LogWrite
-      write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
+      write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
       call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
-        write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
+        write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
       end if
     end if
@@ -964,7 +991,7 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -978,6 +1005,9 @@ contains
 
     ! Initialize random number generator
     call Randomize( seed = 5333 )
+
+    !limits_RK_MAX = huge(limits_RK_MAX)
+    exp_arg_max = log(limits_RK_MAX)
 
     ! Define some constants
 #ifdef SINGLEPRECISION
@@ -1203,25 +1233,49 @@ contains
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '("************************************************************************")')
     call LogWrite
-    write( IOBuffer, '("*                Molecular Simulation 2                   *")')
+    write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '("************************************************************************")')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
 
     call LogWrite
-    write( IOBuffer, '("compiled at ", A, " for ", A)' ) &
-&          CompileTime, Hardware
+    write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
     call LogWrite
-    write( IOBuffer, '("started by ", A," on ", A)' ) &
-&          trim( username ), trim( hostname )
+! cmp. http://predef.sourceforge.net/precomp.html
+!           __GFORTRAN__
+#if defined __GNUC__
+    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) &
+&          __GNUC_VERSION__
+#elif defined __INTEL_COMPILER
+    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) &
+&         __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
+#elif defined __PGI
+    write( IOBuffer, '("Compiler version     : PGI pgf")' )
+#elif defined __SUNPRO_F95
+    write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
+#elif defined __SUNPRO_F90
+    write( IOBuffer, '("Compiler version     : SUN studio sunf90 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F90)
+#else
+!                                                         __VERSION__
+    write( IOBuffer, '("Compiler version     : unknown")' )
+#endif
+    call LogWrite
+    write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
+    call LogWrite
+    write( IOBuffer, '("Real Kind            :", I2)' ) RK
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '("Hostname             : ", A)' ) trim( hostname )
+    call LogWrite
+    write( IOBuffer, '("started by user ", A)' ) trim( username )
     call LogWriteTime
     call LogWriteBlank
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine Global_LogOpen
@@ -1241,11 +1295,11 @@ contains
 
     ! Close log file
     call LogWriteBlank
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
-    write( IOBuffer, '("***********************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call FileClose( iounit_log )
 
@@ -2026,7 +2080,7 @@ contains
 
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     call LogWriteBlank
 
@@ -2225,7 +2279,7 @@ contains
     !integer :: range_size0             ! version 1 only: range size for the first process
 
 #if MPI_VER > 0
-    ! original version: last process might get smaller range_size
+    ! original version 0: last process might get smaller range_size
     range_size = 1 + (overall_size - 1) / NProcs
     first_index = 1 + NProc * range_size
     last_index = min( first_index + range_size - 1, overall_size )

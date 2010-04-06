@@ -640,10 +640,17 @@ contains
       this%MOI(i) = this%MOI(i) / UnitInertia
     end do
 
+    if ( this%NDipole .gt. 0 .or. this%NQuadrupole .gt. 0 ) then
+      this%Q0(1) = 1._RK
+      this%Q0(2) = 0._RK
+      this%Q0(3) = 0._RK
+      this%Q0(4) = 0._RK
+    end if
+
   end subroutine TUnit_ReadMOI
 
 !==============================================================!
-!  Subroutine TUnit_FindNDF                                !
+!  Subroutine TUnit_FindNDF                                    !
 !==============================================================!
 
   subroutine TUnit_FindNDF( this )

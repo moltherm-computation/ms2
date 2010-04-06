@@ -458,7 +458,7 @@ contains
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     write( IOBuffer, '(T13, "Reading components for ensemble", I3)') comp
     call LogWrite
@@ -621,7 +621,7 @@ contains
 
     write( IOBuffer, '(T8, "Reading components for ensemble", I3, " successful")') comp
     call LogWrite
-    write( IOBuffer, '("-----------------------------------------------------------")')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine TComponent_Construct
@@ -802,7 +802,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_Destruct                              !
+!  Subroutine TComponent_DestructFluct                         !
 !==============================================================!
 
   subroutine TComponent_DestructFluct( this )
@@ -1226,412 +1226,647 @@ contains
       if (this%Molecule%Unit(i)%NLJ126 > 0) then
         do j = 1, this%Molecule%Unit(i)%NLJ126
           if (UseIntDegFreed) then
-              call binar_search(this%Molecule%SiteLJ126%SiteId, this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
-              if (ok) then
-                  this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
-                  this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
-                  this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
-                  this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
-                  this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
-                  this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
-                  this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
-                  this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
-                  this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
-                  this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
-              end if
-           else
-                 this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(j)%r
-                 this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(j)%RX
-                 this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(j)%RY
-                 this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(j)%RZ
-                 this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(j)%FX
-                 this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(j)%FY
-                 this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(j)%FZ
-                 this%Molecule%SiteLJ126(j)%PX =>this%Molecule%Unit(i)%PX
-                 this%Molecule%SiteLJ126(j)%PY =>this%Molecule%Unit(i)%PY
-                 this%Molecule%SiteLJ126(j)%PZ =>this%Molecule%Unit(i)%PZ
+            call binar_search(this%Molecule%SiteLJ126%SiteId,&
+&                   this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
+            if (ok) then
+              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
+              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
+              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
+              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
+              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
+              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
+              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
+              this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
+              this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
+              this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
             end if
-         end do
-       end if
-       if (this%Molecule%Unit(i)%NCharge > 0) then
-         do j = 1, this%Molecule%Unit(i)%NCharge
-            if (UseIntDegFreed) then
-                call binar_search(this%Molecule%SiteCharge%SiteId, this%Molecule%Unit(i)%SiteCharge(j)%SiteId, ok, index )
-                if (ok) then
-                    this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(index)%r
-                    this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(index)%RX
-                    this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(index)%RY
-                    this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(index)%RZ
-                    this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(index)%FX
-                    this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(index)%FY
-                    this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(index)%FZ
-                    this%Molecule%SiteCharge(index)%PX =>this%Molecule%Unit(i)%PX
-                    this%Molecule%SiteCharge(index)%PY =>this%Molecule%Unit(i)%PY
-                    this%Molecule%SiteCharge(index)%PZ =>this%Molecule%Unit(i)%PZ
-                end if
-            else
-                this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(j)%r
-                this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(j)%RX
-                this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(j)%RY
-                this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(j)%RZ
-                this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(j)%FX
-                this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(j)%FY
-                this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(j)%FZ
-                this%Molecule%SiteCharge(j)%PX => this%Molecule%Unit(i)%PX
-                this%Molecule%SiteCharge(j)%PY => this%Molecule%Unit(i)%PY
-                this%Molecule%SiteCharge(j)%PZ => this%Molecule%Unit(i)%PZ
+          else
+              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(j)%r
+              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(j)%RX
+              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(j)%RY
+              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(j)%RZ
+              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(j)%FX
+              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(j)%FY
+              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(j)%FZ
+              this%Molecule%SiteLJ126(j)%PX =>this%Molecule%Unit(i)%PX
+              this%Molecule%SiteLJ126(j)%PY =>this%Molecule%Unit(i)%PY
+              this%Molecule%SiteLJ126(j)%PZ =>this%Molecule%Unit(i)%PZ
           end if
-         end do
-       end if
-       if (this%Molecule%Unit(i)%NDipole > 0) then
-         do j = 1, this%Molecule%Unit(i)%NDipole
-            if (UseIntDegFreed) then
-                call binar_search(this%Molecule%SiteDipole%SiteId, this%Molecule%Unit(i)%SiteDipole(j)%SiteId, ok, index )
-                if (ok) then
-                    this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(index)%r
-                    this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(index)%or
-                    this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(index)%RX
-                    this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(index)%RY
-                    this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(index)%RZ
-                    this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(index)%OX
-                    this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(index)%OY
-                    this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(index)%OZ
-                    this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(index)%FX
-                    this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(index)%FY
-                    this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(index)%FZ
-                    this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(index)%TX
-                    this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(index)%TY
-                    this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(index)%TZ
-                    this%Molecule%SiteDipole(index)%PX => this%Molecule%Unit(i)%PX
-                    this%Molecule%SiteDipole(index)%PY => this%Molecule%Unit(i)%PY
-                    this%Molecule%SiteDipole(index)%PZ => this%Molecule%Unit(i)%PZ
-                end if
-            else
-                this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(j)%r
-                this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(j)%or
-                this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(j)%RX
-                this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(j)%RY
-                this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(j)%RZ
-                this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(j)%OX
-                this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(j)%OY
-                this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(j)%OZ
-                this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(j)%FX
-                this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(j)%FY
-                this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(j)%FZ
-                this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(j)%TX
-                this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(j)%TY
-                this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(j)%TZ
-                this%Molecule%SiteDipole(j)%PX=> this%Molecule%Unit(i)%PX
-                this%Molecule%SiteDipole(j)%PY=> this%Molecule%Unit(i)%PY
-                this%Molecule%SiteDipole(j)%PZ=> this%Molecule%Unit(i)%PZ
+        end do
+      end if
+      if (this%Molecule%Unit(i)%NCharge > 0) then
+        do j = 1, this%Molecule%Unit(i)%NCharge
+          if (UseIntDegFreed) then
+            call binar_search(this%Molecule%SiteCharge%SiteId, &
+&                  this%Molecule%Unit(i)%SiteCharge(j)%SiteId, ok, index )
+            if (ok) then
+              this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(index)%r
+              this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(index)%RX
+              this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(index)%RY
+              this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(index)%RZ
+              this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(index)%FX
+              this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(index)%FY
+              this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(index)%FZ
+              this%Molecule%SiteCharge(index)%PX =>this%Molecule%Unit(i)%PX
+              this%Molecule%SiteCharge(index)%PY =>this%Molecule%Unit(i)%PY
+              this%Molecule%SiteCharge(index)%PZ =>this%Molecule%Unit(i)%PZ
             end if
+          else
+              this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(j)%r
+              this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(j)%RX
+              this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(j)%RY
+              this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(j)%RZ
+              this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(j)%FX
+              this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(j)%FY
+              this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(j)%FZ
+              this%Molecule%SiteCharge(j)%PX => this%Molecule%Unit(i)%PX
+              this%Molecule%SiteCharge(j)%PY => this%Molecule%Unit(i)%PY
+              this%Molecule%SiteCharge(j)%PZ => this%Molecule%Unit(i)%PZ
+          end if
+        end do
+      end if
+      if (this%Molecule%Unit(i)%NDipole > 0) then
+        do j = 1, this%Molecule%Unit(i)%NDipole
+          if (UseIntDegFreed) then
+            call binar_search(this%Molecule%SiteDipole%SiteId, &
+&               this%Molecule%Unit(i)%SiteDipole(j)%SiteId, ok, index )
+            if (ok) then
+              this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(index)%r
+              this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(index)%or
+              this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(index)%RX
+              this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(index)%RY
+              this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(index)%RZ
+              this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(index)%OX
+              this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(index)%OY
+              this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(index)%OZ
+              this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(index)%FX
+              this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(index)%FY
+              this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(index)%FZ
+              this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(index)%TX
+              this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(index)%TY
+              this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(index)%TZ
+              this%Molecule%SiteDipole(index)%PX => this%Molecule%Unit(i)%PX
+              this%Molecule%SiteDipole(index)%PY => this%Molecule%Unit(i)%PY
+              this%Molecule%SiteDipole(index)%PZ => this%Molecule%Unit(i)%PZ
+            end if
+          else
+              this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(j)%r
+              this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(j)%or
+              this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(j)%RX
+              this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(j)%RY
+              this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(j)%RZ
+              this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(j)%OX
+              this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(j)%OY
+              this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(j)%OZ
+              this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(j)%FX
+              this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(j)%FY
+              this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(j)%FZ
+              this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(j)%TX
+              this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(j)%TY
+              this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(j)%TZ
+              this%Molecule%SiteDipole(j)%PX=> this%Molecule%Unit(i)%PX
+              this%Molecule%SiteDipole(j)%PY=> this%Molecule%Unit(i)%PY
+              this%Molecule%SiteDipole(j)%PZ=> this%Molecule%Unit(i)%PZ
+           end if
          end do
        end if
        if (this%Molecule%Unit(i)%NQuadrupole > 0) then
          do j = 1, this%Molecule%Unit(i)%NQuadrupole
-            if (UseIntDegFreed) then
-                call binar_search(this%Molecule%SiteQuadrupole%SiteId, this%Molecule%Unit(i)%SiteQuadrupole(j)%SiteId, ok, index )
-                if (ok) then
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(index)%r
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(index)%or
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(index)%RX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(index)%RY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(index)%RZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(index)%OX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(index)%OY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(index)%OZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(index)%FX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(index)%FY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(index)%FZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(index)%TX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(index)%TY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(index)%TZ
-                    this%Molecule%SiteQuadrupole(index)%PX=>this%Molecule%Unit(i)%PX
-                    this%Molecule%SiteQuadrupole(index)%PY=>this%Molecule%Unit(i)%PY
-                    this%Molecule%SiteQuadrupole(index)%PZ=>this%Molecule%Unit(i)%PZ
-                end if
-            else
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(j)%r
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(j)%or
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(j)%RX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(j)%RY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(j)%RZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(j)%OX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(j)%OY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(j)%OZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(j)%FX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(j)%FY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(j)%FZ
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(j)%TX
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(j)%TY
-                    this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(j)%TZ
-                    this%Molecule%SiteQuadrupole(j)%PX=> this%Molecule%Unit(i)%PX
-                    this%Molecule%SiteQuadrupole(j)%PY=> this%Molecule%Unit(i)%PY
-                    this%Molecule%SiteQuadrupole(j)%PZ=> this%Molecule%Unit(i)%PZ
-            end if
+           if (UseIntDegFreed) then
+             call binar_search(this%Molecule%SiteQuadrupole%SiteId, &
+&               this%Molecule%Unit(i)%SiteQuadrupole(j)%SiteId, ok, index )
+             if (ok) then
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(index)%r
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(index)%or
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(index)%RX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(index)%RY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(index)%RZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(index)%OX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(index)%OY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(index)%OZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(index)%FX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(index)%FY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(index)%FZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(index)%TX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(index)%TY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(index)%TZ
+               this%Molecule%SiteQuadrupole(index)%PX=>this%Molecule%Unit(i)%PX
+               this%Molecule%SiteQuadrupole(index)%PY=>this%Molecule%Unit(i)%PY
+               this%Molecule%SiteQuadrupole(index)%PZ=>this%Molecule%Unit(i)%PZ
+             end if
+           else
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(j)%r
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(j)%or
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(j)%RX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(j)%RY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(j)%RZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(j)%OX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(j)%OY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(j)%OZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(j)%FX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(j)%FY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(j)%FZ
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(j)%TX
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(j)%TY
+               this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(j)%TZ
+               this%Molecule%SiteQuadrupole(j)%PX=> this%Molecule%Unit(i)%PX
+               this%Molecule%SiteQuadrupole(j)%PY=> this%Molecule%Unit(i)%PY
+               this%Molecule%SiteQuadrupole(j)%PZ=> this%Molecule%Unit(i)%PZ
+           end if
          end do
        end if
     end do
 
     ! Idf Site positions and  forces
     do i = 1, this%Molecule%NBond
-       this%Molecule%IdfBond(i)%NPartMax => this%NPartMax
-       this%Molecule%IdfBond(i)%NPart => this%NPart
-       this%Molecule%IdfBond(i)%NPart0 => this%NPart0
-       this%Molecule%IdfBond(i)%NPart1 => this%NPart1
-       this%Molecule%IdfBond(i)%NPart2 => this%NPart2
-       SiteId1 = this%Molecule%IdfBond(i)%SiteId1
-       SiteId2 = this%Molecule%IdfBond(i)%SiteId2
-       Site1 = .false.
-       Site2 = .false.
-       if ( this%Molecule%NLJ126>0 ) then
-          do j = 1, this%Molecule%NLJ126
-             if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:)   ! For calculation of virial
-                 this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
-                 this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
-                 Site1 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteLJ126(j)%PX(:)
-                 this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteLJ126(j)%PY(:)
-                 this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteLJ126(j)%PZ(:)
-                 Site2 = .true.
-              end if
-              if (Site1 .and. Site2) then
-                  exit
-              end if
-            end do
-       end if
-       if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NCharge > 0) ) then
-          do j = 1, this%Molecule%NCharge
-             if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
-                 this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)
-                 this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
-                 this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
-                 Site1 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
-                 this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteCharge(j)%PX(:)
-                 this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteCharge(j)%PY(:)
-                 this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteCharge(j)%PZ(:)
-                 Site2 = .true.
-             end if
-             if (Site1 .and. Site2) then
-                  exit
-             end if
-          end do
-       end if
+      this%Molecule%IdfBond(i)%NPartMax => this%NPartMax
+      this%Molecule%IdfBond(i)%NPart => this%NPart
+      this%Molecule%IdfBond(i)%NPart0 => this%NPart0
+      this%Molecule%IdfBond(i)%NPart1 => this%NPart1
+      this%Molecule%IdfBond(i)%NPart2 => this%NPart2
+      SiteId1 = this%Molecule%IdfBond(i)%SiteId1
+      SiteId2 = this%Molecule%IdfBond(i)%SiteId2
+      Site1 = .false.
+      Site2 = .false.
+      if ( this%Molecule%NLJ126>0 ) then
+        do j = 1, this%Molecule%NLJ126
+          if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
+            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:)   
+            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
+            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteLJ126(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteLJ126(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteLJ126(j)%PZ(:)
+            Site2 = .true.
+          end if
+          if (Site1 .and. Site2) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NCharge > 0) ) then
+        do j = 1, this%Molecule%NCharge
+          if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
+            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
+            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteCharge(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteCharge(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteCharge(j)%PZ(:)
+            Site2 = .true.
+          end if
+          if (Site1 .and. Site2) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NDipole > 0) ) then
+        do j = 1, this%Molecule%NDipole
+          if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
+            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteDipole(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteDipole(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteDipole(j)%PZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteDipole(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteDipole(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteDipole(j)%PZ(:)
+            Site2 = .true.
+          end if
+          if (Site1 .and. Site2) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NQuadrupole > 0) ) then
+        do j = 1, this%Molecule%NQuadrupole
+          if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
+            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteQuadrupole(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteQuadrupole(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteQuadrupole(j)%PZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteQuadrupole(j)%PX(:)
+            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteQuadrupole(j)%PY(:)
+            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteQuadrupole(j)%PZ(:)
+            Site2 = .true.
+          end if
+          if (Site1 .and. Site2) exit
+        end do
+      end if
     end do
     do i = 1, this%Molecule%NAngle
-       this%Molecule%IdfAngle(i)%NPartMax => this%NPartMax
-       this%Molecule%IdfAngle(i)%NPart => this%NPart
-       this%Molecule%IdfAngle(i)%NPart0 => this%NPart0
-       this%Molecule%IdfAngle(i)%NPart1 => this%NPart1
-       this%Molecule%IdfAngle(i)%NPart2 => this%NPart2
-       SiteId1 = this%Molecule%IdfAngle(i)%SiteId1
-       SiteId2 = this%Molecule%IdfAngle(i)%SiteId2
-       SiteId3 = this%Molecule%IdfAngle(i)%SiteId3
-       Site1 = .false.
-       Site2 = .false.
-       Site3 = .false.
-       if ( this%Molecule%NLJ126>0 ) then
-          do j = 1, this%Molecule%NLJ126
-             if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 Site1 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 Site2 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId3) then
-                 this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 Site3 = .true.
-              end if
-              if (Site1 .and. Site2 .and. Site3) then
-                  exit
-              end if
-            end do
-       end if
-       if((.not.Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%Molecule%NCharge > 0) ) then
-          do j = 1, this%Molecule%NCharge
-             if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
-                 Site1 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
-                 Site2 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
-                 this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
-                 Site3 = .true.
-             end if
-             if (Site1 .and. Site2 .and. Site3) then
-                  exit
-             end if
-          end do
-       end if
+      this%Molecule%IdfAngle(i)%NPartMax => this%NPartMax
+      this%Molecule%IdfAngle(i)%NPart => this%NPart
+      this%Molecule%IdfAngle(i)%NPart0 => this%NPart0
+      this%Molecule%IdfAngle(i)%NPart1 => this%NPart1
+      this%Molecule%IdfAngle(i)%NPart2 => this%NPart2
+      SiteId1 = this%Molecule%IdfAngle(i)%SiteId1
+      SiteId2 = this%Molecule%IdfAngle(i)%SiteId2
+      SiteId3 = this%Molecule%IdfAngle(i)%SiteId3
+      Site1 = .false.
+      Site2 = .false.
+      Site3 = .false.
+      if ( this%Molecule%NLJ126>0 ) then
+        do j = 1, this%Molecule%NLJ126
+          if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
+            this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
+            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId3) then
+            this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteLJ126(j)%FZ(:)
+            Site3 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3) exit
+        end do
+      end if
+      if((.not.Site1.or. .not.Site2 .or. .not.Site3) .and. (this%Molecule%NCharge>0) ) then
+        do j = 1, this%Molecule%NCharge
+          if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
+            this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
+            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
+            this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
+            Site3 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3) exit
+        end do
+      end if
+      if((.not.Site1.or. .not.Site2 .or. .not.Site3) .and. (this%Molecule%NDipole>0) ) then
+        do j = 1, this%Molecule%NDipole
+          if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
+            if (SiteId1 == SiteId2) then
+              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteDipole(j)%OZ(:)
+            else
+              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
+            end if
+            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId3) then
+            if (SiteId3 == SiteId2) then
+              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteDipole(j)%OZ(:)
+            else
+              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteDipole(j)%RZ(:)
+            end if
+            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site3 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3) exit
+        end do
+      end if
+      if((.not.Site1.or. .not.Site2 .or. .not.Site3) .and. (this%Molecule%NQuadrupole>0) ) then
+        do j = 1, this%Molecule%NQuadrupole
+          if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
+            if (SiteId1 == SiteId2) then
+              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+            else
+              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            end if
+            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId3) then
+            if (SiteId3 == SiteId2) then
+              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+            else
+              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            end if
+            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site3 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3) exit
+        end do
+      end if
     end do
     do i = 1, this%Molecule%NDihedral
-       this%Molecule%IdfDihedral(i)%NPartMax => this%NPartMax
-       this%Molecule%IdfDihedral(i)%NPart => this%NPart
-       this%Molecule%IdfDihedral(i)%NPart0 => this%NPart0
-       this%Molecule%IdfDihedral(i)%NPart1 => this%NPart1
-       this%Molecule%IdfDihedral(i)%NPart2 => this%NPart2
-       SiteId1 = this%Molecule%IdfDihedral(i)%SiteId1
-       SiteId2 = this%Molecule%IdfDihedral(i)%SiteId2
-       SiteId3 = this%Molecule%IdfDihedral(i)%SiteId3
-       SiteId4 = this%Molecule%IdfDihedral(i)%SiteId4
-       Site1 = .false.
-       Site2 = .false.
-       Site3 = .false.
-       Site4 = .false.
-       if ( this%Molecule%NLJ126>0 ) then
-          do j = 1, this%Molecule%NLJ126
-             if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
-!                 this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:) !for 1,4 intramolecular interaction virial
-!                 this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
-!                 this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
-!                 this%Molecule%IdfDihedral(i)%Sigma1=this%Molecule%SiteLJ126(j)%sig
-!                 this%Molecule%IdfDihedral(i)%Epsilon1=this%Molecule%SiteLJ126(j)%eps
-                 Site1 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 Site2 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId3) then
-                 this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteLJ126(j)%FZ(:)
-                 Site3 = .true.
-             else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId4) then
-                 this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteLJ126(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteLJ126(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteLJ126(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteLJ126(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteLJ126(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteLJ126(j)%FZ(:)
-!                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteLJ126(j)%PX(:)!for 1,4 intramolecular interaction virial
-!                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteLJ126(j)%PY(:)
-!                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteLJ126(j)%PZ(:)
-!                 this%Molecule%IdfDihedral(i)%Sigma4=this%Molecule%SiteLJ126(j)%sig
-!                 this%Molecule%IdfDihedral(i)%Epsilon4=this%Molecule%SiteLJ126(j)%eps
-                 Site4 = .true.
-              end if
-              if (Site1 .and. Site2 .and. Site3 .and. Site4) then
-                  exit
-              end if
-            end do
-       end if
-       if((.not.Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) .and. (this%Molecule%NCharge > 0) ) then
-          do j = 1, this%Molecule%NCharge
-             if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-                 this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
-!                 this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)!for 1,4 intramolecular interaction virial
-!                 this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
-!                 this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
-                 Site1 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-                 this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
-                 Site2 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
-                 this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
-                 Site3 = .true.
-             else if (this%Molecule%SiteCharge(j)%SiteId==SiteId4) then
-                 this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteCharge(j)%RX(:)
-                 this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteCharge(j)%RY(:)
-                 this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteCharge(j)%RZ(:)
-                 this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteCharge(j)%FX(:)
-                 this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteCharge(j)%FY(:)
-                 this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteCharge(j)%FZ(:)
-!                 this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteCharge(j)%PX(:)
-!                 this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteCharge(j)%PY(:)
-!                 this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteCharge(j)%PZ(:)
-                 Site4 = .true.
-             end if
-             if (Site1 .and. Site2 .and. Site3 .and. Site4) then
-                  exit
-             end if
-          end do
-       end if
+      this%Molecule%IdfDihedral(i)%NPartMax => this%NPartMax
+      this%Molecule%IdfDihedral(i)%NPart => this%NPart
+      this%Molecule%IdfDihedral(i)%NPart0 => this%NPart0
+      this%Molecule%IdfDihedral(i)%NPart1 => this%NPart1
+      this%Molecule%IdfDihedral(i)%NPart2 => this%NPart2
+      SiteId1 = this%Molecule%IdfDihedral(i)%SiteId1
+      SiteId2 = this%Molecule%IdfDihedral(i)%SiteId2
+      SiteId3 = this%Molecule%IdfDihedral(i)%SiteId3
+      SiteId4 = this%Molecule%IdfDihedral(i)%SiteId4
+      Site1 = .false.
+      Site2 = .false.
+      Site3 = .false.
+      Site4 = .false.
+      if ( this%Molecule%NLJ126>0 ) then
+        do j = 1, this%Molecule%NLJ126
+          if (this%Molecule%SiteLJ126(j)%SiteId==SiteId1) then
+            this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:) !for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
+!           this%Molecule%IdfDihedral(i)%Sigma1=this%Molecule%SiteLJ126(j)%sig
+!           this%Molecule%IdfDihedral(i)%Epsilon1=this%Molecule%SiteLJ126(j)%eps
+            Site1 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
+            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteLJ126(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId3) then
+            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteLJ126(j)%FZ(:)
+            Site3 = .true.
+          else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId4) then
+            this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteLJ126(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteLJ126(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteLJ126(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteLJ126(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteLJ126(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteLJ126(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteLJ126(j)%PX(:)!for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteLJ126(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteLJ126(j)%PZ(:)
+!           this%Molecule%IdfDihedral(i)%Sigma4=this%Molecule%SiteLJ126(j)%sig
+!           this%Molecule%IdfDihedral(i)%Epsilon4=this%Molecule%SiteLJ126(j)%eps
+            Site4 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%Molecule%NCharge > 0) ) then
+        do j = 1, this%Molecule%NCharge
+          if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
+            this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)!for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
+            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
+            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
+            Site3 = .true.
+          else if (this%Molecule%SiteCharge(j)%SiteId==SiteId4) then
+            this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteCharge(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteCharge(j)%PX(:)
+!           this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteCharge(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteCharge(j)%PZ(:)
+            Site4 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%Molecule%NDipole > 0) ) then
+        do j = 1, this%Molecule%NDipole
+          if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
+            if ( SiteId1 == SiteId2 ) then
+              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteDipole(j)%OZ(:)
+            else
+              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
+            end if
+            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId3) then
+            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site3 = .true.
+          else if (this%Molecule%SiteDipole(j)%SiteId==SiteId4) then
+            if ( SiteId4 == SiteId3 ) then
+              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%OZ(:)
+            else 
+              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%RZ(:)
+            end if
+            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteDipole(j)%FZ(:)
+            Site4 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+        end do
+      end if
+      if((.not.Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%Molecule%NQuadrupole > 0) ) then
+        do j = 1, this%Molecule%NQuadrupole
+          if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
+            if ( SiteId1 == SiteId2 ) then
+              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+            else
+              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            end if
+            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site1 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
+            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site2 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId3) then
+            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site3 = .true.
+          else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId4) then
+            if ( SiteId4 == SiteId3 ) then
+              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+            else 
+              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            end if
+            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            Site4 = .true.
+          end if
+          if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+        end do
+      end if
     end do
 
 
@@ -1825,6 +2060,15 @@ contains
       end if
     end if
 !DEBUG
+
+#if MPI_VER > 0
+    if( associated( this%FAll ) ) then
+      deallocate( this%FAll )
+    end if
+    if( associated( this%TAll ) ) then
+      deallocate( this%TAll )
+    end if
+#endif
 
   end subroutine TComponent_Deallocate
 
@@ -2890,78 +3134,81 @@ contains
 
     ! Check number of rotation axes
     if( this%Molecule%isElongated ) then
-       ! Loop over molecules
-       do i = 1, np
-         ! Positions and quaternions of particle i
-          PmX(i) = this%Pm0(i, 1)
-          PmY(i) = this%Pm0(i, 2)
-          PmZ(i) = this%Pm0(i, 3)
-          q1 = this%Qm0(i, 1)
-          q2 = this%Qm0(i, 2)
-          q3 = this%Qm0(i, 3)
-          q4 = this%Qm0(i, 4)
+      ! Loop over molecules
+      do i = 1, np
+        ! Positions and quaternions of particle i
+        PmX(i) = this%Pm0(i, 1)
+        PmY(i) = this%Pm0(i, 2)
+        PmZ(i) = this%Pm0(i, 3)
+        q1 = this%Qm0(i, 1)
+        q2 = this%Qm0(i, 2)
+        q3 = this%Qm0(i, 3)
+        q4 = this%Qm0(i, 4)
 
-          ! Normalise quaternions
+        ! Normalise quaternions
 #if ARCH == 3
-          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-          q1 = q1 * qinv
-          q2 = q2 * qinv
-          q3 = q3 * qinv
-          q4 = q4 * qinv
-          this%Qm0(i, 1) = q1
-          this%Qm0(i, 2) = q2
-          this%Qm0(i, 3) = q3
-          this%Qm0(i, 4) = q4
+        q1 = q1 * qinv
+        q2 = q2 * qinv
+        q3 = q3 * qinv
+        q4 = q4 * qinv
+        this%Qm0(i, 1) = q1
+        this%Qm0(i, 2) = q2
+        this%Qm0(i, 3) = q3
+        this%Qm0(i, 4) = q4
 
-          ! Calculate rotation matrix elements
-          A11(i) = q1**2 + q2**2 - q3**2 - q4**2
-          A12(i) = 2._RK * (q2 * q3 + q1 * q4)
-          A13(i) = 2._RK * (q2 * q4 - q1 * q3)
-          A21(i) = 2._RK * (q2 * q3 - q1 * q4)
-          A22(i) = q1**2 - q2**2 + q3**2 - q4**2
-          A23(i) = 2._RK * (q3 * q4 + q1 * q2)
-          A31(i) = 2._RK * (q2 * q4 + q1 * q3)
-          A32(i) = 2._RK * (q3 * q4 - q1 * q2)
-          A33(i) = q1**2 - q2**2 - q3**2 + q4**2
+        ! Calculate rotation matrix elements
+        A11(i) = q1**2 + q2**2 - q3**2 - q4**2
+        A12(i) = 2._RK * (q2 * q3 + q1 * q4)
+        A13(i) = 2._RK * (q2 * q4 - q1 * q3)
+        A21(i) = 2._RK * (q2 * q3 - q1 * q4)
+        A22(i) = q1**2 - q2**2 + q3**2 - q4**2
+        A23(i) = 2._RK * (q3 * q4 + q1 * q2)
+        A31(i) = 2._RK * (q2 * q4 + q1 * q3)
+        A32(i) = 2._RK * (q3 * q4 - q1 * q2)
+        A33(i) = q1**2 - q2**2 - q3**2 + q4**2
 
-        end do
+      end do
 
-        ! Calculate initial COM position and quartenions for Units
-        ! Loop over Units in molecule
-        do j = 1, nu
-           pUnit => this%Molecule%Unit(j)
-           do i = 1, np
-             this%P0(i, 1, j) = PmX(i) + (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv ! COM of Unit in space-fixed system
-             this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
-             this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
+      ! Calculate initial COM position and quartenions for Units
+      ! Loop over Units in molecule
+      do j = 1, nu
+         pUnit => this%Molecule%Unit(j)
+         do i = 1, np
+           this%P0(i, 1, j) = PmX(i) + &
+&            (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv ! COM of Unit in space-fixed system
+           this%P0(i, 2, j) = PmY(i) + &
+&            (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
+           this%P0(i, 3, j) = PmZ(i) + &
+&            (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
 
-             this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
-&                              this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-             this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
-&                              this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-             this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
-&                              this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-             this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
-&                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-           end do
+           this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
+&                            this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
+           this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
+&                            this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
+           this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
+&                            this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
+           this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
+&                            this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
          end do
-
-      else    ! if Molecule is not Elongated
-       do i = 1, np
-         ! Positions and quaternions of particle i
-          PmX(i) = this%Pm0(i, 1)
-          PmY(i) = this%Pm0(i, 2)
-          PmZ(i) = this%Pm0(i, 3)
-          do j = 1, nu
-            this%P0(i, 1, j) = PmX(i) ! COM of Unit in space-fixed system
-            this%P0(i, 2, j) = PmY(i)
-            this%P0(i, 3, j) = PmZ(i)
-          end do
        end do
-      end if
+
+    else    ! if Molecule is not Elongated
+      do i = 1, np
+        ! Positions and quaternions of particle i
+        PmX(i) = this%Pm0(i, 1)
+        PmY(i) = this%Pm0(i, 2)
+        PmZ(i) = this%Pm0(i, 3)
+        do j = 1, nu
+          this%P0(i, 1, j) = PmX(i) ! COM of Unit in space-fixed system
+          this%P0(i, 2, j) = PmY(i)
+          this%P0(i, 3, j) = PmZ(i)
+        end do
+      end do
+    end if
 
   end subroutine TComponent_Mol2Unit
 
@@ -3021,75 +3268,75 @@ contains
 
     ! Check number of rotation axes
     if( this%Molecule%isElongated ) then
-       ! Loop over molecules
-         ! Positions and quaternions of particle i
-          PmX = this%Pm0(np, 1)
-          PmY = this%Pm0(np, 2)
-          PmZ = this%Pm0(np, 3)
-          q1 = this%Qm0(np, 1)
-          q2 = this%Qm0(np, 2)
-          q3 = this%Qm0(np, 3)
-          q4 = this%Qm0(np, 4)
+      ! Loop over molecules
+      ! Positions and quaternions of particle i
+      PmX = this%Pm0(np, 1)
+      PmY = this%Pm0(np, 2)
+      PmZ = this%Pm0(np, 3)
+      q1 = this%Qm0(np, 1)
+      q2 = this%Qm0(np, 2)
+      q3 = this%Qm0(np, 3)
+      q4 = this%Qm0(np, 4)
 
           ! Normalise quaternions
 #if ARCH == 3
-          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-          q1 = q1 * qinv
-          q2 = q2 * qinv
-          q3 = q3 * qinv
-          q4 = q4 * qinv
-          this%Qm0(np, 1) = q1
-          this%Qm0(np, 2) = q2
-          this%Qm0(np, 3) = q3
-          this%Qm0(np, 4) = q4
+      q1 = q1 * qinv
+      q2 = q2 * qinv
+      q3 = q3 * qinv
+      q4 = q4 * qinv
+      this%Qm0(np, 1) = q1
+      this%Qm0(np, 2) = q2
+      this%Qm0(np, 3) = q3
+      this%Qm0(np, 4) = q4
 
-          ! Calculate rotation matrix elements
-          A11 = q1**2 + q2**2 - q3**2 - q4**2
-          A12 = 2._RK * (q2 * q3 + q1 * q4)
-          A13 = 2._RK * (q2 * q4 - q1 * q3)
-          A21 = 2._RK * (q2 * q3 - q1 * q4)
-          A22 = q1**2 - q2**2 + q3**2 - q4**2
-          A23 = 2._RK * (q3 * q4 + q1 * q2)
-          A31 = 2._RK * (q2 * q4 + q1 * q3)
-          A32 = 2._RK * (q3 * q4 - q1 * q2)
-          A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-
-        ! Calculate initial COM position and quartenions for Units
-        ! Loop over Units in molecule
-        do j = 1, nu
-           pUnit => this%Molecule%Unit(j)
-           do i = 1, np
-             this%P0(np, 1, j) = PmX + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv ! COM of Unit in space-fixed system
-             this%P0(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
-             this%P0(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
+      ! Calculate rotation matrix elements
+      A11 = q1**2 + q2**2 - q3**2 - q4**2
+      A12 = 2._RK * (q2 * q3 + q1 * q4)
+      A13 = 2._RK * (q2 * q4 - q1 * q3)
+      A21 = 2._RK * (q2 * q3 - q1 * q4)
+      A22 = q1**2 - q2**2 + q3**2 - q4**2
+      A23 = 2._RK * (q3 * q4 + q1 * q2)
+      A31 = 2._RK * (q2 * q4 + q1 * q3)
+      A32 = 2._RK * (q3 * q4 - q1 * q2)
+      A33 = q1**2 - q2**2 - q3**2 + q4**2
 
 
-             this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
+      ! Calculate initial COM position and quartenions for Units
+      ! Loop over Units in molecule
+      do j = 1, nu
+        pUnit => this%Molecule%Unit(j)
+        do i = 1, np
+          this%P0(np,1,j) = PmX+ (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) *BoxLengthInv 
+          this%P0(np,2,j) = PmY+ (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) *BoxLengthInv
+          this%P0(np,3,j) = PmZ+ (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) *BoxLengthInv
+
+
+          this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
 &                              this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-             this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
+          this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
 &                              this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-             this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
+          this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
 &                              this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-             this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
+          this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
 &                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-           end do
-
         end do
+
+      end do
 
     else    ! if Molecule is not Elongated
-        ! Positions and quaternions of particle np
-        PmX = this%Pm0(np, 1)
-        PmY = this%Pm0(np, 2)
-        PmZ = this%Pm0(np, 3)
-        do j = 1, nu
-          this%P0(np, 1, j) = PmX ! COM of Unit in space-fixed system
-          this%P0(np, 2, j) = PmY
-          this%P0(np, 3, j) = PmZ
-        end do
+      ! Positions and quaternions of particle np
+      PmX = this%Pm0(np, 1)
+      PmY = this%Pm0(np, 2)
+      PmZ = this%Pm0(np, 3)
+      do j = 1, nu
+        this%P0(np, 1, j) = PmX ! COM of Unit in space-fixed system
+        this%P0(np, 2, j) = PmY
+        this%P0(np, 3, j) = PmZ
+      end do
     end if
 
   end subroutine TComponent_Mol2Unit1
@@ -5091,12 +5338,13 @@ contains
 !  Subroutine TComponent_AddParticle                           !
 !==============================================================!
 
-  subroutine TComponent_AddParticle( this, r, q )
+  subroutine TComponent_AddParticle( this, GradIns, r, q )
 
     implicit none
 
     ! Declare arguments
     type(TComponent)               :: this
+    logical,intent(in)             :: GradIns
     real(RK), intent(in)           :: r(3)
     real(RK), intent(in), optional :: q(4, 1:this%Molecule%NUnit)
 
@@ -5112,24 +5360,44 @@ contains
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
     this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
-!     this%NPart1 = 1 + (this%NPart - 1) / NProcs
-!     this%NPart0 = 1 + this%NPart1 * NProc
-!     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-!     this%NPart1 = this%NPart2 - this%NPart0 + 1
 #endif
 
+    if ( GradIns ) then
     ! Set coordinates and orientation of new particle
-    if ( this%Molecule%NUnit .ne. 1) then
-        write(*,*) 'Adding particles not supported for flexible molecules!'
-        STOP
-    end if
+      if ( this%Molecule%NUnit .ne. 1) then
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        if( this%Molecule%isElongated ) then
+          this%Q0(this%NPart, :,:) = q(:,:)
+        end if
 
-    ! Add Particle
-    this%Pm0(this%NPart, :) = r(:)
-    this%P0(this%NPart, :,1) = r(:)
-    if( this%Molecule%isElongated ) then
-!       this%Qm0(this%NPart, :) = q(:,1)
-      this%Q0(this%NPart, :,:) = q(:,:)
+      else
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        this%P0(this%NPart, :,1) = r(:)
+        if ( this%Molecule%isElongated ) then
+!           this%Qm0(this%NPart, :) = q(:,1)
+          this%Q0(this%NPart, :,1) = q(:,1)
+        end if
+      end if
+    else  ! Insertion of a new particle - rigid
+      if ( this%Molecule%NUnit .ne. 1) then
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        if( this%Molecule%isElongated ) then
+          this%Qm0(this%NPart, :) = q(:,1)
+        end if
+        call Mol2Unit1 ( this, this%NPart, this%Molecule%NUnit )
+
+      else
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        this%P0(this%NPart, :,1) = r(:)
+        if ( this%Molecule%isElongated ) then
+          this%Qm0(this%NPart, :) = q(:,1)
+          this%Q0(this%NPart, :,1) = q(:,1)
+        end if
+      end if
     end if
 
   end subroutine TComponent_AddParticle
@@ -5154,16 +5422,17 @@ contains
     if( np .ne. this%NPart ) then
 
       ! Copy coordinates and orientation of last particle
-      this%Pm0(np, :) = this%Pm0(this%NPart, :)
+      this%Pm0(np, :)   = this%Pm0(this%NPart, :)
+      this%P0(np, :, :) = this%P0(this%NPart, :, :)
       if( this%Molecule%isElongated ) then
-        this%Qm0(np, :) = this%Qm0(this%NPart, :)
+        this%Qm0(np, :)   = this%Qm0(this%NPart, :)
+        this%Q0(np, :, :) = this%Q0(this%NPart, :, :)
       end if
 
 
       nu=this%Molecule%NUnit
 
       ! Calculate Unit / Atom positions
-      call Mol2Unit1 ( this, np, nu )
       do k=1,nu
         call Unit2Atom1( this, np, k )
       end do

@@ -517,6 +517,7 @@ module ms2_potential
     integer                   :: Unit1, Unit2, Unit3
     real(RK),pointer          :: ForConst
     real(RK)                  :: Angle0
+    logical,pointer           :: orientation1, orientation2
 !    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
 !    real(RK)                  :: BoxlengthInv, BoxLengthThird
 
@@ -1839,7 +1840,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     intra14 = this%potintra14
     SameComponent = this%SameComponent
 
-    Faktor = 2./sqrt(Pi) * Kappa
+    Faktor = 2._RK/sqrt(Pi) * Kappa
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -8540,6 +8541,8 @@ loop2:do j = 1, j1
     this%Unit3 = this%Angle%UnitId3
     this%ForConst => this%Angle%ForConst
     this%Angle0 = this%Angle%Angle0
+    this%orientation1 => this%Angle%orientation1
+    this%orientation2 => this%Angle%orientation2
 
   end subroutine TPotAngle_Construct
 
