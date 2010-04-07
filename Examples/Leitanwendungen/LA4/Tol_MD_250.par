@@ -5,38 +5,38 @@
 #
 # General simulation parameters
 #
-Units       =       SI
-LengthUnit  =       3.5
-EnergyUnit  =       100.0
-MassUnit    =       40.0
-Simulation  =       MD
-Integrator  =       Gear
-TimeStep    =       9.0E-4
-Ensemble    =       NVT
-MCORSteps   =       100
-NVTSteps    =       50000
-RunSteps    =       300000
-ResultFreq  =       500
-ErrorsFreq  =       5000
-VisualFreq  =       0
-CutoffMode  =       COM
-LongRange   =       ReactionField
-Kappa       =       5.6
-NsqMax      =       27
-NVecMax     =       1000
-NMax        =       5
-NEnsembles  =       1
+Units	=	SI
+LengthUnit	=	3.5
+EnergyUnit	=	100.0
+MassUnit	=	40.0
+Simulation	=	MD
+Integrator	=	Gear
+TimeStep	=	9.0E-4
+Ensemble	=	NVT
+MCORSteps	=	1
+NVTSteps	=	50000
+RunSteps	=	300000
+ResultFreq	=	500
+ErrorsFreq	=	5000
+VisualFreq	=	0
+CutoffMode	=	COM
+LongRange	=	ReactionField
+Kappa	=	5.6
+NsqMax	 =	27
+NVecMax	=	1000
+NMax	=	5
+NEnsembles	=	1
 
 #
 # Ensemble 1
 #
-Temperature = 250.0
-Density     = 9.9
-NParticles  = 1372
-NComponents = 1
+Temperature	=	250.0
+Density	=	9.9
+NParticles	=	1372
+NComponents	=	1
 
-PotModel    = Tol5Q1D.pm
-MolarFract  = 1.0
-ChemPotMethod= none
-Cutoff      = 8.0
-Epsilon     = 1.0E10
+PotModel	=	Tol5Q1D.pm
+MolarFract	=	1.0
+ChemPotMethod	=	none
+Cutoff	=	8.0
+Epsilon	=	1.0E10
