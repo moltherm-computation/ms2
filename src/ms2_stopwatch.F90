@@ -90,10 +90,8 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIStartBarrier = 256
   !integer, parameter :: CStopwatch_doMPIStopBarrier = B'1000000000'
   integer, parameter :: CStopwatch_doMPIStopBarrier = 512
-  !integer, parameter :: CStopwatch_doMPIReduceMax = B'10000000000'
-  integer, parameter :: CStopwatch_doMPIReduceMax = 1024
-  !integer, parameter :: CStopwatch_doMPIReduceMin = B'100000000000'
-  integer, parameter :: CStopwatch_doMPIReduceMin = 2048
+  !integer, parameter :: CStopwatch_doMPIReduce = B'10000000000'
+  integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
 !==============================================================!
@@ -126,6 +124,7 @@ module ms2_stopwatch
     double precision, dimension(2) :: wtime_diff
 #endif
 #ifdef USE_MPI
+    integer mpi_communicator
     ! actually only used to reduce the wtime diff, but could be used also to reduce other data in the future
     logical mpi_diff_reduced
 #endif
@@ -246,7 +245,7 @@ contains
 #ifdef USE_MPI
     call TStopwatch_SetOptions( this, &
 &                              CStopwatch_omitCPUTIME+CStopwatch_omitSYSCLK &
-&                             +CStopwatch_doMPIReduceMax+CStopwatch_doMPIReduceMin )
+&                             +CStopwatch_doMPIReduce )
 #endif
     end if
 
@@ -275,6 +274,7 @@ contains
     this%wtime_diff = 0
 #endif
 #ifdef USE_MPI
+  this%mpi_communicator=MPI_COMM_WORLD
   this%mpi_diff_reduced=.FALSE.
 #endif
 #ifdef STOPWATCH_USE_PAPI
@@ -584,7 +584,7 @@ contains
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       !if (BTEST(this%options,1)) then
       if (IAND(this%options,CStopwatch_doMPIStartBarrier) /= 0) then
-          call MPI_Barrier( MPI_COMM_WORLD, ierror )
+          call MPI_Barrier( this%mpi_communicator, ierror )
       end if
       this%mpi_diff_reduced=.FALSE.
       this%wtime_start = MPI_WTIME()
@@ -664,7 +664,7 @@ contains
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       !if (BTEST(this%options,2)) then
       if (IAND(this%options,CStopwatch_doMPIStopBarrier) /= 0) then
-         call MPI_Barrier( MPI_COMM_WORLD, ierror )
+         call MPI_Barrier( this%mpi_communicator, ierror )
       end if
       this%wtime_stop = MPI_WTIME()
       this%wtime_diff(1)=this%wtime_stop-this%wtime_start
@@ -701,24 +701,19 @@ contains
     type(TStopwatch) :: this
 
     ! Declare local variables
-    double precision :: wtime_diff
+    double precision :: wtime_diff(2)
 
-    !wtime_diff = this%wtime_diff(1)
-    wtime_diff = this%wtime_stop-this%wtime_start
+    !wtime_diff(1) = this%wtime_diff(1)
+    wtime_diff(1) = this%wtime_stop-this%wtime_start
+    wtime_diff(2) = -wtime_diff(1)
 
-    ! better only *one* MPI_Reduce operation with a vector of all values...
     !if (BTEST(this%options,3)) then
-    if (IAND(this%options,CStopwatch_doMPIReduceMax) /= 0) then
-       call MPI_Reduce( wtime_diff, this%wtime_diff(1), 1, MPI_DOUBLE_PRECISION, MPI_MAX &
-&                     , NRootProc, MPI_COMM_WORLD, ierror )
+    if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
+       call MPI_Reduce( wtime_diff, this%wtime_diff, 2, MPI_DOUBLE_PRECISION, MPI_MAX &
+&                     , NRootProc, this%mpi_communicator, ierror )
+       this%wtime_diff(2)=-this%wtime_diff(2)
     else
-       this%wtime_diff(1)=wtime_diff
-    end if
-    !if (BTEST(this%options,4)) then
-    if (IAND(this%options,CStopwatch_doMPIReduceMin) /= 0) then
-       call MPI_Reduce( wtime_diff, this%wtime_diff(2), 1, MPI_DOUBLE_PRECISION, MPI_MIN &
-&                     , NRootProc, MPI_COMM_WORLD, ierror )
-    else
+       this%wtime_diff(1)=wtime_diff(1)
        this%wtime_diff(2)=0.
     end if
     this%mpi_diff_reduced=.TRUE.
@@ -884,46 +879,24 @@ contains
       if (.NOT. this%mpi_diff_reduced) then
           call TStopwatch_MPIReduceDiff( this )
       end if
-      if (IAND(this%options,CStopwatch_doMPIReduceMax) /= 0) then
-        if (IAND(this%options,CStopwatch_doMPIReduceMin) /= 0) then
-          ! max and min available
-          write( IOBuffer, &
-&           '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
-&           trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
-            call LogWrite
-          write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
-&           int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
-&           MPI_WTICK()
-        else
-          ! only max available
-          write( IOBuffer, &
-&           '(T2,A," wtime    max diff:",G16.9)' ) &
-&           trim(this%tag_string), this%wtime_diff(1)
-            call LogWrite
-          write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
-&           int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
-&           MPI_WTICK()
-        end if
+      if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
+        ! min/max reduction available
+        write( IOBuffer, &
+&         '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
+&         trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
+          call LogWrite
+        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+&         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
+&         MPI_WTICK()
       else
-        if (IAND(this%options,CStopwatch_doMPIReduceMin) /= 0) then
-          ! only min available
-          write( IOBuffer, &
-&           '(T2,A," wtime    min diff:",G16.9)' ) &
-&           trim(this%tag_string), this%wtime_diff(2)
-            call LogWrite
-          write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
-&           int(this%wtime_diff(2))/3600, mod(int(this%wtime_diff(2)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
-&           MPI_WTICK()
-        else
-          ! no min/max reduction available
-          write( IOBuffer, &
-&           '(T2,A," wtime   root diff:",G16.9)' ) &
-&           trim(this%tag_string), this%wtime_diff(1)
-            call LogWrite
-          write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
-&           int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
-&           MPI_WTICK()
-        end if
+        ! no min/max reduction available
+        write( IOBuffer, &
+&         '(T2,A," wtime   root diff:",G16.9)' ) &
+&         trim(this%tag_string), this%wtime_diff(1)
+          call LogWrite
+        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+&         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
+&         MPI_WTICK()
       end if
       call LogWrite
     endif
