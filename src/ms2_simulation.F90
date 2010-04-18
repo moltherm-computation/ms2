@@ -1103,13 +1103,13 @@ eqloop: do
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) &
 &       call LogWriteStep
       if( .not. Equilibration .and. &
-&       ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) &
+&         ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) &
 &       call ErrorsUpdate( this )
 
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
       call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
-&       MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+&       MPI_LOGICAL, MPI_LOR, Communicator, ierror )
       if( AnyTerminateProgram ) then
         TerminateProgram = .true.
         exit
@@ -1724,13 +1724,13 @@ eqloop: do
 
 #if MPI_VER > 0
     call MPI_Bcast( Step, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( StepTotal, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number

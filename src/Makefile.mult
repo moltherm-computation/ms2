@@ -37,12 +37,20 @@ generic:
 	\
 	-o ms2 $(SOURCES)
 
+pgf_dbg:
+	@echo "Compiling using PGF DBG..."
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
+	-g -Mdwarf2 -r8 \
+	-o ms2.pgf_dbg $(SOURCES)
+	rm -f *.o *.mod
+
 pgf:
 	@echo "Compiling using PGF90..."
 	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
 	-fastsse -r8 -Bstatic \
 	-o ms2.pgf $(SOURCES)
 	rm -f *.o *.mod
+	#
 
 pgf_sp:
 	@echo "Compiling using PGF90..."
@@ -56,13 +64,6 @@ pgf-64:
 	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
 	-fastsse -r8 -tp amd64 \
 	-o ms2.pgf-64 $(SOURCES)
-	rm -f *.o *.mod
-
-pgf_dbg:
-	@echo "Compiling using PGF DBG..."
-	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
-	-g -Mdwarf2 -r8 \
-	-o ms2.pgf_dbg $(SOURCES)
 	rm -f *.o *.mod
 
 pgf_mpi_dbg:
@@ -92,6 +93,7 @@ gfortran:
 	-O3 -fdefault-real-8 -static \
 	-o ms2.gfortran $(SOURCES)
 	rm -f *.o *.mod
+	# -msse5
 
 gfortran_mpi_dbg:
 	@echo "Compiling debug version using MPI_GFORTRAN..."
@@ -158,7 +160,7 @@ sun:
 	@echo "Compiling using SUN Fortran..."
 	# f95, sunf95, sunf90, f90: symbolic links to f90
 	f95 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -V -v \
-	-fast -r8const -Bstatic -xcrossfile \
+	-fast -r8const -Bstatic -ftrap=%none -xcrossfile \
 	-o ms2.sun $(SOURCES)
 	# -xprefetch -xlinkopt=2 -xvector=simd -unroll=4
 	#
@@ -189,21 +191,14 @@ pathscale:
 	rm -f *.o *.mod
 
 
-vt:
-	@echo "Compiling using VampirTrace..."
-	# -fdefault-real-8/-r8
-	vtf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
-	-O3 -g \
-	-o ms2.vt $(SOURCES)
-	rm -f *.o *.mod *.il
-
 vt_mpi:
 	@echo "Compiling using VampirTrace with MPI..."
 	# -fdefault-real-8/-r8
-	vtf90 -vt:f90 mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
-	-O3 -g \
+	vtf90 -vt:f90 mpif90 -vt:inst manual -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O2 -g \
 	-o ms2mpi.vt $(SOURCES)
 	rm -f *.o *.mod *.il
+
 
 nehalem:
 	@echo "Compiling for SSE4.2 using IFORT..."
@@ -218,6 +213,13 @@ nehalem_mpi:
 	-r8 -O3 -ipo -xSSE4.2 -vec_report0 \
 	-o ms2mpi $(SOURCES)
 	rm -f *.o *.mod *.il
+
+xt5:
+	@echo "Compiling on XT5(m)..."
+	ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-default64 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod
 
 xt5pgi_seq:
 	@echo "Compiling on XT5(m)..."
@@ -257,6 +259,7 @@ sx_dbg:
 	-g -EP -ftrace \
 	-o ms2_dbg $(SOURCES)
 	# loop-level profiler: -loopprof
+	# -adv off
 
 sx_mpi:
 	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \

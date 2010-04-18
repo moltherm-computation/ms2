@@ -548,8 +548,8 @@ contains
 &         this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
 #if MPI_VER > 0
-        call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&         NRootProc, Communicator, ierror )
 #endif
       end if
     end if
@@ -1797,10 +1797,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -2701,31 +2701,31 @@ contains
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) then
      call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
-&      MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&      MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     end if
 #if  TRANS == 1
 ! Transport  !TRANSPORT_start
     call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
     call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
     call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 !TRANSPORT_END
 #endif
 
@@ -3637,43 +3637,43 @@ contains
 
 #if MPI_VER > 0
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_DOUBLE_PRECISION, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
+    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     if( SimulationType .eq. MonteCarlo ) then
-      call MPI_Bcast( this%DispTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+&         NRootProc, Communicator, ierror )
       end if
     end if
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
     end if
 #endif
 

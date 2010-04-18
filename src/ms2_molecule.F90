@@ -239,14 +239,14 @@ contains
         end do
       end if
 #if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
 #endif
       if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
 &         scaleeps > 1._RK .or. scaleest > 1._RK ) &

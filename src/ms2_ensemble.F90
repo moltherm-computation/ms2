@@ -2585,9 +2585,8 @@ loop:do l = 1, NPartInCell
 
     ! Broadcast temperature
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-    call MPI_Bcast( this%Temperature, 1, MPI_DOUBLE_PRECISION, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( this%Temperature, 1, MPI_RK, &
+&     NRootProc, Communicator, ierror )
 #endif
 
   end subroutine TEnsemble_CalculateEKin
@@ -2761,12 +2760,11 @@ loop1:do nc = 1, this%NComponents
 
     ! Calculate potential energy and virial
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
       if ( this%OptPressure ) then
         call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , &
-&         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&         MPI_RK, MPI_SUM, Communicator, ierror )
       end if
 #else
     this%EPot = GetEnergy( this )
@@ -3174,9 +3172,8 @@ loop3:    do nc = 1, this%NComponents
 &            + 5._RK * this%Volume5
       end if
 #if MPI_VER > 0
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-      call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
 #endif
       call UpdateBoxLength( this )
     end if
@@ -3227,9 +3224,8 @@ loop3:    do nc = 1, this%NComponents
         this%Volume5 = this%Volume5 + Corr * Gear25
       end if
 #if MPI_VER > 0
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-      call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
 #endif
       call UpdateBoxLength( this )
     end if
@@ -3271,9 +3267,8 @@ loop3:    do nc = 1, this%NComponents
         this%Volume0 = this%Volume0 + this%Volume1
       end if
 #if MPI_VER > 0
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-      call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
 #endif
       call UpdateBoxLength( this )
     end if
@@ -3617,11 +3612,10 @@ loop3:    do nc = 1, this%NComponents
 
     ! Collect sums from all processes
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-    call MPI_Reduce( EPot, this%EPot, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
-    call MPI_Reduce( Virial, this%Virial, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Reduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, &
+&     NRootProc, Communicator, ierror )
+    call MPI_Reduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, &
+&     NRootProc, Communicator, ierror )
 #else
     this%EPot = EPot
     this%Virial = Virial
@@ -3881,9 +3875,8 @@ loop2:        do nc = 1, this%NComponents
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
 &                   / pc%NTestAll
 #if MPI_VER > 0
-        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
-&         MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #else
         pc%ChemPot = ChemPot
 #endif
@@ -4229,9 +4222,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4310,9 +4302,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4409,9 +4400,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4501,9 +4491,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4604,9 +4593,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
     ! Apply long range corrections
     EPotDeltaAll = EPotDeltaAll &
 &     + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
@@ -4713,9 +4701,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotIns, EPotInsAll, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
     EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ &
 &                           + pc%EPotTestCorrRF
 
@@ -4789,9 +4776,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate particle energy
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 #else
     EPotDel = GetEnergy( this, nc, np )
 #endif
@@ -4963,9 +4949,8 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate potential energy and virial at trial position
 #if MPI_VER > 0
     call Energy( this, EPotNew )
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
     call MPI_Allreduce( EPotNew, this%EPot, 1, &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, Communicator, ierror )
 #else
     call Energy( this, this%EPot )
 #endif
@@ -4987,9 +4972,8 @@ loop2:        do nc = 1, this%NComponents
       call UpdateEnergy( this )
       if ( this%OptPressure ) then
 #if MPI_VER > 0
-        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
         call MPI_Allreduce( GetVirial( this ), this%Virial, 1, &
-&         MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierror )
+&         MPI_RK, MPI_SUM, Communicator, ierror )
 #else
         this%Virial = GetVirial( this )
 #endif
@@ -7320,7 +7304,7 @@ if( RootProc ) then
 endif
 #endif
 !#if MPI_VER > 0
-! call MPI_Barrier( MPI_COMM_WORLD, ierror )
+! call MPI_Barrier( Communicator, ierror )
 !#endif
 
 
@@ -7381,31 +7365,30 @@ endif
 
 #if MPI_VER > 0
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-    call MPI_Bcast( this%Volume0, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
+    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, &
+&     Communicator, ierror )
     if( SimulationType .eq. MonteCarlo ) then
-      call MPI_Bcast( this%DispVol, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%DispVol, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
       call MPI_Bcast( this%NResizeAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NResizeSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       if( EnsembleType .eq. EnsembleTypeGE .or. &
 &         EnsembleType .eq. EnsembleTypeHA ) then
         call MPI_Bcast( this%NInsertAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NInsertSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NDeleteAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NDeleteSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
       end if
     end if
     call MPI_Bcast( this%NRCutoffMax, 1, MPI_INTEGER, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
 #endif
 
     ! Read components
@@ -7496,9 +7479,9 @@ end if
 
 #if MPI_VER > 0
     call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
     call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
 #endif
 
 if( RootProc ) then
@@ -7661,9 +7644,8 @@ end if
       do i = 1, this%NComponents
         call ForceTransport( this%Component(i) )
 #if MPI_VER > 0
-        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_DOUBLE_PRECISION
-        call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
 #endif
       end do
 

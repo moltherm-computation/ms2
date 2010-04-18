@@ -82,6 +82,10 @@ module ms2_global
 !  integer, parameter :: MPI_RK = MPI_REAL8
 !#endif
 #endif
+! better use a MPI_RK parameter in future, if compilation problems with mpif.h are solved
+#if MPI_VER > 0
+  integer :: MPI_RK
+#endif
 
   ! Define maximum length of file names
   integer, parameter :: FileNameLength = 128
@@ -574,6 +578,7 @@ character(*), parameter :: VersionString = 'v12'
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
+  integer :: Communicator
   integer :: NProcs
   integer :: NProc
   integer :: NRootProc
@@ -604,6 +609,12 @@ character(*), parameter :: VersionString = 'v12'
 !==============================================================!
 !  Global procedure interfaces                                 !
 !==============================================================!
+
+#if MPI_VER > 0
+  interface SetCommunicator
+    module procedure Global_SetCommunicator
+  end interface
+#endif
 
   interface InitializeProgram
     module procedure Global_InitializeProgram
@@ -769,6 +780,37 @@ contains
 
 
 
+#if MPI_VER > 0
+!==============================================================!
+!  Subroutine Global_SetCommunicator                           !
+!==============================================================!
+
+  subroutine Global_SetCommunicator(comm)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    ! Declare arguments
+    integer, intent(in) :: comm
+
+    Communicator = comm
+    if( Communicator /= MPI_COMM_NULL ) then
+      call MPI_Comm_size( Communicator, NProcs, ierror )
+      call MPI_Comm_rank( Communicator, NProc, ierror )
+    else
+      NProcs = 0
+      NProc = -1
+    end if
+    NRootProc = 0
+    RootProc = NProc == NRootProc
+
+  end subroutine Global_SetCommunicator
+#endif
+
+
+
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
 !==============================================================!
@@ -802,10 +844,21 @@ contains
     ! Initialize MPI
 #if MPI_VER > 0
     call MPI_Init( ierror )
-    call MPI_Comm_size( MPI_COMM_WORLD, NProcs, ierror )
-    call MPI_Comm_rank( MPI_COMM_WORLD, NProc, ierror )
-    NRootProc = 0
-    RootProc = NProc == NRootProc
+    call SetCommunicator( MPI_COMM_WORLD )
+    ! better define and initialize as parameter...
+    if ( RK == 8 ) then
+      !MPI_RK = MPI_DOUBLE_PRECISION
+      MPI_RK = MPI_REAL8
+    else if ( RK == 4 ) then
+      !MPI_RK = MPI_REAL
+      MPI_RK = MPI_REAL4
+    else
+      if( RootProc ) then
+        print *,"ERROR: RK==",RK," not supported for MPI version"
+      end if
+      call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    end if
+    !
 #endif
 
 !DEBUG
@@ -844,7 +897,7 @@ contains
 
         ! Abort program
 #if MPI_VER > 0
-        call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+        call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
 #endif
         stop
       end if
@@ -886,7 +939,7 @@ contains
 
             ! Abort program
 #if MPI_VER > 0
-            call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+            call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
           end if
@@ -903,7 +956,7 @@ contains
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 #endif
 
@@ -931,12 +984,12 @@ contains
 !#else
 !      write( IOBuffer, '("MPI library        : unknown")' )
 !#endif
-      call LogWrite
+!      call LogWrite
       write( IOBuffer, '("Number of processes:",I4)' ) NProcs
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
+      call MPI_Attr_get(Communicator, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
@@ -948,18 +1001,18 @@ contains
     !                         procnamelen might be variable
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
-&                  ,NRootProc, MPI_COMM_WORLD, ierror)
-    call MPI_Attr_get(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+&                  ,NRootProc, Communicator, ierror)
+    call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
-&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+&                  ,NRootProc, Communicator, ierror)
     if( RootProc ) then
-      write( IOBuffer, '("rank  I/O processor_name")' )
+      write( IOBuffer, '("rank:  I/O: processor name:")' )
       call LogWrite
       do i = 1,NProcs
         if( ioranks(i) == MPI_ANY_SOURCE )  then
-          write( IOBuffer, '(I4,"   +  ", A)' ) i-1, procnames(i)
+          write( IOBuffer, '(I5,"   +   ", A)' ) i-1, procnames(i)
         else
-          write( IOBuffer, '(I4," ", I4, " ", A)' ) i-1, ioranks(i), procnames(i)
+          write( IOBuffer, '(I5, 1X, I5, 1X, A)' ) i-1, ioranks(i), procnames(i)
         end if
         call LogWrite
       end do
@@ -1042,7 +1095,7 @@ contains
 
     ! Finalize MPI
 #if MPI_VER > 0
-!    call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!    call MPI_Barrier( Communicator, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -1128,7 +1181,7 @@ contains
 
     ! Abort program
 #if MPI_VER > 0
-    call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    call MPI_Abort( MPI_COMM_WORLD, 4, ierror )
 #endif
     stop
 
@@ -1163,7 +1216,7 @@ contains
 #if MPI_VER > 0
     ok = stat == 0
     call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
-&     MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
     if( okAll ) return
 #else
     if( stat == 0 ) return
@@ -1729,10 +1782,10 @@ contains
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
     call MPI_Bcast( parametervalue, len(parametervalue), &
-&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
       call MPI_Bcast( status, 1, &
-&       MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
 
@@ -1784,7 +1837,7 @@ contains
     ! Broadcast parameter
 !#if MPI_VER > 0
 !    call MPI_Bcast( IOBuffer, IOBufferLength, &
-!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1840,7 +1893,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, len(parametervariable), &
-!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1892,7 +1945,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_INTEGER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1944,7 +1997,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_RK, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_RK, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1996,7 +2049,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, size(parametervariable), &
-!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_INTEGER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -2200,25 +2253,31 @@ contains
     !integer :: range_size0             ! version 1 only: range size for the first process
 
 #if MPI_VER > 0
-    ! original version 0: last process might get smaller range_size
-    range_size = 1 + (overall_size - 1) / NProcs
-    first_index = 1 + NProc * range_size
-    last_index = min( first_index + range_size - 1, overall_size )
-    range_size = last_index - first_index + 1
+    if( NProcs > 0 ) then
+      ! original version 0: last process might get smaller range_size
+      range_size = 1 + (overall_size - 1) / NProcs
+      first_index = 1 + NProc * range_size
+      last_index = min( first_index + range_size - 1, overall_size )
+      range_size = last_index - first_index + 1
 
-    ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
-    !range_size = ceiling( real(overall_size)/NProcs )
-    !range_size0 = mod( overall_size, range_size )
-    !last_index = range_size0 + NProc*range_size
-    !if ( NProc == 0 ) then
-    !  range_size = range_size0
-    !end if
-    !first_index = last_index-range_size+1
+      ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
+      !range_size = ceiling( real(overall_size)/NProcs )
+      !range_size0 = mod( overall_size, range_size )
+      !last_index = range_size0 + NProc*range_size
+      !if ( NProc == 0 ) then
+      !  range_size = range_size0
+      !end if
+      !first_index = last_index-range_size+1
 
-    ! alternative version 2: distribute, use round instead of int?
-    !first_index = int(real(NProc)/NProcs*overall_size)+1
-    !last_index = int(real(NProc+1)/NProcs*overall_size)
-    !range_size = last_index - first_index + 1
+      ! alternative version 2: distribute, use round instead of int?
+      !first_index = int(real(NProc)/NProcs*overall_size)+1
+      !last_index = int(real(NProc+1)/NProcs*overall_size)
+      !range_size = last_index - first_index + 1
+    else
+      first_index=0
+      last_index = -1
+      range_size=0
+    end if
 
 #else
     first_index=1

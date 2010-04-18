@@ -94,6 +94,10 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
+#ifdef USE_MPI
+  integer :: mpi_defaultCommunicator
+#endif
+
 !==============================================================!
 !  Type TStopwatch                                             !
 !==============================================================!
@@ -192,6 +196,12 @@ module ms2_stopwatch
   end interface
 #endif
 
+#ifdef USE_MPI
+  interface Timer_SetMPIcommunicator
+    module procedure TStopwatch_SetMPIcommunicator
+  end interface
+#endif
+
   interface start_Timer
     module procedure TStopwatch_Start
   end interface
@@ -274,7 +284,8 @@ contains
     this%wtime_diff = 0
 #endif
 #ifdef USE_MPI
-  this%mpi_communicator=MPI_COMM_WORLD
+  !this%mpi_communicator=MPI_COMM_WORLD
+  this%mpi_communicator=Communicator
   this%mpi_diff_reduced=.FALSE.
 #endif
 #ifdef STOPWATCH_USE_PAPI
@@ -538,6 +549,27 @@ contains
     sysclk_cnt_diff = this%sysclk_cnt_stop-this%sysclk_cnt_start
 
   end function TStopwatch_GetSysClkDiff
+#endif
+
+#ifdef USE_MPI
+!==============================================================!
+!  Function TStopwatch_SetMPIcommunicator                      !
+!==============================================================!
+
+  !> Set MPI communicator
+  !> \param this     ... object          TStopwatch
+  !> \param new_mpicommunicator  ... new MPI communicator to set     integer
+  subroutine TStopwatch_SetMPIcommunicator( this, new_mpicommunicator )
+
+    implicit none
+
+    ! Declare arguments
+    type(TStopwatch) :: this
+    integer, intent(in) :: new_mpicommunicator
+
+    this%mpi_communicator = new_mpicommunicator
+
+  end subroutine TStopwatch_SetMPIcommunicator
 #endif
 
 
