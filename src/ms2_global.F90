@@ -722,6 +722,10 @@ character(*), parameter :: VersionString = 'v12'
     module procedure Global_Rrnd
   end interface
 
+  interface strtrim
+    module procedure Global_String_Trim
+  end interface
+
   interface ProcRange
     module procedure Global_GetProcRange
   end interface
@@ -1693,7 +1697,7 @@ contains
     character(FileNameLength) :: fn
     logical                   :: foundqualifier = .false.
     character(IOBufferLength) :: parameterqualifier
-    integer                   :: qualifierpos1, qualifierpos2
+    integer                   :: delimiterpos1, delimiterpos2
 
     ! determine filename
     inquire( iounit, NAME = fn )
@@ -1752,26 +1756,28 @@ contains
           !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
-        qualifierpos2 = 0
-        do
-          qualifierpos1 = qualifierpos2+1
-          qualifierpos2 = scan(trim(parameterqualifiers(qualifierpos1:)),":")
-          if( qualifierpos2>qualifierpos1 ) then
-            parameterqualifier = parameterqualifiers(qualifierpos1:qualifierpos2-1)
+        delimiterpos2 = 0
+        do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
+          delimiterpos1 = delimiterpos2
+          !                   len_trim(parameterqualifiers)
+          if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
+          delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
+          if( delimiterpos2>delimiterpos1 ) then
+            parameterqualifier = parameterqualifiers(delimiterpos1+1:delimiterpos2-1)
           else
-            parameterqualifier = parameterqualifiers(qualifierpos1:)
+            parameterqualifier = parameterqualifiers(delimiterpos1+1:)
           end if
-          foundqualifier = index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1
+          foundqualifier = index( strtrim( parametervalue, .true. ), trim( parameterqualifier ) ) == 1
           if( foundqualifier ) then
             ! extract value part (after =)
             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-            parametervalue = trim( adjustl( parametervalue ) )
+            parametervalue = trim(strtrim( parametervalue, .true. ))
 !            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
 !&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
             if( present(status) ) status = 0
             exit
           end if
-          if ( qualifierpos2<=qualifierpos1 ) exit
+          if ( delimiterpos2<=delimiterpos1 ) exit
         end do
         if ( foundqualifier ) exit
       end do
@@ -2181,6 +2187,56 @@ contains
 &     * (h_range - l_range)
 
   end function Global_Rrnd
+
+
+!==============================================================!
+!  Function Global_String_Trim                                 !
+!==============================================================!
+
+  pure function Global_String_Trim( string, trim_left, trim_right ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim  character(*)
+    !> \param trim_left       ... trim left? (default: .false.)  logical
+    !> \param trim_right      ... trim right? (default: .true.)  logical
+    !> \return trimmed_string ... actual options  character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+    logical,optional,intent(in) :: trim_left
+    logical,optional,intent(in) :: trim_right
+
+    ! Declare local variables
+    logical :: do_trim_left, do_trim_right
+    integer :: pos1, pos2
+    !integer :: new_length
+    character(*),parameter :: whitespaces=" "//char(9)
+
+    ! Declare result
+    character(len(string)) :: trimmed_string
+    ! how to get trimmed_string with length new_length?
+
+    do_trim_left = .false.
+    do_trim_right = .true.
+
+    if( present(trim_left) ) do_trim_left = trim_left
+    if( present(trim_right) ) do_trim_right = trim_right
+
+    pos1 = 1
+    pos2 = len(string)
+    if( do_trim_right ) pos2 = verify(string,whitespaces,.true.)
+    if( do_trim_left ) pos1 = verify(string,whitespaces)
+    !new_length = pos2-pos1+1
+
+    if( pos1/=0 .and. pos2/=0 ) then
+      trimmed_string = trim(string(pos1:pos2))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_Trim
 
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
