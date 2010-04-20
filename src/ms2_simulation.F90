@@ -498,13 +498,13 @@ contains
       call LogWriteBlank
 
       ! Read frequency of updating result file
-      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., 0 )
+      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., NSteps )
       if( BlockSize > 0 ) then
         write( IOBuffer, &
 &         '("Result files will be updated each", I7, " time steps")' ) &
 &         BlockSize
       else
-        write( IOBuffer, '("Result files will not be created")' )
+        write( IOBuffer, '("All result files will not be created")' )
       end if
       call LogWrite
 
@@ -521,20 +521,24 @@ contains
       end if
 
       ! Read frequency of updating final result file
-      call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
-      if( ErrorsUpdateFrequency < 1 ) then
-        ErrorsUpdateFrequency = NSteps
-      else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
-        ErrorsUpdateFrequency = BlockSize * 4
-      end if
-      if( ErrorsUpdateFrequency < NSteps ) then
-        write( IOBuffer, &
-&        '("Final result files will be updated each", I7, " time steps")' ) &
-&         ErrorsUpdateFrequency
+      if ( BlockSize > 0 ) then
+        call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
+        if( ErrorsUpdateFrequency < 1 ) then
+          ErrorsUpdateFrequency = NSteps
+        else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
+          ErrorsUpdateFrequency = BlockSize * 4
+        end if
+        if( ErrorsUpdateFrequency < NSteps ) then
+          write( IOBuffer, &
+&          '("Final result files will be updated each", I7, " time steps")' ) &
+&           ErrorsUpdateFrequency
+        else
+          write( IOBuffer, '("Final result files will be created at the end")' )
+        end if
+        call LogWrite
       else
-        write( IOBuffer, '("Final result files will be created at the end")' )
+        ErrorsUpdateFrequency = NSteps
       end if
-      call LogWrite
 
       ! Read frequency of updating visualisation file
       call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
