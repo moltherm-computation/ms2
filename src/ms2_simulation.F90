@@ -578,16 +578,16 @@ contains
 #if  TRANS == 1
 !TRANSPORT_start
     ! Read correlation function mode
-    call FileReadParameter( str , iounit_params , IdCorrFun )
+    call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
     select case( str )
-    case( 'ja', 'yes' , 'ok' )
+    case( 'yes' , 'ok', 'ja' )
       CorrfunMode = active
       CorrfunModeString = 'Include transport properties'
-    case( 'nein', 'no' )
+    case( 'no', 'nein' )
       CorrfunMode = inactive
       CorrfunModeString = 'No transport properties'
     case default
-      call Error( 'No Transport properties' )
+      call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
     end select
     write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)
     call LogWrite
@@ -1076,20 +1076,20 @@ eqloop: do
 #if TRANS==1
       ! Run simulation step
         if(( CorrfunMode == active ).and.(.not. Equilibration )) then
-        do i = 1, this%Nensembles
-          if ( Step >= this%ensemble(i)%Ncorr ) then
-            if ( Step >= this%ensemble(i)%Ncorr )then
-              NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr )/ ( BlockSizeCF * this%ensemble(i)%NSpancf )
-              NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   ))
-            else
-              NBlocksCF     = 0
-              NBlockSizesCF = 0
+          do i = 1, this%Nensembles
+            if ( Step >= this%ensemble(i)%Ncorr ) then
+              if ( Step >= this%ensemble(i)%Ncorr )then
+                NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr )/ ( BlockSizeCF * this%ensemble(i)%NSpancf )
+                NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   ))
+              else
+                NBlocksCF     = 0
+                NBlockSizesCF = 0
+              end if
             end if
-          end if
-        end do
-      end if
+          end do
+        end if
 #endif
-    end if
+      end if
       select case( SimulationType )
       case( MolecularDynamics )
         call RunMDStep( this )

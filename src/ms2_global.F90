@@ -87,6 +87,12 @@ module ms2_global
   integer :: MPI_RK
 #endif
 
+  ! limits
+  !real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
+  real(RK)            :: limits_RK_MAX
+  !real(RK), parameter :: exp_arg_max  = log(limits_RK_MAX)
+  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
+
   ! Define maximum length of file names
   integer, parameter :: FileNameLength = 128
 
@@ -228,6 +234,8 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Define comment character
   character, parameter :: CommentSign = '#'
+  ! Define whitespaces                     TAB
+  character(*), parameter :: Whitespaces=' '//char(9)
 
   ! Define identifiers used in configuration file
   character(*), parameter :: IdRestart                     = 'Restart'
@@ -349,10 +357,6 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNFluct                      = 'NFluct'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
-  ! limits
-  real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
-  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
-
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
 
@@ -468,8 +472,8 @@ character(*), parameter :: VersionString = 'v12'
 !TRANSPORT_start
   ! Correlation function status
   character(80)      :: CorrfunModeString
+  integer, parameter :: inactive               = 0
   integer, parameter :: active                 = 1
-  integer, parameter :: inactive               = 2
   integer            :: CorrfunMode
 !TRANSPORT_END
 #endif
@@ -722,8 +726,21 @@ character(*), parameter :: VersionString = 'v12'
     module procedure Global_Rrnd
   end interface
 
+  interface strlen_trim
+    module procedure Global_String_Len_Trim
+  end interface
+
   interface strtrim
-    module procedure Global_String_Trim
+    module procedure Global_String_TrimR
+  end interface
+  interface strtrimr
+    module procedure Global_String_TrimR
+  end interface
+  interface strtriml
+    module procedure Global_String_TrimL
+  end interface
+  interface strtrimlr
+    module procedure Global_String_TrimLR
   end interface
 
   interface ProcRange
@@ -1060,7 +1077,7 @@ contains
 
     ! Define some constants
 
-    !limits_RK_MAX = huge(limits_RK_MAX)
+    limits_RK_MAX = huge(limits_RK_MAX)
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
@@ -1767,11 +1784,11 @@ contains
           else
             parameterqualifier = parameterqualifiers(delimiterpos1+1:)
           end if
-          foundqualifier = index( strtrim( parametervalue, .true. ), trim( parameterqualifier ) ) == 1
+          foundqualifier = index( strtriml( parametervalue ), trim( parameterqualifier ) ) == 1
           if( foundqualifier ) then
             ! extract value part (after =)
             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-            parametervalue = trim(strtrim( parametervalue, .true. ))
+            parametervalue = strtrimlr( parametervalue )
 !            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
 !&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
             if( present(status) ) status = 0
@@ -2190,16 +2207,16 @@ contains
 
 
 !==============================================================!
-!  Function Global_String_Trim                                 !
+!  Function Global_String_Len_Trim                                 !
 !==============================================================!
 
-  pure function Global_String_Trim( string, trim_left, trim_right ) result( trimmed_string )
+  pure function Global_String_Len_Trim( string, trim_left, trim_right ) result( length )
 
     !> Get options
-    !> \param string          ... string to trim  character(*)
-    !> \param trim_left       ... trim left? (default: .false.)  logical
-    !> \param trim_right      ... trim right? (default: .true.)  logical
-    !> \return trimmed_string ... actual options  character()
+    !> \param string     ... string to trim  character(*)
+    !> \param trim_left  ... trim left? (default: .false.)  logical
+    !> \param trim_right ... trim right? (default: .true.)  logical
+    !> \return length    ... length of trimmed string
 
     implicit none
 
@@ -2211,12 +2228,9 @@ contains
     ! Declare local variables
     logical :: do_trim_left, do_trim_right
     integer :: pos1, pos2
-    !integer :: new_length
-    character(*),parameter :: whitespaces=" "//char(9)
 
     ! Declare result
-    character(len(string)) :: trimmed_string
-    ! how to get trimmed_string with length new_length?
+    integer :: length
 
     do_trim_left = .false.
     do_trim_right = .true.
@@ -2226,17 +2240,114 @@ contains
 
     pos1 = 1
     pos2 = len(string)
-    if( do_trim_right ) pos2 = verify(string,whitespaces,.true.)
-    if( do_trim_left ) pos1 = verify(string,whitespaces)
-    !new_length = pos2-pos1+1
+    if( do_trim_right ) pos2 = verify(string,Whitespaces,.true.)
+    if( do_trim_left ) pos1 = verify(string,Whitespaces)
 
     if( pos1/=0 .and. pos2/=0 ) then
+      length = pos2-pos1+1
+    else
+      length = 0
+    end if
+
+  end function Global_String_Len_Trim
+
+
+!==============================================================!
+!  Function Global_String_TrimR                                !
+!==============================================================!
+
+  pure function Global_String_TrimR( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim  character(*)
+    !> \return trimmed_string ... trimmed string  character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos2
+
+    ! Declare result
+    !character(len_trim(string)) :: trimmed_string
+    character(strlen_trim(string,.false.,.true.)) :: trimmed_string
+
+    pos2 = verify(string,Whitespaces,.true.)
+
+    if( pos2/=0 ) then
+      trimmed_string = trim(string(:pos2))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_TrimR
+
+!==============================================================!
+!  Function Global_String_TrimL                                !
+!==============================================================!
+
+  pure function Global_String_TrimL( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim  character(*)
+    !> \return trimmed_string ... trimmed string  character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos1
+
+    ! Declare result
+    !character(len(string)) :: trimmed_string
+    character(strlen_trim(string,.true.,.false.)) :: trimmed_string
+
+    pos1 = verify(string,Whitespaces)
+
+    if( pos1/=0 ) then
+      trimmed_string = trim(string(pos1:))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_TrimL
+
+!==============================================================!
+!  Function Global_String_TrimLR                               !
+!==============================================================!
+
+  pure function Global_String_TrimLR( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim   character(*)
+    !> \return trimmed_string ... trimmed string   character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos1, pos2
+
+    ! Declare result
+    !character(len(string)) :: trimmed_string
+    character(strlen_trim(string,.true.,.true.)) :: trimmed_string
+
+    pos1 = verify(string,Whitespaces)
+    pos2 = verify(string,Whitespaces,.true.)
+
+    if( pos1/=0 .and. pos2/=0 .and. pos2>=pos1 ) then
       trimmed_string = trim(string(pos1:pos2))
     else
       trimmed_string = ""
     end if
 
-  end function Global_String_Trim
+  end function Global_String_TrimLR
 
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3

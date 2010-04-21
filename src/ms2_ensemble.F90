@@ -779,7 +779,7 @@ contains
       call LogWrite
 
       ! Read frequency of updating result file CF
-      call FileReadParameter( BlockSizeCF , iounit_params , IdBlockSizeCF )
+      call FileReadParameter( BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 0 )
       if( BlockSize > 0 ) then
         write( IOBuffer, &
 &         '("Result files will be updated each", I7, " Correlation Functions")' ) &
