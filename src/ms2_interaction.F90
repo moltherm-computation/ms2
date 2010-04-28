@@ -633,6 +633,14 @@ contains
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
 
+    ! allocated only for SimulationType .eq. SecondVirialCoeff
+    nullify( this%MayerFFunction )
+    nullify( this%MayerFFunction1 )
+    nullify( this%MayerFFunction2 )
+    nullify( this%IntFFunction )
+    nullify( this%IntFFunction1 )
+    nullify( this%IntFFunction2 )
+
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA ) then
@@ -745,6 +753,7 @@ contains
     ! Deallocate arrays
     call DeallocateEPot( this )
 
+    ! allocated only for SimulationType .eq. SecondVirialCoeff
     if( associated( this%MayerFFunction ) ) then
       deallocate( this%MayerFFunction )
     end if
@@ -763,6 +772,7 @@ contains
     if( associated( this%IntFFunction2 ) ) then
       deallocate( this%IntFFunction2 )
     end if
+
     if( associated( this%NInCutoff ) ) then
       deallocate( this%NInCutoff )
     end if

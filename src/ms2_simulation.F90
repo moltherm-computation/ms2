@@ -1080,7 +1080,7 @@ eqloop: do
             if ( Step >= this%ensemble(i)%Ncorr ) then
               if ( Step >= this%ensemble(i)%Ncorr )then
                 NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr )/ ( BlockSizeCF * this%ensemble(i)%NSpancf )
-                NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)   ))
+                NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) /(BlockSizeCF * this%ensemble(i)%NSpancf ), RK)))
               else
                 NBlocksCF     = 0
                 NBlockSizesCF = 0
