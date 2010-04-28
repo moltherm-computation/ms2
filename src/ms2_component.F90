@@ -928,7 +928,7 @@ contains
     integer :: np, ntest, nf
     integer :: nu, nup, neu, neup
     integer :: i
-    integer :: j, k, l, index
+    integer :: j, index
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
@@ -3086,30 +3086,31 @@ contains
     real(RK)                       :: A21(np), A22(np), A23(np)
     real(RK)                       :: A31(np), A32(np), A33(np)
     integer                        :: nup
-    real(RK)                       :: U11(nu), U12(nu), U13(nu)
-    real(RK)                       :: U21(nu), U22(nu), U23(nu)
-    real(RK)                       :: U31(nu), U32(nu), U33(nu)
-    real(RK)                       :: UN11(nu), UN12(nu), UN13(nu)
-    real(RK)                       :: UN21(nu), UN22(nu), UN23(nu)
-    real(RK)                       :: UN31(nu), UN32(nu), UN33(nu)
-    real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
-    real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
-    real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
-    real(RK)                       :: ort(3,3), AUP(3,3)
-    real(RK)                       :: E(3,3), C(3,3)
-    real(RK)                       :: determinant
-    real(RK)                       :: PX(nu*np), PY(nu*np), PZ(nu*np)
-    real(RK)                       :: T, S, SInv
-    real(RK)                       :: qu01, qu02, qu03, qu04
-    real(RK)                       :: qu1, qu2, qu3, qu4, quinv
-    real(RK)                       :: r1, r2, r3, or1, or2, or3
-    real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
-    type(TSiteCharge), pointer     :: pCharge
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UN11(nu), UN12(nu), UN13(nu)
+!     real(RK)                       :: UN21(nu), UN22(nu), UN23(nu)
+!     real(RK)                       :: UN31(nu), UN32(nu), UN33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: ort(3,3), AUP(3,3)
+!     real(RK)                       :: E(3,3), C(3,3)
+!     real(RK)                       :: determinant
+!     real(RK)                       :: PX(nu*np), PY(nu*np), PZ(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
+!     real(RK)                       :: mue1, mue2, mue3
+!     type(TSiteLJ126), pointer      :: pLJ126
+!     type(TSiteCharge), pointer     :: pCharge
 !     type(TSiteDipole), pointer     :: pDipole
 !     type(TSiteQuadrupole), pointer :: pQuadrupole
     type(TUnit), pointer           :: pUnit
-    integer                        :: i, j, ij, k
+    integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
@@ -3232,18 +3233,19 @@ contains
     real(RK)                       :: A21, A22, A23
     real(RK)                       :: A31, A32, A33
 !    integer                        :: nu
-    real(RK)                       :: U11(nu), U12(nu), U13(nu)
-    real(RK)                       :: U21(nu), U22(nu), U23(nu)
-    real(RK)                       :: U31(nu), U32(nu), U33(nu)
-    real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
-    real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
-    real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
-    real(RK)                       :: T, S, SInv
-    real(RK)                       :: qu01, qu02, qu03, qu04
-    real(RK)                       :: qu1, qu2, qu3, qu4, quinv
-    real(RK)                       :: r1, r2, r3, or1, or2, or3
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
     type(TUnit), pointer           :: pUnit
-    integer                        :: i, j, ij, k
+    integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
@@ -3362,18 +3364,19 @@ contains
     real(RK)                       :: A21, A22, A23
     real(RK)                       :: A31, A32, A33
 !    integer                        :: nu
-    real(RK)                       :: U11(nu), U12(nu), U13(nu)
-    real(RK)                       :: U21(nu), U22(nu), U23(nu)
-    real(RK)                       :: U31(nu), U32(nu), U33(nu)
-    real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
-    real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
-    real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
-    real(RK)                       :: T, S, SInv
-    real(RK)                       :: qu01, qu02, qu03, qu04
-    real(RK)                       :: qu1, qu2, qu3, qu4, quinv
-    real(RK)                       :: r1, r2, r3, or1, or2, or3
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
     type(TUnit), pointer           :: pUnit
-    integer                        :: i, j, ij, k
+    integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
@@ -3479,7 +3482,6 @@ contains
 !     integer, intent(in) :: nu
 
     ! Declare local variables
-    real(RK)            :: BoxLengthInv
     real(RK)            :: PXij, PYij,PZij
     integer             :: nu, np
     integer             :: i, j
@@ -3549,7 +3551,7 @@ contains
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k, ik, jk
+    integer                        :: i, j, k, ik
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
@@ -3749,7 +3751,7 @@ contains
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k, ik, jk
+    integer                        :: i, j, k, ik
     integer                        :: nu
 
     ! Broadcast positions and orientations to all processes
@@ -3763,9 +3765,9 @@ contains
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
+    nu = this%Molecule%NUnit
 
     if ( this%Molecule%isElongated ) then
-      nu = this%Molecule%NUnit
       ! Loop over all units in Molecule
       do k = 1, nu
         ! Check number of rotation axes
@@ -3935,7 +3937,7 @@ contains
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k, ik, jk
+    integer                        :: i, j, k, ik
     integer                        :: nup
 
     ! Broadcast positions and orientations to all processes
@@ -4112,7 +4114,7 @@ contains
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k, ik, jk
+    integer                        :: i, j, k, ik
     integer                        :: nu
 
     ! Broadcast positions and orientations to all processes
@@ -4126,9 +4128,9 @@ contains
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
+    nu = this%Molecule%NUnit
 
     if ( this%Molecule%isElongated ) then
-      nu = this%Molecule%NUnit
       ! Loop over all units in Molecule
       do k = 1, nu
         ! Check number of rotation axes
@@ -4481,7 +4483,6 @@ contains
     real(RK)                 :: PX(this%NPart),PY(this%NPart),PZ(this%NPart)
     integer                  :: i
     integer                  :: np
-    type(TMolecule), pointer :: pm
 
     np = this%NPart
     mass = 0._RK
@@ -4520,14 +4521,11 @@ contains
     real(RK)                 :: mass
     real(RK)                 :: PX,PY,PZ
     integer                  :: i
-    type(TMolecule), pointer :: pm
 
     mass = 0._RK
     PX   = 0._RK
     PY   = 0._RK
     PZ   = 0._RK
-
-!    pm => this%Molecule
 
     do i=1,this%Molecule%NUnit
       mass = mass + this%Molecule%Unit(i)%Mass
@@ -4817,7 +4815,7 @@ contains
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer :: pF(:, :, :), pT(:, :, :)
-    integer           :: np, nra, nu
+    integer           :: np, nu
     integer           :: i, j, k
     real(RK)          :: r(3)
 
@@ -5339,8 +5337,6 @@ contains
     logical,intent(in)             :: GradIns
     real(RK), intent(in)           :: r(3)
     real(RK), intent(in), optional :: q(4, 1:this%Molecule%NUnit)
-
-    integer :: k
 
     ! Test boundaries of particle arrays
     if( this%NPart >= this%NPartMax ) then

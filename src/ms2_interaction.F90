@@ -789,6 +789,14 @@ contains
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
 
+    ! allocated only for SimulationType .eq. SecondVirialCoeff
+    nullify( this%MayerFFunction )
+    nullify( this%MayerFFunction1 )
+    nullify( this%MayerFFunction2 )
+    nullify( this%IntFFunction )
+    nullify( this%IntFFunction1 )
+    nullify( this%IntFFunction2 )
+
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. &
 &       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -830,12 +838,6 @@ contains
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
-      nullify( this%MayerFFunction  )
-      nullify( this%MayerFFunction1 )
-      nullify( this%MayerFFunction2 )
-      nullify( this%IntFFunction  )
-      nullify( this%IntFFunction1 )
-      nullify( this%IntFFunction2 )
       allocate( this%EPot1(this%NPartMax*this%NUnitMax), STAT = stat )
       call AllocationError( stat, 'units*particles', this%NPartMax )
       if ( this%OptPressure ) then
@@ -1007,10 +1009,10 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
-    real(RK)          :: EPotLocalIntra_Nonbonded
+!     real(RK)          :: EPotLocalIntra_Nonbonded
     integer           :: i, j, k, i1
     integer           :: iu, u, u2, ju, nu1, nu2
-    logical           :: intra
+!     logical           :: intra
     real(RK)          :: add, addlocal
 #if MPI_VER > 0
     integer           :: i0
@@ -1097,7 +1099,7 @@ contains
     ! Calculate angle forces
     if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
       do i = 1, this%NAngle
-        call Force( this%PotAngle(i), EPot, Virial, EPotIntra_Angle, BoxLength)
+        call Force( this%PotAngle(i), EPot, EPotIntra_Angle, BoxLength)
       end do
     end if
 
@@ -1105,7 +1107,7 @@ contains
     ! Calculate dihedral forces
     if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
       do i = 1, this%NDihedral
-        call Force( this%PotDihedral(i), EPot, Virial, EPotIntra_Dihedral, VirialIntra,  BoxLength)
+        call Force( this%PotDihedral(i), EPot, EPotIntra_Dihedral, BoxLength)
       end do
     end if
 
@@ -1220,6 +1222,7 @@ contains
     integer           :: ju,iu
     logical           :: intra
 
+    intra = .false.
     nu1 = this%NUnit1
 
     ! Calculate interactions partners within cutoff sphere
@@ -1231,7 +1234,7 @@ contains
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
         call ChemicalPotential( this%PotLJ126LJ126( i, j ), &
-&         EPotTest, BoxLength )
+&         EPotTest )
       end do
     end do
 
@@ -1355,11 +1358,12 @@ contains
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
     real(RK), pointer :: EPot(:), Virial(:)
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
+    real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+!     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1374,17 +1378,17 @@ contains
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
-    real(RK)          :: CosTheta3, CosTheta2,CosTheta
+!     real(RK)          :: CosTheta3, CosTheta2,CosTheta
     real(RK)          :: CosAux, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp, RFConst2
     real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
-    real(RK)          :: KappaRij, Rij, approx, Faktor, q
-    real(RK)          :: r, dr, rsquared
+    real(RK)          :: KappaRij, Rij, approx, Faktor
+!     real(RK)          :: r, rsquared
     integer           :: N
     integer           :: s1, s2, j, k
-    integer           :: unit1,unit2,jk
+    integer           :: unit1,jk
     integer           :: nu2
     logical           :: SameComponent
     logical           :: OptPressure
@@ -2365,6 +2369,7 @@ contains
       ! Explicit reaction field contribution
       if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
+          RFConst2 = this%RFConst2
           MueX2 => this%MueX2
           MueY2 => this%MueY2
           MueZ2 => this%MueZ2
@@ -2393,7 +2398,7 @@ contains
 !                  jk = INT(j/this%NUnit2)+1
 !                  nu2 = mod(j,this%NUnit2)
 !                end if
-                EPot(j) = EPot(j) + this%RFConst2 &
+                EPot(j) = EPot(j) + RFConst2 &
 &               * ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
 !              end if
           end do
@@ -2771,7 +2776,7 @@ contains
             OZj = OZ2(j)
             RijSquared = RXij**2 + RYij**2 + RZij**2
             if( RijSquared >= RCutoffSquared ) cycle
-            jk = (j-1)*this%NUnit2 + pdd%Site2%UnitNumber
+            jk = (j-1)*this%NUnit2 + pcd%Site2%UnitNumber
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
               if ( OptPressure ) &
@@ -2845,7 +2850,7 @@ contains
             OZj = OZ2(j)
             RijSquared = RXij**2 + RYij**2 + RZij**2
             if( RijSquared >= RCutoffSquared ) cycle
-            jk = (j-1)*this%NUnit2 + pdd%Site2%UnitNumber
+            jk = (j-1)*this%NUnit2 + pcq%Site2%UnitNumber
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
               if ( OptPressure ) &
@@ -3452,13 +3457,13 @@ contains
     type(TPotAngle), pointer                :: pan
     type(TPotDihedral), pointer             :: pto
     real(RK), pointer :: EPot(:), Virial(:)
-    real(RK), pointer :: EPot1Angle(:), EPot1To(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+!     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -3483,7 +3488,7 @@ contains
     real(RK)          :: Tmp, RFConst2
     real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
-    real(RK)          :: KappaRij, Rij, approx, Faktor, q
+    real(RK)          :: KappaRij, Rij, approx, Faktor
     real(RK)          :: coeff
     real(RK)          :: r, dr, rsquared
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
@@ -3491,13 +3496,12 @@ contains
     real(RK)          :: ForConst, gamma
     integer           :: N, multi
     integer           :: s1, s2, j, k
-    integer           :: bi, i, u1, u2, u3, u4
-    integer           :: unit1,unit2 
+    integer           :: bi, u1, u2, u3, u4
+    integer           :: unit1,unit2, nu2
     logical           :: intra15, intra14
     logical           :: SameComponent
-    integer           :: nu2
     real(RK)          :: num, den, ax, ay, az, bx, by, bz, cx, cy, cz, EPotAdd
-    real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, cos1, cosn, earg
+    real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
     logical           :: OptPressure
 
     ! Assign local variables
@@ -3662,6 +3666,7 @@ contains
 #else
                 RijInv = 1._RK / sqrt( RijSquared )
 #endif
+                Rij =  sqrt(RijSquared)
                 KappaRij = this%Kappa*Rij
                 call erfc_approx(KappaRij,approx)
                 !for 1,4 intramolecular interactions
@@ -4464,6 +4469,38 @@ contains
         end do! k-cycle
       end do! s1-cycle
 
+      ! Explicit reaction field contribution
+      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+        if ( LongRange .eq. RField) then    ! Normal ReactionField
+          RFConst2 = this%RFConst2
+          MueX2 => this%MueX2
+          MueY2 => this%MueY2
+          MueZ2 => this%MueZ2
+
+          mueXi = this%MueX1(np,nu)
+          mueYi = this%MueY1(np,nu)
+          mueZi = this%MueZ1(np,nu)
+          unit1 = (np-1)*this%NUnit1
+          do nu2 = 1, this%NUnit1
+            j = unit1 + nu2
+!             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+!             if (mod(j,this%NUnit2)==0) then
+!               jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
+!               nu2 = this%NUnit2 ! number of unit in molecule
+!             else
+!               jk = INT(j/this%NUnit2)+1
+!               nu2 = mod(j,this%NUnit2)
+!             end if
+
+            EPot(j) = EPot(j) + RFConst2 &
+&               * ( mueXi * MueX2(np,nu2) + mueYi * MueY2(np,nu2) + mueZi * MueZ2(np,nu2) )
+!              end if
+          end do
+        else         ! Extended ReactionField
+          call Error('No Extended ReactionField for inner degrees of freedom')
+        end if
+      end if
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     else ! Site-site cutoff
@@ -4590,6 +4627,7 @@ contains
 #else
               RijInv = 1._RK / sqrt( RijSquared )
 #endif
+              Rij = sqrt(RijSquared)
               KappaRij = this%Kappa*Rij
               call erfc_approx(KappaRij,approx)
               EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff 
@@ -4993,7 +5031,8 @@ contains
           if ( OptPressure ) &
 &            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
         end do !s2-cycle
-        do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
+        do s2=1, this%N2Quadrupole
+!         do s2=this%UnitQP2(nu), this%UnitQP2(nu+1) - 1
           pdq => this%PotDipoleQuadrupole(s1, s2)
 
           ! Inner Degrees of Freedom
@@ -5675,7 +5714,7 @@ contains
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
     integer           :: NU, NU2
-    integer           :: k, l, m, start
+    integer           :: k, m
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
@@ -6016,7 +6055,7 @@ contains
     real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
-    integer           :: i, j, NInCutoff, np, nu1, k, NUnit2, N2
+    integer           :: j, NInCutoff, np, k, NUnit2
     integer           :: nup
 
     ! Set cutoff radius

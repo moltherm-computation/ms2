@@ -2175,7 +2175,6 @@ contains
     ! Declare local variables
     integer :: i
     integer :: stat
-    integer :: number
 
 
     ! Nullify pointers
@@ -3199,7 +3198,7 @@ loop5:    do nc = 1, this%NComponents
     real(RK)                    :: r, rdist, rsquared(NSteps)
     real(RK)                    :: betaneg, betaneg1, betaneg2, Bij0
     integer                     :: i, j, n, np
-    integer                     :: nu, nu1, nu2
+    integer                     :: nu
     type(TInteraction), pointer :: pi
 
     ! Inverse temperature
@@ -3505,7 +3504,7 @@ loop5:    do nc = 1, this%NComponents
     ! Declare local variables
     type(TComponent), pointer :: pcfnew, pcf
     type(TUnit), pointer      :: pUnitfnew, pUnitf
-    integer                   :: i, j
+    integer                   :: j
     integer                   :: npfnew, npf
     integer                   :: nu
     real(RK)                  :: qold1, qold2, qold3, qold4
@@ -4182,8 +4181,8 @@ loop5:    do nc = 1, this%NComponents
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, &
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
-    integer                   :: ewald_h
-    integer                   :: nu, nuh, add
+!     integer                   :: ewald_h
+    integer                   :: nu, nuh
     integer                   :: ratio
     type(TComponent), pointer :: pc
 #if MPI_VER > 0
@@ -4822,7 +4821,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     type(TInteraction), pointer :: pi
     integer                     :: n
-    integer                     :: i,k
+    integer                     :: i
 
     ! Initialize new energy
     EPotNew = 0._RK
@@ -5025,7 +5024,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     integer :: i, j
-    integer :: n, n2
+    integer :: n
     integer :: np, NUnit
     real(RK):: Intra
 
@@ -5275,12 +5274,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     real(RK)                  :: r(3), rm(3)
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EFourier
     type(TComponent), pointer :: pc
     integer                   :: i
     real(RK)                  :: EPotDelta
     logical                   :: accepted
-    
+#if SPME
+    real(RK)                  :: EVirial
+#endif
+
     ! Assign local variables
     pc => this%Component(nc)
 
@@ -5407,13 +5409,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     real(RK)                  :: rm(3), trans(3)
     real(RK)                  :: TransMove
-    real(RK)                  :: EPotOld, EPotNew, EPotSum
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EPotOld, EPotNew
+!     real(RK)                  :: EFourier
     type(TComponent), pointer :: pc
     integer                   :: i, j
     integer                   :: NUnit
     real(RK)                  :: EPotDelta
     logical                   :: accepted
+#if SPME
+    real(RK)                  :: EVirial
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -5548,11 +5553,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     real(RK)                  :: q(4), dq(3)
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EFourier
     type(TComponent), pointer :: pc
     integer                   :: i
     real(RK)                  :: EPotDelta
     logical                   :: accepted
+#if SPME
+    real(RK)                  :: EVirial
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -5680,14 +5688,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: p(3, this%Component(nc)%Molecule%NUnit)
     real(RK)                  :: q(4, this%Component(nc)%Molecule%NUnit)
     real(RK)                  :: dq(3), dq2
-    real(RK)                  :: EPotOld, EPotNew, EPotSum
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EPotOld, EPotNew
+!     real(RK)                  :: EFourier
     type(TComponent), pointer :: pc
     integer                   :: i
     integer                   :: NUnit
-    real(RK)                  :: dx,dy,dz
     real(RK)                  :: EPotDelta
     logical                   :: accepted
+#if SPME
+    real(RK)                  :: EVirial
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -5804,11 +5814,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     real(RK)                  :: r(3), rm(3), dr(3), f1, f2
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EFourier
     type(TComponent), pointer :: pc, pcf
-    integer                   :: i, nu1
+    integer                   :: i
     real(RK)                  :: EPotDelta
     logical                   :: accepted
+#if MPI_VER > 0
+    real(RK)                  :: EVirial
+#endif
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -5964,11 +5977,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     real(RK)                  :: dr(3), q(4), dq(3), f1
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EFourier
     type(TComponent), pointer :: pc, pcf
-    integer                   :: i, nu1
+    integer                   :: i
     real(RK)                  :: EPotDelta
     logical                   :: accepted
+#if SPME
+    real(RK)                  :: EVirial
+#endif
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -6102,7 +6118,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)            :: dx, dy, dz, dr2
     integer             :: NGradIns
     integer             :: counter, counter1
-    integer             :: i, j, k
+    integer             :: i, j
     type(TComponent),pointer :: pc, pcf
     
     BoxLength = this%BoxLength
@@ -6172,13 +6188,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TComponent), pointer :: pc, pcf, pcfnew
     integer                   :: oldstate, newstate
     integer                   :: ncfnew, npfnew
-    integer                   :: nu, np
+    integer                   :: nu
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: scalefac
 #if MPI_VER > 0
     real(RK)                  :: EPotDeltaAll
 #endif
-    real(RK)                  :: EFourier, EVirial
+!     real(RK)                  :: EFourier, EVirial
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -6572,11 +6587,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !     real(RK)                    :: s
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, EPotNew
-    real(RK)                    :: EVirial, EVirialIntra
+    real(RK)                    :: EFourier
+    real(RK)                    :: EVirial
     real(RK)                    :: USelf, UIntra
-    real(RK)                    :: r(3)
-    real(RK)                    :: q(4)
+!     real(RK)                    :: r(3)
+!     real(RK)                    :: q(4)
+#if MPI_VER > 0
+    real(RK)                    :: EVirialIntra
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -6780,7 +6798,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
-    integer                     :: i, k, n1, n2,  nu, nu1k, nu2k, nu1, nu2, jk
+    integer                     :: i, k, n1, n2,  nu, nu1k, nu2k, nu1, nu2
     real(RK)                    :: PSave(3), QSave(4)
     real(RK)                    :: P0Save(3, 1:this%Component(nc)%Molecule%NUnit)
     real(RK)                    :: Q0Save(4, 1:this%Component(nc)%Molecule%NUnit)
@@ -6881,11 +6899,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK) :: EPotDelta
     real(RK) :: EVirial
     real(RK) :: UFourier
-    real(RK) :: UIntra, EVirialintra
     real(RK) :: DelBoxL,BoxLengthOld
     logical  :: accepted
 #if MPI_VER > 0
     real(RK) :: EPotNew
+#endif
+#if SPME
+    real(RK) :: UIntra
+    real(RK) :: EVirialintra
 #endif
 
     ! Update number of resizing attempts
@@ -7157,9 +7178,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK) :: VolumeOld, EPotOld
     real(RK) :: EVirial
     real(RK) :: UFourier
-    real(RK) :: UIntra, EVirialintra
 #if MPI_VER > 0
     real(RK) :: EPotNew
+#endif
+#if SPME
+!     real(RK) :: UIntra
+    real(RK) ::EVirialintra
 #endif
     logical  :: accept
 
@@ -7301,16 +7325,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     type(TComponent), pointer   :: pc
-    type(TInteraction), pointer :: pi
-    integer                     :: i, n1, n2
 !     real(RK)                    :: s
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, EPotNew
-    real(RK)                    :: EVirial, EVirialIntra
+    real(RK)                    :: EFourier
+    real(RK)                    :: EVirial
     real(RK)                    :: USelf, UIntra
-    real(RK)                    :: r(3)
-    real(RK)                    :: q(4)
+!     real(RK)                    :: r(3)
+!     real(RK)                    :: q(4)
+#if MPI_VER > 0
+    real(RK)                    :: EPotNew
+#endif
+#if SPME
+    real(RK)                    :: EVirialIntra
+#endif
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -7831,10 +7859,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Reset( this%SumEPot )
       call Reset( this%SumEPotIntra )
       if (printIDF) then
-	      call Reset( this%SumEPotIntra_Bond )
-	      call Reset( this%SumEPotIntra_Angle )
-	      call Reset( this%SumEPotIntra_Dihedral )
-	      call Reset( this%SumEPotIntra_Nonbonded )
+        call Reset( this%SumEPotIntra_Bond )
+        call Reset( this%SumEPotIntra_Angle )
+        call Reset( this%SumEPotIntra_Dihedral )
+        call Reset( this%SumEPotIntra_Nonbonded )
       end if
       call Reset( this%SumEPotInter )
       call Reset( this%SumEnthalpy )
@@ -7948,7 +7976,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       if (printIDF) then
         ! Intra Potential energy - Bonds
-	    write( IOBuffer, '("  EP_Bonds")' )
+        write( IOBuffer, '("  EP_Bonds")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -8036,10 +8064,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
     call Update( this%SumEPotIntra, this%EPotIntra / real( this%NPart, RK ) )
     if (printIDF) then
-	    call Update( this%SumEPotIntra_Bond, this%EPotIntra_Bond / real( this%NPart, RK ) )
-	    call Update( this%SumEPotIntra_Angle, this%EPotIntra_Angle / real( this%NPart, RK ) )
-	    call Update( this%SumEPotIntra_Dihedral, this%EPotIntra_Dihedral / real( this%NPart, RK ) )
-	    call Update( this%SumEPotIntra_Nonbonded, this%EPotIntra_Nonbonded / real( this%NPart, RK ) )
+      call Update( this%SumEPotIntra_Bond, this%EPotIntra_Bond / real( this%NPart, RK ) )
+      call Update( this%SumEPotIntra_Angle, this%EPotIntra_Angle / real( this%NPart, RK ) )
+      call Update( this%SumEPotIntra_Dihedral, this%EPotIntra_Dihedral / real( this%NPart, RK ) )
+      call Update( this%SumEPotIntra_Nonbonded, this%EPotIntra_Nonbonded / real( this%NPart, RK ) )
     end if
     call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
@@ -8232,29 +8260,29 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
-	      ! EPotIntra_Bond
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Bond%BlockAverage
-	      call FileWriteNoAdvance( this%iounit_result )
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Bond%Average
-	      call FileWriteNoAdvance( this%iounit_runave )
+        ! EPotIntra_Bond
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Bond%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Bond%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
-	      ! EPotIntra_Angle
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Angle%BlockAverage
-	      call FileWriteNoAdvance( this%iounit_result )
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Angle%Average
-	      call FileWriteNoAdvance( this%iounit_runave )
+        ! EPotIntra_Angle
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Angle%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Angle%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
-	      ! EPotIntra_Dihedral
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Dihedral%BlockAverage
-	      call FileWriteNoAdvance( this%iounit_result )
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Dihedral%Average
-	      call FileWriteNoAdvance( this%iounit_runave )
+        ! EPotIntra_Dihedral
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Dihedral%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Dihedral%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
-	      ! EPotIntra_Nonbonded
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Nonbonded%BlockAverage
-	      call FileWriteNoAdvance( this%iounit_result )
-	      write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Nonbonded%Average
-	      call FileWriteNoAdvance( this%iounit_runave )
+        ! EPotIntra_Nonbonded
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Nonbonded%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumEPotIntra_Nonbonded%Average
+        call FileWriteNoAdvance( this%iounit_runave )
       end if
 
 
@@ -8468,10 +8496,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumTemperature )
     call Error( this%SumEPotIntra )
     if (printIDF) then
-	    call Error( this%SumEPotIntra_Bond )
-	    call Error( this%SumEPotIntra_Angle )
-	    call Error( this%SumEPotIntra_Dihedral )
-	    call Error( this%SumEPotIntra_Nonbonded )
+      call Error( this%SumEPotIntra_Bond )
+      call Error( this%SumEPotIntra_Angle )
+      call Error( this%SumEPotIntra_Dihedral )
+      call Error( this%SumEPotIntra_Nonbonded )
     end if
     call Error( this%SumEPotInter )
     call Error( this%SumEPot )
@@ -8770,53 +8798,53 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileWriteBlank( this%iounit_errors )
 
     if (printIDF) then
-	    !Inramolecular potential energy - Bonds
-	    Average = this%SumEPotIntra_Bond%Average
-	    Variance = this%SumEPotIntra_Bond%Variance
-	    write( IOBuffer, '("Bond energy", T29, "reduced:", 2F20.9)' ) &
-&	    Average, Variance
-	    call FileWrite( this%iounit_errors )
-	    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-&   	Average * UnitEnergy * NAvogadro, &
-&     	Variance * UnitEnergy * NAvogadro
-	    call FileWrite( this%iounit_errors )
-	    call FileWriteBlank( this%iounit_errors )
-
-	    !Inramolecular potential energy - Angles
-	    Average = this%SumEPotIntra_Angle%Average
-	    Variance = this%SumEPotIntra_Angle%Variance
-	    write( IOBuffer, '("Angle energy", T29, "reduced:", 2F20.9)' ) &
+      !Inramolecular potential energy - Bonds
+      Average = this%SumEPotIntra_Bond%Average
+      Variance = this%SumEPotIntra_Bond%Variance
+      write( IOBuffer, '("Bond energy", T29, "reduced:", 2F20.9)' ) &
 &       Average, Variance
-	    call FileWrite( this%iounit_errors )
-	    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
 &       Average * UnitEnergy * NAvogadro, &
 &       Variance * UnitEnergy * NAvogadro
-	    call FileWrite( this%iounit_errors )
-	    call FileWriteBlank( this%iounit_errors )
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
-	    !Inramolecular potential energy - Dihedral
-	    Average = this%SumEPotIntra_Dihedral%Average
-	    Variance = this%SumEPotIntra_Dihedral%Variance
-	    write( IOBuffer, '("Dihedral energy", T29, "reduced:", 2F20.9)' ) &
+      !Intramolecular potential energy - Angles
+      Average = this%SumEPotIntra_Angle%Average
+      Variance = this%SumEPotIntra_Angle%Variance
+      write( IOBuffer, '("Angle energy", T29, "reduced:", 2F20.9)' ) &
 &       Average, Variance
-	    call FileWrite( this%iounit_errors )
-	    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-&      Average * UnitEnergy * NAvogadro, &
-&      Variance * UnitEnergy * NAvogadro
-	    call FileWrite( this%iounit_errors )
-	    call FileWriteBlank( this%iounit_errors )
-
-	    !Inramolecular potential energy - Nonbonded
-	    Average = this%SumEPotIntra_Nonbonded%Average
-	    Variance = this%SumEPotIntra_Nonbonded%Variance
-	    write( IOBuffer, '("1-4, 1-5 energy", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
-	    call FileWrite( this%iounit_errors )
-	    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
 &       Average * UnitEnergy * NAvogadro, &
 &       Variance * UnitEnergy * NAvogadro
-	    call FileWrite( this%iounit_errors )
-	    call FileWriteBlank( this%iounit_errors )
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      !Intramolecular potential energy - Dihedral
+      Average = this%SumEPotIntra_Dihedral%Average
+      Variance = this%SumEPotIntra_Dihedral%Variance
+      write( IOBuffer, '("Dihedral energy", T29, "reduced:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+&       Average * UnitEnergy * NAvogadro, &
+&       Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      !Intramolecular potential energy - Nonbonded
+      Average = this%SumEPotIntra_Nonbonded%Average
+      Variance = this%SumEPotIntra_Nonbonded%Variance
+      write( IOBuffer, '("1-4, 1-5 energy", T29, "reduced:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+&       Average * UnitEnergy * NAvogadro, &
+&       Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
     end if ! printIDF
 
@@ -9787,7 +9815,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     type(TComponent), pointer :: pc
     integer                   :: i,j,stat, counter
-    real(RK)                  :: epotnew
 
     if( RootProc ) then
 
@@ -10148,7 +10175,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK):: approx
     real(RK):: UIntraTermKomp
     real(RK):: twopi
-    real(RK):: test
+!     real(RK):: test
 
 !     ZweiPi_inv = 2.0 / sqrt(PI)
     twopi = 2*PI
@@ -10361,7 +10388,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 
    type(TMolecule), pointer               :: mol
-   integer:: stat
 
 
 
@@ -10531,8 +10557,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare arguments
     type(TEnsemble)            :: this
-    type(TInteraction),pointer :: inter
-    integer        :: np
+!     type(TInteraction),pointer :: inter
+!     integer        :: np
 
     ! Declare local variables
     integer :: Si,Sj,i
@@ -10830,13 +10856,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
-   real(RK)::SSin_Vec,SCos_Vec
+!    real(RK):: SSinSum,SCosSum
+   real(RK):: SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
-   real(RK)::Faktor,Faktor2
+   real(RK):: Faktor,Faktor2
 
-   integer :: i,j,l,m
+   integer :: i,l
    integer,intent(in)::nc,np
 
 # if MPI_VER > 0
@@ -10942,26 +10968,31 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
    type(TEnsemble)          :: this
    type(TMolecule), pointer :: mol
    type(TMolecule), pointer :: mol2
+   integer,intent(in)       :: nc,np
+   integer,intent(in)       :: ncold,npold
 
    real(RK):: RX,RY,RZ
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
-   real(RK)::SSin_Vec,SCos_Vec
+!    real(RK):: SSinSum,SCosSum
+   real(RK):: SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
-   real(RK)::Faktor,Faktor2
+   real(RK):: Faktor,Faktor2
 
-   integer :: i,j,l
-   integer,intent(in)::nc,np
-   integer,intent(in)::ncold,npold
+   integer :: i,l
+   
 
 # if MPI_VER > 0
    integer :: i0
    integer :: i1
 # endif
 
+! Dummy variable to cover a compiler warning that npold is unused
+! Check the correct use!!!
+   integer :: dummy
+   dummy = npold
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
@@ -11054,13 +11085,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
+!    real(RK):: SSinSum,SCosSum
    real(RK):: SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK):: Faktor
 
-   integer :: i,j,l
+   integer :: i,l
    integer,intent(in)::nc,np,m
 
 # if MPI_VER > 0

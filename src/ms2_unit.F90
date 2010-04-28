@@ -131,8 +131,6 @@ contains
 
 
     ! Declare local variables
-    integer       :: i, j
-    integer       :: ntypes
     character(16) :: stype
     integer       :: stat
 

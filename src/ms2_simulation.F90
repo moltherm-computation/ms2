@@ -166,8 +166,10 @@ contains
     integer                     :: stat
     real(RK)                    :: KappaL_h
     real(RK)                    :: debyelen_h
-    integer                     :: grid_h,spline_h
     integer                     :: nvecmax_h,nsqmax_h,nmax_h
+#if SPME
+    integer                     :: grid_h,spline_h
+#endif
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -640,7 +642,7 @@ contains
           ! Read extended Reaction Field Parameters
           call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0_RK )
           write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
-      case( 'Rodgers' )
+      case( 'Rodgers', 'rodgers' )
           LongRange = rodgers
           LongRangeString = 'Rodgers'
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )

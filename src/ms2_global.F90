@@ -1714,141 +1714,6 @@ contains
   end subroutine Global_FileWriteBlank
 
 
-! ! ! !==============================================================!
-! ! ! !  Function Global_FileReadParameter                           !
-! ! ! !==============================================================!
-! ! ! 
-! ! !   function Global_FileReadParameter( iounit, parameterqualifiers, &
-! ! ! &                                    rewind_before, status ) &
-! ! ! &          result (parametervalue)
-! ! ! 
-! ! ! 
-! ! !     implicit none
-! ! ! 
-! ! !     ! Include MPI header
-! ! ! #if MPI_VER > 0
-! ! !     include 'mpif.h'
-! ! ! #endif
-! ! ! 
-! ! !     ! Declare arguments
-! ! !     integer, intent(in)                :: iounit
-! ! !     character(*), intent(in)           :: parameterqualifiers
-! ! !     logical, intent(in), optional      :: rewind_before
-! ! !     integer, intent(out), optional     :: status
-! ! ! 
-! ! !     character(IOBufferLength) :: parametervalue
-! ! ! 
-! ! ! 
-! ! !     ! Declare local variables
-! ! !     integer                   :: stat, comment_pos, linesread, i
-! ! !     character(FileNameLength) :: fn
-! ! !     logical                   :: foundqualifier = .false.
-! ! !     character(IOBufferLength) :: parameterqualifier
-! ! !     integer                   :: delimiterpos1, delimiterpos2
-! ! ! 
-! ! !     ! determine filename
-! ! !     inquire( iounit, NAME = fn )
-! ! !     ! Only RootProc reads parameter from file
-! ! !     if( RootProc ) then
-! ! !       ! rewind file, if requested
-! ! !       if( present(rewind_before) ) then
-! ! !         if( rewind_before ) then
-! ! ! !          write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
-! ! !           rewind( iounit )
-! ! !           FileReadParameter_LineNumber = 0
-! ! !         end if
-! ! !       end if
-! ! !       linesread = 0
-! ! !       ! loop to read lines until parameter is found
-! ! !       do
-! ! !         read( iounit, '(A)', IOSTAT = stat ) parametervalue
-! ! !         ! error reading from file?
-! ! !         if( stat > 0 ) then
-! ! !           call Error( "ERROR reading file "//trim(fn)// &
-! ! ! &                     " while searching for parameter <"//parameterqualifiers//">" )
-! ! !           !if( present(status) ) status = stat
-! ! !           !return
-! ! !         ! end of file reached?
-! ! !         elseif( stat < 0 ) then
-! ! !           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
-! ! !           parametervalue=""
-! ! !           if( present(status) ) status = stat
-! ! !           ! (try to) restore position
-! ! !           if( present(rewind_before) ) then
-! ! !             if( rewind_before ) then
-! ! ! !              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
-! ! !               rewind( iounit )
-! ! !               FileReadParameter_LineNumber = 0
-! ! !               linesread=0
-! ! !               exit    !not nice!
-! ! !             end if
-! ! !           end if
-! ! !           ! rewind to the position, where the reading process was started
-! ! !           backspace( iounit )   ! "undo" last read, where eof was encountered
-! ! !           do i = 1,linesread
-! ! ! !            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
-! ! !             backspace( iounit )
-! ! !             FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
-! ! !           end do
-! ! !           exit
-! ! !         end if
-! ! !         FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
-! ! !         linesread = linesread + 1
-! ! ! !        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
-! ! ! !         check for comment token
-! ! !         comment_pos = index( parametervalue, CommentSign )
-! ! !         if( comment_pos > 0 ) then
-! ! ! !          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
-! ! ! !&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
-! ! !           !                eliminate comment part of line
-! ! !           parametervalue = parametervalue(1:comment_pos - 1)
-! ! !         end if
-! ! !         delimiterpos2 = 0
-! ! !         do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
-! ! !           delimiterpos1 = delimiterpos2
-! ! !           !                   len_trim(parameterqualifiers)
-! ! !           if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
-! ! !           delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
-! ! !           if( delimiterpos2>delimiterpos1 ) then
-! ! !             parameterqualifier = parameterqualifiers(delimiterpos1+1:delimiterpos2-1)
-! ! !           else
-! ! !             parameterqualifier = parameterqualifiers(delimiterpos1+1:)
-! ! !           end if
-! ! !           foundqualifier = index( strtriml( parametervalue ), trim( parameterqualifier ) ) == 1
-! ! !           if( foundqualifier ) then
-! ! !             ! extract value part (after =)
-! ! !             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-! ! !             parametervalue = strtrimlr( parametervalue )
-! ! ! !            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
-! ! ! !&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
-! ! !             if( present(status) ) status = 0
-! ! !             exit
-! ! !           end if
-! ! !           if ( delimiterpos2<=delimiterpos1 ) exit
-! ! !         end do
-! ! !         if ( foundqualifier ) exit
-! ! ! 
-! ! !       end do
-! ! ! 
-! ! !     end if
-! ! ! 
-! ! !     ! Broadcast parameter to other processes
-! ! !     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
-! ! !     !  Better broadcast the integer, float parametervalues, instead of the string?)
-! ! ! #if MPI_VER > 0
-! ! !     call MPI_Bcast( parametervalue, len(parametervalue), &
-! ! ! &     MPI_CHARACTER, NRootProc, Communicator, ierror )
-! ! !     if( present(status) ) then
-! ! !       call MPI_Bcast( status, 1, &
-! ! ! &       MPI_INTEGER, NRootProc, Communicator, ierror )
-! ! !     end if
-! ! ! #endif
-! ! ! 
-! ! ! !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-! ! ! !&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
-! ! ! 
-! ! !   end function Global_FileReadParameter
-
 !==============================================================!
 !  Function Global_FileReadParameter                           !
 !==============================================================!
@@ -1879,7 +1744,7 @@ contains
     character(FileNameLength) :: fn
     logical                   :: foundqualifier = .false.
     character(IOBufferLength) :: parameterqualifier
-    integer                   :: qualifierpos1, qualifierpos2
+    integer                   :: delimiterpos1, delimiterpos2
 
     ! determine filename
     inquire( iounit, NAME = fn )
@@ -1938,27 +1803,28 @@ contains
           !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
-
-        qualifierpos2 = 0
-        do
-          qualifierpos1 = qualifierpos2+1
-          qualifierpos2 = scan(trim(parameterqualifiers(qualifierpos1:)),":")
-          if( qualifierpos2>qualifierpos1 ) then
-            parameterqualifier = parameterqualifiers(qualifierpos1:qualifierpos2-1)
+        delimiterpos2 = 0
+        do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
+          delimiterpos1 = delimiterpos2
+          !                   len_trim(parameterqualifiers)
+          if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
+          delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
+          if( delimiterpos2>delimiterpos1 ) then
+            parameterqualifier = parameterqualifiers(delimiterpos1+1:delimiterpos2-1)
           else
-            parameterqualifier = parameterqualifiers(qualifierpos1:)
+            parameterqualifier = parameterqualifiers(delimiterpos1+1:)
           end if
-          foundqualifier = index( adjustl( parametervalue ), trim( parameterqualifier ) ) == 1
+          foundqualifier = index( strtriml( parametervalue ), trim( parameterqualifier ) ) == 1
           if( foundqualifier ) then
             ! extract value part (after =)
             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
-            parametervalue = trim( adjustl( parametervalue ) )
+            parametervalue = strtrimlr( parametervalue )
 !            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
 !&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
             if( present(status) ) status = 0
             exit
           end if
-          if ( qualifierpos2<=qualifierpos1 ) exit
+          if ( delimiterpos2<=delimiterpos1 ) exit
         end do
         if ( foundqualifier ) exit
 
@@ -1971,10 +1837,10 @@ contains
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
     call MPI_Bcast( parametervalue, len(parametervalue), &
-&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
       call MPI_Bcast( status, 1, &
-&       MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
 

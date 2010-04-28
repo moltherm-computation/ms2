@@ -215,16 +215,15 @@ contains
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
 
     ! Inner Degrees of Freedom
-    integer       :: k, index, u, l, Bondend, m, n, index1, index2
+    integer       :: k, index, index1, index2
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
-    logical, allocatable   :: mask(:)
-    logical                :: ok, ok1, ok2, ok3, done, LJ1, LJ2, same
+    logical                :: ok, ok1, LJ1, LJ2, same
     logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
     integer                :: cc, cd, cq, dd, dq, qq, qc, qd, dc, lj
-    integer, allocatable   :: S(:, :), E( :, :), Units(:, :)
+!     integer, allocatable   :: S(:, :), E( :, :), Units(:, :)
     integer                :: Site1, Site2, Site3, Site4
     integer, allocatable   :: AllSites(:, :), Int14(:,:), IntLJ15(:,:)
     integer, allocatable   :: IntLJ14(:, :), SameCoord(:,:)
@@ -1527,9 +1526,9 @@ contains
     ! Declare local variables
 
      if (array1(1)==array2(1) .and. array1(2)==array2(2) .and. array1(3)==array2(3) ) then
-     	same = .true.
+       same = .true.
      else
-     	same = .false.
+       same = .false.
     end if
 
     end subroutine compare_coord
@@ -1545,7 +1544,6 @@ contains
 
       ! Declare local variables
       integer                                 :: index
-      logical                                 :: ok
 
       do index = 1, this%NBond
          if ( unit == bondedunit(index, 1)) then
@@ -1930,7 +1928,8 @@ contains
 
     ! Declare local variables
     integer  :: i
-    real(RK) :: moi(3, 3), rotation(3, 3), determinant
+    real(RK) :: moi(3, 3), rotation(3, 3)
+!     real(RK) :: determinant
 
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
