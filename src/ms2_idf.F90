@@ -287,7 +287,7 @@ end subroutine TIdfAngle_Construct
     call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
     call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
     call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
-    if (LJEl14 .and. this%multi) then
+    if (LJEl14 .and. (this%multi .gt. 0)) then
       call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )
       call FileReadParameter( this%ScaleEl14, iounit_potmod, IdDihedral_ScaleEl14, .false. )
     end if
@@ -340,7 +340,7 @@ end subroutine TIdfDihedral_Construct
     call FileWriteParameter( iounit_normal, IdDihedral_gamma )
     write( IOBuffer, '(G20.10)' ) this%multi
     call FileWriteParameter( iounit_normal, IdDihedral_n )
-    if (LJEl14 .and. this%multi) then
+    if (LJEl14 .and. (this%multi .gt. 0)) then
       write( IOBuffer, '(G20.10)' ) this%ScaleLJ14
       call FileWriteParameter( iounit_normal, IdDihedral_ScaleLJ14 )
       write( IOBuffer, '(G20.10)' ) this%ScaleEl14

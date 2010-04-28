@@ -57,10 +57,6 @@ module ms2_potential
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     real(RK)                  :: ScaleLJ14
     integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
-#ifdef ABL
-    real(RK),pointer          :: AblEpsCorr(:,:)
-    real(RK),pointer          :: AblSigCorr(:,:)
-#endif
 
   end type TPotLJ126LJ126
 
@@ -661,27 +657,7 @@ contains
         this%VirialCorr = Piminus83 * this%Epsilon * &
 &         ( TISSp(-6, RCutoff, this%Sigma**2, tau1, tau2) &
 &         - TISSp(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-! DEBUG STEPHAN
-!      this%EPotCorr   = 0.0_RK
-!      this%VirialCorr = 0.0_RK
 
-#ifdef ABL
-      this%AblEpsCorr(i1,j1) = this%VirialCorr / this%Epsilon
-      this%AblEpsCorr(i2,j2) = this%VirialCorr / this%Epsilon
-      if ( .not. this%SameComponent ) then
-        this%AblEpsCorr(i1,j1) = this%AblEpsCorr(i1,j1) * &
-&                    this%Site2%eps / (2._RK*this%Epsilon)
-        this%AblEpsCorr(i2,j2) = this%AblEpsCorr(i2,j2) * &
-&                    this%Site1%eps / (2._RK*this%Epsilon)
-      end if
-
-      this%AblSigCorr(i1,j1) = Piminus83 * this%Epsilon / 2._RK * &
-&         ( TISSpAbl(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSpAbl(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-      this%AblSigCorr(i2,j2) = Piminus83 * this%Epsilon / 2._RK * &
-&         ( TISSpAbl(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSpAbl(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-#endif
       else
         this%EPotCorr = Pi8 * this%Epsilon * &
 &         ( TICSu(-6, RCutoff, this%Sigma**2, tau) &
@@ -689,28 +665,7 @@ contains
         this%VirialCorr = Piminus83 * this%Epsilon * &
 &         ( TICSp(-6, RCutoff, this%Sigma**2, tau) &
 &         - TICSp(-3, RCutoff, this%Sigma**2, tau) )
-! DEBUG STEPHAN
-!      this%EPotCorr   = 0.0_RK
-!      this%VirialCorr = 0.0_RK
 
-#ifdef ABL
-      this%AblEpsCorr(i1,j1) = this%VirialCorr / this%Epsilon
-      this%AblEpsCorr(i2,j2) = this%VirialCorr / this%Epsilon
-      if ( .not. this%SameComponent ) then
-        this%AblEpsCorr(i1,j1) = this%AblEpsCorr(i1,j1) * &
-&                    this%Site2%eps / (2._RK*this%Epsilon)
-        this%AblEpsCorr(i2,j2) = this%AblEpsCorr(i2,j2) * &
-&                    this%Site1%eps / (2._RK*this%Epsilon)
-      end if
-
-      this%AblSigCorr(i1,j1) = Piminus83 * this%Epsilon / 2._RK * &
-&         ( TISSpAbl(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSpAbl(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-      this%AblSigCorr(i2,j2) = Piminus83 * this%Epsilon / 2._RK * &
-&         ( TISSpAbl(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSpAbl(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-
-#endif
       endif
     else ! Site-site cutoff or both sites in center of mass
       RCutoff3Inv = (this%Sigma / RCutoff)**3
@@ -883,14 +838,8 @@ contains
 !  Subroutine TPotLJLJ_Force                                   !
 !==============================================================!
 
-#ifdef ABL
-  subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
-&           VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength,&
-&           VirAblSig, VirAblEps, eps1,eps2)
-#else
   subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
 &           VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
-#endif
 
     implicit none
 
@@ -903,11 +852,6 @@ contains
     real(RK), intent(in out) :: EPotIntra_Nonbonded
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
-#ifdef ABL
-    real(RK), intent(in out) :: VirAblSig
-    real(RK), intent(in out) :: VirAblEps
-    real(RK), intent(in out) :: eps1,eps2
-#endif
 
 
     ! Declare local variables
@@ -939,11 +883,6 @@ contains
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
 #endif
-#ifdef ABL
-!     real(RK)          :: VirAblSig
-!     real(RK)          :: VirAblEps
-    real(RK)          :: dr2Abl
-#endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -959,12 +898,6 @@ contains
 #endif
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-#ifdef ABL
-    VirAblSig = 0.0_RK
-    VirAblEps = 0.0_RK
-    eps1      = this%Site1%eps
-    eps2      = this%Site2%eps
-#endif
     SigmaSquared = this%SigmaSquared
     Epsilon4 = this%Epsilon4
     Epsilon48 = this%Epsilon48
@@ -1060,13 +993,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(jk) = FX2(jk) - FXij
             FY2(jk) = FY2(jk) - FYij
             FZ2(jk) = FZ2(jk) - FZij
-#ifdef ABL
-            dr2Abl  = RXij**2 + RYij**2 + RZij**2
-            VirAblSig = VirAblSig + Rij6Inv*(1._RK-4._RK*Rij6Inv)*(PXij*RXij+ &
-&                      PYij*RYij + PZij*RZij) / dr2Abl
-            VirAblEps = VirAblEps + Rij6Inv*(1._RK-2._RK*Rij6Inv)*(PXij*RXij+ &
-&                     PYij*RYij + PZij*RZij) / dr2Abl
-#endif
           end if
         end do loop1
     ! Include intramolecular interaction if need
@@ -1199,15 +1125,6 @@ loop2:  do j = j0, j1
       EPotIntra_Nonbonded = EPotIntra_Nonbonded + Epsilon4 * EPotLocalIntra
       VirialIntra = VirialIntra + Third * VirialLocalIntra * BoxLength
     end if
-
-#ifdef ABL
-    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
-!     if ((SameComponent) .AND. (s1 .eq. s2) ) then
-       VirAblEps = VirAblEps * Third * BoxLength * 24._RK
-!     else
-!        VirAblEps = VirAblEps * Third * BoxLength * 24._RK
-!     endif
-#endif
 
   end subroutine TPotLJLJ_Force
 

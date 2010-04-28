@@ -59,6 +59,16 @@ module ms2_global
 #else
   integer, parameter :: RK = 8
 #endif
+! better use a MPI_RK parameter in future, if compilation problems with mpif.h are solved
+#if MPI_VER > 0
+  integer :: MPI_RK
+#endif
+
+  ! limits
+  !real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
+  real(RK)            :: limits_RK_MAX
+  !real(RK), parameter :: exp_arg_max  = log(limits_RK_MAX)
+  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
 
   ! Define maximum length of file names
   integer, parameter :: FileNameLength = 128
@@ -189,6 +199,8 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Define comment character
   character, parameter :: CommentSign = '#'
+  ! Define whitespaces                     TAB
+  character(*), parameter :: Whitespaces=' '//char(9)
 
   ! Define identifiers used in configuration file
   character(*), parameter :: IdRestart                     = 'Restart'
@@ -347,10 +359,6 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdNFluct                      = 'NFluct'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
-  ! limits
-  real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
-  real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
-
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-07_RK
 
@@ -482,6 +490,7 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: RField        = 2
   integer, parameter :: PME           = 3
   integer, parameter :: extRField     = 4
+  integer, parameter :: Rodgers       = 5
   integer            :: LongRange
 
   ! Type of method for chemical potential
@@ -586,6 +595,7 @@ character(*), parameter :: VersionString = 'v12'
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
+  integer :: Communicator
   integer :: NProcs
   integer :: NProc
   integer :: NRootProc
@@ -616,6 +626,12 @@ character(*), parameter :: VersionString = 'v12'
 !==============================================================!
 !  Global procedure interfaces                                 !
 !==============================================================!
+
+#if MPI_VER > 0
+  interface SetCommunicator
+    module procedure Global_SetCommunicator
+  end interface
+#endif
 
   interface InitializeProgram
     module procedure Global_InitializeProgram
@@ -727,6 +743,26 @@ character(*), parameter :: VersionString = 'v12'
     module procedure Global_Rrnd
   end interface
 
+  interface strlen_trim
+    module procedure Global_String_Len_Trim
+  end interface
+
+  interface strtrim
+    module procedure Global_String_TrimR
+  end interface
+  
+  interface strtrimr
+    module procedure Global_String_TrimR
+  end interface
+  
+  interface strtriml
+    module procedure Global_String_TrimL
+  end interface
+
+  interface strtrimlr
+    module procedure Global_String_TrimLR
+  end interface
+
   interface ProcRange
     module procedure Global_GetProcRange
   end interface
@@ -785,6 +821,35 @@ character(*), parameter :: VersionString = 'v12'
 contains
 
 
+#if MPI_VER > 0
+!==============================================================!
+!  Subroutine Global_SetCommunicator                           !
+!==============================================================!
+
+  subroutine Global_SetCommunicator(comm)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    ! Declare arguments
+    integer, intent(in) :: comm
+
+    Communicator = comm
+    if( Communicator /= MPI_COMM_NULL ) then
+      call MPI_Comm_size( Communicator, NProcs, ierror )
+      call MPI_Comm_rank( Communicator, NProc, ierror )
+    else
+      NProcs = 0
+      NProc = -1
+    end if
+    NRootProc = 0
+    RootProc = NProc == NRootProc
+
+  end subroutine Global_SetCommunicator
+#endif
+
 
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
@@ -819,10 +884,21 @@ contains
     ! Initialize MPI
 #if MPI_VER > 0
     call MPI_Init( ierror )
-    call MPI_Comm_size( MPI_COMM_WORLD, NProcs, ierror )
-    call MPI_Comm_rank( MPI_COMM_WORLD, NProc, ierror )
-    NRootProc = 0
-    RootProc = NProc == NRootProc
+    call SetCommunicator( MPI_COMM_WORLD )
+    ! better define and initialize as parameter...
+    if ( RK == 8 ) then
+      !MPI_RK = MPI_DOUBLE_PRECISION
+      MPI_RK = MPI_REAL8
+    else if ( RK == 4 ) then
+      !MPI_RK = MPI_REAL
+      MPI_RK = MPI_REAL4
+    else
+      if( RootProc ) then
+        print *,"ERROR: RK==",RK," not supported for MPI version"
+      end if
+      call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    end if
+    !
 #endif
 
 !DEBUG
@@ -861,7 +937,7 @@ contains
 
         ! Abort program
 #if MPI_VER > 0
-        call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+        call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
 #endif
         stop
       end if
@@ -903,7 +979,7 @@ contains
 
             ! Abort program
 #if MPI_VER > 0
-            call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+            call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
           end if
@@ -920,7 +996,7 @@ contains
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 #endif
 
@@ -941,7 +1017,7 @@ contains
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Attr_get(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
+      call MPI_Attr_get(Communicator, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
@@ -953,18 +1029,18 @@ contains
     !                         procnamelen might be variable
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
-&                  ,NRootProc, MPI_COMM_WORLD, ierror)
-    call MPI_Attr_get(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+&                  ,NRootProc, Communicator, ierror)
+    call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
-&                  ,NRootProc, MPI_COMM_WORLD, ierror)
+&                  ,NRootProc, Communicator, ierror)
     if( RootProc ) then
-      write( IOBuffer, '("rank  I/O processor_name")' )
+      write( IOBuffer, '("rank:  I/O: processor name:")' )
       call LogWrite
       do i = 1,NProcs
         if( ioranks(i) == MPI_ANY_SOURCE )  then
-          write( IOBuffer, '(I4,"   +  ", A)' ) i-1, procnames(i)
+          write( IOBuffer, '(I5,"   +   ", A)' ) i-1, procnames(i)
         else
-          write( IOBuffer, '(I4," ", I4, " ", A)' ) i-1, ioranks(i), procnames(i)
+          write( IOBuffer, '(I5, 1X, I5, 1X, A)' ) i-1, ioranks(i), procnames(i)
         end if
         call LogWrite
       end do
@@ -1006,10 +1082,10 @@ contains
     ! Initialize random number generator
     call Randomize( seed = 5333 )
 
-    !limits_RK_MAX = huge(limits_RK_MAX)
+    ! Define some constants
+    limits_RK_MAX = huge(limits_RK_MAX)
     exp_arg_max = log(limits_RK_MAX)
 
-    ! Define some constants
 #ifdef SINGLEPRECISION
     DebyesInSI = real( sqrt( 1E49_8 / (4._8 * real(Pi, 8) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
@@ -1046,7 +1122,7 @@ contains
 
     ! Finalize MPI
 #if MPI_VER > 0
-!     call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!     call MPI_Barrier( Communicator, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -1132,7 +1208,7 @@ contains
 
     ! Abort program
 #if MPI_VER > 0
-    call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    call MPI_Abort( MPI_COMM_WORLD, 4, ierror )
 #endif
     stop
 
@@ -1167,7 +1243,7 @@ contains
 #if MPI_VER > 0
     ok = stat == 0
     call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
-&     MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
     if( okAll ) return
 #else
     if( stat == 0 ) return
@@ -1638,6 +1714,141 @@ contains
   end subroutine Global_FileWriteBlank
 
 
+! ! ! !==============================================================!
+! ! ! !  Function Global_FileReadParameter                           !
+! ! ! !==============================================================!
+! ! ! 
+! ! !   function Global_FileReadParameter( iounit, parameterqualifiers, &
+! ! ! &                                    rewind_before, status ) &
+! ! ! &          result (parametervalue)
+! ! ! 
+! ! ! 
+! ! !     implicit none
+! ! ! 
+! ! !     ! Include MPI header
+! ! ! #if MPI_VER > 0
+! ! !     include 'mpif.h'
+! ! ! #endif
+! ! ! 
+! ! !     ! Declare arguments
+! ! !     integer, intent(in)                :: iounit
+! ! !     character(*), intent(in)           :: parameterqualifiers
+! ! !     logical, intent(in), optional      :: rewind_before
+! ! !     integer, intent(out), optional     :: status
+! ! ! 
+! ! !     character(IOBufferLength) :: parametervalue
+! ! ! 
+! ! ! 
+! ! !     ! Declare local variables
+! ! !     integer                   :: stat, comment_pos, linesread, i
+! ! !     character(FileNameLength) :: fn
+! ! !     logical                   :: foundqualifier = .false.
+! ! !     character(IOBufferLength) :: parameterqualifier
+! ! !     integer                   :: delimiterpos1, delimiterpos2
+! ! ! 
+! ! !     ! determine filename
+! ! !     inquire( iounit, NAME = fn )
+! ! !     ! Only RootProc reads parameter from file
+! ! !     if( RootProc ) then
+! ! !       ! rewind file, if requested
+! ! !       if( present(rewind_before) ) then
+! ! !         if( rewind_before ) then
+! ! ! !          write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+! ! !           rewind( iounit )
+! ! !           FileReadParameter_LineNumber = 0
+! ! !         end if
+! ! !       end if
+! ! !       linesread = 0
+! ! !       ! loop to read lines until parameter is found
+! ! !       do
+! ! !         read( iounit, '(A)', IOSTAT = stat ) parametervalue
+! ! !         ! error reading from file?
+! ! !         if( stat > 0 ) then
+! ! !           call Error( "ERROR reading file "//trim(fn)// &
+! ! ! &                     " while searching for parameter <"//parameterqualifiers//">" )
+! ! !           !if( present(status) ) status = stat
+! ! !           !return
+! ! !         ! end of file reached?
+! ! !         elseif( stat < 0 ) then
+! ! !           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
+! ! !           parametervalue=""
+! ! !           if( present(status) ) status = stat
+! ! !           ! (try to) restore position
+! ! !           if( present(rewind_before) ) then
+! ! !             if( rewind_before ) then
+! ! ! !              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+! ! !               rewind( iounit )
+! ! !               FileReadParameter_LineNumber = 0
+! ! !               linesread=0
+! ! !               exit    !not nice!
+! ! !             end if
+! ! !           end if
+! ! !           ! rewind to the position, where the reading process was started
+! ! !           backspace( iounit )   ! "undo" last read, where eof was encountered
+! ! !           do i = 1,linesread
+! ! ! !            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
+! ! !             backspace( iounit )
+! ! !             FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
+! ! !           end do
+! ! !           exit
+! ! !         end if
+! ! !         FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
+! ! !         linesread = linesread + 1
+! ! ! !        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
+! ! ! !         check for comment token
+! ! !         comment_pos = index( parametervalue, CommentSign )
+! ! !         if( comment_pos > 0 ) then
+! ! ! !          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
+! ! ! !&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
+! ! !           !                eliminate comment part of line
+! ! !           parametervalue = parametervalue(1:comment_pos - 1)
+! ! !         end if
+! ! !         delimiterpos2 = 0
+! ! !         do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
+! ! !           delimiterpos1 = delimiterpos2
+! ! !           !                   len_trim(parameterqualifiers)
+! ! !           if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
+! ! !           delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
+! ! !           if( delimiterpos2>delimiterpos1 ) then
+! ! !             parameterqualifier = parameterqualifiers(delimiterpos1+1:delimiterpos2-1)
+! ! !           else
+! ! !             parameterqualifier = parameterqualifiers(delimiterpos1+1:)
+! ! !           end if
+! ! !           foundqualifier = index( strtriml( parametervalue ), trim( parameterqualifier ) ) == 1
+! ! !           if( foundqualifier ) then
+! ! !             ! extract value part (after =)
+! ! !             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
+! ! !             parametervalue = strtrimlr( parametervalue )
+! ! ! !            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
+! ! ! !&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
+! ! !             if( present(status) ) status = 0
+! ! !             exit
+! ! !           end if
+! ! !           if ( delimiterpos2<=delimiterpos1 ) exit
+! ! !         end do
+! ! !         if ( foundqualifier ) exit
+! ! ! 
+! ! !       end do
+! ! ! 
+! ! !     end if
+! ! ! 
+! ! !     ! Broadcast parameter to other processes
+! ! !     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
+! ! !     !  Better broadcast the integer, float parametervalues, instead of the string?)
+! ! ! #if MPI_VER > 0
+! ! !     call MPI_Bcast( parametervalue, len(parametervalue), &
+! ! ! &     MPI_CHARACTER, NRootProc, Communicator, ierror )
+! ! !     if( present(status) ) then
+! ! !       call MPI_Bcast( status, 1, &
+! ! ! &       MPI_INTEGER, NRootProc, Communicator, ierror )
+! ! !     end if
+! ! ! #endif
+! ! ! 
+! ! ! !    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
+! ! ! !&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
+! ! ! 
+! ! !   end function Global_FileReadParameter
+
 !==============================================================!
 !  Function Global_FileReadParameter                           !
 !==============================================================!
@@ -1773,6 +1984,7 @@ contains
   end function Global_FileReadParameter
 
 
+
 !==============================================================!
 !  Subroutine Global_FileReadParameter_buffer                  !
 !==============================================================!
@@ -1810,7 +2022,7 @@ contains
     ! Broadcast parameter
 !#if MPI_VER > 0
 !    call MPI_Bcast( IOBuffer, IOBufferLength, &
-!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1861,7 +2073,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, len(parametervariable), &
-!&     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1913,7 +2125,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_INTEGER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -1965,7 +2177,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_RK, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_RK, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -2017,7 +2229,7 @@ contains
     ! Broadcast parameter to other processes
 !#if MPI_VER > 0
 !    call MPI_Bcast( parametervariable, size(parametervariable), &
-!&     MPI_INTEGER, NRootProc, MPI_COMM_WORLD, ierror )
+!&     MPI_INTEGER, NRootProc, Communicator, ierror )
 !#endif
 
 !    inquire( iounit, NAME = fn )
@@ -2153,6 +2365,157 @@ contains
   end function Global_Rrnd
 
 
+!==============================================================!
+!  Function Global_String_Len_Trim                                 !
+!==============================================================!
+
+  pure function Global_String_Len_Trim( string, trim_left, trim_right ) result( length )
+
+    !> Get options
+    !> \param string     ... string to trim  character(*)
+    !> \param trim_left  ... trim left? (default: .false.)  logical
+    !> \param trim_right ... trim right? (default: .true.)  logical
+    !> \return length    ... length of trimmed string
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+    logical,optional,intent(in) :: trim_left
+    logical,optional,intent(in) :: trim_right
+
+    ! Declare local variables
+    logical :: do_trim_left, do_trim_right
+    integer :: pos1, pos2
+
+
+
+    ! Declare result
+    integer :: length
+
+
+    do_trim_left = .false.
+    do_trim_right = .true.
+
+    if( present(trim_left) ) do_trim_left = trim_left
+    if( present(trim_right) ) do_trim_right = trim_right
+
+    pos1 = 1
+    pos2 = len(string)
+    if( do_trim_right ) pos2 = verify(string,Whitespaces,.true.)
+    if( do_trim_left ) pos1 = verify(string,Whitespaces)
+
+
+    if( pos1/=0 .and. pos2/=0 ) then
+      length = pos2-pos1+1
+    else
+      length = 0
+    end if
+
+  end function Global_String_Len_Trim
+
+
+!==============================================================!
+!  Function Global_String_TrimR                                !
+!==============================================================!
+
+  pure function Global_String_TrimR( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim  character(*)
+    !> \return trimmed_string ... trimmed string  character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos2
+
+    ! Declare result
+    !character(len_trim(string)) :: trimmed_string
+    character(strlen_trim(string,.false.,.true.)) :: trimmed_string
+
+    pos2 = verify(string,Whitespaces,.true.)
+
+    if( pos2/=0 ) then
+      trimmed_string = trim(string(:pos2))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_TrimR
+
+!==============================================================!
+!  Function Global_String_TrimL                                !
+!==============================================================!
+
+  pure function Global_String_TrimL( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim  character(*)
+    !> \return trimmed_string ... trimmed string  character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos1
+
+    ! Declare result
+    !character(len(string)) :: trimmed_string
+    character(strlen_trim(string,.true.,.false.)) :: trimmed_string
+
+    pos1 = verify(string,Whitespaces)
+
+    if( pos1/=0 ) then
+      trimmed_string = trim(string(pos1:))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_TrimL
+
+!==============================================================!
+!  Function Global_String_TrimLR                               !
+!==============================================================!
+
+  pure function Global_String_TrimLR( string ) result( trimmed_string )
+
+    !> Get options
+    !> \param string          ... string to trim   character(*)
+    !> \return trimmed_string ... trimmed string   character()
+
+    implicit none
+
+    ! Declare arguments
+    character(*), intent(in) :: string
+
+    ! Declare local variables
+    integer :: pos1, pos2
+
+    ! Declare result
+    !character(len(string)) :: trimmed_string
+    character(strlen_trim(string,.true.,.true.)) :: trimmed_string
+
+    pos1 = verify(string,Whitespaces)
+    pos2 = verify(string,Whitespaces,.true.)
+
+    if( pos1/=0 .and. pos2/=0 .and. pos2>=pos1 ) then
+      trimmed_string = trim(string(pos1:pos2))
+    else
+      trimmed_string = ""
+    end if
+
+  end function Global_String_TrimLR
+
+
+
+
+
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
 !==============================================================!
 !  Subroutine SetTerminateProgram                              !
@@ -2279,25 +2642,31 @@ contains
     !integer :: range_size0             ! version 1 only: range size for the first process
 
 #if MPI_VER > 0
-    ! original version 0: last process might get smaller range_size
-    range_size = 1 + (overall_size - 1) / NProcs
-    first_index = 1 + NProc * range_size
-    last_index = min( first_index + range_size - 1, overall_size )
-    range_size = last_index - first_index + 1
+    if( NProcs > 0 ) then
+      ! original version 0: last process might get smaller range_size
+      range_size = 1 + (overall_size - 1) / NProcs
+      first_index = 1 + NProc * range_size
+      last_index = min( first_index + range_size - 1, overall_size )
+      range_size = last_index - first_index + 1
 
-    ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
-    !range_size = ceiling( real(overall_size)/NProcs )
-    !range_size0 = mod( overall_size, range_size )
-    !last_index = range_size0 + NProc*range_size
-    !if ( NProc == 0 ) then
-    !  range_size = range_size0
-    !end if
-    !first_index = last_index-range_size+1
+      ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
+      !range_size = ceiling( real(overall_size)/NProcs )
+      !range_size0 = mod( overall_size, range_size )
+      !last_index = range_size0 + NProc*range_size
+      !if ( NProc == 0 ) then
+      !  range_size = range_size0
+      !end if
+      !first_index = last_index-range_size+1
 
-    ! alternative version 2: distribute, use round instead of int?
-    !first_index = int(real(NProc)/NProcs*overall_size)+1
-    !last_index = int(real(NProc+1)/NProcs*overall_size)
-    !range_size = last_index - first_index + 1
+      ! alternative version 2: distribute, use round instead of int?
+      !first_index = int(real(NProc)/NProcs*overall_size)+1
+      !last_index = int(real(NProc+1)/NProcs*overall_size)
+      !range_size = last_index - first_index + 1
+    else
+      first_index=0
+      last_index = -1
+      range_size=0
+    end if
 
 #else
     first_index=1

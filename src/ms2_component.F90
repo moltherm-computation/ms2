@@ -32,6 +32,9 @@ module ms2_component
 
   type TComponent
 
+    ! Charged component
+    logical           :: charged
+
     ! Positions and orientations of test particles
     real(RK), pointer :: Pm0Test(:, :), Qm0Test(:, :)
 
@@ -115,7 +118,6 @@ module ms2_component
     ! Maximum number of units in component
     integer, pointer :: NUnitMax
 
-
     ! Number of particles in component
     integer, pointer :: NPart
 
@@ -159,12 +161,11 @@ module ms2_component
 !DEBUG
     real(RK) :: ChemPot0, PartialMolarVolume
     real(RK) :: VarChemPot, VarPartialMolarVolume
+    
+    integer  :: BiasedPartners
 
     ! IDF
     integer, pointer :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
-
-    ! Ewald
-    real(RK) :: EPotTestSelf
 
     ! Fluctuating components and weighting factors
     integer           :: NFluctState, NFluctMax
@@ -282,21 +283,9 @@ module ms2_component
     module procedure TComponent_CalculateEKin
   end interface
 
-  !interface Mol2Atom
-  !  module procedure TComponent_Mol2Atom
-  !end interface
-
-  !interface Mol2Atom1
-  !  module procedure TComponent_Mol2Atom1
-  !end interface
-
   interface Mol2AtomTest
     module procedure TComponent_Mol2AtomTest
   end interface
-
-!  interface Atom2Mol
-!    module procedure TComponent_Atom2Mol
-!  end interface
 
   interface Mol2Resize
     module procedure TComponent_Mol2Resize
@@ -605,8 +594,8 @@ contains
 &         this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
 #if MPI_VER > 0
-        call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&         NRootProc, Communicator, ierror )
 #endif
       end if
     end if
@@ -2088,6 +2077,8 @@ contains
    do i=1,this%Molecule%NCharge
      q = q + this%NPart * this%Molecule%SiteCharge(i)%e
    end do
+   
+   if (abs(q) .ge. 1e-1) this%charged = .true.
 
 ! Reaction Field Check
    if ((LongRange .eq. RField) .and. (CutOffMode .eq. SiteSite) ) then
@@ -2098,7 +2089,8 @@ contains
 
 
    if ((LongRange .eq. RField) .and. (abs(q) .ge. 1e-1)) then
-     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
+     write (ErrorBuffer,'("You have a non-neutral component.\n &
+&     NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
      call Error
    end if
 
@@ -2389,10 +2381,10 @@ contains
 ! ! !     ! Broadcast positions and orientations to all processes
 ! ! ! #if MPI_VER > 0
 ! ! !     call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
-! ! ! &     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+! ! ! &     MPI_RK, NRootProc, Communicator, ierror )
 ! ! !     if( this%Molecule%isElongated ) &
 ! ! ! &     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
-! ! ! &       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+! ! ! &       MPI_RK, NRootProc, Communicator, ierror )
 ! ! ! #endif
 ! ! !
 ! ! !     ! Assign local variables
@@ -3059,10 +3051,10 @@ contains
 ! ! !     ! Reduce forces and torques from all processes
 ! ! ! #if MPI_VER > 0
 ! ! !     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
-! ! ! &     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+! ! ! &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 ! ! !     if( this%Molecule%isElongated ) &
 ! ! ! &     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
-! ! ! &       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+! ! ! &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 ! ! ! #endif
 ! ! !
 ! ! !   end subroutine TComponent_Atom2Mol
@@ -3122,10 +3114,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3256,10 +3248,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3386,10 +3378,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%Pm0Test(:, :), size( this%Pm0Test ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Qm0Test(:, :), size( this%Qm0Test ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3562,10 +3554,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3763,10 +3755,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3949,10 +3941,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -4126,10 +4118,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -4464,10 +4456,10 @@ contains
        ! Reduce forces and torques from all processes
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #endif
 
   end subroutine TComponent_Atom2Unit
@@ -4588,10 +4580,10 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -5881,72 +5873,72 @@ contains
 
 #if MPI_VER > 0
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_DOUBLE_PRECISION, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_DOUBLE_PRECISION, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
+    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
-      call MPI_Bcast( this%DispTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       if ( UseIntDegFreed ) then
-        call MPI_Bcast( this%DispMolTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%DispMolTran, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
         call MPI_Bcast( this%NMoveMolAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NMoveMolSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NMoveBiasedMolAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NMoveBiasedMolSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
       end if
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+&         NRootProc, Communicator, ierror )
         if ( UseIntDegFreed ) then
-          call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&           MPI_COMM_WORLD, ierror )
+          call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&           Communicator, ierror )
           call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
-&           MPI_COMM_WORLD, ierror )
+&           Communicator, ierror )
           call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
-&           MPI_COMM_WORLD, ierror )
+&           Communicator, ierror )
           call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&           MPI_COMM_WORLD, ierror )
+&           Communicator, ierror )
           call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
-&           NRootProc, MPI_COMM_WORLD, ierror )
+&           NRootProc, Communicator, ierror )
         end if
       end if
     end if
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
     end if
 #endif
 

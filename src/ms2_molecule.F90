@@ -510,132 +510,132 @@ contains
     ! Construct Units
 
     if (UseIntDegFreed) then
-       if (this%NConstraint > 0) then
-          ! Construct constrained Units and create array this%ConstraintSiteIds
-          k = 0
-          do i = 1, this%NConstraint
-              call Construct(this%Unit(i), .true., ncspu(i))
-              do j=1, ncspu(i)
-                this%ConstraintSiteIds(j+k)=this%Unit(i)%SiteIds(j)
-                call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(j), ok, index )
-                if (ok) then
-                    this%Unit(i)%NLJ126=this%Unit(i)%NLJ126+1
-                    this%Unit(i)%SiteLJ126(this%Unit(i)%NLJ126)=this%SiteLJ126(index)
-                    this%SiteLJ126(index)%UnitNumber = i
-                end if
-                if  ( .not. ok .and. this%NCharge > 0) then
-                    call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(j), ok, index )
-                    if (ok) then
-                      this%Unit(i)%NCharge=this%Unit(i)%NCharge+1
-                      this%Unit(i)%SiteCharge(this%Unit(i)%NCharge)=this%SiteCharge(index)
-                      this%SiteCharge(index)%UnitNumber = i
-                    end if
-                end if
-                if  ( .not. ok .and. this%NDipole > 0) then
-                      call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
-                      if (ok) then
-                         this%Unit(i)%NDipole=this%Unit(i)%NDipole+1
-                          this%Unit(i)%SiteDipole(this%Unit(i)%NDipole)=this%SiteDipole(index)
-                          this%SiteDipole(index)%UnitNumber = i
-                      end if
-                end if
-                if  ( .not. ok .and. this%NQuadrupole > 0) then
-                      call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
-                      if (ok) then
-                         this%Unit(i)%NQuadrupole=this%Unit(i)%NQuadrupole+1
-                         this%Unit(i)%SiteQuadrupole(this%Unit(i)%NQuadrupole)=this%SiteQuadrupole(index)
-                        this%SiteQuadrupole(index)%UnitNumber = i
-                      end if
-                end if
-             end do
-             k=k+ncspu(i)
+      if (this%NConstraint > 0) then
+        ! Construct constrained Units and create array this%ConstraintSiteIds
+        k = 0
+        do i = 1, this%NConstraint
+          call Construct(this%Unit(i), .true., ncspu(i))
+          do j=1, ncspu(i)
+            this%ConstraintSiteIds(j+k)=this%Unit(i)%SiteIds(j)
+            call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+            if (ok) then
+              this%Unit(i)%NLJ126=this%Unit(i)%NLJ126+1
+              this%Unit(i)%SiteLJ126(this%Unit(i)%NLJ126)=this%SiteLJ126(index)
+              this%SiteLJ126(index)%UnitNumber = i
+            end if
+            if  ( .not. ok .and. this%NCharge > 0) then
+              call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+              if (ok) then
+                this%Unit(i)%NCharge=this%Unit(i)%NCharge+1
+                this%Unit(i)%SiteCharge(this%Unit(i)%NCharge)=this%SiteCharge(index)
+                this%SiteCharge(index)%UnitNumber = i
+              end if
+            end if
+            if  ( .not. ok .and. this%NDipole > 0) then
+              call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+              if (ok) then
+                this%Unit(i)%NDipole=this%Unit(i)%NDipole+1
+                this%Unit(i)%SiteDipole(this%Unit(i)%NDipole)=this%SiteDipole(index)
+                this%SiteDipole(index)%UnitNumber = i
+              end if
+            end if
+            if  ( .not. ok .and. this%NQuadrupole > 0) then
+              call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+              if (ok) then
+                this%Unit(i)%NQuadrupole=this%Unit(i)%NQuadrupole+1
+                this%Unit(i)%SiteQuadrupole(this%Unit(i)%NQuadrupole)=this%SiteQuadrupole(index)
+                this%SiteQuadrupole(index)%UnitNumber = i
+              end if
+            end if
           end do
-       end if ! if NConstraint > 0
-       if (this%NNotConstraint > 0) then
-          allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
-          call AllocationError( stat, 'NotConstraintSiteIds', this%NNotConstraint )
-          k=1
-          if (this%NConstraint > 0) then
-            call sort_array(this%ConstraintSiteIds)
-!            print *, 'ConstraintSiteIds=', this%ConstraintSiteIds
-            do i = 1, this%NSite
-               call binar_search(this%ConstraintSiteIds, this%SiteIds(i), ok, index)
-               if (.not. ok) then
-                  this%NotConstraintSiteIds(k) = this%SiteIds(i)
-                  if (k<this%NNotConstraint) then
-                    k=k+1
-                  else
-                     exit
-                  end if
-               end if
-            end do
-          else
-            do i = 1, this%NSite
-                  this%NotConstraintSiteIds(i) = this%SiteIds(i)
-            end do
+          k=k+ncspu(i)
+        end do
+      end if ! if NConstraint > 0
+      if (this%NNotConstraint > 0) then
+        allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
+        call AllocationError( stat, 'NotConstraintSiteIds', this%NNotConstraint )
+        k=1
+        if (this%NConstraint > 0) then
+          call sort_array(this%ConstraintSiteIds)
+!         print *, 'ConstraintSiteIds=', this%ConstraintSiteIds
+          do i = 1, this%NSite
+            call binar_search(this%ConstraintSiteIds, this%SiteIds(i), ok, index)
+            if (.not. ok) then
+              this%NotConstraintSiteIds(k) = this%SiteIds(i)
+              if (k<this%NNotConstraint) then
+                k=k+1
+              else
+                exit
+              end if
+            end if
+          end do
+        else
+          do i = 1, this%NSite
+            this%NotConstraintSiteIds(i) = this%SiteIds(i)
+          end do
+        end if
+        ! Construct not constrained Units
+        do i = (this%NConstraint+1), this%NUnit
+          call Construct(this%Unit(i), .false., 1)
+          this%Unit(i)%SiteIds=this%NotConstraintSiteIds(i-this%NConstraint)
+          ! To know about this site parameters like in Constraint Unit
+          call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+          if (ok) then
+            this%Unit(i)%NLJ126=1
+            this%Unit(i)%SiteLJ126(1)=this%SiteLJ126(index)
+            this%SiteLJ126(index)%UnitNumber = i
           end if
-          ! Construct not constrained Units
-          do i = (this%NConstraint+1), this%NUnit
-             call Construct(this%Unit(i), .false., 1)
-             this%Unit(i)%SiteIds=this%NotConstraintSiteIds(i-this%NConstraint)
-             ! To know about this site parameters like in Constraint Unit
-                call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(1), ok, index )
-                if (ok) then
-                    this%Unit(i)%NLJ126=1
-                    this%Unit(i)%SiteLJ126(1)=this%SiteLJ126(index)
-                    this%SiteLJ126(index)%UnitNumber = i
-                 end if
-                if  ( .not. ok .and. this%NCharge > 0) then
-                    call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(1), ok, index )
-                    if (ok) then
-                      this%Unit(i)%NCharge=1
-                      this%Unit(i)%SiteCharge(1)=this%SiteCharge(index)
-                      this%SiteCharge(index)%UnitNumber = i
-                     end if
-                end if
-                if  ( .not. ok .and. this%NDipole > 0) then
-                      call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
-                      if (ok) then
-                         this%Unit(i)%NDipole=1
-                         this%Unit(i)%SiteDipole(1)=this%SiteDipole(index)
-                         this%SiteDipole(index)%UnitNumber = i
-                      end if
-                end if
-                if  ( .not. ok .and. this%NQuadrupole > 0) then
-                      call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
-                      if (ok) then
-                         this%Unit(i)%NQuadrupole=1
-                         this%Unit(i)%SiteQuadrupole(1)=this%SiteQuadrupole(index)
-                         this%SiteQuadrupole(index)%UnitNumber = i
-                      end if
-                end if
-                ! Finish to know Unit Site's parameters
-          end do
-       end if
+          if  ( .not. ok .and. this%NCharge > 0) then
+            call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            if (ok) then
+              this%Unit(i)%NCharge=1
+              this%Unit(i)%SiteCharge(1)=this%SiteCharge(index)
+              this%SiteCharge(index)%UnitNumber = i
+            end if
+          end if
+          if  ( .not. ok .and. this%NDipole > 0) then
+            call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            if (ok) then
+              this%Unit(i)%NDipole=1
+              this%Unit(i)%SiteDipole(1)=this%SiteDipole(index)
+              this%SiteDipole(index)%UnitNumber = i
+            end if
+          end if
+          if  ( .not. ok .and. this%NQuadrupole > 0) then
+            call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            if (ok) then
+              this%Unit(i)%NQuadrupole=1
+              this%Unit(i)%SiteQuadrupole(1)=this%SiteQuadrupole(index)
+              this%SiteQuadrupole(index)%UnitNumber = i
+            end if
+          end if
+          ! Finish to know Unit Site's parameters
+        end do
+      end if
     else ! For rigid molecules
       ! construct one Constraint Unit for the whole molecule
-         call Construct(this%Unit(1), .true., this%NSite)
-         this%Unit(1)%NLJ126 = this%NLJ126
-         do j = 1, this%NLJ126
-           this%Unit(1)%SiteLJ126(j) = this%SiteLJ126(j)
-           this%SiteLJ126(j)%UnitNumber = 1
-         end do
-         this%Unit(1)%NCharge= this%NCharge
-         do j = 1, this%NCharge
-           this%Unit(1)%SiteCharge(j) = this%SiteCharge(j)
-           this%SiteCharge(j)%UnitNumber = 1
-         end do
-         this%Unit(1)%NDipole= this%NDipole
-         do j = 1, this%NDipole
-           this%Unit(1)%SiteDipole(j) = this%SiteDipole(j)
-           this%SiteDipole(j)%UnitNumber = 1
-         end do
-         this%Unit(1)%NQuadrupole= this%NQuadrupole
-         do j = 1, this%NQuadrupole
-            this%Unit(1)%SiteQuadrupole(j) = this%SiteQuadrupole(j)
-            this%SiteQuadrupole(j)%UnitNumber = 1
-         end do
-         this%Unit(1)%NDFRot = -1
+      call Construct(this%Unit(1), .true., this%NSite)
+      this%Unit(1)%NLJ126 = this%NLJ126
+      do j = 1, this%NLJ126
+        this%Unit(1)%SiteLJ126(j) = this%SiteLJ126(j)
+        this%SiteLJ126(j)%UnitNumber = 1
+      end do
+      this%Unit(1)%NCharge= this%NCharge
+      do j = 1, this%NCharge
+        this%Unit(1)%SiteCharge(j) = this%SiteCharge(j)
+        this%SiteCharge(j)%UnitNumber = 1
+      end do
+      this%Unit(1)%NDipole= this%NDipole
+      do j = 1, this%NDipole
+        this%Unit(1)%SiteDipole(j) = this%SiteDipole(j)
+        this%SiteDipole(j)%UnitNumber = 1
+      end do
+      this%Unit(1)%NQuadrupole= this%NQuadrupole
+      do j = 1, this%NQuadrupole
+        this%Unit(1)%SiteQuadrupole(j) = this%SiteQuadrupole(j)
+        this%SiteQuadrupole(j)%UnitNumber = 1
+      end do
+      this%Unit(1)%NDFRot = -1
     end if
 
 
@@ -644,7 +644,8 @@ contains
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
            if (j<=this%NBond) then
-              call FindBondR(this,this%IdfBond(j), j) ! Number of bonds can change in this procedure!
+              call FindBondR(this,this%IdfBond(j), j) 
+             ! Number of bonds can change in this procedure!
            else
              exit
            end if
@@ -655,38 +656,34 @@ contains
         this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
            if (j<=this%NAngle) then
-              call FindAngle(this,this%IdfAngle(j), j) ! Number of angles can change in this procedure!
+              call FindAngle(this,this%IdfAngle(j), j) 
+              ! Number of angles can change in this procedure!
            else
              exit
            end if
         end do
-!        do i=1, this%NUnit
-!          print *, 'i=', i
-!          print *, 'this%AngleCount(i)=', this%AngleCount(i)
-!        end do
       end if
 
       if ( this%NDihedral > 0 ) then
         this%DihedralCount(1:this%NUnit)=0
         do j = 1, this%NDihedral
            if (j<=this%NDihedral) then
-              call FindDihedral(this,this%IdfDihedral(j), j) ! Number of angles can change in this procedure!
+              call FindDihedral(this,this%IdfDihedral(j), j) 
+              ! Number of angles can change in this procedure!
            else
              exit
            end if
         end do
         do i=1, this%NUnit
-!          print *, 'i=', i
-!          print *, 'this%DihedralCount(i)=', this%DihedralCount(i)
         end do
       end if
-   end if
+    end if
 
-   ! Assigning Number of interaction sites to vectors
-   nullify( this%UnitLJ )
-   nullify( this%UnitC )
-   nullify( this%UnitDP )
-   nullify( this%UnitQP )
+    ! Assigning Number of interaction sites to vectors
+    nullify( this%UnitLJ )
+    nullify( this%UnitC )
+    nullify( this%UnitDP )
+    nullify( this%UnitQP )
 
     ! Allocate simulation box length
     allocate( this%UnitLJ(this%NUnit+1), STAT = stat )
@@ -703,16 +700,16 @@ contains
     this%UnitDP = 1
     this%UnitQP = 1
 
-   do i=2, this%NUnit+1
-     this%UnitLJ(i) = this%Unit(i-1)%NLJ126  + this%UnitLJ(i-1)
-     this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
-     this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
-     this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
-   end do
+    do i=2, this%NUnit+1
+      this%UnitLJ(i) = this%Unit(i-1)%NLJ126  + this%UnitLJ(i-1)
+      this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
+      this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
+      this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
+    end do
 
 
-   ! For all Units find mass, COM, moment of inertia, number of degree of freedom
-   do i = 1, this%NUnit
+    ! For all Units find mass, COM, moment of inertia, number of degree of freedom
+    do i = 1, this%NUnit
       call FindCOM ( this%Unit(i) )
        if( this%Unit(i)%NDFRot < 0 ) then
           call FindMOI( this%Unit(i) )
@@ -721,7 +718,7 @@ contains
       end if
       call FindNDF( this%Unit(i) )
       if  (this%Unit(i)%isElongated) this%NEUnit = this%NEunit + 1
-   end do
+    end do
 
     if (UseIntDegFreed) then
       ! Save  used potential model with IDF
@@ -731,25 +728,26 @@ contains
 
     !Consider Intramolecular interactions
     if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
-       call Error( 'Check *.par file, molecule too small, no intramolecular interactions can be used' )
+       call Error('Check *.par file, molecule too small, &
+&                  no intramolecular interactions can be used' )
     end if
     if (UseIntDegFreed .and. IntraLJEl) then
 !      do k = 1, this%NUnit
 !        call sort_array(this%Unit(k)%SiteIds)
 !      end do
-       do k = 1, this%NLJ126
-         call sort_array(this%LJSiteIds)
-       end do
-       do k = 1, this%NCharge
-         call sort_array(this%ChargeSiteIds)
-       end do
-       do k = 1, this%NDipole
-         call sort_array(this%DipoleSiteIds)
-       end do
-       do k = 1, this%NQuadrupole
-         call sort_array(this%QuadrupoleSiteIds)
-       end do
-      end if
+      do k = 1, this%NLJ126
+        call sort_array(this%LJSiteIds)
+      end do
+      do k = 1, this%NCharge
+        call sort_array(this%ChargeSiteIds)
+      end do
+      do k = 1, this%NDipole
+        call sort_array(this%DipoleSiteIds)
+      end do
+      do k = 1, this%NQuadrupole
+        call sort_array(this%QuadrupoleSiteIds)
+      end do
+    end if
 
    ! create list of 1-4, 1-5 interactions
 
@@ -1199,7 +1197,7 @@ contains
                 end if
              end if
            end if
-           if (Quadrupole1Id) then
+           if (Quadrupole1Id > 0) then
              if ( Charge2Id > 0) then
                IntQC14(qc,1) = Quadrupole1Id
                IntQC14(qc,2) = Charge2Id
@@ -1322,14 +1320,14 @@ contains
         end do
       end if
 #if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
 #endif
       if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
 &         scaleeps > 1._RK .or. scaleest > 1._RK ) &
@@ -1407,10 +1405,12 @@ contains
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
           do j =1, this%Unit(i)%NCharge
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                   this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
           end do
           do j =1, this%Unit(i)%NDipole
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                   this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
           end do
         end if
         this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
@@ -1424,11 +1424,15 @@ contains
       do i=1, this%NUnit
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          do j =1, this%Unit(i)%NCharge
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-          end do
+          if ((LongRange .ne. Ewald) .or. (LongRange .ne. PME)) then
+            do j =1, this%Unit(i)%NCharge
+              this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                      this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+            end do
+          end if
           do j =1, this%Unit(i)%NDipole
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                      this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
           end do
         end if
         this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
@@ -1442,7 +1446,7 @@ contains
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
-      if ((LongRange .eq. RField) .or. (LongRange .eq. ExtRField)) then
+      if ((LongRange .ne. Ewald) .or. (LongRange .ne. PME)) then
         do i =1, this%NCharge
           this%Mue(:) = this%Mue(:) + &
 &           this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
@@ -2256,84 +2260,82 @@ contains
     Site1 = .false.
     Site2 = .false.
 
-   if( this%NLJ126 > 0 ) then
-     do i = 1, this%NLJ126
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
         if (this%SiteLJ126(i)%SiteId==SiteId1) then
-            r1(1)=this%SiteLJ126(i)%r(1)
-            r1(2)=this%SiteLJ126(i)%r(2)
-            r1(3)=this%SiteLJ126(i)%r(3)
-            Site1 = .true.
-            Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
-            this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-            this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          r1(1)=this%SiteLJ126(i)%r(1)
+          r1(2)=this%SiteLJ126(i)%r(2)
+          r1(3)=this%SiteLJ126(i)%r(3)
+          Site1 = .true.
+          Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
+          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId2) then
-            r2(1)=this%SiteLJ126(i)%r(1)
-            r2(2)=this%SiteLJ126(i)%r(2)
-            r2(3)=this%SiteLJ126(i)%r(3)
-            Site2 = .true.
-            Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
-            this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-            this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          r2(1)=this%SiteLJ126(i)%r(1)
+          r2(2)=this%SiteLJ126(i)%r(2)
+          r2(3)=this%SiteLJ126(i)%r(3)
+          Site2 = .true.
+          Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
+          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
-        if (Site1 .and. Site2) then
-            exit
-        end if
-     end do
-   end if
+        if (Site1 .and. Site2) exit
+      end do
+    end if
 
-if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
-     do i = 1, this%NCharge
+    if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
+      do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
-            r1(1)=this%SiteCharge(i)%r(1)
-            r1(2)=this%SiteCharge(i)%r(2)
-            r1(3)=this%SiteCharge(i)%r(3)
-            Site1 = .true.
-            Bond%UnitId1=this%SiteCharge(i)%UnitNumber
-            this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-            this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          r1(1)=this%SiteCharge(i)%r(1)
+          r1(2)=this%SiteCharge(i)%r(2)
+          r1(3)=this%SiteCharge(i)%r(3)
+          Site1 = .true.
+          Bond%UnitId1=this%SiteCharge(i)%UnitNumber
+          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
-            r2(1)=this%SiteCharge(i)%r(1)
-            r2(2)=this%SiteCharge(i)%r(2)
-            r2(3)=this%SiteCharge(i)%r(3)
-            Site2 = .true.
-            Bond%UnitId2=this%SiteCharge(i)%UnitNumber
-            this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-            this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          r2(1)=this%SiteCharge(i)%r(1)
+          r2(2)=this%SiteCharge(i)%r(2)
+          r2(3)=this%SiteCharge(i)%r(3)
+          Site2 = .true.
+          Bond%UnitId2=this%SiteCharge(i)%UnitNumber
+          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
-        if (Site1 .and. Site2) then
-           exit
-        end if
-  end do
-end if
+        if (Site1 .and. Site2) exit
+      end do
+    end if
 
 
-if (.not. Site1 .or. .not. Site2) then
-write (stb, '(i10)') j
-call Error('Uncorrect sites for bond' // stb)
-end if
+    if (.not. Site1 .or. .not. Site2) then
+      write (stb, '(i10)') j
+      call Error('Uncorrect sites for bond' // stb)
+    end if
 
-if (Bond%UnitId1==Bond%UnitId2) then
-  this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
-  this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
-  Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
-  Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
-  Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
-  Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
-  Bond%ForConst = this%IdfBond(this%NBond)%ForConst
-  Bond%R0       = this%IdfBond(this%NBond)%R0
-  j = j - 1 ! the procedure of bond definition will be repeated for the same bond
-  this%NBond = this%NBond - 1
-else
-  RX=r2(1)-r1(1)
-  RY=r2(2)-r1(2)
-  RZ=r2(3)-r1(3)
-  Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
-end if
+    if (Bond%UnitId1==Bond%UnitId2) then
+      this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
+      this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
+      Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
+      Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
+      Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
+      Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
+      Bond%ForConst = this%IdfBond(this%NBond)%ForConst
+      Bond%R0       = this%IdfBond(this%NBond)%R0
+      j = j - 1 ! the procedure of bond definition will be repeated for the same bond
+      this%NBond = this%NBond - 1
+    else
+      RX=r2(1)-r1(1)
+      RY=r2(2)-r1(2)
+      RZ=r2(3)-r1(3)
+      Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
+    end if
 
-end subroutine TMolecule_FindBondR
+  end subroutine TMolecule_FindBondR
+
+
 
 !==============================================================!
-!  Subroutine TMolecule_FindAngle                                !
+!  Subroutine TMolecule_FindAngle                              !
 !==============================================================!
 
   subroutine TMolecule_FindAngle( this, Angle, j )
@@ -2346,7 +2348,6 @@ end subroutine TMolecule_FindBondR
     integer, intent(in out) :: j
 
     ! Declare local variables
-
     integer           :: i
     integer           :: SiteId1, SiteId2, SiteId3
     logical           :: Site1, Site2, Site3
@@ -2364,124 +2365,232 @@ end subroutine TMolecule_FindBondR
     Site2 = .false.   !         \  /
     Site3 = .false.   !        (Site2)
 
-     if( this%NLJ126 > 0 ) then
-     do i = 1, this%NLJ126
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
         if (this%SiteLJ126(i)%SiteId==SiteId1) then
-            r1(1)=this%SiteLJ126(i)%r(1)
-            r1(2)=this%SiteLJ126(i)%r(2)
-            r1(3)=this%SiteLJ126(i)%r(3)
-            Site1 = .true.
-            Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
-            this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-            this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          r1(1)=this%SiteLJ126(i)%r(1)
+          r1(2)=this%SiteLJ126(i)%r(2)
+          r1(3)=this%SiteLJ126(i)%r(3)
+          Site1 = .true.
+          Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
+          Angle%orientation1 = .false.
+          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId2) then
-            r2(1)=this%SiteLJ126(i)%r(1)
-            r2(2)=this%SiteLJ126(i)%r(2)
-            r2(3)=this%SiteLJ126(i)%r(3)
-            Site2 = .true.
-            Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
-            this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-            this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          r2(1)=this%SiteLJ126(i)%r(1)
+          r2(2)=this%SiteLJ126(i)%r(2)
+          r2(3)=this%SiteLJ126(i)%r(3)
+          Site2 = .true.
+          Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
+          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId3) then
-            r3(1)=this%SiteLJ126(i)%r(1)
-            r3(2)=this%SiteLJ126(i)%r(2)
-            r3(3)=this%SiteLJ126(i)%r(3)
-            Site3=.true.
-            Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
-            this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-            this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          r3(1)=this%SiteLJ126(i)%r(1)
+          r3(2)=this%SiteLJ126(i)%r(2)
+          r3(3)=this%SiteLJ126(i)%r(3)
+          Site3=.true.
+          Angle%orientation2 = .false.
+          Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
+          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
-      if (Site1 .and. Site2 .and. Site3) then
-          exit
-      end if
-  end do
-end if
-if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) then
-     do i = 1, this%NCharge
+        if (Site1 .and. Site2 .and. Site3) exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) then
+      do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
-            r1(1)=this%SiteCharge(i)%r(1)
-            r1(2)=this%SiteCharge(i)%r(2)
-            r1(3)=this%SiteCharge(i)%r(3)
-            Site1 = .true.
-            Angle%UnitId1=this%SiteCharge(i)%UnitNumber
-            this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-            this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          r1(1)=this%SiteCharge(i)%r(1)
+          r1(2)=this%SiteCharge(i)%r(2)
+          r1(3)=this%SiteCharge(i)%r(3)
+          Site1 = .true.
+          Angle%UnitId1=this%SiteCharge(i)%UnitNumber
+          Angle%orientation1 = .false.
+          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
-            r2(1)=this%SiteCharge(i)%r(1)
-            r2(2)=this%SiteCharge(i)%r(2)
-            r2(3)=this%SiteCharge(i)%r(3)
-            Site2 = .true.
-            Angle%UnitId2=this%SiteCharge(i)%UnitNumber
-            this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-            this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          r2(1)=this%SiteCharge(i)%r(1)
+          r2(2)=this%SiteCharge(i)%r(2)
+          r2(3)=this%SiteCharge(i)%r(3)
+          Site2 = .true.
+          Angle%UnitId2=this%SiteCharge(i)%UnitNumber
+          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
-            r3(1)=this%SiteCharge(i)%r(1)
-            r3(2)=this%SiteCharge(i)%r(2)
-            r3(3)=this%SiteCharge(i)%r(3)
-            Site3 = .true.
-            Angle%UnitId3=this%SiteCharge(i)%UnitNumber
-            this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-            this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          r3(1)=this%SiteCharge(i)%r(1)
+          r3(2)=this%SiteCharge(i)%r(2)
+          r3(3)=this%SiteCharge(i)%r(3)
+          Site3 = .true.
+          Angle%UnitId3=this%SiteCharge(i)%UnitNumber
+          Angle%orientation2 = .false.
+          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
-      if (Site1 .and. Site2 .and. Site3) then
-          exit
-      end if
-  end do
-end if
+        if (Site1 .and. Site2 .and. Site3) exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NDipole > 0) ) then
+      do i = 1, this%NDipole
+        if (this%SiteDipole(i)%SiteId==SiteId1) then
+          if ( SiteId1 == SiteId2) then
+            r1(1)=this%SiteDipole(i)%or(1)
+            r1(2)=this%SiteDipole(i)%or(2)
+            r1(3)=this%SiteDipole(i)%or(3)
+            Angle%orientation1 = .true.
+          else
+            r1(1)=this%SiteDipole(i)%r(1)
+            r1(2)=this%SiteDipole(i)%r(2)
+            r1(3)=this%SiteDipole(i)%r(3)
+            Angle%orientation1 = .false.
+          end if
+          Site1 = .true.
+          Angle%UnitId1=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteDipole(i)%r(1)
+          r2(2)=this%SiteDipole(i)%r(2)
+          r2(3)=this%SiteDipole(i)%r(3)
+          Site2 = .true.
+          Angle%UnitId2=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId3) then
+          if ( SiteId3 == SiteId2) then
+            r3(1)=this%SiteDipole(i)%or(1)
+            r3(2)=this%SiteDipole(i)%or(2)
+            r3(3)=this%SiteDipole(i)%or(3)
+            Angle%orientation2 = .true.
+          else
+            r3(1)=this%SiteDipole(i)%r(1)
+            r3(2)=this%SiteDipole(i)%r(2)
+            r3(3)=this%SiteDipole(i)%r(3)
+            Angle%orientation2 = .false.
+          end if
+          Site3 = .true.
+          Angle%UnitId3=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+        end if
+        if (Site1 .and. Site2 .and. Site3) exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NQuadrupole > 0) ) then
+      do i = 1, this%NQuadrupole
+        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
+          if ( SiteId1 == SiteId2) then
+            r1(1)=this%SiteQuadrupole(i)%or(1)
+            r1(2)=this%SiteQuadrupole(i)%or(2)
+            r1(3)=this%SiteQuadrupole(i)%or(3)
+            Angle%orientation1 = .true.
+          else
+            r1(1)=this%SiteQuadrupole(i)%r(1)
+            r1(2)=this%SiteQuadrupole(i)%r(2)
+            r1(3)=this%SiteQuadrupole(i)%r(3)
+            Angle%orientation1 = .false.
+          end if
+          Site1 = .true.
+          Angle%UnitId1=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
+          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteQuadrupole(i)%r(1)
+          r2(2)=this%SiteQuadrupole(i)%r(2)
+          r2(3)=this%SiteQuadrupole(i)%r(3)
+          Site2 = .true.
+          Angle%UnitId2=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
+          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
+          if ( SiteId3 == SiteId2) then
+            r3(1)=this%SiteQuadrupole(i)%or(1)
+            r3(2)=this%SiteQuadrupole(i)%or(2)
+            r3(3)=this%SiteQuadrupole(i)%or(3)
+            Angle%orientation2 = .true.
+          else
+            r3(1)=this%SiteQuadrupole(i)%r(1)
+            r3(2)=this%SiteQuadrupole(i)%r(2)
+            r3(3)=this%SiteQuadrupole(i)%r(3)
+            Angle%orientation2 = .false.
+          end if
+          Site3 = .true.
+          Angle%UnitId3=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
+          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+        end if
+        if (Site1 .and. Site2 .and. Site3) exit
+      end do
+    end if
 
-if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
-write (sta, '(i10)') j
-call Error('Uncorrect sites for angle' // sta)
-end if
+    if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
+      write (sta, '(i10)') j
+      call Error('Uncorrect sites for angle' // sta)
+    end if
 
 
-if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
+    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
 !  print *, 'this angle is in one unit, should not be calculated'
-  this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
-  this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
-  this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
-  Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
-  Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
-  Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
-  Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
-  Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
-  Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
-  Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
-  Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
-  j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
-  this%NAngle = this%NAngle - 1
-else ! calculate value of this angle
-  if (Angle%UnitId1==Angle%UnitId2) then
-    this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
-  end if
-  if (Angle%UnitId2==Angle%UnitId3) then
-    this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
-  end if
-  if (Angle%UnitId1==Angle%UnitId3) then
-    this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
-  end if
-  R1X=r1(1)-r2(1)
-  R1Y=r1(2)-r2(2)
-  R1Z=r1(3)-r2(3)
-  R2X=r3(1)-r2(1)
-  R2Y=r3(2)-r2(2)
-  R2Z=r3(3)-r2(3)
+      this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+      this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
+      Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
+      Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
+      Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
+      Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
+      Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
+      Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
+      Angle%orientation1 = this%IdfAngle(this%NAngle)%orientation1
+      Angle%orientation2 = this%IdfAngle(this%NAngle)%orientation2
+      Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
+      Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
+      j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
+      this%NAngle = this%NAngle - 1
+    else ! calculate value of this angle
+      if (Angle%UnitId1==Angle%UnitId2) then
+        this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      end if
+      if (Angle%UnitId2==Angle%UnitId3) then
+        this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+      end if
+      if (Angle%UnitId1==Angle%UnitId3) then
+        this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      end if
+      
+      if ( .not. Angle%orientation1 ) then
+        R1X=r1(1)-r2(1)
+        R1Y=r1(2)-r2(2)
+        R1Z=r1(3)-r2(3)
+      else
+        R1X=r1(1)
+        R1Y=r1(2)
+        R1Z=r1(3)
+      end if
+      if ( .not. Angle%orientation2 ) then
+        R2X=r3(1)-r2(1)
+        R2Y=r3(2)-r2(2)
+        R2Z=r3(3)-r2(3)
+      else
+        R2X=r3(1)
+        R2Y=r3(2)
+        R2Z=r3(3)
+      end if
 
-  R1S=R1X**2+R1Y**2+R1Z**2
-  R2S=R2X**2+R2Y**2+R2Z**2
-  R1R2=dsqrt(R1S*R2S)
+      R1S=R1X**2+R1Y**2+R1Z**2
+      R2S=R2X**2+R2Y**2+R2Z**2
+      R1R2=dsqrt(R1S*R2S)
 
-  cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
-  if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
-  if ( cosa .lt. -1.0d0) cosa = -1.0d0
+      cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
+      if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
+      if ( cosa .lt. -1.0d0) cosa = -1.0d0
 
-  Angle%Angle0=dacos(cosa)
-end if
+      Angle%Angle0=dacos(cosa)
+    end if
 
-end subroutine TMolecule_FindAngle
+  end subroutine TMolecule_FindAngle
+
 
 !==============================================================!
-!  Subroutine TMolecule_FindDihedral                                !
+!  Subroutine TMolecule_FindDihedral                           !
 !==============================================================!
 
   subroutine TMolecule_FindDihedral( this, Dihedral, j )
@@ -2511,126 +2620,208 @@ end subroutine TMolecule_FindAngle
     Site3 = .false.   !          \______/
     Site4 = .false.   !       (Site2) (Site3)
 
-  if( this%NLJ126 > 0 ) then
-     do i = 1, this%NLJ126
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
         if (this%SiteLJ126(i)%SiteId==SiteId1) then
-            Site1 = .true.
-            Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-            this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          Site1 = .true.
+          Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
+          Dihedral%orientation1 = .false.
+          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
         else if (this%SiteLJ126(i)%SiteId==SiteId2) then
-            Site2 = .true.
-            Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-            this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Site2 = .true.
+          Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Dihedral%orientation1 = .false.
         else if (this%SiteLJ126(i)%SiteId==SiteId3) then
-            Site3=.true.
-            Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-            this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          Site3=.true.
+          Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          Dihedral%orientation2 = .false.
         else if (this%SiteLJ126(i)%SiteId==SiteId4) then
-            Site4=.true.
-            Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-            this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Site4=.true.
+          Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Dihedral%orientation2 = .false.
         end if
-      if (Site1 .and. Site2 .and. Site3 .and. Site4) then
-          exit
-      end if
-     end do
-  end if
-  if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) .and. (this%NCharge > 0) ) then
-     do i = 1, this%NCharge
+        if (Site1 .and. Site2 .and. Site3 .and. Site4)exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%NCharge > 0) ) then
+      do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
-            Site1 = .true.
-            Dihedral%UnitId1=this%SiteCharge(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-            this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          Site1 = .true.
+          Dihedral%UnitId1=this%SiteCharge(i)%UnitNumber
+          Dihedral%orientation1 = .false.
+          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
-            Site2 = .true.
-            Dihedral%UnitId2=this%SiteCharge(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-            this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Site2 = .true.
+          Dihedral%UnitId2=this%SiteCharge(i)%UnitNumber
+          Dihedral%orientation1 = .false.
+          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
-            Site3 = .true.
-            Dihedral%UnitId3=this%SiteCharge(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-            this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId3) then
-            Site4 = .true.
-            Dihedral%UnitId4=this%SiteCharge(i)%UnitNumber
-            this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-            this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Site3 = .true.
+          Dihedral%UnitId3=this%SiteCharge(i)%UnitNumber
+          Dihedral%orientation2 = .false.
+          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+        else if (this%SiteCharge(i)%SiteId==SiteId4) then
+          Site4 = .true.
+          Dihedral%UnitId4=this%SiteCharge(i)%UnitNumber
+          Dihedral%orientation2 = .false.
+          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
         end if
-      if (Site1 .and. Site2 .and. Site3 .and. Site4) then
-          exit
-      end if
-    end do
- end if
+        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%NDipole > 0) ) then
+      do i = 1, this%NDipole
+        if (this%SiteDipole(i)%SiteId==SiteId1) then
+          if ( SiteId1 == SiteId2 ) then
+            Dihedral%orientation1 = .true.
+          else
+            Dihedral%orientation1 = .false.
+          end if
+          Site1 = .true.
+          Dihedral%UnitId1=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId2) then
+          Site2 = .true.
+          Dihedral%UnitId2=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId3) then
+          Site3 = .true.
+          Dihedral%UnitId3=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId4) then
+          if ( SiteId4 == SiteId3 ) then
+            Dihedral%orientation2 = .true.
+          else
+            Dihedral%orientation2 = .false.
+          end if
+          Site4 = .true.
+          Dihedral%UnitId4=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+        end if
+        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+      end do
+    end if
+    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
+&              .and. (this%NQuadrupole > 0) ) then
+      do i = 1, this%NQuadrupole
+        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
+          if ( SiteId1 == SiteId2 ) then
+            Dihedral%orientation1 = .true.
+          else
+            Dihedral%orientation1 = .false.
+          end if
+          Site1 = .true.
+          Dihedral%UnitId1=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
+          Site2 = .true.
+          Dihedral%UnitId2=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
+          Site3 = .true.
+          Dihedral%UnitId3=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
+          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId4) then
+          if ( SiteId4 == SiteId3 ) then
+            Dihedral%orientation2 = .true.
+          else
+            Dihedral%orientation2 = .false.
+          end if
+          Site4 = .true.
+          Dihedral%UnitId4=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
+          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+        end if
+        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
+      end do
+    end if
 
-if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
-write (sta, '(i10)') j
-call Error('Uncorrect sites for dihedral angle' // sta)
-end if
+    if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
+      write (sta, '(i10)') j
+      call Error('Uncorrect sites for dihedral angle' // sta)
+    end if
 
 
-if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then
+    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 &
+&             .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then
 !  print *, 'this dihedral angle is in one unit, should not be calculated'
-  this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-  this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-  this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
-  this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
-  Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
-  Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
-  Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
-  Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
-  Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
-  Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
-  Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
-  Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
-  Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
-  Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
-  Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
-  if (LJEl14 .and. Dihedral%multi) then
-    Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
-    Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
-  end if
-  j = j - 1 ! the procedure of Dihedral definition will be repeated for the same Dihedral angle
-  this%NDihedral = this%NDihedral - 1
-else !
-    if (Dihedral%UnitId1==Dihedral%UnitId2) then
       this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-    end if
-    if (Dihedral%UnitId2==Dihedral%UnitId3) then
       this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-    end if
-    if (Dihedral%UnitId1==Dihedral%UnitId3) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-    end if
-    if (Dihedral%UnitId1==Dihedral%UnitId4) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-    end if
-    if (Dihedral%UnitId2==Dihedral%UnitId4) then
-      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-    end if
-    if (Dihedral%UnitId3==Dihedral%UnitId4) then
       this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+      this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
+      Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
+      Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
+      Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
+      Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
+      Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
+      Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
+      Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
+      Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
+      Dihedral%orientation1 = this%IdfDihedral(this%NDihedral)%orientation1
+      Dihedral%orientation2 = this%IdfDihedral(this%NDihedral)%orientation2
+      Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
+      Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
+      Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
+      if (LJEl14 .and. (Dihedral%multi .gt. 0)) then
+        Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
+        Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
+      end if
+      j = j - 1 !the procedure of Dihedral definition will be repeated for the same Dihedral angle
+      this%NDihedral = this%NDihedral - 1
+    else !
+      if (Dihedral%UnitId1==Dihedral%UnitId2) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      end if
+      if (Dihedral%UnitId2==Dihedral%UnitId3) then
+        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+      end if
+      if (Dihedral%UnitId1==Dihedral%UnitId3) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      end if
+      if (Dihedral%UnitId1==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      end if
+      if (Dihedral%UnitId2==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+      end if
+      if (Dihedral%UnitId3==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+      end if
+      if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      end if
+      if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      end if
+      if (Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+      end if
+      if (Dihedral%UnitId1==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
+        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      end if
     end if
-    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-    end if
-    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId4) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-    end if
-    if (Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
-      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-    end if
-    if (Dihedral%UnitId1==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-    end if
-end if
 
-end subroutine TMolecule_FindDihedral
+  end subroutine TMolecule_FindDihedral
 
 
 end module ms2_molecule

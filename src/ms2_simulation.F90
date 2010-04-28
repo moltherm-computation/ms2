@@ -507,13 +507,13 @@ contains
       call LogWriteBlank
 
       ! Read frequency of updating result file
-      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., 0 )
+      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., NSteps )
       if( BlockSize > 0 ) then
         write( IOBuffer, &
 &         '("Result files will be updated each", I7, " time steps")' ) &
 &         BlockSize
       else
-        write( IOBuffer, '("Result files will not be created")' )
+        write( IOBuffer, '("All result files will not be created")' )
       end if
       call LogWrite
 
@@ -530,20 +530,24 @@ contains
       end if
 
       ! Read frequency of updating final result file
-      call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
-      if( ErrorsUpdateFrequency < 1 ) then
-        ErrorsUpdateFrequency = NSteps
-      else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
-        ErrorsUpdateFrequency = BlockSize * 4
-      end if
-      if( ErrorsUpdateFrequency < NSteps ) then
-        write( IOBuffer, &
-&        '("Final result files will be updated each", I7, " time steps")' ) &
-&         ErrorsUpdateFrequency
+      if (BlockSize > 0) then
+        call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
+        if( ErrorsUpdateFrequency < 1 ) then
+          ErrorsUpdateFrequency = NSteps
+        else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
+          ErrorsUpdateFrequency = BlockSize * 4
+        end if
+        if( ErrorsUpdateFrequency < NSteps ) then
+          write( IOBuffer, &
+&          '("Final result files will be updated each", I7, " time steps")' ) &
+&           ErrorsUpdateFrequency
+        else
+          write( IOBuffer, '("Final result files will be created at the end")' )
+        end if
+        call LogWrite
       else
-        write( IOBuffer, '("Final result files will be created at the end")' )
+        ErrorsUpdateFrequency = NSteps
       end if
-      call LogWrite
 
       ! Read frequency of updating visualisation file
       call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
@@ -636,6 +640,15 @@ contains
           ! Read extended Reaction Field Parameters
           call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0_RK )
           write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
+      case( 'Rodgers' )
+          LongRange = rodgers
+          LongRangeString = 'Rodgers'
+          write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+          call LogWrite
+          ! Read Ewald Parameters
+          call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
+          write( IOBuffer, '("Rodgers Parameter KappaL:", F8.3)' )KappaL_h
+          call LogWrite
 
     case default
       call Error( trim( str )//' is not a valid longrange correction' )
@@ -764,26 +777,16 @@ contains
 #endif
       else if (LongRange .eq. ExtRField) then
             this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+      else if (LongRange .eq. Rodgers) then
+            this%ensemble(i)%KappaL = KappaL_h
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )
       else
         call Construct( this%Ensemble(i), i )
       end if
-!       if (LongRange .eq. PME) then
-!         call PMESelfTerm(this%Ensemble(i))
-!       endif
     end do
 
-!DEBUG
-!   if( any( this%Ensemble(:)%Component(:)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-!     call FileReadParameter( iounit_params, IDFluctFreq )
-!     read( IOBuffer, * ) GradInsFrequency
-!     call FileReadParameter( iounit_params, IDNFullFluct )
-!     read( IOBuffer, * ) NFullFluct
-!     call FileReadParameter( iounit_params, IDMaxCounter )
-!     read( IOBuffer, * ) maxcounter
-!   end if
   GradInsFrequency = BlockSize
   NFullFluct = 20
   maxcounter = 0
@@ -931,7 +934,7 @@ contains
     if( Restart ) then
       call RestartRead( this )
       StepStart = Step + 1
-      MCOverlapReduction = .false.                                             ! no MC overlap reduction in case of restart
+      MCOverlapReduction = .false.     ! no MC overlap reduction in case of restart
     else
       StepTotal = 0
       StepStart = 1
@@ -1202,33 +1205,6 @@ eqloop: do
       exit eqloop
     end do eqloop
 
-    ! GradIns initialization
-!     if( GradInsInitialization .and. .not. TerminateProgram ) then
-!       StepEnd = NStepsG
-!       call LogWriteBlank
-!       if( Restart ) then
-!         write( IOBuffer, '("Resuming GradIns initialization")' )
-!         Restart = .false.
-!       else
-!         write( IOBuffer, '("Starting GradIns initialization")' )
-!         call LogWrite
-!         write( IOBuffer, '("  (adjustment of weigthing factors)")' )
-!       end if
-!       call LogWriteTime
-! 
-!       do i = 1, this%NEnsembles
-!         call GradInsInit( this%Ensemble(i) )
-!       end do
-! 
-!       if( .not. TerminateProgram ) then
-!         write( IOBuffer, '("GradIns initialization completed")' )
-!         GradInsInitialization = .false.
-!       else
-!         write( IOBuffer, '("GradIns initialization terminated")' )
-!       end if
-!       call LogWriteTime
-!       StepStart = 1
-!     end if
 
     ! Run production
     if( .not. TerminateProgram ) then
@@ -1255,7 +1231,6 @@ eqloop: do
 
       if( .not. TerminateProgram ) then
         write( IOBuffer, '("Simulation completed")' )
-!         GradInsInitialization = .false.
       else
         write( IOBuffer, '("Simulation terminated")' )
       end if
@@ -1343,7 +1318,7 @@ eqloop: do
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
       call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
-&       MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+&       MPI_LOGICAL, MPI_LOR, Communicator, ierror )
       if( AnyTerminateProgram ) then
         TerminateProgram = .true.
         exit
@@ -1562,30 +1537,6 @@ eqloop: do
     ! Return if no output
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
-!     if( this%NEnsembles > 1 ) then
-! 
-!       if( Restart ) then
-!         ! Open result file
-!         call FileAppend( this%iounit_result, &
-! &         trim( OutputNameTag )//ResultFileExtension )
-! 
-!         ! Open running average result file
-!         call FileAppend( this%iounit_runave, &
-! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
-!       else
-!         ! Open result file
-!         call FileRewrite( this%iounit_result, &
-! &         trim( OutputNameTag )//ResultFileExtension )
-! 
-!         ! Open running average result file
-!         call FileRewrite( this%iounit_runave, &
-! &         trim( OutputNameTag )//RunAveFileExtension )
-! 
-!       end if
-! 
-!     end if
-
     ! Open ensemble result files
     do i = 1, this%NEnsembles
       call ResultOpen( this%Ensemble(i) )
@@ -1617,37 +1568,6 @@ eqloop: do
 
     ! No output for MCOverlapReduction
     if( MCOverlapReduction ) return
-
-!     ! Generate simulation result files
-!     if( this%NEnsembles > 1 ) then
-! 
-!       ! Update result header
-!       if( Step == 1 ) then
-!         call FileWriteBlank( this%iounit_result )
-!         call FileWriteBlank( this%iounit_runave )
-! 
-!         ! Number of steps
-!         write( IOBuffer, '("     NR")' )
-!         call FileWriteNoAdvance( this%iounit_result )
-!         call FileWriteNoAdvance( this%iounit_runave )
-! 
-!         call FileWriteBlank( this%iounit_result )
-!         call FileWriteBlank( this%iounit_runave )
-!       end if
-! 
-!       ! Update result files
-!       if( mod( Step, BlockSize ) == 0 ) then
-! 
-!         ! Number of steps
-!         write( IOBuffer, '(I7)' ) Step
-!         call FileWriteNoAdvance( this%iounit_result )
-!         call FileWriteNoAdvance( this%iounit_runave )
-! 
-!         call FileWriteBlank( this%iounit_result )
-!         call FileWriteBlank( this%iounit_runave )
-!       end if
-! 
-!     end if
 
     ! Update ensemble result files
     do i = 1, this%NEnsembles
@@ -1683,16 +1603,6 @@ eqloop: do
       call ResultClose( this%Ensemble(i) )
     end do
 
-!     if( this%NEnsembles > 1 ) then
-! 
-!       ! Close running average result file
-!       call FileClose( this%iounit_runave )
-! 
-!       ! Close result file
-!       call FileClose( this%iounit_result )
-! 
-!     end if
-
   end subroutine TSimulation_ResultClose
 
 
@@ -1720,105 +1630,6 @@ eqloop: do
     ! Update log file
     write( IOBuffer, '("Saving simulation results")' )
     call LogWrite
-
-!     if( this%NEnsembles > 1 ) then
-! 
-!       ! Open final result file
-!       call FileRewrite( this%iounit_errors, &
-! &       trim( OutputNameTag )//ErrorsFileExtension )
-! 
-!       ! Separator
-!       write( IOBuffer, '(76("="))' )
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-!       write( IOBuffer, '(T24, "SIMULATION RESULT FILE")' )
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '(T24, "----------------------")' )
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Simulation type
-!       write( IOBuffer, '("Simulation type", T36, ":", 9X, A)' ) &
-! &       trim( SimulationTypeString )
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '("Ensemble type", T36, ":", 9X, A)' ) &
-! &       trim( EnsembleTypeString )
-!       call FileWrite( this%iounit_errors )
-!       if( SimulationType .eq. MolecularDynamics ) then
-!         write( IOBuffer, '("Integrator type", T36, ":", 9X, A)' ) &
-! &         trim( IntegratorTypeString )
-!         call FileWrite( this%iounit_errors )
-!       end if
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Number of steps
-!       write( IOBuffer, '("Number of NVT equilibration steps", T36, ":", I10)' ) &
-! &       NStepsV
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) &
-! &       NStepsP
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) &
-! &       Step
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Time step
-!       if( SimulationType .eq. MolecularDynamics ) then
-!         write( IOBuffer, '("Time step", T29, "reduced:", F20.9)' ) &
-! &         TimeStep
-!         call FileWrite( this%iounit_errors )
-!         write( IOBuffer, '(T31, "in fs:", F20.9)' ) &
-! &         TimeStep * UnitTime * 1E15_RK
-!         call FileWrite( this%iounit_errors )
-!         call FileWriteBlank( this%iounit_errors )
-!       end if
-! 
-!       ! Acceptance rate
-!       if( SimulationType .eq. MonteCarlo ) then
-!         write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) &
-! &         Acceptance
-!         call FileWrite( this%iounit_errors )
-!         call FileWriteBlank( this%iounit_errors )
-!       end if
-! 
-!       ! Number of ensembles
-!       write( IOBuffer, '("Number of ensembles", T36, ":", I10)' ) &
-! &       this%NEnsembles
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! System of units
-!       write( IOBuffer, '("Unit of length", T36, ":", F20.9, " A")' ) &
-! &       UnitLength / Angstroem
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '("Unit of energy", T36, ":", F20.9, " K")' ) &
-! &       UnitEnergy / kBoltzmann
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " a.u.")' ) &
-! &       UnitMass * NAvogadro * 1000._RK
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Separator
-!       write( IOBuffer, '(76("="))' )
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-!       write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-!       call FileWrite( this%iounit_errors )
-!       write( IOBuffer, '(76("-"))' )
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Separator
-!       write( IOBuffer, '(76("="))' )
-!       call FileWrite( this%iounit_errors )
-!       call FileWriteBlank( this%iounit_errors )
-! 
-!       ! Close final result file
-!       call FileClose( this%iounit_errors )
-! 
-!     end if
 
     ! Save ensemble results
     do i = 1, this%NEnsembles
@@ -2022,13 +1833,13 @@ eqloop: do
 
 #if MPI_VER > 0
     call MPI_Bcast( Step, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( StepTotal, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number
