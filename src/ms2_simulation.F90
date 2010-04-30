@@ -162,11 +162,18 @@ contains
     ! Declare arguments
     type(TSimulation) :: this
 
+#if defined MS2_STEEREO
+    integer simsteer_new
+    integer socketcommunicator_new
+    integer mpiintracommunicator_new
+    integer mpiintracommunicator_amiroot
+#endif
+
     ! Declare local variables
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
-
+    
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
@@ -214,6 +221,17 @@ contains
     call LogWrite
     write( IOBuffer, '(T20, "Reading parameters of simulation")' )
     call LogWrite
+
+#if defined MS2_STEEREO
+	call set_logger_level (2);
+	call FileReadParameter( CommandPath, iounit_params, IdCommandPath, .true., './commands')
+	write( IOBuffer, '("CommandPath: ",T26, A)' ) trim( CommandPath )
+	call LogWrite
+	CommandPathLength = len_trim (CommandPath)
+	call FileReadParameter( Port, iounit_params, IdSteereoPort, .true., 44446)
+	write( IOBuffer, '("Listening on port: ",T24, I5)' ) Port
+	call LogWrite
+#endif
 
     ! Read name tag for output files
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
@@ -644,6 +662,45 @@ contains
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
+
+   ! steering initialization
+#if defined MS2_STEEREO
+   numberOfPartitions = 1
+   simSteerInst = simsteer_new ()
+
+#if MPI_VER > 0
+   intraComm = mpiintracommunicator_new ()
+   call mpiintracommunicator_generateequally (intraComm, NProc, numberOfPartitions, NProcs)
+   call simsteer_setintracommunicator (simSteerInst, intraComm)
+   if (mpiintracommunicator_amiroot (intraComm) > 0) then
+#endif
+      comm = socketCommunicator_new (port)
+      call simSteer_setCommunicator (simSteerInst, comm)
+      call simSteer_startListening (simSteerInst)
+#if MPI_VER > 0
+   end if
+#endif
+   call load_commands (simSteerInst, TRIM(CommandPath), CommandPathLength)
+   commandName='getMegaMolSnapshot'
+   commandNameSize = LEN_TRIM (commandName)
+
+   ms2_data%boxLength = this%Ensemble(1)%BoxLength
+   ms2_data%numberOfComponents = this%Ensemble(1)%NComponents
+   allocate (ms2_data%particleNumbers (this%Ensemble(1)%NComponents))
+   DO i=1, this%Ensemble(1)%NComponents
+      ms2_data%particleNumbers = this%Ensemble(1)%Component(i)%NPart1
+   END DO
+   call add_command_data (TRIM(commandName), commandNameSize, ms2_data)
+   DO i=1, this%Ensemble(1)%NComponents
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%P0, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%F, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%P1, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+   END DO
+
+#endif  !MS2_STEEREO
 
   end subroutine TSimulation_Construct
 
@@ -1124,7 +1181,9 @@ eqloop: do
 
       ! Check for too many particles (GE only)
       if( tooManyParticles ) exit
-
+#if defined MS2_STEEREO
+      call simsteer_processqueue(0)
+#endif
     end do
 
   end subroutine TSimulation_RunSteps
