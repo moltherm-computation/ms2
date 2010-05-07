@@ -955,6 +955,10 @@ contains
       ! Update all BoxLength-dependent constants
       call UpdateBoxLength( this )
 
+      ! Abort, if maximum cutoff larger than boxlength 
+      if (this%RCutoffMax2 > this%BoxLength) &
+&       call Error('Cutoff is larger than the boxsize')
+
       ! Set initial positions of particles in simulation box
       call InitPositions( this )
 
@@ -4714,7 +4718,7 @@ loop2:        do nc = 1, this%NComponents
 &                     + pc%EPotTestCorrRF
 
     ! check if (pc%ChemPot-EPotIns)/this%Temperature>exp_arg_max ?
-    if( exp( ( pc%ChemPot - EPotIns ) / this%Temperature ) > &
+    if( exp( pc%ChemPot - EPotIns  / this%Temperature ) > &
 &       np / this%Volume0 * rnd( 0._RK, 1._RK ) ) then
 #endif
 
