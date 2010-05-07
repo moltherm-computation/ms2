@@ -52,6 +52,7 @@ shielding  =   1.0
 NRotAxes   =   auto
 
 NFluct     =    5
+# Geometry - LJ-sigma - LJ-Eps - EStatics
 1.000  1.000  0.800  0.750
 1.000  0.800  0.600  0.500
 0.900  0.600  0.400  0.250
