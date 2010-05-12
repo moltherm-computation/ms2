@@ -1041,7 +1041,7 @@ contains
     call LogWrite
 
     write( IOBuffer, &
-&     '("- pressure from RF ",T44 F12.8)' ) &
+&     '("- pressure from RF divided by volume V",T44 F12.8)' ) &
 &     this%VirialCorrRF * NProcs / this%NPart
     call LogWrite
 
@@ -1086,7 +1086,7 @@ contains
       ! Calculate initial energies for the Ewald Summation
       if (LongRange .eq. Ewald) then
          if (this%KappaL .eq. 0._RK) then
-            this%Kappa = sqrt(PI) * (4.0*this%NPart / &
+            this%Kappa = sqrt(PI) * (4._RK*this%NPart / &
 &                          this%Volume0**2)**(1._RK/6._RK)
             this%KappaL = this%Kappa*this%BoxLength
          else
@@ -1168,13 +1168,7 @@ contains
            end do
          end do
       else if (LongRange .eq. Rodgers) then
-!          if (this%KappaL .eq. 0._RK) then
-!             this%Kappa = sqrt(PI) * (4._RK*this%NPart / &
-! &                          this%Volume0**2)**(1._RK/6._RK)
-!             this%KappaL = this%Kappa*this%BoxLength
-!          else
-            this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
-!          end if
+!             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          do i=1,this%NComponents
            do j=1,this%NComponents
              this%Interaction(i,j)%Kappa = this%Kappa
@@ -2066,12 +2060,6 @@ contains
         call PMESelfTermMC ( this )
 #endif
       else if (LongRange .eq. Rodgers ) then
-!         this%Kappa = this%KappaL / this%BoxLength
-!         do i=1,this%NComponents
-!           do j=1,this%NComponents
-!             this%Interaction(i,j)%Kappa = this%Kappa
-!           end do
-!         end do
         this%EPotCorrRF = this%EPotCorrRFVol*this%Volume0 + this%EPotCorrRFPart
       end if
     end if
@@ -2394,7 +2382,7 @@ contains
         fac_neutral = 2._RK *fac_charge1 * this%Kappa*this%Kappa
 
         this%EPotCorrRFVol = fac_neutral/(4._RK*PI) * (1._RK-1._RK/this%RFEpsilon) * &
-&                           this%RefTemperature
+&                           this%RefTemperature / NProcs
         this%EPotCorrRFPart = 0._RK
 
         do i1 = 1, this%NComponents
@@ -2411,23 +2399,23 @@ contains
                 drz = pc%Molecule%SiteCharge(j1)%r(3) - pc%Molecule%SiteCharge(j2)%r(3)
                 dr2  = drx*drx + dry*dry + drz*drz
                 totcharge = totcharge + pc%Molecule%SiteCharge(j1)%e * &
-&                             pc%Molecule%SiteCharge(j2)%e / dr2
+&                             pc%Molecule%SiteCharge(j2)%e * dr2
               end do
               sumcharge = sumcharge + pc%Molecule%SiteCharge(j1)%e
             end do
 
-            do j1 = 1, pc%Molecule%NUnit
-              this%EPotCorrRFPart = this%EPotCorrRFPart - &
-&                   fac_charge1 * sumcharge*sumcharge * pc%NPart + &
-&                   fac_charge2 * totcharge * pc%NPart 
-            end do
+!             do j1 = 1, pc%Molecule%NUnit
+            this%EPotCorrRFPart = this%EPotCorrRFPart - &
+&                   fac_charge1 * sumcharge*sumcharge * pc%NPart / NProcs + &
+&                   fac_charge2 * totcharge * pc%NPart / NProcs
+!             end do
           else ! charged
             do j1 = 1, pc%Molecule%NUnit
               this%EPotCorrRFPart = this%EPotCorrRFPart - &
-&                   fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart
+&                   fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart / NProcs
               this%VirialCorrRF   = this%VirialCorrRF - &
 &                   fac_neutral / (4._RK*PI) * this%RefTemperature * &
-&                     (1._RK-1._RK/this%RFEpsilon)
+&                     (1._RK-1._RK/this%RFEpsilon) / NProcs !/ (UnitPressure*1E-6_RK)
             end do
           end if
         end do
@@ -9815,6 +9803,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     type(TComponent), pointer :: pc
     integer                   :: i,j,stat, counter
+#if MPI_VER > 0
+    real(RK)                  :: EPotNew
+#endif
 
     if( RootProc ) then
 
@@ -10868,6 +10859,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 # if MPI_VER > 0
    integer :: i0
    integer :: i1
+   integer :: j
 # endif
 
 
@@ -10987,6 +10979,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 # if MPI_VER > 0
    integer :: i0
    integer :: i1
+   integer :: j
 # endif
 
 ! Dummy variable to cover a compiler warning that npold is unused
@@ -11097,6 +11090,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 # if MPI_VER > 0
    integer :: i0
    integer :: i1
+   integer :: j
 # endif
 
 

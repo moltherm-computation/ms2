@@ -1423,7 +1423,7 @@ contains
 
 
     ! Initialization Ewald Summation
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+    if ( .not. this%ReactionField ) then
        Faktor = 2._RK/sqrt(Pi) * this%Kappa
     end if
 
@@ -3528,7 +3528,7 @@ contains
     PZ2 => this%PZ2
 
     ! Initialization Ewald Summation
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+    if ( .not. this%ReactionField ) then
        Faktor = 2._RK/sqrt(Pi) * this%Kappa
     end if
 
@@ -3642,7 +3642,7 @@ contains
             RZi = RZ1(np)
 
 ! Ewald-Summation
-            if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+            if ( .not. this%ReactionField ) then
 
 !CDIR NODEP
             ! Include intramolecular interaction if need
@@ -4602,7 +4602,7 @@ contains
           RZi = RZ1(np)
 
 ! Ewald-Summation
-          if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+          if ( .not. this%ReactionField ) then
 
 !CDIR NODEP
             ! Include intramolecular interaction if need

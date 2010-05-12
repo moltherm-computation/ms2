@@ -648,7 +648,7 @@ contains
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
           call LogWrite
           ! Read Ewald Parameters
-          call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
+          call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 0.15_RK )
           write( IOBuffer, '("Rodgers Parameter KappaL:", F8.3)' )KappaL_h
           call LogWrite
 
