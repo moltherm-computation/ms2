@@ -418,7 +418,7 @@ contains
     ! Read mole fraction of this component
     write( IOBuffer, '(72(1H-))')
     call LogWrite
-    write( IOBuffer, '(T13, "Reading components for ensemble", I3)') comp
+    write( IOBuffer, '(T13, "Reading component", I3," for ensemble")') comp
     call LogWrite
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
     write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
@@ -562,7 +562,7 @@ contains
 &       this%NFluctMax + 1 )
     end if
 
-    write( IOBuffer, '(T8, "Reading components for ensemble", I3, " successful")') comp
+    write( IOBuffer, '(T8, "Reading component", I3," for ensemble successful")') comp
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
