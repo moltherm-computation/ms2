@@ -758,29 +758,29 @@ contains
     call AllocationError( stat, 'ensembles', this%NEnsembles )
     do i = 1, this%NEnsembles
       if (LongRange .eq. Ewald) then
-            this%ensemble(i)%KappaL = KappaL_h
-            this%ensemble(i)%nsqmax = nsqmax_h
-            this%ensemble(i)%nvecmax = nvecmax_h
-            this%ensemble(i)%nmax = nmax_h
-            this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+            this%Ensemble(i)%KappaL = KappaL_h
+            this%Ensemble(i)%nsqmax = nsqmax_h
+            this%Ensemble(i)%nvecmax = nvecmax_h
+            this%Ensemble(i)%nmax = nmax_h
+            this%Ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
 #ifdef SPME
       else if (LongRange .eq. PME) then
-            this%ensemble(i)%KappaL = KappaL_h
-            this%ensemble(i)%gridx  = grid_h
-            this%ensemble(i)%gridy  = grid_h
-            this%ensemble(i)%gridz  = grid_h
-            this%ensemble(i)%splineorder = spline_h
-            allocate(this%ensemble(i)%qgrida(2,(grid_h)**3+1),STAT=stat)
+            this%Ensemble(i)%KappaL = KappaL_h
+            this%Ensemble(i)%gridx  = grid_h
+            this%Ensemble(i)%gridy  = grid_h
+            this%Ensemble(i)%gridz  = grid_h
+            this%Ensemble(i)%splineorder = spline_h
+            allocate(this%Ensemble(i)%qgrida(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error grida'
-            allocate(this%ensemble(i)%qgrida_old(2,(grid_h)**3+1),STAT=stat)
+            allocate(this%Ensemble(i)%qgrida_old(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error grida_old'
-            allocate(this%ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
+            allocate(this%Ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error gridb'
 #endif
       else if (LongRange .eq. ExtRField) then
             this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
       else if (LongRange .eq. Rodgers) then
-            this%ensemble(i)%KappaL = KappaL_h
+            this%Ensemble(i)%KappaL = KappaL_h
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )

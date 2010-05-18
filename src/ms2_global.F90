@@ -1309,11 +1309,11 @@ contains
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
     call LogWriteBlank
-    write( IOBuffer, '("************************************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '("************************************************************************")')
+    write( IOBuffer, '(72(1H*))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &

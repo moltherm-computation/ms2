@@ -2169,7 +2169,7 @@ contains
     nullify( this%Pm0Test )
     nullify( this%Qm0Test )
     nullify( this%EPotTest )
-!     nullify( this%BiasedPartners )
+    nullify( this%BiasedPartners )
 
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), &
@@ -2178,8 +2178,8 @@ contains
     allocate( this%ScaleEpsilon(this%NComponents, this%NComponents), &
 &     STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
-!     allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
-!     call AllocationError( stat, 'NPartMax', this%NPartMax )
+    allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
+    call AllocationError( stat, 'NPartMax', this%NPartMax )
 
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
@@ -2210,8 +2210,8 @@ contains
     else
        do i = 1, this%NComponents
          if (i .le. this%NRealComponents) then
-           this%Component(i)%NPartMax => this%NPartMax
-           this%Component(i)%NUnitMax => this%NUnitMax
+           this%Component(i)%NPartMax => this%Component(i)%NPart
+           this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
          else
            this%Component(i)%NPartMax => this%NPartMaxFluct
            this%Component(i)%NUnitMax => this%NUnitMax
@@ -2284,7 +2284,7 @@ contains
     if( associated( this%EPotTest ) ) deallocate( this%EPotTest )
     if( associated( this%ScaleEpsilon ) ) deallocate( this%ScaleEpsilon )
     if( associated( this%ScaleSigma ) ) deallocate( this%ScaleSigma )
-!     if( associated( this%BiasedPartners ) ) deallocate( this%BiasedPartners )
+    if( associated( this%BiasedPartners ) ) deallocate( this%BiasedPartners )
 
   end subroutine TEnsemble_Deallocate
 
@@ -4170,8 +4170,9 @@ loop5:    do nc = 1, this%NComponents
 &                                ndfcp
     integer                   :: r, s, nc, np, ncf, npf
 !     integer                   :: ewald_h
-    integer                   :: nu, nuh
+    integer                   :: nu, nuh, nuh2
     integer                   :: ratio
+    integer                   :: sndf
     type(TComponent), pointer :: pc
 #if MPI_VER > 0
     real(RK)                  :: EPot_h
@@ -4275,7 +4276,8 @@ giloop:   do j = 1, NFullFluct * ndfcp
             if (mod(j,ndfcp) == 0) call BiasedPartners(this, ncf, npf)
 
             ! Choose particle randomly
-            s = 0
+            s    = 0
+            sndf = 0
             r = rnd( ndfcp )
 
             if( r <= ndfmove ) then
@@ -4303,29 +4305,35 @@ loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
 
 
             else if( r <= (ndfmove + ndfbiased) ) then
+              ! initializing
+              nuh2 = 0
+              
+              ! calculation of the molecule number and unit number
               r = (r - ndfmove - 1) / ratio + 1
-              nuh = int(r / (ndfbiased/ratio) * this%NGradIns) + 1
+              nuh = int((r-1) / (ndfbiased/ratio) * this%NGradIns) + 1
 loop3:        do nc = 1, this%NComponents
                 s = s + pc%BiasedPartners
+                sndf = sndf + this%Component(nc)%NDF
                 if( nuh <= s ) exit loop3
               end do loop3
               ndf = this%Component(nc)%Molecule%NDF
               np = 1 + this%BiasedPartners(nuh)
-              nuh= int((r/(ndfbiased/ratio)*this%NGradIns + 1 - nuh ) * ndf)
+              nuh= int(( (r-1)/(ndfbiased/ratio)*this%NGradIns + 1 - nuh ) * ndf)
               do nu = 1, this%Component(nc)%Molecule%NUnit
                 if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit
+                nuh2 = nuh2 + sum(this%Component(nc)%Molecule%Unit(nu)%NDF
               end do 
 
               ! Acceleration of MC Moves
               if (np .gt. this%Component(nc)%NPart) cycle
 
-              nuh = 1 + ((s - r) - (np-1) * ndf)
-loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
-                if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop4
-              end do loop4
+!               nuh = 1 + ((sndf - r) - (np-1) * ndf)
+! loop4:        do nu = 1, this%Component(nc)%Molecule%NUnit
+!                 if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop4
+!               end do loop4
 
               ! Move or rotate biased
-              if( mod( s - r, ndf ) < 3 ) then
+              if( (mod( sndf - r,ndf )-nuh2 )< 3 ) then
                 call MoveBiased( this, nc, np, nu, ncf, npf )
               else
                 call RotateBiased( this, nc, np, nu, ncf, npf )
@@ -10032,6 +10040,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
        call PMESetup(this)
 #endif
+    else if ( LongRange .eq. Rodgers ) then
+       do i=1,this%NComponents
+         do j=1,this%NComponents
+           this%Interaction(i,j)%Kappa = this%Kappa
+         end do
+       end do
+
     end if
 
     if( SimulationType .eq. MolecularDynamics ) then
