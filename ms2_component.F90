@@ -32,6 +32,9 @@ module ms2_component
 
   type TComponent
 
+    ! Charged component
+    logical           :: charged
+
     ! Positions and orientations of test particles
     real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
 
@@ -133,6 +136,8 @@ module ms2_component
 !DEBUG
     real(RK) :: ChemPot0, PartialMolarVolume
     real(RK) :: VarChemPot, VarPartialMolarVolume
+
+    integer  :: BiasedPartners
 
 ! Ewald
     real(RK) :: EPotTestSelf
@@ -1293,14 +1298,18 @@ contains
      q = q + this%NPart * this%Molecule%SiteCharge(i)%e
    end do
 
+   if (abs(q) .ge. 1e-1) this%charged = .true.
+!    ! Calculate the total charge of the system
+!      q = q + this%NPart * this%Molecule%Charge
+
 ! Reaction Field Check
-   if ((LongRange .eq. RField) .and. (abs(q) .ge. 1e-1)) then
-     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
+   if ((LongRange .eq. RField) .and. (abs(this%Molecule%Charge) .ge. 1e-1)) then
+     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') this%Molecule%Charge
      call Error
    end if
 
    if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) &
-&         .and. (abs(q) .ge. 1e-4) ) then
+&         .and. (abs(q) .ge. 1e-1) ) then
      write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
      call Error
    end if
@@ -2051,9 +2060,9 @@ contains
         do i = 1, this%Molecule%NCharge
           pCharge => this%Molecule%SiteCharge(i)
           do j = 1, np
-            pCharge%RX(j) = this%P0(j,1)
-            pCharge%RY(j) = this%P0(j,2)
-            pCharge%RZ(j) = this%P0(j,3)
+            pCharge%RX(j) = this%P0Test(j,1)
+            pCharge%RY(j) = this%P0Test(j,2)
+            pCharge%RZ(j) = this%P0Test(j,3)
           end do
         end do
       end if

@@ -586,7 +586,8 @@ contains
         case( 'Ewald', 'ew', 'ewald', 'EWALD')
             LongRange = Ewald
             LongRangeString = 'EwaldSum'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+            write( IOBuffer, '("Long Range Correction: ", A)' ) &
+&                  trim( LongRangeString )
             call LogWrite
             ! Read extended Reaction Field Parameters
 !             call FileReadParameter( iounit_params , IdDebyeLen )
@@ -618,7 +619,8 @@ contains
         case( 'PME', 'pme', 'SPME', 'spme')
             LongRange = PME
             LongRangeString = 'Smooth Particle Mesh Ewald Summation'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+            write( IOBuffer, '("Long Range Correction: ", A)' ) &
+&                  trim( LongRangeString )
             call LogWrite
             ! Read SPM Ewald Parameters
             call FileReadParameter( iounit_params , IdKappa )
@@ -638,17 +640,30 @@ contains
         case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
             LongRange = RField
             LongRangeString = 'Reaction Field'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+            write( IOBuffer, '("Long Range Correction: ", A)' ) &
+&                  trim( LongRangeString )
 
         case( 'ExtReactionField', 'ExtRF', 'extreactionfield', 'extrf' )
             LongRange = ExtRField
             LongRangeString = 'Extended Reaction Field by Tironi et al.'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
+            write( IOBuffer, '("Long Range Correction: ", A)' ) &
+&                  trim( LongRangeString )
             call LogWrite
             ! Read extended Reaction Field Parameters
             call FileReadParameter( iounit_params , IdDebyeLen )
             read( IOBuffer, * ) debyelen_h
             write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
+        case( 'Rodgers', 'rodgers' )
+            LongRange = rodgers
+            LongRangeString = 'Rodgers'
+            write( IOBuffer, '("Long Range Correction: ", A)' ) &
+&                  trim( LongRangeString )
+            call LogWrite
+            ! Read Rodgers Parameters
+            call FileReadParameter( iounit_params , IdKappa )
+            read( IOBuffer, * ) KappaL_h
+            write( IOBuffer, '("Rodgers Parameter KappaL:", F8.3)' )KappaL_h
+            call LogWrite
 
       case default
         call Error( trim( str )//' is not a valid longrange correction' )
@@ -672,27 +687,29 @@ contains
     call AllocationError( stat, 'ensembles', this%NEnsembles )
     do i = 1, this%NEnsembles
       if (LongRange .eq. Ewald) then
-            this%ensemble(i)%KappaL = KappaL_h
-            this%ensemble(i)%nsqmax = nsqmax_h
-            this%ensemble(i)%nvecmax = nvecmax_h
-            this%ensemble(i)%nmax = nmax_h
+            this%Ensemble(i)%KappaL = KappaL_h
+            this%Ensemble(i)%nsqmax = nsqmax_h
+            this%Ensemble(i)%nvecmax = nvecmax_h
+            this%Ensemble(i)%nmax = nmax_h
 !             this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
 #ifdef SPME
       else if (LongRange .eq. PME) then
-            this%ensemble(i)%KappaL = KappaL_h
-            this%ensemble(i)%gridx  = grid_h
-            this%ensemble(i)%gridy  = grid_h
-            this%ensemble(i)%gridz  = grid_h
-            this%ensemble(i)%splineorder = spline_h
-            allocate(this%ensemble(i)%qgrida(2,(grid_h)**3+1),STAT=stat)
+            this%Ensemble(i)%KappaL = KappaL_h
+            this%Ensemble(i)%gridx  = grid_h
+            this%Ensemble(i)%gridy  = grid_h
+            this%Ensemble(i)%gridz  = grid_h
+            this%Ensemble(i)%splineorder = spline_h
+            allocate(this%Ensemble(i)%qgrida(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error grida'
-            allocate(this%ensemble(i)%qgrida_old(2,(grid_h)**3+1),STAT=stat)
+            allocate(this%Ensemble(i)%qgrida_old(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error grida_old'
-            allocate(this%ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
+            allocate(this%Ensemble(i)%qgridb(2,(grid_h)**3+1),STAT=stat)
             if(stat >0) write(*,*) 'Allocation Error gridb'
 #endif
       else if (LongRange .eq. ExtRField) then
-            this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+            this%Ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+      else if (LongRange .eq. Rodgers) then
+            this%Ensemble(i)%KappaL = KappaL_h
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )
@@ -1320,8 +1337,10 @@ eqloop: do
 
     integer :: NEns
     integer :: nc,np
+    integer :: NTransfer
 
 
+    NTransfer = 100
     ! Simulations Setup Check for Gibbs
     if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
 &     call Error( 'Gibbs Ensemble only implemented for NVT')
@@ -1336,8 +1355,8 @@ eqloop: do
 ! Volume Change in both boxes
     if (.not. NVTEquilibration) then
       accept = .false.
-      EPotOldliq = this%ensemble(1)%EPot
-      VolOldliq = this%ensemble(1)%Volume0
+      EPotOldliq = this%Ensemble(1)%EPot
+      VolOldliq = this%Ensemble(1)%Volume0
 
       call Resize_Gibbs( this%Ensemble(1),dv,EPotDelta )
       call Resize_Gibbs( this%Ensemble(2),dv,EPotDelta,accept )
@@ -1346,7 +1365,7 @@ eqloop: do
       call Update_Gibbs ( this%Ensemble(1),accept,EPotOldliq,VolOldliq )
 
 ! Particle change in both boxes
-      DO i=1, 100
+      DO i=1,NTransfer
         accept = .false.
         NEns_h = rnd(0._RK,1._RK)
         NEns   = int(anint(NEns_h) + 1._RK)
@@ -1354,7 +1373,7 @@ eqloop: do
         call Remove_Gibbs( this%Ensemble(NEns),nc,np,EPotDelta )
         call Insert_Gibbs( this%Ensemble(3-NEns),nc,EPotDelta, accept )
 
-        call Update_Gibbs ( this%Ensemble(NEns),nc,np,accept )
+        call Update_Gibbs ( this%Ensemble(NEns),nc,np,NTransfer,accept )
       END DO
     end if
 

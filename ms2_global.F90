@@ -280,6 +280,7 @@ module ms2_global
   character(*), parameter :: IdCons2                       = 'Constr2'
   character(*), parameter :: IdConsR                       = 'ConstrDist'
 #endif
+  character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -391,6 +392,7 @@ module ms2_global
   integer, parameter :: RField        = 2
   integer, parameter :: PME           = 3
   integer, parameter :: extRField     = 4
+  integer, parameter :: Rodgers       = 5
   integer            :: LongRange
 
   ! Type of method for chemical potential
@@ -419,6 +421,7 @@ module ms2_global
   real(RK), parameter :: DispRotLimit  = 0.150_RK
   real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
+  integer,  parameter :: TransferRateLimit = 50
 
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100

@@ -60,6 +60,7 @@ module ms2_interaction
 
     ! Virial
     real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
+    logical           :: OptPressure
 
     ! Arrays for center of mass cutoff
     integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
@@ -316,9 +317,11 @@ contains
     call Allocate( this )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       this%EPot = 0._RK
-      this%Virial = 0._RK
       this%EPotNew = 0._RK
-      this%VirialNew = 0._RK
+      if (this%OptPressure ) then
+        this%Virial = 0._RK
+        this%VirialNew = 0._RK
+      end if
     end if
 
     ! Nullify pointers
@@ -673,9 +676,11 @@ contains
     nullify( this%EPot )
     nullify( this%EPot1 )
     nullify( this%EPotNew )
-    nullify( this%Virial )
-    nullify( this%Virial1 )
-    nullify( this%VirialNew )
+    if (this%OptPressure ) then
+      nullify( this%Virial )
+      nullify( this%Virial1 )
+      nullify( this%VirialNew )
+    end if
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
 
@@ -697,19 +702,23 @@ contains
       call AllocationError( stat, 'particles', N2 )
       allocate( this%EPotNew(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%Virial(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%Virial1(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
-      allocate( this%VirialNew(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
+      if (this%OptPressure ) then
+        allocate( this%Virial(N1, N2), STAT = stat )
+        call AllocationError( stat, 'particles', N1 * N2 )
+        allocate( this%Virial1(N2), STAT = stat )
+        call AllocationError( stat, 'particles', N2 )
+        allocate( this%VirialNew(N1, N2), STAT = stat )
+        call AllocationError( stat, 'particles', N1 * N2 )
+      end if
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
       allocate( this%EPot1(this%NPartMax), STAT = stat )
       call AllocationError( stat, 'particles', this%NPartMax )
-      allocate( this%Virial1(this%NPartMax), STAT = stat )
-      call AllocationError( stat, 'particles', this%NPartMax )
+      if (this%OptPressure ) then
+        allocate( this%Virial1(this%NPartMax), STAT = stat )
+        call AllocationError( stat, 'particles', this%NPartMax )
+      end if
       allocate( this%MayerFFunction(NSteps), STAT = stat )
       call AllocationError( stat, 'Mayer f-function' )
       allocate( this%MayerFFunction1(NSteps), STAT = stat )
@@ -762,14 +771,16 @@ contains
     if( associated( this%EPotNew ) ) then
       deallocate( this%EPotNew )
     end if
-    if( associated( this%Virial ) ) then
-      deallocate( this%Virial )
-    end if
-    if( associated( this%Virial1 ) ) then
-      deallocate( this%Virial1 )
-    end if
-    if( associated( this%VirialNew ) ) then
-      deallocate( this%VirialNew )
+    if (this%OptPressure ) then
+      if( associated( this%Virial ) ) then
+        deallocate( this%Virial )
+      end if
+      if( associated( this%Virial1 ) ) then
+        deallocate( this%Virial1 )
+      end if
+      if( associated( this%VirialNew ) ) then
+        deallocate( this%VirialNew )
+      end if
     end if
 
   end subroutine TInteraction_DeallocateEPot
@@ -802,14 +813,16 @@ contains
     if( associated( this%EPotNew ) ) then
       deallocate( this%EPotNew )
     end if
-    if( associated( this%Virial ) ) then
-      deallocate( this%Virial )
-    end if
-    if( associated( this%Virial1 ) ) then
-      deallocate( this%Virial1 )
-    end if
-    if( associated( this%VirialNew ) ) then
-      deallocate( this%VirialNew )
+    if ( this%OptPressure ) then
+      if( associated( this%Virial ) ) then
+        deallocate( this%Virial )
+      end if
+      if( associated( this%Virial1 ) ) then
+        deallocate( this%Virial1 )
+      end if
+      if( associated( this%VirialNew ) ) then
+        deallocate( this%VirialNew )
+      end if
     end if
     if( associated( this%MayerFFunction ) ) then
       deallocate( this%MayerFFunction )
@@ -911,7 +924,7 @@ contains
 
     ! Calculate point charge forces
     do i = 1, this%N1Charge
-      if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+      if ( .not. this%ReactionField ) then
 	do j = 1, this%N2Charge
           call Force( this%PotChargeCharge( i, j ), &
 &       	  EPot, Virial, BoxLength, this%Kappa )
@@ -1203,14 +1216,19 @@ contains
     real(RK)          :: KappaRij, Rij, approx, Faktor, q
     integer           :: N
     integer           :: s1, s2, j, k
+    logical           :: OptPressure
 
     ! Assign local variables
     EPot => this%EPot1
-    Virial => this%Virial1
+    OptPressure = this%OptPressure
+    if ( OptPressure ) then
+      Virial => this%Virial1
+      VirialLocal = 1E33
+    end if
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    BoxLengthThird = 1./3. * BoxLength
+    BoxLengthThird = 1._RK/3._RK * BoxLength
     PXi = this%PX1(np)
     PYi = this%PY1(np)
     PZi = this%PZ1(np)
@@ -1223,12 +1241,14 @@ contains
     ! Zero energy
     EPot(:) = 0._RK
 
-    ! Zero virial
-    Virial(:) = 0._RK
+    if ( OptPressure ) then
+      ! Zero virial
+      Virial(:) = 0._RK
+    end if
 
     ! Initialization Ewald Summation
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
-       Faktor = 2./sqrt(Pi) * this%Kappa
+    if ( .not. this%ReactionField ) then
+       Faktor = 2._RK/sqrt(Pi) * this%Kappa
     end if 
 
     if( CutoffMode .eq. CenterofMass ) then
@@ -1246,7 +1266,9 @@ contains
           plj => this%PotLJ126LJ126(s1, s2)
           SigmaSquared = plj%SigmaSquared
           Epsilon4 = plj%Epsilon4
-          Epsilon48 = plj%Epsilon48
+          if ( OptPressure ) then
+            Epsilon48 = plj%Epsilon48
+          end if
 
           ! Assign pointers to site positions
           RX1 => plj%Site1%RX
@@ -1280,12 +1302,14 @@ contains
             RijSquaredInv = SigmaSquared / RijSquared
             Rij6Inv = RijSquaredInv**3
             EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
-            FXij = Fij * RXij
-            FYij = Fij * RYij
-            FZij = Fij * RZij
-            Virial(j) = Virial(j) &
-&             + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            if ( OptPressure ) then
+              Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+              FXij = Fij * RXij
+              FYij = Fij * RYij
+              FZij = Fij * RZij
+              Virial(j) = Virial(j) &
+&               + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            end if
           end do
         end do
       end do
@@ -1293,7 +1317,7 @@ contains
       ! Calculate point charge energy
       do s1 = 1, this%N1Charge
 ! Ewald-Summation
-       if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+       if ( .not. this%ReactionField ) then
         do s2 = 1, this%N2Charge
           pcc => this%PotChargeCharge(s1, s2)
           Epsilon = pcc%Epsilon
@@ -1334,16 +1358,20 @@ contains
                 Rij =  sqrt(RijSquared)
                 RijInv = 1._RK /  Rij 
                 KappaRij = this%Kappa*Rij
-                call erfc_approx(KappaRij,approx)
-                eX = RXij * RijInv
-                eY = RYij * RijInv
-                eZ = RZij * RijInv
+                call ErrorApprox(this%PotChargeCharge(s1,s2), KappaRij,approx)
                 EPotLocal = Epsilon * RijInv * approx
-                VirialLocal = (EPotLocal + Faktor*exp(-KappaRij**2) * Epsilon) &
-&                        * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+                if ( OptPressure ) then
+                  eX = RXij * RijInv
+                  eY = RYij * RijInv
+                  eZ = RZij * RijInv
+                  VirialLocal = (EPotLocal + Faktor*exp(-KappaRij**2) * Epsilon) &
+&                          * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+                end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third * VirialLocal
+            end if
           end do
         end do
 ! Reaction Field
@@ -1390,15 +1418,19 @@ contains
 #else
               RijInv = 1._RK / sqrt( RijSquared )
 #endif
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
               EPotLocal = Epsilon * RijInv
-              VirialLocal = EPotLocal * RijInv &
-&               * (eX * PXij + eY * PYij + eZ * PZij)
+              if ( OptPressure ) then
+                eX = RXij * RijInv
+                eY = RYij * RijInv
+                eZ = RZij * RijInv
+                VirialLocal = EPotLocal * RijInv &
+&                 * (eX * PXij + eY * PYij + eZ * PZij)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third * VirialLocal
+            end if
           end do
         end do
        end if ! ReactionField - Ewald-Summation
@@ -1452,75 +1484,19 @@ contains
               eY = RYij * RijInv
               eZ = RZij * RijInv
               CosThetaj = OXj * ex + OYj * eY + OZj * eZ
-              Tmp = 3._RK * CosThetaj
               EPotLocal = Epsilon * RijSquaredInv * CosThetaj
-              VirialLocal = Epsilon * RijSquaredInv * RijInv &
-&                            * ( ( Tmp * eX - OXj ) * PXij &
-&                              + ( Tmp * eY - OYj ) * PYij &
-&                              + ( Tmp * eZ - OZj ) * PZij )
+              if ( OptPressure ) then
+                Tmp = 3._RK * CosThetaj
+                VirialLocal = Epsilon * RijSquaredInv * RijInv &
+&                              * ( ( Tmp * eX - OXj ) * PXij &
+&                                + ( Tmp * eY - OYj ) * PYij &
+&                                + ( Tmp * eZ - OZj ) * PZij )
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
-          end do
-        end do
-        do s2 = 1, this%N2Dipole
-          pcd => this%PotChargeDipole(s1, s2)
-          Epsilon = pcd%Epsilon
-          RShieldSquared = pcd%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pcd%Site1%RX
-          RY1 => pcd%Site1%RY
-          RZ1 => pcd%Site1%RZ
-          RX2 => pcd%Site2%RX
-          RY2 => pcd%Site2%RY
-          RZ2 => pcd%Site2%RZ
-          OX2 => pcd%Site2%OX
-          OY2 => pcd%Site2%OY
-          OZ2 => pcd%Site2%OZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-
-          ! Loop over molecules
-!CDIR NODEP
-          do k = 1, this%NInCutoff(np)
-            j = this%CutoffPartner(k, np)
-            RXij = RXi - RX2(j)
-            RYij = RYi - RY2(j)
-            RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j)
-            PYij = PYi - PY2(j)
-            PZij = PZi - PZ2(j)
-            RXij = (RXij - anint( PXij )) * BoxLength
-            RYij = (RYij - anint( PYij )) * BoxLength
-            RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
-            OXj = OX2(j)
-            OYj = OY2(j)
-            OZj = OZ2(j)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-            else
-              RijSquaredInv = 1._RK / RijSquared
-              RijInv = sqrt( RijSquaredInv )
-              eX = RXij * RijInv
-              eY = RYij * RijInv
-              eZ = RZij * RijInv
-              CosThetaj = OXj * ex + OYj * eY + OZj * eZ
-              Tmp = 3._RK * CosThetaj
-              EPotLocal = Epsilon * RijSquaredInv * CosThetaj
-              VirialLocal = Epsilon * RijSquaredInv * RijInv &
-&                            * ( ( Tmp * eX - OXj ) * PXij &
-&                              + ( Tmp * eY - OYj ) * PYij &
-&                              + ( Tmp * eZ - OZj ) * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -1574,15 +1550,19 @@ contains
               CosThetaj = OXj * ex + OYj * eY + OZj * eZ
               EPotLocal = Epsilon * RijSquaredInv * RijInv &
 &                          * ( CosThetaj * CosThetaj - Third )
-              Tmp = 2._RK * CosThetaj
-              CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
-              VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
-&               * ( ( CosAux * eX - Tmp * OXj ) * PXij &
-&                 + ( CosAux * eY - Tmp * OYj ) * PYij &
-&                 + ( CosAux * eZ - Tmp * OZj ) * PZij )
+              if ( OptPressure ) then
+                Tmp = 2._RK * CosThetaj
+                CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
+                VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
+&                 * ( ( CosAux * eX - Tmp * OXj ) * PXij &
+&                   + ( CosAux * eY - Tmp * OYj ) * PYij &
+&                   + ( CosAux * eZ - Tmp * OZj ) * PZij )
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third * VirialLocal
+            end if
           end do
         end do
       end do
@@ -1638,15 +1618,19 @@ contains
               eY = RYij * RijInv
               eZ = RZij * RijInv
               CosThetai = OXi * ex + OYi * eY + OZi * eZ
-              Tmp = 3._RK * CosThetai
+!               Tmp = 3._RK * CosThetai
               EPotLocal = - Epsilon * RijSquaredInv * CosThetai
-              VirialLocal = Epsilon * RijSquaredInv * RijInv &
-&                            * ( ( OXi - Tmp * eX ) * PXij &
-&                              + ( OYi - Tmp * eY ) * PYij &
-&                              + ( OZi - Tmp * eZ ) * PZij )
+              if ( OptPressure ) then
+                VirialLocal = Epsilon * RijSquaredInv * RijInv &
+&                              * ( ( OXi - Tmp * eX ) * PXij &
+&                                + ( OYi - Tmp * eY ) * PYij &
+&                                + ( OZi - Tmp * eZ ) * PZij )
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third * VirialLocal
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third * VirialLocal
+            end if
           end do
         end do
         do s2 = 1, this%N2Dipole
@@ -1713,16 +1697,20 @@ contains
               Rij3Inv = Epsilon * RijInv**3
               Rij4Inv3 = 3._RK * Rij3Inv * RijInv
               EPotLocal = Rij3Inv * Tmp
-              FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
-&                                         - (eX * CosThetaj - OXj) * CosThetai)
-              FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
-&                                         - (eY * CosThetaj - OYj) * CosThetai)
-              FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
-&                                         - (eZ * CosThetaj - OZj) * CosThetai)
+              if ( OptPressure ) then
+                FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                           - (eX * CosThetaj - OXj) * CosThetai)
+                FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                           - (eY * CosThetaj - OYj) * CosThetai)
+                FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                           - (eZ * CosThetaj - OZj) * CosThetai)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -1789,21 +1777,25 @@ contains
               Rij4Inv = Epsilon / RijSquared**2
               EPotLocal = Rij4Inv * ( CosGammaij * CosThetaj &
 &                                   + CosThetai * CosAux )
-              dCosThetai = Rij4Inv * CosAux
-              dCosThetaj = Rij4Inv &
-&                           * (CosGammaij - 10._RK * CosThetai * CosThetaj)
-              dCosGammaij = 2._RK * Rij4Inv * CosThetaj
-              Tmp = -4._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij4Inv * CosAux
+                dCosThetaj = Rij4Inv &
+&                             * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+                dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+                Tmp = -4._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
       end do
@@ -1862,16 +1854,20 @@ contains
 !                                                              Orientierungsvektor Quadrupol
               EPotLocal = Epsilon * RijSquaredInv * RijInv &
 &                          * ( CosThetai * CosThetai - Third )
-              Tmp = 2._RK * CosThetai
-              CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
-              Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-              FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               ! Kraft auf die Punktladung, sprich F2
-              FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
-              FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
+              if ( OptPressure ) then
+                Tmp = 2._RK * CosThetai
+                CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
+                Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+                FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               ! Kraft auf die Punktladung, sprich F2
+                FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
+                FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) - Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) - Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
         do s2 = 1, this%N2Dipole
@@ -1938,21 +1934,25 @@ contains
               Rij4Inv = Epsilon / RijSquared**2
               EPotLocal = Rij4Inv * ( CosThetaj * CosAux &
 &                                   - CosGammaij * CosThetai )
-              dCosThetai = Rij4Inv &
-&                           * (10._RK * CosThetai * CosThetaj - CosGammaij)
-              dCosThetaj = Rij4Inv * CosAux
-              dCosGammaij = -2._RK * Rij4Inv * CosThetai
-              Tmp = -4._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij4Inv &
+&                             * (10._RK * CosThetai * CosThetaj - CosGammaij)
+                dCosThetaj = Rij4Inv * CosAux
+                dCosGammaij = -2._RK * Rij4Inv * CosThetai
+                Tmp = -4._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * (FXij * PXij + FYij * PYij + FZij * PZij)
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * (FXij * PXij + FYij * PYij + FZij * PZij)
+            end if
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -2028,24 +2028,28 @@ contains
 &               - 15._RK * CosThetaiSquared * CosThetajSquared &
 &               + 2._RK * Tmp**2)
 
-              dCosThetai = Rij5Inv * (-10._RK * CosThetai &
-&                                    - 30._RK * CosThetai * CosThetajSquared &
-&                                    - 20._RK * CosThetaj * Tmp)
-              dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
-&                                    - 30._RK * CosThetaj * CosThetaiSquared &
-&                                    - 20._RK * CosThetai * Tmp)
-              dCosGammaij = 4._RK * Rij5Inv * Tmp
-              Tmp = -5._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                      - 30._RK * CosThetai * CosThetajSquared &
+&                                      - 20._RK * CosThetaj * Tmp)
+                dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                      - 30._RK * CosThetaj * CosThetaiSquared &
+&                                      - 20._RK * CosThetai * Tmp)
+                dCosGammaij = 4._RK * Rij5Inv * Tmp
+                Tmp = -5._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
       end do
@@ -2221,7 +2225,9 @@ contains
           plj => this%PotLJ126LJ126(s1, s2)
           SigmaSquared = plj%SigmaSquared
           Epsilon4 = plj%Epsilon4
-          Epsilon48 = plj%Epsilon48
+          if ( OptPressure ) then
+            Epsilon48 = plj%Epsilon48
+          end if
 
           ! Assign pointers to site positions
           RX1 => plj%Site1%RX
@@ -2261,12 +2267,14 @@ contains
             RijSquaredInv = SigmaSquared / RijSquared
             Rij6Inv = RijSquaredInv**3
             EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
-            FXij = Fij * RXij
-            FYij = Fij * RYij
-            FZij = Fij * RZij
-            Virial(j) = Virial(j) &
-&             + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            if ( OptPressure ) then
+              Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+              FXij = Fij * RXij
+              FYij = Fij * RYij
+              FZij = Fij * RZij
+              Virial(j) = Virial(j) &
+&               + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            end if
           end do
         end do
       end do
@@ -2344,18 +2352,22 @@ contains
               CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
               Tmp = CosGammaij -  3._RK * CosThetai * CosThetaj
               Rij3Inv = Epsilon * RijInv**3
-              Rij4Inv3 = 3._RK * Rij3Inv * RijInv
               EPotLocal = Rij3Inv * Tmp + RFConst2 * CosGammaij
-              FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
-&                                         - (eX * CosThetaj - OXj) * CosThetai)
-              FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
-&                                         - (eY * CosThetaj - OYj) * CosThetai)
-              FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
-&                                         - (eZ * CosThetaj - OZj) * CosThetai)
+              if ( OptPressure ) then
+                Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+                FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                           - (eX * CosThetaj - OXj) * CosThetai)
+                FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                           - (eY * CosThetaj - OYj) * CosThetai)
+                FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                           - (eZ * CosThetaj - OZj) * CosThetai)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -2428,21 +2440,25 @@ contains
               Rij4Inv = Epsilon / RijSquared**2
               EPotLocal = Rij4Inv * ( CosGammaij * CosThetaj &
 &                                   + CosThetai * CosAux )
-              dCosThetai = Rij4Inv * CosAux
-              dCosThetaj = Rij4Inv &
-&                           * (CosGammaij - 10._RK * CosThetai * CosThetaj)
-              dCosGammaij = 2._RK * Rij4Inv * CosThetaj
-              Tmp = -4._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij4Inv * CosAux
+                dCosThetaj = Rij4Inv &
+&                             * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+                dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+                Tmp = -4._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
       end do
@@ -2519,21 +2535,25 @@ contains
               Rij4Inv = Epsilon / RijSquared**2
               EPotLocal = Rij4Inv * ( CosThetaj * CosAux &
 &                                   - CosGammaij * CosThetai )
-              dCosThetai = Rij4Inv &
-&                           * (10._RK * CosThetai * CosThetaj - CosGammaij)
-              dCosThetaj = Rij4Inv * CosAux
-              dCosGammaij = -2._RK * Rij4Inv * CosThetai
-              Tmp = -4._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij4Inv &
+&                             * (10._RK * CosThetai * CosThetaj - CosGammaij)
+                dCosThetaj = Rij4Inv * CosAux
+                dCosGammaij = -2._RK * Rij4Inv * CosThetai
+                Tmp = -4._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * (FXij * PXij + FYij * PYij + FZij * PZij)
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * (FXij * PXij + FYij * PYij + FZij * PZij)
+            end if
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -2615,24 +2635,28 @@ contains
 &               - 15._RK * CosThetaiSquared * CosThetajSquared &
 &               + 2._RK * Tmp**2)
 
-              dCosThetai = Rij5Inv * (-10._RK * CosThetai &
-&                                    - 30._RK * CosThetai * CosThetajSquared &
-&                                    - 20._RK * CosThetaj * Tmp)
-              dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
-&                                    - 30._RK * CosThetaj * CosThetaiSquared &
-&                                    - 20._RK * CosThetai * Tmp)
-              dCosGammaij = 4._RK * Rij5Inv * Tmp
-              Tmp = -5._RK * RijInv * EPotLocal
-              FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
-&                                        + (eX * CosThetaj - OXj) * dCosThetaj)
-              FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
-&                                        + (eY * CosThetaj - OYj) * dCosThetaj)
-              FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
-&                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
+              if ( OptPressure ) then
+                dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                      - 30._RK * CosThetai * CosThetajSquared &
+&                                      - 20._RK * CosThetaj * Tmp)
+                dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                      - 30._RK * CosThetaj * CosThetaiSquared &
+&                                      - 20._RK * CosThetai * Tmp)
+                dCosGammaij = 4._RK * Rij5Inv * Tmp
+                Tmp = -5._RK * RijInv * EPotLocal
+                FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                          + (eX * CosThetaj - OXj) * dCosThetaj)
+                FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                          + (eY * CosThetaj - OYj) * dCosThetaj)
+                FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
+              end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-            Virial(j) = Virial(j) + Third &
-&                         * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + Third &
+&                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
+            end if
           end do
         end do
       end do

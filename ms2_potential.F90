@@ -125,6 +125,10 @@ module ms2_potential
     module procedure TPotCC_Energy_Ewald
   end interface
 
+  interface ErrorApprox
+    module procedure TPoterfc_approx
+  end interface
+
 !   interface Energy
 !     module procedure TPotCC_Energy
 !   end interface
@@ -1453,7 +1457,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ                                             ! Site-Site-Einheitvektor
+    real(RK)          :: eX, eY, eZ         ! Site-Site-Einheitvektor
     real(RK)          :: RijInv, Rij
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: approx, Faktor
@@ -1546,7 +1550,7 @@ loop1:do k = 1, this%NInCutoff(i)
         RijInv = 1._RK /  Rij 
 #endif
         KappaRij = Kappa*Rij
-        call erfc_approx(KappaRij,approx)
+        call ErrorApprox(this, KappaRij,approx)
 
         eX = RXij * RijInv
         eY = RYij * RijInv
@@ -2128,7 +2132,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         RijInv = 1._RK /  Rij 
 #endif
         KappaRij = Kappa*Rij
-        call erfc_approx(KappaRij,approx)
+        call ErrorApprox(this,KappaRij,approx)
 
         eX = RXij * RijInv
         eY = RYij * RijInv
@@ -7047,8 +7051,9 @@ loop2:do j = 1, j1
 
 
 
-  subroutine erfc_approx(in,approx_out)
+  subroutine TPoterfc_approx(this,in,approx_out)
 
+  type(TPotChargeCharge)      :: this
   real(RK),intent(in)     :: in
   real(RK),intent(out)    :: approx_out
 
@@ -7065,7 +7070,7 @@ loop2:do j = 1, j1
   argu = 1._RK / (1._RK + P*in)
   approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
 
-  end subroutine erfc_approx
+  end subroutine TPoterfc_approx
 
 
 end module ms2_potential
