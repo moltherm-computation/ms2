@@ -99,7 +99,7 @@ gfortran_steereo:
 	@echo "Compiling using GFORTRAN with Steereo support"
 	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DMS2_STEEREO\
 	-O3 -fdefault-real-8 \
-	-L/home/hpcdjenz/workspace/Steereo/src -lSteereo \
+	-lSteereo \
 	-o ms2.gfortran_steereo $(SOURCES)
 	rm -f *.o *.mod
 
@@ -107,7 +107,7 @@ gfortran_steereo_mpi:
 	@echo "Compiling using GFORTRAN with Steereo and MPI support"
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -DMS2_STEEREO\
 	-O3 -fdefault-real-8 \
-	-L/home/hpcdjenz/workspace/Steereo/src -lSteereo \
+	-lSteereo \
 	-o ms2.gfortran_steereo_mpi $(SOURCES)
 	rm -f *.o *.mod
 
