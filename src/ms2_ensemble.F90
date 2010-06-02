@@ -4321,7 +4321,7 @@ loop3:        do nc = 1, this%NComponents
               nuh= int(( (r-1)/(ndfbiased/ratio)*this%NGradIns + 1 - nuh ) * ndf)
               do nu = 1, this%Component(nc)%Molecule%NUnit
                 if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit
-                nuh2 = nuh2 + sum(this%Component(nc)%Molecule%Unit(nu)%NDF
+                nuh2 = nuh2 + this%Component(nc)%Molecule%Unit(nu)%NDF
               end do 
 
               ! Acceleration of MC Moves
