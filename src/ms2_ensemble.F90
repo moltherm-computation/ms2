@@ -4711,7 +4711,7 @@ loop2:        do nc = 1, this%NComponents
 &                           + pc%EPotTestCorrRF
 
     ! check if (pc%ChemPot-EPotInsAll)/this%Temperature>exp_arg_max ?
-    if( exp( ( pc%ChemPot - EPotInsAll ) / this%Temperature ) > &
+    if( exp(  pc%ChemPot - EPotInsAll  / this%Temperature ) > &
 &       np / this%Volume0 * rnd( 0._RK, 1._RK ) ) then
 #else
     EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ &
