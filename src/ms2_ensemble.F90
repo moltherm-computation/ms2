@@ -4694,6 +4694,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     call AddParticle( pc, r, q )
+    if ( tooManyParticles ) return
     np = pc%NPart
     this%NPart = this%NPart + 1
 
