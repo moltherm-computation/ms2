@@ -5631,52 +5631,52 @@ loop2:        do nc = 1, this%NComponents
     ! Transport properties !TRANSPORT_start
     if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) ) then
       rewind( this%iounit_rescf )
-      write( IOBuffer, '("   TIME[ps]")' )
+      write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
       if(this%Ncomponents==2)then
-        write( IOBuffer, '(T5,"D_12")' )
+        write( IOBuffer, '(T11,"D_12")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
       if(this%Ncomponents==3)then
-          write( IOBuffer, '(T4, "D_ijk", I2)') i
+          write( IOBuffer, '(T10, "D_ijk", I2)') i
           call FileWriteNoAdvance( this%iounit_rescf )
       end if
       do i = 1, this%NComponents
-        write( IOBuffer, '(T4,"D_i",I2)' ) i
+        write( IOBuffer, '(T10,"D_i",I2)' ) i
         call FileWriteNoAdvance( this%iounit_rescf )
       end do
 
-      write( IOBuffer, '(T7,"VS")' )
+      write( IOBuffer, '(T13,"VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T9,"VB")' )
+      write( IOBuffer, '(T13,"VB")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T9,"CO")' )
+      write( IOBuffer, '(T13,"CO")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
       if( this%Ncomponents == 2 ) then
-        write( IOBuffer, '(T6,"IntD12")' )
+        write( IOBuffer, '(T9,"IntD12")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
       if( this%Ncomponents == 3 ) then
-           write( IOBuffer, '(T6,"IntDijk")' )
+           write( IOBuffer, '(T13,"IntDijk")' )
            call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
       do i = 1, this%NComponents
-         write( IOBuffer, '(T6,"IntD_i",I2)' ) i
+         write( IOBuffer, '(T7,"IntD_i",I2)' ) i
          call FileWriteNoAdvance( this%iounit_rescf )
       end do
 
-      write( IOBuffer, '(T4,"Int VS")' )
+      write( IOBuffer, '(T9,"Int VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T5,"Int VB")' )
+      write( IOBuffer, '(T9,"Int VB")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T5,"Int C ")' )
+      write( IOBuffer, '(T10,"Int C ")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
       call FileWriteBlank( this%iounit_rescf )
@@ -5689,32 +5689,32 @@ loop2:        do nc = 1, this%NComponents
 
         ! Binary diffusion coefficient
         if(this%Ncomponents==2)then
-          write( IOBuffer, '(F10.5)' ) this%cf_db(i)/this%cf_db(1)
+          write( IOBuffer, '(T5,F10.5)' ) this%cf_db(i)/this%cf_db(1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Ternary diffusion coefficient
         if(this%Ncomponents==3)then
-              write( IOBuffer, '(F10.5)' ) this%lamda(1, i)/this%lamda(1,1)
+              write( IOBuffer, '(T5, F10.5)' ) this%lamda(1, i)/this%lamda(1,1)
               call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Self-diffusion coefficients
         do j = 1, this%NComponents
-          write( IOBuffer, '(F10.5)' ) this%cf_d(j,i)/this%cf_d(j,1)
+          write( IOBuffer, '(T5, F10.5)' ) this%cf_d(j,i)/this%cf_d(j,1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
 
         ! Shear viscosity
-        write( IOBuffer, '(F10.5)' ) this%cf_vs(i)/this%cf_vs(1)
+        write( IOBuffer, '(T5, F10.5)' ) this%cf_vs(i)/this%cf_vs(1)
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Bulk viscosity
-        write( IOBuffer, '(F10.5)' ) this%cf_vb(i)/this%cf_vb(1)
+        write( IOBuffer, '(T5, F10.5)' ) this%cf_vb(i)/this%cf_vb(1)
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Thermal conductivity
-        write( IOBuffer, '(F10.5)' ) this%cf_c(i)/this%cf_c(1)
+        write( IOBuffer, '(T5, F10.5)' ) this%cf_c(i)/this%cf_c(1)
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! integral ======================================================!
@@ -5722,20 +5722,20 @@ loop2:        do nc = 1, this%NComponents
 
         ! Binary diffusion coefficient
         if( this%Ncomponents == 2) then
-          write( IOBuffer, '(F10.5)' ) &
+          write( IOBuffer, '(T5, F10.5)' ) &
 &           this%sinte_db(i) / this%sinte_db(this%Ncorr) * this%binary_d * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         if( this%Ncomponents == 3) then
-             write( IOBuffer, '(F10.5)' ) &
+             write( IOBuffer, '(T5, F10.5)' ) &
 &            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%Ncorr) * this%ternary_a * value
              call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Self-diffusion coefficient
         do j = 1, this%NComponents
-          write( IOBuffer, '(F10.5)' ) &
+          write( IOBuffer, '(T5, F10.5)' ) &
 &           this%sinte_i(j,i) / this%sinte_i(j,this%Ncorr) * this%selfd_i(j) * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
@@ -5744,19 +5744,19 @@ loop2:        do nc = 1, this%NComponents
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
 
        !shear
-        write( IOBuffer, '(F10.5)' ) &
+        write( IOBuffer, '(T5, F10.5)' ) &
 &         this%sinte_vs(i) / this%sinte_vs(this%Ncorr) * this%visco_s * value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! bulk
-        write( IOBuffer, '(F10.5)' ) &
+        write( IOBuffer, '(T5, F10.5)' ) &
 &         this%sinte_vb(i) / this%sinte_vb(this%Ncorr) * this%visco_b * value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! thermal conductivity
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
 
-        write( IOBuffer, '(F10.5)' ) &
+        write( IOBuffer, '(T5, F10.5)' ) &
 &         this%sinte_c(i) / this%sinte_c(this%Ncorr) * this%conduct * value
         call FileWriteNoAdvance( this%iounit_rescf )
         call FileWriteBlank( this%iounit_rescf )
