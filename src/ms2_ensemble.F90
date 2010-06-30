@@ -5722,20 +5722,20 @@ loop2:        do nc = 1, this%NComponents
 
         ! Binary diffusion coefficient
         if( this%Ncomponents == 2) then
-          write( IOBuffer, '(T5, F10.5)' ) &
+          write( IOBuffer, '(T5, F10.4)' ) &
 &           this%sinte_db(i) / this%sinte_db(this%Ncorr) * this%binary_d * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         if( this%Ncomponents == 3) then
-             write( IOBuffer, '(T5, F10.5)' ) &
+             write( IOBuffer, '(T5, F10.4)' ) &
 &            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%Ncorr) * this%ternary_a * value
              call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Self-diffusion coefficient
         do j = 1, this%NComponents
-          write( IOBuffer, '(T5, F10.5)' ) &
+          write( IOBuffer, '(T5, F10.4)' ) &
 &           this%sinte_i(j,i) / this%sinte_i(j,this%Ncorr) * this%selfd_i(j) * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
