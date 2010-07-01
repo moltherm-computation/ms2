@@ -87,7 +87,7 @@ module ms2_interaction
 
     ! Numbers of particles
     integer, pointer :: NPart1, NPart2
-#if MPI_VER > 0
+#if MPI_VER > 0 
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
 #endif
@@ -195,11 +195,6 @@ contains
 &                                    RFEpsilon )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)           :: this
@@ -329,8 +324,10 @@ contains
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
+    nullify( this%PotDipoleCharge )
     nullify( this%PotDipoleDipole )
     nullify( this%PotDipoleQuadrupole )
+    nullify( this%PotQuadrupoleCharge )
     nullify( this%PotQuadrupoleDipole )
     nullify( this%PotQuadrupoleQuadrupole )
 
@@ -683,6 +680,15 @@ contains
     end if
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
+    
+    ! allocated only for SimulationType .eq. SecondVirialCoeff
+    nullify( this%MayerFFunction )
+    nullify( this%MayerFFunction1 )
+    nullify( this%MayerFFunction2 )
+    nullify( this%IntFFunction )
+    nullify( this%IntFFunction1 )
+    nullify( this%IntFFunction2 )
+    
 
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. &
@@ -1223,12 +1229,12 @@ contains
     OptPressure = this%OptPressure
     if ( OptPressure ) then
       Virial => this%Virial1
-      VirialLocal = 1E33
+      VirialLocal = 1E33_RK
     end if
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    BoxLengthThird = 1._RK/3._RK * BoxLength
+    BoxLengthThird = Third * BoxLength
     PXi = this%PX1(np)
     PYi = this%PY1(np)
     PZi = this%PZ1(np)
@@ -1618,7 +1624,7 @@ contains
               eY = RYij * RijInv
               eZ = RZij * RijInv
               CosThetai = OXi * ex + OYi * eY + OZi * eZ
-!               Tmp = 3._RK * CosThetai
+              Tmp = 3._RK * CosThetai
               EPotLocal = - Epsilon * RijSquaredInv * CosThetai
               if ( OptPressure ) then
                 VirialLocal = Epsilon * RijSquaredInv * RijInv &

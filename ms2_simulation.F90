@@ -510,6 +510,12 @@ contains
       write( IOBuffer, '("Number of production steps: ", I7)' ) NSteps
       call LogWrite
 
+#if MPI_VER > 0
+      if ( SimulationType .eq. MonteCarlo ) then
+        NSteps = ceiling(real(NSteps)/NProcs)
+      endif
+#endif
+
       ! Read frequency of updating result file
       call FileReadParameter( iounit_params , IdBlockSize )
       read( IOBuffer, * ) BlockSize
@@ -524,7 +530,25 @@ contains
 
       ! Calculate number of blocks and block sizes
       if( BlockSize > 0 ) then
-        NBlocksMax = max( NStepsV, NStepsP, NSteps ) / BlockSize
+        NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+
+        ! Warning, if simulation is extended
+        if ( mod(NSteps,BlockSize) .ne. 0._RK) then
+          if (NSteps > BlockSize) then
+            NSteps = ceiling(real(NSteps)/BlockSize)*BlockSize
+            if ( SimulationType .eq. MonteCarlo ) then
+              write( IOBuffer, '("Production steps are extended to",T40, I7, " cycles")' ) NSteps*NProcs
+            else
+              write( IOBuffer, '("Production steps are extended to",T40, I7, " time steps")' ) NSteps
+            end if
+            call LogWrite
+          else
+            BlockSize = NSteps
+            write( IOBuffer, '("BlockSize is reduced to ",T40, I7, " due to small number of steps")' ) BlockSize
+            call LogWrite
+            NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+          endif
+        end if
         NBlockSizesMax = int( sqrt( real( NSteps / BlockSize, RK ) ) )
         if (NBlocksMax .eq. 0) then
             call Error( 'ResultFreq < RunSteps, please change input variables' )
@@ -533,6 +557,16 @@ contains
         NBlocksMax = 0
         NBlockSizesMax = 0
       end if
+      
+      if ( NBlocksMax .lt. 10) then
+        call LogWriteBlank
+        write(IOBuffer, '("!!! WARNING !!!")')
+        call LogWrite
+        write(IOBuffer, '("Underestimated variances expected due to the small number of blocks.")' )
+        call LogWrite
+        call LogWriteBlank
+      end if
+
 
       ! Read frequency of updating final result file
       call FileReadParameter( iounit_params , IdErrorsUpdateFrequency )
@@ -870,10 +904,29 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i
+    integer :: i, j
     logical :: NPartsOk
+#if MPI_VER > 0
+    type(TComponent), pointer :: pc
+    type(TInteraction), pointer :: pi
+    integer :: k, n1, n2
+    
+    integer :: color, NGroups, Proc_Max_Eff
+    integer :: statusHost, lengthHost, tmpVal
+    character(255) :: hostnameStr
+    logical :: doEqui, multNodes
+    character(10) :: procStr
+
+#endif 
 
     tooManyParticles = .false.
+
+#if MPI_VER > 0
+    ! This is for the restart - in case there is a restart, the root reads and communicates
+    if (SimulationType .eq. MonteCarlo) then 
+        RootProc = NProc==NRootProc
+    endif
+#endif
 
     if( Restart ) then
       call RestartRead( this )
@@ -891,6 +944,182 @@ contains
       end if
     end if
 
+#if MPI_VER > 0 
+    ! For MC parallelization: if we have common equilibration 
+    ! active, we revert to one rootproc
+    if (SimulationType .eq. MonteCarlo) then 
+      if (CommonEqui) then
+        NProcs_W = NProcs
+        NProc_W = NProc
+
+        multNodes = .false.
+                  
+
+
+        ! The following generaly doesn´t work, as the environment is the same for all MPI processes
+       ! call get_environment_variable("HOST", hostnameStr, lengthHost, statusHost)
+       
+       ! COL_DEBUG This works for the moment. It has not been extensively tested. It should give back the hostname... 
+        call MPI_GET_PROCESSOR_NAME(hostnameStr,lengthHost, ierror)
+        if (len(trim(hostnameStr))==0) then
+          statusHost = 1    
+        else
+          statusHost = 0         
+        endif    
+                   
+        if (statusHost >0) then
+          !Fill in abitrary split, as we have no information on the topology :(
+          
+          write( IOBuffer, '("WARNING: This platform/compiler does not support MPI_GET_PROCESSOR_NAME")' ) 
+          call LogWrite
+          write( IOBuffer, '("WARNING: properly, therefore equilibration is split arbitrarily.")' ) 
+          call LogWrite
+          write( IOBuffer, '("WARNING: This may result in poor performance during equilibration")' ) 
+          call LogWrite
+          
+          !The maximum number of processes
+          Proc_Max_Eff = 8
+            
+          !COL_DEBUG Here we build communicators if necessary. With more then approx 8 processes
+          !the common equilibration becomes slower. We split into groups of Proc_Max_Eff.
+          if (NProcs .gt. Proc_Max_Eff) then
+            multNodes = .true.
+            NGroups = NProcs/Proc_Max_Eff          
+            color=mod(NProc,NGroups)  
+        
+            if (NProc .ge. NGroups*Proc_Max_Eff) then
+              color = 1000000              
+            endif
+          
+            call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,NProc,Communicator,ierror) 
+            ! Careful, Nproc and NProcs are now specific for Communicator
+            call SetCommunicator( Communicator )             
+          endif    
+        else
+          !split according to nodes (assign color depending on the hostname)
+          if (NProcs .gt. 4) then
+            color = 0
+            do i=1,lengthHost
+              tmpVal = ichar (trim(hostnameStr(i:i)))
+              color = color + (tmpVal**2)*i
+            enddo
+            
+            call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,NProc,Communicator,ierror) 
+            ! Careful, Nproc and NProcs are now specific for Communicator
+            call SetCommunicator( Communicator )
+       
+              
+            call MPI_ALLREDUCE(NProcs, Proc_Max_Eff, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierror )
+          
+            if (Proc_Max_Eff .lt. 3) then
+               write( IOBuffer, '("WARNING: MPI_GET_PROCESSOR_NAME may have given a processor specific name")' ) 
+               call LogWrite
+               write( IOBuffer, '("WARNING: if you have more than 2 PE per node, something is wrong. Try a different")' ) 
+               call LogWrite
+               write( IOBuffer, '("WARNING: compiler. P.s: Due to that, the equilibration is slow, sorry!")' ) 
+               call LogWrite
+            endif
+              
+              
+          if (Proc_Max_Eff .lt. NProcs_W) then
+            multNodes = .true.
+            if (Proc_Max_Eff .gt. NProcs) then
+              color = 1000000
+              tmpVal = 0
+            else
+              tmpVal = 1
+            endif
+            call MPI_ALLREDUCE(tmpVal, NGroups, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror )
+            NGroups = NGroups/Proc_Max_Eff
+          endif
+          endif
+        endif
+
+
+        
+        
+        
+        if (multNodes) then
+          
+           
+           if (color == 1000000) then
+              if (MCOverlapReduction) then
+                NStepsMC = 1
+              endif
+
+              if (NVTEquilibration) then
+                NStepsV = 1
+              endif
+
+              if (Equilibration) then
+                NStepsP = 1
+              endif
+           endif
+           if (RootProc) then
+             if (NProc_W .ne. NRootProc) then
+               write( IOBuffer, '(I16)' ) NProc_W  
+               call FileRewrite( iounit_log, trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//LogFileExtension )
+               
+               do j = 1, this%NEnsembles
+                 ! Open running average result file
+                 write( IOBuffer, '(I16)' ) NProc_W
+                 call FileRewrite( this%Ensemble(j)%iounit_runave, &
+&                trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+                 ! Open result file
+                 write( IOBuffer, '(I16)' ) NProc_W
+                 call FileRewrite( this%Ensemble(j)%iounit_result, &
+&                trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+               enddo
+             endif 
+           endif   
+          
+           ! Careful, Nproc and NProcs are now specific for Communicator
+!           call SetCommunicator( Communicator )
+           
+           
+           call Randomize( seed = (5333+(color+1)) )
+ 
+        endif
+
+      
+      else
+        !every process does it´s own equilibration, so they need a seed each
+!         RootProc = .true.
+        call Randomize( seed = (5333*(NProc+1)) )
+      
+      endif
+
+      ! adapt procrange for to the given equilibration scheme
+      do j = 1, this%NEnsembles
+        do i = 1, this%Ensemble(j)%NComponents
+           pc => this%Ensemble(j)%Component(i)
+           pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
+        end do
+        
+         ! Recalculate Energies to avoid energy artefacts 
+         !if (CommonEqui) then
+         !if (NProcs_W .gt. Proc_Max_Eff) then
+              ! Convert molecular coordinates to atom positions
+         call Mol2Atom( this%Ensemble(j) )
+        ! Recalculate LongRange Correction
+        call CalculateCorr( this%Ensemble(j) )
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, &
+&           this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+        end if
+
+         ! Set all potential energy matrices
+         call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+         call UpdateEnergy( this%Ensemble(j) )
+
+         !endif
+         !endif
+
+      end do
+    endif 
+#endif
+
+
     ! Run MC overlap reduction
     if( MCOverlapReduction .and. .not. TerminateProgram ) then
       StepEnd = NStepsMC
@@ -903,6 +1132,7 @@ contains
       end if
       call LogWriteTime
       SimulationType = MonteCarlo
+!       CommonEqui = .true.
 
       call RunSteps( this, StepStart, StepEnd )
 
@@ -1081,33 +1311,178 @@ eqloop: do
       exit eqloop
     end do eqloop
 
-    ! GradIns initialization
-!     if( GradInsInitialization .and. .not. TerminateProgram ) then
+
+    ! In the MC parallelization, every process is regarded as its own root from here 
+    ! (the equilibration is finished. From now on, every process runs its own simulation etc.)
+#if MPI_VER > 0 
+    if (SimulationType .eq. MonteCarlo .and. CommonEqui) then 
+!       RootProc =.true.
+!       RootProc = NProc == NRootProc
+      
+      do k = 1, this%NEnsembles
+          do i = 1, this%Ensemble(k)%NComponents
+            do j = 1, this%Ensemble(k)%NComponents
+              pi => this%Ensemble(k)%Interaction(j, i)
+              n1 = pi%NPart1
+              n2 = pi%NPart2
+        
+              call MPI_Allreduce( pi%EPot(1:n1, 1:n2), pi%EPotNew(1:n1, 1:n2), n1*n2 , &
+&               MPI_RK, MPI_SUM, Communicator, ierror )
+              pi%EPot(1:n1, 1:n2) =  pi%EPotNew(1:n1, 1:n2)
+       
+              if ( this%Ensemble(k)%OptPressure ) then
+                call MPI_Allreduce( pi%Virial(1:n1, 1:n2) ,pi%VirialNew(1:n1, 1:n2), n1*n2 , &
+&                 MPI_RK, MPI_SUM, Communicator, ierror )
+                pi%Virial(1:n1, 1:n2)  =  pi%VirialNew(1:n1, 1:n2)
+              endif
+            end do
+          end do
+      end do
+      
+      
+      
+      
+      if (NProcs_W .gt. Proc_Max_Eff) then
+      
+        if (RootProc) then
+          if (NProc_W .ne. NRootProc) then
+            ! Close all files keeping track of the equilibration
+            do j = 1, this%NEnsembles
+              call FileClose( this%Ensemble(j)%iounit_runave )
+              call FileClose( this%Ensemble(j)%iounit_result )
+            enddo
+            call LogClose
+          endif
+        endif
+         
+           ! communicate data from root to the processes that didn´t calculate an
+          ! equilibration      
+          if (NProcs_W .gt. NGroups*Proc_Max_Eff) then
+           
+           ! build new communicator, including the Root and all processes not having
+           ! equilibrated
+           if (NProc_W == NRootProc) then
+            ! the Root receives the corresponding color (see above)
+            color = 1000000
+           endif 
+           
+           call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,NProc_W,Communicator,ierror) 
+           call SetCommunicator( Communicator )
+           
+           ! only these processes are involved in the communication
+           if  ((NProc_W .ge. NGroups*Proc_Max_Eff) .or. (NProc_W == NRootProc)) then
+             do j = 1, this%NEnsembles
+               call MPI_Bcast( this%Ensemble(j)%EPot, 1, MPI_RK, NRootProc, Communicator, ierror)     
+               call MPI_Bcast( this%Ensemble(j)%DispVol, 1, &
+&                MPI_RK, NRootProc, Communicator, ierror )            
+               do i = 1, this%Ensemble(j)%NComponents
+                 call MPI_Bcast( this%Ensemble(j)%Component(i)%P0(:, :), size( this%Ensemble(j)%Component(i)%P0 ), &
+&                 MPI_RK, NRootProc, Communicator, ierror )
+                 if( this%Ensemble(j)%Component(i)%Molecule%isElongated ) then
+                    call MPI_Bcast( this%Ensemble(j)%Component(i)%Q0(:, :), size( this%Ensemble(j)%Component(i)%Q0 ), &
+&                   MPI_RK, NRootProc, Communicator, ierror )
+                 endif 
+               enddo
+               do i = 1,  this%Ensemble(j)%NRealComponents
+                 call MPI_Bcast( this%Ensemble(j)%Component(i)%DispTran, 1, &
+&                  MPI_RK, NRootProc, Communicator, ierror )
+                 call MPI_Bcast( this%Ensemble(j)%Component(i)%DispRot, 1, &
+&                  MPI_RK, NRootProc, Communicator, ierror )
+               enddo
+             enddo
+           endif 
+          endif
+          
+          ! Set Communicator to COMM_WORLD
+          call SetCommunicator (MPI_COMM_WORLD)
+          
+!           RootProc = NProc == NRootProc
+
+    
+          ! Compare Energies and broadcast values corresponding to the best energy
+          !  call MPI_Gather
+          !  call MPI_Broadcast
+          ! Zur Zeit macht jeder mit was er hat weiter. 
+              
+      endif      
+      
+      
+      ! New random number seed for different simulations (distinct simulation in every process)
+      call Randomize( seed = (5333*(NProc+1)) )
+      ! New random number seed for different simulations
+
+
+
+
+      ! adapt procrange such that each simulation calculates all its interactions from now on
+      do j = 1, this%NEnsembles
+        do i = 1, this%Ensemble(j)%NComponents
+          pc => this%Ensemble(j)%Component(i)
+          pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
+        end do
+        !if (NProcs_W .gt. Proc_Max_Eff) then
+        ! Convert molecular coordinates to atom positions
+        call Mol2Atom( this%Ensemble(j) )
+        
+        ! Recalculate LongRange Correction
+        call CalculateCorr( this%Ensemble(j) )
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, &
+&           this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+        end if
+        
+        ! Set all potential energy matrices
+        call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+        call UpdateEnergy( this%Ensemble(j) )
+        !endif
+      end do
+
+
+    endif 
+#endif
+
+     GradInsInitialization = .false.
+     do j = 1, this%NEnsembles
+       do i = 1, this%Ensemble(j)%NComponents
+           if( (this%Ensemble(j)%Component(i)%WFMethod .eq. WFMethodGuess) .and. &
+&               (this%Ensemble(j)%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns) ) then
+             GradInsInitialization = .true.
+           endif
+       enddo
+     enddo
+     
+     ! Do a gradual insertion Initialisation if required
+     !if( any( this%Ensemble(:)%Component(:)%WFMethod .eq. WFMethodGuess) .and. .not. TerminateProgram) then
+      if( GradInsInitialization) then
 !       StepEnd = NStepsG
-!       call LogWriteBlank
-!       if( Restart ) then
-!         write( IOBuffer, '("Resuming GradIns initialization")' )
-!         Restart = .false.
-!       else
-!         write( IOBuffer, '("Starting GradIns initialization")' )
-!         call LogWrite
-!         write( IOBuffer, '("  (adjustment of weigthing factors)")' )
-!       end if
-!       call LogWriteTime
-! 
-!       do i = 1, this%NEnsembles
-!         call GradInsInit( this%Ensemble(i) )
-!       end do
-! 
-!       if( .not. TerminateProgram ) then
-!         write( IOBuffer, '("GradIns initialization completed")' )
-!         GradInsInitialization = .false.
-!       else
-!         write( IOBuffer, '("GradIns initialization terminated")' )
-!       end if
-!       call LogWriteTime
-!       StepStart = 1
-!     end if
+       call LogWriteBlank
+       if( Restart ) then
+         write( IOBuffer, '("Resuming GradIns initialization")' )
+         Restart = .false.
+       else
+         Step = 1
+         write( IOBuffer, '("Starting GradIns initialization")' )
+         call LogWrite
+         write( IOBuffer, '("  (adjustment of weighting factors)")' )
+       end if
+       call LogWriteTime
+
+       do i = 1, this%NEnsembles
+         call ChemicalPotential( this%Ensemble(i) )
+       end do
+
+       if( .not. TerminateProgram ) then
+         write( IOBuffer, '("GradIns initialization completed")' )
+         GradInsInitialization = .false.
+       else
+         write( IOBuffer, '("GradIns initialization terminated")' )
+       end if
+       call LogWriteTime
+       StepStart = 1
+     end if
+
+
+
 
     ! Run production
     if( .not. TerminateProgram ) then
@@ -1167,7 +1542,7 @@ eqloop: do
     integer, intent(in) :: StepStart, StepEnd
 
     ! Declare local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
 #endif
 
@@ -1208,12 +1583,28 @@ eqloop: do
 
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-      call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
-&       MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
-      if( AnyTerminateProgram ) then
-        TerminateProgram = .true.
-        exit
-      end if
+      if (SimulationType .eq. MonteCarlo) then
+        if (Step == StepEnd .and. .not. Equilibration) then
+           call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
+&            MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+          if( AnyTerminateProgram ) then
+            TerminateProgram = .true.
+            exit
+          end if
+        else
+          if( TerminateProgram ) then
+            call MPI_Abort( MPI_COMM_WORLD, 5, ierror )
+          end if
+        endif 
+      else
+        call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
+&            MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+        if( AnyTerminateProgram ) then
+          TerminateProgram = .true.
+          exit
+        end if
+      endif
+      
 #else
       if( TerminateProgram ) exit
 #endif
@@ -1518,7 +1909,9 @@ eqloop: do
     integer :: i
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( SimulationType .eq. MolecularDynamics ) then
+       if( .not. RootProc ) return
+    endif
 
     ! Return if no output
     if( BlockSize < 1 ) return
@@ -1630,7 +2023,9 @@ eqloop: do
     integer :: i
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( SimulationType .eq. MolecularDynamics ) then
+       if( .not. RootProc ) return
+    endif
 
     ! Return if no output
     if( BlockSize < 1 ) return
@@ -1965,13 +2360,13 @@ eqloop: do
 
 #if MPI_VER > 0
     call MPI_Bcast( Step, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( StepTotal, 1, MPI_INTEGER, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
     call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number

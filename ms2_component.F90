@@ -138,6 +138,7 @@ module ms2_component
     real(RK) :: VarChemPot, VarPartialMolarVolume
 
     integer  :: BiasedPartners
+    integer  :: BiasedPartnersNum
 
 ! Ewald
     real(RK) :: EPotTestSelf
@@ -195,6 +196,10 @@ module ms2_component
 
   interface Destruct
     module procedure TComponent_Destruct
+  end interface
+
+  interface DestructFluct
+    module procedure TComponent_DestructFluct
   end interface
 
   interface Allocate
@@ -517,8 +522,8 @@ contains
 &         this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
 #if MPI_VER > 0
-        call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&         NRootProc, Communicator, ierror )
 #endif
       end if
     end if
@@ -688,7 +693,54 @@ contains
       deallocate( this%NPart )
     end if
 
+    if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
+      ! Deallocate maximum allowed MC displacements
+      if( associated( this%DispTran ) ) then
+        deallocate( this%DispTran )
+      end if
+      if( associated( this%DispRot ) ) then
+        deallocate( this%DispRot )
+      end if
+    end if
+
   end subroutine TComponent_Destruct
+
+!==============================================================!
+!  Subroutine TComponent_DestructFluct                         !
+!==============================================================!
+
+  subroutine TComponent_DestructFluct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent) :: this
+
+    ! Destroy potential model
+    call Destruct( this%Molecule )
+
+    ! Deallocate number of test particles
+    if( associated( this%NTest ) ) then
+      deallocate( this%NTest )
+    end if
+
+    ! Deallocate number of particles in process
+    if( associated( this%NPart0 ) ) then
+      deallocate( this%NPart0 )
+    end if
+    if( associated( this%NPart1 ) ) then
+      deallocate( this%NPart1 )
+    end if
+    if( associated( this%NPart2 ) ) then
+      deallocate( this%NPart2 )
+    end if
+
+    ! Deallocate number of particles in component
+    if( associated( this%NPart ) ) then
+      deallocate( this%NPart )
+    end if
+
+  end subroutine TComponent_DestructFluct
 
 
 
@@ -1583,11 +1635,14 @@ contains
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
-&     MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
-&       MPI_DOUBLE_PRECISION, NRootProc, MPI_COMM_WORLD, ierror )
+    ! in MC simulations, we only communicate during common equilibration
+    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+      call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
+      if( this%Molecule%isElongated ) &
+&       call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
+&         MPI_RK, NRootProc, Communicator, ierror )
+    endif
 #endif
 
     ! Assign local variables
@@ -2262,10 +2317,10 @@ contains
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
-&     MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
 &     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
-&       MPI_DOUBLE_PRECISION, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #endif
 
   end subroutine TComponent_Atom2Mol
@@ -2884,10 +2939,11 @@ contains
     ! Increase NPart
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
-    this%NPart1 = 1 + (this%NPart - 1) / NProcs
-    this%NPart0 = 1 + this%NPart1 * NProc
-    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-    this%NPart1 = this%NPart2 - this%NPart0 + 1
+    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
+!     this%NPart1 = 1 + (this%NPart - 1) / NProcs
+!     this%NPart0 = 1 + this%NPart1 * NProc
+!     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
+!     this%NPart1 = this%NPart2 - this%NPart0 + 1
 #endif
 
     ! Set coordinates and orientation of new particle
@@ -2934,10 +2990,11 @@ contains
     ! Remove last particle
     this%NPart = this%NPart - 1
 #if MPI_VER > 0
-    this%NPart1 = 1 + (this%NPart - 1) / NProcs
-    this%NPart0 = 1 + this%NPart1 * NProc
-    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
-    this%NPart1 = this%NPart2 - this%NPart0 + 1
+    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
+!     this%NPart1 = 1 + (this%NPart - 1) / NProcs
+!     this%NPart0 = 1 + this%NPart1 * NProc
+!     this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
+!     this%NPart1 = this%NPart2 - this%NPart0 + 1
 #endif
 
   end subroutine TComponent_RemoveParticle
@@ -3263,43 +3320,43 @@ contains
 
 #if MPI_VER > 0
     call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
-&     MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_DOUBLE_PRECISION, &
-&     NRootProc, MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
+    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
-      call MPI_Bcast( this%DispTran, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       MPI_COMM_WORLD, ierror )
+&       Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%DispRot, 1, MPI_DOUBLE_PRECISION, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&         MPI_COMM_WORLD, ierror )
+&         Communicator, ierror )
         call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
-&         NRootProc, MPI_COMM_WORLD, ierror )
+&         NRootProc, Communicator, ierror )
       end if
     end if
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_DOUBLE_PRECISION, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
       call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
-&       NRootProc, MPI_COMM_WORLD, ierror )
+&       NRootProc, Communicator, ierror )
     end if
 #endif
 

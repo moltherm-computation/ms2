@@ -17,6 +17,24 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
+!           __GFORTRAN__
+#if defined __GNUC__
+! the gfortran preprocessor seems not to support the # operator
+#define MACRODEF_STRINGIFY(x) "x"
+#else
+#define MACRODEF_STRINGIFY(x) #x
+#endif
+#define MACRODEF_TO_STRING(x)  MACRODEF_STRINGIFY(x)
+
+#if defined(__GNUC__)
+# if defined(__GNUC_PATCHLEVEL__)
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+# else
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
+# endif
+#endif
+
+
 module ms2_global
 
 #ifdef _WIN32
@@ -40,6 +58,10 @@ module ms2_global
   integer, parameter :: RK = 4
 #else
   integer, parameter :: RK = 8
+#endif
+
+#if MPI_VER > 0
+  integer :: MPI_RK
 #endif
 
   ! Define maximum length of file names
@@ -86,6 +108,15 @@ module ms2_global
   character(*), parameter :: Hardware = 'generic platform'
 #endif
 
+
+! define platform-specific path separator
+#ifdef _WIN32
+  character(*), parameter :: FileSep = '\'
+#else
+  character(*), parameter :: FileSep = '/'
+#endif
+
+
   ! Extension of configuration file.
   character(*), parameter :: ConfigFileExtension = '.cfg'
 
@@ -122,6 +153,7 @@ module ms2_global
   ! Restart file name
   character(FileNameLength) :: RestartFileName
 
+
   ! Define minimum allowed i/o unit number
 #if ARCH == 1
   integer, parameter :: iounit_start  = 7
@@ -145,7 +177,7 @@ module ms2_global
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
-  integer, parameter :: IOBufferLength = 256
+  integer, parameter :: IOBufferLength = 1024
 
   ! Declare input/output buffer strings
   character(IOBufferLength) :: IOBuffer
@@ -281,6 +313,7 @@ module ms2_global
   character(*), parameter :: IdConsR                       = 'ConstrDist'
 #endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
+  character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -448,7 +481,7 @@ module ms2_global
   integer :: Step, StepTotal
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction
+  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, GradInsInitialization
 
   ! Restart flag
   logical :: Restart
@@ -479,6 +512,10 @@ module ms2_global
 
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
+  
+  ! Common equilibration flag for MC. Determines whether one shared 
+  ! equilibration is performed
+  logical :: CommonEqui
 
   ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
@@ -491,10 +528,15 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
+  integer :: Communicator
   integer :: NProcs
   integer :: NProc
   integer :: NRootProc
   logical :: RootProc
+  integer :: NProcs_W
+  integer :: NProc_W
+  integer :: NRootProc_W
+  logical :: RootProc_W
 #else
   integer, parameter :: NProcs    = 1
   integer, parameter :: NProc     = 0
@@ -521,6 +563,12 @@ module ms2_global
 !==============================================================!
 !  Global procedure interfaces                                 !
 !==============================================================!
+
+#if MPI_VER > 0
+  interface SetCommunicator
+    module procedure Global_SetCommunicator
+  end interface
+#endif
 
   interface InitializeProgram
     module procedure Global_InitializeProgram
@@ -606,6 +654,10 @@ module ms2_global
     module procedure Global_FileWriteParameter
   end interface
 
+  interface ProcRange
+    module procedure Global_GetProcRange
+  end interface
+
   interface Randomize
     module procedure Global_Randomize
   end interface
@@ -667,6 +719,35 @@ module ms2_global
 contains
 
 
+#if MPI_VER > 0
+!==============================================================!
+!  Subroutine Global_SetCommunicator                           !
+!==============================================================!
+
+  subroutine Global_SetCommunicator(comm)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    ! Declare arguments
+    integer, intent(in) :: comm
+
+    Communicator = comm
+    if( Communicator /= MPI_COMM_NULL ) then
+      call MPI_Comm_size( Communicator, NProcs, ierror )
+      call MPI_Comm_rank( Communicator, NProc, ierror )
+    else
+      NProcs = 0
+      NProc = -1
+    end if
+    NRootProc = 0
+    RootProc = NProc == NRootProc
+
+  end subroutine Global_SetCommunicator
+#endif
+
 
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
@@ -679,6 +760,7 @@ contains
     ! Include MPI header
 #if MPI_VER > 0
     include 'mpif.h'
+    character(len=10) :: procStr
 #endif
 
     ! Declare local variables
@@ -686,16 +768,36 @@ contains
     integer                   :: narg, dot, stat, i
     character(IOBufferLength) :: buffer
 #endif
+#if MPI_VER > 0
+    integer                                    :: mpiversion, mpisubversion
+    character*(MPI_MAX_PROCESSOR_NAME)         :: procname
+    integer                                    :: procnamelen
+    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    integer                                    :: hostrank = MPI_PROC_NULL
+    integer                                    :: iorank = MPI_PROC_NULL
+    integer,pointer                            :: ioranks(:)
+    logical                                    :: flag
+#endif
 
     ! Initialize MPI
 #if MPI_VER > 0
     call MPI_Init( ierror )
-    call MPI_Comm_size( MPI_COMM_WORLD, NProcs, ierror )
-    call MPI_Comm_rank( MPI_COMM_WORLD, NProc, ierror )
-    NRootProc = 0
-    RootProc = NProc == NRootProc
+    call SetCommunicator( MPI_COMM_WORLD )
+    ! better define and initialize as parameter...
+    if ( RK == 8 ) then
+      !MPI_RK = MPI_RK
+      MPI_RK = MPI_REAL8
+    else if ( RK == 4 ) then
+      !MPI_RK = MPI_REAL
+      MPI_RK = MPI_REAL4
+    else
+      if( RootProc ) then
+        print *,"ERROR: RK==",RK," not supported for MPI version"
+      end if
+      call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    end if
 #endif
-
+    !
 !DEBUG
 !   if( NProcs > 1 ) then
 !     write(IOBuffer, '("debug.out.", I0)') NProc
@@ -741,7 +843,7 @@ contains
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
           Restart = .true.
-          RestartFileName = buffer
+          RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
           open( iounit_restart , file = RestartFileName, action = 'READ', &
@@ -751,7 +853,7 @@ contains
 &             ' for reading'
 
             ! Abort program
-#if MPI_VER > 0
+#if MPI_VER > 0 
             call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
 #endif
             stop
@@ -769,7 +871,8 @@ contains
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
 #endif
 
@@ -778,10 +881,51 @@ contains
 
     ! Update log file
 #if MPI_VER > 0
-    write( IOBuffer, '(I4, " MPI processes initialized")' ) NProcs
+    nullify( procnames )
+    nullify( ioranks )
+    if( RootProc ) then
+      call MPI_Get_version(mpiversion, mpisubversion, ierror)
+      write( IOBuffer, '("MPI Version (running with a MPI",I2,".",I1," library)")' ) mpiversion, mpisubversion
+      call LogWrite
+      write( IOBuffer, '("Number of processes: ",I4)' ) NProcs
+      call LogWrite
+      write( IOBuffer, '("Root process rank  : ",I4)' ) NRootProc
+      call LogWrite
+      call MPI_Attr_get(Communicator, MPI_HOST, hostrank, flag, ierror)
+      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+        write( IOBuffer, '("MPI Host rank      : ",I4)' ) hostrank
+        call LogWrite
+      end if
+    end if
+    allocate( procnames(NProcs), STAT = stat )
+    allocate( ioranks(NProcs), STAT = stat )
+    call MPI_Get_processor_name(procname, procnamelen, ierror)
+    !                         procnamelen might be variable
+    call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
+&                  ,NRootProc, Communicator, ierror)
+    call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
+    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+&                  ,NRootProc, Communicator, ierror)
+    if( RootProc ) then
+      write( IOBuffer, '("rank  I/O processor_name")' )
+      call LogWrite
+      do i = 1,NProcs
+        if( ioranks(i) == MPI_ANY_SOURCE )  then
+          write( IOBuffer, '(I4,"   +  ", A)' ) i-1, procnames(i)
+        else
+          write( IOBuffer, '(I4," ", I4, " ", A)' ) i-1, ioranks(i), procnames(i)
+        end if
+        call LogWrite
+      end do
+    end if
+    if( associated( ioranks ) ) deallocate( ioranks )
+    if( associated( procnames ) ) deallocate( procnames )
+#else
+    write( IOBuffer, '("sequential Version")' )
     call LogWrite
-    call LogWriteBlank
 #endif
+    call LogWriteBlank
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
@@ -807,8 +951,17 @@ contains
     end if
 #endif
 
-    ! Initialize random number generator
-    call Randomize( seed = 5333 )
+    ! Initialize random number generator. For MC_parallelization every process needs its own seed. #
+    ! Else, every process produces the exact same results, which is of course not the idea. With 
+    ! commonEqui, the seed is the same during initialization
+
+         
+          ! Initialize random number generator
+!    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui)) then
+!      call Randomize( seed = (5333*(NProc+1)) )
+!    else  
+      call Randomize( seed = 5333)
+!    endif
 
     ! Define some constants
 #ifdef SINGLEPRECISION
@@ -847,7 +1000,7 @@ contains
 
     ! Finalize MPI
 #if MPI_VER > 0
-    call MPI_Barrier( MPI_COMM_WORLD, ierror )
+!    call MPI_Barrier( Communicator, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -893,7 +1046,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 
     include 'mpif.h'
 #endif
 
@@ -914,7 +1067,7 @@ contains
     call LogClose
 
     ! Abort program
-#if MPI_VER > 0
+#if MPI_VER > 0 
     call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
 #endif
     stop
@@ -932,7 +1085,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 
     include 'mpif.h'
 #endif
 
@@ -942,7 +1095,7 @@ contains
     integer, intent(in), optional :: NPart
 
     ! Declare local variables
-#if MPI_VER > 0
+#if MPI_VER > 0 
     logical :: ok, okAll
 #endif
 
@@ -950,7 +1103,7 @@ contains
 #if MPI_VER > 0
     ok = stat == 0
     call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
-&     MPI_COMM_WORLD, ierror )
+&     Communicator, ierror )
     if( okAll ) return
 #else
     if( stat == 0 ) return
@@ -1067,7 +1220,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Close log file
     call LogWriteBlank
@@ -1093,7 +1246,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Write contents of buffer to log file
     call FileWrite( iounit_log )
@@ -1121,7 +1274,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+     if( NProc /= NRootProc ) return
 
     ! Write contents of buffer to log file
     call FileWriteNoAdvance( iounit_log )
@@ -1144,7 +1297,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Write blank line to log file
     call FileWriteBlank( iounit_log )
@@ -1171,7 +1324,7 @@ contains
     character(10) :: time_string
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Update log file
     call LogWriteNoAdvance
@@ -1200,7 +1353,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Update log file
     write( IOBuffer, '(I7, " steps completed")' ) Step
@@ -1231,7 +1384,7 @@ contains
     integer :: stat
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Open file for reading
     write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
@@ -1264,7 +1417,7 @@ contains
     character(*), intent(in)      :: filename
 
     ! Check for root process
-    if( .not. RootProc ) return
+     if( NProc /= NRootProc ) return
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
@@ -1299,7 +1452,7 @@ contains
     logical :: ex
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
@@ -1344,7 +1497,7 @@ contains
 #endif
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Close file
     inquire( iounit, NAME = fn )
@@ -1379,7 +1532,7 @@ contains
     integer, intent(in) :: iounit
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Write contents of buffer to file
     call FileWriteNoAdvance( iounit )
@@ -1406,7 +1559,7 @@ contains
     integer, intent(in) :: iounit
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Write contents of buffer to file
     write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
@@ -1432,7 +1585,7 @@ contains
     integer, intent(in) :: iounit
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( NProc /= NRootProc ) return
 
     ! Write blank line to file
     write( iounit, '()' )
@@ -1476,7 +1629,7 @@ contains
     end if
 
     ! Broadcast parameter
-#if MPI_VER > 0
+#if MPI_VER > 0 || MPI_GI > 0
     call MPI_Bcast( IOBuffer, IOBufferLength, &
 &     MPI_CHARACTER, NRootProc, MPI_COMM_WORLD, ierror )
 #endif
@@ -1623,6 +1776,63 @@ contains
 &     * (h_range - l_range)
 
   end function Global_Rrnd
+
+
+!==============================================================!
+!  Function Global_GetProcRange                                !
+!==============================================================!
+
+  function Global_GetProcRange( overall_size, first_index, last_index ) result( range_size )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in) :: overall_size
+    integer, intent(out) :: first_index, last_index
+
+    ! Declare result
+    integer :: range_size
+    ! the function could return an array containing the indices, but NPart0..NPart2 are already scalar values.
+
+    ! Declare local variables
+    !integer :: range_size0             ! version 1 only: range size for the first process
+
+#if MPI_VER > 0
+    ! original version 0: last process might get smaller range_size
+    ! The if-statement reads: only do it if we are in the equilibration phase of a MC simulation
+    ! and common equilibration is active. It is a little complicated, but that cannot be helped
+    if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then 
+     range_size = 1 + (overall_size - 1) / NProcs
+     first_index = 1 + NProc * range_size
+     last_index = min( first_index + range_size - 1, overall_size )
+     range_size = last_index - first_index + 1
+    else
+     first_index=1
+     last_index = overall_size
+     range_size=overall_size
+    endif
+
+    ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
+    !range_size = ceiling( real(overall_size)/NProcs )
+    !range_size0 = mod( overall_size, range_size )
+    !last_index = range_size0 + NProc*range_size
+    !if ( NProc == 0 ) then
+    !  range_size = range_size0
+    !end if
+    !first_index = last_index-range_size+1
+
+    ! alternative version 2: distribute, use round instead of int?
+    !first_index = int(real(NProc)/NProcs*overall_size)+1
+    !last_index = int(real(NProc+1)/NProcs*overall_size)
+    !range_size = last_index - first_index + 1
+
+#else
+    first_index=1
+    last_index = overall_size
+    range_size=overall_size
+#endif
+
+  end function Global_GetProcRange
 
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3

@@ -1481,7 +1481,7 @@ loop1:do k = 1, this%NInCutoff(i)
     Epsilon = this%Epsilon
     EPotLocal = 0._RK
     VirialLocal = 0._RK
-    Faktor = 2./sqrt(Pi) * Kappa
+    Faktor = 2._RK/sqrt(Pi) * Kappa
 
     ! Assign pointers
     RX1 => this%Site1%RX

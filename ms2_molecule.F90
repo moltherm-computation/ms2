@@ -67,6 +67,9 @@ module ms2_molecule
     ! Number of fluctuating states
     integer :: NFluct
 
+    ! Total charge of the molecule
+    real(RK) :: Charge
+
   end type TMolecule
 
   interface Construct
@@ -145,6 +148,7 @@ contains
     ! Zero number of sites
     this%NLJ126 = 0
     this%NCharge = 0
+    this%Charge = 0._RK
     this%NDipole = 0
     this%NQuadrupole = 0
 
@@ -171,6 +175,7 @@ contains
           call AllocationError( stat, 'point charge sites', this%NCharge )
           do j = 1, this%NCharge
             call Construct( this%SiteCharge(j) )
+            this%Charge = this%Charge + this%SiteCharge(j)%e
           end do
         end if
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
@@ -238,13 +243,13 @@ contains
         end do
       end if
 #if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_DOUBLE_PRECISION, NRootProc, &
+      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, &
 &       MPI_COMM_WORLD, ierror )
 #endif
       if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
@@ -290,11 +295,13 @@ contains
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
-      if ((LongRange .eq. RField) .or. (LongRange .eq. ExtRField)) then
-        do i =1, this%NCharge
-          this%Mue(:) = this%Mue(:) + &
-&           this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
-        end do
+      if (LongRange .ne. Ewald) then
+        if (LongRange .ne. PME) then
+          do i =1, this%NCharge
+            this%Mue(:) = this%Mue(:) + &
+&             this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
+          end do
+        end if
       end if
       do i =1, this%NDipole
         this%Mue(:) = this%Mue(:) + &
