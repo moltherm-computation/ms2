@@ -378,6 +378,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
   character(*), parameter :: IdNFluct                      = 'NFluct'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
+  character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -540,7 +541,7 @@ character(*), parameter :: VersionString = 'v12'
   integer :: Step, StepTotal
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction
+  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, GradInsInitialization
 
   ! Restart flag
   logical :: Restart
@@ -571,6 +572,10 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
+
+  ! Common equilibration flag for MC. Determines whether one shared 
+  ! equilibration is performed
+  logical :: CommonEqui
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -609,6 +614,11 @@ character(*), parameter :: VersionString = 'v12'
   integer :: NProc
   integer :: NRootProc
   logical :: RootProc
+  integer :: NProcs_W
+  integer :: NProc_W
+  integer :: NRootProc_W
+  logical :: RootProc_W
+
 #else
   integer, parameter :: NProcs    = 1
   integer, parameter :: NProc     = 0
@@ -1000,6 +1010,8 @@ contains
 
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
+    
 #endif
 #endif
 
@@ -2444,10 +2456,18 @@ contains
 #if MPI_VER > 0
     if( NProcs > 0 ) then
       ! original version 0: last process might get smaller range_size
+    ! The if-statement reads: only do it if we are in the equilibration phase of a MC simulation
+    ! and common equilibration is active. It is a little complicated, but that cannot be helped
+    if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then 
       range_size = 1 + (overall_size - 1) / NProcs
       first_index = 1 + NProc * range_size
       last_index = min( first_index + range_size - 1, overall_size )
       range_size = last_index - first_index + 1
+    else
+     first_index=1
+     last_index = overall_size
+     range_size=overall_size
+    endif
 
       ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
       !range_size = ceiling( real(overall_size)/NProcs )

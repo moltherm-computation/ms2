@@ -1796,11 +1796,15 @@ contains
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
-&     MPI_RK, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
+    ! in MC simulations, we only communicate during common equilibration
+    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+      call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
+&      MPI_RK, NRootProc, Communicator, ierror )
+      if( this%Molecule%isElongated ) &
+&      call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
 &       MPI_RK, NRootProc, Communicator, ierror )
+    endif
+
 #endif
 
     ! Assign local variables
@@ -2274,8 +2278,8 @@ contains
     real(RK)                       :: BoxLength_dt
 #endif
 !TRANSPORT_END
-
-  real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+  
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
 &                                     A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
