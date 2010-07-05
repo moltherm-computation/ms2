@@ -1261,6 +1261,8 @@ loop2:do j = 1, N
     this%Epsilon = this%Site1%e * this%Site2%e
     this%RCutoffSquared = RCutoff**2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
+    this%RFConstant = this%Epsilon / RCutoff**3 &
+&     * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
   end subroutine TPotCC_Construct
 
