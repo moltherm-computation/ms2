@@ -332,7 +332,7 @@ contains
         do j2 = 1, this%N2Charge
           call Construct( this%PotChargeCharge(j1, j2), &
 &           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&           Component2%Molecule, RCutoffDipoleDipole, RFEpsilon )
           this%PotChargeCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeCharge(j1, j2)%CutoffPartner => this%CutoffPartner
         end do

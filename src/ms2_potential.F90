@@ -1244,7 +1244,7 @@ loop2:do j = 1, N
 !==============================================================!
 
   subroutine TPotCC_Construct( this, i1, i2, j1, j2, &
-&                              Molecule1, Molecule2, RCutoff )
+&                              Molecule1, Molecule2, RCutoff, RFEpsilon  )
 
     implicit none
 
@@ -1253,6 +1253,7 @@ loop2:do j = 1, N
     integer, intent(in)         :: i1, i2, j1, j2
     type(TMolecule), intent(in) :: Molecule1, Molecule2
     real(RK), intent(in)        :: RCutoff
+    real(RK), intent(in)        :: RFEpsilon
 
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
