@@ -20,6 +20,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_interaction.F90...'
 #endif
@@ -87,7 +91,7 @@ module ms2_interaction
 
     ! Numbers of particles
     integer, pointer :: NPart1, NPart2
-#if MPI_VER > 0 
+#if MPI_VER > 0
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
 #endif
@@ -356,7 +360,7 @@ contains
         do j2 = 1, this%N2Charge
           call Construct( this%PotChargeCharge(j1, j2), &
 &           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&           Component2%Molecule, RCutoffDipoleDipole, RFEpsilon )
           this%PotChargeCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeCharge(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -532,11 +536,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -658,11 +657,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -673,7 +667,7 @@ contains
     nullify( this%EPot )
     nullify( this%EPot1 )
     nullify( this%EPotNew )
-    if (this%OptPressure ) then
+    if (this%OptPressure) then
       nullify( this%Virial )
       nullify( this%Virial1 )
       nullify( this%VirialNew )
@@ -708,7 +702,7 @@ contains
       call AllocationError( stat, 'particles', N2 )
       allocate( this%EPotNew(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
-      if (this%OptPressure ) then
+      if ( this%OptPressure ) then
         allocate( this%Virial(N1, N2), STAT = stat )
         call AllocationError( stat, 'particles', N1 * N2 )
         allocate( this%Virial1(N2), STAT = stat )
@@ -721,7 +715,7 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
       allocate( this%EPot1(this%NPartMax), STAT = stat )
       call AllocationError( stat, 'particles', this%NPartMax )
-      if (this%OptPressure ) then
+      if ( this%OptPressure ) then
         allocate( this%Virial1(this%NPartMax), STAT = stat )
         call AllocationError( stat, 'particles', this%NPartMax )
       end if
@@ -759,53 +753,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Deallocate arrays
-    if( associated( this%EPot ) ) then
-      deallocate( this%EPot )
-    end if
-    if( associated( this%EPot1 ) ) then
-      deallocate( this%EPot1 )
-    end if
-    if( associated( this%EPotNew ) ) then
-      deallocate( this%EPotNew )
-    end if
-    if (this%OptPressure ) then
-      if( associated( this%Virial ) ) then
-        deallocate( this%Virial )
-      end if
-      if( associated( this%Virial1 ) ) then
-        deallocate( this%Virial1 )
-      end if
-      if( associated( this%VirialNew ) ) then
-        deallocate( this%VirialNew )
-      end if
-    end if
-
-  end subroutine TInteraction_DeallocateEPot
-
-
-
-!==============================================================!
-!  Subroutine TInteraction_Deallocate                          !
-!==============================================================!
-
-  subroutine TInteraction_Deallocate( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction) :: this
 
@@ -830,6 +777,26 @@ contains
         deallocate( this%VirialNew )
       end if
     end if
+
+  end subroutine TInteraction_DeallocateEPot
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_Deallocate                          !
+!==============================================================!
+
+  subroutine TInteraction_Deallocate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Deallocate arrays
+    call DeallocateEPot( this )
+
+    ! allocated only for SimulationType .eq. SecondVirialCoeff
     if( associated( this%MayerFFunction ) ) then
       deallocate( this%MayerFFunction )
     end if
@@ -848,6 +815,7 @@ contains
     if( associated( this%IntFFunction2 ) ) then
       deallocate( this%IntFFunction2 )
     end if
+    
     if( associated( this%NInCutoff ) ) then
       deallocate( this%NInCutoff )
     end if
@@ -869,11 +837,6 @@ contains
 #endif
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)       :: this
@@ -1052,11 +1015,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), pointer    :: EPotTest(:)
@@ -1172,11 +1130,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     integer, intent(in)  :: np
@@ -1193,7 +1146,10 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer :: EPot(:), Virial(:)
+    real(RK), pointer :: EPot(:)
+    real(RK), pointer :: Virial(:)
+    real(RK)          :: EPotLocal
+    real(RK)          :: VirialLocal
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
@@ -1211,7 +1167,6 @@ contains
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquared, RijInv, RijSquaredInv, Rij3Inv
     real(RK)          :: Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv
-    real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: CosAux, CosGammaij
@@ -1701,9 +1656,9 @@ contains
               CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
               Tmp = CosGammaij -  3._RK * CosThetai * CosThetaj
               Rij3Inv = Epsilon * RijInv**3
-              Rij4Inv3 = 3._RK * Rij3Inv * RijInv
               EPotLocal = Rij3Inv * Tmp
               if ( OptPressure ) then
+                Rij4Inv3 = 3._RK * Rij3Inv * RijInv
                 FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                           - (eX * CosThetaj - OXj) * CosThetai)
                 FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
@@ -2681,11 +2636,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)   :: this
     real(RK), intent(in) :: BoxLength
@@ -2714,11 +2664,6 @@ contains
   subroutine TInteraction_CalcPartners( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this
@@ -2908,11 +2853,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TInteraction)  :: this
     integer, intent(in) :: np
@@ -2968,11 +2908,6 @@ contains
   subroutine TInteraction_CalcPartnersTest( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction) :: this
