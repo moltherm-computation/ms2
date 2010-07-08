@@ -88,32 +88,32 @@ module ms2_component
  ! Transport
     real(RK), pointer :: KinETran(:,:)
 
-    real(RK), pointer :: fs(:,:)
-    real(RK), pointer :: fb(:,:)
-    real(RK), pointer :: ftc(:,:)
-    real(RK), pointer :: frc(:,:)
+    real(RK), pointer :: FS(:,:)
+    real(RK), pointer :: FB(:,:)
+    real(RK), pointer :: FTC(:,:)
+    real(RK), pointer :: FRC(:,:)
 
-    real(RK), pointer :: ftc1(:,:)
-    real(RK), pointer :: ftc2(:,:)
-    real(RK), pointer :: ftc3(:,:)
+    real(RK), pointer :: FTC1(:,:)
+    real(RK), pointer :: FTC2(:,:)
+    real(RK), pointer :: FTC3(:,:)
 
-    real(RK), pointer :: frc1(:,:)
-    real(RK), pointer :: frc2(:,:)
-    real(RK), pointer :: frc3(:,:)
+    real(RK), pointer :: FRC1(:,:)
+    real(RK), pointer :: FRC2(:,:)
+    real(RK), pointer :: FRC3(:,:)
 #if MPI_VER > 0
-    real(RK), pointer :: fsAll(:,:)
-    real(RK), pointer :: fbAll(:,:)
-    real(RK), pointer :: frcAll(:,:)
+    real(RK), pointer :: FSAll(:,:)
+    real(RK), pointer :: FBAll(:,:)
+    real(RK), pointer :: FRCAll(:,:)
 
 ! Components of the FTC Tensor(3)
-    real(RK), pointer :: ftc1All(:,:)
-    real(RK), pointer :: ftc2All(:,:)
-    real(RK), pointer :: ftc3All(:,:)
+    real(RK), pointer :: FTC1All(:,:)
+    real(RK), pointer :: FTC2All(:,:)
+    real(RK), pointer :: FTC3All(:,:)
 
 ! Components of the FRC Tensor(3)
-    real(RK), pointer :: frc1All(:,:)
-    real(RK), pointer :: frc2All(:,:)
-    real(RK), pointer :: frc3All(:,:)
+    real(RK), pointer :: FRC1All(:,:)
+    real(RK), pointer :: FRC2All(:,:)
+    real(RK), pointer :: FRC3All(:,:)
 
 #endif
 !TRANSPORT_END
@@ -931,31 +931,31 @@ contains
 #if  TRANS == 1
 !  Transport  !TRANSPORT_start
     nullify(this%KinETran)
-    nullify( this%fs )
-    nullify( this%fb )
-    nullify( this%frc )
-    nullify( this%ftc )
+    nullify( this%FS )
+    nullify( this%FB )
+    nullify( this%FRC )
+    nullify( this%FTC )
 
-    nullify( this%ftc1)
-    nullify( this%ftc2 )
-    nullify( this%ftc3 )
+    nullify( this%FTC1)
+    nullify( this%FTC2 )
+    nullify( this%FTC3 )
 
-    nullify( this%frc1)
-    nullify( this%frc2 )
-    nullify( this%frc3 )
+    nullify( this%FRC1)
+    nullify( this%FRC2 )
+    nullify( this%FRC3 )
 
 #if MPI_VER > 0
-    nullify( this%fsAll )
-    nullify( this%fbAll )
-    nullify( this%frcAll )
+    nullify( this%FSAll )
+    nullify( this%FBAll )
+    nullify( this%FRCAll )
 
-    nullify( this%ftc1All )
-    nullify( this%ftc2All )
-    nullify( this%ftc3All )
+    nullify( this%FTC1All )
+    nullify( this%FTC2All )
+    nullify( this%FTC3All )
 
-    nullify( this%frc1All )
-    nullify( this%frc2All )
-    nullify( this%frc3All )
+    nullify( this%FRC1All )
+    nullify( this%FRC2All )
+    nullify( this%FRC3All )
 #endif
 
     ! Transport
@@ -963,34 +963,34 @@ contains
     allocate( this%KinETran( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%fs( np, 3 ), STAT = stat )
+    allocate( this%FS( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%fb( np, 3 ), STAT = stat )
+    allocate( this%FB( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc( np, 3 ), STAT = stat )
+    allocate( this%FTC( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc( np, 3 ), STAT = stat )
+    allocate( this%FRC( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc1( np, 3 ), STAT = stat )
+    allocate( this%FTC1( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc2( np, 3 ), STAT = stat )
+    allocate( this%FTC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc3( np, 3 ), STAT = stat )
+    allocate( this%FTC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc1( np, 3 ), STAT = stat )
+    allocate( this%FRC1( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc2( np, 3 ), STAT = stat )
+    allocate( this%FRC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc3( np, 3 ), STAT = stat )
+    allocate( this%FRC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
 
@@ -998,31 +998,31 @@ contains
     call AllocationError( stat, 'particles', np )
 
 #if MPI_VER > 0
-    allocate( this%fsAll( np, 3 ), STAT = stat )
+    allocate( this%FSAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%fbAll( np, 3 ), STAT = stat )
+    allocate( this%FBAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frcAll( np, 3 ), STAT = stat )
+    allocate( this%FRCAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc1All( np, 3 ), STAT = stat )
+    allocate( this%FTC1All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc2All( np, 3 ), STAT = stat )
+    allocate( this%FTC2All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%ftc3All( np, 3 ), STAT = stat )
+    allocate( this%FTC3All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc1All( np, 3 ), STAT = stat )
+    allocate( this%FRC1All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc2All( np, 3 ), STAT = stat )
+    allocate( this%FRC2All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    allocate( this%frc3All( np, 3 ), STAT = stat )
+    allocate( this%FRC3All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
 #endif
@@ -1030,19 +1030,19 @@ contains
     allocate( Q00( np, 4 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-    this%fs(: , :)   = 0._RK
-    this%fb(: , :)   = 0._RK
-    this%ftc(: , :)  = 0._RK
-    this%frc(: , :)  = 0._RK
+    this%FS(: , :)   = 0._RK
+    this%FB(: , :)   = 0._RK
+    this%FTC(: , :)  = 0._RK
+    this%FRC(: , :)  = 0._RK
     Q00(: , :)       = 0._RK
 
-    this%ftc1(:,:)  = 0._RK
-    this%ftc2(:,:)  = 0._RK
-    this%ftc3(:,:)  = 0._RK
+    this%FTC1(:,:)  = 0._RK
+    this%FTC2(:,:)  = 0._RK
+    this%FTC3(:,:)  = 0._RK
 
-    this%frc1(:,:)  = 0._RK
-    this%frc2(:,:)  = 0._RK
-    this%frc3(:,:)  = 0._RK
+    this%FRC1(:,:)  = 0._RK
+    this%FRC2(:,:)  = 0._RK
+    this%FRC3(:,:)  = 0._RK
 !TRANSPORT_END
 #endif
 
@@ -1435,17 +1435,17 @@ contains
     if( associated( this%KinETran) ) then
       deallocate( this%KinETran )
     end if
-    if( associated( this%fs ) ) then
-      deallocate( this%fs )
+    if( associated( this%FS ) ) then
+      deallocate( this%FS )
     end if
-    if( associated( this%fb ) ) then
-      deallocate( this%fb )
+    if( associated( this%FB ) ) then
+      deallocate( this%FB )
     end if
-    if( associated( this%ftc ) ) then
-      deallocate( this%ftc )
+    if( associated( this%FTC ) ) then
+      deallocate( this%FTC )
     end if
-    if( associated( this%frc ) ) then
-      deallocate( this%frc )
+    if( associated( this%FRC ) ) then
+      deallocate( this%FRC )
     end if
     if( associated( this%FTC1 ) ) then
       deallocate( this%FTC1 )
@@ -1581,7 +1581,8 @@ contains
 
 ! Reaction Field Check
    if ((LongRange .eq. RField) .and. (abs(this%Molecule%Charge) .ge. 1e-1)) then
-     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') this%Molecule%Charge
+     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")')&
+&        this%Molecule%Charge
      call Error
    end if
 
@@ -3783,8 +3784,8 @@ subroutine TComponent_ForceTransport( this )
     type(TComponent)  :: this
 #if TRANS==1
     integer           :: i, j, k, nra
-    real(RK), pointer :: pftc1(:,:), pftc2(:,:), pftc3(:,:)
-    real(RK), pointer :: pfrc1(:,:), pfrc2(:,:), pfrc3(:,:)
+    real(RK), pointer :: pFTC1(:,:), pFTC2(:,:), pFTC3(:,:)
+    real(RK), pointer :: pFRC1(:,:), pFRC2(:,:), pFRC3(:,:)
     real(RK)          :: BoxLength_dt
     real(RK)          :: BoxLength_dt2
 
@@ -3797,62 +3798,57 @@ subroutine TComponent_ForceTransport( this )
     this%FRC(:,:) = 0._RK
     this%KinETran(:,:) = 0._RK
 
- if (RootProc) then
+    if (RootProc) then
 
 #if MPI_VER > 0
-    pftc1 => this%FTC1All(:,:)
-    pftc2 => this%FTC2All(:,:)
-    pftc3 => this%FTC3All(:,:)
+      pFTC1 => this%FTC1All(:,:)
+      pFTC2 => this%FTC2All(:,:)
+      pFTC3 => this%FTC3All(:,:)
 
-    pfrc1 => this%FRC1All(:,:)
-    pfrc2 => this%FRC2All(:,:)
-    pfrc3 => this%FRC3All(:,:)
+      pFRC1 => this%FRC1All(:,:)
+      pFRC2 => this%FRC2All(:,:)
+      pFRC3 => this%FRC3All(:,:)
 #else
-    pftc1 => this%FTC1(:,:)
-    pftc2 => this%FTC2(:,:)
-    pftc3 => this%FTC3(:,:)
+      pFTC1 => this%FTC1(:,:)
+      pFTC2 => this%FTC2(:,:)
+      pFTC3 => this%FTC3(:,:)
 
-    pfrc1 => this%FRC1(:,:)
-    pfrc2 => this%FRC2(:,:)
-    pfrc3 => this%FRC3(:,:)
+      pFRC1 => this%FRC1(:,:)
+      pFRC2 => this%FRC2(:,:)
+      pFRC3 => this%FRC3(:,:)
 #endif
 
-    do k = 1, 3
-       do i= 1, this%Npart
-         this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k)
-         this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k)
-         this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k)
-       end do
-    end do
+      do k = 1, 3
+        do i= 1, this%Npart
+          this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k)
+          this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k)
+          this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k)
+        end do
+      end do
 
- nra = this%Molecule%NDFRot
-    do k= 1, nra
-      do i= 1, this%Npart
-       this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k)
-       this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k)
-       this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k)
-     end do
-    end do
+      nra = this%Molecule%NDFRot
+      do k= 1, nra
+        do i= 1, this%Npart
+          this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k)
+          this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k)
+          this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k)
+        end do
+      end do
 
-    this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
+      this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
 
-
-
-! Calculate kinetic energy / molecule
-
-   do j = 1, 3
-     do i = 1, this%NPart
-
-       this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
-
-     end do
-   end do
+      ! Calculate kinetic energy / molecule
+      do j = 1, 3
+        do i = 1, this%NPart
+          this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
+        end do
+      end do
 
       this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
 
-   end if
-
+    end if
 #endif
+
   end subroutine TComponent_ForceTransport
 !TRANSPORT_END
 

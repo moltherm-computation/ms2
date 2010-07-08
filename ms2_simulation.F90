@@ -731,7 +731,7 @@ contains
             this%Ensemble(i)%nsqmax = nsqmax_h
             this%Ensemble(i)%nvecmax = nvecmax_h
             this%Ensemble(i)%nmax = nmax_h
-!             this%ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
+!             this%Ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
 #ifdef SPME
       else if (LongRange .eq. PME) then
             this%Ensemble(i)%KappaL = KappaL_h
@@ -1605,12 +1605,12 @@ eqloop: do
       ! Run simulation step
         if(( CorrfunMode == active ).and.(.not. Equilibration )) then
           do i = 1, this%Nensembles
-            if ( Step >= this%ensemble(i)%Ncorr ) then
-              if ( Step >= this%ensemble(i)%Ncorr )then
-                NBlocksCF     = 1 + ( Step - 1 - this%ensemble(i)%Ncorr ) / &
-&                                      ( BlockSizeCF * this%ensemble(i)%NSpancf )
-                NBlockSizesCF = int( sqrt( real(( Step - this%ensemble(i)%Ncorr) / &
-&                                      (BlockSizeCF * this%ensemble(i)%NSpancf ), RK)))
+            if ( Step >= this%Ensemble(i)%Ncorr ) then
+              if ( Step >= this%Ensemble(i)%Ncorr )then
+                NBlocksCF     = 1 + ( Step - 1 - this%Ensemble(i)%Ncorr ) / &
+&                                      ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                NBlockSizesCF = int( sqrt( real(( Step - this%Ensemble(i)%Ncorr) / &
+&                                      (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
               else
                 NBlocksCF     = 0
                 NBlockSizesCF = 0

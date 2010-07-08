@@ -235,7 +235,7 @@ module ms2_ensemble
 #if  TRANS == 1
 !TRANSPORT_start
     ! Correlation functions
-    integer :: Ncorr,Mmess,MmessMax
+    integer :: NCorr,Mmess,MmessMax
     integer :: NSpancf,Nviewcf
     real(RK), pointer :: cf_db(:), cf_vs(:), cf_vb(:), cf_c(:)
     real(RK), pointer :: lamda(:, :)
@@ -939,8 +939,8 @@ contains
     if( CorrfunMode .eq. active ) then
 
       ! Read legth of the correlation function
-      call FileReadParameter( this%Ncorr , iounit_params , IdCorrlength )
-      write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%Ncorr
+      call FileReadParameter( this%NCorr , iounit_params , IdCorrlength )
+      write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr
       call LogWrite
 
       ! Read time span between correlations
@@ -964,7 +964,10 @@ contains
       call LogWrite
 
       ! Calculate MmessMax
-      this%MmessMax = int((NSteps-this%Ncorr)/this%NSpancf)
+      this%MmessMax = int((NSteps-this%NCorr)/this%NSpancf)
+
+      ! Initialization
+      this%Mmess = 0
 
       if( BlockSizeCF > 0 ) then
         NBlocksMaxCF = this%MmessMax / BlockSizeCF
@@ -2334,8 +2337,8 @@ contains
     integer :: stat
     integer :: number
 #if TRANS ==1
-    integer :: Npart3
-    integer :: Ncomp2
+    integer :: NPart3
+    integer :: NComp2
 #endif
 
 
@@ -2422,74 +2425,74 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
-      Npart3 = 3*this%Npart
-      Ncomp2 = this%NComponents*this%NComponents
+      NPart3 = 3*this%NPart
+      NComp2 = this%NComponents*this%NComponents
 
     ! Allocate correlation fucntions
      if( CorrfunMode .eq. active ) then
 
-      allocate( this%cf_vs(this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'viscosity_shear_cf_vs', this%Ncorr )
+      allocate( this%cf_vs(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
 
-      allocate( this%cf_vb(this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'viscosity_bulk_cf_vb', this%Ncorr )
+      allocate( this%cf_vb(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'viscosity_bulk_cf_vb', this%NCorr )
 
-      allocate( this%cf_c(this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'conductivity_cf_c', this%Ncorr )
+      allocate( this%cf_c(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
 
-      allocate( this%cf_d( this%NComponents, this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion', this%Ncorr )
+      allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'self_diffusion', this%NCorr )
 
-      allocate( this%cf_db( this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'binary_diffusion', this%Ncorr )
+      allocate( this%cf_db( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'binary_diffusion', this%NCorr )
 
-      allocate( this%lamda( NComp2, this%Ncorr ), STAT = stat )
-      call AllocationError( stat, 'binary_diffusion', this%Ncorr )
+      allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
+      call AllocationError( stat, 'binary_diffusion', this%NCorr )
 
-      allocate( this%sinte_i( this%NComponents, this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion_integrated', this%Ncorr )
+      allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
 
-      allocate( this%sinte_db( this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%Ncorr )
+      allocate( this%sinte_db( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
 
-      allocate( this%sinte_lamda( Ncomp2, this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%Ncorr )
+      allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
 
-      allocate( this%sinte_vs( this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'shear_viscosity_integrated', this%Ncorr )
+      allocate( this%sinte_vs( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
 
-      allocate( this%sinte_vb( this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'bulk_viscosity_integrated', this%Ncorr )
+      allocate( this%sinte_vb( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'bulk_viscosity_integrated', this%NCorr )
 
-      allocate( this%sinte_c( this%Ncorr), STAT = stat )
-      call AllocationError( stat, 'Thermal_conductivity_integrated', this%Ncorr )
+      allocate( this%sinte_c( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
 
-      allocate( this%a( NPart3, this%Ncorr), STAT = stat  )
+      allocate( this%a( NPart3, this%NCorr), STAT = stat  )
       call AllocationError( stat, 'diffusion_matrix', NPart3 )
 
-      allocate( this%vsk(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vsk', this%Npart )
+      allocate( this%vsk(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vsk', this%NPart )
 
-      allocate( this%vsp(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vsp', this%Npart )
+      allocate( this%vsp(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vsp', this%NPart )
 
-      allocate( this%vbk(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vbk', this%Npart )
+      allocate( this%vbk(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vbk', this%NPart )
 
-      allocate( this%vbp(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vbp', this%Npart )
+      allocate( this%vbp(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vbp', this%NPart )
 
-      allocate( this%vckt(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vckt', this%Npart )
+      allocate( this%vckt(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vckt', this%NPart )
 
-      allocate( this%vckr(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vckr', this%Npart )
+      allocate( this%vckr(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vckr', this%NPart )
 
-      allocate( this%vcpt(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vcpt', this%Npart )
+      allocate( this%vcpt(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vcpt', this%NPart )
 
-      allocate( this%vcpr(this%Ncorr, 3), STAT = stat  )
-      call AllocationError( stat, 'vcpr', this%Npart )
+      allocate( this%vcpr(this%NCorr, 3), STAT = stat  )
+      call AllocationError( stat, 'vcpr', this%NPart )
 
       allocate( this%selfd_i(this%NComponents), STAT = stat  )
       call AllocationError( stat, 'selfd_i', this%NComponents )
@@ -4302,27 +4305,27 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteLJ126(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vsuLJx(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteLJ126(j)%vsuLJy(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteLJ126(j)%vsuLJz(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%cLJx(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteLJ126(j)%cLJy(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteLJ126(j)%cLJz(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteLJ126(j)%tuLJx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tuLJy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tuLJz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tlLJx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tlLJy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tlLJz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tdLJx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tdLJy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%tdLJz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJx(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJy(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vsuLJz(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%vbLJz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJx(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJy(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%cLJz(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tuLJz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tlLJz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteLJ126(j)%tdLJz(1:pc%NPart) = 0._RK
         !TRANSPORT_END
 #endif
       end do
@@ -4332,27 +4335,27 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteCharge(j)%vsCx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vsCy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vsCz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vsuCx(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteCharge(j)%vsuCy(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteCharge(j)%vsuCz(1:pc%Npart)= 0._RK
-        pc%Molecule%SiteCharge(j)%vbCx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vbCy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vbCz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%cCx(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteCharge(j)%cCy(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteCharge(j)%cCz(1:pc%Npart)  = 0._RK
-        pc%Molecule%SiteCharge(j)%tuCx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tuCy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tuCz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tlCx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tlCy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tlCz(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tdCx(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tdCy(1:pc%Npart) = 0._RK
-        pc%Molecule%SiteCharge(j)%tdCz(1:pc%Npart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsCz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCx(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCy(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vsuCz(1:pc%NPart)= 0._RK
+        pc%Molecule%SiteCharge(j)%vbCx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vbCy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%vbCz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%cCx(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%cCy(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%cCz(1:pc%NPart)  = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tuCz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tlCz(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCx(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCy(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteCharge(j)%tdCz(1:pc%NPart) = 0._RK
         !TRANSPORT_END
 #endif
       end do
@@ -4429,19 +4432,19 @@ loop3:    do nc = 1, this%NComponents
       end if
 #if  TRANS == 1
       !TRANSPORT_start
-      do j = 1, this%Component(i)%Npart
-        this%Component(i)%fs(j, 1)    = 0._RK
-        this%Component(i)%fs(j, 2)    = 0._RK
-        this%Component(i)%fs(j, 3)    = 0._RK
-        this%Component(i)%fb(j, 1)    = 0._RK
-        this%Component(i)%fb(j, 2)    = 0._RK
-        this%Component(i)%fb(j, 3)    = 0._RK
-        this%Component(i)%ftc(j, 1)   = 0._RK
-        this%Component(i)%ftc(j, 2)   = 0._RK
-        this%Component(i)%ftc(j, 3)   = 0._RK
-        this%Component(i)%frc(j, 1)   = 0._RK
-        this%Component(i)%frc(j, 2)   = 0._RK
-        this%Component(i)%frc(j, 3)   = 0._RK
+      do j = 1, this%Component(i)%NPart
+        this%Component(i)%FS(j, 1)    = 0._RK
+        this%Component(i)%FS(j, 2)    = 0._RK
+        this%Component(i)%FS(j, 3)    = 0._RK
+        this%Component(i)%FB(j, 1)    = 0._RK
+        this%Component(i)%FB(j, 2)    = 0._RK
+        this%Component(i)%FB(j, 3)    = 0._RK
+        this%Component(i)%FTC(j, 1)   = 0._RK
+        this%Component(i)%FTC(j, 2)   = 0._RK
+        this%Component(i)%FTC(j, 3)   = 0._RK
+        this%Component(i)%FRC(j, 1)   = 0._RK
+        this%Component(i)%FRC(j, 2)   = 0._RK
+        this%Component(i)%FRC(j, 3)   = 0._RK
       end do
       !TRANSPORT_END
 #endif
@@ -7773,17 +7776,17 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if( mod( Step - this%Ncorr, BlockSizeCF * this%NSpancf ) == 0 .and. &
+    if( mod( Step - this%NCorr, BlockSizeCF * this%NSpancf ) == 0 .and. &
 &     (this%Mmess > 0) ) then
       do i = 1, this%NComponents
         call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess  )
       end do
 
-      if(this%Ncomponents == 2) then
+      if(this%NComponents == 2) then
         call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess )
       end if
 
-     if(this%Ncomponents == 3 ) then
+     if(this%NComponents == 3 ) then
         call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess )
         call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess )
         call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess )
@@ -8010,11 +8013,11 @@ loop2:        do nc = 1, this%NComponents
       rewind( this%iounit_rescf )
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
-      if(this%Ncomponents==2)then
+      if(this%NComponents==2)then
         write( IOBuffer, '(T11,"D_12")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
-      if(this%Ncomponents==3)then
+      if(this%NComponents==3)then
           write( IOBuffer, '(T10, "D_ijk", I2)') i
           call FileWriteNoAdvance( this%iounit_rescf )
       end if
@@ -8032,12 +8035,12 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T13,"CO")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      if( this%Ncomponents == 2 ) then
+      if( this%NComponents == 2 ) then
         write( IOBuffer, '(T9,"IntD12")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if( this%Ncomponents == 3 ) then
+      if( this%NComponents == 3 ) then
            write( IOBuffer, '(T13,"IntDijk")' )
            call FileWriteNoAdvance( this%iounit_rescf )
       end if
@@ -8059,19 +8062,19 @@ loop2:        do nc = 1, this%NComponents
       call FileWriteBlank( this%iounit_rescf )
 
       ! integration time
-      do i  = 1, this%Ncorr
+      do i  = 1, this%NCorr
         value = TimeStep*UnitTime/1E-12_RK
         write( IOBuffer, '(F10.5)' ) (i-1)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Binary diffusion coefficient
-        if(this%Ncomponents==2)then
+        if(this%NComponents==2)then
           write( IOBuffer, '(T5,F10.5)' ) this%cf_db(i)/this%cf_db(1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Ternary diffusion coefficient
-        if(this%Ncomponents==3)then
+        if(this%NComponents==3)then
               write( IOBuffer, '(T5, F10.5)' ) this%lamda(1, i)/this%lamda(1,1)
               call FileWriteNoAdvance( this%iounit_rescf )
         end if
@@ -8098,22 +8101,22 @@ loop2:        do nc = 1, this%NComponents
         value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
         ! Binary diffusion coefficient
-        if( this%Ncomponents == 2) then
+        if( this%NComponents == 2) then
           write( IOBuffer, '(T5, F10.4)' ) &
-&           this%sinte_db(i) / this%sinte_db(this%Ncorr) * this%binary_d * value
+&           this%sinte_db(i) / this%sinte_db(this%NCorr) * this%binary_d * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
-        if( this%Ncomponents == 3) then
+        if( this%NComponents == 3) then
              write( IOBuffer, '(T5, F10.4)' ) &
-&            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%Ncorr) * this%ternary_a * value
+&            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%NCorr) * this%ternary_a * value
              call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! Self-diffusion coefficient
         do j = 1, this%NComponents
           write( IOBuffer, '(T5, F10.4)' ) &
-&           this%sinte_i(j,i) / this%sinte_i(j,this%Ncorr) * this%selfd_i(j) * value
+&           this%sinte_i(j,i) / this%sinte_i(j,this%NCorr) * this%selfd_i(j) * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
 
@@ -8122,19 +8125,19 @@ loop2:        do nc = 1, this%NComponents
 
        !shear
         write( IOBuffer, '(T5, F10.5)' ) &
-&         this%sinte_vs(i) / this%sinte_vs(this%Ncorr) * this%visco_s * value
+&         this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! bulk
         write( IOBuffer, '(T5, F10.5)' ) &
-&         this%sinte_vb(i) / this%sinte_vb(this%Ncorr) * this%visco_b * value
+&         this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! thermal conductivity
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
 
         write( IOBuffer, '(T5, F10.5)' ) &
-&         this%sinte_c(i) / this%sinte_c(this%Ncorr) * this%conduct * value
+&         this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
         call FileWriteNoAdvance( this%iounit_rescf )
         call FileWriteBlank( this%iounit_rescf )
 
@@ -8396,7 +8399,7 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '("Time step", T29, "reduced:", F20.9)' ) &
 &       TimeStep
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T31, "in fs:", F20.9)' ) &
+      write( IOBuffer, '(T31, "in FS:", F20.9)' ) &
 &       TimeStep * UnitTime * 1E15_RK
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
@@ -8850,7 +8853,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%Ncorr*TimeStep
+      value = this%NCorr*TimeStep
       write( IOBuffer, '("Length ACF  ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -9860,64 +9863,64 @@ loop2:        do nc = 1, this%NComponents
 
 #if TRANS ==1
 if( RootProc ) then
-    write( iounit_restart, '(I10)' ) this%Ncorr
+    write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
-    do i = 1, 3*this%Npart
-        do j = 1, this%Ncorr
+    do i = 1, 3*this%NPart
+        do j = 1, this%NCorr
             write( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
     end do
 
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
     end do
 
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
     end do
-    do i = 1, this%Ncorr
+    do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
     end do
 
-    if (this%Ncomponents==2) then
-        do i = 1, this%Ncorr
+    if (this%NComponents==2) then
+        do i = 1, this%NCorr
             write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
         end do
     end if
 
-    do i = 1, this%Ncomponents
-      do j = 1, this%Ncorr
+    do i = 1, this%NComponents
+      do j = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
       end do
     end do
 
-    do i = 1, this%Ncomponents*this%Ncomponents
-      do j = 1, this%Ncorr
+    do i = 1, this%NComponents*this%NComponents
+      do j = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
       end do
     end do
@@ -9928,11 +9931,11 @@ if( RootProc ) then
       call RestartSaveCF( this%Sumself_i(i) )
     end do
 
-    if(this%Ncomponents == 2) then
+    if(this%NComponents == 2) then
       call RestartSaveCF( this%SumBin_d )
     end if
 
-    if(this%Ncomponents == 3) then
+    if(this%NComponents == 3) then
     call RestartSaveCF( this%SumTer_a )
     call RestartSaveCF( this%SumTer_b )
     call RestartSaveCF( this%SumTer_c )
@@ -10118,72 +10121,72 @@ endif
 
 #if TRANS ==1
     if( RootProc ) then
-      read( iounit_restart, '(I10)' ) this%Ncorr
+      read( iounit_restart, '(I10)' ) this%NCorr
       read( iounit_restart, '(I10)' ) this%Mmess
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
+    call MPI_Bcast( this%NCorr, 1, MPI_INTEGER, NRootProc, &
 &       Communicator, ierror )
     call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
 &       Communicator, ierror )
 #endif
 
     if( RootProc ) then
-      do i = 1, 3*this%Npart
-        do j = 1, this%Ncorr
+      do i = 1, 3*this%NPart
+        do j = 1, this%NCorr
           read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
       end do
 
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
       end do
 
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
       end do
-      do i = 1, this%Ncorr
+      do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
       end do
 
-      if (this%Ncomponents==2) then
-        do i = 1, this%Ncorr
+      if (this%NComponents==2) then
+        do i = 1, this%NCorr
             read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
         end do
       end if
 
-      do i = 1, this%Ncomponents
-        do j = 1, this%Ncorr
+      do i = 1, this%NComponents
+        do j = 1, this%NCorr
           read( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
         end do
       end do
-      do i = 1, this%Ncomponents*this%Ncomponents
-        do j = 1, this%Ncorr
+      do i = 1, this%NComponents*this%NComponents
+        do j = 1, this%NCorr
           read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
         end do
       end do
@@ -10194,11 +10197,11 @@ endif
       call RestartReadCF( this%Sumself_i(i) )
       end do
 
-      if(this%Ncomponents == 2) then
+      if(this%NComponents == 2) then
         call RestartReadCF( this%SumBin_d )
       end if
 
-      if(this%Ncomponents == 3) then
+      if(this%NComponents == 3) then
         call RestartReadCF( this%SumTer_a )
         call RestartReadCF( this%SumTer_b )
         call RestartReadCF( this%SumTer_c )
@@ -10390,13 +10393,6 @@ endif
     write(996,*) ix, iy
     close(996)
 
-!     EPot = GetEnergy( this )
-!     write(*,*) (EPot - this%Density * this%EPotCorrLJ - &
-! &     this%EPotCorrRF) / real( this%NPart, 8 )
-! 
-!     i = system('./igi')
-! 
-!     stop
 
   end subroutine TEnsemble_DbgWrite
 
@@ -10642,6 +10638,11 @@ endif
 #if MPI_VER > 0
    integer, pointer:: i0,i1
 #endif
+#if  TRANS == 1
+   real(RK),pointer:: VSx(:),VSy(:),VSz(:)
+   real(RK),pointer:: VSux(:),VSuy(:),VSuz(:)
+   real(RK),pointer:: VBx(:),VBy(:),VBz(:)
+#endif
 
    type(TMolecule), pointer               :: mol
    integer:: stat
@@ -10761,7 +10762,8 @@ endif
           FZ => this%Component(j)%Molecule%SiteCharge(l)%FZ
 
 
-          this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - this%cosfac_s(j,l,1:molec)*this%SSin(i))
+          this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - &
+&                           this%cosfac_s(j,l,1:molec)*this%SSin(i))
 !           test = Facy*HFac
           FX = FX + Facx*this%HFac
           FY = FY + Facy*this%HFac
@@ -10770,6 +10772,27 @@ endif
           this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
    &         Facy*this%HFac*this%disty(j,l,1:molec)+&
 &            Facz*this%HFac*this%distz(j,l,1:molec)
+#if  TRANS == 1
+       VSx  => mol%SiteCharge(l)%vsCx
+       VSy  => mol%SiteCharge(l)%vsCy
+       VSz  => mol%SiteCharge(l)%vsCz
+       VSux => mol%SiteCharge(l)%vsuCx
+       VSuy => mol%SiteCharge(l)%vsuCy
+       VSuz => mol%SiteCharge(l)%vsuCz
+       VBx  => mol%SiteCharge(l)%vbCx
+       VBy  => mol%SiteCharge(l)%vbCy
+       VBz  => mol%SiteCharge(l)%vbCz
+       
+       VSx  = VSx  + FX*this%disty(j,l,1:molec)
+       VSy  = VSy  + FX*this%distz(j,l,1:molec)
+       VSz  = VSz  + FY*this%distz(j,l,1:molec)
+       VSux = VSux + FY*this%distx(j,l,1:molec)
+       VSuy = VSuy + FZ*this%distx(j,l,1:molec)
+       VSuz = VSuz + FZ*this%disty(j,l,1:molec)
+       VBx  = VBx  + FX*this%distx(j,l,1:molec)
+       VBy  = VBy  + FY*this%disty(j,l,1:molec)
+       VBz  = VBz  + FZ*this%distz(j,l,1:molec)
+#endif
        END DO
      END DO
    END DO ! Boxenschleife
@@ -11480,142 +11503,6 @@ endif
 
 
 
-! ! ! 
-! ! ! !==============================================================!
-! ! ! !  Subroutine TEnsemble_Ewald_ChemicalPotential                !
-! ! ! !==============================================================!
-! ! ! 
-! ! !   subroutine TEnsemble_Ewald_ChemPotSelf( this,nc1)
-! ! ! 
-! ! !     implicit none
-! ! ! 
-! ! !     ! Include MPI header
-! ! ! #if MPI_VER > 0
-! ! !     include 'mpif.h'
-! ! ! #endif
-! ! ! 
-! ! !     ! Declare arguments
-! ! !     type(TEnsemble)            :: this
-! ! !     type(TMolecule), pointer   :: mol
-! ! !     integer, intent(in)        :: nc1
-! ! ! 
-! ! !     ! Declare local variables
-! ! !     integer :: Si,Sj, np
-! ! !     real(RK):: fac
-! ! !     real(RK):: UTermKomp1
-! ! ! 
-! ! !     fac = 1.0_RK / this%RCutoffLJ126LJ126
-! ! ! ! Selfterm
-! ! !     UTermKomp1 = 0._RK
-! ! !     DO Si=1,this%Component(nc1)%Molecule%NCharge,1
-! ! !          UTermKomp1 = UTermKomp1 - &
-! ! ! &                  this%Component(nc1)%Molecule%SiteCharge(Si)%e**2
-! ! !     END DO
-! ! ! 
-! ! ! 
-! ! ! ! Final Summation
-! ! !     this%Component(nc1)%EPotTestSelf = UTermKomp1*fac
-! ! !     this%Component(nc1)%EPotTestSelf = 0._RK
-! ! ! 
-! ! !     end subroutine TEnsemble_Ewald_ChemPotSelf
-! ! ! 
-! ! ! 
-! ! ! 
-! ! ! ! 
-! ! ! ! 
-! ! ! ! 
-! ! ! ! 
-! ! ! ! 
-! ! ! !   subroutine TEnsemble_Ewald_ChemPotFour( this,nc1)
-! ! ! ! 
-! ! ! !     implicit none
-! ! ! ! 
-! ! ! !     ! Include MPI header
-! ! ! ! #if MPI_VER > 0
-! ! ! !     include 'mpif.h'
-! ! ! ! #endif
-! ! ! ! 
-! ! ! !     ! Declare arguments
-! ! ! !     type(TEnsemble)            :: this
-! ! ! !     type(TMolecule), pointer   :: mol
-! ! ! !     integer, intent(in)        :: nc1
-! ! ! ! 
-! ! ! !     ! Declare local variables
-! ! ! !     integer :: j,i,l
-! ! ! !     real(RK):: RXi,RYi,RZi
-! ! ! !     real(RK):: KVec(3)
-! ! ! !     real(RK):: SSinSum, SCosSum
-! ! ! !     real(RK):: SSinTest, SCosTest
-! ! ! !     real(RK),pointer :: q(:)
-! ! ! !     real(RK):: Faktor
-! ! ! ! 
-! ! ! ! 
-! ! ! ! 
-! ! ! !    DO j=1,this%Component(nc1)%NTest
-! ! ! ! 
-! ! ! ! 
-! ! ! ! ! #if MPI_VER > 0
-! ! ! ! !      l=NProc + 1
-! ! ! ! !      i0 = this%NBox0(l)
-! ! ! ! !      i1 = this%NBox2(l)
-! ! ! ! ! !    i0 = 1
-! ! ! ! !      DO i=i0,i1,1
-! ! ! ! ! #else
-! ! ! !      DO i=1,this%BoxenAnzahl,1
-! ! ! ! ! # endif
-! ! ! !        SSinSum  = 0.0_RK
-! ! ! !        SCosSum  = 0.0_RK
-! ! ! ! 
-! ! ! !        SSinTest = this%SSin(i)
-! ! ! !        SCosTest = this%SCos(i)
-! ! ! ! 
-! ! ! !        KVec = this%Ewald_Vec(:,i)
-! ! ! !        mol => this%Component(nc1)%Molecule
-! ! ! !        q => mol%SiteCharge(1:mol%NCharge)%e
-! ! ! ! !        molec = this%Component(j)%NPart
-! ! ! !        DO l=1,mol%NCharge
-! ! ! !          RXi = this%Component(nc1)%Molecule%SiteCharge(l)%RXTest(j)
-! ! ! !          RYi = this%Component(nc1)%Molecule%SiteCharge(l)%RYTest(j)
-! ! ! !          RZi = this%Component(nc1)%Molecule%SiteCharge(l)%RZTest(j)
-! ! ! ! 
-! ! ! !          Faktor = KVec(1) * RXi + KVec(2)*RYi + KVec(3)*RZi
-! ! ! ! 
-! ! ! !          SSinSum  = SSinSum + q(l) * sin(Faktor)
-! ! ! !          SCosSum  = SCosSum + q(l) * cos(Faktor)
-! ! ! ! 
-! ! ! !          SSinTest = SSinTest + SSinSum 
-! ! ! !          SCosTest = SCosTest + SCosSum
-! ! ! !        END DO
-! ! ! ! 
-! ! ! ! ! Subtract the image of just the test particle immediately *Sum*-terms!
-! ! ! !        this%EPotTest(j) = this%EPotTest(j) + this%Ewald_Prefac(i) * &
-! ! ! ! &              (SSinTest*SSinTest + SCosTest*SCosTest - SSinSum*SSinSum - &
-! ! ! ! &               SCosSum*SCosSum)
-! ! ! ! 
-! ! ! !      END DO ! Boxenschleife
-! ! ! ! 
-! ! ! !    END DO
-! ! ! ! 
-! ! ! ! 
-! ! ! ! ! Finish Calculation
-! ! ! ! ! Energy
-! ! ! ! 
-! ! ! ! ! #if MPI_VER > 0
-! ! ! ! !    call MPI_Reduce( sum(this%U_fourierLocal), EPotLocal, 1, &
-! ! ! ! ! &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-! ! ! ! ! #else
-! ! ! ! !    EPotLocal = sum(this%U_fourierLocal)
-! ! ! ! ! #endif
-! ! ! ! !   if( RootProc ) then
-! ! ! ! !    this%UFourier= EPotLocal
-! ! ! ! !   end if
-! ! ! ! 
-! ! ! !     end subroutine TEnsemble_Ewald_ChemPotFour
-! ! ! ! 
-
-
-
-
 
 
 !==============================================================!
@@ -11745,409 +11632,6 @@ endif
   end subroutine TEnsemble_Constraints
 
 #endif
-!==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermEnergy              !
-!==============================================================!
-! 
-!    subroutine TEnsemble_EwaldFourierEnergy(this, nc1,np)
-! 
-!    implicit none
-! 
-!    integer :: i,j,k,l
-!    real(RK):: Faktor
-!    real(RK):: fac1,fac2,fac3
-!    real(RK):: KVec(3)
-!    real(RK):: RX,RY,RZ
-!    real(RK):: kappasqrt4, summe, KVec_LenInv
-!    real(RK):: UTermKomp, UTerm, VirialLocal
-!    real(RK):: complr(this%NMax),compll(this%NMax)
-! 
-!    ! Declare arguments
-!    type(TEnsemble)                 :: this
-!    type(TInteraction),pointer      :: inter
-!    type(TMolecule), pointer        :: mol
-!    integer, intent(in) :: nc1
-!    integer, intent(in) :: np
-! 
-! ! initialization
-!    summe = 0._RK
-!    UTerm = 0._RK
-!    VirialLocal = 0._RK
-!    kappasqrt4 = 1.0_RK/(4*this%kappa**2)
-! 
-!    inter => this%Interaction(nc1,nc1)
-! 
-! 
-! ! Preparation
-! 
-!   complr(1) = 1._RK
-!   compll(1) = 0._RK
-!   complr(2) = twopi * RX
-!    DO i=2,this%NMax,1
-!       compl(i) = compl(i-1) * compl(1)
-!    DO i=1,this%BoxenAnzahl,1
-! ! Preparation
-!      Fac3  = 0._RK
-!      summe=0._RK
-!      KVec(1:3) = Pi2 * this%Ewald_Vec(1:3,i) / this%BoxLength
-! 
-! ! Virials
-!      KVec_LenInv = 1._RK / (KVec(1)**2 + KVec(2)**2 + KVec(3)**2)
-!      DO j=1,3,1
-!          summe = summe + KVec(j)*KVec(j)
-!      END DO
-! 
-! 
-!      mol => this%Component(nc1)%Molecule
-! 
-!      DO l=1,mol%NCharge
-!        RX = mol%SiteCharge(l)%RX(np)*this%BoxLength
-!        RY = mol%SiteCharge(l)%RY(np)*this%BoxLength
-!        RZ = mol%SiteCharge(l)%RZ(np)*this%BoxLength
-! 
-!        Faktor = KVec(1)*RX + KVec(2)*RY + KVec(3)*RZ
-! 
-!        Fac1 = (mol%SiteCharge(l)%e*sin(Faktor))**2
-!        Fac2 = (mol%SiteCharge(l)%e*cos(Faktor))**2
-!        Fac3 = Fac3 + (Fac1+Fac2)
-! !        DO k=1,this%Component(nc2)%NPart,1
-! !          inter%Epot1(k) = inter%Epot1(k) + Fac3
-! !        END DO
-!      END DO
-!      UTermKomp = Fac3 * this%Ewald_Prefac(i)
-!      UTerm = UTerm + UTermKomp
-!      VirialLocal = VirialLocal + UTermKomp * (3-2*(KVec_LenInv+kappasqrt4)*summe)
-! 
-!    END DO      ! end loop over all Ewald boxes k
-!    inter%Epot1(np) = inter%Epot1(np) +  UTerm / this%BoxLength
-!    inter%Virial1(np) = inter%Virial1(np) &
-! &                               + Third * VirialLocal / (this%BoxLength)
-! 
-!    end subroutine TEnsemble_EwaldFourierEnergy
-! 
-
-! !==============================================================!
-! !  Subroutine TSimulation_Ewald_FourierTermEnergy              !
-! !==============================================================!
-! 
-!    subroutine TEnsemble_EwaldFourierEnergy(this, nc1,np)
-! 
-!    implicit none
-! 
-!    integer :: i,j,k,l
-!    real(RK):: Faktor
-!    real(RK):: fac1,fac2,fac3
-!    real(RK):: KVec(3)
-!    real(RK):: RX,RY,RZ
-!    real(RK):: kappasqrt4, summe, KVec_LenInv
-!    real(RK):: UTermKomp, UTerm, VirialLocal
-! 
-!    ! Declare arguments
-!    type(TEnsemble)                 :: this
-!    type(TInteraction),pointer      :: inter
-!    type(TMolecule), pointer        :: mol
-!    integer, intent(in) :: nc1
-!    integer, intent(in) :: np
-! 
-! ! initialization
-!    summe = 0._RK
-!    UTerm = 0._RK
-!    VirialLocal = 0._RK
-!    kappasqrt4 = 1.0_RK/(4*this%kappa**2)
-! 
-!    inter => this%Interaction(nc1,nc1)
-!    DO i=1,this%BoxenAnzahl,1
-! ! Preparation
-!      Fac3  = 0._RK
-!      summe=0._RK
-!      KVec(1:3) = Pi2 * this%Ewald_Vec(1:3,i) / this%BoxLength
-! 
-! ! Virials
-!      KVec_LenInv = 1._RK / (KVec(1)**2 + KVec(2)**2 + KVec(3)**2)
-!      DO j=1,3,1
-!          summe = summe + KVec(j)*KVec(j)
-!      END DO
-! 
-! 
-!      mol => this%Component(nc1)%Molecule
-! 
-!      DO l=1,mol%NCharge
-!        RX = mol%SiteCharge(l)%RX(np)*this%BoxLength
-!        RY = mol%SiteCharge(l)%RY(np)*this%BoxLength
-!        RZ = mol%SiteCharge(l)%RZ(np)*this%BoxLength
-! 
-!        Faktor = KVec(1)*RX + KVec(2)*RY + KVec(3)*RZ
-! 
-!        Fac1 = (mol%SiteCharge(l)%e*sin(Faktor))**2
-!        Fac2 = (mol%SiteCharge(l)%e*cos(Faktor))**2
-!        Fac3 = Fac3 + (Fac1+Fac2)
-! !        DO k=1,this%Component(nc2)%NPart,1
-! !          inter%Epot1(k) = inter%Epot1(k) + Fac3
-! !        END DO
-!      END DO
-!      UTermKomp = Fac3 * this%Ewald_Prefac(i)
-!      UTerm = UTerm + UTermKomp
-!      VirialLocal = VirialLocal + UTermKomp * (3-2*(KVec_LenInv+kappasqrt4)*summe)
-! 
-!    END DO      ! end loop over all Ewald boxes k
-!    inter%Epot1(np) = inter%Epot1(np) +  UTerm / this%BoxLength
-!    inter%Virial1(np) = inter%Virial1(np) &
-! &                               + Third * VirialLocal / (this%BoxLength)
-! 
-! 
-!    end subroutine TEnsemble_EwaldFourierEnergy
-
-
-
-
-
-
-
-
-!==============================================================!
-!  Subroutine TSimulation_Ewald_ChemPotFourier                 !
-!==============================================================!
-
-!    subroutine TSimulation_EwaldFourier_ChemicalPotential(this, nc1)
-! 
-!    implicit none
-! 
-!    integer :: i,l,np
-!    real(RK):: Faktor
-!    real(RK):: fac1,fac2,fac3
-!    real(RK):: KVec(3)
-!    real(RK):: RX,RY,RZ
-!    real(RK):: UTermKomp
-! 
-!    ! Declare arguments
-!    type(TEnsemble)             :: this
-!    type(TInteraction),pointer  :: inter
-!    type(TMolecule), pointer    :: mol
-!    integer, intent(in) :: nc1
-! 
-! 
-! ! initialization
-!    UTermKomp = 0._RK
-! 
-!    DO i=1,this%BoxenAnzahl,1
-!      KVec(1:3) = Pi2 * this%Ewald_Vec(1:3,i) / this%BoxLength
-! 
-!      mol => this%Component(nc1)%Molecule
-! 
-! 
-!      DO np=1,this%Component(nc1)%NPart
-!        Fac3 = 0._RK
-!        DO l=1,mol%NCharge
-!          RX = mol%SiteCharge(l)%RX(np)*this%BoxLength
-!          RY = mol%SiteCharge(l)%RY(np)*this%BoxLength
-!          RZ = mol%SiteCharge(l)%RZ(np)*this%BoxLength
-! 
-!          Faktor = KVec(1)*RX + KVec(2)*RY + KVec(3)*RZ
-! 
-!          Fac1 = (mol%SiteCharge(l)%e*sin(Faktor))**2
-!          Fac2 = (mol%SiteCharge(l)%e*cos(Faktor))**2
-!          Fac3 = Fac3 + (Fac1+Fac2)
-!        END DO
-!        this%EPotTest(np) = this%EPotTest(np) + Fac3*this%Ewald_Prefac(i) / this%BoxLength
-!      END DO
-! 
-! 
-!    END DO      ! end loop over all Ewald boxes k
-! 
-!    end subroutine TSimulation_EwaldFourier_ChemicalPotential
-
-
-
-
-
-! ! ! 
-! ! ! 
-! ! ! 
-! ! ! 
-! ! ! !==============================================================!
-! ! ! !  Subroutine TSimulation_Ewald_FourierTerm                    !
-! ! ! !==============================================================!
-! ! ! 
-! ! !    subroutine TEnsemble_EwaldFourierTerm(this)
-! ! ! 
-! ! !    implicit none
-! ! ! 
-! ! !    integer :: i,j,k,l, counter
-! ! !    real(RK):: Faktor, Faktor2, Faktor3(3)
-! ! !    real(RK):: U_fourier
-! ! !    real(RK):: KVec(3)
-! ! !    real(RK):: SSin,SCos
-! ! !    real(RK):: RX,RY,RZ
-! ! !    real(RK):: FX,FY,FZ
-! ! !    real(RK):: EPotLocal
-! ! !    real(RK):: Viriallocal
-! ! !    real(RK):: test
-! ! !    real(RK):: summe, KappaLsqrt4, KVec_LenInv
-! ! ! !    real(RK),pointer:: SSin_Fac, SCos_fac
-! ! ! 
-! ! !    type(TMolecule), pointer               :: mol
-! ! ! 
-! ! !    ! Declare arguments
-! ! !    type(TEnsemble)   :: this
-! ! ! 
-! ! ! !    real(RK):: sin_test(this%BoxenAnzahl,this%Component(1)%NPart,this%Component(1)%molecule%NCharge)
-! ! ! !    real(RK):: cos_test(this%BoxenAnzahl,this%Component(1)%NPart,this%Component(1)%molecule%NCharge)
-! ! ! 
-! ! ! ! DEBUG STEPHAN
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RX(1) = 0.50412 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RY(1) = 0.81073 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RZ(1) = 0.18949 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RX(1) = 0.50226 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RY(1) = 0.81178 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RZ(1) = 0.18692 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RX(2) = 2.09938 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RY(2) = 1.86064 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RZ(2) = 1.31323 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RX(2) = 2.09770 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RY(2) = 1.85859 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RZ(2) = 1.31121 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RX(3) = 1.31761 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RY(3) = 2.08757 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RZ(3) = 0.44842 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RX(3) = 1.31550 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RY(3) = 2.08538 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RZ(3) = 0.44707 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RX(4) = 1.48200 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RY(4) = 0.77144 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(1)%RZ(4) = 1.55693 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RX(4) = 1.48458 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RY(4) = 0.77169 / this%BoxLength
-! ! ! !     this%Component(1)%Molecule%SiteCharge(2)%RZ(4) = 1.55483 / this%BoxLength
-! ! ! 
-! ! !    EPotLocal = 0.0_RK
-! ! !    VirialLocal = 0.0_RK
-! ! !    KappaLsqrt4 = 1.0_RK/(4*this%KappaL**2)
-! ! ! !    this%BoxLength = 3.6445654373
-! ! ! 
-! ! !    DO i=1,this%BoxenAnzahl,1
-! ! !      KVec(1:3) = this%Ewald_Vec(1:3,i)
-! ! ! !      KVec_LenInv = 1._RK / (KVec(1)**2 + KVec(2)**2 + KVec(3)**2)
-! ! !      summe = KVec(1)*KVec(1) + KVec(2)*KVec(2) + KVec(3)*KVec(3)
-! ! !      SSin = 0.0_RK
-! ! !      SCos = 0.0_RK
-! ! !      counter = 1
-! ! ! 
-! ! !      DO j=1,this%NComponents,1
-! ! !        mol => this%Component(j)%Molecule
-! ! !        DO k=1,this%Component(j)%NPart,1
-! ! ! 
-! ! !          DO l=1,mol%NCharge
-! ! !            RX = mol%SiteCharge(l)%RX(k)
-! ! !            RY = mol%SiteCharge(l)%RY(k)
-! ! !            RZ = mol%SiteCharge(l)%RZ(k)
-! ! ! 
-! ! !            Faktor = KVec(1)*RX + KVec(2)*RY + KVec(3)*RZ
-! ! ! 
-! ! !            this%SSin_Fac(counter) = sin(Faktor)
-! ! !            this%SCos_Fac(counter) = cos(Faktor)
-! ! !            SSin = SSin + mol%SiteCharge(l)%e*this%SSin_Fac(counter)
-! ! !            SCos = SCos + mol%SiteCharge(l)%e*this%SCos_Fac(counter)
-! ! !            counter = counter + 1
-! ! ! !            sin_test(i,k,l) = sin(Faktor)
-! ! ! !            cos_test(i,k,l) = cos(Faktor)
-! ! !          END DO
-! ! !        END DO
-! ! !      END DO
-! ! ! 
-! ! !      U_fourier = this%Ewald_Prefac(i)*(SSin*SSin + SCos*SCos)
-! ! ! !      test = SSin*SSin + SCos*SCos
-! ! !      EPotLocal = EPotLocal + U_fourier
-! ! ! 
-! ! ! ! Virial just Trace(Virial) of interest
-! ! ! !      summe =0.0_RK
-! ! ! !      DO j=1,3,1
-! ! ! !          summe = summe + KVec(j)*KVec(j)
-! ! ! !      END DO
-! ! ! !      VirialLocal = VirialLocal + U_fourier * (3-2*(KVec_LenInv+KappaLsqrt4)*summe)
-! ! !      VirialLocal = VirialLocal + U_fourier * (1-2*KappaLsqrt4*summe)
-! ! ! !
-! ! ! !
-! ! ! ! Calculation of Forces
-! ! !      counter = 1
-! ! !      Faktor3(1:3) = 2._RK * this%Ewald_Prefac(i) / this%BoxLength * KVec(1:3)
-! ! !      DO j=1,this%NComponents,1
-! ! !        mol => this%Component(j)%Molecule
-! ! !        DO k=1,this%Component(j)%NPart,1
-! ! ! 
-! ! !          DO l=1,mol%NCharge
-! ! ! !            RX = mol%SiteCharge(l)%RX(k)
-! ! ! !            RY = mol%SiteCharge(l)%RY(k)
-! ! ! !            RZ = mol%SiteCharge(l)%RZ(k)
-! ! ! ! 
-! ! ! !            Faktor = KVec(1)*RX + KVec(2)*RY + KVec(3)*RZ
-! ! ! ! Calculation of Forces
-! ! ! !            Faktor2 = 2*mol%SiteCharge(l)%e*this%Ewald_Prefac(i)*&
-! ! ! ! &                    (this%SSin_Fac(counter)*SCos - this%SCos_Fac(counter)*SSin)
-! ! !            Faktor2 = mol%SiteCharge(l)%e*&
-! ! ! &                    (this%SSin_Fac(counter)*SCos - this%SCos_Fac(counter)*SSin)
-! ! ! 
-! ! ! !            test = sin(Faktor)*SCos - cos(Faktor)*SSin
-! ! ! 
-! ! !            FX = Faktor2 * Faktor3(1)
-! ! !            FY = Faktor2 * Faktor3(2)
-! ! !            FZ = Faktor2 * Faktor3(3)
-! ! !            mol%SiteCharge(l)%FX(k) = mol%SiteCharge(l)%FX(k) + FX
-! ! !            mol%SiteCharge(l)%FY(k) = mol%SiteCharge(l)%FY(k) + FY
-! ! !            mol%SiteCharge(l)%FZ(k) = mol%SiteCharge(l)%FZ(k) + FZ
-! ! ! 
-! ! !            counter = counter + 1
-! ! !          END DO
-! ! !        END DO
-! ! !      END DO
-! ! !    END DO      ! end loop over all Ewald boxes k
-! ! ! 
-! ! !    this%Epot   = this%Epot   + EPotLocal
-! ! !    this%Virial = this%Virial + Viriallocal*Third
-! ! ! 
-! ! !    end subroutine TEnsemble_EwaldFourierTerm
-! ! ! 
-! ! ! 
-! ! ! 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -12671,7 +12155,8 @@ endif
 
    call dfftw_execute(this%qgrid_forward)
 
-! Last factor cause of multiplication with unitlength/angstroem in multiplication of this%qgrida! (look just some lines above this comment!)
+! Last factor cause of multiplication with unitlength/angstroem in multiplication of this%qgrida! (look just some lines above this
+comment!)
   facx = NX / boxl * fac2s / factor
   facy = NY / boxl * fac2s / factor
   facz = NZ / boxl * fac2s / factor
@@ -12900,8 +12385,6 @@ contains
    real(RK)           :: fac
 
 
-!    nullify(this%qgrida)
-!    write(*,*) 'nicht ausgenullt!'
    this%qgrida = 0._RK
 
    NX = this%gridx
@@ -12911,89 +12394,6 @@ contains
    boxl  = this%BoxLength
    order = this%splineorder
 
-! Debug Stephan
-!    this%Component(1)%molecule%SiteCharge(1)%RX(1) = -0.3604397088940393
-!    this%Component(1)%molecule%SiteCharge(1)%RY(1) = -0.2647705271429488
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(1) = 0.2643293164661566
-!    this%Component(1)%molecule%SiteCharge(2)%RX(1) = -0.1543060806967627
-!    this%Component(1)%molecule%SiteCharge(2)%RY(1) = -0.2437836059502038
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(1) = 0.2319150387444959
-!    this%Component(1)%molecule%SiteCharge(3)%RX(1) = -0.1114351099351288
-!    this%Component(1)%molecule%SiteCharge(3)%RY(1) = -0.1269657257582112
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(1) = 0.2941404511947440
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(2) = -0.2553580327047170 
-!    this%Component(1)%molecule%SiteCharge(1)%RY(2) = 0.1997507804063506
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(2) = -0.1536295576590148
-!    this%Component(1)%molecule%SiteCharge(2)%RX(2) = 0.2790804600935731
-!    this%Component(1)%molecule%SiteCharge(2)%RY(2) = 0.3321433974891049
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(2) = -0.3145390914850995
-!    this%Component(1)%molecule%SiteCharge(3)%RX(2) = -0.3085680403258462
-!    this%Component(1)%molecule%SiteCharge(3)%RY(2) = 0.2582111950813060
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(2) = -0.4286508795261004
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(3) =  0.1660540503174808
-!    this%Component(1)%molecule%SiteCharge(1)%RY(3) = -0.3100534496043796
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(3) = -0.2347976151662044
-!    this%Component(1)%molecule%SiteCharge(2)%RX(3) =0.3524229108967265
-!    this%Component(1)%molecule%SiteCharge(2)%RY(3) = -0.2156196577483070
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(3) = -0.2529313739823603
-!    this%Component(1)%molecule%SiteCharge(3)%RX(3) = 0.3638105584647310 
-!    this%Component(1)%molecule%SiteCharge(3)%RY(3) =  -0.1205093428544866
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(3) = -0.1520264922000034
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(4) = 0.2965553442990528
-!    this%Component(1)%molecule%SiteCharge(1)%RY(4) = 0.3442031559880894
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(4) = 0.2098397978823303
-!    this%Component(1)%molecule%SiteCharge(2)%RX(4) = 0.1884454921646807 
-!    this%Component(1)%molecule%SiteCharge(2)%RY(4) = 0.1653657616616851  
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(4) = 0.2274146898412163
-!    this%Component(1)%molecule%SiteCharge(3)%RX(4) = 0.2750154390580618
-!    this%Component(1)%molecule%SiteCharge(3)%RY(4) = 0.0654462503908305
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(4) = 0.2707268712796423
-! 
-! 
-! 
-! ! 5 Digits like in Spidey
-!    this%Component(1)%molecule%SiteCharge(1)%RX(1) = -0.36043
-!    this%Component(1)%molecule%SiteCharge(1)%RY(1) = -0.26477
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(1) =  0.26432
-!    this%Component(1)%molecule%SiteCharge(2)%RX(1) = -0.15430
-!    this%Component(1)%molecule%SiteCharge(2)%RY(1) = -0.24378
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(1) =  0.23191
-!    this%Component(1)%molecule%SiteCharge(3)%RX(1) = -0.11143
-!    this%Component(1)%molecule%SiteCharge(3)%RY(1) = -0.12696
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(1) =  0.29414
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(2) = -0.25535
-!    this%Component(1)%molecule%SiteCharge(1)%RY(2) =  0.19975
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(2) = -0.15362
-!    this%Component(1)%molecule%SiteCharge(2)%RX(2) =  0.27908
-!    this%Component(1)%molecule%SiteCharge(2)%RY(2) =  0.33214
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(2) = -0.31453
-!    this%Component(1)%molecule%SiteCharge(3)%RX(2) = -0.30856
-!    this%Component(1)%molecule%SiteCharge(3)%RY(2) =  0.25821
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(2) = -0.42865
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(3) =  0.16605
-!    this%Component(1)%molecule%SiteCharge(1)%RY(3) = -0.31005
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(3) = -0.23479
-!    this%Component(1)%molecule%SiteCharge(2)%RX(3) =  0.35242
-!    this%Component(1)%molecule%SiteCharge(2)%RY(3) = -0.21561
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(3) = -0.25293
-!    this%Component(1)%molecule%SiteCharge(3)%RX(3) =  0.36381
-!    this%Component(1)%molecule%SiteCharge(3)%RY(3) = -0.12050
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(3) = -0.15202
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(4) = 0.296555
-!    this%Component(1)%molecule%SiteCharge(1)%RY(4) = 0.344203
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(4) = 0.209839
-!    this%Component(1)%molecule%SiteCharge(2)%RX(4) = 0.188445
-!    this%Component(1)%molecule%SiteCharge(2)%RY(4) = 0.165365
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(4) = 0.227414
-!    this%Component(1)%molecule%SiteCharge(3)%RX(4) = 0.275015
-!    this%Component(1)%molecule%SiteCharge(3)%RY(4) = 0.065446
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(4) = 0.270726
 
 
 ! Dimensions of charge
@@ -13672,47 +13072,6 @@ contains
    boxl  = this%BoxLength
    order = this%splineorder
 
-! 
-! ! 5 Digits like in Spidey
-!    this%Component(1)%molecule%SiteCharge(1)%RX(1) = -0.36043
-!    this%Component(1)%molecule%SiteCharge(1)%RY(1) = -0.26477
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(1) =  0.26432
-!    this%Component(1)%molecule%SiteCharge(2)%RX(1) = -0.15430
-!    this%Component(1)%molecule%SiteCharge(2)%RY(1) = -0.24378
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(1) =  0.23191
-!    this%Component(1)%molecule%SiteCharge(3)%RX(1) = -0.11143
-!    this%Component(1)%molecule%SiteCharge(3)%RY(1) = -0.12696
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(1) =  0.29414
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(2) = -0.25535
-!    this%Component(1)%molecule%SiteCharge(1)%RY(2) =  0.19975
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(2) = -0.15362
-!    this%Component(1)%molecule%SiteCharge(2)%RX(2) =  0.27908
-!    this%Component(1)%molecule%SiteCharge(2)%RY(2) =  0.33214
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(2) = -0.31453
-!    this%Component(1)%molecule%SiteCharge(3)%RX(2) = -0.30856
-!    this%Component(1)%molecule%SiteCharge(3)%RY(2) =  0.25821
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(2) = -0.42865
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(3) =  0.16605
-!    this%Component(1)%molecule%SiteCharge(1)%RY(3) = -0.31005
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(3) = -0.23479
-!    this%Component(1)%molecule%SiteCharge(2)%RX(3) =  0.35242
-!    this%Component(1)%molecule%SiteCharge(2)%RY(3) = -0.21561
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(3) = -0.25293
-!    this%Component(1)%molecule%SiteCharge(3)%RX(3) =  0.36381
-!    this%Component(1)%molecule%SiteCharge(3)%RY(3) = -0.12050
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(3) = -0.15202
-! 
-!    this%Component(1)%molecule%SiteCharge(1)%RX(4) = 0.296555
-!    this%Component(1)%molecule%SiteCharge(1)%RY(4) = 0.344203
-!    this%Component(1)%molecule%SiteCharge(1)%RZ(4) = 0.209839
-!    this%Component(1)%molecule%SiteCharge(2)%RX(4) = 0.188445
-!    this%Component(1)%molecule%SiteCharge(2)%RY(4) = 0.165365
-!    this%Component(1)%molecule%SiteCharge(2)%RZ(4) = 0.227414
-!    this%Component(1)%molecule%SiteCharge(3)%RX(4) = 0.275015
-!    this%Component(1)%molecule%SiteCharge(3)%RY(4) = 0.065446
-!    this%Component(1)%molecule%SiteCharge(3)%RZ(4) = 0.270726
 
 
 ! Dimensions of charge
@@ -14255,6 +13614,7 @@ contains
 
 
 ! TRANSPORT ab hier
+#if TRANS==1
 !==============================================================!
 !  Subroutine TEnsemble_CalCorrFun                             !
 !==============================================================!
@@ -14270,346 +13630,243 @@ contains
 
     ! Declare arguments
     type(TEnsemble) :: this
-#if TRANS==1
     ! Declare local variables
     integer  :: nmess, i, j, j0, k, s
     integer  :: CFindex, Mindex
-    integer  :: Npart3,Npart2, Ncomp2
+    integer  :: NPart2
     integer  :: np, nc
-    real(RK) :: sx(this%Ncomponents, this%Ncorr ), sy(this%Ncomponents, this%Ncorr )
-    real(RK) :: sz(this%Ncomponents, this%Ncorr )
-    real(RK) :: EKinTran(this%Ncomponents,this%Npart)
-    real(RK) :: EKinRot(this%Ncomponents,this%Npart)
+    real(RK) :: sx(this%NComponents, this%NCorr ), sy(this%NComponents, this%NCorr )
+    real(RK) :: sz(this%NComponents, this%NCorr )
+    real(RK) :: EKinTran(this%NComponents,this%NPart)
+    real(RK) :: EKinRot(this%NComponents,this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
-    real(RK), pointer :: pfb(:,:), pfs(:,:), pftc(:,:), pfrc(:,:)
+    real(RK), pointer :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
 
-    Npart3 = 3*this%Npart
-    Npart2 = 2*this%Npart
-    Ncomp2 = this%NComponents*this%NComponents
+    NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
 
-!Evaluate FTc and FRC components (parallel version)
+    EKinTran(:,:) = 0._RK
+    EKinRot (:,:) = 0._RK
 
-      do i = 1, this%NComponents
-        call ForceTransport( this%Component(i) )
-#if MPI_VER > 0
-        call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_RK, &
-&       NRootProc, Communicator, ierror )
-#endif
-      end do
-
-! Calculate sum of terms of the pressure tensor (kinetic and potential)
-
-    do i = 1, this%Ncomponents
-       np = this%Component(i)%Npart
-#if MPI_VER > 0
-       pfb => this%Component(i)%fbAll(:,:)
-#else
-       pfb => this%Component(i)%fb(:,:)
-#endif
-       do k =1, 3
-          do j = 1, np
-
-             this%sc(k) = this%sc(k) + this%Component(i)%KinETran(j,k)
-             this%sp(k) = this%sp(k) + pfb(j, k)
-          end do
-       end do
-     end do
-
-     tempf(:)  = this%sc(:)/Step
-     virf(:)   = this%sp(:)/Step
-
-! Calculate the kinetic Energy/particle and total
-
-     EKinTran(:,:) = 0._RK
-     EKinRot (:,:) = 0._RK
-
-   do i = 1, this%Ncomponents
-     np = this%Component(i)%Npart
-
-     do k = 1, 3
-          do j = 1, np
-             EkinTran(i,j) = EkinTran(i,j)+ this%Component(i)%KinETran(j,k)*0.5d0
-
-             if( this%Component(i)%Molecule%IsElongated ) then
-
-               EKinRot(i,j)= EKinRot(i,j) + (this%Component(i)%W0(j,k)*this%Component(i)%W0(j,k)*    &
-  &                                          this%Component(i)%Molecule%MOI(k))*0.5d0
-             else
-              EKinRot(i,j)= 0._RK
-            end if
-
-          end do
-       end do
-     end do
-
-
-!Caculate matrix indexes
-
-    if (Step.le.this%Ncorr) then
-        Mindex = Step
-        else
-           if(mod(Step, this%Ncorr).eq.0)then
-              Mindex = this%Ncorr
-              else
-                 Mindex = mod(Step, this%NCorr)
-           end if
+    !Calculate matrix indexes
+    if (mod(Step, this%NCorr) .eq. 0) then
+      Mindex = this%NCorr
+    else
+      Mindex = mod(Step, (this%NCorr) )
     end if
 
-
-!Write transport properties Matrixes (root Processor)
-
-    do k = 1, 3
-       this%vsk(Mindex,  k) = 0._RK
-       this%vsp(Mindex,  k) = 0._RK
-       this%vbk(Mindex,  k) = 0._RK
-       this%vbp(Mindex,  k) = 0._RK
-       this%vckt(Mindex, k) = 0._RK
-       this%vckr(Mindex, k) = 0._RK
-       this%vcpt(Mindex, k) = 0._RK
-       this%vcpr(Mindex, k) = 0._RK
-    end do
+    !Write transport properties Matrixes (root Processor)
+    this%vsk(Mindex,  :) = 0._RK
+    this%vsp(Mindex,  :) = 0._RK
+    this%vbk(Mindex,  :) = 0._RK
+    this%vbp(Mindex,  :) = 0._RK
+    this%vckt(Mindex, :) = 0._RK
+    this%vckr(Mindex, :) = 0._RK
+    this%vcpt(Mindex, :) = 0._RK
+    this%vcpr(Mindex, :) = 0._RK
 
 
-! part calculated together with force
-
-    do i = 1, this%Ncomponents
-       np = this%Component(i)%Npart
+    !Evaluate FTc and FRC components (parallel version)
+    do i = 1, this%NComponents
+      call ForceTransport( this%Component(i) )
 #if MPI_VER > 0
-       pfb => this%Component(i)%fbAll(:,:)
-       pfs => this%Component(i)%fsAll(:,:)
-#else
-       pfb => this%Component(i)%fb(:,:)
-       pfs => this%Component(i)%fs(:,:)
+      call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_RK, &
+&      NRootProc, Communicator, ierror )
 #endif
-       pftc => this%Component(i)%ftc(:,:)
-       pfrc => this%Component(i)%frc(:,:)
-
-       do k = 1,3
-          do j = 1, np
-             this%vsp(Mindex, k) = this%vsp(Mindex, k) + pfs(j, k)
-             this%vbp(Mindex, k) = this%vbp(Mindex, k) + pfb(j, k)
-             this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + pfrc(j, k)
-             this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + pftc(j, k)
-          end do
-       end do
-     end do
-
-
-! kinetic part
-
-   !Diffusion matrix a
-
-     do i = 1, this%Ncomponents
-       if (i.eq.1) then
-         j0 = 0
-         k  = this%Component(i)%Npart
-       else
-         j0 = k
-         k  = k + this%Component(i)%Npart
-       end if
-         do j = 1, this%Component(i)%Npart
-
-         this%a(j+j0           , Mindex) = this%Component(i)%P1(j,1)*BoxLength_dt
-         this%a(j+j0+this%Npart, Mindex) = this%Component(i)%P1(j,2)*BoxLength_dt
-         this%a(j+j0+Npart2    , Mindex) = this%Component(i)%P1(j,3)*BoxLength_dt
-
-         end do
-     end do
-
-
-   !parts of the stress and energy tensors
-
-    ! shear off diagonal terms
-     do i = 1, this%Ncomponents
-        np = this%Component(i)%Npart
-
-          do j = 1, np
-
-         this%vsk(Mindex, 1) = this%vsk(Mindex, 1) + this%Component(i)%P1(j,1)*        &
-      &                        this%Component(i)%P1(j,2)*this%Component(i)%Molecule%Mass*  &
-      &                        BoxLength_dt2
-
-         this%vsk(Mindex, 2) = this%vsk(Mindex, 2) + this%Component(i)%P1(j,1)*        &
-      &                        this%Component(i)%P1(j,3)*this%Component(i)%Molecule%Mass*  &
-      &                        BoxLength_dt2
-
-         this%vsk(Mindex, 3) = this%vsk(Mindex, 3) + this%Component(i)%P1(j,2)*        &
-      &                        this%Component(i)%P1(j,3)*this%Component(i)%Molecule%Mass*  &
-      &                        BoxLength_dt2
-
-
-       end do
-     end do
-
-  !bulk diagonal terms and energy tensor kinetic part
-
-    do i = 1, this%Ncomponents
-       np = this%Component(i)%Npart
-       do k = 1, 3
-          do j = 1, np
-
-              this%vbk(Mindex, k) = this%vbk(Mindex, k) + this%Component(i)%KinETran(j,k)
-
-              this%vckt(Mindex, k)= this%vckt(Mindex, k) + this%Component(i)%P1(j, k)*EKinTran(i,j)*  &
-     &                              this%Component(i)%Molecule%Mass*BoxLength_dt
-
-              this%vckr(Mindex, k)= this%vckr(Mindex, k) + this%Component(i)%P1(j, k)*EKinRot(i,j)*  &
-     &                              this%Component(i)%Molecule%Mass*BoxLength_dt
-         end do
-      end do
     end do
 
 
+    ! Loop Variable
+    j0 = 0
+    do i = 1, this%NComponents
+      np = this%Component(i)%NPart
+#if MPI_VER > 0
+      pFB => this%Component(i)%FBAll(:,:)
+      pFS => this%Component(i)%FSAll(:,:)
+#else
+      pFB => this%Component(i)%FB(:,:)
+      pFS => this%Component(i)%FS(:,:)
+#endif
+      pFTC => this%Component(i)%FTC(:,:)
+      pFRC => this%Component(i)%FRC(:,:)
+      do j = 1, np
+        do k =1, 3
+          ! Calculate sum of terms of the pressure tensor (kinetic and potential)
+          this%sc(k) = this%sc(k) + this%Component(i)%KinETran(j,k)
+          this%sp(k) = this%sp(k) + pFB(j, k)
+
+          ! part calculated together with force
+          this%vsp(Mindex, k) = this%vsp(Mindex, k) + pFS(j, k)
+          this%vbp(Mindex, k) = this%vbp(Mindex, k) + pFB(j, k)
+          this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + pFRC(j, k)
+          this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + pFTC(j, k)
+
+          ! Calculate the kinetic Energy/particle and total
+          EkinTran(i,j) = EkinTran(i,j)+ this%Component(i)%KinETran(j,k)*0.5d0
+          if ( this%Component(i)%Molecule%IsElongated ) then
+            EKinRot(i,j)= EKinRot(i,j) + &
+&                (this%Component(i)%W0(j,k)*this%Component(i)%W0(j,k)*    &
+&                 this%Component(i)%Molecule%MOI(k))*0.5d0
 
 
-! Calculate Auto Correlation Functions
+          !bulk diagonal terms and energy tensor kinetic part
+          this%vbk(Mindex, k) = this%vbk(Mindex, k) + this%Component(i)%KinETran(j,k)
+          this%vckt(Mindex, k)= this%vckt(Mindex, k) + this%Component(i)%P1(j, k)*EKinTran(i,j)*  &
+&                                this%Component(i)%Molecule%Mass*BoxLength_dt
+          this%vckr(Mindex, k)= this%vckr(Mindex, k) + this%Component(i)%P1(j, k)*EKinRot(i,j)*  &
+&                                this%Component(i)%Molecule%Mass*BoxLength_dt
+          end if
 
- if((Step.gt.this%Ncorr).and.(mod(Step, this%NSpancf).eq.0))then
+        end do
+
+        !parts of the stress and energy tensors
+        ! shear off diagonal terms
+        this%vsk(Mindex, 1) = this%vsk(Mindex, 1) + this%Component(i)%P1(j,1)*        &
+&                         this%Component(i)%P1(j,2)*this%Component(i)%Molecule%Mass*  &
+&                         BoxLength_dt2
+        this%vsk(Mindex, 2) = this%vsk(Mindex, 2) + this%Component(i)%P1(j,1)*        &
+&                         this%Component(i)%P1(j,3)*this%Component(i)%Molecule%Mass*  &
+&                         BoxLength_dt2
+        this%vsk(Mindex, 3) = this%vsk(Mindex, 3) + this%Component(i)%P1(j,2)*        &
+&                         this%Component(i)%P1(j,3)*this%Component(i)%Molecule%Mass*  &
+&                         BoxLength_dt2
+
+        ! kinetic part
+        !Diffusion matrix a
+        this%a(j+j0           , Mindex) = this%Component(i)%P1(j,1)*BoxLength_dt
+        this%a(j+j0+this%NPart, Mindex) = this%Component(i)%P1(j,2)*BoxLength_dt
+        this%a(j+j0+NPart2    , Mindex) = this%Component(i)%P1(j,3)*BoxLength_dt
+
+      end do
+      j0 = j0 + np
+    end do
+
+    tempf(:)  = this%sc(:)/Step
+    virf(:)   = this%sp(:)/Step
 
 
-      if (Mindex .eq. this%Ncorr) then
-         CFindex = 1                       !index of t = t0
-         else
-            CFindex = Mindex +1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Calculate Auto Correlation Functions
+    if ( (Step .gt. this%NCorr) .and. (mod(Step, this%NSpancf) .eq. 0) ) then
+      if (Mindex .eq. this%NCorr) then
+        CFindex = 1                       !index of t = t0
+      else
+        CFindex = Mindex +1
       end if
 
-      if(this%Ncomponents .gt. 1)then
-        do nmess =1, this%Ncorr
-
-           sx(:,nmess) = 0._RK
-           sy(:,nmess) = 0._RK
-           sz(:,nmess) = 0._RK
-
-           do i = 1, this%Ncomponents
-              if (i.eq.1) then
-                 j0 = 0
-                 k  = this%Component(i)%Npart
-                 else
-                  j0 = k
-                  k  = k + this%Component(i)%Npart
-              end if
-              do j = 1, this%Component(i)%Npart
-                 sx(i,nmess)  = sx(i, nmess) + this%a(j+j0            , nmess)
-                 sy(i,nmess)  = sy(i, nmess) + this%a(j+j0+this%Npart , nmess)
-                 sz(i,nmess)  = sz(i, nmess) + this%a(j+j0+Npart2     , nmess)
-              end do
-           end do
+      ! Preparation for self diffusion coefficient / conductivity etc.
+      if(this%NComponents .gt. 1)then
+        do nmess =1, this%NCorr
+          sx(:,nmess) = 0._RK
+          sy(:,nmess) = 0._RK
+          sz(:,nmess) = 0._RK
+          j0 = 0
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            do j = 1, this%Component(i)%NPart
+              sx(i,nmess)  = sx(i, nmess) + this%a(j+j0            , nmess)
+              sy(i,nmess)  = sy(i, nmess) + this%a(j+j0+this%NPart , nmess)
+              sz(i,nmess)  = sz(i, nmess) + this%a(j+j0+NPart2     , nmess)
+            end do
+            j0 = j0 + np
+          end do
         end do
       end if
 
 
-! Write the diffusion matrix
+      ! Calculation of all transport properties 
+      ! s .. matrix index of the corresponding values
+      do nmess= 1, this%NCorr
+        if (Mindex .eq. this%NCorr) then
+          s = nmess
+        else
+          s = mod ((nmess + Mindex), this%NCorr)
+        end if
 
-      k      = 0
-      do nmess = 1, this%Ncorr
-         if (nmess .le. (this%Ncorr-Mindex)) then
-            s = Mindex + nmess                              ! index t= t
-            else
-               if (Mindex .eq. this%Ncorr) then
-                  s = nmess
-                  else
-                  s = mod ((nmess + Mindex), this%Ncorr)
-               end if
-         end if
+        ! Loop over particles 
+        !Calculate auto-correlation functions
+        !Nur selbstdiffusion
+        ! Write the diffusion matrix
+        j0 = 0
+        do i = 1, this%NComponents
+          np = this%Component(i)%NPart
+          do j = 1, np
+            this%cf_d(i , nmess) = this%cf_d(i, nmess)                               &
+&                      + this%a(j+j0            ,CFindex)*this%a(j+j0            ,s) &
+&                      + this%a(j+j0+this%NPart ,CFindex)*this%a(j+j0+this%NPart ,s) &
+&                      + this%a(j+j0+NPart2     ,Cfindex)*this%a(j+j0+NPart2     ,s)
+          end do
+          j0 = j0 + np
+        end do
 
-!Calculate auto-correlation functions
-         !Nur selbstdiffusion
-         do i = 1, this%Ncomponents
-            if (i.eq.1) then
-               j0 = 0
-               k  = this%Component(i)%Npart
-            else
-                  j0 = k
-                  k  = k + this%Component(i)%Npart
-            end if
-            do j = 1, this%Component(i)%Npart
 
-               this%cf_d(i , nmess) = this%cf_d(i, nmess)                                       &
-                                    + this%a(j+j0            ,CFindex)*this%a(j+j0            ,s) &
-                                    + this%a(j+j0+this%Npart ,CFindex)*this%a(j+j0+this%Npart ,s) &
-                                    + this%a(j+j0+Npart2     ,Cfindex)*this%a(j+j0+Npart2     ,s)
+        ! Just loops over components!
+        if (this%NComponents .gt. 1) then
+          nc = this%NComponents
+          k = 1
+          do i = 1, nc
+            do j = 1,nc
+              this%lamda(k, nmess) = this%lamda(k, nmess) + sx(i, CFindex)*sx(j, s) &
+&                                           + sy(i, CFindex)*sy(j, s) &
+&                                           + sz(i, CFindex)*sz(j, s)
+              k = k + 1
             end do
-         end do
+          end do
+        end if
+
+        ! If exactly two components are in the mixture
+        ! Maxwell-Stephan Diffusion coefficient
+        if (this%NComponents==2) then
+          this%cf_db(nmess) = this%cf_db(nmess) + sx(1, CFindex)*sx(1, s) &
+&                                               + sy(1, CFindex)*sy(1, s) &
+&                                               + sz(1, CFindex)*sz(1, s)
+        end if
+
+        ! Calculated in general
+        do k = 1, 3
+          ! shear viscosity
+          this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
+&                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
+&                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
+&                                                 this%vsp(CFindex, k)*this%vsk(s, k)
+          ! bulk viscosity
+          do j = 1, 3 ! FIXME: PROBLEM mit gemischten Termen j index zuviel (vermutlich)
+            this%cf_vb(nmess) =   this%cf_vb(nmess) + &
+&                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
+&                             ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
+&                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
+&                             ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
+          end do
+          ! conductivity
+          this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
+&                                                this%vckr(CFindex, k)*this%vckr(s, k) + &
+&                                                this%vcpt(CFindex, k)*this%vcpt(s, k) + &
+&                                                this%vcpr(CFindex, k)*this%vcpr(s, k) + &
+&                                                this%vckt(CFindex, k)*this%vcpt(s, k) + &
+&                                                this%vcpt(CFindex, k)*this%vckt(s, k) + &
+&                                                this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                this%vcpr(CFindex, k)*this%vckr(s, k) + &
+&                                                this%vckr(CFindex, k)*this%vckt(s, k) + &
+&                                                this%vckt(CFindex, k)*this%vckr(s, k) + &
+&                                                this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                this%vcpr(CFindex, k)*this%vcpt(s, k) + &
+&                                                this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                this%vcpr(CFindex, k)*this%vckt(s, k) + &
+&                                                this%vckr(CFindex, k)*this%vcpt(s, k) + &
+&                                                this%vcpt(CFindex, k)*this%vckr(s, k)
+        end do
       end do
+      this%Mmess  = this%Mmess +1
+    end if ! ((Step.gt.this%NCorr).and.(mod(Step, this%NSpancf).eq.0))
 
-      do nmess= 1, this%Ncorr
-
-          if (nmess .le. (this%Ncorr-Mindex)) then
-             s = Mindex + nmess
-            else
-              if (Mindex .eq. this%Ncorr) then
-                 s = nmess
-                else
-                  s = mod ((nmess + Mindex), this%Ncorr)
-               end if
-            end if
-
-           if (this%Ncomponents .gt. 1)then
-               nc = this%NComponents
-               k = 1
-               do i = 1, nc
-                  do j = 1,nc
-                  this%lamda(k, nmess) = this%lamda(k, nmess) + sx(i, CFindex)*sx(j, s) &
-                                                              + sy(i, CFindex)*sy(j, s) &
-                                                              + sz(i, CFindex)*sz(j, s)
-                  k = k + 1
-                  end do
-               end do
-            end if
-
-
-           if(this%Ncomponents==2)then
-
-           this%cf_db(nmess) = this%cf_db(nmess) + sx(1, CFindex)*sx(1, s) &
-                                                 + sy(1, CFindex)*sy(1, s) &
-                                                 + sz(1, CFindex)*sz(1, s)
-
-           end if
-
-           do k = 1, 3
-
-             this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
-&                                                    this%vsp(CFindex, k)*this%vsp(s, k) + &
-&                                                    this%vsk(CFindex, k)*this%vsp(s, k) + &
-&                                                    this%vsp(CFindex, k)*this%vsk(s, k)
-             do j = 1, 3 ! FIXME: PROBLEM mit gemischten Termen j index zuviel (vermutlich)
-
-                this%cf_vb(nmess) =   this%cf_vb(nmess) + &
-&                                   ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
-&                                   ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
-&                                   ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
-&                                   ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
-             end do
-
-             this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
-&                                                   this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                   this%vcpt(CFindex, k)*this%vcpt(s, k) + &
-&                                                   this%vcpr(CFindex, k)*this%vcpr(s, k) + &
-&                                                   this%vckt(CFindex, k)*this%vcpt(s, k) + &
-&                                                   this%vcpt(CFindex, k)*this%vckt(s, k) + &
-&                                                   this%vckr(CFindex, k)*this%vcpr(s, k) + &
-&                                                   this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                   this%vckr(CFindex, k)*this%vckt(s, k) + &
-&                                                   this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                   this%vcpt(CFindex, k)*this%vcpr(s, k) + &
-&                                                   this%vcpr(CFindex, k)*this%vcpt(s, k) + &
-&                                                   this%vckt(CFindex, k)*this%vcpr(s, k) + &
-&                                                   this%vcpr(CFindex, k)*this%vckt(s, k) + &
-&                                                   this%vckr(CFindex, k)*this%vcpt(s, k) + &
-&                                                   this%vcpt(CFindex, k)*this%vckr(s, k)
-       end do
-
-      end do
-    this%Mmess  = this%Mmess +1
-    end if
-#endif
    end subroutine TEnsemble_CalCorrFun
+#endif
 
 
 
+#if TRANS==1
 !==============================================================!
 !  Subroutine TEnsemble_IntCorrFun                             !
 !==============================================================!
@@ -14618,14 +13875,8 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
-#if TRANS==1
     ! Declare local varibles
     integer  :: i, k
     integer  :: ncomp2
@@ -14637,41 +13888,36 @@ contains
     ncomp2 = this%NComponents*this%NComponents
 
     do i  = 1, this%NComponents
-
-      helpvar =  1._RK /(3._RK *this%Component(i)%Npart * this%Mmess)
-
+      helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess)
       this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), TimeStep, this%NCorr )
       this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
-
     end do
 
 
     if ( this%NComponents .gt. 1) then
 
-      helpvar =  1._RK /(3._RK *this%Npart * this%Mmess)
+      helpvar =  1._RK /(3._RK *this%NPart * this%Mmess)
       do k = 1, ncomp2
         this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), TimeStep, this%NCorr)
       end do
 
-      if( this%NComponents == 2 ) then
-
+      if ( this%NComponents == 2 ) then
         this%sinte_db = simpson( this%cf_db(:)/this%cf_db(1), TimeStep, this%NCorr )
-
         this%binary_d = (((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1)) * &
-&                         (this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
-&                        ((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1)) * &
-&                         (this%Component(1)%Fraction/this%Component(2)%Fraction)) - &
-&                         (this%sinte_lamda(2,this%NCorr)*this%lamda(2,1)) - &
-&                         (this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
+&                       (this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
+&                       ((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1)) * &
+&                       (this%Component(1)%Fraction/this%Component(2)%Fraction)) - &
+&                       (this%sinte_lamda(2,this%NCorr)*this%lamda(2,1)) - &
+&                       (this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
 
-!      this%binary_d = this%sinte_db( this%NCorr ) * this%cf_db(1)* (1._RK /(3._RK *this%Component(1)%Npart * this%Mmess) * &
+!      this%binary_d = this%sinte_db( this%NCorr ) * this%cf_db(1)* (1._RK /(3._RK *this%Component(1)%NPart * this%Mmess) * &
 !&       ( (this%Component(1)%Fraction * this%Component(1)%Molecule%Mass + &
 !&          this%Component(2)%Fraction * this%Component(2)%Molecule%Mass) / &
 !&         (this%Component(2)%Fraction * this%Component(2)%Molecule%Mass) ) **2 * &
 !&          this%Component(2)%Fraction
       end if
 
-     if( this%NComponents == 3 ) then
+      if( this%NComponents == 3 ) then
 
         x1 = this%Component(1)%Fraction
         x2 = this%Component(2)%Fraction
@@ -14680,69 +13926,61 @@ contains
         Inv_x2 = 1._RK / x2
         Inv_x3 = 1._RK / x3
 
-      deter1 = (((1._RK - x1)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
-&                              ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-&                       ((x1)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
-&                              ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
-&                              ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
+        deter1 = (((1._RK - x1)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
+&                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
+&                         ((x1)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
+&                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
+&                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
 &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
-       deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
+        deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
 &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-&                        ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
+&                         ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
 &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
 &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+&                             ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
-       deter3 = (((1._RK - x2)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
+        deter3 = (((1._RK - x2)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
 &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
-&                        ((x2)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
+&                         ((x2)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
 &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
 &                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
-&                               ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+&                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
-       deter4 = (((1._RK - x2)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
+        deter4 = (((1._RK - x2)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
 &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
 &                        ((x2)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
 &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
 &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+&                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
-      !obtain matrix [B] so that [B]=[D]-1
+        !obtain matrix [B] so that [B]=[D]-1
+        ! determinat of matrix [B]
+        det = (deter1*deter4)-(deter2*deter3)
 
-     ! determinat of matrix [B]
+        B11 =  deter4 * (1._RK/det)
+        B12 = -deter2 * (1._RK/det)
+        B21 = -deter3 * (1._RK/det)
+        B22 =  deter1 * (1._RK/det)
 
-      det = (deter1*deter4)-(deter2*deter3)
-
-      B11 =  deter4 * (1._RK/det)
-      B12 = -deter2 * (1._RK/det)
-      B21 = -deter3 * (1._RK/det)
-      B22 =  deter1 * (1._RK/det)
-
-      this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
-      this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
-      this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
-
-     end if
+        this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
+        this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
+        this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
+      end if
 
     end if
 
 
-    helpvar =  this%Density /(3._RK *this%Npart * this%Mmess * this%Temperature)
-
+    helpvar =  this%Density /(3._RK *this%NPart * this%Mmess * this%Temperature)
     this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), TimeStep, this%NCorr )
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-
     this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), TimeStep, this%NCorr )
     this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
-
     this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStep, this%NCorr )
     this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
 
 
   contains
-
-
 
     function trapezoid(values, step, n) result(integral)
 
@@ -14801,8 +14039,8 @@ contains
 
     end function
 
-
-#endif
   end subroutine TEnsemble_IntCorrFun
+#endif
+
 
 end module ms2_ensemble

@@ -757,6 +757,7 @@ contains
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
     real(RK)          :: UU ,  Uxi,  Uyi, Uzi, RijSInvNorm
+    real(RK)          :: BoxLength2
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)          :: PXijB, PYijB, PZijB
@@ -816,31 +817,32 @@ contains
 #if  TRANS == 1
     !TRANSPORT_start
     SigmaInv     = 1._RK/Sqrt(this%SigmaSquared)
-    VSx => this%site1%vsLJx
-    VSy => this%site1%vsLJy
-    VSz => this%site1%vsLJz
-    VSux=> this%site1%vsuLJx
-    VSuy=> this%site1%vsuLJy
-    VSuz=> this%site1%vsuLJz
-    VBx => this%site1%vbLJx
-    VBy => this%site1%vbLJy
-    VBz => this%site1%vbLJz
-    Cx  => this%site1%cLJx
-    Cy  => this%site1%cLJy
-    Cz  => this%site1%cLJz
-    tux => this%site1%tuLJx
-    tuy => this%site1%tuLJy
-    tuz => this%site1%tuLJz
-    tlx => this%site1%tlLJx
-    tly => this%site1%tlLJy
-    tlz => this%site1%tlLJz
-    tdx => this%site1%tdLJx
-    tdy => this%site1%tdLJy
-    tdz => this%site1%tdLJz
-    q1  => this%site1%Q0r(:, 1)
-    q2  => this%site1%Q0r(:, 2)
-    q3  => this%site1%Q0r(:, 3)
-    q4  => this%site1%Q0r(:, 4)
+    BoxLength2   = BoxLength**2
+    VSx => this%Site1%vsLJx
+    VSy => this%Site1%vsLJy
+    VSz => this%Site1%vsLJz
+    VSux=> this%Site1%vsuLJx
+    VSuy=> this%Site1%vsuLJy
+    VSuz=> this%Site1%vsuLJz
+    VBx => this%Site1%vbLJx
+    VBy => this%Site1%vbLJy
+    VBz => this%Site1%vbLJz
+    Cx  => this%Site1%cLJx
+    Cy  => this%Site1%cLJy
+    Cz  => this%Site1%cLJz
+    tux => this%Site1%tuLJx
+    tuy => this%Site1%tuLJy
+    tuz => this%Site1%tuLJz
+    tlx => this%Site1%tlLJx
+    tly => this%Site1%tlLJy
+    tlz => this%Site1%tlLJz
+    tdx => this%Site1%tdLJx
+    tdy => this%Site1%tdLJy
+    tdz => this%Site1%tdLJz
+    q1  => this%Site1%Q0r(:, 1)
+    q2  => this%Site1%Q0r(:, 2)
+    q3  => this%Site1%Q0r(:, 3)
+    q4  => this%Site1%Q0r(:, 4)
 !TRANSPORT_END
 #endif
 
@@ -884,6 +886,9 @@ contains
         tdxi = tdx(i)
         tdyi = tdy(i)
         tdzi = tdz(i)
+        r1x  = ( RXi-PXi ) * BoxLength2
+        r1y  = ( RYi-PYi ) * BoxLength2
+        r1z  = ( RZi-PZi ) * BoxLength2
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -926,13 +931,10 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZ2(j) = FZ2(j) - FZij
 #if  TRANS == 1
           !TRANSPORT_start
-          !TRANSPORT_start
-          PXijB= PXij * BoxLength
-          PYijB= PYij * BoxLength
-          PZijB= PZij * BoxLength
-          r1x  = ( RXi-PXi ) * BoxLength
-          r1y  = ( RYi-PYi ) * BoxLength
-          r1z  = ( RZi-PZi ) * BoxLength
+          ! Multiplication of BoxLength taken out of the inner loop
+!           PXijB= PXij * BoxLength
+!           PYijB= PYij * BoxLength
+!           PZijB= PZij * BoxLength
           RijSInvNorm   = Sqrt(RijSquaredInv)
           UU   = RijSInvNorm*Epsilon4*Rij6Inv*(Rij6Inv - 1._RK)*SigmaInv
           Uxi  = UU*RXij
@@ -980,18 +982,40 @@ loop1:  do k = 1, this%NInCutoff(i)
         FZ1(i) = FZi
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx(i) = VSxi
-        VSy(i) = VSyi
-        VSz(i) = VSzi
-        VSux(i)= VSuxi
-        VSuy(i)= VSuyi
-        VSuz(i)= VSuzi
-        VBx(i) = VBxi
-        VBy(i) = VByi
-        VBz(i) = VBzi
+!         VSx(i) = VSxi
+!         VSy(i) = VSyi
+!         VSz(i) = VSzi
+!         VSux(i)= VSuxi
+!         VSuy(i)= VSuyi
+!         VSuz(i)= VSuzi
+!         VBx(i) = VBxi
+!         VBy(i) = VByi
+!         VBz(i) = VBzi
+!         Cx(i)  = Cxi
+!         Cy(i)  = Cyi
+!         Cz(i)  = Czi
+!         tux(i) = tuxi
+!         tuy(i) = tuyi
+!         tuz(i) = tuzi
+!         tlx(i) = tlxi
+!         tly(i) = tlyi
+!         tlz(i) = tlzi
+!         tdx(i) = tdxi
+!         tdy(i) = tdyi
+!         tdz(i) = tdzi
+        VSx(i) = VSxi  * BoxLength
+        VSy(i) = VSyi  * BoxLength
+        VSz(i) = VSzi  * BoxLength
+        VSux(i)= VSuxi * BoxLength
+        VSuy(i)= VSuyi * BoxLength
+        VSuz(i)= VSuzi * BoxLength
+        VBx(i) = VBxi  * BoxLength
+        VBy(i) = VByi  * BoxLength
+        VBz(i) = VBzi  * BoxLength
         Cx(i)  = Cxi
         Cy(i)  = Cyi
         Cz(i)  = Czi
+        ! Multiplication with Boxlength for the following terms already done in rx1, ...
         tux(i) = tuxi
         tuy(i) = tuyi
         tuz(i) = tuzi
@@ -1426,7 +1450,7 @@ loop2:do j = 1, N
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ                                             ! Site-Site-Einheitvektor
+    real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
     real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     integer           :: i, j, k, i1
@@ -1490,31 +1514,31 @@ loop2:do j = 1, N
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx => this%site1%vsCx
-    VSy => this%site1%vsCy
-    VSz => this%site1%vsCz
-    VSux=> this%site1%vsuCx
-    VSuy=> this%site1%vsuCy
-    VSuz=> this%site1%vsuCz
-    VBx => this%site1%vbCx
-    VBy => this%site1%vbCy
-    VBz => this%site1%vbCz
-    Cx  => this%site1%cCx
-    Cy  => this%site1%cCy
-    Cz  => this%site1%cCz
-    tux => this%site1%tuCx
-    tuy => this%site1%tuCy
-    tuz => this%site1%tuCz
-    tlx => this%site1%tlCx
-    tly => this%site1%tlCy
-    tlz => this%site1%tlCz
-    tdx => this%site1%tdCx
-    tdy => this%site1%tdCy
-    tdz => this%site1%tdCz
-    q1  => this%site1%Q0r(:, 1)
-    q2  => this%site1%Q0r(:, 2)
-    q3  => this%site1%Q0r(:, 3)
-    q4  => this%site1%Q0r(:, 4)
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VSux=> this%Site1%vsuCx
+    VSuy=> this%Site1%vsuCy
+    VSuz=> this%Site1%vsuCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+    Cx  => this%Site1%cCx
+    Cy  => this%Site1%cCy
+    Cz  => this%Site1%cCz
+    tux => this%Site1%tuCx
+    tuy => this%Site1%tuCy
+    tuz => this%Site1%tuCz
+    tlx => this%Site1%tlCx
+    tly => this%Site1%tlCy
+    tlz => this%Site1%tlCz
+    tdx => this%Site1%tdCx
+    tdy => this%Site1%tdCy
+    tdz => this%Site1%tdCz
+    q1  => this%Site1%Q0r(:, 1)
+    q2  => this%Site1%Q0r(:, 2)
+    q3  => this%Site1%Q0r(:, 3)
+    q4  => this%Site1%Q0r(:, 4)
 !TRANSPORT_END
 #endif
 
@@ -1556,6 +1580,9 @@ loop2:do j = 1, N
       tdxi = tdx(i)
       tdyi = tdy(i)
       tdzi = tdz(i)
+      r1x  = ( RXi-PXi ) * BoxLength
+      r1y  = ( RYi-PYi ) * BoxLength
+      r1z  = ( RZi-PZi ) * BoxLength
       A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
       A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
       A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -1604,9 +1631,6 @@ loop1:do k = 1, this%NInCutoff(i)
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
 #if TRANS==1
-        r1x  = ( RXi-PXi ) * BoxLength
-        r1y  = ( RYi-PYi ) * BoxLength
-        r1z  = ( RZi-PZi ) * BoxLength
         Rij2   = RXij**2 + RYij**2 + RZij**2
         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
@@ -1777,31 +1801,31 @@ loop1:do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx => this%site1%vsCx
-    VSy => this%site1%vsCy
-    VSz => this%site1%vsCz
-    VSux=> this%site1%vsuCx
-    VSuy=> this%site1%vsuCy
-    VSuz=> this%site1%vsuCz
-    VBx => this%site1%vbCx
-    VBy => this%site1%vbCy
-    VBz => this%site1%vbCz
-    Cx  => this%site1%cCx
-    Cy  => this%site1%cCy
-    Cz  => this%site1%cCz
-    tux => this%site1%tuCx
-    tuy => this%site1%tuCy
-    tuz => this%site1%tuCz
-    tlx => this%site1%tlCx
-    tly => this%site1%tlCy
-    tlz => this%site1%tlCz
-    tdx => this%site1%tdCx
-    tdy => this%site1%tdCy
-    tdz => this%site1%tdCz
-    q1  => this%site1%Q0r(:, 1)
-    q2  => this%site1%Q0r(:, 2)
-    q3  => this%site1%Q0r(:, 3)
-    q4  => this%site1%Q0r(:, 4)
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VSux=> this%Site1%vsuCx
+    VSuy=> this%Site1%vsuCy
+    VSuz=> this%Site1%vsuCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+    Cx  => this%Site1%cCx
+    Cy  => this%Site1%cCy
+    Cz  => this%Site1%cCz
+    tux => this%Site1%tuCx
+    tuy => this%Site1%tuCy
+    tuz => this%Site1%tuCz
+    tlx => this%Site1%tlCx
+    tly => this%Site1%tlCy
+    tlz => this%Site1%tlCz
+    tdx => this%Site1%tdCx
+    tdy => this%Site1%tdCy
+    tdz => this%Site1%tdCz
+    q1  => this%Site1%Q0r(:, 1)
+    q2  => this%Site1%Q0r(:, 2)
+    q3  => this%Site1%Q0r(:, 3)
+    q4  => this%Site1%Q0r(:, 4)
 !TRANSPORT_END
 #endif
 
@@ -1843,6 +1867,9 @@ loop1:do k = 1, this%NInCutoff(i)
       tdxi = tdx(i)
       tdyi = tdy(i)
       tdzi = tdz(i)
+      r1x  = ( RXi-PXi ) * BoxLength
+      r1y  = ( RYi-PYi ) * BoxLength
+      r1z  = ( RZi-PZi ) * BoxLength
       A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
       A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
       A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -1909,9 +1936,6 @@ loop1:do k = 1, this%NInCutoff(i)
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
 #if TRANS==1
-        r1x  = ( RXi-PXi ) * BoxLength
-        r1y  = ( RYi-PYi ) * BoxLength
-        r1z  = ( RZi-PZi ) * BoxLength
         Rij2   = RXij**2 + RYij**2 + RZij**2
         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
@@ -3942,31 +3966,31 @@ loop1:  do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx => this%site1%vsDx
-    VSy => this%site1%vsDy
-    VSz => this%site1%vsDz
-    VSux=> this%site1%vsuDx
-    VSuy=> this%site1%vsuDy
-    VSuz=> this%site1%vsuDz
-    VBx => this%site1%vbDx
-    VBy => this%site1%vbDy
-    VBz => this%site1%vbDz
-    Cx  => this%site1%cDx
-    Cy  => this%site1%cDy
-    Cz  => this%site1%cDz
-    tux => this%site1%tuDx
-    tuy => this%site1%tuDy
-    tuz => this%site1%tuDz
-    tlx => this%site1%tlDx
-    tly => this%site1%tlDy
-    tlz => this%site1%tlDz
-    tdx => this%site1%tdDx
-    tdy => this%site1%tdDy
-    tdz => this%site1%tdDz
-    q1  => this%site1%Q0r(:, 1)
-    q2  => this%site1%Q0r(:, 2)
-    q3  => this%site1%Q0r(:, 3)
-    q4  => this%site1%Q0r(:, 4)
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VSux=> this%Site1%vsuDx
+    VSuy=> this%Site1%vsuDy
+    VSuz=> this%Site1%vsuDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+    Cx  => this%Site1%cDx
+    Cy  => this%Site1%cDy
+    Cz  => this%Site1%cDz
+    tux => this%Site1%tuDx
+    tuy => this%Site1%tuDy
+    tuz => this%Site1%tuDz
+    tlx => this%Site1%tlDx
+    tly => this%Site1%tlDy
+    tlz => this%Site1%tlDz
+    tdx => this%Site1%tdDx
+    tdy => this%Site1%tdDy
+    tdz => this%Site1%tdDz
+    q1  => this%Site1%Q0r(:, 1)
+    q2  => this%Site1%Q0r(:, 2)
+    q3  => this%Site1%Q0r(:, 3)
+    q4  => this%Site1%Q0r(:, 4)
 !TRANSPORT_END
 #endif
 
@@ -5548,7 +5572,7 @@ loop1:do k = 1, this%NInCutoff(i)
         PZij = (PZij - anint( PZij )) * BoxLength
         RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
         RijInv = sqrt( RijSquaredInv )
-        eX = - RXij * RijInv                                                    ! Normierter Abstandsvektor nach Price
+        eX = - RXij * RijInv                          ! Normierter Abstandsvektor nach Price
         eY = - RYij * RijInv
         eZ = - RZij * RijInv
         CosTheta  = OXi * ex + OYi * eY + OZi * eZ          ! Scalarprodukt normierter 
@@ -5558,7 +5582,7 @@ loop1:do k = 1, this%NInCutoff(i)
         CosTheta2 = 2._RK * CosTheta
         CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
         Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi )                     ! Kraft auf die Punktladung, sprich F2
+        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
         VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
@@ -5568,8 +5592,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FX2(j) = FX2(j) + FXij
         FY2(j) = FY2(j) + FYij
         FZ2(j) = FZ2(j) + FZij
-        TXi    = TXi - Epsilon1*CosTheta2*eX                                    ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
-        TYi    = TYi - Epsilon1*CosTheta2*eY                                    ! in Atom2Mol von Component
+        TXi    = TXi - Epsilon1*CosTheta2*eX  
+        ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
+        TYi    = TYi - Epsilon1*CosTheta2*eY  ! in Atom2Mol von Component
         TZi    = TZi - Epsilon1*CosTheta2*eZ
       end do loop1
       FX1(i) = FXi
@@ -5796,16 +5821,18 @@ loop1:  do k = 1, this%NInCutoff(i)
       else
         RijSquaredInv = 1._RK / RijSquared
         RijInv = sqrt( RijSquaredInv )
-        eX = - RXij * RijInv                                                    ! Normierter Abstandsvektor nach Price
+        eX = - RXij * RijInv        ! Normierter Abstandsvektor nach Price
         eY = - RYij * RijInv
         eZ = - RZij * RijInv
-        CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
+        CosTheta  = OXi * ex + OYi * eY + OZi * eZ  
+        ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
         EPotLocal  = Epsilon * RijSquaredInv * RijInv &
 &                      * ( CosTheta * CosTheta - Third )
         CosTheta2 = 2._RK * CosTheta
         CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
         Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
-        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi )                     ! Kraft auf die Punktladung, sprich F2
+        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) 
+        ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
       end if
@@ -6722,31 +6749,31 @@ loop2:do j = 1, j1
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx => this%site1%vsQx
-    VSy => this%site1%vsQy
-    VSz => this%site1%vsQz
-    VSux=> this%site1%vsuQx
-    VSuy=> this%site1%vsuQy
-    VSuz=> this%site1%vsuQz
-    VBx => this%site1%vbQx
-    VBy => this%site1%vbQy
-    VBz => this%site1%vbQz
-    Cx  => this%site1%cQx
-    Cy  => this%site1%cQy
-    Cz  => this%site1%cQz
-    tux => this%site1%tuQx
-    tuy => this%site1%tuQy
-    tuz => this%site1%tuQz
-    tlx => this%site1%tlQx
-    tly => this%site1%tlQy
-    tlz => this%site1%tlQz
-    tdx => this%site1%tdQx
-    tdy => this%site1%tdQy
-    tdz => this%site1%tdQz
-    q1  => this%site1%Q0r(:, 1)
-    q2  => this%site1%Q0r(:, 2)
-    q3  => this%site1%Q0r(:, 3)
-    q4  => this%site1%Q0r(:, 4)
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VSux=> this%Site1%vsuQx
+    VSuy=> this%Site1%vsuQy
+    VSuz=> this%Site1%vsuQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+    Cx  => this%Site1%cQx
+    Cy  => this%Site1%cQy
+    Cz  => this%Site1%cQz
+    tux => this%Site1%tuQx
+    tuy => this%Site1%tuQy
+    tuz => this%Site1%tuQz
+    tlx => this%Site1%tlQx
+    tly => this%Site1%tlQy
+    tlz => this%Site1%tlQz
+    tdx => this%Site1%tdQx
+    tdy => this%Site1%tdQy
+    tdz => this%Site1%tdQz
+    q1  => this%Site1%Q0r(:, 1)
+    q2  => this%Site1%Q0r(:, 2)
+    q3  => this%Site1%Q0r(:, 3)
+    q4  => this%Site1%Q0r(:, 4)
 !TRANSPORT_END
 #endif
 
