@@ -598,7 +598,7 @@ contains
 &     NRootProc, Communicator, ierror )
 
     !Carefull: This if statement should remain as is, because in the MC parallelization, every processor is treated as root
-    if (Nproc /= NRootProc) return
+    if (RootProc) then
 	
 	this%Average=ReducedAverage/NProcs
     ! Calculate variance
@@ -636,7 +636,7 @@ contains
 #endif
 
     this%Variance = Tau(1)
-    if( this%Variance == 0._RK ) return
+    if( this%Variance /= 0._RK ) then
     Tau(1:NBlockSizes) = Tau(1:NBlockSizes) / this%Variance
     sx1 = 0._RK
     sx2 = 0._RK
@@ -651,10 +651,11 @@ contains
     TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizes * sx2 - sx1**2)
     TauInf = max( TauInf, TauSum / NBlockSizes )
     this%Variance = sqrt( this%Variance / NBlocks * TauInf )
-
+    endif
 
 #if MPI_VER > 0
-
+    endif
+    
     if (RootProc) then
 
       if (NProc/=NProc_W) then

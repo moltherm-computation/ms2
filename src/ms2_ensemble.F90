@@ -6012,7 +6012,7 @@ loop2:        do nc = 1, this%NComponents
       end if
       do i = 1, this%NRealComponents
         pc => this%Component(i)
-        if( pc%CalcChemPot ) then
+  !      if( pc%CalcChemPot ) then
           select case( pc%ChemPotMethod )
           case( ChemPotMethodGradIns )
           
@@ -6065,11 +6065,13 @@ loop2:        do nc = 1, this%NComponents
           case( ChemPotMethodWidom )
             call Error( pc%SumChemPotV )
             call Error( pc%SumVW )
+          case default
+           ! DO NOTHING
           end select
 !           if( ConstantPressure .and. this%NRealComponents > 1 ) &
 ! &           call Error( pc%SumVW )
 
-        end if
+     !   end if
       end do
     end if
 

@@ -849,7 +849,6 @@ contains
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
-!    logical :: doEqui
     character(10) :: procStr
 #endif 
     tooManyParticles = .false.
@@ -859,7 +858,6 @@ contains
     call start_Timer(RunTimer)
     call logwritestart_Timer(RunTimer)
     
-!    doEqui = .true.
 #if MPI_VER > 0
     ! This is for the restart - in case there is a restart, the root reads and communicates
     if (SimulationType .eq. MonteCarlo) then 
