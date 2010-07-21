@@ -17,7 +17,7 @@ y          =   0.0
 z          =   1.37565
 
 sigma      =   3.3552
-epsilon    = 155.54
+epsilon    = 155.74
 mass       =  23.00
 
 SiteType   =   D
