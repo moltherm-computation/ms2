@@ -5798,7 +5798,7 @@ loop2:        do nc = 1, this%NComponents
 !      end if
       if(this%Ncomponents>1)then
         do i=1,this%NComponents*this%NComponents
-            write( IOBuffer, '(T10, "L_ij", I2)') i
+            write( IOBuffer, '(T10, "L_ij", I1)') i
             call FileWriteNoAdvance( this%iounit_rescf )
         end do
       end if
@@ -5822,7 +5822,7 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       if( this%Ncomponents == 3 ) then
-           write( IOBuffer, '(T13,"IntDijk")' )
+           write( IOBuffer, '(T8,"IntDijk")' )
            call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
@@ -7660,7 +7660,7 @@ loop2:        do nc = 1, this%NComponents
     end do
 
 #if TRANS ==1
-if( RootProc ) then
+    if( RootProc .and. ( CorrfunMode .eq. active ) ) then
     write( iounit_restart, '(I10)' ) this%Ncorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
@@ -7922,10 +7922,9 @@ endif
     end do
 
 #if TRANS ==1
-if( RootProc ) then
+if( RootProc .and. ( CorrfunMode .eq. active ) ) then
     read( iounit_restart, '(I10)' ) this%Ncorr
     read( iounit_restart, '(I10)' ) this%Mmess
-end if
 
 #if MPI_VER > 0
     call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
@@ -7934,7 +7933,6 @@ end if
 &       Communicator, ierror )
 #endif
 
-if( RootProc ) then
     do i = 1, 3*this%Npart
         do j = 1, this%Ncorr
             read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
