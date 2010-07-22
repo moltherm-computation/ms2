@@ -5699,7 +5699,7 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
           else
-            if( pc%Fraction > 0._RK ) then
+            if( pc%NPart > 1 ) then
               select case( pc%ChemPotMethod )
               case( ChemPotMethodGradIns )
                 write( IOBuffer, '(F10.5)' ) &
@@ -5717,12 +5717,22 @@ loop2:        do nc = 1, this%NComponents
                 call FileWriteNoAdvance( this%iounit_runave )
               end select
             else
+              select case( pc%ChemPotMethod )
+              case( ChemPotMethodGradIns )
+                write( IOBuffer, '(F10.5)' ) &
+&                 log( pc%SumInvChemPotRho%BlockAverage )
+                call FileWriteNoAdvance( this%iounit_result )
+                write( IOBuffer, '(F10.5)' ) &
+&                 log( pc%SumInvChemPotRho%Average )
+                call FileWriteNoAdvance( this%iounit_runave )
+              case( ChemPotMethodWidom )
               write( IOBuffer, '(F10.5)' ) &
 &               log( 1._RK / pc%SumChemPotV%BlockAverage )
               call FileWriteNoAdvance( this%iounit_result )
               write( IOBuffer, '(F10.5)' ) &
 &               log( 1._RK / pc%SumChemPotV%Average )
               call FileWriteNoAdvance( this%iounit_runave )
+              end select
             end if
           end if
         end if
@@ -5778,13 +5788,19 @@ loop2:        do nc = 1, this%NComponents
       rewind( this%iounit_rescf )
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
-      if(this%Ncomponents==2)then
-        write( IOBuffer, '(T11,"D_12")' )
-        call FileWriteNoAdvance( this%iounit_rescf )
-      end if
-      if(this%Ncomponents==3)then
-          write( IOBuffer, '(T10, "D_ijk", I2)') i
-          call FileWriteNoAdvance( this%iounit_rescf )
+!      if(this%Ncomponents==2)then
+!        write( IOBuffer, '(T11,"D_12")' )
+!        call FileWriteNoAdvance( this%iounit_rescf )
+!      end if
+!      if(this%Ncomponents==3)then
+!          write( IOBuffer, '(T10, "D_ijk", I2)') i
+!          call FileWriteNoAdvance( this%iounit_rescf )
+!      end if
+      if(this%Ncomponents>1)then
+        do i=1,this%NComponents*this%NComponents
+            write( IOBuffer, '(T10, "L_ij", I2)') i
+            call FileWriteNoAdvance( this%iounit_rescf )
+        end do
       end if
       do i = 1, this%NComponents
         write( IOBuffer, '(T10,"D_i",I2)' ) i
@@ -5833,15 +5849,22 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Binary diffusion coefficient
-        if(this%Ncomponents==2)then
-          write( IOBuffer, '(T5,F10.5)' ) this%cf_db(i)/this%cf_db(1)
-          call FileWriteNoAdvance( this%iounit_rescf )
-        end if
+!        if(this%Ncomponents==2)then
+!          write( IOBuffer, '(T5,F10.5)' ) this%cf_db(i)/this%cf_db(1)
+!          call FileWriteNoAdvance( this%iounit_rescf )
+!        end if
 
+!        ! Ternary diffusion coefficient
+!        if(this%Ncomponents==3)then
+!              write( IOBuffer, '(T5, F10.5)' ) this%lamda(1, i)/this%lamda(1,1)
+!              call FileWriteNoAdvance( this%iounit_rescf )
+!        end if
         ! Ternary diffusion coefficient
-        if(this%Ncomponents==3)then
-              write( IOBuffer, '(T5, F10.5)' ) this%lamda(1, i)/this%lamda(1,1)
+        if(this%Ncomponents>1)then
+          do j=1,this%NComponents*this%NComponents
+              write( IOBuffer, '(T5, F10.5)' ) this%lamda(j, i)/this%lamda(j,1)
               call FileWriteNoAdvance( this%iounit_rescf )
+          end do
         end if
 
         ! Self-diffusion coefficients
@@ -5866,16 +5889,24 @@ loop2:        do nc = 1, this%NComponents
         value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
         ! Binary diffusion coefficient
-        if( this%Ncomponents == 2) then
-          write( IOBuffer, '(T5, F10.4)' ) &
-&           this%sinte_db(i) / this%sinte_db(this%Ncorr) * this%binary_d * value
-          call FileWriteNoAdvance( this%iounit_rescf )
-        end if
+ !       if( this%Ncomponents == 2) then
+  !        write( IOBuffer, '(T5, F10.4)' ) &
+!&           this%sinte_db(i) / this%sinte_db(this%Ncorr) * this%binary_d * value
+!          call FileWriteNoAdvance( this%iounit_rescf )
+!        end if
 
-        if( this%Ncomponents == 3) then
+ !       if( this%Ncomponents == 3) then
+ !            write( IOBuffer, '(T5, F10.4)' ) &
+!&            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%Ncorr) 
+!             call FileWriteNoAdvance( this%iounit_rescf )
+!        end if
+
+        if( this%Ncomponents > 1) then
+          do j = 1, this%NComponents*this%NComponents
              write( IOBuffer, '(T5, F10.4)' ) &
-&            this%sinte_lamda(1,i) / this%sinte_lamda(1,this%Ncorr) * this%ternary_a * value
+&            this%sinte_lamda(j,i) / this%sinte_lamda(j,this%Ncorr)* value
              call FileWriteNoAdvance( this%iounit_rescf )
+          end do
         end if
 
         ! Self-diffusion coefficient
@@ -6368,29 +6399,49 @@ loop2:        do nc = 1, this%NComponents
         pc => this%Component(i)
         select case( pc%ChemPotMethod )
         case( ChemPotMethodGradIns )
-          Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
-          Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
-          write( IOBuffer, &
-&           '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
-&           trim( this%Component(i)%Molecule%PotModFileName ), &
-&           Average, Variance
-          call FileWrite( this%iounit_errors )
+          if( pc%NPart > 1 ) then
+
+            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
+            Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
+            write( IOBuffer, &
+&             '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+&             trim( this%Component(i)%Molecule%PotModFileName ), &
+&             Average, Variance
+            call FileWrite( this%iounit_errors )
 !DEBUG
-          Variance = pc%SumInvChemPotRho1%Variance / pc%SumInvChemPotRho1%Average
-          Average = log( pc%Fraction * pc%SumInvChemPotRho1%Average )
-          write( IOBuffer, &
-&           '("Chemical potential 0 of ", A, T33, "r`d:", 2F20.9)' ) &
-&           trim( this%Component(i)%Molecule%PotModFileName ), &
-&           Average, Variance
-          call FileWrite( this%iounit_errors )
-          Variance = pc%SumInvChemPotRho2%Variance / pc%SumInvChemPotRho2%Average
-          Average = log( pc%Fraction * pc%SumInvChemPotRho2%Average )
-          write( IOBuffer, &
-&           '("Chemical potential 1 of ", A, T33, "r`d:", 2F20.9)' ) &
-&           trim( this%Component(i)%Molecule%PotModFileName ), &
-&           Average, Variance
-          call FileWrite( this%iounit_errors )
+            Variance = pc%SumInvChemPotRho1%Variance / pc%SumInvChemPotRho1%Average
+            Average = log( pc%Fraction * pc%SumInvChemPotRho1%Average )
+            write( IOBuffer, &
+&             '("Chemical potential 0 of ", A, T33, "r`d:", 2F20.9)' ) &
+&             trim( this%Component(i)%Molecule%PotModFileName ), &
+&             Average, Variance
+            call FileWrite( this%iounit_errors )
+            Variance = pc%SumInvChemPotRho2%Variance / pc%SumInvChemPotRho2%Average
+            Average = log( pc%Fraction * pc%SumInvChemPotRho2%Average )
+            write( IOBuffer, &
+&             '("Chemical potential 1 of ", A, T33, "r`d:", 2F20.9)' ) &
+&             trim( this%Component(i)%Molecule%PotModFileName ), &
+&             Average, Variance
+            call FileWrite( this%iounit_errors )
 !DEBUG
+!MERKER
+          else
+            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
+            Average = -log( 1/pc%SumInvChemPotRho%Average )
+            write( IOBuffer, &
+&             '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
+&             trim( this%Component(i)%Molecule%PotModFileName ), &
+&             Average, Variance
+            Average = this%Temperature*pc%SumInvChemPotRho%Average
+            write( IOBuffer, &
+&             '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
+&             trim( pc%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
+&           Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+          end if
+          call FileWrite( this%iounit_errors )
+!MERKER
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
           if( pc%Fraction > 0.0_RK ) then
@@ -6633,7 +6684,7 @@ loop2:        do nc = 1, this%NComponents
             Variance = this%SumTer_a%Variance
           end if
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Ternary diff. coeff.", T29, "reduced:", 2F20.9)' ) this%ternary_a, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 1_3", T29, "reduced:", 2F20.9)' ) this%ternary_a, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' )  this%ternary_a*value, Variance*value
           call FileWrite( this%iounit_errors )
@@ -6650,7 +6701,7 @@ loop2:        do nc = 1, this%NComponents
             Variance = this%SumTer_b%Variance
           end if
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Ternary diff. coeff.", T29, "reduced:", 2F20.9)' ) this%ternary_b, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 1_2", T29, "reduced:", 2F20.9)' ) this%ternary_b, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' )  this%ternary_b*value, Variance*value
           call FileWrite( this%iounit_errors )
@@ -6667,7 +6718,7 @@ loop2:        do nc = 1, this%NComponents
             Variance = this%SumTer_c%Variance
           end if
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Ternary diff. coeff.", T29, "reduced:", 2F20.9)' ) this%ternary_c, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 2_3", T29, "reduced:", 2F20.9)' ) this%ternary_c, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' )  this%ternary_c*value, Variance*value
           call FileWrite( this%iounit_errors )
@@ -7654,11 +7705,11 @@ if( RootProc ) then
         write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
     end do
 
-    if (this%Ncomponents==2) then
-        do i = 1, this%Ncorr
-            write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
-        end do
-    end if
+!    if (this%Ncomponents==2) then
+!        do i = 1, this%Ncorr
+!            write( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
+!        end do
+!    end if
 
     do i = 1, this%Ncomponents
       do j = 1, this%Ncorr
@@ -7925,11 +7976,11 @@ if( RootProc ) then
         read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
     end do
 
-    if (this%Ncomponents==2) then
-        do i = 1, this%Ncorr
-            read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
-        end do
-    end if
+!     if (this%Ncomponents==2) then
+!         do i = 1, this%Ncorr
+!             read( iounit_restart, '(ES20.12E3)' ) this%cf_db(i)
+!         end do
+!     end if
 
     do i = 1, this%Ncomponents
         do j = 1, this%Ncorr
@@ -7937,11 +7988,13 @@ if( RootProc ) then
         end do
     end do
 
-    do i = 1, this%Ncomponents*this%Ncomponents
+    if (this%Ncomponents>1) then
+      do i = 1, this%Ncomponents*this%Ncomponents
         do j = 1, this%Ncorr
             read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
         end do
-    end do
+      end do
+    end if
 
     read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
@@ -7954,9 +8007,9 @@ if( RootProc ) then
     end if
 
     if(this%Ncomponents == 3) then
-    call RestartReadCF( this%SumTer_a )
-    call RestartReadCF( this%SumTer_b )
-    call RestartReadCF( this%SumTer_c )
+      call RestartReadCF( this%SumTer_a )
+      call RestartReadCF( this%SumTer_b )
+      call RestartReadCF( this%SumTer_c )
     end if
 
     call RestartReadCF( this%SumVisco_s )
@@ -8309,13 +8362,13 @@ end if
             end if
 
 
-           if(this%Ncomponents==2)then
+  !         if(this%Ncomponents==2)then
 
-           this%cf_db(nmess) = this%cf_db(nmess) + sx(1, CFindex)*sx(1, s) &
-                                                 + sy(1, CFindex)*sy(1, s) &
-                                                 + sz(1, CFindex)*sz(1, s)
+  !         this%cf_db(nmess) = this%cf_db(nmess) + sx(1, CFindex)*sx(1, s) &
+   !                                              + sy(1, CFindex)*sy(1, s) &
+   !                                              + sz(1, CFindex)*sz(1, s)
 
-           end if
+    !       end if
 
            do k = 1, 3
 
@@ -8403,7 +8456,7 @@ end if
 
       if( this%NComponents == 2 ) then
 
-        this%sinte_db = simpson( this%cf_db(:)/this%cf_db(1), TimeStep, this%NCorr )
+ !       this%sinte_db = simpson( this%cf_db(:)/this%cf_db(1), TimeStep, this%NCorr )
 
         this%binary_d = (((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1)) * &
 &                         (this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
@@ -8618,6 +8671,5 @@ end if
 
 
 end module ms2_ensemble
-
 
 
