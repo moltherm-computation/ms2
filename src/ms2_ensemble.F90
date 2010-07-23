@@ -7925,19 +7925,20 @@ endif
     end do
 
 #if TRANS ==1
-if( RootProc ) then
-    read( iounit_restart, '(I10)' ) this%Ncorr
-    read( iounit_restart, '(I10)' ) this%Mmess
-end if
+if ( CorrfunMode .eq. active ) then
+  if( RootProc ) then
+      read( iounit_restart, '(I10)' ) this%Ncorr
+      read( iounit_restart, '(I10)' ) this%Mmess
+  end if
 
 #if MPI_VER > 0
     call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
 &       Communicator, ierror )
     call MPI_Bcast( this%Mmess, 1, MPI_INTEGER, NRootProc, &
-&       Communicator, ierror )
+&     Communicator, ierror )
 #endif
 
-if( RootProc ) then
+  if( RootProc ) then
     do i = 1, 3*this%Npart
         do j = 1, this%Ncorr
             read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
@@ -8027,8 +8028,8 @@ if( RootProc ) then
         read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
     end do
 
+  end if
 end if
-
 #endif
 
 
