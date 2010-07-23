@@ -169,7 +169,7 @@ module ms2_component
 
     ! Chemical potential
     logical  :: CalcChemPot
-    integer  :: ChemPotMethod, WFMethod
+    integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
     real(RK) :: ChemPot, WidomContribution
 !DEBUG

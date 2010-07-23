@@ -86,7 +86,7 @@ module ms2_ensemble
     real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
 
     ! Number of components in ensemble
-    integer :: NComponents, NRealComponents
+    integer :: NComponents, NRealComponents, NGradInsComp
 
     ! Maximum numbers of sites in components
     integer :: NLJ126Max, NChargeMax, NDipoleMax, NQuadrupoleMax
@@ -1272,10 +1272,13 @@ contains
       call Construct( this%Component(i), i )
     end do
 
+    this%NGradInsComp = 0
     ! Create components for fluctuating particle states
     this%NRealComponents = ncomp
     do i = 1, this%NRealComponents
       if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+        this%Component(i)%NGradThis = this%NGradInsComp
+        this%NGradInsComp = this%NGradInsComp + 1
         nfluct = this%Component(i)%Molecule%NFluct
         ncomp = ncomp + nfluct
 
@@ -3796,7 +3799,7 @@ componentLoop:    do i = 1, this%NRealComponents
      !    color = 2000*i
 
       !  endif
-        if (mod(NProc,this%NRealComponents)/=i-1) pc%CalcChemPot = .false.
+        if (mod(NProc,this%NGradInsComp)/= pc%NGradThis) pc%CalcChemPot = .false.
 
       !  call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,NProc,Communicator,ierror) 
            ! Careful, Nproc and NProcs are now specific for Communicator
@@ -5581,7 +5584,7 @@ loop2:        do nc = 1, this%NComponents
         case( ChemPotMethodGradins )
 #if MPI_VER > 0
           ! Per Process we calculate GI only for one component 
-          if (mod(NProc,this%NRealComponents)/=i-1) cycle
+          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle
 #endif
           call Update( pc%SumInvChemPotRho, 1._RK / pc%ChemPot )
           call Update( pc%SumInvChemPot, 1._RK / pc%ChemPot1 )
@@ -5605,7 +5608,7 @@ loop2:        do nc = 1, this%NComponents
           case( ChemPotMethodGradIns )
 #if MPI_VER > 0
           ! Per Process we calculate GI only for one component 
-          if (mod(NProc,this%NRealComponents)/=i-1) cycle 	
+          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle 
 #endif
             call Update( pc%SumVW, this%NPart &
 &             * ( this%SumVolume%Average &
@@ -6048,7 +6051,7 @@ loop2:        do nc = 1, this%NComponents
           case( ChemPotMethodGradIns )
           
 #if MPI_VER > 0          
-           if (mod(NProc,this%NRealComponents)==i-1) then
+           if (mod(NProc,this%NGradInsComp)==pc%NGradThis) then
              color = i
            else
              color = 100000
@@ -6060,8 +6063,8 @@ loop2:        do nc = 1, this%NComponents
            call SetCommunicator( Communicator )
            NBlockSizes = int( sqrt( real( Step*NProcs / BlockSize, RK ) ) )
            NBlocks = tempVal*NProcs   
-           RootProc = NProc_W==(i-1)     
-           NRootProc_W = (i-1)     
+           RootProc = NProc_W==(pc%NGradThis)     
+           NRootProc_W = (pc%NGradThis)     
 
 #endif          
           
@@ -7922,9 +7925,10 @@ endif
     end do
 
 #if TRANS ==1
-if( RootProc .and. ( CorrfunMode .eq. active ) ) then
+if( RootProc ) then
     read( iounit_restart, '(I10)' ) this%Ncorr
     read( iounit_restart, '(I10)' ) this%Mmess
+end if
 
 #if MPI_VER > 0
     call MPI_Bcast( this%Ncorr, 1, MPI_INTEGER, NRootProc, &
@@ -7933,6 +7937,7 @@ if( RootProc .and. ( CorrfunMode .eq. active ) ) then
 &       Communicator, ierror )
 #endif
 
+if( RootProc ) then
     do i = 1, 3*this%Npart
         do j = 1, this%Ncorr
             read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
