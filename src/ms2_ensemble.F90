@@ -2245,7 +2245,7 @@ contains
     call LogWriteBlank
     write( IOBuffer, '("Initialize positions:")' )
     call LogWrite
-    write( IOBuffer, '(T10,"FCC lattice: ", I3," *",I4,"x",I4,"x",I4," cells")' ) &
+    write( IOBuffer, '(T10,"FCC lattice: ",I3," *",I4,"x",I4,"x",I4," cells")' ) &
 &          NPartInCell, ( NCells1dim(i), i=1,3 )
     call LogWrite
     write( IOBuffer, '(T10, "with",I3," molecules/cell")' ) NPartInCell
@@ -3721,8 +3721,10 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: r, s, nc, np, ncf, npf
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
+#if MPI_VER > 0
     integer                   :: color, tempComm
     integer                   :: tempVec(0:this%NFluctMax)
+#endif
     ! No calculation of chemical potential in equilibration
     if( Equilibration ) then
       do i = 1, this%NRealComponents
@@ -3804,8 +3806,6 @@ componentLoop:    do i = 1, this%NRealComponents
       !  call MPI_COMM_SPLIT(MPI_COMM_WORLD,color,NProc,Communicator,ierror) 
            ! Careful, Nproc and NProcs are now specific for Communicator
       !  call SetCommunicator( Communicator )
-         
-        
 #endif
 
         if( pc%CalcChemPot ) then

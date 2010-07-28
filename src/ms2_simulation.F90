@@ -734,7 +734,8 @@ contains
         this%Ensemble(1)%Component(i)%NPartMax)
    END DO
 
-#endif  !MS2_STEEREO
+!MS2_STEEREO
+#endif
 
   end subroutine TSimulation_Construct
 
@@ -891,11 +892,11 @@ contains
         NProc_W = NProc
 
         multNodes = .false.
-                  
+        
 
        ! The following generaly doesn´t work, as the environment is the same for all MPI processes
        ! call get_environment_variable("HOST", hostnameStr, lengthHost, statusHost)
-       
+        
        ! COL_DEBUG This works for the moment. It has not been extensively tested. It should give back the hostname... 
         call MPI_GET_PROCESSOR_NAME(hostnameStr,lengthHost, ierror)
         if (len(trim(hostnameStr))==0) then

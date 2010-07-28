@@ -1006,11 +1006,11 @@ contains
 
     allocate( this%frc3All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
 #endif
 
-    allocate( Q00( np, 4 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    ! cmp. line 979 above: Q00 is allocated twice! (but not deallocated?)
+    !allocate( Q00( np, 4 ), STAT = stat )
+    !call AllocationError( stat, 'particles', np )
 
     this%fs(: , :)   = 0._RK
     this%fb(: , :)   = 0._RK

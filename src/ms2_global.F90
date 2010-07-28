@@ -996,6 +996,9 @@ contains
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
+          else
+            write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
+            call LogWrite
           end if
 
           ! Read parameter file name from restart file
@@ -1095,7 +1098,7 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -1340,11 +1343,11 @@ contains
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
@@ -1381,7 +1384,7 @@ contains
     write( IOBuffer, '("started by user ", A)' ) trim( username )
     call LogWriteTime
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   end subroutine Global_LogOpen
@@ -1406,11 +1409,11 @@ contains
 
     ! Close log file
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call FileClose( iounit_log )
 
@@ -2168,7 +2171,7 @@ contains
 
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     call LogWriteBlank
 

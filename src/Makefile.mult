@@ -83,17 +83,19 @@ pgf_mpi:
 gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
 	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DTRANS=1 \
-	-g -O0 -fdefault-real-8 -Wall -fbounds-check \
+	-g -O0 -fdefault-real-8 -Wall -pedantic -std=f95 -fbounds-check \
 	-o ms2.gfortran_dbg $(SOURCES)
 	rm -f *.o *.mod
 
 gfortran:
 	@echo "Compiling using GFORTRAN..."
 	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
-	-O3 -fdefault-real-8 -static \
+	-O2 -fdefault-real-8 -static -mtune=generic \
 	-o ms2.gfortran $(SOURCES)
-	rm -f *.o *.mod
+	# -O3 -march=native -mtune=native
 	# -msse5
+	# -march,-mtune (-mcpu) see "man gcc", e.g. i686,core2,barcelona
+	rm -f *.o *.mod
 
 gfortran_steereo:
 	@echo "Compiling using GFORTRAN with Steereo support"
