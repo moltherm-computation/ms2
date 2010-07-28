@@ -390,7 +390,7 @@ contains
     ! Save Lennard-Jones sites
     if( this%NLJ126 > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'LJ126'
+      write( IOBuffer, '(1X, A)' ) 'LJ126'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NLJ126
       call FileWriteParameter( iounit_normal, IdSite_NLJ126 )
@@ -403,7 +403,7 @@ contains
     ! Save point charge sites
     if( this%NCharge > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Charge'
+      write( IOBuffer, '(1X, A)' ) 'Charge'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NCharge
       call FileWriteParameter( iounit_normal, IdSite_NCharge )
@@ -416,7 +416,7 @@ contains
     ! Save point dipole sites
     if( this%NDipole > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Dipole'
+      write( IOBuffer, '(1X, A)' ) 'Dipole'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NDipole
       call FileWriteParameter( iounit_normal, IdSite_NDipole )
@@ -429,7 +429,7 @@ contains
     ! Save point quadrupole sites
     if( this%NQuadrupole > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Quadrupole'
+      write( IOBuffer, '(1X, A)' ) 'Quadrupole'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NQuadrupole
       call FileWriteParameter( iounit_normal, IdSite_NQuadrupole )

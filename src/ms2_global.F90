@@ -70,13 +70,14 @@ module ms2_global
   ! 4: single precision
   ! 8: double precision
 #ifdef SINGLEPRECISION
-  integer, parameter :: RK = 4
+  integer, parameter :: RK = KIND(1.0)                   
+                      
 !#if MPI_VER > 0
 !  !integer, parameter :: MPI_RK = MPI_REAL
 !  integer, parameter :: MPI_RK = MPI_REAL4
 !#endif
 #else
-  integer, parameter :: RK = 8
+  integer, parameter :: RK = KIND(1D0)
 !#if MPI_VER > 0
 !  !integer, parameter :: MPI_RK = MPI_DOUBLE_PRECISION
 !  integer, parameter :: MPI_RK = MPI_REAL8
@@ -1115,13 +1116,13 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_8 / (4._8 * real(Pi, 8) &
+    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_8 / (4._8 * real(Pi, 8) &
+    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
 #else
-    DebyesInSI = sqrt( 1E49_8 / (4._8 * Pi * VacuumPermittivity) )
-    BuckinghamsInSI = sqrt( 1E69_8 / (4._8 * Pi * VacuumPermittivity) )
+    DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
+    BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
 #endif
 
   end subroutine Global_InitializeProgram
@@ -2201,7 +2202,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    iharvest = 1 + ishft(int(range, 8) * &
+    iharvest = 1 + ishft(int(range, RK) * &
 &     ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd

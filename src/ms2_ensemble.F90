@@ -939,11 +939,11 @@ contains
     call LogWrite
     if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then  
       write( IOBuffer, &
-&       '("- pressure from LJ ",T44 F12.8)' ) &
+&       '("- pressure from LJ ",T44, F12.8)' ) &
 &       this%VirialCorrLJ / this%NPart
     else
       write( IOBuffer, &
-&       '("- pressure from LJ ",T44 F12.8)' ) &
+&       '("- pressure from LJ ",T44, F12.8)' ) &
 &       this%VirialCorrLJ * NProcs / this%NPart
     endif
     
@@ -2152,7 +2152,7 @@ contains
     this%EPotCorrRF   = 0._RK
     this%VirialCorrLJ = 0._RK
     do i1 = 1, this%NComponents
-      this%Component(i1)%EPotTestCorrLJ = 0._8
+      this%Component(i1)%EPotTestCorrLJ = 0._RK
     end do
 
     ! Calculate Lennard-Jones long-range corrections
@@ -2245,7 +2245,7 @@ contains
     call LogWriteBlank
     write( IOBuffer, '("Initialize positions:")' )
     call LogWrite
-    write( IOBuffer, '(T10,"FCC lattice: " I3," *",I4,"x",I4,"x",I4," cells")' ) &
+    write( IOBuffer, '(T10,"FCC lattice: ", I3," *",I4,"x",I4,"x",I4," cells")' ) &
 &          NPartInCell, ( NCells1dim(i), i=1,3 )
     call LogWrite
     write( IOBuffer, '(T10, "with",I3," molecules/cell")' ) NPartInCell
