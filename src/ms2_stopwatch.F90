@@ -34,7 +34,10 @@
 
 #if MPI_VER
 #define USE_MPI
-#define MPI_USE_MODULE
+! the MPI2 standard requires the support of a mpi module (see 16.2),
+! but some MPI1 distributions don't offer a Fortran90 binding and won't compile
+! uncomment the next line, if you have a MPI distribution for MPI>=version 2
+!#define MPI_USE_MODULE
 #define STOPWATCH_USE_MPIWTIME
 #endif
 
