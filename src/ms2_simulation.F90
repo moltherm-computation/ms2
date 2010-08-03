@@ -638,6 +638,8 @@ contains
     case( 'no', 'nein' )
       CorrfunMode = inactive
       CorrfunModeString = 'No transport properties'
+      call Error( 'Use a binary compiled without -DTRANS if you do not &
+& wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
     case default
       call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
     end select
