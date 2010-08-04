@@ -11075,12 +11075,12 @@ endif
 
    integer :: i,j,l,m
    integer :: molec
-# if MPI_VER > 0
+#if MPI_VER > 0
    integer,pointer :: i0
    integer,pointer :: i1
 !    integer :: counter
 !    real(RK):: summe(NProcs,this%NPart)
-# endif
+#endif
 
    real(RK),pointer:: RX(:),RY(:),RZ(:)
    real(RK),pointer:: PX(:),PY(:),PZ(:)
@@ -11134,7 +11134,7 @@ endif
 
    this%SSin = 0._RK
    this%SCos = 0._RK
-# if MPI_VER > 0
+#if MPI_VER > 0
 !   summe = 0._RK
 !    j=NProc+1
 !    i0 = this%NBox0(j)
@@ -11142,9 +11142,9 @@ endif
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      KVec = this%Ewald_Vec(:,i)
      this%SSin_Vec = 0._RK
      this%SCos_Vec = 0._RK
@@ -11307,25 +11307,25 @@ endif
    integer :: i,j,l,m
    integer,intent(in)::nc,np
 
-# if MPI_VER > 0
+#if MPI_VER > 0
    integer,pointer :: i0, i1
-# endif
+#endif
 
 
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
 !    j=NProc+1
 !    i0 = this%NBox0(j)
 !    i1 = this%NBox2(j)
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
 
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
@@ -11431,25 +11431,25 @@ endif
    integer,intent(in)::nc,np
    integer,intent(in)::ncold,npold
 
-# if MPI_VER > 0
+#if MPI_VER > 0
    integer,pointer :: i0
    integer,pointer :: i1
-# endif
+#endif
 
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
 !    j=NProc+1
 !    i0 = this%NBox0(j)
 !    i1 = this%NBox2(j)
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
      mol2 => this%Component(ncold)%Molecule
@@ -11546,26 +11546,26 @@ endif
    integer :: i,j,l
    integer,intent(in)::nc,np,m
 
-# if MPI_VER > 0
+#if MPI_VER > 0
    integer,pointer :: i0
    integer,pointer :: i1
-# endif
+#endif
 
 
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
 !    j=NProc+1
 !    i0 = this%NBox0(j)
 !    i1 = this%NBox2(j)
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
      q => mol%SiteCharge(1:mol%NCharge)%e
@@ -12190,7 +12190,7 @@ endif
    call dfftw_execute(this%qgrid_backward)
 
 ! Parallelization
-# if MPI_VER > 0
+#if MPI_VER > 0
    qgrid => this%qgrida
    mult = 0._RK
    mult2 = 0._RK
@@ -12199,7 +12199,7 @@ endif
    i1 = this%NBox2(j)
    err = 0
    DO i=i0,i1,1
-# else
+#else
    DO i=2,ngrid
 #endif
      k1    = int((i-1) / ngridyz)
@@ -12241,9 +12241,9 @@ endif
      err = err + 1
      VirialLocal = VirialLocal + eterm*struc*(3._RK  + wterm)
 
-# if MPI_VER > 0
+#if MPI_VER > 0
      mult(index_loc)      =  eterm * factor
-# else
+#else
      this%qgrida(1,index_loc) = this%qgrida(1,index_loc) * eterm * factor
      this%qgrida(2,index_loc) = this%qgrida(2,index_loc) * eterm * factor
 #endif
@@ -13082,12 +13082,12 @@ contains
    VirialLocal = 0._RK
 
 ! Summation over all the Energies
-# if MPI_VER > 0
+#if MPI_VER > 0
    j=NProc+1
    i0 = this%NBox0(j)
    i1 = this%NBox2(j)
    DO i=i0,i1,1
-# else
+#else
    DO i=2,ngrid
 #endif
 ! Positioning
@@ -13758,7 +13758,7 @@ contains
     integer  :: np, nc
     real(RK) :: sx(this%NComponents, this%NCorr ), sy(this%NComponents, this%NCorr )
     real(RK) :: sz(this%NComponents, this%NCorr )
-    real(RK) :: EKinTran(this%NPart)
+!    real(RK) :: EKinTran(this%NPart)
     real(RK) :: EKinRot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
@@ -13823,8 +13823,9 @@ contains
       ! this%vckt(Mindex, k)= sum( pc%P1(:, k) * sum(EKinTran(:,1:3)) ) * Mass*BoxLength_dt
       ! Und die Summation ausschliesslich ueber die 1:3 gehen soll.
       ! Ich weiss nicht, wie ich Fortran das beibringen soll
+      ! CWG: Hab ich bei EKinTran nun gemacht... aber bei EKinRot geht das nicht so wirklich.
       do j = 1, np
-        EkinTran(j) = sum( pc%KinETran(j,1:3) ) * 0.5d0
+!        EkinTran(j) = sum( pc%KinETran(j,1:3) ) * 0.5d0
         if ( pc%Molecule%IsElongated ) then
           EKinRot(j)= sum( pc%W0(j,1:3) * pc%W0(j,1:3) * pc%Molecule%MOI(1:3))*0.5d0
         end if
@@ -13847,7 +13848,7 @@ contains
 
           !bulk diagonal terms and energy tensor kinetic part
           this%vbk(Mindex, k) = sum( pc%KinETran(:,k) )
-          this%vckt(Mindex, k)= sum( pc%P1(:, k) * EKinTran(:) ) * Mass*BoxLength_dt
+          this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5d0 * Mass*BoxLength_dt
 
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(j) ) * Mass*BoxLength_dt
