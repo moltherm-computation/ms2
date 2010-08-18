@@ -5819,14 +5819,16 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T13,"CO")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      if( this%Ncomponents == 2 ) then
-        write( IOBuffer, '(T9,"IntD12")' )
-        call FileWriteNoAdvance( this%iounit_rescf )
-      end if
+      !if( this%Ncomponents == 2 ) then
+       ! write( IOBuffer, '(T9,"IntD12")' )
+       ! call FileWriteNoAdvance( this%iounit_rescf )
+      !end if
 
-      if( this%Ncomponents == 3 ) then
-           write( IOBuffer, '(T8,"IntDijk")' )
+      if( this%Ncomponents > 1 ) then
+        do i=1,this%NComponents*this%NComponents
+           write( IOBuffer, '(T7,"Int_Lij",I1)')i
            call FileWriteNoAdvance( this%iounit_rescf )
+       end do
       end if
 
       do i = 1, this%NComponents
@@ -8675,5 +8677,4 @@ end if
 
 
 end module ms2_ensemble
-
 
