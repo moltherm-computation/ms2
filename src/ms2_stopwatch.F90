@@ -52,6 +52,11 @@
 #ifndef USE_MPI
 ! STOPWATCH_USE_MPIWTIME requires MPI!
 #undef STOPWATCH_USE_MPIWTIME
+#else
+#ifdef STOPWATCH_USE_CPUTIME
+! CPU time not relevant for parallel, distributed memory application
+#undef STOPWATCH_USE_CPUTIME
+#endif
 #endif
 #endif
 
@@ -256,9 +261,9 @@ contains
     else
       this%options = 0
 #ifdef USE_MPI
-    call TStopwatch_SetOptions( this, &
-&                              CStopwatch_omitCPUTIME+CStopwatch_omitSYSCLK &
-&                             +CStopwatch_doMPIReduce )
+      call TStopwatch_SetOptions( this, &
+&                                 CStopwatch_omitCPUTIME+CStopwatch_omitSYSCLK &
+&                                +CStopwatch_doMPIReduce )
 #endif
     end if
 
