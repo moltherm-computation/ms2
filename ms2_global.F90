@@ -59,9 +59,9 @@ module ms2_global
   ! 4: single precision
   ! 8: double precision
 #ifdef SINGLEPRECISION
-  integer, parameter :: RK = 4
+  integer, parameter :: RK = KIND(1.0)
 #else
-  integer, parameter :: RK = 8
+  integer, parameter :: RK = KIND(1D0)
 #endif
 
 #if MPI_VER > 0
@@ -987,6 +987,9 @@ contains
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
+          else
+            write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
+            call LogWrite
           end if
 
           ! Read parameter file name from restart file
@@ -1070,10 +1073,10 @@ contains
     i = signal( 2, SetTerminateProgram, -1 ) ! Catch SIGINT
     i = signal( 15, SetTerminateProgram, -1 ) ! Catch SIGTERM
 #endif
-#elif ARCH == 3
+#elif ARCH == 3				
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -1093,13 +1096,13 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_8 / (4._8 * real(Pi, 8) &
+    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, 8) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_8 / (4._8 * real(Pi, 8) &
+    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, 8) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
 #else
-    DebyesInSI = sqrt( 1E49_8 / (4._8 * Pi * VacuumPermittivity) )
-    BuckinghamsInSI = sqrt( 1E69_8 / (4._8 * Pi * VacuumPermittivity) )
+    DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
+    BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
 #endif
 
   end subroutine Global_InitializeProgram
@@ -1294,11 +1297,11 @@ contains
     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
 #endif
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
@@ -1335,7 +1338,7 @@ contains
     write( IOBuffer, '("started by user ", A)' ) trim( username )
     call LogWriteTime
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   end subroutine Global_LogOpen
@@ -1360,11 +1363,11 @@ contains
 
     ! Close log file
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call FileClose( iounit_log )
 
@@ -2122,7 +2125,7 @@ contains
 
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     call LogWriteBlank
 
@@ -2156,7 +2159,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    iharvest = 1 + ishft(int(range, 8) * &
+    iharvest = 1 + ishft(int(range, RK) * &
 &     ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd

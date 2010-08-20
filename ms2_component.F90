@@ -116,6 +116,10 @@ module ms2_component
     real(RK), pointer :: FRC3All(:,:)
 
 #endif
+! Stephan
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -169,7 +173,7 @@ module ms2_component
 
     ! Chemical potential
     logical  :: CalcChemPot
-    integer  :: ChemPotMethod, WFMethod
+    integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
     real(RK) :: ChemPot, WidomContribution
 !DEBUG
@@ -877,9 +881,6 @@ contains
     integer :: np, ntest, nf
     integer :: i
     integer :: stat
-#if  TRANS == 1
-    real(RK), pointer:: Q00(: , :)
-#endif
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -944,6 +945,17 @@ contains
     nullify( this%FRC2 )
     nullify( this%FRC3 )
 
+! Stephan
+!     nullify( this%A11Save )
+!     nullify( this%A13Save )
+!     nullify( this%A13Save )
+!     nullify( this%A21Save )
+!     nullify( this%A22Save )
+!     nullify( this%A23Save )
+!     nullify( this%A31Save )
+!     nullify( this%A32Save )
+!     nullify( this%A33Save )
+
 #if MPI_VER > 0
     nullify( this%FSAll )
     nullify( this%FBAll )
@@ -993,9 +1005,28 @@ contains
     allocate( this%FRC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
-
-    allocate( Q00( np, 4 ), STAT = stat )
+    allocate( this%Q0( np, 4 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
+
+! Stephan
+!     allocate( this%A11Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A12Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A13Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A21Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A22Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A23Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A31Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A32Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
+!     allocate( this%A33Save( np ), STAT = stat )
+!     call AllocationError( stat, 'particles', np )
 
 #if MPI_VER > 0
     allocate( this%FSAll( np, 3 ), STAT = stat )
@@ -1027,14 +1058,10 @@ contains
 
 #endif
 
-    allocate( Q00( np, 4 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-
     this%FS(: , :)   = 0._RK
     this%FB(: , :)   = 0._RK
     this%FTC(: , :)  = 0._RK
     this%FRC(: , :)  = 0._RK
-    Q00(: , :)       = 0._RK
 
     this%FTC1(:,:)  = 0._RK
     this%FTC2(:,:)  = 0._RK
@@ -1089,9 +1116,13 @@ contains
 
     if( this%Molecule%isElongated ) then
 
+#if  TRANS != 1
+! For the calculation of transport properties, the necessary quaternion matrix has
+! already been allocated in this subroutine!
       ! Quaternion parameters
       allocate( this%Q0( np, 4 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#endif
       allocate( this%Q0Save( np, 4 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
 
@@ -1195,6 +1226,18 @@ contains
         this%Molecule%SiteLJ126(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteLJ126(i)%PZTest => this%P0Test(:, 3)
       end if
+#if TRANS==1
+      this%Molecule%SiteLJ126(i)%Q0r => this%Q0
+!       this%Molecule%SiteLJ126(i)%A11Save => this%A11Save
+!       this%Molecule%SiteLJ126(i)%A12Save => this%A12Save
+!       this%Molecule%SiteLJ126(i)%A13Save => this%A13Save
+!       this%Molecule%SiteLJ126(i)%A21Save => this%A21Save
+!       this%Molecule%SiteLJ126(i)%A22Save => this%A22Save
+!       this%Molecule%SiteLJ126(i)%A23Save => this%A23Save
+!       this%Molecule%SiteLJ126(i)%A31Save => this%A31Save
+!       this%Molecule%SiteLJ126(i)%A32Save => this%A32Save
+!       this%Molecule%SiteLJ126(i)%A33Save => this%A33Save
+#endif
     end do
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
@@ -1212,6 +1255,18 @@ contains
         this%Molecule%SiteCharge(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteCharge(i)%PZTest => this%P0Test(:, 3)
       end if
+#if TRANS==1
+      this%Molecule%SiteCharge(i)%Q0r => this%Q0
+!       this%Molecule%SiteCharge(i)%A11Save => this%A11Save
+!       this%Molecule%SiteCharge(i)%A12Save => this%A12Save
+!       this%Molecule%SiteCharge(i)%A13Save => this%A13Save
+!       this%Molecule%SiteCharge(i)%A21Save => this%A21Save
+!       this%Molecule%SiteCharge(i)%A22Save => this%A22Save
+!       this%Molecule%SiteCharge(i)%A23Save => this%A23Save
+!       this%Molecule%SiteCharge(i)%A31Save => this%A31Save
+!       this%Molecule%SiteCharge(i)%A32Save => this%A32Save
+!       this%Molecule%SiteCharge(i)%A33Save => this%A33Save
+#endif
     end do
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
@@ -1230,11 +1285,16 @@ contains
         this%Molecule%SiteDipole(i)%PZTest => this%P0Test(:, 3)
       end if
 #if TRANS==1
-      if (this%Molecule%isElongated) then
-        this%Molecule%SiteDipole(i)%Q0r => this%Q0
-      else
-        this%Molecule%SiteDipole(i)%Q0r => Q00
-      end if
+      this%Molecule%SiteDipole(i)%Q0r => this%Q0
+!       this%Molecule%SiteDipole(i)%A11Save => this%A11Save
+!       this%Molecule%SiteDipole(i)%A12Save => this%A12Save
+!       this%Molecule%SiteDipole(i)%A13Save => this%A13Save
+!       this%Molecule%SiteDipole(i)%A21Save => this%A21Save
+!       this%Molecule%SiteDipole(i)%A22Save => this%A22Save
+!       this%Molecule%SiteDipole(i)%A23Save => this%A23Save
+!       this%Molecule%SiteDipole(i)%A31Save => this%A31Save
+!       this%Molecule%SiteDipole(i)%A32Save => this%A32Save
+!       this%Molecule%SiteDipole(i)%A33Save => this%A33Save
 #endif
     end do
     do i = 1, this%Molecule%NQuadrupole
@@ -1254,11 +1314,16 @@ contains
         this%Molecule%SiteQuadrupole(i)%PZTest => this%P0Test(:, 3)
       end if
 #if TRANS==1
-      if (this%Molecule%isElongated) then
-        this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
-      else
-        this%Molecule%SiteQuadrupole(i)%Q0r => Q00
-      end if
+      this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
+!       this%Molecule%SiteQuadrupole(i)%A11Save => this%A11Save
+!       this%Molecule%SiteQuadrupole(i)%A12Save => this%A12Save
+!       this%Molecule%SiteQuadrupole(i)%A13Save => this%A13Save
+!       this%Molecule%SiteQuadrupole(i)%A21Save => this%A21Save
+!       this%Molecule%SiteQuadrupole(i)%A22Save => this%A22Save
+!       this%Molecule%SiteQuadrupole(i)%A23Save => this%A23Save
+!       this%Molecule%SiteQuadrupole(i)%A31Save => this%A31Save
+!       this%Molecule%SiteQuadrupole(i)%A32Save => this%A32Save
+!       this%Molecule%SiteQuadrupole(i)%A33Save => this%A33Save
 #endif
     end do
 
@@ -1986,6 +2051,20 @@ contains
       end if
 
     end if
+
+
+#if  TRANS == 1
+    !TRANSPORT_start
+!     this%A11Save = A11
+!     this%A12Save = A12
+!     this%A13Save = A13
+!     this%A21Save = A21
+!     this%A22Save = A22
+!     this%A23Save = A23
+!     this%A31Save = A31
+!     this%A32Save = A32
+!     this%A33Save = A33
+#endif
 
   end subroutine TComponent_Mol2Atom
 
@@ -2773,9 +2852,60 @@ contains
         do j = 1, this%Molecule%NCharge
           pCharge => this%Molecule%SiteCharge(j)
           do i = 1, np
-          this%F(i, 1) = this%F(i, 1) + pCharge%FX(i)
-          this%F(i, 2) = this%F(i, 2) + pCharge%FY(i)
-          this%F(i, 3) = this%F(i, 3) + pCharge%FZ(i)
+            this%F(i, 1) = this%F(i, 1) + pCharge%FX(i)
+            this%F(i, 2) = this%F(i, 2) + pCharge%FY(i)
+            this%F(i, 3) = this%F(i, 3) + pCharge%FZ(i)
+#if  TRANS == 1
+            !TRANSPORT_start
+            vsx = pCharge%vsCx(i)
+            vsy = pCharge%vsCy(i)
+            vsz = pCharge%vsCz(i)
+            vsux= pCharge%vsuCx(i)
+            vsuy= pCharge%vsuCy(i)
+            vsuz= pCharge%vsuCz(i)
+            vbx = pCharge%vbCx(i)
+            vby = pCharge%vbCy(i)
+            vbz = pCharge%vbCz(i)
+            cx  = pCharge%cCx(i)
+            cy  = pCharge%cCy(i)
+            cz  = pCharge%cCz(i)
+            tux = pCharge%tuCx(i)
+            tuy = pCharge%tuCy(i)
+            tuz = pCharge%tuCz(i)
+            tlx = pCharge%tlCx(i)
+            tly = pCharge%tlCy(i)
+            tlz = pCharge%tlCz(i)
+            tdx = pCharge%tdCx(i)
+            tdy = pCharge%tdCy(i)
+            tdz = pCharge%tdCz(i)
+            this%FS(i, 1)= this%FS(i, 1)+ vsx
+            this%FS(i, 2)= this%FS(i, 2)+ vsy
+            this%FS(i, 3)= this%FS(i, 3)+ vsz
+            this%FB(i, 1)= this%FB(i, 1)+ vbx
+            this%FB(i, 2)= this%FB(i, 2)+ vby
+            this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+            !TRANSPORT_END
+#endif
           end do
         end do
       end if

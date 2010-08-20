@@ -730,7 +730,7 @@ contains
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
-    real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 #if MPI_VER > 0
@@ -746,7 +746,10 @@ contains
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: SigmaInv
+!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
+!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
+!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
+    real(RK)          :: SigmaInvEps4
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -816,7 +819,7 @@ contains
 
 #if  TRANS == 1
     !TRANSPORT_start
-    SigmaInv     = 1._RK/Sqrt(this%SigmaSquared)
+    SigmaInvEps4     = Epsilon4/Sqrt(this%SigmaSquared)
     BoxLength2   = BoxLength**2
     VSx => this%Site1%vsLJx
     VSy => this%Site1%vsLJy
@@ -843,6 +846,15 @@ contains
     q2  => this%Site1%Q0r(:, 2)
     q3  => this%Site1%Q0r(:, 3)
     q4  => this%Site1%Q0r(:, 4)
+!     A11V => this%Site1%A11Save
+!     A12V => this%Site1%A12Save
+!     A13V => this%Site1%A13Save
+!     A21V => this%Site1%A21Save
+!     A22V => this%Site1%A22Save
+!     A23V => this%Site1%A23Save
+!     A31V => this%Site1%A31Save
+!     A32V => this%Site1%A32Save
+!     A33V => this%Site1%A33Save
 !TRANSPORT_END
 #endif
 
@@ -889,6 +901,17 @@ contains
         r1x  = ( RXi-PXi ) * BoxLength2
         r1y  = ( RYi-PYi ) * BoxLength2
         r1z  = ( RZi-PZi ) * BoxLength2
+! Stephan
+!         A11 = A11V(i)
+!         A12 = A12V(i)
+!         A13 = A13V(i)
+!         A21 = A21V(i)
+!         A22 = A22V(i)
+!         A23 = A23V(i)
+!         A31 = A31V(i)
+!         A32 = A32V(i)
+!         A33 = A33V(i)
+
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -917,7 +940,8 @@ loop1:  do k = 1, this%NInCutoff(i)
           PZij = PZij - anint( PZij )
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
           Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
+          EPotLocal = EPotLocal + EPotLocal1
           Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
@@ -931,42 +955,63 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZ2(j) = FZ2(j) - FZij
 #if  TRANS == 1
           !TRANSPORT_start
+          RijSInvNorm   = Sqrt(RijSquaredInv)
+          UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
+!           Uxi  = UU*RXij
+!           Uyi  = UU*RYij
+!           Uzi  = UU*RZij
           ! Multiplication of BoxLength taken out of the inner loop
 !           PXijB= PXij * BoxLength
 !           PYijB= PYij * BoxLength
 !           PZijB= PZij * BoxLength
-          RijSInvNorm   = Sqrt(RijSquaredInv)
-          UU   = RijSInvNorm*Epsilon4*Rij6Inv*(Rij6Inv - 1._RK)*SigmaInv
-          Uxi  = UU*RXij
-          Uyi  = UU*RYij
-          Uzi  = UU*RZij
-          VSxi   = VSxi + FXij * PYijB
-          VSyi   = VSyi + FXij * PZijB
-          VSzi   = VSzi + FYij * PZijB
-          VSuxi  = VSuxi+ FYij * PXijB
-          VSuyi  = VSuyi+ FZij * PXijB
-          VSuzi  = VSuzi+ FZij * PYijB
-          VBxi   = VBxi + FXij * PXijB
-          VByi   = VByi + FYij * PYijB
-          VBzi   = VBzi + FZij * PZijB
-          Cxi    = Cxi  + Uxi
-          Cyi    = Cyi  + Uyi
-          Czi    = Czi  + Uzi
+!           VSxi   = VSxi + FXij * PYijB
+!           VSyi   = VSyi + FXij * PZijB
+!           VSzi   = VSzi + FYij * PZijB
+!           VSuxi  = VSuxi+ FYij * PXijB
+!           VSuyi  = VSuyi+ FZij * PXijB
+!           VSuzi  = VSuzi+ FZij * PYijB
+!           VBxi   = VBxi + FXij * PXijB
+!           VByi   = VByi + FYij * PYijB
+!           VBzi   = VBzi + FZij * PZijB
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+!           Cxi    = Cxi  + Uxi
+!           Cyi    = Cyi  + Uyi
+!           Czi    = Czi  + Uzi
+          Cxi    = Cxi  + UU*RXij
+          Cyi    = Cyi  + UU*RYij
+          Czi    = Czi  + UU*RZij
           txii   = r1y * FZij - r1z * FYij
           tyii   = r1z * FXij - r1x * FZij
           tzii   = r1x * FYij - r1y * FXij
           txi    = A11 * txii + A12 * tyii + A13 * tzii
           tyi    = A21 * txii + A22 * tyii + A23 * tzii
           tzi    = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + PXijB*tyi
-          tuyi   = tuyi + PXijB*tzi
-          tuzi   = tuzi + PYijB*tzi
-          tlxi   = tlxi + PYijB*txi
-          tlyi   = tlyi + PZijB*txi
-          tlzi   = tlzi + PZijB*tyi
-          tdxi   = tdxi + PXijB*txi
-          tdyi   = tdyi + PYijB*tyi
-          tdzi   = tdzi + PZijB*tzi
+!           tuxi   = tuxi + PXijB*tyi
+!           tuyi   = tuyi + PXijB*tzi
+!           tuzi   = tuzi + PYijB*tzi
+!           tlxi   = tlxi + PYijB*txi
+!           tlyi   = tlyi + PZijB*txi
+!           tlzi   = tlzi + PZijB*tyi
+!           tdxi   = tdxi + PXijB*txi
+!           tdyi   = tdyi + PYijB*tyi
+!           tdzi   = tdzi + PZijB*tzi
+          tuxi   = tuxi + PXij*tyi
+          tuyi   = tuyi + PXij*tzi
+          tuzi   = tuzi + PYij*tzi
+          tlxi   = tlxi + PYij*txi
+          tlyi   = tlyi + PZij*txi
+          tlzi   = tlzi + PZij*tyi
+          tdxi   = tdxi + PXij*txi
+          tdyi   = tdyi + PYij*tyi
+          tdzi   = tdzi + PZij*tzi
           !TRANSPORT_END
 #endif
 #ifdef ABL
@@ -1453,6 +1498,7 @@ loop2:do j = 1, N
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
     real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1
 #if MPI_VER > 0
     integer           :: i0
@@ -1466,6 +1512,9 @@ loop2:do j = 1, N
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
+!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
+!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -1478,7 +1527,6 @@ loop2:do j = 1, N
     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    real(RK)          :: Rij2
     !TRANSPORT_END
 #endif
 
@@ -1535,6 +1583,15 @@ loop2:do j = 1, N
     tdx => this%Site1%tdCx
     tdy => this%Site1%tdCy
     tdz => this%Site1%tdCz
+!     A11V => this%Site1%A11Save
+!     A12V => this%Site1%A12Save
+!     A13V => this%Site1%A13Save
+!     A21V => this%Site1%A21Save
+!     A22V => this%Site1%A22Save
+!     A23V => this%Site1%A23Save
+!     A31V => this%Site1%A31Save
+!     A32V => this%Site1%A32Save
+!     A33V => this%Site1%A33Save
     q1  => this%Site1%Q0r(:, 1)
     q2  => this%Site1%Q0r(:, 2)
     q3  => this%Site1%Q0r(:, 3)
@@ -1583,6 +1640,16 @@ loop2:do j = 1, N
       r1x  = ( RXi-PXi ) * BoxLength
       r1y  = ( RYi-PYi ) * BoxLength
       r1z  = ( RZi-PZi ) * BoxLength
+! Stephan
+!       A11 = A11V(i)
+!       A12 = A12V(i)
+!       A13 = A13V(i)
+!       A21 = A21V(i)
+!       A22 = A22V(i)
+!       A23 = A23V(i)
+!       A31 = A31V(i)
+!       A32 = A32V(i)
+!       A33 = A33V(i)
       A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
       A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
       A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -1609,10 +1676,11 @@ loop1:do k = 1, this%NInCutoff(i)
         PXij = (PXij - anint( PXij )) * BoxLength
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
+        Rij2   = RXij**2 + RYij**2 + RZij**2
 #if ARCH == 3
-        RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = rsqrt( Rij2 )
 #else
-        RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = 1._RK / sqrt( Rij2 )
 #endif
         eX = RXij * RijInv
         eY = RYij * RijInv
@@ -1631,12 +1699,11 @@ loop1:do k = 1, this%NInCutoff(i)
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
 #if TRANS==1
-        Rij2   = RXij**2 + RYij**2 + RZij**2
-        UU        = Epsilon * RijInv + this%RFConstant * Rij2
+        UU        = EpotLocal1 + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
-        Uxi       = UU * eX
-        Uyi       = UU * eY
-        Uzi       = UU * eZ
+!         Uxi       = UU * eX
+!         Uyi       = UU * eY
+!         Uzi       = UU * eZ
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
@@ -1646,9 +1713,12 @@ loop1:do k = 1, this%NInCutoff(i)
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
-        Cxi    = Cxi  + Uxi
-        Cyi    = Cyi  + Uyi
-        Czi    = Czi  + Uzi
+!         Cxi    = Cxi  + Uxi
+!         Cyi    = Cyi  + Uyi
+!         Czi    = Czi  + Uzi
+        Cxi    = Cxi  + UU * eX
+        Cyi    = Cyi  + UU * eY
+        Czi    = Czi  + UU * eZ
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
@@ -1735,6 +1805,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: approx, Faktor
     real(RK)          :: Fij,KappaRij
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
 !     integer           :: sitecheck1,sitecheck2
 !     real(RK)          :: testpot
@@ -1750,20 +1821,22 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+!     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
+!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
+!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
-    real(RK)          :: Cxi,  Cyi,  Czi
-    real(RK)          :: tuxi,  tuyi,  tuzi
-    real(RK)          :: tlxi,  tlyi,  tlzi
-    real(RK)          :: tdxi,  tdyi,  tdzi
-    real(RK)          :: txii,  tyii , tzii
-    real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: UU, Uxi,  Uyi, Uzi
+!     real(RK)          :: Cxi,  Cyi,  Czi
+!     real(RK)          :: tuxi,  tuyi,  tuzi
+!     real(RK)          :: tlxi,  tlyi,  tlzi
+!     real(RK)          :: tdxi,  tdyi,  tdzi
+!     real(RK)          :: txii,  tyii , tzii
+!     real(RK)          :: txi ,  tyi  , tzi
+!     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    real(RK)          :: Rij2
     !TRANSPORT_END
 #endif
 
@@ -1810,22 +1883,31 @@ loop1:do k = 1, this%NInCutoff(i)
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
-    Cx  => this%Site1%cCx
-    Cy  => this%Site1%cCy
-    Cz  => this%Site1%cCz
-    tux => this%Site1%tuCx
-    tuy => this%Site1%tuCy
-    tuz => this%Site1%tuCz
-    tlx => this%Site1%tlCx
-    tly => this%Site1%tlCy
-    tlz => this%Site1%tlCz
-    tdx => this%Site1%tdCx
-    tdy => this%Site1%tdCy
-    tdz => this%Site1%tdCz
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+!     Cx  => this%Site1%cCx
+!     Cy  => this%Site1%cCy
+!     Cz  => this%Site1%cCz
+!     tux => this%Site1%tuCx
+!     tuy => this%Site1%tuCy
+!     tuz => this%Site1%tuCz
+!     tlx => this%Site1%tlCx
+!     tly => this%Site1%tlCy
+!     tlz => this%Site1%tlCz
+!     tdx => this%Site1%tdCx
+!     tdy => this%Site1%tdCy
+!     tdz => this%Site1%tdCz
+! !     q1  => this%Site1%Q0r(:, 1)
+! !     q2  => this%Site1%Q0r(:, 2)
+! !     q3  => this%Site1%Q0r(:, 3)
+! !     q4  => this%Site1%Q0r(:, 4)
+!     A11V => this%Site1%A11Save
+!     A12V => this%Site1%A12Save
+!     A13V => this%Site1%A13Save
+!     A21V => this%Site1%A21Save
+!     A22V => this%Site1%A22Save
+!     A23V => this%Site1%A23Save
+!     A31V => this%Site1%A31Save
+!     A32V => this%Site1%A32Save
+!     A33V => this%Site1%A33Save
 !TRANSPORT_END
 #endif
 
@@ -1855,31 +1937,41 @@ loop1:do k = 1, this%NInCutoff(i)
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
-      Cxi = Cx(i)
-      Cyi = Cy(i)
-      Czi = Cz(i)
-      tuxi = tux(i)
-      tuyi = tuy(i)
-      tuzi = tuz(i)
-      tlxi = tlx(i)
-      tlyi = tly(i)
-      tlzi = tlz(i)
-      tdxi = tdx(i)
-      tdyi = tdy(i)
-      tdzi = tdz(i)
-      r1x  = ( RXi-PXi ) * BoxLength
-      r1y  = ( RYi-PYi ) * BoxLength
-      r1z  = ( RZi-PZi ) * BoxLength
-      A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-      A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-      A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-      A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-      A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-      A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-      A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-      A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-      A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
-      !TRANSPORT_END
+!       Cxi = Cx(i)
+!       Cyi = Cy(i)
+!       Czi = Cz(i)
+!       tuxi = tux(i)
+!       tuyi = tuy(i)
+!       tuzi = tuz(i)
+!       tlxi = tlx(i)
+!       tlyi = tly(i)
+!       tlzi = tlz(i)
+!       tdxi = tdx(i)
+!       tdyi = tdy(i)
+!       tdzi = tdz(i)
+!       r1x  = ( RXi-PXi ) * BoxLength
+!       r1y  = ( RYi-PYi ) * BoxLength
+!       r1z  = ( RZi-PZi ) * BoxLength
+! ! Stephan
+!       A11 = A11V(i)
+!       A12 = A12V(i)
+!       A13 = A13V(i)
+!       A21 = A21V(i)
+!       A22 = A22V(i)
+!       A23 = A23V(i)
+!       A31 = A31V(i)
+!       A32 = A32V(i)
+!       A33 = A33V(i)
+! !       A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+! !       A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+! !       A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+! !       A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+! !       A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+! !       A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+! !       A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+! !       A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+! !       A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+!       !TRANSPORT_END
 #endif
 !CDIR NODEP
  loop1:do k = 1, this%NInCutoff(i),1
@@ -1902,10 +1994,11 @@ loop1:do k = 1, this%NInCutoff(i)
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
 
-        Rij =  sqrt(RXij**2 + RYij**2 + RZij**2)
-        if (PXij**2+PYij**2+PZij**2 .eq. 0.0) then
-                 Rij = 1.e33
-        end if
+        Rij2   = RXij**2 + RYij**2 + RZij**2
+        Rij =  sqrt(Rij2)
+!         if (PXij**2+PYij**2+PZij**2 .eq. 0.0) then
+!                  Rij = 1.e33
+!         end if
 
 #if ARCH == 3
         RijInv = 1._RK /  Rij 
@@ -1936,12 +2029,11 @@ loop1:do k = 1, this%NInCutoff(i)
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
 #if TRANS==1
-        Rij2   = RXij**2 + RYij**2 + RZij**2
-        UU        = Epsilon * RijInv + this%RFConstant * Rij2
+!         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
-        Uxi       = UU * eX
-        Uyi       = UU * eY
-        Uzi       = UU * eZ
+!         Uxi       = UU * eX
+!         Uyi       = UU * eY
+!         Uzi       = UU * eZ
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
@@ -1951,24 +2043,24 @@ loop1:do k = 1, this%NInCutoff(i)
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
-        Cxi    = Cxi  + Uxi
-        Cyi    = Cyi  + Uyi
-        Czi    = Czi  + Uzi
-        txii   = r1y * FZij - r1z * FYij
-        tyii   = r1z * FXij - r1x * FZij
-        tzii   = r1x * FYij - r1y * FXij
-        txi    = A11 * txii + A12 * tyii + A13 * tzii
-        tyi    = A21 * txii + A22 * tyii + A23 * tzii
-        tzi    = A31 * txii + A32 * tyii + A33 * tzii
-        tuxi   = tuxi + PXij*tyi
-        tuyi   = tuyi + PXij*tzi
-        tuzi   = tuzi + PYij*tzi
-        tlxi   = tlxi + PYij*txi
-        tlyi   = tlyi + PZij*txi
-        tlzi   = tlzi + PZij*tyi
-        tdxi   = tdxi + PXij*txi
-        tdyi   = tdyi + PYij*tyi
-        tdzi   = tdzi + PZij*tzi
+!         Cxi    = Cxi  + UU * eX
+!         Cyi    = Cyi  + UU * eY
+!         Czi    = Czi  + UU * eZ
+!         txii   = r1y * FZij - r1z * FYij
+!         tyii   = r1z * FXij - r1x * FZij
+!         tzii   = r1x * FYij - r1y * FXij
+!         txi    = A11 * txii + A12 * tyii + A13 * tzii
+!         tyi    = A21 * txii + A22 * tyii + A23 * tzii
+!         tzi    = A31 * txii + A32 * tyii + A33 * tzii
+!         tuxi   = tuxi + PXij*tyi
+!         tuyi   = tuyi + PXij*tzi
+!         tuzi   = tuzi + PYij*tzi
+!         tlxi   = tlxi + PYij*txi
+!         tlyi   = tlyi + PZij*txi
+!         tlzi   = tlzi + PZij*tyi
+!         tdxi   = tdxi + PXij*txi
+!         tdyi   = tdyi + PYij*tyi
+!         tdzi   = tdzi + PZij*tzi
 #endif
       end do loop1
       FX1(i) = FXi
@@ -1985,18 +2077,18 @@ loop1:do k = 1, this%NInCutoff(i)
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
-      Cx(i)  = Cxi
-      Cy(i)  = Cyi
-      Cz(i)  = Czi
-      tux(i) = tuxi
-      tuy(i) = tuyi
-      tuz(i) = tuzi
-      tlx(i) = tlxi
-      tly(i) = tlyi
-      tlz(i) = tlzi
-      tdx(i) = tdxi
-      tdy(i) = tdyi
-      tdz(i) = tdzi
+!       Cx(i)  = Cxi
+!       Cy(i)  = Cyi
+!       Cz(i)  = Czi
+!       tux(i) = tuxi
+!       tuy(i) = tuyi
+!       tuz(i) = tuzi
+!       tlx(i) = tlxi
+!       tly(i) = tlyi
+!       tlz(i) = tlzi
+!       tdx(i) = tdxi
+!       tdy(i) = tdyi
+!       tdz(i) = tdzi
       !TRANSPORT_END
 #endif
     end do
@@ -3900,6 +3992,9 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
+!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
+!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -3987,6 +4082,15 @@ loop1:  do k = 1, this%NInCutoff(i)
     tdx => this%Site1%tdDx
     tdy => this%Site1%tdDy
     tdz => this%Site1%tdDz
+!     A11V => this%Site1%A11Save
+!     A12V => this%Site1%A12Save
+!     A13V => this%Site1%A13Save
+!     A21V => this%Site1%A21Save
+!     A22V => this%Site1%A22Save
+!     A23V => this%Site1%A23Save
+!     A31V => this%Site1%A31Save
+!     A32V => this%Site1%A32Save
+!     A33V => this%Site1%A33Save
     q1  => this%Site1%Q0r(:, 1)
     q2  => this%Site1%Q0r(:, 2)
     q3  => this%Site1%Q0r(:, 3)
@@ -4040,6 +4144,16 @@ loop1:  do k = 1, this%NInCutoff(i)
         tdxi = tdx(i)
         tdyi = tdy(i)
         tdzi = tdz(i)
+! Stephan
+!         A11 = A11V(i)
+!         A12 = A12V(i)
+!         A13 = A13V(i)
+!         A21 = A21V(i)
+!         A22 = A22V(i)
+!         A23 = A23V(i)
+!         A31 = A31V(i)
+!         A32 = A32V(i)
+!         A33 = A33V(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -6684,6 +6798,9 @@ loop2:do j = 1, j1
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
+!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
+!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -6770,6 +6887,15 @@ loop2:do j = 1, j1
     tdx => this%Site1%tdQx
     tdy => this%Site1%tdQy
     tdz => this%Site1%tdQz
+!     A11V => this%Site1%A11Save
+!     A12V => this%Site1%A12Save
+!     A13V => this%Site1%A13Save
+!     A21V => this%Site1%A21Save
+!     A22V => this%Site1%A22Save
+!     A23V => this%Site1%A23Save
+!     A31V => this%Site1%A31Save
+!     A32V => this%Site1%A32Save
+!     A33V => this%Site1%A33Save
     q1  => this%Site1%Q0r(:, 1)
     q2  => this%Site1%Q0r(:, 2)
     q3  => this%Site1%Q0r(:, 3)
@@ -6824,6 +6950,16 @@ loop2:do j = 1, j1
         tdxi = tdx(i)
         tdyi = tdy(i)
         tdzi = tdz(i)
+! Stephan
+!         A11 = A11V(i)
+!         A12 = A12V(i)
+!         A13 = A13V(i)
+!         A21 = A21V(i)
+!         A22 = A22V(i)
+!         A23 = A23V(i)
+!         A31 = A31V(i)
+!         A32 = A32V(i)
+!         A33 = A33V(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))

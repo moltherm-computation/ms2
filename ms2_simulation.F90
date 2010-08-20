@@ -628,19 +628,19 @@ contains
 !             call LogWrite
             ! Read Ewald Parameters
             call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
-            write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' ) KappaL_h
+            write( IOBuffer, '("Ewald Parameter KappaL:", T23, F8.3)' ) KappaL_h
             call LogWrite
 
             call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true. )
-            write( IOBuffer, '("Ewald Parameter NsqMax:", I7)' ) nsqmax_h
+            write( IOBuffer, '("Ewald Parameter NsqMax:",T20, I7)' ) nsqmax_h
             call LogWrite
 
             call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true. )
-            write( IOBuffer, '("Ewald Parameter NVecMax:", I7)' ) nvecmax_h
+            write( IOBuffer, '("Ewald Parameter NVecMax:",T20, I7)' ) nvecmax_h
             call LogWrite
 
             call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
-            write( IOBuffer, '("Ewald Parameter NMax:", I7)' ) nmax_h
+            write( IOBuffer, '("Ewald Parameter NMax:",T20, I7)' ) nmax_h
             call LogWrite
 
         case( 'PME', 'pme', 'SPME', 'spme')
@@ -710,6 +710,8 @@ contains
     case( 'no', 'nein' )
       CorrfunMode = inactive
       CorrfunModeString = 'No transport properties'
+!       call Error( 'Use a binary compiled without -DTRANS if you do not &
+! &  wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
     case default
       call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
     end select
@@ -915,7 +917,6 @@ contains
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
-!     logical :: doEqui, 
     character(10) :: procStr
 
 #endif 
@@ -927,7 +928,6 @@ contains
     call start_Timer(RunTimer)
     call logwritestart_Timer(RunTimer)
     
-!     doEqui = .true.
 #if MPI_VER > 0
     ! This is for the restart - in case there is a restart, the root reads and communicates
     if (SimulationType .eq. MonteCarlo) then 
@@ -938,7 +938,7 @@ contains
     if( Restart ) then
       call RestartRead( this )
       StepStart = Step + 1
-      MCOverlapReduction = .false.                                             ! no MC overlap reduction in case of restart
+      MCOverlapReduction = .false.    ! no MC overlap reduction in case of restart
     else
       StepTotal = 0
       StepStart = 1
@@ -960,13 +960,12 @@ contains
         NProc_W = NProc
 
         multNodes = .false.
-                  
-
 
         ! The following generaly doesn´t work, as the environment is the same for all MPI processes
        ! call get_environment_variable("HOST", hostnameStr, lengthHost, statusHost)
        
-       ! COL_DEBUG This works for the moment. It has not been extensively tested. It should give back the hostname... 
+       ! COL_DEBUG This works for the moment. 
+       ! It has not been extensively tested. It should give back the hostname... 
         call MPI_GET_PROCESSOR_NAME(hostnameStr,lengthHost, ierror)
         if (len(trim(hostnameStr))==0) then
           statusHost = 1    

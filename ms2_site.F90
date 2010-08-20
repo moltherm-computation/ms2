@@ -54,6 +54,9 @@ module ms2_site
     real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
     real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
     real(RK), pointer :: Q0r(:,:)
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -109,6 +112,9 @@ module ms2_site
     real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
     real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
     real(RK), pointer :: Q0r(:,:)
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -167,6 +173,9 @@ module ms2_site
     real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
     real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
     real(RK), pointer :: Q0r(:,:)
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -224,6 +233,9 @@ module ms2_site
     real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
     real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
     real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
     real(RK), pointer :: Q0r(:,:)
 !TRANSPORT_END
 #endif
@@ -361,7 +373,7 @@ contains
     nullify( this%tdLJx )
     nullify( this%tdLJy )
     nullify( this%tdLJz )
-    nullify( this%Q0r )
+!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -423,8 +435,8 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%Q0r( np , 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
 !TRANSPORT_END
 #endif
     end if
@@ -693,7 +705,7 @@ contains
     nullify( this%tdCx )
     nullify( this%tdCy )
     nullify( this%tdCz )
-    nullify( this%Q0r )
+!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -755,8 +767,8 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdCz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%Q0r( np , 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
       !TRANSPORT_END
 #endif
     end if
@@ -1035,7 +1047,7 @@ contains
     nullify( this%tdDx )
     nullify( this%tdDy )
     nullify( this%tdDz )
-    nullify( this%Q0r )
+!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1109,8 +1121,8 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdDz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%Q0r( np , 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )   ! FIXME vielleicht zuviele allocates - werden nicht alle verwendet vermutlich
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )   ! FIXME vielleicht zuviele allocates - werden nicht alle verwendet
 !TRANSPORT_END
 #endif
     end if
@@ -1443,7 +1455,7 @@ contains
     nullify( this%tdQx )
     nullify( this%tdQy )
     nullify( this%tdQz )
-    nullify( this%Q0r )
+!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1517,8 +1529,8 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdQz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%Q0r( np , 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
       !TRANSPORT_END
 #endif
     end if

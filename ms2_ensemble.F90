@@ -1211,7 +1211,7 @@ contains
     call LogWrite
 
     write( IOBuffer, &
-&     '("- pressure from reaction field:", F12.8)' ) &
+&     '("- pressure from reaction field:",T44, F12.8)' ) &
 &       this%VirialCorrRF / this%NPart
     call LogWrite
 
@@ -4850,7 +4850,7 @@ loop2:        do nc = 1, this%NComponents
       ! Chemical potential by Widom's test particle method
       ! Just applicable for ReactionField Method. 
       ! - otherwise you cannot calculate the energy of only 1 particle
-      ! Check earlier in ms2_ensemble (right after compnoent construction
+      ! Check earlier in ms2_ensemble (right after component construction
       case( ChemPotMethodWidom )
         pc%CalcChemPot = .true.
         call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
@@ -7987,13 +7987,13 @@ loop2:        do nc = 1, this%NComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
             if( Equilibration ) then
-              write( IOBuffer, '(F10.5)' ) 0._RK
+              write( IOBuffer, '(F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(F10.5)' ) pc%SumVW%BlockAverage
+              write( IOBuffer, '(F10.4)' ) pc%SumVW%BlockAverage
               call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(F10.5)' ) pc%SumVW%Average
+              write( IOBuffer, '(F10.4)' ) pc%SumVW%Average
               call FileWriteNoAdvance( this%iounit_runave )
             end if
           end if
@@ -8066,14 +8066,20 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T13,"CO")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      if( this%NComponents == 2 ) then
-        write( IOBuffer, '(T9,"IntD12")' )
-        call FileWriteNoAdvance( this%iounit_rescf )
-      end if
-
-      if( this%NComponents == 3 ) then
-           write( IOBuffer, '(T8,"IntDijk")' )
+!       if( this%NComponents == 2 ) then
+!         write( IOBuffer, '(T9,"IntD12")' )
+!         call FileWriteNoAdvance( this%iounit_rescf )
+!       end if
+! 
+!       if( this%NComponents == 3 ) then
+!            write( IOBuffer, '(T8,"IntDijk")' )
+!            call FileWriteNoAdvance( this%iounit_rescf )
+!       end if
+      if( this%Ncomponents > 1 ) then
+        do i=1,this%NComponents*this%NComponents
+           write( IOBuffer, '(T7,"Int_Lij",I1)')i
            call FileWriteNoAdvance( this%iounit_rescf )
+       end do
       end if
 
       do i = 1, this%NComponents
@@ -8454,7 +8460,7 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '("Time step", T29, "reduced:", F20.9)' ) &
 &       TimeStep
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T31, "in FS:", F20.9)' ) &
+      write( IOBuffer, '(T31, "in fs:", F20.9)' ) &
 &       TimeStep * UnitTime * 1E15_RK
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
@@ -9080,10 +9086,16 @@ loop2:        do nc = 1, this%NComponents
           Variance = this%SumConduct%Variance
         end if
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-        write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) &
+        if ( this%NComponents .gt. 1) then
+          write( IOBuffer, '("Thermal conductivity just implemented for pure substances")' )
+        elseif (LongRange .eq. Ewald) then
+          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
+        else
+          write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) &
 &                                                      this%conduct, Variance
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
+        end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
@@ -9118,9 +9130,15 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Thermal conductivity", T29, "reduced:", F20.9)' )  0._8
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in W / (m K) :", F20.9)' ) 0._8
+        if ( this%NComponents .gt. 1) then
+          write( IOBuffer, '("Thermal conductivity just implemented for pure substances")' )
+        elseif (LongRange .eq. Ewald) then
+          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
+        else
+          write( IOBuffer, '("Thermal conductivity", T29, "reduced:", F20.9)' )  0._8
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in W / (m K) :", F20.9)' ) 0._8
+        end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
@@ -9395,13 +9413,13 @@ loop2:        do nc = 1, this%NComponents
           if (Nproc == NRootProc) then
             write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
 &           * real( tempVal, RK ) / real (tempVal2, RK )
-        endif
+          endif
 #else
             write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
 &           * real( pc%NRotateSuccesses, RK ) / real ( pc%NRotateAttempts, RK )
 #endif         
+          call FileWrite( this%iounit_errors )
         end if
-        call FileWrite( this%iounit_errors )
 
         if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
           ! Biased move and rotate acceptance rates
@@ -10719,8 +10737,6 @@ endif
    real(RK):: SSinSum,SCosSum
    real(RK):: KappaL2, vorfac
    real(RK):: facx,facy,facz
-!    real(RK),pointer:: SSin_Fac, SCos_fac
-!   real(RK),pointer :: test(:)
 #if MPI_VER > 0
    integer, pointer:: i0,i1
 #endif
@@ -10729,11 +10745,12 @@ endif
    real(RK),pointer:: VSux(:),VSuy(:),VSuz(:)
    real(RK),pointer:: VBx(:),VBy(:),VBz(:)
    real(RK)        :: multiplicator
+   real(RK)        :: Contrib
+  
 #endif
 
    type(TMolecule), pointer               :: mol
    integer:: stat
-
 
 
 #if DEBUG_4Part > 0
@@ -10778,10 +10795,8 @@ endif
 
 
 #if MPI_VER > 0
-!    j=NProc + 1
    i0 => this%NBox0
    i1 => this%NBox2
-!    i0 = 1
    DO i=i0,i1,1
 #else
    DO i=1,this%BoxenAnzahlMax,1
@@ -10800,7 +10815,6 @@ endif
          PX => this%Component(j)%Molecule%SiteCharge(l)%PX(1:molec)
          PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
          PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
-!           q => this%Component(j)%Molecule%SiteCharge(l)%e
 
          RXloc(1:molec) = RX(1:molec)
          RYloc(1:molec) = RY(1:molec)
@@ -10810,18 +10824,18 @@ endif
          PZloc(1:molec) = PZ(1:molec)
 
          DO m=1,molec
-         if (RX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
-         if (RY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
-         if (RZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
-         if (PX(m) < 0) PXloc(m) = PXloc(m) + 1._RK
-         if (PY(m) < 0) PYloc(m) = PYloc(m) + 1._RK
-         if (PZ(m) < 0) PZloc(m) = PZloc(m) + 1._RK
+           if (RX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
+           if (RY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
+           if (RZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
+           if (PX(m) < 0) PXloc(m) = PXloc(m) + 1._RK
+           if (PY(m) < 0) PYloc(m) = PYloc(m) + 1._RK
+           if (PZ(m) < 0) PZloc(m) = PZloc(m) + 1._RK
          end DO
          this%distx(j,l,1:molec) = (RXloc - PXloc)*this%BoxLength
          this%disty(j,l,1:molec) = (RYloc - PYloc)*this%BoxLength
          this%distz(j,l,1:molec) = (RZloc - PZloc)*this%BoxLength
 
-         this%Faktor(1:molec) = KVec(1) * RX + KVec(2)*RY + KVec(3)*RZ
+         this%Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
 
          this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
          this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
@@ -10848,80 +10862,72 @@ endif
        q => mol%SiteCharge(1:mol%NCharge)%e
        molec = this%Component(j)%NPart
        DO l=1,mol%NCharge
-          FX => this%Component(j)%Molecule%SiteCharge(l)%FX
-          FY => this%Component(j)%Molecule%SiteCharge(l)%FY
-          FZ => this%Component(j)%Molecule%SiteCharge(l)%FZ
+         FX => this%Component(j)%Molecule%SiteCharge(l)%FX
+         FY => this%Component(j)%Molecule%SiteCharge(l)%FY
+         FZ => this%Component(j)%Molecule%SiteCharge(l)%FZ
 
 
-          this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - &
+         this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - &
 &                           this%cosfac_s(j,l,1:molec)*this%SSin(i))
 !           test = Facy*HFac
-          FX = FX + Facx*this%HFac
-          FY = FY + Facy*this%HFac
-          FZ = FZ + Facz*this%HFac
+         FX = FX + Facx*this%HFac
+         FY = FY + Facy*this%HFac
+         FZ = FZ + Facz*this%HFac
 
-          this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
+         this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
    &         Facy*this%HFac*this%disty(j,l,1:molec)+&
 &            Facz*this%HFac*this%distz(j,l,1:molec)
 #if  TRANS == 1
-       ! Preparation for Transport properties
-       multiplicator = 1._RK/this%Vec2(i) + 0.25_RK/this%KappaL
-       VSx  => mol%SiteCharge(l)%vsCx
-       VSy  => mol%SiteCharge(l)%vsCy
-       VSz  => mol%SiteCharge(l)%vsCz
-       VSux => mol%SiteCharge(l)%vsuCx
-       VSuy => mol%SiteCharge(l)%vsuCy
-       VSuz => mol%SiteCharge(l)%vsuCz
-       VBx  => mol%SiteCharge(l)%vbCx
-       VBy  => mol%SiteCharge(l)%vbCy
-       VBz  => mol%SiteCharge(l)%vbCz
+         ! Preparation for Transport properties
+         VSx  => mol%SiteCharge(l)%vsCx
+         VSy  => mol%SiteCharge(l)%vsCy
+         VSz  => mol%SiteCharge(l)%vsCz
+         VSux => mol%SiteCharge(l)%vsuCx
+         VSuy => mol%SiteCharge(l)%vsuCy
+         VSuz => mol%SiteCharge(l)%vsuCz
+         VBx  => mol%SiteCharge(l)%vbCx
+         VBy  => mol%SiteCharge(l)%vbCy
+         VBz  => mol%SiteCharge(l)%vbCz
        
-       ! Intramolecular Forces
-       VSx  = VSx  + Facx*this%HFac*this%disty(j,l,1:molec)
-       VSy  = VSy  + Facx*this%HFac*this%distz(j,l,1:molec)
-       VSz  = VSz  + Facy*this%HFac*this%distz(j,l,1:molec)
-       VSux = VSux + Facy*this%HFac*this%distx(j,l,1:molec)
-       VSuy = VSuy + Facz*this%HFac*this%distx(j,l,1:molec)
-       VSuz = VSuz + Facz*this%HFac*this%disty(j,l,1:molec)
-       VBx  = VBx  + Facx*this%HFac*this%distx(j,l,1:molec)
-       VBy  = VBy  + Facy*this%HFac*this%disty(j,l,1:molec)
-       VBz  = VBz  + Facz*this%HFac*this%distz(j,l,1:molec)
-
-       ! Force contribution due to the intermolecular long-range forces
-       VSx = VSx + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i))*& 
-&             (1._RK-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(2,i) * &
-&                         multiplicator )
-       VSy = VSy + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&           * (1._RK-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(3,i) * &
-&                         multiplicator )
-       VSz = VSz + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&           * (1._RK-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(3,i) * &
-&                         multiplicator )
-       VSux= VSux+ this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(1,i) * &
-&                         multiplicator )
-       VSuy= VSuy+ this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(1,i) * &
-&                         multiplicator )
-       VSuz= VSuz+ this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(2,i) * &
-&                         multiplicator )
-       VBx = VBx + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(1,i) * &
-&                         multiplicator )
-       VBy = VBy + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(2,i) * &
-&                         multiplicator )
-       VBz = VBz + this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) &
-&                          * (1._RK-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(3,i) * &
-&                         multiplicator )
+          ! Intramolecular Forces
+         VSx  = VSx  - Facx*this%HFac*this%disty(j,l,1:molec)
+         VSy  = VSy  - Facx*this%HFac*this%distz(j,l,1:molec)
+         VSz  = VSz  - Facy*this%HFac*this%distz(j,l,1:molec)
+         VSux = VSux - Facy*this%HFac*this%distx(j,l,1:molec)
+         VSuy = VSuy - Facz*this%HFac*this%distx(j,l,1:molec)
+         VSuz = VSuz - Facz*this%HFac*this%disty(j,l,1:molec)
+         VBx  = VBx  - Facx*this%HFac*this%distx(j,l,1:molec)
+         VBy  = VBy  - Facy*this%HFac*this%disty(j,l,1:molec)
+         VBz  = VBz  - Facz*this%HFac*this%distz(j,l,1:molec)
+       
 #endif
        END DO
      END DO
+
+#if  TRANS == 1
+     ! Force contribution due to the intermolecular long-range forces
+     ! Since these properties are specific for the entire solution and not valid for individual
+     ! components, these quantities are calculated once and added onto the contribution of 
+     ! the last component in the system
+     Contrib = this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) / this%Volume0
+     multiplicator = (1._RK/this%Vec2(i) + 0.25_RK/this%KappaL**2)
+     VSx = VSx + Contrib* (-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(2,i) * multiplicator )
+     VSy = VSy + Contrib* (-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(3,i) * multiplicator )
+     VSz = VSz + Contrib* (-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(3,i) * multiplicator )
+
+     VSux= VSux+ Contrib* (-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(1,i) * multiplicator )
+     VSuy= VSuy+ Contrib* (-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(1,i) * multiplicator )
+     VSuz= VSuz+ Contrib* (-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(2,i) * multiplicator )
+
+     VBx = VBx + Contrib* (1._RK-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(1,i) * multiplicator )
+     VBy = VBy + Contrib* (1._RK-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(2,i) * multiplicator )
+     VBz = VBz + Contrib* (1._RK-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(3,i) * multiplicator )
+#endif
+
    END DO ! Boxenschleife
 
 ! Finish Calculation
-
+! STOP
 ! Energy
    this%U_fourierLocal = this%Ewald_Prefac * (this%SSin*this%SSin + this%SCos*this%SCos)
 
@@ -10937,12 +10943,15 @@ endif
    EPotLocal = sum(this%U_fourierLocal)
    VirialLocal = EPotLocal - sum(this%U_fourierLocal *KappaL2*this%Vec2)
    VirIntra = sum(this%VirIntra)
+!    test = sum(this%U_fourierLocal(:)* (1._RK-2._RK *&
+! &              (this%Ewald_Vec(1,:)*this%Ewald_Vec(2,:) / this%Vec2(:) + &
+! &                   this%Ewald_Vec(1,:)*this%Ewald_Vec(2,:) /(4._RK*this%KappaL**2)) ) )
 #endif
-  if( RootProc ) then
-   this%UFourier= EPotLocal
-   this%EVirial = -(Viriallocal - VirIntra)*Third
+   if( RootProc ) then
+     this%UFourier= EPotLocal
+     this%EVirial = -(Viriallocal - VirIntra)*Third
 !    this%EVirial = -(Viriallocal + VirIntra)*Third
-  end if
+   end if
 
    end subroutine TEnsemble_EwaldFourierTerm
 
@@ -13792,7 +13801,7 @@ contains
 !     this%vcpr(Mindex, :) = 0._RK
 
 
-    !Evaluate FTc and FRC components (parallel version)
+    !Evaluate FTC and FRC components (parallel version)
     do i = 1, this%NComponents
       call ForceTransport( this%Component(i) )
 #if MPI_VER > 0
@@ -13839,10 +13848,12 @@ contains
           ! FF. 2 ZEILEN WIRKEN EXTREM KOMISCH, WEIL NIRGENDS AUSGENULLT!!!!!!!!! ODER????
           this%sc(k) = this%sc(k) + sum( pc%KinETran(:,k) )
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
+!           this%sp(k) = this%sp(k) + 0._RK
 
           ! part calculated together with force
           this%vsp(Mindex, k)  = sum(pFS (:, k))
           this%vbp(Mindex, k)  = sum(pFB (:, k))
+!           this%vbp(Mindex, k)  = 0._RK
           this%vcpr(Mindex, k) = sum(pFRC(:, k))
           this%vcpt(Mindex, k) = sum(pFTC(:, k))
 
@@ -13851,7 +13862,7 @@ contains
           this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5d0 * Mass*BoxLength_dt
 
           if ( pc%Molecule%IsElongated ) then
-            this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(j) ) * Mass*BoxLength_dt
+            this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(:) ) * Mass*BoxLength_dt
           end if
         end do
 !       end do
@@ -13992,7 +14003,7 @@ contains
         ! Calculated in general
         do k = 1, 3
           ! shear viscosity
- this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
+          this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
 &                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsp(CFindex, k)*this%vsk(s, k)
