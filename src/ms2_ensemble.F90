@@ -5747,13 +5747,13 @@ loop2:        do nc = 1, this%NComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
             if( Equilibration ) then
-              write( IOBuffer, '(F10.5)' ) 0._RK
+              write( IOBuffer, '(F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(F10.5)' ) pc%SumVW%BlockAverage
+              write( IOBuffer, '(F10.4)' ) pc%SumVW%BlockAverage
               call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(F10.5)' ) pc%SumVW%Average
+              write( IOBuffer, '(F10.4)' ) pc%SumVW%Average
               call FileWriteNoAdvance( this%iounit_runave )
             end if
           end if
