@@ -491,7 +491,7 @@ contains
 
       !Carefull: This if statement should remain as is, because in the MC parallelization, every processor is treated as root
       if (Nproc /= NRootProc) return
-	
+
       this%Average=ReducedAverage/NProcs
       ! Calculate variance
       Tau = 0._RK
@@ -597,10 +597,10 @@ contains
     call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
 &     NRootProc, Communicator, ierror )
 
-    !Carefull: This if statement should remain as is, because in the MC parallelization, every processor is treated as root
+    !be careful: This if statement should remain as is, because in the MC parallelization, every processor is treated as root
     if (RootProc) then
-	
-	this%Average=ReducedAverage/NProcs
+
+    this%Average=ReducedAverage/NProcs
     ! Calculate variance
     Tau = 0._RK
     do i = 1, NBlockSizes

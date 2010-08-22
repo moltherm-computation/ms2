@@ -82,9 +82,12 @@ pgf_mpi:
 
 gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
-	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DTRANS=1 \
-	-g -O0 -fdefault-real-8 -Wall -pedantic -std=f95 -fbounds-check \
+	#                                          -DTRANS=1
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-g -O0 -fdefault-real-8 -Wall -Wextra -fbounds-check \
 	-o ms2.gfortran_dbg $(SOURCES)
+	# extensions to Fortran95 are needed to e.g. get command line arguments
+	# -pedantic -std=f95
 	rm -f *.o *.mod
 
 gfortran:
@@ -271,6 +274,7 @@ sx:
 	-Wf'-pvctl vchg loopfusion loopchg outerstrip outerunroll' \
 	-o ms2 $(SOURCES)
 	# -sx8, -sx8r, -sx9
+	rm -f *.mod
 
 sx_dbg:
 	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
@@ -278,17 +282,20 @@ sx_dbg:
 	-o ms2_dbg $(SOURCES)
 	# loop-level profiler: -loopprof
 	# -adv off
+	rm -f *.mod
 
 sx_mpi:
 	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
 	-C hopt -pi auto \
 	-Wf'-pvctl vchg' \
 	-o ms2mpi $(SOURCES)
+	rm -f *.mod
 
 sx_mpi_dbg:
 	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
 	-g -EP \
 	-o ms2mpi_dbg $(SOURCES)
+	rm -f *.mod
 
 
 xc1:

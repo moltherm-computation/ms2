@@ -3722,8 +3722,9 @@ loop3:    do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
-    integer                   :: color, tempComm
+    integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
+    !integer                   :: color
 #endif
     ! No calculation of chemical potential in equilibration
     if( Equilibration ) then
@@ -4333,7 +4334,7 @@ loop2:        do nc = 1, this%NComponents
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &       MPI_RK, MPI_SUM, Communicator, ierror )
     else
-	  EPotDelta = EPotOld - EPotNew
+      EPotDelta = EPotOld - EPotNew
     endif 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4416,7 +4417,7 @@ loop2:        do nc = 1, this%NComponents
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &       MPI_RK, MPI_SUM, Communicator, ierror )
     else
-	  EPotDelta = EPotOld - EPotNew
+      EPotDelta = EPotOld - EPotNew
     endif 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4517,7 +4518,7 @@ loop2:        do nc = 1, this%NComponents
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
 &       MPI_RK, MPI_SUM, Communicator, ierror )
     else
-	  EPotDelta = EPotOld - EPotNew
+        EPotDelta = EPotOld - EPotNew
     endif 
 #else
     EPotDelta = EPotOld - EPotNew
@@ -4835,7 +4836,7 @@ loop2:        do nc = 1, this%NComponents
 !  write(0, '(I2, ": EPotIns = ", F12.6)') NProc, EPotInsAll
 !DEBUG
     else
-	 EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrLJ &
+      EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrLJ &
 &                 + pc%EPotTestCorrRF
     endif 
 
