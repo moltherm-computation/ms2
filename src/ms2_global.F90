@@ -178,7 +178,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: VisualFileExtension = '.vim'
 
   ! Extension of normalized potential model file
-  character(*), parameter :: NormalizedPotModExtension = '.nrm'
+  character(*), parameter :: NormalizedPotModExtension = '.npm'
 
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
@@ -191,6 +191,9 @@ character(*), parameter :: VersionString = 'v12'
 #endif
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
+  ! true, if OutputNameTag is set through the command line argument
+  ! MPI_VER>0: only set on RootProc
+  logical :: OutputNameTagfromCommandline
 
   ! Parameter file name
   character(FileNameLength) :: ParameterFileName
@@ -924,12 +927,14 @@ contains
 !   endif
 !DEBUG
 
-    ! Initialize restart flag
+    ! Initialize flags
     Restart = .false.
+    OutputNameTagfromCommandline = .false.
 
-    ! Read command line parameter
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+    ! Read command line parameter
     if( RootProc ) then
+      ! first argument is binary file path, which was executed
       call getarg( 0, buffer )
       i = scan( buffer, FileSep, BACK=.true. )
       if( i > 0 ) then
@@ -955,6 +960,7 @@ contains
 #endif
         stop
       end if
+      ! second argument should be the input file name
       call getarg( 1, buffer )
       !call get_command_argument( 1, buffer )
       buffer = trim( buffer )
@@ -1003,20 +1009,37 @@ contains
 
           ! Read parameter file name from restart file
           read( iounit_restart, '(A128)' ) ParameterFileName
-          buffer = ParameterFileName( 1:len( trim( ParameterFileName ) ) - 4 )
-
+          !buffer = ParameterFileName( 1:len( trim( ParameterFileName ) ) - len( trim( RestartFileExtension )) - 1 )
         else if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
-          buffer = buffer( 1:dot - 1 )
+          !Restart = .false.                     ! already set
+          ParameterFileName =  trim( buffer )    ! possible truncation
+          !buffer = buffer( 1:dot - 1 )
         end if
+      end if
+      if( narg .ge. 2 ) then
+        ! if present, the third argument should be the input file name
+        call getarg( 2, buffer )
+        !call get_command_argument( 2, buffer )
+        OutputNameTagfromCommandline = .true.
+        !write( IOBuffer, '("Name tag for output (specified in command line): ", A)' ) trim( OutputNameTag )
+      else
+        ! otherwise use the input file name without extension
+        buffer = buffer( 1:dot - 1 )
+        !OutputNameTagfromCommandline = .false.
+        !write( IOBuffer, '("Name tag for output (input file base name):      ", A)' ) trim( OutputNameTag )
       end if
       OutputNameTag = trim( buffer )             ! possible truncation
     end if
 
+#else
+    ! Plattform does not support command line parameters
+    ProgramFileName='ms2'
+    ParameterFileName = 'ms2.par'
+    OutputNameTag='ms2out'
+#endif
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
-    
-#endif
 #endif
 
     ! Open log file
@@ -1337,11 +1360,11 @@ contains
 #endif
 
     ! Open log file
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
+!#if ARCH == 1 || ARCH == 2 || ARCH == 3
     call FileRewrite( iounit_log, trim( OutputNameTag )//LogFileExtension )
-#else
-    call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
-#endif
+!#else
+!    call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
+!#endif
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1729,7 +1752,8 @@ contains
   function Global_FileReadParameter( iounit, parameterqualifiers, &
 &                                    rewind_before, status ) &
 &          result (parametervalue)
-
+    ! read a parameter as string and return it
+    ! MPI_VER>0: needs to be called from all PEs
 
     implicit none
 
@@ -1774,12 +1798,13 @@ contains
         if( stat > 0 ) then
           call Error( "ERROR reading file "//trim(fn)// &
 &                     " while searching for parameter <"//parameterqualifiers//">" )
+          !parametervalue=''
           !if( present(status) ) status = stat
-          !return
+          !exit
         ! end of file reached?
         elseif( stat < 0 ) then
           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
-          parametervalue=""
+          parametervalue = ''
           if( present(status) ) status = stat
           ! (try to) restore position
           if( present(rewind_before) ) then
@@ -1787,7 +1812,7 @@ contains
 !              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
               rewind( iounit )
               FileReadParameter_LineNumber = 0
-              linesread=0
+              linesread = 0
               exit    !not nice!
             end if
           end if
@@ -1842,6 +1867,7 @@ contains
     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
+    ! RootProc knows length (len_trim) of parametervalue, but it's easier to bcast the whole buffer
     call MPI_Bcast( parametervalue, len(parametervalue), &
 &     MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
@@ -1934,17 +1960,23 @@ contains
 
 
     ! Declare local variables
+    character(IOBufferLength) :: buffer
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    parametervariable = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
-    if ( stat < 0 ) then
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
+    if ( stat == 0 ) then
+      parametervariable = buffer
+    else
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
+        ! set default value
         write( IOBuffer, '("setting ",A," to default value ",A)' ) &
 &             trim(parameterqualifiers), trim(defaultvalue)
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
@@ -1990,13 +2022,16 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+    else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
+        ! set default value
         write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
 &             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
@@ -2042,13 +2077,16 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+    else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
+        ! set default value
         write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
 &             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
@@ -2093,14 +2131,17 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+    else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
+        ! set default value
         write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifiers)
         call LogWrite
         write( IOBuffer, * ) defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if

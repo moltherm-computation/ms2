@@ -181,7 +181,10 @@ contains
 &       trim( RestartFileName )
       call LogWrite
     else
-      ParameterFileName = trim( OutputNameTag )//ParameterFileExtension
+      !ParameterFileName = trim( OutputNameTag )//ParameterFileExtension
+      write( IOBuffer, '("Using parameters from file: ", A)' ) &
+&       trim( ParameterFileName )
+      call LogWrite
     end if
 #else
     call FileReset( iounit_config, ProgramFileName//ConfigFileExtension )
@@ -223,22 +226,34 @@ contains
     call LogWrite
 
 #if defined MS2_STEEREO
-	call set_logger_level (2);
-	call FileReadParameter( CommandPath, iounit_params, IdCommandPath, .true., './commands')
-	write( IOBuffer, '("CommandPath: ",T26, A)' ) trim( CommandPath )
-	call LogWrite
-	CommandPathLength = len_trim (CommandPath)
-	call FileReadParameter( Port, iounit_params, IdSteereoPort, .true., 44446)
-	write( IOBuffer, '("Listening on port: ",T24, I5)' ) Port
-	call LogWrite
+        call set_logger_level (2);
+        call FileReadParameter( CommandPath, iounit_params, IdCommandPath, .true., './commands')
+        write( IOBuffer, '("CommandPath: ",T26, A)' ) trim( CommandPath )
+        call LogWrite
+        CommandPathLength = len_trim (CommandPath)
+        call FileReadParameter( Port, iounit_params, IdSteereoPort, .true., 44446)
+        write( IOBuffer, '("Listening on port: ",T24, I5)' ) Port
+        call LogWrite
 #endif
 
     ! Read name tag for output files
-#if ARCH != 1 && ARCH != 2 && ARCH != 3
-    call FileReadParameter( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
-#endif
-    write( IOBuffer, '("Name tag for output: ",T26, A)' ) &
-&     trim( OutputNameTag )
+!#if ARCH != 1 && ARCH != 2 && ARCH != 3
+    !call FileReadParameter( OutputNameTag, iounit_params , IdOutputNameTag, .true. )
+    call FileReadParameter( str, iounit_params , IdOutputNameTag, .true., status=stat )
+!#endif
+    if ( OutputNameTagfromCommandline ) then
+      if ( RootProc .and. stat .eq. 0 ) then
+        print *,"INFO: output prefix from command line (", trim(OutputNameTag) &
+&              ,") overwrites the one from the parameter file (", trim(str) ,")"
+      end if
+      str = "(from command line)"
+    else if ( stat .eq. 0 ) then
+      OutputNameTag = trim(str)                  ! possible truncation
+      str = "(from parameter file)"
+    else
+      str = "(default)"
+    end if
+    write( IOBuffer, '("Name tag for output ",A,": ",T44, A)' ) trim( str ), trim( OutputNameTag )
     call LogWrite
 
     ! Read type of units
@@ -852,7 +867,6 @@ contains
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
-    character(10) :: procStr
 #endif 
     tooManyParticles = .false.
     call Construct(RunTimer,"TSimulation_Run",CStopwatch_doMPIStartBarrier)
@@ -1089,7 +1103,7 @@ contains
           call InitMolecularDynamics( this%Ensemble(i), .true. )
         end do
       else
-        write( IOBuffer, '("MC overlap reduction terminated")' )
+        write( IOBuffer, '("MC overlap reduction TERMINATED")' )
       end if
       call LogWriteTime
       StepStart = 1
@@ -1121,7 +1135,7 @@ eqloop: do
           write( IOBuffer, '("NVT equilibration completed")' )
           NVTEquilibration = .false.
         else
-          write( IOBuffer, '("NVT equilibration terminated")' )
+          write( IOBuffer, '("NVT equilibration TERMINATED")' )
         end if
         call LogWriteTime
         StepStart = 1
@@ -1167,7 +1181,7 @@ eqloop: do
               cycle eqloop
             end if
           else
-            write( IOBuffer, '("GE equilibration terminated")' )
+            write( IOBuffer, '("GE equilibration TERMINATED")' )
           end if
           call LogWriteTime
 
@@ -1208,7 +1222,7 @@ eqloop: do
               cycle eqloop
             end if
           else
-            write( IOBuffer, '("HA equilibration terminated")' )
+            write( IOBuffer, '("HA equilibration TERMINATED")' )
           end if
           call LogWriteTime
 
@@ -1235,7 +1249,7 @@ eqloop: do
             write( IOBuffer, '("NPT equilibration completed")' )
             Equilibration = .false.
           else
-            write( IOBuffer, '("NPT equilibration terminated")' )
+            write( IOBuffer, '("NPT equilibration TERMINATED")' )
           end if
           call LogWriteTime
 
@@ -1393,7 +1407,7 @@ eqloop: do
          write( IOBuffer, '("GradIns initialization completed")' )
          GradInsInitialization = .false.
        else
-         write( IOBuffer, '("GradIns initialization terminated")' )
+         write( IOBuffer, '("GradIns initialization TERMINATED")' )
        end if
        call LogWriteTime
        StepStart = 1
@@ -1427,7 +1441,7 @@ eqloop: do
         write( IOBuffer, '("Simulation completed")' )
 !         GradInsInitialization = .false.
       else
-        write( IOBuffer, '("Simulation terminated")' )
+        write( IOBuffer, '("Simulation TERMINATED")' )
       end if
       !call LogWriteTime
     end if

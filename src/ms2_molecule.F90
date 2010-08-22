@@ -370,11 +370,25 @@ contains
     integer                   :: i
 
     ! Open file
+!    if( fluctstate < 1 ) then
+!      filename = trim( this%PotModFileName )//NormalizedPotModExtension
+!    else
+!      write( filename, '(A, ".", I0)') &
+!&       trim( this%PotModFileName )//NormalizedPotModExtension, fluctstate
+!    end if
+    i = index(this%PotModFileName,'.',.true.)
+    if ( i<=1 ) then
+      ! didn't find extension, so basename is filename itself
+      !i = len_trim(this%PotModFileName)
+      i = len(trim(this%PotModFileName))
+    end if
     if( fluctstate < 1 ) then
-      filename = trim( this%PotModFileName )//NormalizedPotModExtension
+      write( filename, '(A,".",A,A)') &
+&           trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),trim(NormalizedPotModExtension)
     else
-      write( filename, '(A, ".", I0)') &
-&       trim( this%PotModFileName )//NormalizedPotModExtension, fluctstate
+      write( filename, '(A,".",A,"_",I0,A)') &
+&           trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
+&          ,trim(NormalizedPotModExtension)
     end if
     call FileRewrite( iounit_normal, filename )
 
