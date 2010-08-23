@@ -117,6 +117,7 @@ module ms2_component
 
 #endif
 ! Stephan
+    logical :: Conductivity
 !     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
@@ -1228,6 +1229,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteLJ126(i)%Q0r => this%Q0
+      this%Molecule%SiteLJ126(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteLJ126(i)%A11Save => this%A11Save
 !       this%Molecule%SiteLJ126(i)%A12Save => this%A12Save
 !       this%Molecule%SiteLJ126(i)%A13Save => this%A13Save
@@ -1257,6 +1259,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteCharge(i)%Q0r => this%Q0
+      this%Molecule%SiteCharge(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteCharge(i)%A11Save => this%A11Save
 !       this%Molecule%SiteCharge(i)%A12Save => this%A12Save
 !       this%Molecule%SiteCharge(i)%A13Save => this%A13Save
@@ -1286,6 +1289,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteDipole(i)%Q0r => this%Q0
+      this%Molecule%Sitedipole(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteDipole(i)%A11Save => this%A11Save
 !       this%Molecule%SiteDipole(i)%A12Save => this%A12Save
 !       this%Molecule%SiteDipole(i)%A13Save => this%A13Save
@@ -1315,6 +1319,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
+      this%Molecule%SiteQuadrupole(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteQuadrupole(i)%A11Save => this%A11Save
 !       this%Molecule%SiteQuadrupole(i)%A12Save => this%A12Save
 !       this%Molecule%SiteQuadrupole(i)%A13Save => this%A13Save

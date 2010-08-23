@@ -56,6 +56,7 @@ module ms2_ensemble
 #if  TRANS == 1
     ! I/O unit for result ACF
     integer :: iounit_rescf   !TRANSPORT_thisline
+    logical :: Conductivity
 #endif
 
     ! Maximum number of particles
@@ -204,7 +205,7 @@ module ms2_ensemble
     real(RK),pointer :: U_fourierLocal(:)
     real(RK),pointer :: SSin(:),SCos(:)
     real(RK),pointer :: sinfac_s(:,:,:), cosfac_s(:,:,:)
-    real(RK),pointer :: sinfac(:),cosfac(:)
+!     real(RK),pointer :: sinfac(:),cosfac(:)
 !   real(RK),pointer:: sinfac_s_old(:),cosfac_s_old(:)
     real(RK),pointer :: rold(:,:)
     real(RK),pointer :: SSin_Vec(:),SCos_Vec(:)
@@ -1092,6 +1093,17 @@ contains
       call LogWrite
     end if
 
+! Initialization of the transport property "Conductivity"
+#if TRANS == 1
+      if ( this%NComponents < 2 .and. LongRange .eq. RField) then
+        this%Conductivity = .true.
+      else
+        this%Conductivity = .false.
+      end if
+      do i = 1,this%NComponents
+        this%Component(i)%Conductivity = this%Conductivity
+      end do
+#endif
 
 #if CONSTR > 0
     write( IOBuffer, '("CONSTRAINED DYNAMICS")' )
@@ -1277,10 +1289,10 @@ contains
          if(stat >0) write(*,*) 'Allocation Error SSin'
          allocate(this%SCos(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos'
-         allocate(this%sinfac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error sinfac'
-         allocate(this%cosfac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error cosfac'
+!          allocate(this%sinfac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error sinfac'
+!          allocate(this%cosfac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error cosfac'
          allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
          allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
@@ -1343,7 +1355,7 @@ contains
            end do
          end do
       end if
-
+     
       if( SimulationType .eq. MolecularDynamics &
 &       .and. .not. MCOverlapReduction ) then
 
@@ -1622,12 +1634,12 @@ contains
       if ( associated ( this%SCos ) ) then 
          deallocate( this%SCos )
       end if
-      if ( associated ( this%sinfac ) ) then 
-         deallocate( this%sinfac )
-      end if
-      if ( associated ( this%cosfac ) ) then 
-         deallocate( this%cosfac )
-      end if
+!       if ( associated ( this%sinfac ) ) then 
+!          deallocate( this%sinfac )
+!       end if
+!       if ( associated ( this%cosfac ) ) then 
+!          deallocate( this%cosfac )
+!       end if
       if ( associated ( this%SSin_Vec ) ) then 
          deallocate( this%SSin_Vec )
       end if
@@ -4598,7 +4610,7 @@ loop3:    do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
-    integer                   :: color, tempComm
+    integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
     real(RK)                  :: EPot_h
 #endif
@@ -8063,8 +8075,10 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T13,"VB")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T13,"CO")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Conductivity) then
+        write( IOBuffer, '(T13,"CO")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
 !       if( this%NComponents == 2 ) then
 !         write( IOBuffer, '(T9,"IntD12")' )
@@ -8093,8 +8107,10 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T9,"Int VB")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T10,"Int C ")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Conductivity) then
+        write( IOBuffer, '(T10,"Int C ")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
       call FileWriteBlank( this%iounit_rescf )
 
@@ -8137,8 +8153,10 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Thermal conductivity
-        write( IOBuffer, '(T5, F10.5)' ) this%cf_c(i)/this%cf_c(1)
-        call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%Conductivity) then
+          write( IOBuffer, '(T5, F10.5)' ) this%cf_c(i)/this%cf_c(1)
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if
 
         ! integral ======================================================!
         value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
@@ -8190,13 +8208,14 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! thermal conductivity
-        value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+        if (this%Conductivity) then
+          value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
 
-        write( IOBuffer, '(T5, F10.5)' ) &
-&         this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
-        call FileWriteNoAdvance( this%iounit_rescf )
-        call FileWriteBlank( this%iounit_rescf )
-
+          write( IOBuffer, '(T5, F10.5)' ) &
+&           this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
+            call FileWriteNoAdvance( this%iounit_rescf )
+          call FileWriteBlank( this%iounit_rescf )
+        end if
       end do
 
 #if ARCH == 2
@@ -10354,10 +10373,10 @@ endif
          if(stat >0) write(*,*) 'Allocation Error SSin'
          allocate(this%SCos(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos'
-         allocate(this%sinfac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error sinfac'
-         allocate(this%cosfac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error cosfac'
+!          allocate(this%sinfac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error sinfac'
+!          allocate(this%cosfac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error cosfac'
          allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
          allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
@@ -10839,11 +10858,13 @@ endif
 
          this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
          this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
-         this%sinfac = q(l)*this%sinfac_s(j,l,1:molec)
-         this%cosfac = q(l)*this%cosfac_s(j,l,1:molec)
-
-         this%SSin_Vec = this%SSin_Vec + this%sinfac
-         this%SCos_Vec = this%SCos_Vec + this%cosfac
+!          this%sinfac = q(l)*this%sinfac_s(j,l,1:molec)
+!          this%cosfac = q(l)*this%cosfac_s(j,l,1:molec)
+! 
+!          this%SSin_Vec = this%SSin_Vec + this%sinfac
+!          this%SCos_Vec = this%SCos_Vec + this%cosfac
+         this%SSin_Vec = this%SSin_Vec + q(l)*this%sinfac_s(j,l,1:molec)
+         this%SCos_Vec = this%SCos_Vec + q(l)*this%cosfac_s(j,l,1:molec)
        END DO
      END DO
 
@@ -11194,17 +11215,19 @@ endif
 
            this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
            this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
-           this%sinfac(1:molec) = q(l)*this%sinfac_s(j,l,1:molec)
-           this%cosfac(1:molec) = q(l)*this%cosfac_s(j,l,1:molec)
+!            this%sinfac(1:molec) = q(l)*this%sinfac_s(j,l,1:molec)
+!            this%cosfac(1:molec) = q(l)*this%cosfac_s(j,l,1:molec)
          else
 !            this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
 !            this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
-           this%sinfac(1:molec) = q(l)*sin(this%Faktor)
-           this%cosfac(1:molec) = q(l)*cos(this%Faktor)
+!            this%sinfac(1:molec) = q(l)*sin(this%Faktor)
+!            this%cosfac(1:molec) = q(l)*cos(this%Faktor)
          end if
 
-         this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + this%sinfac(1:molec)
-         this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + this%cosfac(1:molec)
+!          this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + this%sinfac(1:molec)
+!          this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + this%cosfac(1:molec)
+         this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + q(l)*sin(this%Faktor)
+         this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + q(l)*cos(this%Faktor)
        END DO
      END DO
 
@@ -13774,11 +13797,13 @@ contains
     real(RK) :: Mass
     real(RK), pointer :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
+    logical  :: Conductivity
 
     NPart  = this%NPart
     NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
+    Conductivity = this%Conductivity
 
 
 !     EKinTran(:,:) = 0._RK
@@ -13848,21 +13873,22 @@ contains
           ! FF. 2 ZEILEN WIRKEN EXTREM KOMISCH, WEIL NIRGENDS AUSGENULLT!!!!!!!!! ODER????
           this%sc(k) = this%sc(k) + sum( pc%KinETran(:,k) )
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
-!           this%sp(k) = this%sp(k) + 0._RK
 
           ! part calculated together with force
           this%vsp(Mindex, k)  = sum(pFS (:, k))
           this%vbp(Mindex, k)  = sum(pFB (:, k))
-!           this%vbp(Mindex, k)  = 0._RK
-          this%vcpr(Mindex, k) = sum(pFRC(:, k))
-          this%vcpt(Mindex, k) = sum(pFTC(:, k))
 
           !bulk diagonal terms and energy tensor kinetic part
           this%vbk(Mindex, k) = sum( pc%KinETran(:,k) )
-          this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5d0 * Mass*BoxLength_dt
+          
+          if (Conductivity) then
+            this%vcpr(Mindex, k) = sum(pFRC(:, k))
+            this%vcpt(Mindex, k) = sum(pFTC(:, k))
+            this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5d0 * Mass*BoxLength_dt
 
-          if ( pc%Molecule%IsElongated ) then
-            this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(:) ) * Mass*BoxLength_dt
+            if ( pc%Molecule%IsElongated ) then
+              this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(:) ) * Mass*BoxLength_dt
+            end if
           end if
         end do
 !       end do
@@ -14016,22 +14042,24 @@ contains
 &                             ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
           end do
           ! conductivity
-          this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
-&                                                this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                this%vcpt(CFindex, k)*this%vcpt(s, k) + &
-&                                                this%vcpr(CFindex, k)*this%vcpr(s, k) + &
-&                                                this%vckt(CFindex, k)*this%vcpt(s, k) + &
-&                                                this%vcpt(CFindex, k)*this%vckt(s, k) + &
-&                                                this%vckr(CFindex, k)*this%vcpr(s, k) + &
-&                                                this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                this%vckr(CFindex, k)*this%vckt(s, k) + &
-&                                                this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                this%vcpt(CFindex, k)*this%vcpr(s, k) + &
-&                                                this%vcpr(CFindex, k)*this%vcpt(s, k) + &
-&                                                this%vckt(CFindex, k)*this%vcpr(s, k) + &
-&                                                this%vcpr(CFindex, k)*this%vckt(s, k) + &
-&                                                this%vckr(CFindex, k)*this%vcpt(s, k) + &
-&                                                this%vcpt(CFindex, k)*this%vckr(s, k)
+          if (Conductivity) then
+            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vckr(s, k)
+          end if
         end do
       end do
       this%Mmess  = this%Mmess +1
@@ -14173,8 +14201,10 @@ contains
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
     this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), TimeStep, this%NCorr )
     this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
-    this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStep, this%NCorr )
-    this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
+    if (this%Conductivity) then
+      this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStep, this%NCorr )
+      this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
+    end if
 
 
   contains

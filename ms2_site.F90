@@ -54,6 +54,7 @@ module ms2_site
     real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
     real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
     real(RK), pointer :: Q0r(:,:)
+    logical  :: Conductivity
 !     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
@@ -112,6 +113,7 @@ module ms2_site
     real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
     real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
     real(RK), pointer :: Q0r(:,:)
+    logical  :: Conductivity
 !     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
@@ -173,6 +175,7 @@ module ms2_site
     real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
     real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
     real(RK), pointer :: Q0r(:,:)
+    logical  :: Conductivity
 !     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
@@ -237,6 +240,7 @@ module ms2_site
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
     real(RK), pointer :: Q0r(:,:)
+    logical  :: Conductivity
 !TRANSPORT_END
 #endif
 

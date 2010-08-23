@@ -62,6 +62,9 @@ module ms2_potential
     real(RK),pointer          :: AblEpsCorr(:,:)
     real(RK),pointer          :: AblSigCorr(:,:)
 #endif
+#if TRANS == 1
+    logical :: Conductivity
+#endif
 
   end type TPotLJ126LJ126
 
@@ -104,6 +107,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if TRANS == 1
+    logical :: Conductivity
+#endif
 
   end type TPotChargeCharge
 
@@ -261,6 +267,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if TRANS == 1
+    logical :: Conductivity
+#endif
 
   end type TPotDipoleDipole
 
@@ -407,6 +416,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+#if TRANS == 1
+    logical :: Conductivity
+#endif
 
   end type TPotQuadrupoleQuadrupole
 
@@ -538,7 +550,9 @@ contains
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
 
-
+#if TRANS == 1
+    this%Conductivity = this%Site1%Conductivity
+#endif
 
   contains
 
@@ -764,6 +778,7 @@ contains
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)          :: PXijB, PYijB, PZijB
+    logical           :: Conductivity
      !TRANSPORT_END
 #endif
 #ifdef ABL
@@ -819,7 +834,8 @@ contains
 
 #if  TRANS == 1
     !TRANSPORT_start
-    SigmaInvEps4     = Epsilon4/Sqrt(this%SigmaSquared)
+    Conductivity = this%Conductivity
+    SigmaInvEps4 = Epsilon4/Sqrt(this%SigmaSquared)
     BoxLength2   = BoxLength**2
     VSx => this%Site1%vsLJx
     VSy => this%Site1%vsLJy
@@ -830,22 +846,23 @@ contains
     VBx => this%Site1%vbLJx
     VBy => this%Site1%vbLJy
     VBz => this%Site1%vbLJz
-    Cx  => this%Site1%cLJx
-    Cy  => this%Site1%cLJy
-    Cz  => this%Site1%cLJz
-    tux => this%Site1%tuLJx
-    tuy => this%Site1%tuLJy
-    tuz => this%Site1%tuLJz
-    tlx => this%Site1%tlLJx
-    tly => this%Site1%tlLJy
-    tlz => this%Site1%tlLJz
-    tdx => this%Site1%tdLJx
-    tdy => this%Site1%tdLJy
-    tdz => this%Site1%tdLJz
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+    if ( Conductivity ) then
+      Cx  => this%Site1%cLJx
+      Cy  => this%Site1%cLJy
+      Cz  => this%Site1%cLJz
+      tux => this%Site1%tuLJx
+      tuy => this%Site1%tuLJy
+      tuz => this%Site1%tuLJz
+      tlx => this%Site1%tlLJx
+      tly => this%Site1%tlLJy
+      tlz => this%Site1%tlLJz
+      tdx => this%Site1%tdLJx
+      tdy => this%Site1%tdLJy
+      tdz => this%Site1%tdLJz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
 !     A11V => this%Site1%A11Save
 !     A12V => this%Site1%A12Save
 !     A13V => this%Site1%A13Save
@@ -855,6 +872,7 @@ contains
 !     A31V => this%Site1%A31Save
 !     A32V => this%Site1%A32Save
 !     A33V => this%Site1%A33Save
+    end if
 !TRANSPORT_END
 #endif
 
@@ -886,21 +904,22 @@ contains
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
-        Cxi = Cx(i)
-        Cyi = Cy(i)
-        Czi = Cz(i)
-        tuxi = tux(i)
-        tuyi = tuy(i)
-        tuzi = tuz(i)
-        tlxi = tlx(i)
-        tlyi = tly(i)
-        tlzi = tlz(i)
-        tdxi = tdx(i)
-        tdyi = tdy(i)
-        tdzi = tdz(i)
-        r1x  = ( RXi-PXi ) * BoxLength2
-        r1y  = ( RYi-PYi ) * BoxLength2
-        r1z  = ( RZi-PZi ) * BoxLength2
+        if ( Conductivity ) then
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
+          r1x  = ( RXi-PXi ) * BoxLength2
+          r1y  = ( RYi-PYi ) * BoxLength2
+          r1z  = ( RZi-PZi ) * BoxLength2
 ! Stephan
 !         A11 = A11V(i)
 !         A12 = A12V(i)
@@ -912,15 +931,16 @@ contains
 !         A32 = A32V(i)
 !         A33 = A33V(i)
 
-        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        end if
         !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -955,15 +975,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZ2(j) = FZ2(j) - FZij
 #if  TRANS == 1
           !TRANSPORT_start
-          RijSInvNorm   = Sqrt(RijSquaredInv)
-          UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
-!           Uxi  = UU*RXij
-!           Uyi  = UU*RYij
-!           Uzi  = UU*RZij
-          ! Multiplication of BoxLength taken out of the inner loop
-!           PXijB= PXij * BoxLength
-!           PYijB= PYij * BoxLength
-!           PZijB= PZij * BoxLength
 !           VSxi   = VSxi + FXij * PYijB
 !           VSyi   = VSyi + FXij * PZijB
 !           VSzi   = VSzi + FYij * PZijB
@@ -982,18 +993,28 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
+          if ( Conductivity ) then
+            RijSInvNorm   = Sqrt(RijSquaredInv)
+            UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
+!           Uxi  = UU*RXij
+!           Uyi  = UU*RYij
+!           Uzi  = UU*RZij
+          ! Multiplication of BoxLength taken out of the inner loop
+!           PXijB= PXij * BoxLength
+!           PYijB= PYij * BoxLength
+!           PZijB= PZij * BoxLength
 !           Cxi    = Cxi  + Uxi
 !           Cyi    = Cyi  + Uyi
 !           Czi    = Czi  + Uzi
-          Cxi    = Cxi  + UU*RXij
-          Cyi    = Cyi  + UU*RYij
-          Czi    = Czi  + UU*RZij
-          txii   = r1y * FZij - r1z * FYij
-          tyii   = r1z * FXij - r1x * FZij
-          tzii   = r1x * FYij - r1y * FXij
-          txi    = A11 * txii + A12 * tyii + A13 * tzii
-          tyi    = A21 * txii + A22 * tyii + A23 * tzii
-          tzi    = A31 * txii + A32 * tyii + A33 * tzii
+            Cxi    = Cxi  + UU*RXij
+            Cyi    = Cyi  + UU*RYij
+            Czi    = Czi  + UU*RZij
+            txii   = r1y * FZij - r1z * FYij
+            tyii   = r1z * FXij - r1x * FZij
+            tzii   = r1x * FYij - r1y * FXij
+            txi    = A11 * txii + A12 * tyii + A13 * tzii
+            tyi    = A21 * txii + A22 * tyii + A23 * tzii
+            tzi    = A31 * txii + A32 * tyii + A33 * tzii
 !           tuxi   = tuxi + PXijB*tyi
 !           tuyi   = tuyi + PXijB*tzi
 !           tuzi   = tuzi + PYijB*tzi
@@ -1003,15 +1024,16 @@ loop1:  do k = 1, this%NInCutoff(i)
 !           tdxi   = tdxi + PXijB*txi
 !           tdyi   = tdyi + PYijB*tyi
 !           tdzi   = tdzi + PZijB*tzi
-          tuxi   = tuxi + PXij*tyi
-          tuyi   = tuyi + PXij*tzi
-          tuzi   = tuzi + PYij*tzi
-          tlxi   = tlxi + PYij*txi
-          tlyi   = tlyi + PZij*txi
-          tlzi   = tlzi + PZij*tyi
-          tdxi   = tdxi + PXij*txi
-          tdyi   = tdyi + PYij*tyi
-          tdzi   = tdzi + PZij*tzi
+            tuxi   = tuxi + PXij*tyi
+            tuyi   = tuyi + PXij*tzi
+            tuzi   = tuzi + PYij*tzi
+            tlxi   = tlxi + PYij*txi
+            tlyi   = tlyi + PZij*txi
+            tlzi   = tlzi + PZij*tyi
+            tdxi   = tdxi + PXij*txi
+            tdyi   = tdyi + PYij*tyi
+            tdzi   = tdzi + PZij*tzi
+          end if
           !TRANSPORT_END
 #endif
 #ifdef ABL
@@ -1057,19 +1079,21 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBxi  * BoxLength
         VBy(i) = VByi  * BoxLength
         VBz(i) = VBzi  * BoxLength
-        Cx(i)  = Cxi
-        Cy(i)  = Cyi
-        Cz(i)  = Czi
-        ! Multiplication with Boxlength for the following terms already done in rx1, ...
-        tux(i) = tuxi
-        tuy(i) = tuyi
-        tuz(i) = tuzi
-        tlx(i) = tlxi
-        tly(i) = tlyi
-        tlz(i) = tlzi
-        tdx(i) = tdxi
-        tdy(i) = tdyi
-        tdz(i) = tdzi
+        if (Conductivity) then
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          ! Multiplication with Boxlength for the following terms already done in rx1, ...
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+        end if
         !TRANSPORT_END
 #endif
       end do
@@ -1448,6 +1472,10 @@ loop2:do j = 1, N
     this%RFConstant = this%Epsilon / RCutoff**3 &
 &     * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
+#if TRANS == 1
+    this%Conductivity = this%Site1%Conductivity
+#endif
+
   end subroutine TPotCC_Construct
 
 
@@ -1527,6 +1555,7 @@ loop2:do j = 1, N
     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -1562,6 +1591,7 @@ loop2:do j = 1, N
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
+    Conductivity = this%Conductivity
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
@@ -1571,18 +1601,19 @@ loop2:do j = 1, N
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
-    Cx  => this%Site1%cCx
-    Cy  => this%Site1%cCy
-    Cz  => this%Site1%cCz
-    tux => this%Site1%tuCx
-    tuy => this%Site1%tuCy
-    tuz => this%Site1%tuCz
-    tlx => this%Site1%tlCx
-    tly => this%Site1%tlCy
-    tlz => this%Site1%tlCz
-    tdx => this%Site1%tdCx
-    tdy => this%Site1%tdCy
-    tdz => this%Site1%tdCz
+    if ( Conductivity ) then
+      Cx  => this%Site1%cCx
+      Cy  => this%Site1%cCy
+      Cz  => this%Site1%cCz
+      tux => this%Site1%tuCx
+      tuy => this%Site1%tuCy
+      tuz => this%Site1%tuCz
+      tlx => this%Site1%tlCx
+      tly => this%Site1%tlCy
+      tlz => this%Site1%tlCz
+      tdx => this%Site1%tdCx
+      tdy => this%Site1%tdCy
+      tdz => this%Site1%tdCz
 !     A11V => this%Site1%A11Save
 !     A12V => this%Site1%A12Save
 !     A13V => this%Site1%A13Save
@@ -1592,10 +1623,11 @@ loop2:do j = 1, N
 !     A31V => this%Site1%A31Save
 !     A32V => this%Site1%A32Save
 !     A33V => this%Site1%A33Save
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+    end if
 !TRANSPORT_END
 #endif
 
@@ -1625,21 +1657,22 @@ loop2:do j = 1, N
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
-      Cxi = Cx(i)
-      Cyi = Cy(i)
-      Czi = Cz(i)
-      tuxi = tux(i)
-      tuyi = tuy(i)
-      tuzi = tuz(i)
-      tlxi = tlx(i)
-      tlyi = tly(i)
-      tlzi = tlz(i)
-      tdxi = tdx(i)
-      tdyi = tdy(i)
-      tdzi = tdz(i)
-      r1x  = ( RXi-PXi ) * BoxLength
-      r1y  = ( RYi-PYi ) * BoxLength
-      r1z  = ( RZi-PZi ) * BoxLength
+      if ( Conductivity ) then
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        r1x  = ( RXi-PXi ) * BoxLength
+        r1y  = ( RYi-PYi ) * BoxLength
+        r1z  = ( RZi-PZi ) * BoxLength
 ! Stephan
 !       A11 = A11V(i)
 !       A12 = A12V(i)
@@ -1650,15 +1683,16 @@ loop2:do j = 1, N
 !       A31 = A31V(i)
 !       A32 = A32V(i)
 !       A33 = A33V(i)
-      A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-      A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-      A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-      A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-      A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-      A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-      A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-      A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-      A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+      end if
       !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -1699,11 +1733,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
 #if TRANS==1
-        UU        = EpotLocal1 + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
-!         Uxi       = UU * eX
-!         Uyi       = UU * eY
-!         Uzi       = UU * eZ
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
@@ -1713,27 +1743,33 @@ loop1:do k = 1, this%NInCutoff(i)
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
+        if ( Conductivity ) then
+          UU        = EpotLocal1 + this%RFConstant * Rij2
+!         Uxi       = UU * eX
+!         Uyi       = UU * eY
+!         Uzi       = UU * eZ
 !         Cxi    = Cxi  + Uxi
 !         Cyi    = Cyi  + Uyi
 !         Czi    = Czi  + Uzi
-        Cxi    = Cxi  + UU * eX
-        Cyi    = Cyi  + UU * eY
-        Czi    = Czi  + UU * eZ
-        txii   = r1y * FZij - r1z * FYij
-        tyii   = r1z * FXij - r1x * FZij
-        tzii   = r1x * FYij - r1y * FXij
-        txi    = A11 * txii + A12 * tyii + A13 * tzii
-        tyi    = A21 * txii + A22 * tyii + A23 * tzii
-        tzi    = A31 * txii + A32 * tyii + A33 * tzii
-        tuxi   = tuxi + PXij*tyi
-        tuyi   = tuyi + PXij*tzi
-        tuzi   = tuzi + PYij*tzi
-        tlxi   = tlxi + PYij*txi
-        tlyi   = tlyi + PZij*txi
-        tlzi   = tlzi + PZij*tyi
-        tdxi   = tdxi + PXij*txi
-        tdyi   = tdyi + PYij*tyi
-        tdzi   = tdzi + PZij*tzi
+          Cxi    = Cxi  + UU * eX
+          Cyi    = Cyi  + UU * eY
+          Czi    = Czi  + UU * eZ
+          txii   = r1y * FZij - r1z * FYij
+          tyii   = r1z * FXij - r1x * FZij
+          tzii   = r1x * FYij - r1y * FXij
+          txi    = A11 * txii + A12 * tyii + A13 * tzii
+          tyi    = A21 * txii + A22 * tyii + A23 * tzii
+          tzi    = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXij*tyi
+          tuyi   = tuyi + PXij*tzi
+          tuzi   = tuzi + PYij*tzi
+          tlxi   = tlxi + PYij*txi
+          tlyi   = tlyi + PZij*txi
+          tlzi   = tlzi + PZij*tyi
+          tdxi   = tdxi + PXij*txi
+          tdyi   = tdyi + PYij*tyi
+          tdzi   = tdzi + PZij*tzi
+        end if
 #endif
       end do loop1
       FX1(i) = FXi
@@ -1750,18 +1786,20 @@ loop1:do k = 1, this%NInCutoff(i)
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
-      Cx(i)  = Cxi
-      Cy(i)  = Cyi
-      Cz(i)  = Czi
-      tux(i) = tuxi
-      tuy(i) = tuyi
-      tuz(i) = tuzi
-      tlx(i) = tlxi
-      tly(i) = tlyi
-      tlz(i) = tlzi
-      tdx(i) = tdxi
-      tdy(i) = tdyi
-      tdz(i) = tdzi
+      if ( Conductivity ) then
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+      end if
       !TRANSPORT_END
 #endif
     end do
@@ -3917,6 +3955,11 @@ loop1:  do k = 1, this%NInCutoff(i)
     this%RFConstant = this%Epsilon / RCutoff**3 &
 &     * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
+
+#if TRANS == 1
+    this%Conductivity = this%Site1%Conductivity
+#endif
+
   end subroutine TPotDD_Construct
 
 
@@ -4007,6 +4050,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: FTXi , FTYi , FTZi
     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -4061,6 +4105,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
+    Conductivity = this%Conductivity
     VSx => this%Site1%vsDx
     VSy => this%Site1%vsDy
     VSz => this%Site1%vsDz
@@ -4070,18 +4115,19 @@ loop1:  do k = 1, this%NInCutoff(i)
     VBx => this%Site1%vbDx
     VBy => this%Site1%vbDy
     VBz => this%Site1%vbDz
-    Cx  => this%Site1%cDx
-    Cy  => this%Site1%cDy
-    Cz  => this%Site1%cDz
-    tux => this%Site1%tuDx
-    tuy => this%Site1%tuDy
-    tuz => this%Site1%tuDz
-    tlx => this%Site1%tlDx
-    tly => this%Site1%tlDy
-    tlz => this%Site1%tlDz
-    tdx => this%Site1%tdDx
-    tdy => this%Site1%tdDy
-    tdz => this%Site1%tdDz
+    if ( Conductivity ) then
+      Cx  => this%Site1%cDx
+      Cy  => this%Site1%cDy
+      Cz  => this%Site1%cDz
+      tux => this%Site1%tuDx
+      tuy => this%Site1%tuDy
+      tuz => this%Site1%tuDz
+      tlx => this%Site1%tlDx
+      tly => this%Site1%tlDy
+      tlz => this%Site1%tlDz
+      tdx => this%Site1%tdDx
+      tdy => this%Site1%tdDy
+      tdz => this%Site1%tdDz
 !     A11V => this%Site1%A11Save
 !     A12V => this%Site1%A12Save
 !     A13V => this%Site1%A13Save
@@ -4091,10 +4137,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 !     A31V => this%Site1%A31Save
 !     A32V => this%Site1%A32Save
 !     A33V => this%Site1%A33Save
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+    end if
 !TRANSPORT_END
 #endif
 
@@ -4132,18 +4179,19 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
-        Cxi = Cx(i)
-        Cyi = Cy(i)
-        Czi = Cz(i)
-        tuxi = tux(i)
-        tuyi = tuy(i)
-        tuzi = tuz(i)
-        tlxi = tlx(i)
-        tlyi = tly(i)
-        tlzi = tlz(i)
-        tdxi = tdx(i)
-        tdyi = tdy(i)
-        tdzi = tdz(i)
+        if ( Conductivity ) then
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
 ! Stephan
 !         A11 = A11V(i)
 !         A12 = A12V(i)
@@ -4154,15 +4202,16 @@ loop1:  do k = 1, this%NInCutoff(i)
 !         A31 = A31V(i)
 !         A32 = A32V(i)
 !         A33 = A33V(i)
-        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        end if
         !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -4221,14 +4270,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi)
           TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi)
 #if TRANS==1
-          UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
-          !TRANSPORT_start
-          Uxi       = UU * eX
-          Uyi       = UU * eY
-          Uzi       = UU * eZ
-          FTXi   = Rij3Inv * (eX * CosThetaj3 - OXj) + OXj * RFConstant2
-          FTYi   = Rij3Inv * (eY * CosThetaj3 - OYj) + OYj * RFConstant2
-          FTZi   = Rij3Inv * (eZ * CosThetaj3 - OZj) + OZj * RFConstant2
           !TRANSPORT_start
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
@@ -4239,24 +4280,34 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
-          Cxi    = Cxi  + Uxi
-          Cyi    = Cyi  + Uyi
-          Czi    = Czi  + Uzi
-          txii   = OYi * FTZi - OZi * FTYi
-          tyii   = OZi * FTXi - OXi * FTZi
-          tzii   = OXi * FTYi - OYi * FTXi
-          txir   = A11 * txii + A12 * tyii + A13 * tzii
-          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + PXij*tyir
-          tuyi   = tuyi + PXij*tzir
-          tuzi   = tuzi + PYij*tzir
-          tlxi   = tlxi + PYij*txir
-          tlyi   = tlyi + PZij*txir
-          tlzi   = tlzi + PZij*tyir
-          tdxi   = tdxi + PXij*txir
-          tdyi   = tdyi + PYij*tyir
-          tdzi   = tdzi + PZij*tzir
+          if ( Conductivity ) then
+            UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
+            !TRANSPORT_start
+            Uxi       = UU * eX
+            Uyi       = UU * eY
+            Uzi       = UU * eZ
+            FTXi   = Rij3Inv * (eX * CosThetaj3 - OXj) + OXj * RFConstant2
+            FTYi   = Rij3Inv * (eY * CosThetaj3 - OYj) + OYj * RFConstant2
+            FTZi   = Rij3Inv * (eZ * CosThetaj3 - OZj) + OZj * RFConstant2
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+           end if
           !TRANSPORT_END
 #endif
         end do loop1
@@ -4277,18 +4328,20 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
-        Cx(i)  = Cxi
-        Cy(i)  = Cyi
-        Cz(i)  = Czi
-        tux(i) = tuxi
-        tuy(i) = tuyi
-        tuz(i) = tuzi
-        tlx(i) = tlxi
-        tly(i) = tlyi
-        tlz(i) = tlzi
-        tdx(i) = tdxi
-        tdy(i) = tdyi
-        tdz(i) = tdzi
+        if ( Conductivity ) then
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+        end if
         !TRANSPORT_END
 #endif
       end do
@@ -6723,6 +6776,10 @@ loop2:do j = 1, j1
     this%RCutoffSquared = RCutoff**2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
+#if TRANS == 1
+    this%Conductivity = this%Site1%Conductivity
+#endif
+
   end subroutine TPotQQ_Construct
 
 
@@ -6813,6 +6870,7 @@ loop2:do j = 1, j1
     real(RK)          :: FTXi , FTYi , FTZi
     real(RK)          :: Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -6866,6 +6924,7 @@ loop2:do j = 1, j1
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
+    Conductivity = this%Conductivity
     VSx => this%Site1%vsQx
     VSy => this%Site1%vsQy
     VSz => this%Site1%vsQz
@@ -6875,18 +6934,19 @@ loop2:do j = 1, j1
     VBx => this%Site1%vbQx
     VBy => this%Site1%vbQy
     VBz => this%Site1%vbQz
-    Cx  => this%Site1%cQx
-    Cy  => this%Site1%cQy
-    Cz  => this%Site1%cQz
-    tux => this%Site1%tuQx
-    tuy => this%Site1%tuQy
-    tuz => this%Site1%tuQz
-    tlx => this%Site1%tlQx
-    tly => this%Site1%tlQy
-    tlz => this%Site1%tlQz
-    tdx => this%Site1%tdQx
-    tdy => this%Site1%tdQy
-    tdz => this%Site1%tdQz
+    if ( Conductivity ) then
+      Cx  => this%Site1%cQx
+      Cy  => this%Site1%cQy
+      Cz  => this%Site1%cQz
+      tux => this%Site1%tuQx
+      tuy => this%Site1%tuQy
+      tuz => this%Site1%tuQz
+      tlx => this%Site1%tlQx
+      tly => this%Site1%tlQy
+      tlz => this%Site1%tlQz
+      tdx => this%Site1%tdQx
+      tdy => this%Site1%tdQy
+      tdz => this%Site1%tdQz
 !     A11V => this%Site1%A11Save
 !     A12V => this%Site1%A12Save
 !     A13V => this%Site1%A13Save
@@ -6896,10 +6956,11 @@ loop2:do j = 1, j1
 !     A31V => this%Site1%A31Save
 !     A32V => this%Site1%A32Save
 !     A33V => this%Site1%A33Save
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+    end if
 !TRANSPORT_END
 #endif
 
@@ -6938,18 +6999,19 @@ loop2:do j = 1, j1
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
-        Cxi = Cx(i)
-        Cyi = Cy(i)
-        Czi = Cz(i)
-        tuxi = tux(i)
-        tuyi = tuy(i)
-        tuzi = tuz(i)
-        tlxi = tlx(i)
-        tlyi = tly(i)
-        tlzi = tlz(i)
-        tdxi = tdx(i)
-        tdyi = tdy(i)
-        tdzi = tdz(i)
+        if ( Conductivity ) then
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
 ! Stephan
 !         A11 = A11V(i)
 !         A12 = A12V(i)
@@ -6960,15 +7022,16 @@ loop2:do j = 1, j1
 !         A31 = A31V(i)
 !         A32 = A32V(i)
 !         A33 = A33V(i)
-        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        end if
         !TRANSPORT_END
 #endif
 loop1:  do k = 1, this%NInCutoff(i)
@@ -7042,12 +7105,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
 #if  TRANS == 1
 !TRANSPORT_start
-          Uxi     = EPotLocal1 * eX
-          Uyi     = EPotLocal1 * eY
-          Uzi     = EPotLocal1 * eZ
-          FTXi   = - eX * dCosThetai - OXj * dCosGammaij
-          FTYi   = - eY * dCosThetai - OYj * dCosGammaij
-          FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
           VSzi   = VSzi + FYij * PZij
@@ -7057,24 +7114,32 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
-          Cxi    = Cxi  + Uxi
-          Cyi    = Cyi  + Uyi
-          Czi    = Czi  + Uzi
-          txii   = OYi * FTZi - OZi * FTYi
-          tyii   = OZi * FTXi - OXi * FTZi
-          tzii   = OXi * FTYi - OYi * FTXi
-          txir   = A11 * txii + A12 * tyii + A13 * tzii
-          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + PXij*tyir
-          tuyi   = tuyi + PXij*tzir
-          tuzi   = tuzi + PYij*tzir
-          tlxi   = tlxi + PYij*txir
-          tlyi   = tlyi + PZij*txir
-          tlzi   = tlzi + PZij*tyir
-          tdxi   = tdxi + PXij*txir
-          tdyi   = tdyi + PYij*tyir
-          tdzi   = tdzi + PZij*tzir
+          if ( Conductivity ) then
+            Uxi     = EPotLocal1 * eX
+            Uyi     = EPotLocal1 * eY
+            Uzi     = EPotLocal1 * eZ
+            FTXi   = - eX * dCosThetai - OXj * dCosGammaij
+            FTYi   = - eY * dCosThetai - OYj * dCosGammaij
+            FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+          end if
           !TRANSPORT_END
 #endif
         end do loop1
@@ -7095,18 +7160,20 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
-        Cx(i)  = Cxi
-        Cy(i)  = Cyi
-        Cz(i)  = Czi
-        tux(i) = tuxi
-        tuy(i) = tuyi
-        tuz(i) = tuzi
-        tlx(i) = tlxi
-        tly(i) = tlyi
-        tlz(i) = tlzi
-        tdx(i) = tdxi
-        tdy(i) = tdyi
-        tdz(i) = tdzi
+        if ( Conductivity ) then
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+        end if
         !TRANSPORT_END
 #endif
       end do

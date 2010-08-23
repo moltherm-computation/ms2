@@ -599,28 +599,27 @@ contains
     call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
 &     NRootProc, Communicator, ierror )
 
-    !Carefull: This if statement should remain as is, because in the MC parallelization, every processor is treated as root
-    if (Nproc /= NRootProc) return
+    !be careful: This if statement should remain as is, because in the MC parallelization, 
+    !every processor is treated as root
+    if (RootProc) then
         
-        this%Average=ReducedAverage/NProcs
-    ! Calculate variance
-    Tau = 0._RK
-    do i = 1, NBlockSizes
-      do j = i, NBlocks, i
-        BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) &
-&         / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
-        Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
-      end do
+      this%Average=ReducedAverage/NProcs
+      ! Calculate variance
+      Tau = 0._RK
+      do i = 1, NBlockSizes
+        do j = i, NBlocks, i
+          BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) &
+&           / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
+          Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
+        end do
 #ifdef _PGF
-      ! Call write to prevent vectorization of loop (a bug in pgi compiler)
-      write( IOBuffer, '("Prevent loop vectorization")' )
+        ! Call write to prevent vectorization of loop (a bug in pgi compiler)
+        write( IOBuffer, '("Prevent loop vectorization")' )
 #endif
-      Tau(i) = Tau(i) / real( (NBlocks / i), RK )
-    end do
-
+        Tau(i) = Tau(i) / real( (NBlocks / i), RK )
+      end do
 
 #else
-
     ! Calculate variance
     Tau = 0._RK
     do i = 1, NBlockSizes
@@ -638,25 +637,27 @@ contains
     
 #endif
 
-    this%Variance = Tau(1)
-    if( this%Variance == 0._RK ) return
-    Tau(1:NBlockSizes) = Tau(1:NBlockSizes) / this%Variance
-    sx1 = 0._RK
-    sx2 = 0._RK
-    sxy = 0._RK
-    do i = 1, NBlockSizes
-      sx1 = sx1 + 1._RK / i
-      sx2 = sx2 + 1._RK / i**2
-      sxy = sxy + Tau(i)
-      Tau(i) = i * Tau(i)
-    end do
-    TauSum = sum( Tau(1:NBlockSizes) )
-    TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizes * sx2 - sx1**2)
-    TauInf = max( TauInf, TauSum / NBlockSizes )
-    this%Variance = sqrt( this%Variance / NBlocks * TauInf )
+      this%Variance = Tau(1)
+      if( this%Variance /= 0._RK ) then
+        Tau(1:NBlockSizes) = Tau(1:NBlockSizes) / this%Variance
+        sx1 = 0._RK
+        sx2 = 0._RK
+        sxy = 0._RK
+        do i = 1, NBlockSizes
+          sx1 = sx1 + 1._RK / i
+          sx2 = sx2 + 1._RK / i**2
+          sxy = sxy + Tau(i)
+          Tau(i) = i * Tau(i)
+        end do
+        TauSum = sum( Tau(1:NBlockSizes) )
+        TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizes * sx2 - sx1**2)
+        TauInf = max( TauInf, TauSum / NBlockSizes )
+        this%Variance = sqrt( this%Variance / NBlocks * TauInf )
+      endif
 
 
 #if MPI_VER > 0
+    endif
 
     if (RootProc) then
 
