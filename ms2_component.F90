@@ -2871,18 +2871,18 @@ contains
             vbx = pCharge%vbCx(i)
             vby = pCharge%vbCy(i)
             vbz = pCharge%vbCz(i)
-            cx  = pCharge%cCx(i)
-            cy  = pCharge%cCy(i)
-            cz  = pCharge%cCz(i)
-            tux = pCharge%tuCx(i)
-            tuy = pCharge%tuCy(i)
-            tuz = pCharge%tuCz(i)
-            tlx = pCharge%tlCx(i)
-            tly = pCharge%tlCy(i)
-            tlz = pCharge%tlCz(i)
-            tdx = pCharge%tdCx(i)
-            tdy = pCharge%tdCy(i)
-            tdz = pCharge%tdCz(i)
+!             cx  = pCharge%cCx(i)
+!             cy  = pCharge%cCy(i)
+!             cz  = pCharge%cCz(i)
+!             tux = pCharge%tuCx(i)
+!             tuy = pCharge%tuCy(i)
+!             tuz = pCharge%tuCz(i)
+!             tlx = pCharge%tlCx(i)
+!             tly = pCharge%tlCy(i)
+!             tlz = pCharge%tlCz(i)
+!             tdx = pCharge%tdCx(i)
+!             tdy = pCharge%tdCy(i)
+!             tdz = pCharge%tdCz(i)
             this%FS(i, 1)= this%FS(i, 1)+ vsx
             this%FS(i, 2)= this%FS(i, 2)+ vsy
             this%FS(i, 3)= this%FS(i, 3)+ vsz
@@ -2890,25 +2890,25 @@ contains
             this%FB(i, 2)= this%FB(i, 2)+ vby
             this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-
-            this%FRC1(i,1) = this%FRC1(i,1) + tdx
-            this%FRC1(i,2) = this%FRC1(i,2) + tux
-            this%FRC1(i,3) = this%FRC1(i,3) + tuy
-            this%FRC2(i,1) = this%FRC2(i,1) + tlx
-            this%FRC2(i,2) = this%FRC2(i,2) + tdy
-            this%FRC2(i,3) = this%FRC2(i,3) + tuz
-            this%FRC3(i,1) = this%FRC3(i,1) + tly
-            this%FRC3(i,2) = this%FRC3(i,2) + tlz
-            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+!             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+!             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+!             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+!             this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+!             this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+!             this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+!             this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+!             this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+!             this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+! 
+!             this%FRC1(i,1) = this%FRC1(i,1) + tdx
+!             this%FRC1(i,2) = this%FRC1(i,2) + tux
+!             this%FRC1(i,3) = this%FRC1(i,3) + tuy
+!             this%FRC2(i,1) = this%FRC2(i,1) + tlx
+!             this%FRC2(i,2) = this%FRC2(i,2) + tdy
+!             this%FRC2(i,3) = this%FRC2(i,3) + tuz
+!             this%FRC3(i,1) = this%FRC3(i,1) + tly
+!             this%FRC3(i,2) = this%FRC3(i,2) + tlz
+!             this%FRC3(i,3) = this%FRC3(i,3) + tdz
             !TRANSPORT_END
 #endif
           end do

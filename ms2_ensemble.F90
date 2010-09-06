@@ -200,20 +200,21 @@ module ms2_ensemble
     real(RK)         :: USelbstterm
     real(RK)         :: UIntra
     real(RK)         :: UFourier, EVirial
-!   real(RK),pointer :: SSin_Fac(:), SCos_Fac(:)
     integer,pointer ::  NBox0,NBox1,NBox2
     real(RK),pointer :: U_fourierLocal(:)
     real(RK),pointer :: SSin(:),SCos(:)
-    real(RK),pointer :: sinfac_s(:,:,:), cosfac_s(:,:,:)
+!     real(RK),pointer :: sinfac_s(:,:,:), cosfac_s(:,:,:)
+    real(RK),pointer :: rold(:,:)
+    real(RK),pointer :: Vec2(:)
+!   real(RK),pointer :: SSin_Fac(:), SCos_Fac(:)
+!     real(RK),pointer :: qsinfac(:), qcosfac(:)
 !     real(RK),pointer :: sinfac(:),cosfac(:)
 !   real(RK),pointer:: sinfac_s_old(:),cosfac_s_old(:)
-    real(RK),pointer :: rold(:,:)
-    real(RK),pointer :: SSin_Vec(:),SCos_Vec(:)
-    real(RK),pointer :: Vec2(:)
-    real(RK),pointer :: Faktor(:)
-    real(RK),pointer :: HFac(:)
-    real(RK),pointer :: distx(:,:,:),disty(:,:,:),distz(:,:,:)
-    real(RK),pointer :: VirIntra(:)
+!     real(RK),pointer :: SSin_Vec(:),SCos_Vec(:)
+!     real(RK),pointer :: Faktor(:)
+!     real(RK),pointer :: HFac(:)
+!     real(RK),pointer :: distx(:,:,:),disty(:,:,:),distz(:,:,:)
+!     real(RK),pointer :: VirIntra(:)
 
 #ifdef SPME
     ! SPME parameters
@@ -237,7 +238,7 @@ module ms2_ensemble
 !TRANSPORT_start
     ! Correlation functions
     integer :: NCorr,Mmess,MmessMax
-    integer :: NSpancf,Nviewcf
+    integer :: NSpanCF,Nviewcf
 !     real(RK), pointer :: cf_db(:), 
     real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:)
     real(RK), pointer :: lamda(:, :)
@@ -245,7 +246,9 @@ module ms2_ensemble
 !     real(RK), pointer :: sinte_db(:), 
     real(RK), pointer :: sinte_vs(:), sinte_vb(:)
     real(RK), pointer :: sinte_c(:)
-    real(RK), pointer :: a(:, :), cf_d (:, :), vsk(:, :), vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK), pointer :: a(:, :), A_SpanCF(:,:)
+    real(RK), pointer :: cf_d (:, :), vsk(:, :)
+    real(RK),pointer  :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :)
     real(RK)          :: sc(3),sp(3)
 
@@ -947,8 +950,8 @@ contains
       call LogWrite
 
       ! Read time span between correlations
-      call FileReadParameter( this%NSpancf , iounit_params , IdSpancf )
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpancf
+      call FileReadParameter( this%NSpanCF , iounit_params , IdSpanCF )
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
@@ -956,7 +959,7 @@ contains
       call LogWrite
       if ( this%Nviewcf*this%NCorr > NSteps ) then
         write(IOBuffer, '("Warning: Updates of cf not sufficient - Output once at the end of simulation")')
-        this%Nviewcf = int((NSteps-this%NCorr)/this%NSpancf)
+        this%Nviewcf = int((NSteps-this%NCorr)/this%NSpanCF)
         write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf
       end if
 
@@ -972,7 +975,7 @@ contains
       call LogWrite
 
       ! Calculate MmessMax
-      this%MmessMax = int((NSteps-this%NCorr)/this%NSpancf)
+      this%MmessMax = int((NSteps-this%NCorr)/this%NSpanCF)
 
       ! Initialization
       this%Mmess = 0
@@ -1281,8 +1284,13 @@ contains
          end do
          call EwaldSelfTerm( this )
         ! Memory Allocation for Ewald Summation
-         allocate(this%Faktor(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error Faktor'
+!          allocate(this%Faktor(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error Faktor'
+         nullify ( this%U_fourierLocal )
+         nullify ( this%SSin )
+         nullify ( this%SCos )
+         nullify ( this%rold )
+         nullify ( this%Vec2 )
          allocate(this%U_fourierLocal(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error U_fourier'
          allocate(this%SSin(this%BoxenAnzahlMax),STAT=stat)
@@ -1293,28 +1301,32 @@ contains
 !          if(stat >0) write(*,*) 'Allocation Error sinfac'
 !          allocate(this%cosfac(this%NPartMax),STAT=stat)
 !          if(stat >0) write(*,*) 'Allocation Error cosfac'
-         allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
-         allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
-         allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error sin_facs'
-         allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error cosfac_s'
+!          allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
+!          allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
+!          allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error sinfac_s'
+!          allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error cosfac_s'
+!          allocate(this%qsinfac(this%NComponents*5*this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error qsinfac'
+!          allocate(this%qcosfac(this%NComponents*5*this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error qcosfac'
          allocate(this%rold(5,3),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error rold'
          allocate(this%Vec2(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
-         allocate(this%HFac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error HFac'
-         allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error distx'
-         allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error disty'
-         allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error distz'
-         allocate(this%VirIntra(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error VirIntra'
+!          allocate(this%HFac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error HFac'
+!          allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error distx'
+!          allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error disty'
+!          allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error distz'
+!          allocate(this%VirIntra(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error VirIntra'
 
 #ifdef SPME
       else if (LongRange .eq. PME) then
@@ -1622,9 +1634,9 @@ contains
          deallocate( this%NBox2 )
       end if
 #endif
-      if ( associated ( this%Faktor ) ) then 
-         deallocate( this%Faktor )
-      end if
+!       if ( associated ( this%Faktor ) ) then 
+!          deallocate( this%Faktor )
+!       end if
       if ( associated ( this%U_fourierLocal ) ) then 
          deallocate( this%U_fourierLocal )
       end if
@@ -1640,39 +1652,39 @@ contains
 !       if ( associated ( this%cosfac ) ) then 
 !          deallocate( this%cosfac )
 !       end if
-      if ( associated ( this%SSin_Vec ) ) then 
-         deallocate( this%SSin_Vec )
-      end if
-      if ( associated ( this%SCos_Vec ) ) then 
-         deallocate( this%SCos_Vec )
-      end if
-      if ( associated ( this%sinfac_s ) ) then 
-         deallocate( this%sinfac_s )
-      end if
-      if ( associated ( this%cosfac_s ) ) then 
-         deallocate( this%cosfac_s )
-      end if
+!       if ( associated ( this%SSin_Vec ) ) then 
+!          deallocate( this%SSin_Vec )
+!       end if
+!       if ( associated ( this%SCos_Vec ) ) then 
+!          deallocate( this%SCos_Vec )
+!       end if
+!       if ( associated ( this%sinfac_s ) ) then 
+!          deallocate( this%sinfac_s )
+!       end if
+!       if ( associated ( this%cosfac_s ) ) then 
+!          deallocate( this%cosfac_s )
+!       end if
       if ( associated ( this%rold ) ) then 
          deallocate( this%rold )
       end if
       if ( associated ( this%Vec2 ) ) then 
          deallocate( this%Vec2 )
       end if
-      if ( associated ( this%HFac ) ) then 
-         deallocate( this%HFac )
-      end if
-      if ( associated ( this%distx ) ) then 
-         deallocate( this%distx )
-      end if
-      if ( associated ( this%disty ) ) then 
-         deallocate( this%disty )
-      end if
-      if ( associated ( this%distz ) ) then 
-         deallocate( this%distz )
-      end if
-      if ( associated ( this%VirIntra ) ) then 
-         deallocate( this%VirIntra )
-      end if
+!       if ( associated ( this%HFac ) ) then 
+!          deallocate( this%HFac )
+!       end if
+!       if ( associated ( this%distx ) ) then 
+!          deallocate( this%distx )
+!       end if
+!       if ( associated ( this%disty ) ) then 
+!          deallocate( this%disty )
+!       end if
+!       if ( associated ( this%distz ) ) then 
+!          deallocate( this%distz )
+!       end if
+!       if ( associated ( this%VirIntra ) ) then 
+!          deallocate( this%VirIntra )
+!       end if
     end if
 
 #ifdef SPME
@@ -2492,6 +2504,9 @@ contains
       allocate( this%a( NPart3, this%NCorr), STAT = stat  )
       call AllocationError( stat, 'diffusion_matrix', NPart3 )
 
+      allocate( this%A_SpanCF( NPart3, this%NSpanCF), STAT = stat  )
+      call AllocationError( stat, 'diffusion_matrix', NPart3 )
+
       allocate( this%vsk(this%NCorr, 3), STAT = stat  )
       call AllocationError( stat, 'vsk', this%NPart )
 
@@ -2531,6 +2546,7 @@ contains
       this%cf_c( :   )    = 0._RK
 
       this%a(:  ,   :   ) = 0._RK
+      this%A_SpanCF(:,: ) = 0._RK
       this%lamda( : , : ) = 0._RK
       this%sinte_i(: , :) = 0._RK
 !       this%sinte_db(:   ) = 0._RK
@@ -2658,6 +2674,9 @@ contains
 
     if( associated( this%a )  )   then
       deallocate( this%a  )
+    end if
+    if( associated( this%A_SpanCF )  )   then
+      deallocate( this%A_SpanCF  )
     end if
     if( associated( this%vsk ) )  then
       deallocate( this%vsk )
@@ -3477,9 +3496,9 @@ loop:do l = 1, NPartInCell
 !TRANSPORT_start
     if( .not.Equilibration.and.(CorrfunMode .eq. active) ) then
       call CalCorrFun( this )
-      if ( (this%Mmess.gt.0) .and. (mod(Step, this%NSpancf).eq.0) ) then
-        call IntCorrFun( this )
-      end if
+!       if ( (this%Mmess.gt.0) .and. (mod(Step, this%NSpanCF).eq.0) ) then
+!         call IntCorrFun( this )
+!       end if
     end if
 !TRANSPORT_END
 #endif
@@ -7800,7 +7819,7 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if( mod( Step - this%NCorr, BlockSizeCF * this%NSpancf ) == 0 .and. &
+    if( mod( Step - this%NCorr, BlockSizeCF * this%NSpanCF ) == 0 .and. &
 &     (this%Mmess > 0) ) then
       do i = 1, this%NComponents
         call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess  )
@@ -8064,7 +8083,7 @@ loop2:        do nc = 1, this%NComponents
         end do
       end if
       
-     do i = 1, this%NComponents
+      do i = 1, this%NComponents
         write( IOBuffer, '(T10,"D_i",I2)' ) i
         call FileWriteNoAdvance( this%iounit_rescf )
       end do
@@ -8214,8 +8233,8 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(T5, F10.5)' ) &
 &           this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
             call FileWriteNoAdvance( this%iounit_rescf )
-          call FileWriteBlank( this%iounit_rescf )
         end if
+        call FileWriteBlank( this%iounit_rescf )
       end do
 
 #if ARCH == 2
@@ -8960,7 +8979,7 @@ loop2:        do nc = 1, this%NComponents
 
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%NSpancf*TimeStep
+      value = this%NSpanCF*TimeStep
       write( IOBuffer, '("Time span between ACF ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -10365,8 +10384,13 @@ endif
 
 !       if (LongRange .eq. Ewald) then
         ! Memory Allocation for Ewald Summation
-         allocate(this%Faktor(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error Faktor'
+!          allocate(this%Faktor(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error Faktor'
+         nullify ( this%U_fourierLocal )
+         nullify ( this%SSin )
+         nullify ( this%SCos )
+         nullify ( this%rold )
+         nullify ( this%Vec2 )
          allocate(this%U_fourierLocal(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error U_fourier'
          allocate(this%SSin(this%BoxenAnzahlMax),STAT=stat)
@@ -10377,26 +10401,26 @@ endif
 !          if(stat >0) write(*,*) 'Allocation Error sinfac'
 !          allocate(this%cosfac(this%NPartMax),STAT=stat)
 !          if(stat >0) write(*,*) 'Allocation Error cosfac'
-         allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
-         allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
-         allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error sin_facs'
-         allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error cosfac_s'
+!          allocate(this%SSin_Vec(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error SSin_Vec'
+!          allocate(this%SCos_Vec(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error SCos_Vec'
+!          allocate(this%sinfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error sin_facs'
+!          allocate(this%cosfac_s(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error cosfac_s'
          allocate(this%Vec2(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
-         allocate(this%HFac(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error HFac'
-         allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error distx'
-         allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error disty'
-         allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error distz'
-         allocate(this%VirIntra(this%NPartMax),STAT=stat)
-         if(stat >0) write(*,*) 'Allocation Error VirIntra'
+!          allocate(this%HFac(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error HFac'
+!          allocate(this%distx(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error distx'
+!          allocate(this%disty(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error disty'
+!          allocate(this%distz(this%NComponents,5,this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error distz'
+!          allocate(this%VirIntra(this%NPartMax),STAT=stat)
+!          if(stat >0) write(*,*) 'Allocation Error VirIntra'
          allocate(this%rold(5,3),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error rold'
          DO i=1,5
@@ -10750,12 +10774,20 @@ endif
    real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
    real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
 
-   real(RK):: KVec(3)
+   real(RK):: KVec(3), KVec05
    real(RK):: EPotLocal
-   real(RK):: Viriallocal, VirIntra
+   real(RK):: Viriallocal, VirIntra, VirIntraLocal
    real(RK):: SSinSum,SCosSum
    real(RK):: KappaL2, vorfac
-   real(RK):: facx,facy,facz
+   real(RK):: Facx,Facy,Facz
+   real(RK):: BoxLength
+   real(RK):: Faktor(1:this%NPart)
+   real(RK):: HFac(1:this%NPart)
+   real(RK):: HFacX(1:this%NPart), HFacY(1:this%NPart), HFacZ(1:this%NPart)
+   real(RK):: distx(1:this%NPart),disty(1:this%NPart),distz(1:this%NPart)
+   real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
+   real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
+   integer :: ChargeNumber
 #if MPI_VER > 0
    integer, pointer:: i0,i1
 #endif
@@ -10803,15 +10835,16 @@ endif
    EPotLocal = 0.0_RK
    VirialLocal = 0.0_RK
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
-   vorfac = 2._RK/this%BoxLength
+   BoxLength = this%BoxLength
+   vorfac = 2._RK/BoxLength
 
 ! Virial
    this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
-   this%VirIntra = 0._RK
+!    this%VirIntra = 0._RK
+   VirIntraLocal = 0._RK
 
    this%SSin=0._RK
    this%SCos=0._RK
-
 
 #if MPI_VER > 0
    i0 => this%NBox0
@@ -10820,9 +10853,11 @@ endif
 #else
    DO i=1,this%BoxenAnzahlMax,1
 # endif
+     ChargeNumber = 0
      KVec = this%Ewald_Vec(:,i)
-     this%SSin_Vec = 0._RK
-     this%SCos_Vec = 0._RK
+     KVec05 = sum(KVec)/2._RK
+     SSinSum = 0._RK
+     SCosSum = 0._RK
      DO j=1,this%NComponents,1
        mol => this%Component(j)%Molecule
        q => mol%SiteCharge(1:mol%NCharge)%e
@@ -10835,6 +10870,7 @@ endif
          PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
          PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
 
+! Alte Version
          RXloc(1:molec) = RX(1:molec)
          RYloc(1:molec) = RY(1:molec)
          RZloc(1:molec) = RZ(1:molec)
@@ -10843,33 +10879,41 @@ endif
          PZloc(1:molec) = PZ(1:molec)
 
          DO m=1,molec
-           if (RX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
-           if (RY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
-           if (RZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
+           if (PX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
+           if (PY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
+           if (PZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
            if (PX(m) < 0) PXloc(m) = PXloc(m) + 1._RK
            if (PY(m) < 0) PYloc(m) = PYloc(m) + 1._RK
            if (PZ(m) < 0) PZloc(m) = PZloc(m) + 1._RK
          end DO
-         this%distx(j,l,1:molec) = (RXloc - PXloc)*this%BoxLength
-         this%disty(j,l,1:molec) = (RYloc - PYloc)*this%BoxLength
-         this%distz(j,l,1:molec) = (RZloc - PZloc)*this%BoxLength
+         Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
+! Wie bisher
+!          this%distx(j,l,1:molec) = (RXloc - PXloc)*BoxLength
+!          this%disty(j,l,1:molec) = (RYloc - PYloc)*BoxLength
+!          this%distz(j,l,1:molec) = (RZloc - PZloc)*BoxLength
 
-         this%Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
+! Speedup - siehe auch KVec05
+!          Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc + KVec05
 
-         this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
-         this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
-!          this%sinfac = q(l)*this%sinfac_s(j,l,1:molec)
-!          this%cosfac = q(l)*this%cosfac_s(j,l,1:molec)
-! 
-!          this%SSin_Vec = this%SSin_Vec + this%sinfac
-!          this%SCos_Vec = this%SCos_Vec + this%cosfac
-         this%SSin_Vec = this%SSin_Vec + q(l)*this%sinfac_s(j,l,1:molec)
-         this%SCos_Vec = this%SCos_Vec + q(l)*this%cosfac_s(j,l,1:molec)
+
+!          this%sinfac_s(j,l,1:molec) = sin(Faktor)
+!          this%cosfac_s(j,l,1:molec) = cos(Faktor)
+! ! 
+
+! Unten bei der Kraftberechnung "HFac" dann nicht mehr multiplizieren mit q(l)
+!          this%sinfac_s(j,l,1:molec) = q(l)*sin(Faktor)
+!          this%cosfac_s(j,l,1:molec) = q(l)*cos(Faktor)
+!          SSinSum = SSinSum + sum(this%sinfac_s(j,l,1:molec))
+!          SCosSum = SCosSum + sum(this%cosfac_s(j,l,1:molec))
+         qsinfac(ChargeNumber+1:ChargeNumber+molec) = q(l)*sin(Faktor)
+         qcosfac(ChargeNumber+1:ChargeNumber+molec) = q(l)*cos(Faktor)
+         SSinSum = SSinSum + sum(qsinfac(ChargeNumber+1:ChargeNumber+molec))
+         SCosSum = SCosSum + sum(qcosfac(ChargeNumber+1:ChargeNumber+molec))
+
+         ChargeNumber = ChargeNumber + molec
        END DO
      END DO
 
-     SSinSum = sum(this%SSin_Vec)
-     SCosSum = sum(this%SCos_Vec)
      this%SSin(i) = SSinSum
      this%SCos(i) = SCosSum
 
@@ -10878,26 +10922,97 @@ endif
      Facy = KVec(2)*this%Ewald_Prefac(i)*vorfac
      Facz = KVec(3)*this%Ewald_Prefac(i)*vorfac
 
+     ChargeNumber = 0
      DO j=1,this%NComponents,1
        mol => this%Component(j)%Molecule
-       q => mol%SiteCharge(1:mol%NCharge)%e
+!        q => mol%SiteCharge(1:mol%NCharge)%e
        molec = this%Component(j)%NPart
        DO l=1,mol%NCharge
+! OldVersion
+!          FX => this%Component(j)%Molecule%SiteCharge(l)%FX
+!          FY => this%Component(j)%Molecule%SiteCharge(l)%FY
+!          FZ => this%Component(j)%Molecule%SiteCharge(l)%FZ
+! 
+! ! Oben bei der Energieberechnung "this%sinfac_s" dann nicht mehr multiplizieren mit q(l)
+!          HFac = this%sinfac_s(j,l,1:molec)*SCosSum - this%cosfac_s(j,l,1:molec)*SSinSum
+! !          HFac = q(l)*(this%sinfac_s(j,l,1:molec)*SCosSum - &
+! ! &                           this%cosfac_s(j,l,1:molec)*SSinSum)
+! 
+! !           test = Facy*HFac
+!          HFacX = Facx*HFac(1:molec)
+!          HFacy = Facy*HFac(1:molec)
+!          HFacZ = Facz*HFac(1:molec)
+!          
+!          FX = FX + HFacX(1:molec)
+!          FY = FY + HFacY(1:molec)
+!          FZ = FZ + HFacZ(1:molec)
+! 
+! !          this%VirIntra = this%VirIntra + HFacX*this%distx(j,l,1:molec)+&
+! !    &         HFacY*this%disty(j,l,1:molec) + HFacZ*this%distz(j,l,1:molec)
+!          VirIntraLocal = VirIntraLocal + sum(HFacX(1:molec)*this%distx(j,l,1:molec) &
+!    &                                   +     HFacY(1:molec)*this%disty(j,l,1:molec) &
+!    &                                   +     HFacZ(1:molec)*this%distz(j,l,1:molec))
+! #if  TRANS == 1
+!          ! Preparation for Transport properties
+!          VSx  => mol%SiteCharge(l)%vsCx
+!          VSy  => mol%SiteCharge(l)%vsCy
+!          VSz  => mol%SiteCharge(l)%vsCz
+!          VSux => mol%SiteCharge(l)%vsuCx
+!          VSuy => mol%SiteCharge(l)%vsuCy
+!          VSuz => mol%SiteCharge(l)%vsuCz
+!          VBx  => mol%SiteCharge(l)%vbCx
+!          VBy  => mol%SiteCharge(l)%vbCy
+!          VBz  => mol%SiteCharge(l)%vbCz
+!        
+!           ! Intramolecular Forces
+!          VSx  = VSx  - HFacX(1:molec)*this%disty(j,l,1:molec)
+!          VSy  = VSy  - HFacX(1:molec)*this%distz(j,l,1:molec)
+!          VSz  = VSz  - HFacY(1:molec)*this%distz(j,l,1:molec)
+!          VSux = VSux - HFacY(1:molec)*this%distx(j,l,1:molec)
+!          VSuy = VSuy - HFacZ(1:molec)*this%distx(j,l,1:molec)
+!          VSuz = VSuz - HFacZ(1:molec)*this%disty(j,l,1:molec)
+!          VBx  = VBx  - HFacX(1:molec)*this%distx(j,l,1:molec)
+!          VBy  = VBy  - HFacY(1:molec)*this%disty(j,l,1:molec)
+!          VBz  = VBz  - HFacZ(1:molec)*this%distz(j,l,1:molec)
+!        
+! #endif
+   
+! Speedup
+         RX => this%Component(j)%Molecule%SiteCharge(l)%RX(1:molec)
+         RY => this%Component(j)%Molecule%SiteCharge(l)%RY(1:molec)
+         RZ => this%Component(j)%Molecule%SiteCharge(l)%RZ(1:molec)
+         PX => this%Component(j)%Molecule%SiteCharge(l)%PX(1:molec)
+         PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
+         PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
          FX => this%Component(j)%Molecule%SiteCharge(l)%FX
          FY => this%Component(j)%Molecule%SiteCharge(l)%FY
          FZ => this%Component(j)%Molecule%SiteCharge(l)%FZ
 
+         distx(1:molec) = (RX-PX)*BoxLength
+         disty(1:molec) = (RY-PY)*BoxLength
+         distz(1:molec) = (RZ-PZ)*BoxLength
 
-         this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - &
-&                           this%cosfac_s(j,l,1:molec)*this%SSin(i))
+! Oben bei der Energieberechnung "this%sinfac_s" dann nicht mehr multiplizieren mit q(l)
+         HFac = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - &
+&               qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
+!          HFac = this%sinfac_s(j,l,1:molec)*SCosSum - this%cosfac_s(j,l,1:molec)*SSinSum
+!          HFac = q(l)*(this%sinfac_s(j,l,1:molec)*SCosSum - &
+! &                           this%cosfac_s(j,l,1:molec)*SSinSum)
+
 !           test = Facy*HFac
-         FX = FX + Facx*this%HFac
-         FY = FY + Facy*this%HFac
-         FZ = FZ + Facz*this%HFac
+         HFacX = Facx*HFac(1:molec)
+         HFacy = Facy*HFac(1:molec)
+         HFacZ = Facz*HFac(1:molec)
+         
+         FX = FX + HFacX(1:molec)
+         FY = FY + HFacY(1:molec)
+         FZ = FZ + HFacZ(1:molec)
 
-         this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
-   &         Facy*this%HFac*this%disty(j,l,1:molec)+&
-&            Facz*this%HFac*this%distz(j,l,1:molec)
+!          this%VirIntra = this%VirIntra + HFacX*this%distx(j,l,1:molec)+&
+!    &         HFacY*this%disty(j,l,1:molec) + HFacZ*this%distz(j,l,1:molec)
+         VirIntraLocal = VirIntraLocal + sum(HFacX(1:molec)*distx(1:molec) &
+   &                                   +     HFacY(1:molec)*disty(1:molec) &
+   &                                   +     HFacZ(1:molec)*distz(1:molec))
 #if  TRANS == 1
          ! Preparation for Transport properties
          VSx  => mol%SiteCharge(l)%vsCx
@@ -10911,17 +11026,20 @@ endif
          VBz  => mol%SiteCharge(l)%vbCz
        
           ! Intramolecular Forces
-         VSx  = VSx  - Facx*this%HFac*this%disty(j,l,1:molec)
-         VSy  = VSy  - Facx*this%HFac*this%distz(j,l,1:molec)
-         VSz  = VSz  - Facy*this%HFac*this%distz(j,l,1:molec)
-         VSux = VSux - Facy*this%HFac*this%distx(j,l,1:molec)
-         VSuy = VSuy - Facz*this%HFac*this%distx(j,l,1:molec)
-         VSuz = VSuz - Facz*this%HFac*this%disty(j,l,1:molec)
-         VBx  = VBx  - Facx*this%HFac*this%distx(j,l,1:molec)
-         VBy  = VBy  - Facy*this%HFac*this%disty(j,l,1:molec)
-         VBz  = VBz  - Facz*this%HFac*this%distz(j,l,1:molec)
+         VSx  = VSx  - HFacX(1:molec)*disty(1:molec)
+         VSy  = VSy  - HFacX(1:molec)*distz(1:molec)
+         VSz  = VSz  - HFacY(1:molec)*distz(1:molec)
+         VSux = VSux - HFacY(1:molec)*distx(1:molec)
+         VSuy = VSuy - HFacZ(1:molec)*distx(1:molec)
+         VSuz = VSuz - HFacZ(1:molec)*disty(1:molec)
+         VBx  = VBx  - HFacX(1:molec)*distx(1:molec)
+         VBy  = VBy  - HFacY(1:molec)*disty(1:molec)
+         VBz  = VBz  - HFacZ(1:molec)*distz(1:molec)
        
 #endif
+
+         ChargeNumber = ChargeNumber + molec
+
        END DO
      END DO
 
@@ -10930,19 +11048,20 @@ endif
      ! Since these properties are specific for the entire solution and not valid for individual
      ! components, these quantities are calculated once and added onto the contribution of 
      ! the last component in the system
-     Contrib = this%Ewald_Prefac(i) * (this%SSin(i)*this%SSin(i) + this%SCos(i)*this%SCos(i)) / this%Volume0
      multiplicator = (1._RK/this%Vec2(i) + 0.25_RK/this%KappaL**2)
-     VSx = VSx + Contrib* (-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(2,i) * multiplicator )
-     VSy = VSy + Contrib* (-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(3,i) * multiplicator )
-     VSz = VSz + Contrib* (-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(3,i) * multiplicator )
+     Contrib = -2._RK * multiplicator * &
+&        this%Ewald_Prefac(i) * (SSinSum*SSinSum + SCosSum*SCosSum) / this%Volume0
+     VSx = VSx + Contrib* (this%Ewald_Vec(1,i)*this%Ewald_Vec(2,i) )
+     VSy = VSy + Contrib* (this%Ewald_Vec(1,i)*this%Ewald_Vec(3,i) )
+     VSz = VSz + Contrib* (this%Ewald_Vec(2,i)*this%Ewald_Vec(3,i) )
 
-     VSux= VSux+ Contrib* (-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(1,i) * multiplicator )
-     VSuy= VSuy+ Contrib* (-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(1,i) * multiplicator )
-     VSuz= VSuz+ Contrib* (-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(2,i) * multiplicator )
+     VSux= VSux+ Contrib* (this%Ewald_Vec(2,i)*this%Ewald_Vec(1,i) )
+     VSuy= VSuy+ Contrib* (this%Ewald_Vec(3,i)*this%Ewald_Vec(1,i) )
+     VSuz= VSuz+ Contrib* (this%Ewald_Vec(3,i)*this%Ewald_Vec(2,i) )
 
-     VBx = VBx + Contrib* (1._RK-2._RK * this%Ewald_Vec(1,i)*this%Ewald_Vec(1,i) * multiplicator )
-     VBy = VBy + Contrib* (1._RK-2._RK * this%Ewald_Vec(2,i)*this%Ewald_Vec(2,i) * multiplicator )
-     VBz = VBz + Contrib* (1._RK-2._RK * this%Ewald_Vec(3,i)*this%Ewald_Vec(3,i) * multiplicator )
+     VBx = VBx + Contrib* (-0.5_RK/multiplicator + this%Ewald_Vec(1,i)*this%Ewald_Vec(1,i) )
+     VBy = VBy + Contrib* (-0.5_RK/multiplicator + this%Ewald_Vec(2,i)*this%Ewald_Vec(2,i) )
+     VBz = VBz + Contrib* (-0.5_RK/multiplicator + this%Ewald_Vec(3,i)*this%Ewald_Vec(3,i) )
 #endif
 
    END DO ! Boxenschleife
@@ -10958,12 +11077,16 @@ endif
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
    call MPI_Reduce( EPotLocal - sum(this%U_fourierLocal*KappaL2*this%Vec2), VirialLocal, 1, &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-   call MPI_Reduce( sum(this%VirIntra), VirIntra, 1, &
+!    call MPI_Reduce( sum(this%VirIntra), VirIntra, 1, &
+! &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+   call MPI_Reduce( VirIntraLocal, VirIntra, 1, &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #else
    EPotLocal = sum(this%U_fourierLocal)
    VirialLocal = EPotLocal - sum(this%U_fourierLocal *KappaL2*this%Vec2)
-   VirIntra = sum(this%VirIntra)
+!    VirIntra = sum(this%VirIntra)
+   VirIntra = VirIntraLocal
+
 !    test = sum(this%U_fourierLocal(:)* (1._RK-2._RK *&
 ! &              (this%Ewald_Vec(1,:)*this%Ewald_Vec(2,:) / this%Vec2(:) + &
 ! &                   this%Ewald_Vec(1,:)*this%Ewald_Vec(2,:) /(4._RK*this%KappaL**2)) ) )
@@ -11120,11 +11243,18 @@ endif
 
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: Viriallocal,VirIntra
+   real(RK):: Viriallocal,VirIntra, VirIntraLocal
+   real(RK):: BoxLength
    real(RK):: SSinSum,SCosSum
    real(RK):: KappaL2
    real(RK):: vorfac
    real(RK):: facx,facy,facz
+   real(RK):: Faktor(1:this%NPart)
+   real(RK):: HFac(1:this%NPart)
+   real(RK):: distx(1:this%NPart),disty(1:this%NPart),distz(1:this%NPart)
+   real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
+   real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
+   integer :: ChargeNumber
 
 
 ! DEBUG STEPHAN
@@ -11156,10 +11286,12 @@ endif
    EPotLocal = 0._RK
    VirialLocal = 0._RK
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
+   BoxLength = this%BoxLength
    vorfac = 2._RK / this%BoxLength
 
    if (this%OptPressure) then
-     this%VirIntra = 0._RK
+!      this%VirIntra = 0._RK
+     VirIntraLocal = 0._RK
    end if
 
    this%SSin = 0._RK
@@ -11175,9 +11307,12 @@ endif
 #else
    DO i=1,this%BoxenAnzahlMax,1
 #endif
+     ChargeNumber = 0
      KVec = this%Ewald_Vec(:,i)
-     this%SSin_Vec = 0._RK
-     this%SCos_Vec = 0._RK
+!      this%SSin_Vec = 0._RK
+!      this%SCos_Vec = 0._RK
+     SSinSum = 0._RK
+     SCosSum = 0._RK
      DO j=1,this%NComponents,1
        mol => this%Component(j)%Molecule
        q => mol%SiteCharge(1:mol%NCharge)%e
@@ -11198,41 +11333,50 @@ endif
          PZloc(1:molec) = PZ(1:molec)
 
          DO m=1,molec
-           if (RX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
-           if (RY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
-           if (RZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
+           if (PX(m) < 0) RXloc(m) = RXloc(m) + 1._RK
+           if (PY(m) < 0) RYloc(m) = RYloc(m) + 1._RK
+           if (PZ(m) < 0) RZloc(m) = RZloc(m) + 1._RK
            if (PX(m) < 0) PXloc(m) = PXloc(m) + 1._RK
            if (PY(m) < 0) PYloc(m) = PYloc(m) + 1._RK
            if (PZ(m) < 0) PZloc(m) = PZloc(m) + 1._RK
          end DO
 
-         this%Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
+         Faktor(1:molec) = KVec(1) * RXloc + KVec(2)*RYloc + KVec(3)*RZloc
 
          if ( this%OptPressure ) then
-           this%distx(j,l,1:molec) = (RXloc - PXloc)*this%BoxLength
-           this%disty(j,l,1:molec) = (RYloc - PYloc)*this%BoxLength
-           this%distz(j,l,1:molec) = (RZloc - PZloc)*this%BoxLength
+!            this%distx(j,l,1:molec) = (RXloc - PXloc)*this%BoxLength
+!            this%disty(j,l,1:molec) = (RYloc - PYloc)*this%BoxLength
+!            this%distz(j,l,1:molec) = (RZloc - PZloc)*this%BoxLength
 
-           this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
-           this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
+!            this%sinfac_s(j,l,1:molec) = sin(Faktor)
+!            this%cosfac_s(j,l,1:molec) = cos(Faktor)
 !            this%sinfac(1:molec) = q(l)*this%sinfac_s(j,l,1:molec)
 !            this%cosfac(1:molec) = q(l)*this%cosfac_s(j,l,1:molec)
+             qsinfac(ChargeNumber+1:ChargeNumber+molec) = q(l)*sin(Faktor)
+             qcosfac(ChargeNumber+1:ChargeNumber+molec) = q(l)*cos(Faktor)
+             SSinSum = SSinSum + sum(qsinfac(ChargeNumber+1:ChargeNumber+molec))
+             SCosSum = SCosSum + sum(qcosfac(ChargeNumber+1:ChargeNumber+molec))
+             ChargeNumber = ChargeNumber + molec
          else
 !            this%sinfac_s(j,l,1:molec) = sin(this%Faktor)
 !            this%cosfac_s(j,l,1:molec) = cos(this%Faktor)
 !            this%sinfac(1:molec) = q(l)*sin(this%Faktor)
 !            this%cosfac(1:molec) = q(l)*cos(this%Faktor)
+             SSinSum = SSinSum + sum(q(l)*sin(Faktor))
+             SCosSum = SCosSum + sum(q(l)*cos(Faktor))
          end if
 
 !          this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + this%sinfac(1:molec)
 !          this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + this%cosfac(1:molec)
-         this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + q(l)*sin(this%Faktor)
-         this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + q(l)*cos(this%Faktor)
+!          this%SSin_Vec(1:molec) = this%SSin_Vec(1:molec) + q(l)*sin(Faktor)
+!          this%SCos_Vec(1:molec) = this%SCos_Vec(1:molec) + q(l)*cos(Faktor)
+!          SSinSum = SSinSum + sum(q(l)*sin(Faktor))
+!          SCosSum = SCosSum + sum(q(l)*cos(Faktor))
        END DO
      END DO
 
-     SSinSum = sum(this%SSin_Vec)
-     SCosSum = sum(this%SCos_Vec)
+!      SSinSum = sum(this%SSin_Vec)
+!      SCosSum = sum(this%SCos_Vec)
      this%SSin(i) = SSinSum
      this%SCos(i) = SCosSum
 
@@ -11247,11 +11391,25 @@ endif
          q => mol%SiteCharge(1:mol%NCharge)%e
          molec = this%Component(j)%NPart
          DO l=1,mol%NCharge
-            this%HFac = q(l)*(this%sinfac_s(j,l,1:molec)*this%SCos(i) - &
-&              this%cosfac_s(j,l,1:molec)*this%SSin(i))
-            this%VirIntra = this%VirIntra + Facx*this%HFac*this%distx(j,l,1:molec)+&
-&              Facy*this%HFac*this%disty(j,l,1:molec) + &
-&              Facz*this%HFac*this%distz(j,l,1:molec)
+           RX => this%Component(j)%Molecule%SiteCharge(l)%RX(1:molec)
+           RY => this%Component(j)%Molecule%SiteCharge(l)%RY(1:molec)
+           RZ => this%Component(j)%Molecule%SiteCharge(l)%RZ(1:molec)
+           PX => this%Component(j)%Molecule%SiteCharge(l)%PX(1:molec)
+           PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
+           PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
+           HFac = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - &
+&                 qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
+!            HFac = q(l)*(this%sinfac_s(j,l,1:molec)*SCosSum - &
+! &              this%cosfac_s(j,l,1:molec)*SSinSum)
+           distx(1:molec) = (RXloc - PXloc)*BoxLength
+           disty(1:molec) = (RYloc - PYloc)*BoxLength
+           distz(1:molec) = (RZloc - PZloc)*BoxLength
+!             this%VirIntra = this%VirIntra + Facx*HFac*this%distx(j,l,1:molec)+&
+! &              Facy*HFac*this%disty(j,l,1:molec) + &
+! &              Facz*HFac*this%distz(j,l,1:molec)
+            VirIntraLocal = VirIntraLocal + sum(Facx*HFac*distx(1:molec)) &
+&                                         + sum(Facy*HFac*disty(1:molec)) &
+&                                         + sum(Facz*HFac*distz(1:molec))
 ! # endif
          END DO
        END DO
@@ -11277,7 +11435,10 @@ endif
         call MPI_Allreduce( sum(this%U_fourierLocal) - &
 &               sum(this%U_fourierLocal*KappaL2*this%Vec2), VirialLocal, 1, &
 &               MPI_RK, MPI_SUM, Communicator, ierror )
-        call MPI_Allreduce( sum(this%VirIntra), VirIntra, 1, &
+!         call MPI_Allreduce( sum(this%VirIntra), VirIntra, 1, &
+! &               MPI_RK, MPI_SUM, Communicator, ierror )
+!         this%EVirial = -(Viriallocal - VirIntra)*Third / NProcs
+        call MPI_Allreduce( VirIntraLocal, VirIntra, 1, &
 &               MPI_RK, MPI_SUM, Communicator, ierror )
         this%EVirial = -(Viriallocal - VirIntra)*Third / NProcs
       end if
@@ -11289,7 +11450,8 @@ endif
      ! Virial
       if (this%OptPressure) then
         VirialLocal = EPotLocal - sum(this%U_fourierLocal *KappaL2*this%Vec2)
-        VirIntra = sum(this%VirIntra)
+!         VirIntra = sum(this%VirIntra)
+        VirIntra = VirIntraLocal
         this%EVirial = -(Viriallocal - VirIntra)*Third
       end if
    end if
@@ -11300,7 +11462,8 @@ endif
    ! Virial
    if (this%OptPressure) then
      VirialLocal = EPotLocal - sum(this%U_fourierLocal *KappaL2*this%Vec2)
-     VirIntra = sum(this%VirIntra)
+!      VirIntra = sum(this%VirIntra)
+     VirIntra = VirIntraLocal
      this%EVirial = -(Viriallocal - VirIntra)*Third
    end if
 #endif
@@ -13790,6 +13953,12 @@ contains
     integer  :: np, nc
     real(RK) :: sx(this%NComponents, this%NCorr ), sy(this%NComponents, this%NCorr )
     real(RK) :: sz(this%NComponents, this%NCorr )
+!     real(RK) :: ACFindex(3*this%NPart)
+!     real(RK) :: SXindex(3),SYindex(3),SZindex(3)
+!     real(RK) :: VSKindex(3),VSPindex(3)
+!     real(RK) :: VBKindex(3),VBPindex(3)
+!     real(RK) :: VCKTindex(3),VCKRindex(3)
+!     real(RK) :: VCPTindex(3),VCPRindex(3)
 !    real(RK) :: EKinTran(this%NPart)
     real(RK) :: EKinRot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
@@ -13858,46 +14027,53 @@ contains
       ! Und die Summation ausschliesslich ueber die 1:3 gehen soll.
       ! Ich weiss nicht, wie ich Fortran das beibringen soll
       ! CWG: Hab ich bei EKinTran nun gemacht... aber bei EKinRot geht das nicht so wirklich.
-      do j = 1, np
-!        EkinTran(j) = sum( pc%KinETran(j,1:3) ) * 0.5d0
-        if ( pc%Molecule%IsElongated ) then
-          EKinRot(j)= sum( pc%W0(j,1:3) * pc%W0(j,1:3) * pc%Molecule%MOI(1:3))*0.5d0
-        end if
-
-      end do
+      if (Conductivity) then
+        do j = 1, np
+!          EkinTran(j) = sum( pc%KinETran(j,1:3) ) * 0.5d0
+          if ( pc%Molecule%IsElongated ) then
+            EKinRot(j)= sum( pc%W0(j,1:3) * pc%W0(j,1:3) * pc%Molecule%MOI(1:3))*0.5d0
+          end if
+        end do
+      end if
 
 
 !       do j = 1, np
-        do k =1, 3
-          ! Calculate sum of terms of the pressure tensor (kinetic and potential)
-          ! FF. 2 ZEILEN WIRKEN EXTREM KOMISCH, WEIL NIRGENDS AUSGENULLT!!!!!!!!! ODER????
-          this%sc(k) = this%sc(k) + sum( pc%KinETran(:,k) )
-          this%sp(k) = this%sp(k) + sum(pFB(:, k))
+      do k =1, 3
+        ! Calculate sum of terms of the pressure tensor (kinetic and potential)
+        this%sc(k) = this%sc(k) + sum( pc%KinETran(:,k) )
+        this%sp(k) = this%sp(k) + sum(pFB(:, k))
 
-          ! part calculated together with force
-          this%vsp(Mindex, k)  = sum(pFS (:, k))
-          this%vbp(Mindex, k)  = sum(pFB (:, k))
+        ! part calculated together with force
+        this%vsp(Mindex, k)  = sum(pFS (:, k))
+        this%vbp(Mindex, k)  = sum(pFB (:, k))
 
-          !bulk diagonal terms and energy tensor kinetic part
-          this%vbk(Mindex, k) = sum( pc%KinETran(:,k) )
+        !bulk diagonal terms and energy tensor kinetic part
+        this%vbk(Mindex, k) = sum( pc%KinETran(:,k) )
           
-          if (Conductivity) then
-            this%vcpr(Mindex, k) = sum(pFRC(:, k))
-            this%vcpt(Mindex, k) = sum(pFTC(:, k))
-            this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5d0 * Mass*BoxLength_dt
+        if (Conductivity) then
+          this%vcpr(Mindex, k) = sum(pFRC(:, k))
+          this%vcpt(Mindex, k) = sum(pFTC(:, k))
+          this%vckt(Mindex, k)= sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * &
+&                                                          0.5d0 * Mass*BoxLength_dt
 
-            if ( pc%Molecule%IsElongated ) then
-              this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(:) ) * Mass*BoxLength_dt
-            end if
+          if ( pc%Molecule%IsElongated ) then
+            this%vckr(Mindex, k)= sum( pc%P1(:, k) * EKinRot(:) ) * Mass*BoxLength_dt
           end if
-        end do
+        end if
+      end do
 !       end do
 
       ! kinetic part
       !Diffusion matrix a
-      this%a(j0+1:j0+np              , Mindex) = pc%P1(1:np,1)*BoxLength_dt
-      this%a(j0+NPart+1 :j0+NPart +np, Mindex) = pc%P1(1:np,2)*BoxLength_dt
-      this%a(j0+NPart2+1:j0+NPart2+np, Mindex) = pc%P1(1:np,3)*BoxLength_dt
+      k=mod(Mindex,this%NSpanCF)
+      if (k==0) k=this%NSpanCF
+      ! Multiplikation mit BoxLength_dt erst nach der Integration
+      this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1)
+      this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2)
+      this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3)
+!       this%a(j0+1:j0+np              , Mindex) = pc%P1(1:np,1)*BoxLength_dt
+!       this%a(j0+NPart+1 :j0+NPart +np, Mindex) = pc%P1(1:np,2)*BoxLength_dt
+!       this%a(j0+NPart2+1:j0+NPart2+np, Mindex) = pc%P1(1:np,3)*BoxLength_dt
 
       !parts of the stress and energy tensors
       ! shear off diagonal terms
@@ -13906,7 +14082,7 @@ contains
       this%vsk(Mindex, 3) = sum( pc%P1(:,2) * pc%P1(:,3) ) * Mass*BoxLength_dt2
 
       j0 = j0 + np
-    end do
+    end do    ! Component
 
     tempf(:)  = this%sc(:)/Step
     virf(:)   = this%sp(:)/Step
@@ -13914,30 +14090,33 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Calculate Auto Correlation Functions
-    if ( mod(Step, this%NSpancf) .eq. 0 ) then
+    if ( mod(Step, this%NSpanCF) .eq. 0 ) then
      if (Step .gt. this%NCorr) then
-    
+
+      CFindex = Mindex +1
+      this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+
       if (Mindex .eq. this%NCorr) then
         CFindex = 1                       !index of t = t0
-      else
-        CFindex = Mindex +1
+!       else
+!         CFindex = Mindex +1
       end if
 
 ! -----------------------------------
 ! Siehe langen Kommentar gleich hier unten drunter
-      if ( this%NComponents .gt. 1 ) then
-        do k =1, this%NSpanCF
-          nmess = Mindex - (k-1)
-          j0 = 0
-          do i = 1, this%NComponents
-            np = this%Component(i)%NPart
-            sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
-            sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
-            sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
-            j0 = j0 + np
-          end do
-        end do
-      end if
+!       if ( this%NComponents .gt. 1 ) then
+!         do k =1, this%NSpanCF
+!           nmess = Mindex - (k-1)
+!           j0 = 0
+!           do i = 1, this%NComponents
+!             np = this%Component(i)%NPart
+!             sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
+!             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
+!             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
+!             j0 = j0 + np
+!           end do
+!         end do
+!       end if
 ! -----------------------------------
 
 ! -----------------------------------
@@ -13954,23 +14133,33 @@ contains
 ! Die alte Version ist weiterhin vorhanden, wenn Du die zwei Ausdruecke in den gestrichelten Linien
 ! auskommentierst und das hier folgende einkommentierst.
       ! Preparation for self diffusion coefficient / conductivity etc.
-!       if ( this%NComponents .gt. 1 ) then
-!         do nmess =1, this%NCorr
-! !           sx(:,nmess) = 0._RK
-! !           sy(:,nmess) = 0._RK
-! !           sz(:,nmess) = 0._RK
-!           j0 = 0
-!           do i = 1, this%NComponents
-!             np = this%Component(i)%NPart
-!             sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
-!             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
-!             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
-!             j0 = j0 + np
-!           end do
-!         end do
-!       end if
+      if ( this%NComponents .gt. 1 ) then
+        do nmess =1, this%NCorr
+          j0 = 0
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
+            sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
+            sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
+            j0 = j0 + np
+          end do
+        end do
+      end if
 ! -----------------------------------
-      
+!       ! Preparation of the Autocorrelation function - safe the Startpoints
+!       ACFindex = this%a(:,CFindex)
+!       SXindex  = sx(:, CFindex)
+!       SYindex  = sy(:, CFindex)
+!       SZindex  = sz(:, CFindex)
+!       VSKindex = this%vsk(CFindex,:)
+!       VSPindex = this%vsp(CFindex,:)
+!       VBKindex = this%vbk(CFindex,:)
+!       VBPindex = this%vbp(CFindex,:)
+!       VCPRindex= this%vcpr(CFindex,:)
+!       VCPTindex= this%vcpt(CFindex,:)
+!       VCKRindex= this%vckr(CFindex,:)
+!       VCKTindex= this%vckt(CFindex,:)
+
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
       do nmess= 1, this%NCorr
@@ -13986,6 +14175,7 @@ contains
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
+          ! alt
           ! WURDE EBENFALLS NIEMALS AUSGENULLT! STRANGE!!!!!
           this%cf_d(i, nmess) = this%cf_d(i, nmess) + &
 &            + DOT_PRODUCT( this%a(j0       +1 : j0+np       ,CFindex) , &
@@ -13994,12 +14184,14 @@ contains
 &                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
 &            + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
 &                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
-!           do j = 1, np
-!             this%cf_d(i , nmess) = this%cf_d(i, nmess)                               &
-! &                      + this%a(j+j0            ,CFindex)*this%a(j+j0            ,s) &
-! &                      + this%a(j+j0+this%NPart ,CFindex)*this%a(j+j0+this%NPart ,s) &
-! &                      + this%a(j+j0+NPart2     ,Cfindex)*this%a(j+j0+NPart2     ,s)
-!           end do
+          ! mit Startwerten
+!           this%cf_d(i, nmess) = this%cf_d(i, nmess) + &
+! &            + DOT_PRODUCT( ACFindex(j0       +1 : j0+np       ) , &
+! &                                                     this%a(j0+1        : j0+np       ,s) ) &
+! &            + DOT_PRODUCT( ACFindex(j0+NPart +1 : j0+NPart +np) , &
+! &                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
+! &            + DOT_PRODUCT( ACFindex(j0+NPart2+1 : j0+NPart2+np) , &
+! &                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
           j0 = j0 + np
         end do
 
@@ -14013,6 +14205,9 @@ contains
               this%lamda(k, nmess) = this%lamda(k, nmess) + sx(i, CFindex)*sx(j, s) &
 &                                           + sy(i, CFindex)*sy(j, s) &
 &                                           + sz(i, CFindex)*sz(j, s)
+!               this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j, s) &
+! &                                                         + SYindex(i)*sy(j, s) &
+! &                                                         + SZindex(i)*sz(j, s)
               k = k + 1
             end do
           end do
@@ -14033,6 +14228,10 @@ contains
 &                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsp(CFindex, k)*this%vsk(s, k)
+!           this%cf_vs(nmess) = this%cf_vs(nmess) + VSKindex(k)*this%vsk(s, k) + &
+! &                                                 VSPindex(k)*this%vsp(s, k) + &
+! &                                                 VSKindex(k)*this%vsp(s, k) + &
+! &                                                 VSPindex(k)*this%vsk(s, k)
           ! bulk viscosity
           do j = 1, 3 ! FIXME: PROBLEM mit gemischten Termen j index zuviel (vermutlich)
             this%cf_vb(nmess) =   this%cf_vb(nmess) + &
@@ -14040,6 +14239,11 @@ contains
 &                             ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
 &                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
 &                             ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
+!             this%cf_vb(nmess) =   this%cf_vb(nmess) + &
+! &                             ( VBKindex(j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
+! &                             ( VBPindex(j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
+! &                             ( VBKindex(j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
+! &                             ( VBPindex(j)-virf(j)) *(this%vbk(s, k)-tempf(k))
           end do
           ! conductivity
           if (Conductivity) then
@@ -14059,32 +14263,58 @@ contains
 &                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckr(s, k)
+!             this%cf_c(nmess) =  this%cf_c(nmess) + VCKTindex(k)*this%vckt(s, k) + &
+! &                                                  VCKRindex(k)*this%vckr(s, k) + &
+! &                                                  VCPTindex(k)*this%vcpt(s, k) + &
+! &                                                  VCPRindex(k)*this%vcpr(s, k) + &
+! &                                                  VCKTindex(k)*this%vcpt(s, k) + &
+! &                                                  VCPTindex(k)*this%vckt(s, k) + &
+! &                                                  VCKRindex(k)*this%vcpr(s, k) + &
+! &                                                  VCPRindex(k)*this%vckr(s, k) + &
+! &                                                  VCKRindex(k)*this%vckt(s, k) + &
+! &                                                  VCKTindex(k)*this%vckr(s, k) + &
+! &                                                  VCPTindex(k)*this%vcpr(s, k) + &
+! &                                                  VCPRindex(k)*this%vcpt(s, k) + &
+! &                                                  VCKTindex(k)*this%vcpr(s, k) + &
+! &                                                  VCPRindex(k)*this%vckt(s, k) + &
+! &                                                  VCKRindex(k)*this%vcpt(s, k) + &
+! &                                                  VCPTindex(k)*this%vckr(s, k)
           end if
         end do
       end do
       this%Mmess  = this%Mmess +1
+      
+      ! Call integration for ACF
+      call IntCorrFun ( this )
 
 ! -----------------------------------
      else ! if (Step .gt. this%NCorr)
-      if ( this%NComponents .gt. 1 ) then
-        do k =1, this%NSpanCF
-          nmess = Step - (k-1)
-!           sx(:,nmess) = 0._RK
-!           sy(:,nmess) = 0._RK
-!           sz(:,nmess) = 0._RK
-          j0 = 0
-          do i = 1, this%NComponents
-            np = this%Component(i)%NPart
-            sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
-            sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
-            sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
-            j0 = j0 + np
-          end do
-        end do
-      end if
-! -----------------------------------
+!       if ( this%NComponents .gt. 1 ) then
+!         do k =1, this%NSpanCF
+!           nmess = Step - (k-1)
+! !           sx(:,nmess) = 0._RK
+! !           sy(:,nmess) = 0._RK
+! !           sz(:,nmess) = 0._RK
+!           j0 = 0
+!           do i = 1, this%NComponents
+!             np = this%Component(i)%NPart
+!             sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
+!             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
+!             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
+!             j0 = j0 + np
+!           end do
+!         end do
+!       end if
+! ! -----------------------------------
+!       if (Mindex .eq. this%NCorr) then
+!         CFindex = this%NCorr                       !index of t = t0
+!       else
+        CFindex = Mindex +1
+!       end if
+
+        this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
      end if ! if (Step .gt. this%NCorr)
-    end if ! if (mod(Step, this%NSpancf).eq.0)
+    end if ! if (mod(Step, this%NSpanCF).eq.0)
 
    end subroutine TEnsemble_CalCorrFun
 #endif
@@ -14109,11 +14339,15 @@ contains
     real(RK) :: x1, x2, x3
     real(RK) :: Inv_x1, Inv_x2, Inv_x3
     real(RK) :: B11, B12, B21, B22
+    real(RK) :: BoxLength_dt2
+
+    BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
 
     ncomp2 = this%NComponents*this%NComponents
 
     do i  = 1, this%NComponents
-      helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess)
+!       helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess)
+      helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess) * BoxLength_dt2
       this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), TimeStep, this%NCorr )
       this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
     end do
@@ -14121,7 +14355,8 @@ contains
 
     if ( this%NComponents .gt. 1) then
 
-      helpvar =  1._RK /(3._RK *this%NPart * this%Mmess)
+!       helpvar =  1._RK /(3._RK *this%NPart * this%Mmess) * BoxLength_dt2
+      helpvar =  1._RK /(3._RK *this%NPart * this%Mmess) * BoxLength_dt2
       do k = 1, ncomp2
         this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), TimeStep, this%NCorr)
       end do
