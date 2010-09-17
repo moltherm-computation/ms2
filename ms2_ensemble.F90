@@ -11493,13 +11493,13 @@ endif
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
+!    real(RK):: SSinSum,SCosSum
    real(RK)::SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
 
-   integer :: i,j,l,m
+   integer :: i,l
    integer,intent(in)::nc,np
 
 #if MPI_VER > 0
@@ -11616,13 +11616,13 @@ endif
    real(RK),pointer:: q2(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
+!    real(RK):: SSinSum,SCosSum
    real(RK)::SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
 
-   integer :: i,j,l
+   integer :: i,l
    integer,intent(in)::nc,np
    integer,intent(in)::ncold,npold
 
@@ -11732,13 +11732,13 @@ endif
    real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
-   real(RK):: SSinSum,SCosSum
+!    real(RK):: SSinSum,SCosSum
    real(RK):: SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK):: Faktor
 
-   integer :: i,j,l
+   integer :: i,l
    integer,intent(in)::nc,np,m
 
 #if MPI_VER > 0
@@ -14176,8 +14176,8 @@ contains
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
           ! alt
-          ! WURDE EBENFALLS NIEMALS AUSGENULLT! STRANGE!!!!!
-          this%cf_d(i, nmess) = this%cf_d(i, nmess) + &
+          ! WURDE EBENFALLS NIEMALS AUSGENULLT! STRANGE!!!!! --> No, Methodisch so notwendig!!!
+          this%cf_d(i, nmess) = this%cf_d(i, nmess)  &
 &            + DOT_PRODUCT( this%a(j0       +1 : j0+np       ,CFindex) , &
 &                                                     this%a(j0+1        : j0+np       ,s) ) &
 &            + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &

@@ -2500,8 +2500,14 @@ contains
 
     real(RK) :: time_remaining
     real(RK) :: cputime,max_cpu_time
+    integer  :: max_time
+!     integer  :: ierror
+#ifdef __INTEL_COMPILER
+    integer  :: err
+#endif
+#ifdef KARLS
     character*10 string_max_time
-    integer  :: ierror,max_time, err
+#endif
     integer  :: time_limit
 
 ! Get CPU time consumed by each task and compute the maximum value
