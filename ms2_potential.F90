@@ -895,15 +895,24 @@ contains
         PZi = PZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi= VSx(i)
-        VSyi= VSy(i)
-        VSzi= VSz(i)
-        VSuxi= VSux(i)
-        VSuyi= VSuy(i)
-        VSuzi= VSuz(i)
-        VBxi= VBx(i)
-        VByi= VBy(i)
-        VBzi= VBz(i)
+! !         VSxi= VSx(i)
+! !         VSyi= VSy(i)
+! !         VSzi= VSz(i)
+! !         VSuxi= VSux(i)
+! !         VSuyi= VSuy(i)
+! !         VSuzi= VSuz(i)
+! !         VBxi= VBx(i)
+! !         VByi= VBy(i)
+! !         VBzi= VBz(i)
+        VSxi= 0._RK
+        VSyi= 0._RK
+        VSzi= 0._RK
+        VSuxi= 0._RK
+        VSuyi= 0._RK
+        VSuzi= 0._RK
+        VBxi= 0._RK
+        VByi= 0._RK
+        VBzi= 0._RK
         if ( Conductivity ) then
           Cxi = Cx(i)
           Cyi = Cy(i)
@@ -975,6 +984,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZ2(j) = FZ2(j) - FZij
 #if  TRANS == 1
           !TRANSPORT_start
+!           PXijB = PXij * BoxLength
+!           PYijB = PYij * BoxLength
+!           PZijB = PZij * BoxLength
 !           VSxi   = VSxi + FXij * PYijB
 !           VSyi   = VSyi + FXij * PZijB
 !           VSzi   = VSzi + FYij * PZijB
@@ -1070,15 +1082,24 @@ loop1:  do k = 1, this%NInCutoff(i)
 !         tdx(i) = tdxi
 !         tdy(i) = tdyi
 !         tdz(i) = tdzi
-        VSx(i) = VSxi  * BoxLength
-        VSy(i) = VSyi  * BoxLength
-        VSz(i) = VSzi  * BoxLength
-        VSux(i)= VSuxi * BoxLength
-        VSuy(i)= VSuyi * BoxLength
-        VSuz(i)= VSuzi * BoxLength
-        VBx(i) = VBxi  * BoxLength
-        VBy(i) = VByi  * BoxLength
-        VBz(i) = VBzi  * BoxLength
+        VSx(i) = VSx(i) + VSxi *BoxLength
+        VSy(i) = VSy(i) + VSyi *BoxLength
+        VSz(i) = VSz(i) + VSzi *BoxLength
+        VSux(i)= VSux(i)+ VSuxi*BoxLength
+        VSuy(i)= VSuy(i)+ VSuyi*BoxLength
+        VSuz(i)= VSuz(i)+ VSuzi*BoxLength
+        VBx(i) = VBx(i) + VBxi*BoxLength
+        VBy(i) = VBy(i) + VByi*BoxLength
+        VBz(i) = VBz(i) + VBzi*BoxLength
+! !         VSx(i) = VSxi  * BoxLength
+! !         VSy(i) = VSyi  * BoxLength
+! !         VSz(i) = VSzi  * BoxLength
+! !         VSux(i)= VSuxi * BoxLength
+! !         VSuy(i)= VSuyi * BoxLength
+! !         VSuz(i)= VSuzi * BoxLength
+! !         VBx(i) = VBxi  * BoxLength
+! !         VBy(i) = VByi  * BoxLength
+! !         VBz(i) = VBzi  * BoxLength
         if (Conductivity) then
           Cx(i)  = Cxi
           Cy(i)  = Cyi

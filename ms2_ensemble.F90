@@ -2940,9 +2940,12 @@ loop:do l = 1, NPartInCell
             nc = select_component( comp )
             nm = comp(nc) + 1
             pc => this%Component(nc)
-            pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1) - 0.5_RK
-            pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1) - 0.5_RK
-            pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1) - 0.5_RK
+            pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1)
+            pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1)
+            pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1)
+!             pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1) - 0.5_RK
+!             pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1) - 0.5_RK
+!             pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1) - 0.5_RK
             n = n + 1
             if( n == this%NPart ) exit loop
           end do
@@ -13985,10 +13988,10 @@ contains
     end if
 
     !Write transport properties Matrixes (root Processor)
-!    this%vsk(Mindex,  :) = 0._RK
-!     this%vsp(Mindex,  :) = 0._RK
-!     this%vbk(Mindex,  :) = 0._RK
-!     this%vbp(Mindex,  :) = 0._RK
+   this%vsk(Mindex,  :) = 0._RK
+    this%vsp(Mindex,  :) = 0._RK
+    this%vbk(Mindex,  :) = 0._RK
+    this%vbp(Mindex,  :) = 0._RK
 !     this%vckt(Mindex, :) = 0._RK
 !     this%vckr(Mindex, :) = 0._RK
 !     this%vcpt(Mindex, :) = 0._RK
@@ -14044,11 +14047,11 @@ contains
         this%sp(k) = this%sp(k) + sum(pFB(:, k))
 
         ! part calculated together with force
-        this%vsp(Mindex, k)  = sum(pFS (:, k))
-        this%vbp(Mindex, k)  = sum(pFB (:, k))
+        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k))
+        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k))
 
         !bulk diagonal terms and energy tensor kinetic part
-        this%vbk(Mindex, k) = sum( pc%KinETran(:,k) )
+        this%vbk(Mindex, k) = this%vbk(Mindex, k) + sum( pc%KinETran(:,k) )
           
         if (Conductivity) then
           this%vcpr(Mindex, k) = sum(pFRC(:, k))
@@ -14077,9 +14080,9 @@ contains
 
       !parts of the stress and energy tensors
       ! shear off diagonal terms
-      this%vsk(Mindex, 1) = sum( pc%P1(:,1) * pc%P1(:,2) ) * Mass*BoxLength_dt2
-      this%vsk(Mindex, 2) = sum( pc%P1(:,1) * pc%P1(:,3) ) * Mass*BoxLength_dt2
-      this%vsk(Mindex, 3) = sum( pc%P1(:,2) * pc%P1(:,3) ) * Mass*BoxLength_dt2
+      this%vsk(Mindex, 1) = this%vsk(Mindex,1) + sum( pc%P1(:,1) * pc%P1(:,2) ) * Mass*BoxLength_dt2
+      this%vsk(Mindex, 2) = this%vsk(Mindex,2) + sum( pc%P1(:,1) * pc%P1(:,3) ) * Mass*BoxLength_dt2
+      this%vsk(Mindex, 3) = this%vsk(Mindex,3) + sum( pc%P1(:,2) * pc%P1(:,3) ) * Mass*BoxLength_dt2
 
       j0 = j0 + np
     end do    ! Component
@@ -14138,7 +14141,7 @@ contains
           j0 = 0
           do i = 1, this%NComponents
             np = this%Component(i)%NPart
-            sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
+            sx(i,nmess)  = sum(this%a(j0       +1:j0+np        , nmess))
             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
             j0 = j0 + np
