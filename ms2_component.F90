@@ -87,6 +87,7 @@ module ms2_component
 !TRANSPORT_start
  ! Transport
     real(RK), pointer :: KinETran(:,:)
+    real(RK) :: KinETranTotal(3)
 
     real(RK), pointer :: FS(:,:)
     real(RK), pointer :: FB(:,:)
@@ -114,7 +115,6 @@ module ms2_component
     real(RK), pointer :: FRC1All(:,:)
     real(RK), pointer :: FRC2All(:,:)
     real(RK), pointer :: FRC3All(:,:)
-
 #endif
 ! Stephan
     logical :: Conductivity
@@ -2446,14 +2446,16 @@ contains
     BoxLength_dt = this%BoxLength/TimeStep !TRANSPORT_thisline
     this%FS(:,:) = 0._RK
     this%FB(:,:) = 0._RK
-    this%FTC(:,:) = 0._RK
-    this%FRC(:,:) = 0._RK
-    this%FTC1(:,:) = 0._RK
-    this%FTC2(:,:) = 0._RK
-    this%FTC3(:,:) = 0._RK
-    this%FRC1(:,:) = 0._RK
-    this%FRC2(:,:) = 0._RK
-    this%FRC3(:,:) = 0._RK
+    if (this%Conductivity) then
+      this%FTC(:,:) = 0._RK
+      this%FRC(:,:) = 0._RK
+      this%FTC1(:,:) = 0._RK
+      this%FTC2(:,:) = 0._RK
+      this%FTC3(:,:) = 0._RK
+      this%FRC1(:,:) = 0._RK
+      this%FRC2(:,:) = 0._RK
+      this%FRC3(:,:) = 0._RK
+    end if
     !TRANSPORT_END
 #endif
 
@@ -2487,24 +2489,26 @@ contains
           vsx = pLJ126%vsLJx(i)
           vsy = pLJ126%vsLJy(i)
           vsz = pLJ126%vsLJz(i)
-          vsux= pLJ126%vsuLJx(i)
-          vsuy= pLJ126%vsuLJy(i)
-          vsuz= pLJ126%vsuLJz(i)
           vbx = pLJ126%vbLJx(i)
           vby = pLJ126%vbLJy(i)
           vbz = pLJ126%vbLJz(i)
-          cx  = pLJ126%cLJx(i)
-          cy  = pLJ126%cLJy(i)
-          cz  = pLJ126%cLJz(i)
-          tux = pLJ126%tuLJx(i)
-          tuy = pLJ126%tuLJy(i)
-          tuz = pLJ126%tuLJz(i)
-          tlx = pLJ126%tlLJx(i)
-          tly = pLJ126%tlLJy(i)
-          tlz = pLJ126%tlLJz(i)
-          tdx = pLJ126%tdLJx(i)
-          tdy = pLJ126%tdLJy(i)
-          tdz = pLJ126%tdLJz(i)
+          if (this%Conductivity) then
+            vsux= pLJ126%vsuLJx(i)
+            vsuy= pLJ126%vsuLJy(i)
+            vsuz= pLJ126%vsuLJz(i)
+            cx  = pLJ126%cLJx(i)
+            cy  = pLJ126%cLJy(i)
+            cz  = pLJ126%cLJz(i)
+            tux = pLJ126%tuLJx(i)
+            tuy = pLJ126%tuLJy(i)
+            tuz = pLJ126%tuLJz(i)
+            tlx = pLJ126%tlLJx(i)
+            tly = pLJ126%tlLJy(i)
+            tlz = pLJ126%tlLJz(i)
+            tdx = pLJ126%tdLJx(i)
+            tdy = pLJ126%tdLJy(i)
+            tdz = pLJ126%tdLJz(i)
+          end if
           !TRANSPORT_END
 #endif
           r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
@@ -2525,25 +2529,27 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-          this%FRC1(i,1) = this%FRC1(i,1) + tdx
-          this%FRC1(i,2) = this%FRC1(i,2) + tux
-          this%FRC1(i,3) = this%FRC1(i,3) + tuy
-          this%FRC2(i,1) = this%FRC2(i,1) + tlx
-          this%FRC2(i,2) = this%FRC2(i,2) + tdy
-          this%FRC2(i,3) = this%FRC2(i,3) + tuz
-          this%FRC3(i,1) = this%FRC3(i,1) + tly
-          this%FRC3(i,2) = this%FRC3(i,2) + tlz
-          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+          end if
           !TRANSPORT_END
 #endif
         end do
@@ -2561,24 +2567,26 @@ contains
           vsx = pCharge%vsCx(i)
           vsy = pCharge%vsCy(i)
           vsz = pCharge%vsCz(i)
-          vsux= pCharge%vsuCx(i)
-          vsuy= pCharge%vsuCy(i)
-          vsuz= pCharge%vsuCz(i)
           vbx = pCharge%vbCx(i)
           vby = pCharge%vbCy(i)
           vbz = pCharge%vbCz(i)
-          cx  = pCharge%cCx(i)
-          cy  = pCharge%cCy(i)
-          cz  = pCharge%cCz(i)
-          tux = pCharge%tuCx(i)
-          tuy = pCharge%tuCy(i)
-          tuz = pCharge%tuCz(i)
-          tlx = pCharge%tlCx(i)
-          tly = pCharge%tlCy(i)
-          tlz = pCharge%tlCz(i)
-          tdx = pCharge%tdCx(i)
-          tdy = pCharge%tdCy(i)
-          tdz = pCharge%tdCz(i)
+          if (this%Conductivity) then
+            vsux= pCharge%vsuCx(i)
+            vsuy= pCharge%vsuCy(i)
+            vsuz= pCharge%vsuCz(i)
+            cx  = pCharge%cCx(i)
+            cy  = pCharge%cCy(i)
+            cz  = pCharge%cCz(i)
+            tux = pCharge%tuCx(i)
+            tuy = pCharge%tuCy(i)
+            tuz = pCharge%tuCz(i)
+            tlx = pCharge%tlCx(i)
+            tly = pCharge%tlCy(i)
+            tlz = pCharge%tlCz(i)
+            tdx = pCharge%tdCx(i)
+            tdy = pCharge%tdCy(i)
+            tdz = pCharge%tdCz(i)
+          end if
           !TRANSPORT_END
 #endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
@@ -2599,25 +2607,27 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-          this%FRC1(i,1) = this%FRC1(i,1) + tdx
-          this%FRC1(i,2) = this%FRC1(i,2) + tux
-          this%FRC1(i,3) = this%FRC1(i,3) + tuy
-          this%FRC2(i,1) = this%FRC2(i,1) + tlx
-          this%FRC2(i,2) = this%FRC2(i,2) + tdy
-          this%FRC2(i,3) = this%FRC2(i,3) + tuz
-          this%FRC3(i,1) = this%FRC3(i,1) + tly
-          this%FRC3(i,2) = this%FRC3(i,2) + tlz
-          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+          end if
 !TRANSPORT_END
 #endif
         end do
@@ -2635,24 +2645,26 @@ contains
           vsx = pDipole%vsDx(i)
           vsy = pDipole%vsDy(i)
           vsz = pDipole%vsDz(i)
-          vsux= pDipole%vsuDx(i)
-          vsuy= pDipole%vsuDy(i)
-          vsuz= pDipole%vsuDz(i)
           vbx = pDipole%vbDx(i)
           vby = pDipole%vbDy(i)
           vbz = pDipole%vbDz(i)
-          cx  = pDipole%cDx(i)
-          cy  = pDipole%cDy(i)
-          cz  = pDipole%cDz(i)
-          tux = pDipole%tuDx(i)
-          tuy = pDipole%tuDy(i)
-          tuz = pDipole%tuDz(i)
-          tlx = pDipole%tlDx(i)
-          tly = pDipole%tlDy(i)
-          tlz = pDipole%tlDz(i)
-          tdx = pDipole%tdDx(i)
-          tdy = pDipole%tdDy(i)
-          tdz = pDipole%tdDz(i)
+          if (this%Conductivity) then
+            vsux= pDipole%vsuDx(i)
+            vsuy= pDipole%vsuDy(i)
+            vsuz= pDipole%vsuDz(i)
+            cx  = pDipole%cDx(i)
+            cy  = pDipole%cDy(i)
+            cz  = pDipole%cDz(i)
+            tux = pDipole%tuDx(i)
+            tuy = pDipole%tuDy(i)
+            tuz = pDipole%tuDz(i)
+            tlx = pDipole%tlDx(i)
+            tly = pDipole%tlDy(i)
+            tlz = pDipole%tlDz(i)
+            tdx = pDipole%tdDx(i)
+            tdy = pDipole%tdDy(i)
+            tdz = pDipole%tdDz(i)
+          end if
           !TRANSPORT_END
 #endif
           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
@@ -2679,25 +2691,27 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-          this%FRC1(i,1) = this%FRC1(i,1) + tdx
-          this%FRC1(i,2) = this%FRC1(i,2) + tux
-          this%FRC1(i,3) = this%FRC1(i,3) + tuy
-          this%FRC2(i,1) = this%FRC2(i,1) + tlx
-          this%FRC2(i,2) = this%FRC2(i,2) + tdy
-          this%FRC2(i,3) = this%FRC2(i,3) + tuz
-          this%FRC3(i,1) = this%FRC3(i,1) + tly
-          this%FRC3(i,2) = this%FRC3(i,2) + tlz
-          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+          end if
 !TRANSPORT_END
 #endif
         end do
@@ -2715,24 +2729,26 @@ contains
           vsx = pQuadrupole%vsQx(i)
           vsy = pQuadrupole%vsQy(i)
           vsz = pQuadrupole%vsQz(i)
-          vsux= pQuadrupole%vsuQx(i)
-          vsuy= pQuadrupole%vsuQy(i)
-          vsuz= pQuadrupole%vsuQz(i)
           vbx = pQuadrupole%vbQx(i)
           vby = pQuadrupole%vbQy(i)
           vbz = pQuadrupole%vbQz(i)
-          cx  = pQuadrupole%cQx(i)
-          cy  = pQuadrupole%cQy(i)
-          cz  = pQuadrupole%cqz(i)
-          tux = pQuadrupole%tuQx(i)
-          tuy = pQuadrupole%tuQy(i)
-          tuz = pQuadrupole%tuQz(i)
-          tlx = pQuadrupole%tlQx(i)
-          tly = pQuadrupole%tlQy(i)
-          tlz = pQuadrupole%tlQz(i)
-          tdx = pQuadrupole%tdQx(i)
-          tdy = pQuadrupole%tdQy(i)
-          tdz = pQuadrupole%tdQz(i)
+          if (this%Conductivity) then
+            vsux= pQuadrupole%vsuQx(i)
+            vsuy= pQuadrupole%vsuQy(i)
+            vsuz= pQuadrupole%vsuQz(i)
+            cx  = pQuadrupole%cQx(i)
+            cy  = pQuadrupole%cQy(i)
+            cz  = pQuadrupole%cqz(i)
+            tux = pQuadrupole%tuQx(i)
+            tuy = pQuadrupole%tuQy(i)
+            tuz = pQuadrupole%tuQz(i)
+            tlx = pQuadrupole%tlQx(i)
+            tly = pQuadrupole%tlQy(i)
+            tlz = pQuadrupole%tlQz(i)
+            tdx = pQuadrupole%tdQx(i)
+            tdy = pQuadrupole%tdQy(i)
+            tdz = pQuadrupole%tdQz(i)
+          end if
           !TRANSPORT_END
 #endif
           r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
@@ -2759,25 +2775,27 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-          this%FRC1(i,1) = this%FRC1(i,1) + tdx
-          this%FRC1(i,2) = this%FRC1(i,2) + tux
-          this%FRC1(i,3) = this%FRC1(i,3) + tuy
-          this%FRC2(i,1) = this%FRC2(i,1) + tlx
-          this%FRC2(i,2) = this%FRC2(i,2) + tdy
-          this%FRC2(i,3) = this%FRC2(i,3) + tuz
-          this%FRC3(i,1) = this%FRC3(i,1) + tly
-          this%FRC3(i,2) = this%FRC3(i,2) + tlz
-          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+          end if
 !TRANSPORT_END
 #endif
         end do
@@ -2815,15 +2833,17 @@ contains
           vsx = pLJ126%vsLJx(i)
           vsy = pLJ126%vsLJy(i)
           vsz = pLJ126%vsLJz(i)
-          vsux= pLJ126%vsuLJx(i)
-          vsuy= pLJ126%vsuLJy(i)
-          vsuz= pLJ126%vsuLJz(i)
           vbx = pLJ126%vbLJx(i)
           vby = pLJ126%vbLJy(i)
           vbz = pLJ126%vbLJz(i)
-          cx  = pLJ126%cLJx(i)
-          cy  = pLJ126%cLJy(i)
-          cz  = pLJ126%cLJz(i)
+          if (this%Conductivity) then
+            vsux= pLJ126%vsuLJx(i)
+            vsuy= pLJ126%vsuLJy(i)
+            vsuz= pLJ126%vsuLJz(i)
+            cx  = pLJ126%cLJx(i)
+            cy  = pLJ126%cLJy(i)
+            cz  = pLJ126%cLJz(i)
+          end if
           !TRANSPORT_END
 #endif
           this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
@@ -2838,15 +2858,17 @@ contains
           this%FB(i, 2) = this%FB(i, 2) + vby
           this%FB(i, 3) = this%FB(i, 3) + vbz
 
-          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+          end if
 !TRANSPORT_END
 #endif
         end do
@@ -2865,9 +2887,9 @@ contains
             vsx = pCharge%vsCx(i)
             vsy = pCharge%vsCy(i)
             vsz = pCharge%vsCz(i)
-            vsux= pCharge%vsuCx(i)
-            vsuy= pCharge%vsuCy(i)
-            vsuz= pCharge%vsuCz(i)
+!             vsux= pCharge%vsuCx(i)
+!             vsuy= pCharge%vsuCy(i)
+!             vsuz= pCharge%vsuCz(i)
             vbx = pCharge%vbCx(i)
             vby = pCharge%vbCy(i)
             vbz = pCharge%vbCz(i)
@@ -2931,19 +2953,21 @@ contains
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
 &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-    call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if (this%Conductivity) then
+      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-    call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    end if
 !TRANSPORT_END
 #endif
 #endif
@@ -3935,53 +3959,65 @@ subroutine TComponent_ForceTransport( this )
 
     if (RootProc) then
 
+      if (this%Conductivity) then
 #if MPI_VER > 0
-      pFTC1 => this%FTC1All(:,:)
-      pFTC2 => this%FTC2All(:,:)
-      pFTC3 => this%FTC3All(:,:)
+        pFTC1 => this%FTC1All(:,:)
+        pFTC2 => this%FTC2All(:,:)
+        pFTC3 => this%FTC3All(:,:)
 
-      pFRC1 => this%FRC1All(:,:)
-      pFRC2 => this%FRC2All(:,:)
-      pFRC3 => this%FRC3All(:,:)
+        pFRC1 => this%FRC1All(:,:)
+        pFRC2 => this%FRC2All(:,:)
+        pFRC3 => this%FRC3All(:,:)
 #else
-      pFTC1 => this%FTC1(:,:)
-      pFTC2 => this%FTC2(:,:)
-      pFTC3 => this%FTC3(:,:)
+        pFTC1 => this%FTC1(:,:)
+        pFTC2 => this%FTC2(:,:)
+        pFTC3 => this%FTC3(:,:)
 
-      pFRC1 => this%FRC1(:,:)
-      pFRC2 => this%FRC2(:,:)
-      pFRC3 => this%FRC3(:,:)
+        pFRC1 => this%FRC1(:,:)
+        pFRC2 => this%FRC2(:,:)
+        pFRC3 => this%FRC3(:,:)
 #endif
-
-      do k = 1, 3
-        do i= 1, this%Npart
-          this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k)
-          this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k)
-          this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k)
+        do k = 1, 3
+          do i= 1, this%Npart
+            this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k)
+            this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k)
+            this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k)
+          end do
         end do
-      end do
 
-      nra = this%Molecule%NDFRot
-      do k= 1, nra
-        do i= 1, this%Npart
-          this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k)
-          this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k)
-          this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k)
+        nra = this%Molecule%NDFRot
+        do k= 1, nra
+          do i= 1, this%Npart
+            this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k)
+            this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k)
+            this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k)
+          end do
         end do
-      end do
 
-      this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
+        this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
 
-      ! Calculate kinetic energy / molecule
-      do j = 1, 3
-        do i = 1, this%NPart
-          this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
+
+        ! Calculate kinetic energy / molecule
+        do j = 1, 3
+!         do i = 1, this%NPart
+!           this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
+!         end do
+          this%KinETran(:,j) = this%P1(:,j)*this%P1(:,j)
         end do
-      end do
 
-      this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
+        this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
 
-    end if
+        this%KinETranTotal(1) = sum(this%KinETran(:,1))
+        this%KinETranTotal(2) = sum(this%KinETran(:,2))
+        this%KinETranTotal(3) = sum(this%KinETran(:,3))
+      else  ! Conductivity
+
+        this%KinETranTotal(1) = sum(this%P1(:,1)**2)* this%Molecule%Mass*BoxLength_dt2
+        this%KinETranTotal(2) = sum(this%P1(:,2)**2)* this%Molecule%Mass*BoxLength_dt2
+        this%KinETranTotal(3) = sum(this%P1(:,3)**2)* this%Molecule%Mass*BoxLength_dt2
+      end if
+
+    end if ! RootProc
 #endif
 
   end subroutine TComponent_ForceTransport

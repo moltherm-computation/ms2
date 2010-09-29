@@ -1151,7 +1151,8 @@ contains
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
+    real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
+!     real(RK)          :: Epsilon1
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)

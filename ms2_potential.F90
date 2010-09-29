@@ -753,7 +753,8 @@ contains
 #endif
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:) 
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
     real(RK), pointer :: VBx(:), VBy(:), VBz(:)
     real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
@@ -777,7 +778,7 @@ contains
     real(RK)          :: BoxLength2
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    real(RK)          :: PXijB, PYijB, PZijB
+!     real(RK)          :: PXijB, PYijB, PZijB
     logical           :: Conductivity
      !TRANSPORT_END
 #endif
@@ -840,13 +841,13 @@ contains
     VSx => this%Site1%vsLJx
     VSy => this%Site1%vsLJy
     VSz => this%Site1%vsLJz
-    VSux=> this%Site1%vsuLJx
-    VSuy=> this%Site1%vsuLJy
-    VSuz=> this%Site1%vsuLJz
     VBx => this%Site1%vbLJx
     VBy => this%Site1%vbLJy
     VBz => this%Site1%vbLJz
     if ( Conductivity ) then
+      VSux=> this%Site1%vsuLJx
+      VSuy=> this%Site1%vsuLJy
+      VSuz=> this%Site1%vsuLJz
       Cx  => this%Site1%cLJx
       Cy  => this%Site1%cLJy
       Cz  => this%Site1%cLJz
@@ -907,13 +908,13 @@ contains
         VSxi= 0._RK
         VSyi= 0._RK
         VSzi= 0._RK
-        VSuxi= 0._RK
-        VSuyi= 0._RK
-        VSuzi= 0._RK
         VBxi= 0._RK
         VByi= 0._RK
         VBzi= 0._RK
         if ( Conductivity ) then
+          VSuxi= 0._RK
+          VSuyi= 0._RK
+          VSuzi= 0._RK
           Cxi = Cx(i)
           Cyi = Cy(i)
           Czi = Cz(i)
@@ -999,13 +1000,13 @@ loop1:  do k = 1, this%NInCutoff(i)
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
           VSzi   = VSzi + FYij * PZij
-          VSuxi  = VSuxi+ FYij * PXij
-          VSuyi  = VSuyi+ FZij * PXij
-          VSuzi  = VSuzi+ FZij * PYij
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
           if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
             RijSInvNorm   = Sqrt(RijSquaredInv)
             UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
 !           Uxi  = UU*RXij
@@ -1085,9 +1086,6 @@ loop1:  do k = 1, this%NInCutoff(i)
         VSx(i) = VSx(i) + VSxi *BoxLength
         VSy(i) = VSy(i) + VSyi *BoxLength
         VSz(i) = VSz(i) + VSzi *BoxLength
-        VSux(i)= VSux(i)+ VSuxi*BoxLength
-        VSuy(i)= VSuy(i)+ VSuyi*BoxLength
-        VSuz(i)= VSuz(i)+ VSuzi*BoxLength
         VBx(i) = VBx(i) + VBxi*BoxLength
         VBy(i) = VBy(i) + VByi*BoxLength
         VBz(i) = VBz(i) + VBzi*BoxLength
@@ -1101,6 +1099,9 @@ loop1:  do k = 1, this%NInCutoff(i)
 ! !         VBy(i) = VByi  * BoxLength
 ! !         VBz(i) = VBzi  * BoxLength
         if (Conductivity) then
+          VSux(i)= VSux(i)+ VSuxi*BoxLength
+          VSuy(i)= VSuy(i)+ VSuyi*BoxLength
+          VSuz(i)= VSuz(i)+ VSuzi*BoxLength
           Cx(i)  = Cxi
           Cy(i)  = Cyi
           Cz(i)  = Czi
@@ -1554,7 +1555,8 @@ loop2:do j = 1, N
 #endif
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
     real(RK), pointer :: VBx(:), VBy(:), VBz(:)
     real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
@@ -1616,13 +1618,13 @@ loop2:do j = 1, N
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
-    VSux=> this%Site1%vsuCx
-    VSuy=> this%Site1%vsuCy
-    VSuz=> this%Site1%vsuCz
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
     if ( Conductivity ) then
+      VSux=> this%Site1%vsuCx
+      VSuy=> this%Site1%vsuCy
+      VSuz=> this%Site1%vsuCz
       Cx  => this%Site1%cCx
       Cy  => this%Site1%cCy
       Cz  => this%Site1%cCz
@@ -1672,13 +1674,13 @@ loop2:do j = 1, N
       VSxi= VSx(i)
       VSyi= VSy(i)
       VSzi= VSz(i)
-      VSuxi= VSux(i)
-      VSuyi= VSuy(i)
-      VSuzi= VSuz(i)
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
       if ( Conductivity ) then
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
         Cxi = Cx(i)
         Cyi = Cy(i)
         Czi = Cz(i)
@@ -1758,13 +1760,13 @@ loop1:do k = 1, this%NInCutoff(i)
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
-        VSuxi  = VSuxi+ FYij * PXij
-        VSuyi  = VSuyi+ FZij * PXij
-        VSuzi  = VSuzi+ FZij * PYij
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
         if ( Conductivity ) then
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
           UU        = EpotLocal1 + this%RFConstant * Rij2
 !         Uxi       = UU * eX
 !         Uyi       = UU * eY
@@ -1801,13 +1803,13 @@ loop1:do k = 1, this%NInCutoff(i)
       VSx(i) = VSxi
       VSy(i) = VSyi
       VSz(i) = VSzi
-      VSux(i)= VSuxi
-      VSuy(i)= VSuyi
-      VSuz(i)= VSuzi
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
       if ( Conductivity ) then
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
         Cx(i)  = Cxi
         Cy(i)  = Cyi
         Cz(i)  = Czi
@@ -1874,7 +1876,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
     real(RK), pointer :: VBx(:), VBy(:), VBz(:)
     real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
@@ -1936,9 +1939,9 @@ loop1:do k = 1, this%NInCutoff(i)
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
-    VSux=> this%Site1%vsuCx
-    VSuy=> this%Site1%vsuCy
-    VSuz=> this%Site1%vsuCz
+!     VSux=> this%Site1%vsuCx
+!     VSuy=> this%Site1%vsuCy
+!     VSuz=> this%Site1%vsuCz
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
@@ -1990,9 +1993,9 @@ loop1:do k = 1, this%NInCutoff(i)
       VSxi= VSx(i)
       VSyi= VSy(i)
       VSzi= VSz(i)
-      VSuxi= VSux(i)
-      VSuyi= VSuy(i)
-      VSuzi= VSuz(i)
+!       VSuxi= VSux(i)
+!       VSuyi= VSuy(i)
+!       VSuzi= VSuz(i)
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
@@ -2096,9 +2099,9 @@ loop1:do k = 1, this%NInCutoff(i)
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
-        VSuxi  = VSuxi+ FYij * PXij
-        VSuyi  = VSuyi+ FZij * PXij
-        VSuzi  = VSuzi+ FZij * PYij
+!         VSuxi  = VSuxi+ FYij * PXij
+!         VSuyi  = VSuyi+ FZij * PXij
+!         VSuzi  = VSuzi+ FZij * PYij
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
@@ -2130,9 +2133,9 @@ loop1:do k = 1, this%NInCutoff(i)
       VSx(i) = VSxi
       VSy(i) = VSyi
       VSz(i) = VSzi
-      VSux(i)= VSuxi
-      VSuy(i)= VSuyi
-      VSuz(i)= VSuzi
+!       VSux(i)= VSuxi
+!       VSuy(i)= VSuyi
+!       VSuz(i)= VSuzi
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
@@ -4049,7 +4052,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
     real(RK), pointer :: VBx(:), VBy(:), VBz(:)
     real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
@@ -4130,13 +4134,13 @@ loop1:  do k = 1, this%NInCutoff(i)
     VSx => this%Site1%vsDx
     VSy => this%Site1%vsDy
     VSz => this%Site1%vsDz
-    VSux=> this%Site1%vsuDx
-    VSuy=> this%Site1%vsuDy
-    VSuz=> this%Site1%vsuDz
     VBx => this%Site1%vbDx
     VBy => this%Site1%vbDy
     VBz => this%Site1%vbDz
     if ( Conductivity ) then
+      VSux=> this%Site1%vsuDx
+      VSuy=> this%Site1%vsuDy
+      VSuz=> this%Site1%vsuDz
       Cx  => this%Site1%cDx
       Cy  => this%Site1%cDy
       Cz  => this%Site1%cDz
@@ -4194,13 +4198,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         VSxi= VSx(i)
         VSyi= VSy(i)
         VSzi= VSz(i)
-        VSuxi= VSux(i)
-        VSuyi= VSuy(i)
-        VSuzi= VSuz(i)
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
         if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
           Cxi = Cx(i)
           Cyi = Cy(i)
           Czi = Cz(i)
@@ -4295,13 +4299,13 @@ loop1:  do k = 1, this%NInCutoff(i)
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
           VSzi   = VSzi + FYij * PZij
-          VSuxi  = VSuxi+ FYij * PXij
-          VSuyi  = VSuyi+ FZij * PXij
-          VSuzi  = VSuzi+ FZij * PYij
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
           if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
             UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
             !TRANSPORT_start
             Uxi       = UU * eX
@@ -4343,13 +4347,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         VSx(i) = VSxi
         VSy(i) = VSyi
         VSz(i) = VSzi
-        VSux(i)= VSuxi
-        VSuy(i)= VSuyi
-        VSuz(i)= VSuzi
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
         if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
           Cx(i)  = Cxi
           Cy(i)  = Cyi
           Cz(i)  = Czi
@@ -6869,7 +6873,8 @@ loop2:do j = 1, j1
 #endif
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:), VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
     real(RK), pointer :: VBx(:), VBy(:), VBz(:)
     real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
@@ -6949,13 +6954,13 @@ loop2:do j = 1, j1
     VSx => this%Site1%vsQx
     VSy => this%Site1%vsQy
     VSz => this%Site1%vsQz
-    VSux=> this%Site1%vsuQx
-    VSuy=> this%Site1%vsuQy
-    VSuz=> this%Site1%vsuQz
     VBx => this%Site1%vbQx
     VBy => this%Site1%vbQy
     VBz => this%Site1%vbQz
     if ( Conductivity ) then
+      VSux=> this%Site1%vsuQx
+      VSuy=> this%Site1%vsuQy
+      VSuz=> this%Site1%vsuQz
       Cx  => this%Site1%cQx
       Cy  => this%Site1%cQy
       Cz  => this%Site1%cQz
@@ -7014,13 +7019,13 @@ loop2:do j = 1, j1
         VSxi= VSx(i)
         VSyi= VSy(i)
         VSzi= VSz(i)
-        VSuxi= VSux(i)
-        VSuyi= VSuy(i)
-        VSuzi= VSuz(i)
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
         if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
           Cxi = Cx(i)
           Cyi = Cy(i)
           Czi = Cz(i)
@@ -7129,13 +7134,13 @@ loop1:  do k = 1, this%NInCutoff(i)
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
           VSzi   = VSzi + FYij * PZij
-          VSuxi  = VSuxi+ FYij * PXij
-          VSuyi  = VSuyi+ FZij * PXij
-          VSuzi  = VSuzi+ FZij * PYij
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
           if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
             Uxi     = EPotLocal1 * eX
             Uyi     = EPotLocal1 * eY
             Uzi     = EPotLocal1 * eZ
@@ -7175,13 +7180,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         VSx(i) = VSxi
         VSy(i) = VSyi
         VSz(i) = VSzi
-        VSux(i)= VSuxi
-        VSuy(i)= VSuyi
-        VSuz(i)= VSuzi
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
         if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
           Cx(i)  = Cxi
           Cy(i)  = Cyi
           Cz(i)  = Czi
