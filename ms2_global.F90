@@ -968,6 +968,8 @@ contains
         stat=-1
         i=0
 #endif
+
+
         if( stat==0 ) then
           print *, 'chdir to', trim(buffer(:max(i-1,1)))
         else
@@ -993,9 +995,9 @@ contains
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
-          else
-            write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
-            call LogWrite
+          !else               BugFix: LogOpen wurde noch nicht aufgerufen 
+           ! write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
+           ! call LogWrite
           end if
 
           ! Read parameter file name from restart file
@@ -1030,7 +1032,7 @@ contains
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
 
-    ! Open log file
+    ! Open log file   BugFix: The logFile has to be opened before
     call LogOpen
     write( IOBuffer, '("Parallelization:")' )
     call LogWrite
