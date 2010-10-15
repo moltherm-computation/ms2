@@ -1032,7 +1032,7 @@ contains
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
 
-    ! Open log file   BugFix: The logFile has to be opened before
+    ! Open log file
     call LogOpen
     write( IOBuffer, '("Parallelization:")' )
     call LogWrite

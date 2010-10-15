@@ -950,12 +950,12 @@ contains
       call FileReadParameter( this%NSpanCF , iounit_params , IdSpanCF )
  
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-	write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr
-	call LogWrite
+        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr
+        call LogWrite
       else
-	this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
-	write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr
-	call LogWrite
+        this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
+        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr
+        call LogWrite
       endif
 
       write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF
