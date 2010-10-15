@@ -1002,9 +1002,9 @@ contains
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
-          else
-            write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
-            call LogWrite
+          !else                         BugFix: LogOpen wurde noch nicht aufgerufen 
+            !write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
+            !call LogWrite
           end if
 
           ! Read parameter file name from restart file

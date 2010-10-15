@@ -785,13 +785,20 @@ contains
     if( CorrfunMode .eq. active ) then
 
       ! Read legth of the correlation function
-      call FileReadParameter( this%Ncorr , iounit_params , IdCorrlength )
-      write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%Ncorr
-      call LogWrite
-
+      call FileReadParameter( this%NCorr , iounit_params , IdCorrlength )
       ! Read time span between correlations
-      call FileReadParameter( this%NSpancf , iounit_params , IdSpancf )
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpancf
+      call FileReadParameter( this%NSpanCF , iounit_params , IdSpanCF )
+ 
+      if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
+        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr
+        call LogWrite
+      else
+        this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
+        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr
+        call LogWrite
+      endif
+
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
@@ -5298,6 +5305,12 @@ loop2:        do nc = 1, this%NComponents
         call FileAppend( this%iounit_runave, &
 &         trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
+#if TRANS ==1
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      call FileAppend( this%iounit_rescf, &
+&       trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
+
+#endif
 
     else
       ! Open result file
