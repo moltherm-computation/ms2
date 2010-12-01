@@ -715,7 +715,7 @@ contains
     ! Read optional pressure calculation
     this%OptPressure = .true.
     if( SimulationType .eq. MonteCarlo ) then
-      call FileReadParameter( str, iounit_params , IdOptPressure, .true., "yes" )
+      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "yes" )
       select case( str )
         case( 'YES', 'Yes', 'yes' )
           this%OptPressure = .true.
@@ -740,7 +740,7 @@ contains
 
    ! if( SimulationType .eq. MonteCarlo ) then
       ! Read whether to perform the MC equilibration in parallel
-      call FileReadParameter( str, iounit_params , IdCommonEqui, .true., "yes" )
+      call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "yes" )
       select case( str )
         case( 'YES', 'Yes', 'yes' )
           CommonEqui = .true.
