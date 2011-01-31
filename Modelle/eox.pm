@@ -7,24 +7,24 @@ x	   =   0.0
 y	   =   0.0
 z	   =   0.73569
 
-sigma	   =   2.9464
-epsilon	   =  48.4823
+sigma	   =   3.0929
+epsilon	   =  62.126
 mass	   =  16.00
 
 x          =   0.78000
 y          =   0.0
 z          =  -0.48431
 
-sigma      =   3.5673
-epsilon    =  86.3938
+sigma      =   3.5266
+epsilon    =  84.739
 mass       =  14.00
 
 x          =  -0.78000
 y          =   0.0
 z          =  -0.48431
 
-sigma      =   3.5673
-epsilon    =  86.3938
+sigma      =   3.5266
+epsilon    =  84.739 
 mass       =  14.00
 
 
@@ -36,7 +36,7 @@ y          =   0.0
 z          =   0.0
 theta      =   0.0
 phi        =   0.0
-dipole     =   2.5703
+dipole     =   2.459
 mass       =   0.0
 shielding  =   0.8
 
