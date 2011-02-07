@@ -99,6 +99,16 @@ gfortran:
 	# -msse5
 	# -march,-mtune (-mcpu) see "man gcc", e.g. i686,core2,barcelona
 	rm -f *.o *.mod
+	
+gfortran_coverage:
+	@echo "Compiling using GFORTRAN..."
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-O2 -fdefault-real-8 -static -mtune=generic --coverage \
+	-o ms2.gfortran_coverage $(SOURCES)
+	# -O3 -march=native -mtune=native
+	# -msse5
+	# -march,-mtune (-mcpu) see "man gcc", e.g. i686,core2,barcelona
+	rm -f *.o *.mod
 
 gfortran_steereo:
 	@echo "Compiling using GFORTRAN with Steereo support"
@@ -128,6 +138,13 @@ gfortran_mpi:
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
 	-O3 -fdefault-real-8 \
 	-o ms2mpi.gfortran $(SOURCES)
+	rm -f *.o *.mod
+
+gfortran_coverage_mpi:
+	@echo "Compiling using MPI_GFORTRAN..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O3 -fdefault-real-8 --coverage \
+	-o ms2mpi.gfortran_coverage $(SOURCES)
 	rm -f *.o *.mod
 
 ifort_dbg:
@@ -402,3 +419,11 @@ strider_mpi:
 	-o ms2mpi $(SOURCES)
 	rm -f *.o *.mod *.ipo
 	rm -f -r Extract.dir
+
+lcov:
+	lcov --directory . --base-directory . --capture --output-file MS2.info
+	genhtml --output-director ../lcov/ MS2.info
+
+lcov-clean:
+	lcov --directory . --base-directory .  --zerocounters
+
