@@ -838,8 +838,8 @@ contains
 
     ! Declare local variables
 #ifdef STOPWATCH_USE_SYSCLK
-    integer :: sysclk_cnt_rate, sysclk_cnt_max
-    integer :: sysclk_cnt_diff
+    integer :: sysclk_cnt_rate
+    integer :: sysclk_cnt_diff, sysclk_cnt_max
     real :: sysclk_diff_sec, sysclk_max_sec
 #ifdef STOPWATCH_USE_MPIWTIME
     integer :: i
@@ -868,8 +868,8 @@ contains
       sysclk_cnt_diff = this%sysclk_cnt_stop-this%sysclk_cnt_start
       !sysclk_cnt_diff=mod(sysclk_cnt_diff+sysclk_cnt_max, sysclk_cnt_max) !sum needs long integer
       if( sysclk_cnt_diff<0 ) sysclk_cnt_diff = sysclk_cnt_diff+sysclk_cnt_max
-      sysclk_diff_sec = float(sysclk_cnt_diff)/float(sysclk_cnt_rate)
-      sysclk_max_sec = float(sysclk_cnt_max)/float(sysclk_cnt_rate)
+      sysclk_diff_sec = real(sysclk_cnt_diff)/real(sysclk_cnt_rate)
+      sysclk_max_sec = real(sysclk_cnt_max)/real(sysclk_cnt_rate)
 #ifdef STOPWATCH_USE_MPIWTIME
       if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
         i = NINT((this%wtime_diff(1)-sysclk_diff_sec)/sysclk_max_sec)

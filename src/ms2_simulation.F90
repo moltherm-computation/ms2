@@ -397,10 +397,10 @@ contains
 
         ! Time step
         call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
-        write( IOBuffer, '("Time step: ",T26, F8.6, " fs")' ) &
+        write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) &
 &         TimeStep * UnitTime * 1E15_RK
         call LogWrite
-        write( IOBuffer, '("Reduced time step: ",T26, F8.6)' ) TimeStep
+        write( IOBuffer, '("Reduced time step: ",T26, F9.6)' ) TimeStep
         call LogWrite
         TimeStep2 = .5_RK * TimeStep
         TimeStepSquared = TimeStep**2

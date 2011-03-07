@@ -2081,7 +2081,7 @@ contains
       ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
-        write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
+        write( IOBuffer, '("setting ",A," to default value ",G16.9)' ) &
 &             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
