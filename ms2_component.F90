@@ -3665,32 +3665,32 @@ contains
 
     ! Centers of mass positions
     do i = 1, np
-      pos(:) = this%P0(:)
+      pos(:) = this%P0(i,:)
       write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
     end do
 
     if( SimulationType .eq. MolecularDynamics ) then
       ! Centers of mass positions' derivatives
       do i = 1, np
-        pos(:) = this%P1(:)
+        pos(:) = this%P1(i,:)
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
       do i = 1, np
-        pos(:) = this%P2(:)
+        pos(:) = this%P2(i,:)
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
 
       if( IntegratorType .eq. IntegratorTypeGear ) then
         do i = 1, np
-          pos(:) = this%P3(:)
+          pos(:) = this%P3(i,:)
           write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
         do i = 1, np
-          pos(:) = this%P4(:)
+          pos(:) = this%P4(i,:)
           write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
         do i = 1, np
-          pos(:) = this%P5(:)
+          pos(:) = this%P5(i,:)
           write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end if
@@ -3704,28 +3704,28 @@ contains
     if( this%Molecule%isElongated ) then
       ! Quaternion parameters
       do i = 1, np
-        quat(:) = this%Q0(:)
+        quat(:) = this%Q0(i,:)
         write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Quaternion parameters' derivatives
         do i = 1, np
-          quat(:) = this%Q1(:)
+          quat(:) = this%Q1(i,:)
           write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            quat(:) = this%Q2(:)
+            quat(:) = this%Q2(i,:)
             write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
           do i = 1, np
-            quat(:) = this%Q3(:)
+            quat(:) = this%Q3(i,:)
             write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
           do i = 1, np
-            quat(:) = this%Q4(:)
+            quat(:) = this%Q4(i,:)
             write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
         end if
