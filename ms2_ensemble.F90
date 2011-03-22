@@ -875,7 +875,7 @@ contains
     ! Read optional pressure calculation
     this%OptPressure = .true.
     if( SimulationType .eq. MonteCarlo ) then
-      call FileReadParameter( str, iounit_params , IdOptPressure, .true., "yes" )
+      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "yes" )
       select case( str )
         case( 'YES', 'Yes', 'yes' )
           this%OptPressure = .true.
@@ -900,7 +900,7 @@ contains
     end if
 
     ! Read whether to perform the MC equilibration in parallel
-    call FileReadParameter( str, iounit_params , IdCommonEqui, .true., "yes" )
+    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "yes" )
     select case( str )
       case( 'YES', 'Yes', 'yes' )
         CommonEqui = .true.
@@ -946,6 +946,7 @@ contains
 
       ! Read legth of the correlation function
       call FileReadParameter( this%NCorr , iounit_params , IdCorrlength )
+
       ! Read time span between correlations
       call FileReadParameter( this%NSpanCF , iounit_params , IdSpanCF )
  
@@ -957,14 +958,14 @@ contains
         write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr
         call LogWrite
       endif
-
+      
+      ! Correlation length output
       write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
       write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf
       call LogWrite
-
       if ( this%Nviewcf*this%NCorr > NSteps ) then
         write(IOBuffer, '("Warning: Updates of cf not sufficient - Output once at the end of simulation")')
         this%Nviewcf = int((NSteps-this%NCorr)/this%NSpanCF)
@@ -7776,7 +7777,12 @@ loop2:        do nc = 1, this%NComponents
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Set Time limit for Abortion if Simulation runs in Karlsruhe, Germany
+#if TRANS == 1
+    time_limit = 60
+#else
     time_limit = 15
+#endif
+
     ! Update accumulators
     ! 1.) Basic sums
     call Update( this%SumPressure, this%Pressure )
@@ -10081,11 +10087,13 @@ if( RootProc .and. (CorrfunMode .eq. active) ) then
       end do
     end do
 
-    do i = 1, this%NComponents*this%NComponents
-      do j = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+    if (this%Ncomponents>1) then
+      do i = 1, this%NComponents*this%NComponents
+        do j = 1, this%NCorr
+          write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+        end do
       end do
-    end do
+    end if
 
     write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
