@@ -7736,11 +7736,13 @@ loop2:        do nc = 1, this%NComponents
       end do
     end do
 
-    do i = 1, this%Ncomponents*this%Ncomponents
-      do j = 1, this%Ncorr
-        write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+    if (this%Ncomponents>1) then
+      do i = 1, this%Ncomponents*this%Ncomponents
+        do j = 1, this%Ncorr
+          write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+        end do
       end do
-    end do
+    end if
 
     write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
