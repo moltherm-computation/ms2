@@ -484,12 +484,12 @@ contains
 &         - TICSp(-3, RCutoff, this%Sigma**2, tau) )
       endif
     else ! Site-site cutoff or both sites in center of mass
-      RCutoff3Inv = (this%Sigma / RCutoff)**3
-      RCutoff9Inv = RCutoff3Inv**3
-      this%EPotCorr = Pi89 * this%Epsilon &
-&       * (RCutoff9Inv - 3._RK * RCutoff3Inv)
-      this%VirialCorr = Pi329 * this%Epsilon &
-&       * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
+     this%EPotCorr = Pi8 * this%Epsilon * &
+&       ( TICCu(-6, RCutoff, this%Sigma**2) &
+&       - TICCu(-3, RCutoff, this%Sigma**2) )
+     this%VirialCorr = Piminus83 * this%Epsilon * &
+&       ( TICCp(-6, RCutoff, this%Sigma**2) &
+&       - TICCp(-3, RCutoff, this%Sigma**2) )
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
 
@@ -522,6 +522,22 @@ contains
 &               * (n+1) * (2*n+3) * (2*n+4) * (2*n+5) )
 
     end function TISSu
+
+
+
+    real(RK) function TICCu( n, rc, sigma2 )
+
+      ! Declare arguments
+      integer, intent(in)  :: n
+      real(RK), intent(in) :: rc, sigma2
+
+      ! Calculate angle averaged partial integral
+      TICCu = - ( rc**(2*n+3) )&
+&             / ( sigma2**n * (2*n+3) )
+
+    end function TICCu
+
+
 
 
 
@@ -575,6 +591,19 @@ contains
 &             - 3._RK * TICSu(n,rc,sigma2,tau)
 
     end function TICSp
+
+
+    real(RK) function TICCp( n, rc, sigma2 )
+
+      ! Declare arguments
+      integer, intent(in)  :: n
+      real(RK), intent(in) :: rc, sigma2
+
+      ! Calculate angle averaged partial integral
+      TICCp = 2._RK*n*TICCu(n,rc,sigma2)
+
+    end function TICCp
+
 
 
 
