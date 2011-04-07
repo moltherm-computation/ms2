@@ -485,6 +485,10 @@ contains
         end if
       else
         MCOverlapReduction = .false.
+        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
+        GradInsInit = NStepsMC
+        write( IOBuffer, '("Grad. Ins. initialization (if needed): ", T40, I7)' ) GradInsInit
+        call LogWrite
       end if
 
       ! Read number of NVT equilibration steps
@@ -643,19 +647,19 @@ contains
 !             call LogWrite
             ! Read Ewald Parameters
             call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
-            write( IOBuffer, '("Ewald Parameter KappaL:", T23, F8.3)' ) KappaL_h
+            write( IOBuffer, '("Ewald: KappaL:", T23, F8.3)' ) KappaL_h
             call LogWrite
 
             call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true. )
-            write( IOBuffer, '("Ewald Parameter NsqMax:",T20, I7)' ) nsqmax_h
+            write( IOBuffer, '("Ewald: NsqMax:",T20, I7)' ) nsqmax_h
             call LogWrite
 
             call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true. )
-            write( IOBuffer, '("Ewald Parameter NVecMax:",T20, I7)' ) nvecmax_h
+            write( IOBuffer, '("Ewald: NVecMax:",T20, I7)' ) nvecmax_h
             call LogWrite
 
             call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
-            write( IOBuffer, '("Ewald Parameter NMax:",T20, I7)' ) nmax_h
+            write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
 
         case( 'PME', 'pme', 'SPME', 'spme')
@@ -666,7 +670,7 @@ contains
             call LogWrite
             ! Read SPM Ewald Parameters
             call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
-            write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
+            write( IOBuffer, '("Ewald: KappaL:", F8.3)' )KappaL_h
             call LogWrite
 
             call FileReadParameter( grid_h, iounit_params , IdGrid, .true. )
@@ -1041,17 +1045,17 @@ contains
             endif
               
               
-          if (Proc_Max_Eff .lt. NProcs_W) then
-            multNodes = .true.
-            if (Proc_Max_Eff .gt. NProcs) then
-              color = 1000000
-              tmpVal = 0
-            else
-              tmpVal = 1
+            if (Proc_Max_Eff .lt. NProcs_W) then
+              multNodes = .true.
+              if (Proc_Max_Eff .gt. NProcs) then
+                color = 1000000
+                tmpVal = 0
+              else
+                tmpVal = 1
+              endif
+              call MPI_ALLREDUCE(tmpVal, NGroups, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror )
+              NGroups = NGroups/Proc_Max_Eff
             endif
-            call MPI_ALLREDUCE(tmpVal, NGroups, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierror )
-            NGroups = NGroups/Proc_Max_Eff
-          endif
           endif
         endif
 
@@ -1372,8 +1376,8 @@ eqloop: do
     if (SimulationType .eq. MonteCarlo .and. CommonEqui) then 
       
       do k = 1, this%NEnsembles
-          do i = 1, this%Ensemble(k)%NComponents
-            do j = 1, this%Ensemble(k)%NComponents
+          do i = 1, this%Ensemble(k)%NRealComponents
+            do j = 1, this%Ensemble(k)%NRealComponents
               pi => this%Ensemble(k)%Interaction(j, i)
               n1 = pi%NPart1
               n2 = pi%NPart2
@@ -1504,16 +1508,19 @@ eqloop: do
        if( Restart ) then
          write( IOBuffer, '("Resuming GradIns initialization")' )
          Restart = .false.
+         StepStart = Step + 1
        else
-         Step = 1
+         StepStart = 1
          write( IOBuffer, '("Starting GradIns initialization")' )
          call LogWrite
          write( IOBuffer, '("  (adjustment of weighting factors)")' )
        end if
        call LogWriteTime
 
-       do i = 1, this%NEnsembles
-         call ChemicalPotential( this%Ensemble(i) )
+       do Step = StepStart, GradInsInit
+         do i = 1, this%NEnsembles
+           call ChemicalPotential( this%Ensemble(i) )
+         end do
        end do
 
        if( .not. TerminateProgram ) then
@@ -1668,8 +1675,14 @@ eqloop: do
             exit
           end if
         else
-          if( TerminateProgram ) then
-            call MPI_Abort( MPI_COMM_WORLD, 5, ierror )
+!           if( TerminateProgram ) then
+!             call MPI_Abort( MPI_COMM_WORLD, 5, ierror )
+!           end if
+           call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
+&            MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+          if( AnyTerminateProgram ) then
+            TerminateProgram = .true.
+            exit
           end if
         endif 
       else

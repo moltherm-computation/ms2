@@ -233,6 +233,20 @@ module ms2_ensemble
 
     ! Extended ReactionField Method
     real(RK)        :: DebyeLen
+    
+    ! Residence Time
+    integer         :: ResidPairs
+    integer         :: ResidComp1, ResidSite1
+    integer         :: ResidComp2, ResidSite2
+    integer,pointer :: CompPair(:,:), CompPair_Old(:,:)
+    real(RK),pointer:: ResidTimes(:), ResidTimes_Old(:)
+    integer         :: ResidPeriod
+    real(RK)        :: ResidLength
+!    real(RK)        :: ResidenceNumber
+    real(RK)        :: ResidenceDuration
+    logical         :: ResidenceTime
+    type(TAccumulator) :: SumResidenceDuration
+    type(TAccumulator) :: SumResidencePairs
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -576,6 +590,14 @@ module ms2_ensemble
     module procedure TEnsemble_UpdateDisplacements
   end interface
 
+  interface Residence
+    module procedure TEnsemble_Residence
+  end interface
+
+  interface ResidencePartners
+    module procedure TEnsemble_ResidencePartners
+  end interface
+
   interface SaveState
     module procedure TEnsemble_SaveState
   end interface
@@ -892,6 +914,46 @@ contains
       if ( .not. ConstantPressure .and. .not. this%OptPressure) &
 &          call Error( 'Pressure Calculation in NVT necessary' )
     end if
+
+    ! Read calculation of residence time
+    this%ResidenceTime = .false.
+    if( SimulationType .eq. MolecularDynamics ) then
+      call FileReadParameter( str, iounit_params , IdResidTime, .false., "no" )
+      select case( str )
+        case( 'YES', 'Yes', 'yes' )
+          this%ResidenceTime = .true.
+          write( IOBuffer, '("Calculation of residence time: ",A)' ) trim( str )
+          call LogWrite
+          write( IOBuffer, '("Maximum molecules in hydration shell: 10 (default in code)")' ) 
+          call LogWrite
+          call FileReadParameter( this%ResidComp1, iounit_params , IdResidComp1, .false. )
+          call FileReadParameter( this%ResidSite1, iounit_params , IdResidSite1, .false. )
+          call FileReadParameter( this%ResidComp2, iounit_params , IdResidComp2, .false. )
+          call FileReadParameter( this%ResidSite2, iounit_params , IdResidSite2, .false. )
+          write( IOBuffer, '("For component",I2,", site:",I2)' ) &
+&                                                      this%ResidComp1, this%ResidSite1
+          call LogWrite
+          write( IOBuffer, '("and component",I2,", site:",I2)' ) &
+&                                                      this%ResidComp2, this%ResidSite2
+          call LogWrite
+          call FileReadParameter( this%ResidPeriod, iounit_params , IdResidPeriod, .false. )
+          write( IOBuffer, '("Update period / steps: ",T25, I6)' ) this%ResidPeriod
+          call LogWrite
+          call FileReadParameter( this%ResidLength, iounit_params , IdResidLength, .false. )
+          write( IOBuffer, '("Pairing at distances lower: ",T28, F9.5)' ) this%ResidLength
+          call LogWrite
+          this%ResidLength = this%ResidLength / UnitLength * Angstroem
+
+        case( 'NO', 'No', 'no')
+          this%ResidenceTime = .false.
+          write( IOBuffer, '("Calculation of residence time: ",A)' ) trim( str )
+          call LogWrite
+        case default
+          call Error( 'Select yes/no for calculation of residence time'// &
+&           ProgramFileName//ConfigFileExtension )
+      end select
+    end if
+
 
     if ( EnsembleType .eq. EnsembleTypeGE .and. .not. this%OptPressure ) then
       write(IOBuffer, '("For GE simulations, please set Logical OptPressure to yes")' )
@@ -2022,6 +2084,9 @@ contains
 !TRANSPORT_END
 #endif
 
+! Calculation of residence times
+      call Construct( this%SumResidenceDuration, .false. )
+      call Construct( this%SumResidencePairs, .false. )
 
       do i = 1, this%NRealComponents
         call CreateAccumulators( this%Component(i) )
@@ -2094,6 +2159,10 @@ contains
     end if
 !TRANSPORT_END
 #endif
+
+! Calculation of residence times
+    call Destruct( this%SumResidenceDuration )
+    call Destruct( this%SumResidencePairs )
 
     do i = 1, this%NRealComponents
       call DestroyAccumulators( this%Component(i) )
@@ -2580,6 +2649,22 @@ contains
     !TRANSPORT_END
 #endif
 
+! Calculation of residence times
+    if ( this%ResidenceTime ) then
+      nullify( this%CompPair )
+      nullify( this%CompPair_Old )
+      nullify( this%ResidTimes )
+      nullify( this%ResidTimes_Old )
+      allocate(this%CompPair(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
+      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      allocate(this%CompPair_Old(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
+      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      allocate(this%ResidTimes(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
+      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      allocate(this%ResidTimes_Old(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
+      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+    end if
+
   end subroutine TEnsemble_Allocate
 
 
@@ -2719,6 +2804,22 @@ contains
     end if
 !TRANSPORT_END
 #endif
+
+! Calculation of residence times
+    if ( this%ResidenceTime ) then
+      if( associated( this%CompPair ) ) then
+        deallocate( this%CompPair )
+      end if
+      if( associated( this%CompPair_Old ) ) then
+        deallocate( this%CompPair_Old )
+      end if
+      if( associated( this%ResidTimes ) ) then
+        deallocate( this%ResidTimes )
+      end if
+      if( associated( this%ResidTimes_Old ) ) then
+        deallocate( this%ResidTimes_Old )
+      end if
+    end if
 
   end subroutine TEnsemble_Deallocate
 
@@ -3437,6 +3538,12 @@ loop:do l = 1, NPartInCell
       do i = 1, this%NComponents
         this%Component(i)%Disp(:, :) = 0._RK
       end do
+      
+      ! Initiate calculation of residence times
+      if (this%ResidenceTime .and. .not. Equilibration) then 
+        call ResidencePartners ( this )
+      end if
+      
     end if
 
     ! Run MD simulation step
@@ -3512,6 +3619,11 @@ loop:do l = 1, NPartInCell
     end if
 !TRANSPORT_END
 #endif
+
+    ! Calculation of residence time
+    if ( .not. Equilibration .and. this%ResidenceTime ) then
+      call Residence ( this )
+    end if
 
     call CalculateEKin( this, ConstantTemperature .or. Equilibration )
     if( .not. Equilibration .and. this%RCutoffMax2 > this%BoxLength ) &
@@ -4787,13 +4899,13 @@ loop1:        do nc = 1, this%NComponents
               r = (r - ndfmove - 1) / ratio + 1
               nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) ) 
 loop2:        do nc = 1, this%NComponents
-                s = s + pc%BiasedPartners
-                if( nuh <= s ) exit loop2
-                sndf = sndf + pc%BiasedPartners
+                s = s + this%Component(nc)%BiasedPartners
+                if( nuh < s ) exit loop2
+                sndf = sndf + this%Component(nc)%BiasedPartners
               end do loop2
               ndf = this%Component(nc)%Molecule%NDF
-              np = this%BiasedPartners(int((nuh-sndf)*pc%BiasedPartnersNum &
-&                                                     / pc%BiasedPartners)+1)
+              np = this%BiasedPartners(int((nuh-sndf)*this%Component(nc)%BiasedPartnersNum &
+&                                                     / this%Component(nc)%BiasedPartners)+1)
 
               ! Acceleration of MC Moves
               if (np .gt. this%Component(nc)%NPart) cycle
@@ -4852,7 +4964,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. &
-&           ( GradInsInitialization ) ) then
+&           ( GradInsInitialization .and. Step .eq. GradInsInit) ) then
           ! Here we sum up the NStateWF over all processes 
           ! dealing with a specific component to improve statistics
 #if MPI_VER > 0
@@ -7488,6 +7600,145 @@ loop2:        do nc = 1, this%NComponents
 
 
 !==============================================================!
+!  Subroutine TEnsemble_ResidenceTime                          !
+!==============================================================!
+
+  subroutine TEnsemble_Residence( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)    :: this
+
+    ! Declare local variables
+    real(RK) :: R1x, R1y, R1z
+    real(RK) :: R2x, R2y, R2z
+    real(RK) :: drx, dry, drz
+    real(RK) :: CriticalLength
+    integer  :: i
+    integer  :: Numb1, Numb2
+    integer  :: counter
+    
+!     CriticalLength = (this%ResidLength * this%BoxLength)**2
+    CriticalLength = (this%ResidLength)**2
+    counter = 0
+    do i = 1, this%ResidPairs
+      Numb1 = this%CompPair(i,1)
+      Numb2 = this%CompPair(i,2)
+      
+      ! Do not evaluate the pair, since it seperated earlier
+      if ( (Numb1 == 0) .or. (Numb2 == 0) ) then
+        counter = counter + 1
+        cycle
+      end if
+      
+      ! Calculate distance
+      R1x = this%Component(this%ResidComp1)%Molecule%SiteLJ126(this%ResidSite1)%RX(Numb1)
+      R1y = this%Component(this%ResidComp1)%Molecule%SiteLJ126(this%ResidSite1)%RY(Numb1)
+      R1z = this%Component(this%ResidComp1)%Molecule%SiteLJ126(this%ResidSite1)%RZ(Numb1)
+      R2x = this%Component(this%ResidComp2)%Molecule%SiteLJ126(this%ResidSite2)%RX(Numb2)
+      R2y = this%Component(this%ResidComp2)%Molecule%SiteLJ126(this%ResidSite2)%RY(Numb2)
+      R2z = this%Component(this%ResidComp2)%Molecule%SiteLJ126(this%ResidSite2)%RZ(Numb2)
+      
+      drx = (R1x - R2x)
+      drx = ( (drx -anint(drx))*this%BoxLength )**2
+      dry = (R1y - R2y)
+      dry = ( (dry -anint(dry))*this%BoxLength )**2
+      drz = (R1z - R2z)
+      drz = ( (drz -anint(drz))*this%BoxLength )**2
+      if ( drx+dry+drz .gt. CriticalLength ) then
+        call Update( this%SumResidenceDuration, this%ResidTimes(i) )
+!        this%ResidenceDuration = this%ResidenceDuration + this%ResidTimes(i)
+!        this%ResidenceNumber   = this%ResidenceNumber   + 1
+        this%CompPair(i,1) = 0
+        this%CompPair(i,2) = 0
+        this%ResidTimes(i) = 0._RK
+      else
+        this%ResidTimes(i) = this%ResidTimes(i) + TimeStep
+      end if
+    end do
+    
+    ! Update list, if time is ready
+    if (mod(Step,this%ResidPeriod) == 0) then
+      call ResidencePartners ( this )
+    end if
+    ! Count number of pairs per time step
+    call Update( this%SumResidencePairs, 1._RK*this%ResidPairs - 1._RK*counter )
+    
+   end subroutine TEnsemble_Residence
+
+!==============================================================!
+!  Subroutine TEnsemble_ResidencePartners                      !
+!==============================================================!
+
+  subroutine TEnsemble_ResidencePartners( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+    
+    ! Declare local variables
+    integer :: i, j
+    integer :: ResidPairs
+    type(TComponent),pointer :: pc1, pc2
+    real(RK) :: R1x, R1y, R1z
+    real(RK) :: R2x, R2y, R2z
+    real(RK) :: drx, dry, drz
+    real(RK) :: CriticalLength
+    
+    pc1 => this%Component(this%ResidComp1)
+    pc2 => this%Component(this%ResidComp2)
+!     CriticalLength = (this%ResidLength * this%BoxLength)**2
+    CriticalLength = (this%ResidLength)**2
+    ResidPairs = 0
+    this%ResidTimes_Old = this%ResidTimes
+    this%ResidTimes = 0._RK
+    this%CompPair_Old = this%CompPair
+    
+
+    do i=1, pc1%NPart
+      do j=1, pc2%NPart
+        ! Calculate distance
+        R1x = pc1%Molecule%SiteLJ126(this%ResidSite1)%RX(i)
+        R1y = pc1%Molecule%SiteLJ126(this%ResidSite1)%RY(i)
+        R1z = pc1%Molecule%SiteLJ126(this%ResidSite1)%RZ(i)
+        R2x = pc2%Molecule%SiteLJ126(this%ResidSite2)%RX(j)
+        R2y = pc2%Molecule%SiteLJ126(this%ResidSite2)%RY(j)
+        R2z = pc2%Molecule%SiteLJ126(this%ResidSite2)%RZ(j)
+        
+        drx = (R1x - R2x)
+        drx = ( (drx -anint(drx))*this%BoxLength )**2
+        dry = (R1y - R2y)
+        dry = ( (dry -anint(dry))*this%BoxLength )**2
+        drz = (R1z - R2z)
+        drz = ( (drz -anint(drz))*this%BoxLength )**2
+        if ( drx+dry+drz .le. CriticalLength ) then
+          ResidPairs = ResidPairs + 1
+          this%CompPair(ResidPairs,1) = i
+          this%CompPair(ResidPairs,2) = j
+!           if ( ResidPairs .eq. 15 ) then
+!             exit
+!           end if 
+        end if 
+      end do
+    end do
+    do i=1,ResidPairs
+      do j=1, this%ResidPairs
+        if ( (this%CompPair(i,1) .eq. this%CompPair_Old(j,1)) .and. (this%CompPair(i,2) .eq. this%CompPair_Old(j,2)) ) then
+!           this%ResidTimes(i) = this%ResidPeriod*TimeStep + this%ResidTimes_Old(j)
+          this%ResidTimes(i) = this%ResidTimes_Old(j)
+        end if
+      end do
+    end do
+
+    this%ResidPairs = ResidPairs
+
+   end subroutine TEnsemble_ResidencePartners
+
+
+
+!==============================================================!
 !  Subroutine TEnsemble_SaveState                              !
 !==============================================================!
 
@@ -7635,6 +7886,10 @@ loop2:        do nc = 1, this%NComponents
         end do
       end if
 
+      ! Calculation of residence times
+      call Reset( this%SumResidenceDuration )
+      call Reset( this%SumResidencePairs )
+      
       ! 2.) Combined sums
       call Reset( this%SumEPotSquared )
       call Reset( this%SumEPotV )
@@ -9677,6 +9932,42 @@ loop2:        do nc = 1, this%NComponents
       end do
     end do
 #endif
+
+
+! Calculation of residence times
+    if ( this%ResidenceTime ) then
+      write(IOBuffer, '("Average pairs between")' )
+      call FileWrite( this%iounit_errors )
+      write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ), &
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
+      call FileWrite( this%iounit_errors )
+      write(IOBuffer, '("Average residence time between")' )
+      call FileWrite( this%iounit_errors )
+      if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ), &
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
+        call FileWrite( this%iounit_errors )
+        write(IOBuffer, '("No separation between the two components observed")' )
+      else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ), &
+&           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
+&           this%ResidenceDuration*UnitTime*1E15_RK
+        call FileWrite( this%iounit_errors )
+        write(IOBuffer, '("No pairing between the two components observed")' )
+      else
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ), &
+&         this%ResidComp1,this%ResidSite1, &
+&         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
+&         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
+      end if
+      call FileWrite( this%iounit_errors )
+      write(IOBuffer, '("Critical distance: ",F10.5," A")' ), &
+&           this%ResidLength*UnitLength/Angstroem
+      call FileWrite( this%iounit_errors )
+    end if
+    
     ! Close final result file
     call FileClose( this%iounit_errors )
 
@@ -10087,7 +10378,7 @@ if( RootProc .and. (CorrfunMode .eq. active) ) then
       end do
     end do
 
-    if (this%Ncomponents>1) then
+    if (this%NComponents > 1) then
       do i = 1, this%NComponents*this%NComponents
         do j = 1, this%NCorr
           write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
