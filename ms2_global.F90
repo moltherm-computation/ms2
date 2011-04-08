@@ -357,6 +357,14 @@ character(*), parameter :: VersionString = 'v12'
 #endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
+! Calculation of residence times
+  character(*), parameter :: IdResidTime                   = 'ResidTime'
+  character(*), parameter :: IdResidComp1                  = 'ResidComp1'
+  character(*), parameter :: IdResidSite1                  = 'ResidSite1'
+  character(*), parameter :: IdResidComp2                  = 'ResidComp2'
+  character(*), parameter :: IdResidSite2                  = 'ResidSite2'
+  character(*), parameter :: IdResidPeriod                 = 'ResidPeriod'
+  character(*), parameter :: IdResidLength                 = 'ResidLength'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -524,6 +532,9 @@ character(*), parameter :: VersionString = 'v12'
   ! Number of NPT equilibration time steps
   integer :: NStepsP
 
+  ! Number of gradual insertion initialization steps
+  integer :: GradInsInit
+  
   ! Number of orientations for second virial coefficient
   integer :: NOrient
 
@@ -968,8 +979,6 @@ contains
         stat=-1
         i=0
 #endif
-
-
         if( stat==0 ) then
           print *, 'chdir to', trim(buffer(:max(i-1,1)))
         else
@@ -995,9 +1004,9 @@ contains
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
-          !else               BugFix: LogOpen wurde noch nicht aufgerufen 
-           ! write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
-           ! call LogWrite
+!           else
+!             write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
+!             call LogWrite
           end if
 
           ! Read parameter file name from restart file
@@ -2388,6 +2397,11 @@ contains
 
     implicit none
 
+!     ! Include MPI header
+! #if MPI_VER > 0
+!     include 'mpif.h'
+! #endif
+
 #ifdef __INTEL_COMPILER
     ! Declare arguments
     integer, intent(in) :: signum
@@ -2398,6 +2412,12 @@ contains
 
     ! Set flag to terminate program
     TerminateProgram = .true.
+
+! #if MPI_VER > 0
+!     ! Communicate Termination
+!     call MPI_Bcast( TerminateProgram, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+!     call MPI_Barrier( Communicator )
+! #endif
 
 #ifdef __INTEL_COMPILER
     ! Set return value
