@@ -477,13 +477,17 @@ contains
 
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
-      if( SimulationType .eq. MolecularDynamics ) then
+  !    if( SimulationType .eq. MolecularDynamics ) then
         call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
         if( NStepsMC > 0 ) then
           write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) &
 &           NStepsMC
           call LogWrite
-          MCOverlapReduction = .true.
+          if( SimulationType .eq. MolecularDynamics ) then
+           MCOverlapReduction = .true.
+          else
+           MCOverlapReduction = .false. 
+          end if
           Acceptance = .5_RK
           AccUpperLimit = Acceptance * 1.1_RK
           AccLowerLimit = Acceptance * 0.9_RK
@@ -492,9 +496,9 @@ contains
           call LogWrite
           MCOverlapReduction = .false.
         end if
-      else
-        MCOverlapReduction = .false.
-      end if
+  !    else
+   !     MCOverlapReduction = .false.
+ !     end if
 
       ! Read number of NVT equilibration steps
       call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
@@ -857,10 +861,11 @@ contains
     integer :: i, j
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
+    integer :: k
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
     type(TInteraction), pointer :: pi
-    integer :: k, n1, n2
+    integer :: n1, n2
     
     integer :: color, NGroups, Proc_Max_Eff
     
@@ -1398,11 +1403,21 @@ eqloop: do
          write( IOBuffer, '("  (adjustment of weighting factors)")' )
        end if
        call LogWriteTime
-
-       do i = 1, this%NEnsembles
-         call ChemicalPotential( this%Ensemble(i) )
+       
+       do k = 1, max(NStepsMC,1)
+         do i = 1, this%NEnsembles
+         
+           call ChemicalPotential( this%Ensemble(i) )
+         end do
+         Step = Step + 1
        end do
-
+       
+       
+       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) &
+&           max(NStepsMC,1)*this%NEnsembles
+       call LogWrite
+       
+       Step = 1
        if( .not. TerminateProgram ) then
          write( IOBuffer, '("GradIns initialization completed")' )
          GradInsInitialization = .false.

@@ -1081,6 +1081,13 @@ contains
     character(FileNameLength) :: PotModFileName
     real(RK)                  :: scaleSigma, scaleEpsilon
 
+
+#if MPI_VER > 0
+
+    call Error('Up to now, SVC can only be used with the serial version.' )
+
+#endif
+
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
     call AllocationError( stat, 'simulation box length' )
@@ -3731,6 +3738,10 @@ loop3:    do nc = 1, this%NComponents
 #if MPI_VER > 0
     integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
+    integer                   :: tempVal, tempVal2
+    integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
+    integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
+    
     !integer                   :: color
 #endif
     ! No calculation of chemical potential in equilibration
@@ -3929,14 +3940,60 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. &
-&           ( GradInsInitialization ) ) then
+&           ( GradInsInitialization .and. mod(Step, max(NStepsMC,1)) ==0 ) ) then
     
           ! Here we sum up the NStateWF over all processes dealing with a specific component to improve statistics
 #if MPI_VER > 0
           call MPI_Allreduce(pc%NStateWF, tempVec(0:pc%NFluctMax), size(pc%NStateWF), MPI_INTEGER, &
 &           MPI_SUM, Communicator, ierror)
           pc%NStateWF = tempVec(0:pc%NFluctMax)
-#endif         
+          
+          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          
+           do j = 1, pc%NFluctMax
+            pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) &
+&                               / real(pc%NStateWF(j) + 1, RK)
+          end do
+          write( IOBuffer, '("New weighting factors for ",A," calculated:")' ) &
+&           trim( pc%PotModFileName )
+          call LogWrite
+          write( IOBuffer, &
+&           '("   State      NState      new WF     up        down (%)")' )
+          call LogWrite
+          write( IOBuffer, &
+&           '("   --------------------------------  --------  --------")' )
+          call LogWrite
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(tempVec3(j), RK) / &
+&             real(tempVec4(j), RK) * 100._RK
+            call LogWrite
+
+          do j = pc%NFluctMax - 1, 1, -1
+            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&             pc%WF(j), real(tempVec1(j+1), RK) / &
+&               real(tempVec2(j+1), RK) * 100._RK, &
+&             real(tempVec3(j), RK) / &
+&               real(tempVec4(j), RK) * 100._RK
+            call LogWrite
+          end do
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
+&           real(tempVec1(1), RK) / &
+&             real(tempVec2(1), RK) * 100._RK, 0._RK
+          call LogWrite
+          call LogWriteBlank
+          pc%NStateWF(:) = 0
+          
+          
+#else        
           do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) &
 &                               / real(pc%NStateWF(j) + 1, RK)
@@ -3971,6 +4028,9 @@ loop2:        do nc = 1, this%NComponents
           call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
+          
+          
+#endif          
         end if
 
       ! Chemical potential by Widom's test particle method
