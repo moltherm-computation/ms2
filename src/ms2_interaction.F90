@@ -2383,7 +2383,7 @@ contains
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
     this%NInCutoff(:) = 0
-    this%CutoffPartner(:, :) = 0
+ !   this%CutoffPartner(:, :) = 0
 
     ! Assign local pointers
     PX1 => this%PX1
