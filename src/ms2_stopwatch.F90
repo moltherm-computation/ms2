@@ -877,7 +877,7 @@ contains
       end if
 #endif
       write( IOBuffer, &
-&       '(T2,A," system_clock diff:", G16.9,"sec")' ) &
+&       '(T2,A," system_clock diff:", G18.9,"sec")' ) &
 &       trim(this%tag_string), sysclk_diff_sec
       call LogWrite
       write( IOBuffer, &
@@ -903,7 +903,7 @@ contains
     if (IAND(this%options,CStopwatch_omitCPUTIME) == 0) then
       cputime_diff = this%cputime_stop-this%cputime_start
       write( IOBuffer, &
-&       '(T2,A," cpu_time     diff:",G16.9," sec")' ) &
+&       '(T2,A," cpu_time     diff:",G18.9,"sec")' ) &
 &       trim(this%tag_string), &
 &       cputime_diff
 !    write( IOBuffer, &
@@ -922,19 +922,19 @@ contains
       if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
         ! min/max reduction available
         write( IOBuffer, &
-&         '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
+&         '(T2,A," wtime        diff:",G18.9,"-",G18.9,"sec")' ) &
 &         trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
           call LogWrite
-        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+        write( IOBuffer,'(T30,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       else
         ! no min/max reduction available
         write( IOBuffer, &
-&         '(T2,A," wtime   root diff:",G16.9)' ) &
+&         '(T2,A," wtime   root diff:",G18.9,"sec")' ) &
 &         trim(this%tag_string), this%wtime_diff(1)
           call LogWrite
-        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+        write( IOBuffer,'(T31,"=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       end if
