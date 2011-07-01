@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_global                                           !
 !  Contains declarations of global constants and functions     !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -105,7 +111,7 @@ module ms2_global
 #endif
 
   ! Version of program
-character(*), parameter :: VersionString = 'v12'
+character(*), parameter :: VersionString = 'v1.0'
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -1370,6 +1376,45 @@ contains
     write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("*                         Publishing with ms2                          *")')
+    call LogWrite
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
+    call LogWrite
+    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
+    call LogWrite
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,     *")')
+    call LogWrite
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec           *")')
+    call LogWrite
+    write( IOBuffer, '("* Computer Physics Communications (2011)                               *")')
+    call LogWrite
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
+    call LogWrite
+    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
+    call LogWrite
+    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
     call LogWrite
     write( IOBuffer, '(72("*"))')
     call LogWrite

@@ -1,26 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_potential                                        !
 !  Contains TPot* objects                                      !
 !==============================================================!
 
-!==============================================================!
-! ChangeLog                                                    !
-!==============================================================!
-! 04/07/09  PotQuadrupoleDipole ergaenzt                       !
-!           Subroutinen Force, Chempot und Energy angelegt     !
-!           mit 2CLJDQ von Juergen verglichen                  !
-!                                                              !
-! 05/03/30  Charge Potentials ergaenzt (MC Energy noch falsch) !
-!                                                              !
-! 05/09/15  Thorsten hat alles bis auf Chempo gecheckt         !
-!                                                              !
-! 05/12/15  Schleifen mit neuer Cutoffberechnung konsistent    !
-!                                                              !
-!==============================================================!
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0

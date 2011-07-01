@@ -1,13 +1,14 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
-!> Module: ms2_stopwatch                                       !
-!          contains TStopwatch class                           !
-!> \author Martin Bernreuther <bernreuther@hlrs.de>            !
-!> \date   06.2009                                             !
-!==============================================================!
-! alternative: http://math.nist.gov/StopWatch/                 !
-!==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
