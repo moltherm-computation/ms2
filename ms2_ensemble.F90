@@ -238,9 +238,11 @@ module ms2_ensemble
     integer         :: ResidPairs
     integer         :: ResidComp1, ResidSite1
     integer         :: ResidComp2, ResidSite2
+    integer         :: ResidCem
     integer,pointer :: CompPair(:,:), CompPair_Old(:,:)
-    real(RK),pointer:: ResidTimes(:), ResidTimes_Old(:)
+    integer,pointer :: ResidTimesStart(:), ResidTimesStart_Old(:), ResidPairsCem(:,:)
     integer         :: ResidPeriod
+    integer         :: ResidBreak
     real(RK)        :: ResidLength
 !    real(RK)        :: ResidenceNumber
     real(RK)        :: ResidenceDuration
@@ -943,6 +945,9 @@ contains
           write( IOBuffer, '("Pairing at distances lower: ",T28, F9.5)' ) this%ResidLength
           call LogWrite
           this%ResidLength = this%ResidLength / UnitLength * Angstroem
+          call FileReadParameter( this%ResidBreak, iounit_params , IdResidBreak, .false., 0 )
+          write( IOBuffer, '("Pairing can be invalid for steps: ",T28, I7)' ) this%ResidBreak
+          call LogWrite
 
         case( 'NO', 'No', 'no')
           this%ResidenceTime = .false.
@@ -1507,6 +1512,11 @@ contains
     type(TComponent), pointer :: pc
     character(FileNameLength) :: PotModFileName
     real(RK)                  :: scaleSigma, scaleEpsilon
+
+
+#if MPI_VER > 0
+    call Error('Up to now, SVC can only be used with the serial version.' )
+#endif
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -2085,8 +2095,10 @@ contains
 #endif
 
 ! Calculation of residence times
+     if (this%ResidenceTime) then
       call Construct( this%SumResidenceDuration, .false. )
       call Construct( this%SumResidencePairs, .false. )
+     end if
 
       do i = 1, this%NRealComponents
         call CreateAccumulators( this%Component(i) )
@@ -2161,8 +2173,10 @@ contains
 #endif
 
 ! Calculation of residence times
-    call Destruct( this%SumResidenceDuration )
-    call Destruct( this%SumResidencePairs )
+    if ( this%ResidenceTime ) then
+      call Destruct( this%SumResidenceDuration )
+      call Destruct( this%SumResidencePairs )
+    end if
 
     do i = 1, this%NRealComponents
       call DestroyAccumulators( this%Component(i) )
@@ -2653,15 +2667,18 @@ contains
     if ( this%ResidenceTime ) then
       nullify( this%CompPair )
       nullify( this%CompPair_Old )
-      nullify( this%ResidTimes )
-      nullify( this%ResidTimes_Old )
+      nullify( this%ResidTimesStart )
+      nullify( this%ResidTimesStart_Old )
+      nullify( this%ResidPairsCem )
       allocate(this%CompPair(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
       if(stat >0) write(*,*) 'Allocation Error this%CompPair'
       allocate(this%CompPair_Old(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
       if(stat >0) write(*,*) 'Allocation Error this%CompPair'
-      allocate(this%ResidTimes(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
+      allocate(this%ResidTimesStart(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
       if(stat >0) write(*,*) 'Allocation Error this%CompPair'
-      allocate(this%ResidTimes_Old(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
+      allocate(this%ResidTimesStart_Old(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
+      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      allocate(this%ResidPairsCem(this%Component(this%ResidComp1)%NPart*10,4),STAT=stat)
       if(stat >0) write(*,*) 'Allocation Error this%CompPair'
     end if
 
@@ -2813,11 +2830,14 @@ contains
       if( associated( this%CompPair_Old ) ) then
         deallocate( this%CompPair_Old )
       end if
-      if( associated( this%ResidTimes ) ) then
-        deallocate( this%ResidTimes )
+      if( associated( this%ResidTimesStart ) ) then
+        deallocate( this%ResidTimesStart )
       end if
-      if( associated( this%ResidTimes_Old ) ) then
-        deallocate( this%ResidTimes_Old )
+      if( associated( this%ResidTimesStart_Old ) ) then
+        deallocate( this%ResidTimesStart_Old )
+      end if
+      if( associated( this%ResidPairsCem ) ) then
+        deallocate( this%ResidPairsCem )
       end if
     end if
 
@@ -4763,6 +4783,9 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
     real(RK)                  :: EPot_h
+    integer                   :: tempVal, tempVal2
+    integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
+    integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
 #endif
 
     ! No calculation of chemical potential in equilibration
@@ -4964,14 +4987,60 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. &
-&           ( GradInsInitialization .and. Step .eq. GradInsInit) ) then
+&           ( GradInsInitialization .and. mod(Step, max(NStepsMC,1)) ==0 ) ) then
           ! Here we sum up the NStateWF over all processes 
           ! dealing with a specific component to improve statistics
 #if MPI_VER > 0
           call MPI_Allreduce(pc%NStateWF,tempVec(0:pc%NFluctMax),size(pc%NStateWF),MPI_INTEGER, &
 &           MPI_SUM, Communicator, ierror)
           pc%NStateWF = tempVec(0:pc%NFluctMax)
-#endif         
+          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
+          & MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          
+           do j = 1, pc%NFluctMax
+            pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) &
+&                               / real(pc%NStateWF(j) + 1, RK)
+          end do
+          write( IOBuffer, '("New weighting factors for ",A," calculated:")' ) &
+&           trim( pc%PotModFileName )
+          call LogWrite
+          write( IOBuffer, &
+&           '("   State      NState      new WF     up        down (%)")' )
+          call LogWrite
+          write( IOBuffer, &
+&           '("   --------------------------------  --------  --------")' )
+          call LogWrite
+          j = pc%NFluctMax
+          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&           pc%WF(j), 0._RK, real(tempVec3(j), RK) / &
+&             real(tempVec4(j), RK) * 100._RK
+            call LogWrite
+
+          do j = pc%NFluctMax - 1, 1, -1
+            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), &
+&             pc%WF(j), real(tempVec1(j+1), RK) / &
+&               real(tempVec2(j+1), RK) * 100._RK, &
+&             real(tempVec3(j), RK) / &
+&               real(tempVec4(j), RK) * 100._RK
+            call LogWrite
+          end do
+          write( IOBuffer, &
+&           '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
+&           real(tempVec1(1), RK) / &
+&             real(tempVec2(1), RK) * 100._RK, 0._RK
+          call LogWrite
+          call LogWriteBlank
+          pc%NStateWF(:) = 0
+          
+          
+#else        
+
           do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) &
 &                               / real(pc%NStateWF(j) + 1, RK)
@@ -5006,6 +5075,7 @@ loop2:        do nc = 1, this%NComponents
           call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
+#endif         
         end if
 
 
@@ -7647,14 +7717,14 @@ loop2:        do nc = 1, this%NComponents
       drz = (R1z - R2z)
       drz = ( (drz -anint(drz))*this%BoxLength )**2
       if ( drx+dry+drz .gt. CriticalLength ) then
-        call Update( this%SumResidenceDuration, this%ResidTimes(i) )
-!        this%ResidenceDuration = this%ResidenceDuration + this%ResidTimes(i)
-!        this%ResidenceNumber   = this%ResidenceNumber   + 1
+        this%ResidCem = this%ResidCem + 1
+        this%ResidPairsCem(this%ResidCem,1) = this%CompPair(i,1)
+        this%ResidPairsCem(this%ResidCem,2) = this%CompPair(i,2)
+        this%ResidPairsCem(this%ResidCem,3) = this%ResidTimesStart(i)
+        this%ResidPairsCem(this%ResidCem,4) = Step
         this%CompPair(i,1) = 0
         this%CompPair(i,2) = 0
-        this%ResidTimes(i) = 0._RK
-      else
-        this%ResidTimes(i) = this%ResidTimes(i) + TimeStep
+        this%ResidTimesStart(i) = 0._RK
       end if
     end do
     
@@ -7681,6 +7751,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     integer :: i, j
     integer :: ResidPairs
+    integer :: counter 
     type(TComponent),pointer :: pc1, pc2
     real(RK) :: R1x, R1y, R1z
     real(RK) :: R2x, R2y, R2z
@@ -7692,8 +7763,7 @@ loop2:        do nc = 1, this%NComponents
 !     CriticalLength = (this%ResidLength * this%BoxLength)**2
     CriticalLength = (this%ResidLength)**2
     ResidPairs = 0
-    this%ResidTimes_Old = this%ResidTimes
-    this%ResidTimes = 0._RK
+    this%ResidTimesStart_Old = this%ResidTimesStart
     this%CompPair_Old = this%CompPair
     
 
@@ -7717,21 +7787,48 @@ loop2:        do nc = 1, this%NComponents
           ResidPairs = ResidPairs + 1
           this%CompPair(ResidPairs,1) = i
           this%CompPair(ResidPairs,2) = j
+          this%ResidTimesStart(ResidPairs) = Step
 !           if ( ResidPairs .eq. 15 ) then
 !             exit
 !           end if 
         end if 
       end do
     end do
+! Update pairs, that are still grouped
     do i=1,ResidPairs
       do j=1, this%ResidPairs
         if ( (this%CompPair(i,1) .eq. this%CompPair_Old(j,1)) .and. (this%CompPair(i,2) .eq. this%CompPair_Old(j,2)) ) then
 !           this%ResidTimes(i) = this%ResidPeriod*TimeStep + this%ResidTimes_Old(j)
-          this%ResidTimes(i) = this%ResidTimes_Old(j)
+          this%ResidTimesStart(i) = this%ResidTimesStart_Old(j)
         end if
       end do
     end do
+! Update pairs, that were grouped but were separated for less time than allowed (ResidBreak)
+    counter  = 0
+    do i=1,ResidPairs
+      do j=1, this%ResidCem
+        if ( (this%CompPair(i,1) .eq. this%ResidPairsCem(j,1)) .and. (this%CompPair(i,2) .eq. this%ResidPairsCem(j,2)) ) then
+!           this%ResidTimes(i) = this%ResidPeriod*TimeStep + this%ResidTimes_Old(j)
+          this%ResidTimesStart(i) = this%ResidPairsCem(j,3)
+          this%ResidPairsCem(this%ResidCem,1:4) = this%ResidPairsCem(j,1:4)
+          counter = counter + 1
+        end if
+      end do
+    end do
+    this%ResidCem = this%ResidCem - counter
 
+! Update Residence Time
+    counter  = 0
+    do i=1, this%ResidCem
+      if ( (Step - this%ResidPairsCem(i,4)) .gt. this%ResidBreak ) then
+         call Update( this%SumResidenceDuration, ( this%ResidPairsCem(i,4)-this%ResidPairsCem(i,3) )*TimeStep )
+          this%ResidPairsCem(this%ResidCem,1:4) = this%ResidPairsCem(i,1:4)
+          counter = counter + 1
+      end if
+    end do
+    this%ResidCem = this%ResidCem - counter
+
+! Update Number of pairs in the system (really grouped!)
     this%ResidPairs = ResidPairs
 
    end subroutine TEnsemble_ResidencePartners
@@ -7887,8 +7984,10 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       ! Calculation of residence times
-      call Reset( this%SumResidenceDuration )
-      call Reset( this%SumResidencePairs )
+      if ( this%ResidenceTime ) then
+        call Reset( this%SumResidenceDuration )
+        call Reset( this%SumResidencePairs )
+      end if
       
       ! 2.) Combined sums
       call Reset( this%SumEPotSquared )

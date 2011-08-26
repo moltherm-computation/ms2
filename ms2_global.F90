@@ -365,6 +365,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdResidSite2                  = 'ResidSite2'
   character(*), parameter :: IdResidPeriod                 = 'ResidPeriod'
   character(*), parameter :: IdResidLength                 = 'ResidLength'
+  character(*), parameter :: IdResidBreak                  = 'ResidBreak'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -945,7 +946,8 @@ contains
       else
         ProgramFileName = trim( buffer )         ! possible truncation?
       end if
-#if defined __PATHSCALE__
+#if defined __PATHSCALE__ || defined _CRAYFTN
+! this should work for all Fortran2003 compilers
       narg = command_argument_count()
 #else
       narg = iargc()
@@ -970,7 +972,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined __PATHSCALE__ || defined _PGF
+#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__
         stat = chdir( buffer(:max(i-1,1)) )
 #elif ARCH==3 || defined __GNUC__
         call chdir( buffer(:max(i-1,1)), stat )
@@ -980,7 +982,7 @@ contains
         i=0
 #endif
         if( stat==0 ) then
-          print *, 'chdir to', trim(buffer(:max(i-1,1)))
+          print *, 'chdir to ', trim(buffer(:max(i-1,1)))
         else
           print *, 'cannot change to ', trim(buffer(:max(i-1,1))), ' stat=', stat
         end if
@@ -1305,7 +1307,7 @@ contains
     if( .not. RootProc ) return
 
     ! Get name of host
-#if ARCH == 1
+#if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
 #if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
