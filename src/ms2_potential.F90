@@ -473,7 +473,7 @@ module ms2_potential
     type(TIdfBond), pointer   :: Bond
     integer                   :: Site1, Site2
     integer                   :: Unit1, Unit2
-    real(RK),pointer          :: ForConst 
+    real(RK),pointer          :: ForConst
     real(RK)                  :: R0
 !    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
 !    real(RK)                  :: BoxlengthInv, BoxLengthThird
@@ -2753,7 +2753,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FY2(i) = FY2(i) - FYij
             FZ2(i) = FZ2(i) - FZij
             ! coeff is already included in Epsilon1 coefficient     ! Uebereinstimmung mit Price
-            TX2(i) = TX2(i) - Epsilon1 * eX 
+            TX2(i) = TX2(i) - Epsilon1 * eX
             TY2(i) = TY2(i) - Epsilon1 * eY
             TZ2(i) = TZ2(i) - Epsilon1 * eZ
         end if
@@ -6065,7 +6065,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             eX = - RXij * RijInv                                                    ! Normierter Abstandsvektor nach Price
             eY = - RYij * RijInv
             eZ = - RZij * RijInv
-            CosTheta  = OXi * ex + OYi * eY + OZi * eZ          
+            CosTheta  = OXi * ex + OYi * eY + OZi * eZ
             ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
             Epsilon1 = Epsilon * RijSquaredInv * RijInv
             EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )*coeff
@@ -8389,19 +8389,19 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotBond_ChemicalPotential                       !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotBond_ChemicalPotential( this, EPotTest, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotBond) :: this
 !     real(RK), pointer    :: EPotTest(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotBond_ChemicalPotential is not implemented' )
-! 
+!
 !   end subroutine TPotBond_ChemicalPotential
 
 
@@ -8409,21 +8409,21 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotBond_Energy                                  !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotBond_Energy( this, np, EPot, Virial, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotBond) :: this
 !     integer, intent(in)  :: np
 !     real(RK), pointer    :: EPot(:)
 !     real(RK), pointer    :: Virial(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotBond_Energy is not implemented' )
-! 
+!
 !   end subroutine TPotBond_Energy
 
 
@@ -8653,19 +8653,19 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotAngle_ChemicalPotential                       !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotAngle_ChemicalPotential( this, EPotTest, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotAngle) :: this
 !     real(RK), pointer    :: EPotTest(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotAngle_ChemicalPotential is not implemented' )
-! 
+!
 !   end subroutine TPotAngle_ChemicalPotential
 
 
@@ -8673,21 +8673,21 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotAngle_Energy                                  !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotAngle_Energy( this, np, EPot, Virial, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotAngle) :: this
 !     integer, intent(in)  :: np
 !     real(RK), pointer    :: EPot(:)
 !     real(RK), pointer    :: Virial(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotAngle_Energy is not implemented' )
-! 
+!
 !   end subroutine TPotAngle_Energy
 
 
@@ -9016,19 +9016,19 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotDihedral_ChemicalPotential                       !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotDihedral_ChemicalPotential( this, EPotTest, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotDihedral) :: this
 !     real(RK), pointer    :: EPotTest(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotDihedral_ChemicalPotential is not implemented' )
-! 
+!
 !   end subroutine TPotDihedral_ChemicalPotential
 
 
@@ -9036,21 +9036,21 @@ loop2:do j = 1, j1
 ! !==============================================================!
 ! !  Subroutine TPotDihedral_Energy                                  !
 ! !==============================================================!
-! 
+!
 !   subroutine TPotDihedral_Energy( this, np, EPot, Virial, BoxLength )
-! 
+!
 !     implicit none
-! 
+!
 !     ! Declare arguments
 !     type(TPotDihedral) :: this
 !     integer, intent(in)  :: np
 !     real(RK), pointer    :: EPot(:)
 !     real(RK), pointer    :: Virial(:)
 !     real(RK), intent(in) :: BoxLength
-! 
+!
 !     ! Issue error
 !     call Error( 'Subroutine TPotDihedral_Energy is not implemented' )
-! 
+!
 !   end subroutine TPotDihedral_Energy
 
 

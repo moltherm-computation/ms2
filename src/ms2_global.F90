@@ -55,9 +55,9 @@ module ms2_global
   ! 4: single precision
   ! 8: double precision
 #ifdef SINGLEPRECISION
-  integer, parameter :: RK = 4
+  integer, parameter :: RK = KIND(1.0)                                         
 #else
-  integer, parameter :: RK = 8
+  integer, parameter :: RK = KIND(1D0)
 #endif
 ! better use a MPI_RK parameter in future, if compilation problems with mpif.h are solved
 #if MPI_VER > 0
@@ -360,7 +360,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
 
   ! (Almost) zero for mass of inertia
-  real(RK), parameter :: Zero = 1E-07_RK
+  real(RK), parameter :: Zero = 1E-10_RK
 
   ! Contribution limit in chemical potential by Widom
   real(RK), parameter :: ContributionLimit = 708.3964185
@@ -948,7 +948,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined __PATHSCALE__ || defined _PGF
+#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__
         stat = chdir( buffer(:max(i-1,1)) )
 #elif ARCH==3 || defined __GNUC__
         call chdir( buffer(:max(i-1,1)), stat )
@@ -1067,7 +1067,7 @@ contains
 #elif ARCH == 3
     i = signal( 15, SetTerminateProgram )
 #endif
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( i < 0 ) then
@@ -1087,13 +1087,13 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_8 / (4._8 * real(Pi, 8) &
+    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_8 / (4._8 * real(Pi, 8) &
+    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) &
 &     * real(VacuumPermittivity, 8) ) ), RK )
 #else
-    DebyesInSI = sqrt( 1E49_8 / (4._8 * Pi * VacuumPermittivity) )
-    BuckinghamsInSI = sqrt( 1E69_8 / (4._8 * Pi * VacuumPermittivity) )
+    DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
+    BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
 #endif
 
   end subroutine Global_InitializeProgram
@@ -1285,7 +1285,7 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
     ! Get name of host
-#if ARCH == 1
+#if ARCH == 1 || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
 #if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
@@ -1351,7 +1351,7 @@ contains
     write( IOBuffer, '("started by user ", A)' ) trim( username )
     call LogWriteTime
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   end subroutine Global_LogOpen
@@ -1371,11 +1371,11 @@ contains
 
     ! Close log file
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("Program terminated")' )
     call LogWriteTime
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call FileClose( iounit_log )
 
@@ -1771,7 +1771,7 @@ contains
         ! end of file reached?
         elseif( stat < 0 ) then
           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
-          parametervalue=""
+          parametervalue = ''
           if( present(status) ) status = stat
           ! (try to) restore position
           if( present(rewind_before) ) then
@@ -1779,7 +1779,7 @@ contains
 !              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
               rewind( iounit )
               FileReadParameter_LineNumber = 0
-              linesread=0
+              linesread = 0
               exit    !not nice!
             end if
           end if
@@ -2158,7 +2158,7 @@ contains
 
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     call LogWriteBlank
 
@@ -2192,7 +2192,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    iharvest = 1 + ishft(int(range, 8) * &
+    iharvest = 1 + ishft(int(range, RK) * &
 &     ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd

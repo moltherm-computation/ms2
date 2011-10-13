@@ -1153,7 +1153,7 @@ contains
           mueZi = MueZ1(i, u)
           do k = 1, this%NInCutoff(iu)
             ! number of unit, which is in the cutoff radius of our unit iu
-            j = this%CutoffPartner(k, iu) 
+            j = this%CutoffPartner(k, iu)
             u2 = mod (j, nu2)
             if (u2 == 0) then
               ju = INT(j/nu2) ! number of molecule, to which this unit corresponds
@@ -1460,7 +1460,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit
             ! choose only units, to which our Site2 correspond
             nu2 = plj%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then  
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 !               if (mod(j,this%NUnit2)==0) then
 !                 jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
@@ -1523,7 +1523,7 @@ contains
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
-              if ( mod(j-nu2, this%NUnit2)==0) then  
+              if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 !                 if (mod(j,this%NUnit2)==0) then
 !                   jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
@@ -1574,7 +1574,7 @@ contains
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
-              if ( mod(j-nu2, this%NUnit2)==0) then  
+              if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 !                 if (mod(j,this%NUnit2)==0) then
 !                   jk = INT(j/this%NUnit2) ! number of molecule, to which this unit correspond
@@ -1613,7 +1613,7 @@ contains
                     eZ = RZij * RijInv
                     VirialLocal = EPotLocal * RijInv &
 &                   * (eX * PXij + eY * PYij + eZ * PZij)
-                  end if 
+                  end if
                 end if
                 EPot(j) = EPot(j) + EPotLocal
                 if ( OptPressure ) &
@@ -1649,7 +1649,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then 
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -1694,7 +1694,7 @@ contains
 &                               + ( Tmp * eY - OYj ) * PYij &
 &                               + ( Tmp * eZ - OZj ) * PZij )
                 end if
-              end if 
+              end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) &
 &                Virial(j) = Virial(j) + Third * VirialLocal
@@ -1728,7 +1728,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcq%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then 
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -1761,7 +1761,7 @@ contains
                 RijSquaredInv = 1._RK / RijSquared
                 RijInv = sqrt( RijSquaredInv )
                 ! Normierter Abstandsvektor
-                eX = RXij * RijInv  
+                eX = RXij * RijInv
                 eY = RYij * RijInv
                 eZ = RZij * RijInv
                 CosThetaj = OXj * ex + OYj * eY + OZj * eZ
@@ -1771,7 +1771,7 @@ contains
                 if ( OptPressure ) then
                   PXij = (PXij - anint( PXij )) * BoxLength
                   PYij = (PYij - anint( PYij )) * BoxLength
-                  PZij = (PZij - anint( PZij )) * BoxLength  
+                  PZij = (PZij - anint( PZij )) * BoxLength
                   Tmp = 2._RK * CosThetaj
                   CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
                   VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
@@ -1780,7 +1780,7 @@ contains
 &                    + ( CosAux * eZ - Tmp * OZj ) * PZij )
                 end if
 
-              end if 
+              end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) &
 &                Virial(j) = Virial(j) + Third * VirialLocal
@@ -1861,7 +1861,7 @@ contains
 &                              * ( ( OXi - Tmp * eX ) * PXij &
 &                                + ( OYi - Tmp * eY ) * PYij &
 &                                + ( OZi - Tmp * eZ ) * PZij )
-                end if 
+                end if
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) &
@@ -1902,7 +1902,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pdd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then  
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -1957,7 +1957,7 @@ contains
                   FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                          - (eZ * CosThetaj - OZj) * CosThetai)
                   VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
-                end if 
+                end if
               end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) &
@@ -1998,7 +1998,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pdq%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then 
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -2098,7 +2098,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pqc%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then  
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -2128,7 +2128,7 @@ contains
                 eX = - RXij * RijInv     ! Normierter Abstandsvektor nach Price
                 eY = - RYij * RijInv
                 eZ = - RZij * RijInv
-                CosThetai = OXi * ex + OYi * eY + OZi * eZ  
+                CosThetai = OXi * ex + OYi * eY + OZi * eZ
 !               Scalarprodukt normierter Abstandsvektor mit
 !               Orientierungsvektor Quadrupol
                 EPotLocal = Epsilon * RijSquaredInv * RijInv &
@@ -2141,7 +2141,7 @@ contains
                   CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
                   Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
 !                 Kraft auf die Punktladung, sprich F2
-                  FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi ) 
+                  FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )
                   FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
                   FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
                   VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
@@ -2185,7 +2185,7 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pqd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then  
+            if ( mod(j-nu2, this%NUnit2)==0) then
               jk  = CEILING(real(j)/this%NUnit2)
 
 !               if (mod(j,this%NUnit2)==0) then
@@ -2841,7 +2841,7 @@ contains
             PXij = PXi - PX2(j,pcq%Site2%UnitNumber)
             PYij = PYi - PY2(j,pcq%Site2%UnitNumber)
             PZij = PZi - PZ2(j,pcq%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength 
+            RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             ! Orientierungsvektor Quadrupol
@@ -2867,7 +2867,7 @@ contains
               if ( OptPressure ) then
                 PXij = (PXij - anint( RXij )) * BoxLength
                 PYij = (PYij - anint( RYij )) * BoxLength
-                PZij = (PZij - anint( RZij )) * BoxLength    
+                PZij = (PZij - anint( RZij )) * BoxLength
                 Tmp = 2._RK * CosThetaj
                 CosAux = 5._RK * CosThetaj * CosThetaj - 1._RK
                 VirialLocal =  Epsilon * RijSquaredInv * RijSquaredInv &
@@ -3137,7 +3137,7 @@ contains
             end if
             EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) &
-&              Virial(jk) = Virial(jk) + Third * VirialLocal 
+&              Virial(jk) = Virial(jk) + Third * VirialLocal
           end do
         end do ! s2
       end do ! s1
@@ -3199,7 +3199,7 @@ contains
               eX = - RXij * RijInv   ! Normierter Abstandsvektor nach Price
               eY = - RYij * RijInv
               eZ = - RZij * RijInv
-              CosThetai = OXi * ex + OYi * eY + OZi * eZ        
+              CosThetai = OXi * ex + OYi * eY + OZi * eZ
               ! Scalarprodukt normierter Abstandsvektor mit
               ! Orientierungsvektor Quadrupol
               EPotLocal = Epsilon * RijSquaredInv * RijInv &
@@ -3212,7 +3212,7 @@ contains
                 CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
                 Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
                 ! Kraft auf die Punktladung, sprich F2
-                FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               
+                FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )
                 FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
                 FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
                 VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
@@ -3414,7 +3414,7 @@ contains
 &                                          + (eY * CosThetaj - OYj) * dCosThetaj)
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
-                VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij 
+                VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
               end if
             end if
             EPot(jk) = EPot(jk) + EPotLocal
@@ -3555,7 +3555,7 @@ contains
               coeff = plj%ScaleLJ14  !Scale 1,4 LJ interaction
             else if (intra15) then
               coeff = 1._RK
-            else 
+            else
               cycle
             end if
 
@@ -3621,7 +3621,7 @@ contains
               coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
             else if (intra15) then
               coeff = 1._RK
-            else 
+            else
               cycle
             end if
 
@@ -3670,7 +3670,7 @@ contains
                 KappaRij = this%Kappa*Rij
                 call erfc_approx(KappaRij,approx)
                 !for 1,4 intramolecular interactions
-                EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff 
+                EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff
                 if ( OptPressure ) then
                   PXij = (PXij - anint( PXij )) * BoxLength
                   PYij = (PYij - anint( PYij )) * BoxLength
@@ -3682,7 +3682,7 @@ contains
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
                 end if
                 !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
-                unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber 
+                unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber
                 EPot(unit2)  = EPot(unit2) + EPotLocal
                 if ( OptPressure ) &
 &                  Virial(unit2)= Virial(unit2) + Third * VirialLocal
@@ -3884,7 +3884,7 @@ contains
                 CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
                 Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv * coeff
                 ! F2 nach Price bzw. Kraft auf Punktladung
-                FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )              
+                FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )
                 FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
                 FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
                 VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij   ! Vorzeichen richtig so
@@ -4249,7 +4249,7 @@ contains
                 CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
                 Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv * coeff
                 ! Kraft auf die Punktladung, sprich F2
-                FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )               
+                FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )
                 FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
                 FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
                 VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
@@ -4630,7 +4630,7 @@ contains
               Rij = sqrt(RijSquared)
               KappaRij = this%Kappa*Rij
               call erfc_approx(KappaRij,approx)
-              EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff 
+              EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff
               if ( OptPressure ) then
                 PXij = (PXij - anint( RXij )) * BoxLength
                 PYij = (PYij - anint( RYij )) * BoxLength
@@ -4643,7 +4643,7 @@ contains
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
               end if
             end if
-            unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber 
+            unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber
             !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
             EPot(unit2)  = EPot(unit2) + EPotLocal
             if ( OptPressure ) &
@@ -4843,7 +4843,7 @@ contains
               CosTheta2 = 2._RK * CosTheta
               CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
               Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv * coeff
-              FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )  
+              FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )
               ! F2 nach Price bzw. Kraft auf Punktladung
               FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
               FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
@@ -5146,7 +5146,7 @@ contains
             coeff = pqc%ScaleEl14 !Scale 1,4 El interactions
           else if (intra15) then
             coeff = 1._RK
-          else 
+          else
             cycle
           end if
 
@@ -5196,7 +5196,7 @@ contains
             eX = - RXij * RijInv     ! Normierter Abstandsvektor nach Price
             eY = - RYij * RijInv
             eZ = - RZij * RijInv
-            CosThetai = OXi * ex + OYi * eY + OZi * eZ        
+            CosThetai = OXi * ex + OYi * eY + OZi * eZ
             ! Scalarprodukt normierter Abstandsvektor mit
             ! Orientierungsvektor Quadrupol
             EPotLocal = Epsilon * RijSquaredInv * RijInv * coeff &
@@ -5512,7 +5512,7 @@ contains
         RYk=pan%Angle%RY3(np)
         RZk=pan%Angle%RZ3(np)
 
-        if ( .not. pan%orientation1 ) then 
+        if ( .not. pan%orientation1 ) then
           ! Assign pointers to site positions
           RXij = (RXi - pan%Angle%RX2(np))
           RYij = (RYi - pan%Angle%RY2(np))
@@ -5972,7 +5972,7 @@ contains
 
     ! Set cutoff radius
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    
+
     ! Assigning local variables
     N2    = this%NPart2
     NU2   = this%NUnit2
@@ -6068,7 +6068,7 @@ contains
 !     PX2 => this%PX2(np,1:NU2)
 !     PY2 => this%PY2(np,1:NU2)
 !     PZ2 => this%PZ2(np,1:NU2)
-! 
+!
 !     do k=1, NU2
 !       PX2d(k)=PX2(np,k)
 !       PY2d(k)=PY2(np,k)
@@ -6080,7 +6080,7 @@ contains
       PY2d(k)=this%PY2(np,k)
       PZ2d(k)=this%PZ2(np,k)
     end do
-    
+
     ! No difference between component1 and component2
     PXi = PX2d(nu)
     PYi = PY2d(nu)
@@ -6093,7 +6093,7 @@ contains
 !       nu1 = this%NUnit1
 !       np = INT(nu/this%NUnit1)
 !     end if
-! 
+!
 !     PXi = this%PX1(np, nu1)
 !     PYi = this%PY1(np, nu1)
 !     PZi = this%PZ1(np, nu1)

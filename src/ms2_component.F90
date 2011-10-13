@@ -63,7 +63,7 @@ module ms2_component
 
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer :: Q0(:, :, :)
-     real(RK), pointer :: Q0Save(:, :, :)
+    real(RK), pointer :: Q0Save(:, :, :)
     real(RK), pointer :: Q0tmp(:, :, :)
     real(RK), pointer :: Q1(:, :, :)
     real(RK), pointer :: Q2(:, :, :)
@@ -161,7 +161,7 @@ module ms2_component
 !DEBUG
     real(RK) :: ChemPot0, PartialMolarVolume
     real(RK) :: VarChemPot, VarPartialMolarVolume
-    
+
     integer  :: BiasedPartners
 
     ! IDF
@@ -325,11 +325,11 @@ end interface
     module procedure TComponent_Unit2Mol
     module procedure TComponent_Unit2Mol1
   end interface
-  
+
   interface Flex2Rigid
     module procedure TComponent_Flex2Rigid
   end interface
-  
+
   interface Rigid2Flex
     module procedure TComponent_Rigid2Flex
   end interface
@@ -1386,7 +1386,7 @@ contains
             this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
             this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
             this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:)   
+            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:)
             this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
             this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
             Site1 = .true.
@@ -1792,7 +1792,7 @@ contains
               this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%OX(:)
               this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%OY(:)
               this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%OZ(:)
-            else 
+            else
               this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%RX(:)
               this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%RY(:)
               this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%RZ(:)
@@ -1843,7 +1843,7 @@ contains
               this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%OX(:)
               this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%OY(:)
               this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%OZ(:)
-            else 
+            else
               this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%RX(:)
               this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%RY(:)
               this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%RZ(:)
@@ -2077,7 +2077,7 @@ contains
    do i=1,this%Molecule%NCharge
      q = q + this%NPart * this%Molecule%SiteCharge(i)%e
    end do
-   
+
    if (abs(q) .ge. 1e-1) this%charged = .true.
 
 ! Reaction Field Check
@@ -2127,6 +2127,14 @@ contains
           this%P1(j, i,k) = rnd( -1._RK, 1._RK )
         end do
       end do
+    end do
+
+    !NEW
+    ! Normalize translational velocity vectors (only done once - needs not to be efficient)
+    do k=1,nu
+    	do j = 1, this%NPart
+      		this%P1(j, :, k) = this%P1(j, :, k) / sqrt( dot_product( this%P1(j, :, k), this%P1(j, :, k) ))
+    	end do
     end do
 
     ! Nullify angular velocities
@@ -3304,7 +3312,7 @@ contains
       do j = 1, nu
         pUnit => this%Molecule%Unit(j)
         do i = 1, np
-          this%P0(np,1,j) = PmX+ (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) *BoxLengthInv 
+          this%P0(np,1,j) = PmX+ (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) *BoxLengthInv
           this%P0(np,2,j) = PmY+ (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) *BoxLengthInv
           this%P0(np,3,j) = PmZ+ (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) *BoxLengthInv
 
@@ -3485,7 +3493,7 @@ contains
     real(RK)            :: PXij, PYij,PZij
     integer             :: nu, np
     integer             :: i, j
-    
+
 
     ! Calculate positions of units after global resize
     nu = this%Molecule%NUnit
@@ -3561,6 +3569,7 @@ contains
 &     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
 &       MPI_RK, NRootProc, Communicator, ierror )
 #endif
+
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4612,7 +4621,7 @@ contains
       PX = this%P0(np, 1, i)
       PY = this%P0(np, 2, i)
       PZ = this%P0(np, 3, i)
-      
+
       q1 = this%Q0(np, 1, i)
       q2 = this%Q0(np, 2, i)
       q3 = this%Q0(np, 3, i)
@@ -4626,7 +4635,7 @@ contains
       this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
       this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
       this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
-      
+
       this%Q0(np, 1, i) = q1 - dq(1) * q2 - dq(2) * q3 - dq(3) * q4
       this%Q0(np, 2, i) = q2 + dq(1) * q1 - dq(2) * q4 + dq(3) * q3
       this%Q0(np, 3, i) = q3 + dq(1) * q4 + dq(2) * q1 - dq(3) * q2
@@ -4655,9 +4664,9 @@ contains
     ! Declare local variables
 !     type(TMolecule), pointer :: pm
     integer :: i
-    
+
 !     pm => this%Molecule
-    
+
     do i=1, this%Molecule%NBond
       this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
     end do
@@ -4667,7 +4676,7 @@ contains
     do i=1, this%Molecule%NDihedral
       this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst * 1e10_RK
     end do
-    
+
   end subroutine TComponent_Flex2Rigid
 
 
@@ -4685,9 +4694,9 @@ contains
     ! Declare local variables
 !     type(TMolecule), pointer :: pm
     integer :: i
-    
+
 !     pm => this%Molecule
-    
+
     do i=1, this%Molecule%NBond
       this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
     end do
@@ -4697,7 +4706,7 @@ contains
     do i=1, this%Molecule%NDihedral
       this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst / 1e10_RK
     end do
-    
+
   end subroutine TComponent_Rigid2Flex
 
 
@@ -4721,6 +4730,7 @@ contains
     np = this%NPart
 !    nra = this%Molecule%NDFRot
     nu = this%Molecule%NUnit
+
 
     ! Predict COM positions and their derivatives
     do k=1,nu
@@ -4748,6 +4758,7 @@ contains
 &                + 5._RK * this%P5(i, j, k)
       end do
      end do
+
 
      if( this%Molecule%Unit(k)%IsElongated ) then
 
@@ -5305,7 +5316,7 @@ contains
       this%DispRot = this%DispRot * 1.05_RK
     end if
 
-    if (UseIntDegFreed) then 
+    if (UseIntDegFreed) then
       if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
         this%DispMolTran = this%DispMolTran * .95_RK
       else if( this%DispMolTran < DispMolTranLimit ) then
@@ -5713,7 +5724,7 @@ contains
       if (UseIntDegFreed) then
         read( iounit_restart, '(I10)' ) nu
         this%Molecule%NUnit = nu
-      else 
+      else
         nu = 1
         this%Molecule%NUnit = nu
       end if

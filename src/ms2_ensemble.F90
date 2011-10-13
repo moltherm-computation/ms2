@@ -521,7 +521,7 @@ module ms2_ensemble
   interface Delete
     module procedure TEnsemble_Delete
   end interface
-  
+
   interface Flex2Rigid
     module procedure TEnsemble_Flex2Rigid
   end interface
@@ -1016,7 +1016,7 @@ contains
     ! Calculate long-range corrections
     call CalculateCorr( this )
     call LogWriteBlank
-    write( IOBuffer, '("Cutoff correction to")' ) 
+    write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
     write( IOBuffer, &
 &     '("- potential energy from LJ",T44, F12.8)' ) &
@@ -1073,7 +1073,7 @@ contains
       ! Update all BoxLength-dependent constants
       call UpdateBoxLength( this )
 
-      ! Abort, if maximum cutoff larger than boxlength 
+      ! Abort, if maximum cutoff larger than boxlength
       if (this%RCutoffMax2 > this%BoxLength) &
 &       call Error('Cutoff is larger than the boxsize')
 
@@ -1227,7 +1227,7 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
- 
+
 
   end subroutine TEnsemble_Construct
 
@@ -2377,8 +2377,8 @@ contains
 
       else ! Rodgers
         this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
-        fac_charge1 = 1._RK /  sqrt(Pi) * this%Kappa 
-        fac_charge2 = fac_charge1 /  3._RK * this%Kappa*this%Kappa 
+        fac_charge1 = 1._RK /  sqrt(Pi) * this%Kappa
+        fac_charge2 = fac_charge1 /  3._RK * this%Kappa*this%Kappa
         fac_neutral = 2._RK *fac_charge1 * this%Kappa*this%Kappa
 
         this%EPotCorrRFVol = fac_neutral/(4._RK*PI) * (1._RK-1._RK/this%RFEpsilon) * &
@@ -2453,7 +2453,6 @@ contains
     if( (NCells1dim(1)-1)*NCells1dim(2)*NCells1dim(3)>=NCells ) NCells1dim(1)=NCells1dim(1)-1
     if( NCells1dim(1)*(NCells1dim(2)-1)*NCells1dim(3)>=NCells ) NCells1dim(2)=NCells1dim(2)-1
 
-
     ! Initialize comp array
     do i = 1, this%NComponents
       comp(i) = this%Component(i)%NPart
@@ -2465,9 +2464,9 @@ contains
     xl(2) = 1._RK / real( NCells1dim(2), RK )
     xl(3) = 1._RK / real( NCells1dim(3), RK )
     call LogWriteBlank
-    write( IOBuffer, '("Initialize positions:")' ) 
+    write( IOBuffer, '("Initialize positions:")' )
     call LogWrite
-    write( IOBuffer, '(T10,"FCC lattice: " I3," *",I4,"x",I4,"x",I4," cells")' ) &
+    write( IOBuffer, '(T10,"FCC lattice: ", I3," *",I4,"x",I4,"x",I4," cells")' ) &
 &          NPartInCell, ( NCells1dim(i), i=1,3 )
     call LogWrite
     write( IOBuffer, '(T10, "with",I3," molecules/cell")' ) NPartInCell
@@ -2479,9 +2478,9 @@ loop:do l = 1, NPartInCell
             nc = select_component( comp )
             nm = comp(nc) + 1
             pc => this%Component(nc)
-            pc%Pm0(nm, 1) = xl(1) * (CellX(l) + i - 1) - 0.5_RK
-            pc%Pm0(nm, 2) = xl(2) * (CellY(l) + j - 1) - 0.5_RK
-            pc%Pm0(nm, 3) = xl(3) * (CellZ(l) + k - 1) - 0.5_RK
+            pc%Pm0(nm, 1) = xl(1) * (CellX(l) + i - 1)! - 0.5_RK
+            pc%Pm0(nm, 2) = xl(2) * (CellY(l) + j - 1)! - 0.5_RK
+            pc%Pm0(nm, 3) = xl(3) * (CellZ(l) + k - 1)! - 0.5_RK
             n = n + 1
             if( n == this%NPart ) exit loop
           end do
@@ -3516,10 +3515,10 @@ loop5:    do nc = 1, this%NComponents
     ! Assigning molecules
     npfnew = pcfnew%NPart
     npf    = pcf%NPart
-    
+
     ! Assigning unit number
     nu = pcf%Molecule%NUnit
-    
+
     ! Insert the particles separately
     qold1 = pcf%Qm0(npf, 1)
     qold2 = pcf%Qm0(npf, 2)
@@ -3556,25 +3555,25 @@ loop5:    do nc = 1, this%NComponents
     do j = 1, nu
       pUnitf => pcf%Molecule%Unit(j)
       pUnitfnew => pcfnew%Molecule%Unit(j)
-      Pxold = (pUnitf%P0(1)*A11old+pUnitf%P0(2)*A21old+pUnitf%P0(3)*A31old) *BoxLengthInv 
+      Pxold = (pUnitf%P0(1)*A11old+pUnitf%P0(2)*A21old+pUnitf%P0(3)*A31old) *BoxLengthInv
       Pyold = (pUnitf%P0(1)*A12old+pUnitf%P0(2)*A22old+pUnitf%P0(3)*A32old) *BoxLengthInv
       Pzold = (pUnitf%P0(1)*A13old+pUnitf%P0(2)*A23old+pUnitf%P0(3)*A33old) *BoxLengthInv
       Pxnew = (pUnitfnew%P0(1)*A11new+pUnitfnew%P0(2)*A21new+pUnitfnew%P0(3)*A31new) &
-&                 *BoxLengthInv 
+&                 *BoxLengthInv
       Pynew = (pUnitfnew%P0(1)*A12new+pUnitfnew%P0(2)*A22new+pUnitfnew%P0(3)*A32new) &
 &                 *BoxLengthInv
       Pznew = (pUnitfnew%P0(1)*A13new+pUnitfnew%P0(2)*A23new+pUnitfnew%P0(3)*A33new) &
 &                 *BoxLengthInv
-      
+
       dxold = pcf%P0(npf,1,j) - (pcf%Pm0(npf,1)+Pxold)
       dyold = pcf%P0(npf,2,j) - (pcf%Pm0(npf,2)+Pyold)
       dzold = pcf%P0(npf,3,j) - (pcf%Pm0(npf,3)+Pzold)
-      
+
       pcfnew%P0(npfnew,1,j) = pcfnew%Pm0(npfnew,1) + dxold*Pxnew/Pxold
       pcfnew%P0(npfnew,2,j) = pcfnew%Pm0(npfnew,2) + dyold*Pynew/Pyold
       pcfnew%P0(npfnew,3,j) = pcfnew%Pm0(npfnew,3) + dzold*Pznew/Pzold
-    end do    
-    
+    end do
+
 
   end subroutine TEnsemble_ShiftParticle
 
@@ -4084,7 +4083,6 @@ loop5:    do nc = 1, this%NComponents
     end do
 
 
-
     if (LongRange .eq. Ewald) then
       call EwaldFourierTerm (this)
     end if
@@ -4139,6 +4137,7 @@ loop5:    do nc = 1, this%NComponents
       end if
     end if
 
+
     ! Calculate pressure
 !    this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
      this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
@@ -4177,7 +4176,7 @@ loop5:    do nc = 1, this%NComponents
 #if MPI_VER > 0
     real(RK)                  :: EPot_h
 #endif
-    integer                   :: nstate( 0:this%NFluctMax ) 
+    integer                   :: nstate( 0:this%NFluctMax )
 
 
     ! No calculation of chemical potential in equilibration
@@ -4307,7 +4306,7 @@ loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
             else if( r <= (ndfmove + ndfbiased) ) then
               ! initializing
               nuh2 = 0
-              
+
               ! calculation of the molecule number and unit number
               r = (r - ndfmove - 1) / ratio + 1
               nuh = int((r-1) / (ndfbiased/ratio) * this%NGradIns) + 1
@@ -4322,7 +4321,7 @@ loop3:        do nc = 1, this%NComponents
               do nu = 1, this%Component(nc)%Molecule%NUnit
                 if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit
                 nuh2 = nuh2 + this%Component(nc)%Molecule%Unit(nu)%NDF
-              end do 
+              end do
 
               ! Acceleration of MC Moves
               if (np .gt. this%Component(nc)%NPart) cycle
@@ -4367,7 +4366,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end do giloop
 
           pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
-          pc%NState = pc%NState + nstate(0:pc%NFluctMax)         
+          pc%NState = pc%NState + nstate(0:pc%NFluctMax)
 
 
           ! Calculate weighted propabilities
@@ -4601,7 +4600,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pi => this%Interaction(nc,nc)
       NAngle = pi%NAngle
       NDihedral = pi%NDihedral
-      
+
       pi%EPotAngle((np-1)*NAngle+1:np*NAngle) = pi%EPot1Angle(:)
       pi%EPotTo((np-1)*NDihedral+1:np*Ndihedral) = pi%EPot1To(:)
     end if
@@ -4649,7 +4648,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pi => this%Interaction(nc,nc)
       NAngle = pi%NAngle
       NDihedral = pi%NDihedral
-      
+
       pi%EPotAngle((np-1)*NAngle+1:np*NAngle) = pi%EPot1Angle(:)
       pi%EPotTo((np-1)*NDihedral+1:np*Ndihedral) = pi%EPot1To(:)
     end if
@@ -4712,7 +4711,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
                pi%EPotNew(nu1, 1:n) = pi%EPot1(1:n)
                if (this%OptPressure) then
                  pi%VirialNew(nu1, 1:n)= pi%Virial1(1:n)
-               end if 
+               end if
 
               ! Sum energy
               E = E + sum( pi%EPot1(1:n) )
@@ -4780,7 +4779,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pi%EPotMol(nu,:) = pi%Epot1
           if (this%OptPressure) then
             pi%VirialMol(nu,:) = pi%Virial1
-          end if 
+          end if
       end do
       if (UseIntDegFreed) &
 &        EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
@@ -5029,7 +5028,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     Intra = 0._RK
     do i = 1, this%NComponents
       NUnit = this%Component(i)%Molecule%NUnit
-      np = this%Component(i)%NPart 
+      np = this%Component(i)%NPart
       n = np*NUnit
       do j=1,np
         E = E + sum( this%Interaction(i, i)%&
@@ -5136,7 +5135,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       E = E &
 &         + sum( this%Interaction(i, nc)%EPot(1:this%Component(i)%NPart*numax, numax1*(np-1)+nu) )
     end do
-    
+
     if ( UseIntDegFreed ) then
       pi => this%Interaction(nc,nc)
       NAngle = pi%NAngle
@@ -5147,11 +5146,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       E = E + sum(pi%EPotTo(numax1+1:numax1+NDihedral) )
 !       do i=1,pi%AngleCount(nu)
 !         bi = pi%AnglePartner(nu,i)
-!         E = E + pi%EPotAngle(numax+bi) 
+!         E = E + pi%EPotAngle(numax+bi)
 !       end do
 !       do i=1,pi%DihedralCount(nu)
 !         bi = pi%DihedralPartner(nu,i)
-!         E = E + pi%EPotTo(numax1+bi) 
+!         E = E + pi%EPotTo(numax1+bi)
 !       end do
     end if
 
@@ -5228,7 +5227,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     V = 0._RK
     do i = 1, this%NComponents
       NUnit = this%Component(i)%Molecule%NUnit
-      np = this%Component(i)%NPart 
+      np = this%Component(i)%NPart
       n = np*NUnit
       do j = 1, np
         V = V + sum( this%Interaction(i, i)% &
@@ -5463,7 +5462,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do j = 1, NUnit
       call Unit2Atom1( pc, np, j )
     end do
-! 
+!
 ! #ifdef SPME
 !     ! Calculate changes in the SPME grid
 !     if (LongRange .eq. PME) then
@@ -5722,7 +5721,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end do
     ! Calculate old Energies
     EPotOld = GetEnergy( this, nc, np )   ! IDF
-    
+
     ! Calculate new unit positions
     call Mol2Unit(pc,np,dq)
     do i=1,NUnit
@@ -6097,7 +6096,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !==============================================================!
 
   subroutine TEnsemble_PartnersBiased ( this, ncf, npf )
-  
+
     implicit none
 
     ! Include MPI header
@@ -6108,7 +6107,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare arguments
     type(TEnsemble)         :: this
     integer, intent(in)     :: ncf, npf
-    
+
     real(RK)            :: BoxLength
     real(RK)            :: dxf, dyf, dzf
     real(RK)            :: dx, dy, dz, dr2
@@ -6116,7 +6115,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer             :: counter, counter1
     integer             :: i, j
     type(TComponent),pointer :: pc, pcf
-    
+
     BoxLength = this%BoxLength
     counter   = 0
     counter1  = 0
@@ -6126,7 +6125,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     dxf = pcf%Pm0(npf,1)
     dyf = pcf%Pm0(npf,2)
     dzf = pcf%Pm0(npf,3)
-    
+
     do i=1, this%NComponents
       pc => this%Component(i)
       counter1=0
@@ -6150,9 +6149,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pc%BiasedPartners = counter1*pc%Molecule%NDF
       NGradIns = NGradIns + counter1*pc%Molecule%NDF
     end do
-    
+
     this%NGradIns = NGradIns
-  
+
   end subroutine TEnsemble_PartnersBiased
 
 
@@ -6201,7 +6200,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         npf = rnd( pcf%NPart )
         call Move2End( this, ncf, npf )
       end if
-      
+
       newstate = 1
       pc%NFluctUpAttempts( newstate ) = pc%NFluctUpAttempts( newstate ) + 1
     elseif( oldstate .eq. pc%NFluctMax ) then
@@ -6250,20 +6249,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !          this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
 !          this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
 !        END DO
-! 
+!
 !        ! Calculate new energies
 !        call EwaldSelfTerm_Energy(this)
-! 
+!
 !        ! Convert molecular coordinates to atom positions
 !        nu= pcfnew%Molecule%NUnit
 !        call Mol2Unit1( pcfnew, npfnew, nu )
 !        do i = 1, nu
 !          call Unit2Atom1( pcfnew, npfnew, i )
 !        end do
-! 
+!
 !        ! Calculate particle energy at new fluctuating state
 !        call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
-! 
+!
 !        ! Acceptance Criteria
 ! #if MPI_VER > 0
 !        call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, &
@@ -6278,7 +6277,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !        if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * &
 ! &        exp( ( EPotOld - EPotNew ) / this%Temperature ) ) then
 ! #endif
-! 
+!
 !          ! Accept
 !          pc%NFluctState = newstate
 !          ncf = ncfnew
@@ -6289,7 +6288,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !          else
 !            pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
 !          end if
-! 
+!
 !        else
 !          ! Reject
 !          if( pcf%Molecule%IsElongated ) then
@@ -6310,9 +6309,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !            this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
 !          END DO
 !          call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
-! 
+!
 !        end if       ! Acceptance Criteria
-! 
+!
 ! #ifdef SPME
 ! ! ----------------------------------------------------------------
 !     else if (LongRange .eq. PME) then ! PME
@@ -6326,7 +6325,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else   ! REACTION FIELD
 ! !        ! Calculate center of mass of that particle
 ! !        call Unit2Mol( pcf, npf )
-! ! 
+! !
 ! !        ! Scale bond length
 ! ! !        call Mol2Unit_Fluct ( pcfnew, npfnew, pcf, npf )
 ! !        pcfnew%P0(npfnew,1:3,nu) = pcfnew%Pm0(npfnew, 1:3) + &
@@ -6749,11 +6748,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     integer :: i
-    
+
     do i=1, this%NComponents
       call Flex2Rigid ( this%Component(i) )
     end do
-    
+
   end subroutine TEnsemble_Flex2Rigid
 
 
@@ -6770,11 +6769,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     integer :: i
-    
+
     do i=1, this%NComponents
       call Rigid2Flex ( this%Component(i) )
     end do
-    
+
   end subroutine TEnsemble_Rigid2Flex
 
 
@@ -6866,7 +6865,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       if (this%OptPressure) &
 &        this%Interaction(nc, nc)%Virial(nu1+i, nu1+i) = 0._RK
     end do
-    
+
     ! Set new particle number
     np = n1
 
@@ -10989,7 +10988,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
    real(RK):: Faktor,Faktor2
 
    integer :: i,l
-   
+
 
 # if MPI_VER > 0
    integer :: i0
