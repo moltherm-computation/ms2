@@ -840,7 +840,7 @@ contains
     ! Save contents to restart file
    ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-      do j = 1, NBlocksMaxCF
+      do j = 1, NBlocksRestartCF
        write( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
       end do
       write( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM
@@ -870,7 +870,7 @@ contains
     ! Read contents from restart file
 !    read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-    do j = 1, NBlocksMaxCF
+    do j = 1, NBlocksRestartCF
        read( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
       end do
       read( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM

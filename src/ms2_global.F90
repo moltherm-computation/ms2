@@ -603,6 +603,9 @@ character(*), parameter :: VersionString = 'v1.0'
 
   ! Current number of blocks CF
   integer :: NBlocksCF
+
+  ! Total number of blocks CF; necessary for the restart
+  integer :: NBlocksRestartCF
 !TRANSPORT_END
 #endif
   ! Frequency of updating log file

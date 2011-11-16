@@ -7852,7 +7852,13 @@ loop2:        do nc = 1, this%NComponents
       end do
     end if
 
-    write( iounit_restart, '(I10)' ) NBlocksMaxCF
+    if(NBlocksCF .le. NBlocksMaxCF) then
+          NBlocksRestartCF = NBlocksCF
+    else
+          NBlocksRestartCF = NBlocksMaxCF
+    end if
+
+    write( iounit_restart, '(I10)' ) NBlocksRestartCF
 
     do i = 1, this%NComponents
       call RestartSaveCF( this%Sumself_i(i) )
@@ -8126,7 +8132,7 @@ if ( CorrfunMode .eq. active ) then
       end do
     end if
 
-    read( iounit_restart, '(I10)' ) NBlocksMaxCF
+    read( iounit_restart, '(I10)' ) NBlocksRestartCF
 
     do i = 1, this%NComponents
       call RestartReadCF( this%Sumself_i(i) )
