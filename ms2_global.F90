@@ -598,6 +598,9 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Current number of blocks CF
   integer :: NBlocksCF
+
+  ! Total number of blocks CF; necessary for the restart
+  integer :: NBlocksRestartCF
 !TRANSPORT_END
 #endif
 
