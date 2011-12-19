@@ -80,6 +80,10 @@ module ms2_potential
     module procedure TPotLJLJ_Force
   end interface
 
+  interface Force_Trans
+    module procedure TPotLJLJ_Force_Trans
+  end interface
+
   interface ChemicalPotential
     module procedure TPotLJLJ_ChemicalPotential
   end interface
@@ -124,6 +128,11 @@ module ms2_potential
   interface Force
     module procedure TPotCC_Force
     module procedure TPotCC_Force_Ewald
+  end interface
+
+  interface Force_Trans
+    module procedure TPotCC_Force_Trans
+    module procedure TPotCC_Force_Ewald_Trans
   end interface
 
   interface ChemicalPotential
@@ -285,6 +294,10 @@ module ms2_potential
     module procedure TPotDD_Force
   end interface
 
+  interface Force_Trans
+    module procedure TPotDD_Force_Trans
+  end interface
+
   interface ChemicalPotential
     module procedure TPotDD_ChemicalPotential
   end interface
@@ -432,6 +445,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQQ_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotQQ_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -735,8 +752,6 @@ contains
 
   end subroutine TPotLJLJ_Destruct
 
-
-
 !==============================================================!
 !  Subroutine TPotLJLJ_Force                                   !
 !==============================================================!
@@ -746,6 +761,245 @@ contains
 &           VirAblSig, VirAblEps, eps1,eps2)
 #else
   subroutine TPotLJLJ_Force( this, EPot, Virial, BoxLength )
+#endif
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotLJ126LJ126)     :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+#ifdef ABL
+    real(RK), intent(in out) :: VirAblSig
+    real(RK), intent(in out) :: VirAblEps
+    real(RK), intent(in out) :: eps1,eps2
+#endif
+
+
+    ! Declare local variables
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK)          :: SigmaSquared
+    real(RK)          :: Epsilon4, Epsilon48
+    real(RK)          :: RCutoffSquared
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: FXij, FYij, FZij, Fij
+    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i1, j0, j1
+#if MPI_VER > 0
+    integer           :: i0, N1, N2, ji
+    logical           :: EvenN
+#endif
+
+#ifdef ABL
+!     real(RK)          :: VirAblSig
+!     real(RK)          :: VirAblEps
+    real(RK)          :: dr2Abl
+#endif
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+#ifdef ABL
+    VirAblSig = 0.0_RK
+    VirAblEps = 0.0_RK
+    eps1      = this%Site1%eps
+    eps2      = this%Site2%eps
+#endif
+    SigmaSquared = this%SigmaSquared
+    Epsilon4 = this%Epsilon4
+    Epsilon48 = this%Epsilon48
+    RCutoffSquared = this%RCutoffSquaredScaled
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+
+    if( CutoffMode .eq. CenterofMass ) then
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, i1
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = RXij - anint( PXij )
+          RYij = RYij - anint( PYij )
+          RZij = RZij - anint( PZij )
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+          Rij6Inv = RijSquaredInv**3
+          EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
+          EPotLocal = EPotLocal + EPotLocal1
+          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          FXij = Fij * RXij
+          FYij = Fij * RYij
+          FZij = Fij * RZij
+          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          FXi = FXi + FXij
+          FYi = FYi + FYij
+          FZi = FZi + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+#ifdef ABL
+          dr2Abl  = RXij**2 + RYij**2 + RZij**2
+          VirAblSig = VirAblSig + Rij6Inv*(1._RK-4._RK*Rij6Inv)*(PXij*RXij+ &
+&                      PYij*RYij + PZij*RZij) / dr2Abl
+          VirAblEps = VirAblEps + Rij6Inv*(1._RK-2._RK*Rij6Inv)*(PXij*RXij+ &
+&                     PYij*RYij + PZij*RZij) / dr2Abl
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+      end do
+
+    else ! Site-site cutoff
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, merge( i1 - 1, i1, SameComponent )
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+
+#if MPI_VER > 0
+        if( SameComponent ) then
+          j0 = i + 1
+          j1 = i + N2
+          if( EvenN .and. i > N2 ) j1 = j1 - 1
+        else
+          j0 = 1
+          j1 = N1
+        end if
+loop2:  do ji = j0, j1
+          j = 1 + mod( ji - 1, N1 )
+#else
+        j0 = merge( i + 1, 1, SameComponent )
+loop2:  do j = j0, j1
+#endif
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( RXij )
+          PYij = PYij - anint( RYij )
+          PZij = PZij - anint( RZij )
+          RXij = RXij - anint( RXij )
+          RYij = RYij - anint( RYij )
+          RZij = RZij - anint( RZij )
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
+          RijSquaredInv = SigmaSquared / RijSquared
+          Rij6Inv = RijSquaredInv**3
+          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          FXij = Fij * RXij
+          FYij = Fij * RYij
+          FZij = Fij * RZij
+          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          FXi = FXi + FXij
+          FYi = FYi + FYij
+          FZi = FZi + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+        end do loop2
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + Epsilon4 * EPotLocal
+    Virial = Virial + Third * VirialLocal * BoxLength
+
+#ifdef ABL
+    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
+       VirAblEps = VirAblEps * Third * BoxLength * 24._RK
+#endif
+  end subroutine TPotLJLJ_Force
+
+
+!==============================================================!
+!  Subroutine TPotLJLJ_Force_Trans                                  !
+!==============================================================!
+
+#ifdef ABL
+  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, BoxLength,&
+&           VirAblSig, VirAblEps, eps1,eps2)
+#else
+  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, BoxLength )
 #endif
 
     implicit none
@@ -793,9 +1047,6 @@ contains
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
-!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
-!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: SigmaInvEps4
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
@@ -810,13 +1061,10 @@ contains
     real(RK)          :: BoxLength2
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-!     real(RK)          :: PXijB, PYijB, PZijB
     logical           :: Conductivity
      !TRANSPORT_END
 #endif
 #ifdef ABL
-!     real(RK)          :: VirAblSig
-!     real(RK)          :: VirAblEps
     real(RK)          :: dr2Abl
 #endif
 
@@ -896,15 +1144,6 @@ contains
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
       q4  => this%Site1%Q0r(:, 4)
-!     A11V => this%Site1%A11Save
-!     A12V => this%Site1%A12Save
-!     A13V => this%Site1%A13Save
-!     A21V => this%Site1%A21Save
-!     A22V => this%Site1%A22Save
-!     A23V => this%Site1%A23Save
-!     A31V => this%Site1%A31Save
-!     A32V => this%Site1%A32Save
-!     A33V => this%Site1%A33Save
     end if
 !TRANSPORT_END
 #endif
@@ -928,15 +1167,6 @@ contains
         PZi = PZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
-! !         VSxi= VSx(i)
-! !         VSyi= VSy(i)
-! !         VSzi= VSz(i)
-! !         VSuxi= VSux(i)
-! !         VSuyi= VSuy(i)
-! !         VSuzi= VSuz(i)
-! !         VBxi= VBx(i)
-! !         VByi= VBy(i)
-! !         VBzi= VBz(i)
         VSxi= 0._RK
         VSyi= 0._RK
         VSzi= 0._RK
@@ -962,16 +1192,6 @@ contains
           r1x  = ( RXi-PXi ) * BoxLength2
           r1y  = ( RYi-PYi ) * BoxLength2
           r1z  = ( RZi-PZi ) * BoxLength2
-! Stephan
-!         A11 = A11V(i)
-!         A12 = A12V(i)
-!         A13 = A13V(i)
-!         A21 = A21V(i)
-!         A22 = A22V(i)
-!         A23 = A23V(i)
-!         A31 = A31V(i)
-!         A32 = A32V(i)
-!         A33 = A33V(i)
 
           A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
           A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
@@ -1017,18 +1237,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZ2(j) = FZ2(j) - FZij
 #if  TRANS == 1
           !TRANSPORT_start
-!           PXijB = PXij * BoxLength
-!           PYijB = PYij * BoxLength
-!           PZijB = PZij * BoxLength
-!           VSxi   = VSxi + FXij * PYijB
-!           VSyi   = VSyi + FXij * PZijB
-!           VSzi   = VSzi + FYij * PZijB
-!           VSuxi  = VSuxi+ FYij * PXijB
-!           VSuyi  = VSuyi+ FZij * PXijB
-!           VSuzi  = VSuzi+ FZij * PYijB
-!           VBxi   = VBxi + FXij * PXijB
-!           VByi   = VByi + FYij * PYijB
-!           VBzi   = VBzi + FZij * PZijB
           VSxi   = VSxi + FXij * PYij
           VSyi   = VSyi + FXij * PZij
           VSzi   = VSzi + FYij * PZij
@@ -1041,16 +1249,6 @@ loop1:  do k = 1, this%NInCutoff(i)
             VSuzi  = VSuzi+ FZij * PYij
             RijSInvNorm   = Sqrt(RijSquaredInv)
             UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
-!           Uxi  = UU*RXij
-!           Uyi  = UU*RYij
-!           Uzi  = UU*RZij
-          ! Multiplication of BoxLength taken out of the inner loop
-!           PXijB= PXij * BoxLength
-!           PYijB= PYij * BoxLength
-!           PZijB= PZij * BoxLength
-!           Cxi    = Cxi  + Uxi
-!           Cyi    = Cyi  + Uyi
-!           Czi    = Czi  + Uzi
             Cxi    = Cxi  + UU*RXij
             Cyi    = Cyi  + UU*RYij
             Czi    = Czi  + UU*RZij
@@ -1060,15 +1258,6 @@ loop1:  do k = 1, this%NInCutoff(i)
             txi    = A11 * txii + A12 * tyii + A13 * tzii
             tyi    = A21 * txii + A22 * tyii + A23 * tzii
             tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!           tuxi   = tuxi + PXijB*tyi
-!           tuyi   = tuyi + PXijB*tzi
-!           tuzi   = tuzi + PYijB*tzi
-!           tlxi   = tlxi + PYijB*txi
-!           tlyi   = tlyi + PZijB*txi
-!           tlzi   = tlzi + PZijB*tyi
-!           tdxi   = tdxi + PXijB*txi
-!           tdyi   = tdyi + PYijB*tyi
-!           tdzi   = tdzi + PZijB*tzi
             tuxi   = tuxi + PXij*tyi
             tuyi   = tuyi + PXij*tzi
             tuzi   = tuzi + PYij*tzi
@@ -1094,42 +1283,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         FZ1(i) = FZi
 #if  TRANS == 1
         !TRANSPORT_start
-!         VSx(i) = VSxi
-!         VSy(i) = VSyi
-!         VSz(i) = VSzi
-!         VSux(i)= VSuxi
-!         VSuy(i)= VSuyi
-!         VSuz(i)= VSuzi
-!         VBx(i) = VBxi
-!         VBy(i) = VByi
-!         VBz(i) = VBzi
-!         Cx(i)  = Cxi
-!         Cy(i)  = Cyi
-!         Cz(i)  = Czi
-!         tux(i) = tuxi
-!         tuy(i) = tuyi
-!         tuz(i) = tuzi
-!         tlx(i) = tlxi
-!         tly(i) = tlyi
-!         tlz(i) = tlzi
-!         tdx(i) = tdxi
-!         tdy(i) = tdyi
-!         tdz(i) = tdzi
         VSx(i) = VSx(i) + VSxi *BoxLength
         VSy(i) = VSy(i) + VSyi *BoxLength
         VSz(i) = VSz(i) + VSzi *BoxLength
         VBx(i) = VBx(i) + VBxi*BoxLength
         VBy(i) = VBy(i) + VByi*BoxLength
         VBz(i) = VBz(i) + VBzi*BoxLength
-! !         VSx(i) = VSxi  * BoxLength
-! !         VSy(i) = VSyi  * BoxLength
-! !         VSz(i) = VSzi  * BoxLength
-! !         VSux(i)= VSuxi * BoxLength
-! !         VSuy(i)= VSuyi * BoxLength
-! !         VSuz(i)= VSuzi * BoxLength
-! !         VBx(i) = VBxi  * BoxLength
-! !         VBy(i) = VByi  * BoxLength
-! !         VBz(i) = VBzi  * BoxLength
         if (Conductivity) then
           VSux(i)= VSux(i)+ VSuxi*BoxLength
           VSuy(i)= VSuy(i)+ VSuyi*BoxLength
@@ -1229,7 +1388,7 @@ loop2:  do j = j0, j1
     VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
        VirAblEps = VirAblEps * Third * BoxLength * 24._RK
 #endif
-  end subroutine TPotLJLJ_Force
+  end subroutine TPotLJLJ_Force_Trans
 
 
 
@@ -1585,6 +1744,292 @@ loop2:do j = 1, N
 #if MPI_VER > 0
     integer           :: i0
 #endif
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    ! Loop over molecules
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        Rij2   = RXij**2 + RYij**2 + RZij**2
+#if ARCH == 3
+        RijInv = rsqrt( Rij2 )
+#else
+        RijInv = 1._RK / sqrt( Rij2 )
+#endif
+        eX = RXij * RijInv
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        EPotLocal1 = Epsilon * RijInv
+        EPotLocal  = EPotLocal + EPotLocal1
+        VirialLocal = VirialLocal + EPotLocal1 * RijInv &
+&                       * (eX * PXij + eY * PYij + eZ * PZij)
+        FXij = EPotLocal1 * RijInv * eX
+        FYij = EPotLocal1 * RijInv * eY
+        FZij = EPotLocal1 * RijInv * eZ
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+    end do
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCC_Force
+
+
+
+!==============================================================!
+!  Subroutine TPotCC_Force_Ewald                               !
+!==============================================================!
+
+  subroutine TPotCC_Force_Ewald( this, EPot, Virial, BoxLength, Kappa )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeCharge)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+    real(RK), intent(in)     :: Kappa
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ         ! Site-Site-Einheitvektor
+    real(RK)          :: RijInv, Rij
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: approx, Faktor
+    real(RK)          :: Fij,KappaRij
+    real(RK)          :: Rij2
+    integer           :: i, j, k, i1, i2
+!     integer           :: sitecheck1,sitecheck2
+!     real(RK)          :: testpot
+!     real(RK)          :: test
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    i2 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+    Faktor = 2._RK/sqrt(Pi) * Kappa
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    ! Loop over molecules
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+!CDIR NODEP
+ loop1:do k = 1, this%NInCutoff(i),1
+         j = this%CutoffPartner(k, i)
+! loop1:do j=1,i2,1            ! Change also addition 
+! to a half contribution, not a full one, for Fij, and EPot, 
+! Virial is already splitted up by using the halfened 
+! force in the calculation
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+! DEBUG STEPHAN aus PXij macht RXij in den ersten 3 Faellen
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+
+        Rij2   = RXij**2 + RYij**2 + RZij**2
+        Rij =  sqrt(Rij2)
+!         if (PXij**2+PYij**2+PZij**2 .eq. 0.0) then
+!                  Rij = 1.e33
+!         end if
+
+#if ARCH == 3
+        RijInv = 1._RK /  Rij 
+#else
+        RijInv = 1._RK /  Rij 
+#endif
+        KappaRij = Kappa*Rij
+        call ErrorApprox(this, KappaRij,approx)
+
+        eX = RXij * RijInv
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        EPotLocal1 = Epsilon * RijInv * approx
+        EPotLocal  = EPotLocal + EPotLocal1
+!         VirialLocal = VirialLocal + EPotLocal1 * RijInv &
+! &                       * (eX * PXij + eY * PYij + eZ * PZij)
+!         Fij  = 0.5*(EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
+        Fij  = (EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
+	VirialLocal = VirialLocal + Fij &
+&                       * (eX * PXij + eY * PYij + eZ * PZij)
+        FXij = Fij * eX
+        FYij = Fij * eY
+        FZij = Fij * eZ
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+    end do
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCC_Force_Ewald
+
+!==============================================================!
+!  Subroutine TPotCC_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotCC_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeCharge)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
+    real(RK)          :: RijInv
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: Rij2
+    integer           :: i, j, k, i1
+#if MPI_VER > 0
+    integer           :: i0
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -1595,9 +2040,6 @@ loop2:do j = 1, N
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
-!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
-!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -1669,15 +2111,6 @@ loop2:do j = 1, N
       tdx => this%Site1%tdCx
       tdy => this%Site1%tdCy
       tdz => this%Site1%tdCz
-!     A11V => this%Site1%A11Save
-!     A12V => this%Site1%A12Save
-!     A13V => this%Site1%A13Save
-!     A21V => this%Site1%A21Save
-!     A22V => this%Site1%A22Save
-!     A23V => this%Site1%A23Save
-!     A31V => this%Site1%A31Save
-!     A32V => this%Site1%A32Save
-!     A33V => this%Site1%A33Save
       q1  => this%Site1%Q0r(:, 1)
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
@@ -1728,16 +2161,6 @@ loop2:do j = 1, N
         r1x  = ( RXi-PXi ) * BoxLength
         r1y  = ( RYi-PYi ) * BoxLength
         r1z  = ( RZi-PZi ) * BoxLength
-! Stephan
-!       A11 = A11V(i)
-!       A12 = A12V(i)
-!       A13 = A13V(i)
-!       A21 = A21V(i)
-!       A22 = A22V(i)
-!       A23 = A23V(i)
-!       A31 = A31V(i)
-!       A32 = A32V(i)
-!       A33 = A33V(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -1800,12 +2223,6 @@ loop1:do k = 1, this%NInCutoff(i)
           VSuyi  = VSuyi+ FZij * PXij
           VSuzi  = VSuzi+ FZij * PYij
           UU        = EpotLocal1 + this%RFConstant * Rij2
-!         Uxi       = UU * eX
-!         Uyi       = UU * eY
-!         Uzi       = UU * eZ
-!         Cxi    = Cxi  + Uxi
-!         Cyi    = Cyi  + Uyi
-!         Czi    = Czi  + Uzi
           Cxi    = Cxi  + UU * eX
           Cyi    = Cyi  + UU * eY
           Czi    = Czi  + UU * eZ
@@ -1863,15 +2280,15 @@ loop1:do k = 1, this%NInCutoff(i)
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
-  end subroutine TPotCC_Force
+  end subroutine TPotCC_Force_Trans
 
 
 
 !==============================================================!
-!  Subroutine TPotCC_Force_Ewald                               !
+!  Subroutine TPotCC_Force_Ewald_Trans                               !
 !==============================================================!
 
-  subroutine TPotCC_Force_Ewald( this, EPot, Virial, BoxLength, Kappa )
+  subroutine TPotCC_Force_Ewald_Trans( this, EPot, Virial, BoxLength, Kappa )
 
     implicit none
 
@@ -1915,20 +2332,9 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-!     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
-!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
-!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
-!     real(RK)          :: Cxi,  Cyi,  Czi
-!     real(RK)          :: tuxi,  tuyi,  tuzi
-!     real(RK)          :: tlxi,  tlyi,  tlzi
-!     real(RK)          :: tdxi,  tdyi,  tdzi
-!     real(RK)          :: txii,  tyii , tzii
-!     real(RK)          :: txi ,  tyi  , tzi
-!     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     !TRANSPORT_END
@@ -1971,37 +2377,9 @@ loop1:do k = 1, this%NInCutoff(i)
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
-!     VSux=> this%Site1%vsuCx
-!     VSuy=> this%Site1%vsuCy
-!     VSuz=> this%Site1%vsuCz
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
-!     Cx  => this%Site1%cCx
-!     Cy  => this%Site1%cCy
-!     Cz  => this%Site1%cCz
-!     tux => this%Site1%tuCx
-!     tuy => this%Site1%tuCy
-!     tuz => this%Site1%tuCz
-!     tlx => this%Site1%tlCx
-!     tly => this%Site1%tlCy
-!     tlz => this%Site1%tlCz
-!     tdx => this%Site1%tdCx
-!     tdy => this%Site1%tdCy
-!     tdz => this%Site1%tdCz
-! !     q1  => this%Site1%Q0r(:, 1)
-! !     q2  => this%Site1%Q0r(:, 2)
-! !     q3  => this%Site1%Q0r(:, 3)
-! !     q4  => this%Site1%Q0r(:, 4)
-!     A11V => this%Site1%A11Save
-!     A12V => this%Site1%A12Save
-!     A13V => this%Site1%A13Save
-!     A21V => this%Site1%A21Save
-!     A22V => this%Site1%A22Save
-!     A23V => this%Site1%A23Save
-!     A31V => this%Site1%A31Save
-!     A32V => this%Site1%A32Save
-!     A33V => this%Site1%A33Save
 !TRANSPORT_END
 #endif
 
@@ -2025,46 +2403,9 @@ loop1:do k = 1, this%NInCutoff(i)
       VSxi= VSx(i)
       VSyi= VSy(i)
       VSzi= VSz(i)
-!       VSuxi= VSux(i)
-!       VSuyi= VSuy(i)
-!       VSuzi= VSuz(i)
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
-!       Cxi = Cx(i)
-!       Cyi = Cy(i)
-!       Czi = Cz(i)
-!       tuxi = tux(i)
-!       tuyi = tuy(i)
-!       tuzi = tuz(i)
-!       tlxi = tlx(i)
-!       tlyi = tly(i)
-!       tlzi = tlz(i)
-!       tdxi = tdx(i)
-!       tdyi = tdy(i)
-!       tdzi = tdz(i)
-!       r1x  = ( RXi-PXi ) * BoxLength
-!       r1y  = ( RYi-PYi ) * BoxLength
-!       r1z  = ( RZi-PZi ) * BoxLength
-! ! Stephan
-!       A11 = A11V(i)
-!       A12 = A12V(i)
-!       A13 = A13V(i)
-!       A21 = A21V(i)
-!       A22 = A22V(i)
-!       A23 = A23V(i)
-!       A31 = A31V(i)
-!       A32 = A32V(i)
-!       A33 = A33V(i)
-! !       A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-! !       A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-! !       A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-! !       A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-! !       A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-! !       A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-! !       A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-! !       A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-! !       A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
 !       !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -2125,36 +2466,12 @@ loop1:do k = 1, this%NInCutoff(i)
 #if TRANS==1
 !         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
-!         Uxi       = UU * eX
-!         Uyi       = UU * eY
-!         Uzi       = UU * eZ
         VSxi   = VSxi + FXij * PYij
         VSyi   = VSyi + FXij * PZij
         VSzi   = VSzi + FYij * PZij
-!         VSuxi  = VSuxi+ FYij * PXij
-!         VSuyi  = VSuyi+ FZij * PXij
-!         VSuzi  = VSuzi+ FZij * PYij
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
-!         Cxi    = Cxi  + UU * eX
-!         Cyi    = Cyi  + UU * eY
-!         Czi    = Czi  + UU * eZ
-!         txii   = r1y * FZij - r1z * FYij
-!         tyii   = r1z * FXij - r1x * FZij
-!         tzii   = r1x * FYij - r1y * FXij
-!         txi    = A11 * txii + A12 * tyii + A13 * tzii
-!         tyi    = A21 * txii + A22 * tyii + A23 * tzii
-!         tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!         tuxi   = tuxi + PXij*tyi
-!         tuyi   = tuyi + PXij*tzi
-!         tuzi   = tuzi + PYij*tzi
-!         tlxi   = tlxi + PYij*txi
-!         tlyi   = tlyi + PZij*txi
-!         tlzi   = tlzi + PZij*tyi
-!         tdxi   = tdxi + PXij*txi
-!         tdyi   = tdyi + PYij*tyi
-!         tdzi   = tdzi + PZij*tzi
 #endif
       end do loop1
       FX1(i) = FXi
@@ -2165,24 +2482,9 @@ loop1:do k = 1, this%NInCutoff(i)
       VSx(i) = VSxi
       VSy(i) = VSyi
       VSz(i) = VSzi
-!       VSux(i)= VSuxi
-!       VSuy(i)= VSuyi
-!       VSuz(i)= VSuzi
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
-!       Cx(i)  = Cxi
-!       Cy(i)  = Cyi
-!       Cz(i)  = Czi
-!       tux(i) = tuxi
-!       tuy(i) = tuyi
-!       tuz(i) = tuzi
-!       tlx(i) = tlxi
-!       tly(i) = tlyi
-!       tlz(i) = tlzi
-!       tdx(i) = tdxi
-!       tdy(i) = tdyi
-!       tdz(i) = tdzi
       !TRANSPORT_END
 #endif
     end do
@@ -2191,8 +2493,7 @@ loop1:do k = 1, this%NInCutoff(i)
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
-  end subroutine TPotCC_Force_Ewald
-
+  end subroutine TPotCC_Force_Ewald_Trans
 
 
 !==============================================================!
@@ -4082,6 +4383,302 @@ loop1:  do k = 1, this%NInCutoff(i)
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    RFConstant2 = 2._RK * this%RFConstant
+    EPotLocal = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    if( CutoffMode .eq. CenterofMass ) then
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, i1
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
+#else
+          RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetai3 = 3._RK * CosThetai
+          CosThetaj3 = 3._RK * CosThetaj
+          Tmp = CosGammaij - CosThetai * CosThetaj3
+          Rij3Inv = Epsilon * RijInv**3
+          Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+          EPotLocal = EPotLocal +  Rij3Inv * Tmp
+!           EPotLocal = EPotLocal +  Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                     - (eX * CosThetaj - OXj) * CosThetai)
+          FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                     - (eY * CosThetaj - OYj) * CosThetai)
+          FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                     - (eZ * CosThetaj - OZj) * CosThetai)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+          TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
+          TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
+          TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+          TX2(j) = TX2(j) + Rij3Inv * (eX * CosThetai3 - OXi)
+          TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi)
+          TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi)
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+    else ! Site-site cutoff
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, merge( i1 - 1, i1, SameComponent )
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+#if MPI_VER > 0
+        if( SameComponent ) then
+          j0 = i + 1
+          j1 = i + N2
+          if( EvenN .and. i > N2 ) j1 = j1 - 1
+        else
+          j0 = 1
+          j1 = N1
+        end if
+loop2:  do ji = j0, j1
+          j = 1 + mod( ji - 1, N1 )
+#else
+        j0 = merge( i + 1, 1, SameComponent )
+loop2:  do j = j0, j1
+#endif
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = (PXij - anint( RXij )) * BoxLength
+          PYij = (PYij - anint( RYij )) * BoxLength
+          PZij = (PZij - anint( RZij )) * BoxLength
+          RXij = (RXij - anint( RXij )) * BoxLength
+          RYij = (RYij - anint( RYij )) * BoxLength
+          RZij = (RZij - anint( RZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetai3 = 3._RK * CosThetai
+          CosThetaj3 = 3._RK * CosThetaj
+          Tmp = CosGammaij - CosThetai * CosThetaj3
+          Rij3Inv = Epsilon * RijInv**3
+          Rij4Inv3 = 3._RK * Rij3Inv * RijInv
+          EPotLocal = EPotLocal + Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
+&                                     - (eX * CosThetaj - OXj) * CosThetai)
+          FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
+&                                     - (eY * CosThetaj - OYj) * CosThetai)
+          FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
+&                                     - (eZ * CosThetaj - OZj) * CosThetai)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+          TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj) &
+&                         + RFConstant2 * OXj
+          TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj) &
+&                         + RFConstant2 * OYj
+          TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj) &
+&                         + RFConstant2 * OZj
+          TX2(j) = TX2(j) + Rij3Inv * (eX * CosThetai3 - OXi) &
+&                         + RFConstant2 * OXi
+          TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi) &
+&                         + RFConstant2 * OYi
+          TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi) &
+&                         + RFConstant2 * OZi
+        end do loop2
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDD_Force
+
+!==============================================================!
+!  Subroutine TPotDD_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotDD_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleDipole)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK)          :: RFConstant2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij3Inv, Rij4Inv3
+    real(RK)          :: CosThetai, CosThetaj, CosGammaij
+    real(RK)          :: CosThetai3, CosThetaj3
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i1, j0, j1
+#if MPI_VER > 0
+    integer           :: N1, N2, i0, ji
+    logical           :: EvenN
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -4092,9 +4689,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
-!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
-!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -4185,15 +4779,6 @@ loop1:  do k = 1, this%NInCutoff(i)
       tdx => this%Site1%tdDx
       tdy => this%Site1%tdDy
       tdz => this%Site1%tdDz
-!     A11V => this%Site1%A11Save
-!     A12V => this%Site1%A12Save
-!     A13V => this%Site1%A13Save
-!     A21V => this%Site1%A21Save
-!     A22V => this%Site1%A22Save
-!     A23V => this%Site1%A23Save
-!     A31V => this%Site1%A31Save
-!     A32V => this%Site1%A32Save
-!     A33V => this%Site1%A33Save
       q1  => this%Site1%Q0r(:, 1)
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
@@ -4249,16 +4834,6 @@ loop1:  do k = 1, this%NInCutoff(i)
           tdxi = tdx(i)
           tdyi = tdy(i)
           tdzi = tdz(i)
-! Stephan
-!         A11 = A11V(i)
-!         A12 = A12V(i)
-!         A13 = A13V(i)
-!         A21 = A21V(i)
-!         A22 = A22V(i)
-!         A23 = A23V(i)
-!         A31 = A31V(i)
-!         A32 = A32V(i)
-!         A33 = A33V(i)
           A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
           A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
           A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -4515,9 +5090,7 @@ loop2:  do j = j0, j1
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
-  end subroutine TPotDD_Force
-
-
+  end subroutine TPotDD_Force_Trans
 
 !==============================================================!
 !  Subroutine TPotDD_ChemicalPotential                         !
@@ -6903,6 +7476,327 @@ loop2:do j = 1, j1
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    EPotLocal   = 0._RK
+    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+    if( CutoffMode .eq. CenterofMass ) then
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, i1
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetaiSquared = CosThetai**2
+          CosThetajSquared = CosThetaj**2
+          Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+#if ARCH == 1
+          Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+#else
+          Rij5Inv = Epsilon * RijInv**5
+#endif
+          EPotLocal1 = Rij5Inv * (1._RK &
+&           - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&           - 15._RK * CosThetaiSquared * CosThetajSquared &
+&           + 2._RK * Tmp**2)
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                - 30._RK * CosThetai * CosThetajSquared &
+&                                - 20._RK * CosThetaj * Tmp)
+          dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                - 30._RK * CosThetaj * CosThetaiSquared &
+&                                - 20._RK * CosThetai * Tmp)
+          dCosGammaij = 4._RK * Rij5Inv * Tmp
+          Tmp = -5._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+    else ! Site-site cutoff
+
+      ! Loop over molecules
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, merge( i1 - 1, i1, SameComponent )
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+#if MPI_VER > 0
+        if( SameComponent ) then
+          j0 = i + 1
+          j1 = i + N2
+          if( EvenN .and. i > N2 ) j1 = j1 - 1
+        else
+          j0 = 1
+          j1 = N1
+        end if
+!CDIR NODEP
+loop2:  do ji = j0, j1
+          j = 1 + mod( ji - 1, N1 )
+#else
+        j0 = merge( i + 1, 1, SameComponent )
+!CDIR NODEP
+loop2:  do j = j0, j1
+#endif
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = (PXij - anint( RXij )) * BoxLength
+          PYij = (PYij - anint( RYij )) * BoxLength
+          PZij = (PZij - anint( RZij )) * BoxLength
+          RXij = (RXij - anint( RXij )) * BoxLength
+          RYij = (RYij - anint( RYij )) * BoxLength
+          RZij = (RZij - anint( RZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+          CosThetaiSquared = CosThetai**2
+          CosThetajSquared = CosThetaj**2
+          Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+#if ARCH == 1
+          Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+#else
+          Rij5Inv = Epsilon * RijInv**5
+#endif
+          EPotLocal1 = Rij5Inv * (1._RK &
+&           - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&           - 15._RK * CosThetaiSquared * CosThetajSquared &
+&           + 2._RK * Tmp**2)
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij5Inv * (-10._RK * CosThetai &
+&                                - 30._RK * CosThetai * CosThetajSquared &
+&                                - 20._RK * CosThetaj * Tmp)
+          dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
+&                                - 30._RK * CosThetaj * CosThetaiSquared &
+&                                - 20._RK * CosThetai * Tmp)
+          dCosGammaij = 4._RK * Rij5Inv * Tmp
+          Tmp = -5._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+        end do loop2
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+
+    end if
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQQ_Force
+
+!==============================================================!
+!  Subroutine TPotQQ_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotQQ_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleQuadrupole) :: this
+    real(RK), intent(in out)       :: EPot
+    real(RK), intent(in out)       :: Virial
+    real(RK), intent(in)           :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij5Inv
+    real(RK)          :: CosThetai, CosThetaj, CosGammaij
+    real(RK)          :: CosThetaiSquared, CosThetajSquared
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i1, j0, j1
+#if MPI_VER > 0
+    integer           :: N1, N2, i0, ji
+    logical           :: EvenN
+#endif
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -6913,9 +7807,6 @@ loop2:do j = 1, j1
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
-!     real(RK), pointer :: A11V(:),A12V(:),A13V(:)
-!     real(RK), pointer :: A21V(:),A22V(:),A23V(:)
-!     real(RK), pointer :: A31V(:),A32V(:),A33V(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -7005,15 +7896,6 @@ loop2:do j = 1, j1
       tdx => this%Site1%tdQx
       tdy => this%Site1%tdQy
       tdz => this%Site1%tdQz
-!     A11V => this%Site1%A11Save
-!     A12V => this%Site1%A12Save
-!     A13V => this%Site1%A13Save
-!     A21V => this%Site1%A21Save
-!     A22V => this%Site1%A22Save
-!     A23V => this%Site1%A23Save
-!     A31V => this%Site1%A31Save
-!     A32V => this%Site1%A32Save
-!     A33V => this%Site1%A33Save
       q1  => this%Site1%Q0r(:, 1)
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
@@ -7070,16 +7952,6 @@ loop2:do j = 1, j1
           tdxi = tdx(i)
           tdyi = tdy(i)
           tdzi = tdz(i)
-! Stephan
-!         A11 = A11V(i)
-!         A12 = A12V(i)
-!         A13 = A13V(i)
-!         A21 = A21V(i)
-!         A22 = A22V(i)
-!         A23 = A23V(i)
-!         A31 = A31V(i)
-!         A32 = A32V(i)
-!         A33 = A33V(i)
           A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
           A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
           A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -7359,7 +8231,7 @@ loop2:  do j = j0, j1
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
-  end subroutine TPotQQ_Force
+  end subroutine TPotQQ_Force_Trans
 
 
 

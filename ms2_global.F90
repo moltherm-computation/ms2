@@ -300,6 +300,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
   character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
   character(*), parameter :: IdCorrlength                  = 'Corrlength'
+  character(*), parameter :: IdNStepcf                     = 'StepsCorrfun'
   character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
   character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
 !TRANSPORT_END
@@ -498,6 +499,8 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: inactive               = 0
   integer, parameter :: active                 = 1
   integer            :: CorrfunMode
+  real(RK)           :: TimeStepCorr
+  integer            :: NStepCorr
 !TRANSPORT_END
 #endif
 

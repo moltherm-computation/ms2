@@ -312,6 +312,10 @@ module ms2_component
     module procedure TComponent_Atom2Mol
   end interface
 
+  interface Atom2Mol_Trans
+    module procedure TComponent_Atom2Mol_Trans
+  end interface
+
   interface PredictGear
     module procedure TComponent_PredictGear
   end interface
@@ -2427,6 +2431,228 @@ contains
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
+ 
+
+    ! Assign local variables
+    BoxLength = this%BoxLength
+
+    ! Initialize forces
+    this%F(1:np, :) = 0._RK
+
+    ! Check number of rotation axes
+    if( this%Molecule%isElongated ) then
+
+      ! Initialize torques
+      this%T(1:np, :) = 0._RK
+
+      ! Initialize local arrays
+      rx(:) = this%P0(:, 1)
+      ry(:) = this%P0(:, 2)
+      rz(:) = this%P0(:, 3)
+      q1(:) = this%Q0(:, 1)
+      q2(:) = this%Q0(:, 2)
+      q3(:) = this%Q0(:, 3)
+      q4(:) = this%Q0(:, 4)
+
+      ! Loop over LJ126 sites in molecule
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        do i = 1, np
+          fx = pLJ126%FX(i)
+          fy = pLJ126%FY(i)
+          fz = pLJ126%FZ(i)
+          r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pLJ126%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pLJ126%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+        end do
+      end do
+
+      ! Loop over charge sites in molecule
+      do j = 1, this%Molecule%NCharge
+        pCharge => this%Molecule%SiteCharge(j)
+        do i = 1, np
+          fx = pCharge%FX(i)
+          fy = pCharge%FY(i)
+          fz = pCharge%FZ(i)
+          r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pCharge%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+        end do
+      end do
+
+      ! Loop over dipole sites in molecule
+      do j = 1, this%Molecule%NDipole
+        pDipole => this%Molecule%SiteDipole(j)
+        do i = 1, np
+          fx = pDipole%FX(i)
+          fy = pDipole%FY(i)
+          fz = pDipole%FZ(i)
+          r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pDipole%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pDipole%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + pDipole%OY(i) * pDipole%TZ(i) &
+&                                     - pDipole%OZ(i) * pDipole%TY(i) &
+&                                     + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + pDipole%OZ(i) * pDipole%TX(i) &
+&                                     - pDipole%OX(i) * pDipole%TZ(i) &
+&                                     + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + pDipole%OX(i) * pDipole%TY(i) &
+&                                     - pDipole%OY(i) * pDipole%TX(i) &
+&                                     + r1x * fy - r1y * fx
+        end do
+      end do
+
+      ! Loop over quadrupole sites in molecule
+      do j = 1, this%Molecule%NQuadrupole
+        pQuadrupole => this%Molecule%SiteQuadrupole(j)
+        do i = 1, np
+          fx = pQuadrupole%FX(i)
+          fy = pQuadrupole%FY(i)
+          fz = pQuadrupole%FZ(i)
+          r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pQuadrupole%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pQuadrupole%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
+&                                     - pQuadrupole%OZ(i) * pQuadrupole%TY(i) &
+&                                     + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
+&                                     - pQuadrupole%OX(i) * pQuadrupole%TZ(i) &
+&                                     + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
+&                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
+&                                     + r1x * fy - r1y * fx
+        end do
+      end do
+
+      do i = 1, np
+        ! Add torques from reaction field
+        tx = this%T(i, 1) + this%tRFX(i)
+        ty = this%T(i, 2) + this%tRFY(i)
+        tz = this%T(i, 3) + this%tRFZ(i)
+
+        ! Convert torque to body-fixed coordinates
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        this%T(i, 1) = A11 * tx + A12 * ty + A13 * tz
+        this%T(i, 2) = A21 * tx + A22 * ty + A23 * tz
+        this%T(i, 3) = A31 * tx + A32 * ty + A33 * tz
+      end do
+
+    else
+
+      ! Loop over LJ126 sites in molecule
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        do i = 1, np
+          this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
+          this%F(i, 2) = this%F(i, 2) + pLJ126%FY(i)
+          this%F(i, 3) = this%F(i, 3) + pLJ126%FZ(i)
+        end do
+      end do
+
+      ! Loop over charge sites in molecule
+      if (LongRange .ne. RField) then
+        do j = 1, this%Molecule%NCharge
+          pCharge => this%Molecule%SiteCharge(j)
+          do i = 1, np
+            this%F(i, 1) = this%F(i, 1) + pCharge%FX(i)
+            this%F(i, 2) = this%F(i, 2) + pCharge%FY(i)
+            this%F(i, 3) = this%F(i, 3) + pCharge%FZ(i)
+          end do
+        end do
+      end if
+
+    end if
+
+    ! Reduce forces and torques from all processes
+#if MPI_VER > 0
+    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+#if  TRANS == 1
+! Transport  !TRANSPORT_start
+    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+
+    if (this%Conductivity) then
+      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+
+      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
+&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    end if
+!TRANSPORT_END
+#endif
+#endif
+
+  end subroutine TComponent_Atom2Mol
+
+!==============================================================!
+!  Subroutine TComponent_Atom2Mol_Trans                        !
+!==============================================================!
+
+  subroutine TComponent_Atom2Mol_Trans( this, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK)                       :: BoxLength
+    real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
+    real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
+    real(RK)                       :: fx, fy, fz, tx, ty, tz
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+&                                     A31, A32, A33
+    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteCharge), pointer     :: pCharge
+    type(TSiteDipole), pointer     :: pDipole
+    type(TSiteQuadrupole), pointer :: pQuadrupole
+    integer                        :: i, j
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK)                       :: vsx,vsy,vsz
@@ -2550,7 +2776,7 @@ contains
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
           end if
-          !TRANSPORT_END
+           !TRANSPORT_END
 #endif
         end do
       end do
@@ -2628,7 +2854,7 @@ contains
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
           end if
-!TRANSPORT_END
+          !TRANSPORT_END
 #endif
         end do
       end do
@@ -2972,7 +3198,7 @@ contains
 #endif
 #endif
 
-  end subroutine TComponent_Atom2Mol
+  end subroutine TComponent_Atom2Mol_Trans
 
 
 

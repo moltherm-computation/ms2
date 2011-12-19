@@ -1608,7 +1608,7 @@ eqloop: do
     logical :: AnyTerminateProgram
 #endif
 #if TRANS==1
-    integer:: i
+    integer:: i, StepCF
 #endif
 
     ! Run simulation steps
@@ -1625,17 +1625,18 @@ eqloop: do
       ! Run simulation step
         if(( CorrfunMode == active ).and.(.not. Equilibration )) then
           do i = 1, this%Nensembles
-            if ( Step >= this%Ensemble(i)%Ncorr ) then
-              if ( Step >= this%Ensemble(i)%Ncorr )then
-                NBlocksCF     = 1 + ( Step - 1 - this%Ensemble(i)%Ncorr ) / &
+              if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+                 StepCF = (Step + NStepCorr -1) / NStepCorr
+              if ( StepCF >= this%Ensemble(i)%Ncorr )then
+                NBlocksCF     = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
 &                                      ( BlockSizeCF * this%Ensemble(i)%NSpancf )
-                NBlockSizesCF = int( sqrt( real(( Step - this%Ensemble(i)%Ncorr) / &
+                NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
 &                                      (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
               else
                 NBlocksCF     = 0
                 NBlockSizesCF = 0
               end if
-            end if
+              end if
           end do
         end if
 #endif

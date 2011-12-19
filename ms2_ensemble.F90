@@ -1011,18 +1011,35 @@ contains
     ! Read correlation function
     if( CorrfunMode .eq. active ) then
 
+      ! Calculate correlation function every n-th time step
+      call FileReadParameter( NStepCorr , iounit_params , IdNStepcf )
+
       ! Read legth of the correlation function
       call FileReadParameter( this%NCorr , iounit_params , IdCorrlength )
 
       ! Read time span between correlations
       call FileReadParameter( this%NSpanCF , iounit_params , IdSpanCF )
- 
+
+      ! Calculation of the correlation function every n-th time step
+      if(mod(this%NSpanCF, NStepCorr) .eq. 0) then
+        this%NSpanCF = this%NSpanCF/NStepCorr
+        this%NCorr = this%NCorr/NStepCorr
+        write( IOBuffer, '("CorrFunction is calculated every",I7,"-th time step")') NStepCorr
+        call LogWrite
+      else
+        NStepCorr = 1
+        write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
+        call LogWrite
+      endif
+
+      TimeStepCorr = TimeStep * NStepCorr
+
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr
+        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr*NStepCorr
         call LogWrite
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
-        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr
+        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr*NStepCorr
         call LogWrite
       endif
       
@@ -1051,7 +1068,7 @@ contains
       call LogWrite
 
       ! Calculate MmessMax
-      this%MmessMax = int((NSteps-this%NCorr)/this%NSpanCF)
+      this%MmessMax = int((((NSteps+NStepCorr-1)/NStepCorr)-this%NCorr)/this%NSpanCF)
 
       ! Initialization
       this%Mmess = 0
@@ -3633,9 +3650,9 @@ loop:do l = 1, NPartInCell
 #endif
 #if  TRANS == 1
 !TRANSPORT_start
-!     if( .not.Equilibration.and.(CorrfunMode .eq. active) ) then
-    if( .not. Equilibration ) then
-      call CalCorrFun( this )
+!   if( .not.Equilibration.and.(CorrfunMode .eq. active) ) then
+    if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+      call CalCorrFun( this )    
     end if
 !TRANSPORT_END
 #endif
@@ -4061,7 +4078,11 @@ loop3:    do nc = 1, this%NComponents
 
     ! Call Atom2Mol for each component
     do i = 1, this%NComponents
-      call Atom2Mol( this%Component(i), this%Component(i)%NPart )
+      if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+         call Atom2Mol_Trans( this%Component(i), this%Component(i)%NPart )
+      else
+         call Atom2Mol( this%Component(i), this%Component(i)%NPart )
+      end if
     end do
 
   end subroutine TEnsemble_Atom2Mol
@@ -4488,28 +4509,30 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteLJ126(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteLJ126(j)%vbLJz(1:pc%NPart) = 0._RK
-        if ( this%Conductivity ) then
-          pc%Molecule%SiteLJ126(j)%vsuLJx(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteLJ126(j)%vsuLJy(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteLJ126(j)%vsuLJz(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteLJ126(j)%cLJx(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteLJ126(j)%cLJy(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteLJ126(j)%cLJz(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteLJ126(j)%tuLJx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tuLJy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tuLJz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tlLJx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tlLJy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tlLJz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tdLJx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tdLJy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteLJ126(j)%tdLJz(1:pc%NPart) = 0._RK
+        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+          pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteLJ126(j)%vbLJx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteLJ126(j)%vbLJy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteLJ126(j)%vbLJz(1:pc%NPart) = 0._RK
+          if ( this%Conductivity ) then
+            pc%Molecule%SiteLJ126(j)%vsuLJx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteLJ126(j)%vsuLJy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteLJ126(j)%vsuLJz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteLJ126(j)%cLJx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteLJ126(j)%cLJy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteLJ126(j)%cLJz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteLJ126(j)%tuLJx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tuLJy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tuLJz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tlLJx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tlLJy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tlLJz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tdLJx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tdLJy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteLJ126(j)%tdLJz(1:pc%NPart) = 0._RK
+          end if
         end if
         !TRANSPORT_END
 #endif
@@ -4520,28 +4543,30 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vsCz(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vbCx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vbCy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteCharge(j)%vbCz(1:pc%NPart) = 0._RK
-        if ( this%Conductivity ) then
-          pc%Molecule%SiteCharge(j)%vsuCx(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteCharge(j)%vsuCy(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteCharge(j)%vsuCz(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteCharge(j)%cCx(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteCharge(j)%cCy(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteCharge(j)%cCz(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteCharge(j)%tuCx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tuCy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tuCz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tlCx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tlCy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tlCz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tdCx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tdCy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteCharge(j)%tdCz(1:pc%NPart) = 0._RK
+        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+          pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteCharge(j)%vsCz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteCharge(j)%vbCx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteCharge(j)%vbCy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteCharge(j)%vbCz(1:pc%NPart) = 0._RK
+          if ( this%Conductivity ) then
+            pc%Molecule%SiteCharge(j)%vsuCx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteCharge(j)%vsuCy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteCharge(j)%vsuCz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteCharge(j)%cCx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteCharge(j)%cCy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteCharge(j)%cCz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteCharge(j)%tuCx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tuCy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tuCz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tlCx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tlCy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tlCz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tdCx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tdCy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteCharge(j)%tdCz(1:pc%NPart) = 0._RK
+          end if
         end if
         !TRANSPORT_END
 #endif
@@ -4555,28 +4580,30 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteDipole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteDipole(j)%vsDz(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteDipole(j)%vbDx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteDipole(j)%vbDy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteDipole(j)%vbDz(1:pc%NPart) = 0._RK
-        if ( this%Conductivity ) then
-          pc%Molecule%SiteDipole(j)%vsuDx(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteDipole(j)%vsuDy(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteDipole(j)%vsuDz(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteDipole(j)%cDx(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteDipole(j)%cDy(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteDipole(j)%cDz(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteDipole(j)%tuDx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tuDy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tuDz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tlDx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tlDy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tlDz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tdDx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tdDy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteDipole(j)%tdDz(1:pc%NPart) = 0._RK
+        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+          pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteDipole(j)%vsDz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteDipole(j)%vbDx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteDipole(j)%vbDy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteDipole(j)%vbDz(1:pc%NPart) = 0._RK
+          if ( this%Conductivity ) then
+            pc%Molecule%SiteDipole(j)%vsuDx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteDipole(j)%vsuDy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteDipole(j)%vsuDz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteDipole(j)%cDx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteDipole(j)%cDy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteDipole(j)%cDz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteDipole(j)%tuDx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tuDy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tuDz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tlDx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tlDy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tlDz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tdDx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tdDy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteDipole(j)%tdDz(1:pc%NPart) = 0._RK
+          end if
         end if
         !TRANSPORT_END
 #endif
@@ -4590,28 +4617,30 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteQuadrupole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteQuadrupole(j)%vsQz(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteQuadrupole(j)%vbQx(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteQuadrupole(j)%vbQy(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteQuadrupole(j)%vbQz(1:pc%NPart) = 0._RK
-        if ( this%Conductivity ) then
-          pc%Molecule%SiteQuadrupole(j)%vsuQx(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteQuadrupole(j)%vsuQy(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteQuadrupole(j)%vsuQz(1:pc%NPart)= 0._RK
-          pc%Molecule%SiteQuadrupole(j)%cQx(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%cQy(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%cQz(1:pc%NPart)  = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tuQx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tuQy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tuQz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tlQx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tlQy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tlQz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tdQx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tdQy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteQuadrupole(j)%tdQz(1:pc%NPart) = 0._RK
+        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+          pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteQuadrupole(j)%vsQz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteQuadrupole(j)%vbQx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteQuadrupole(j)%vbQy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteQuadrupole(j)%vbQz(1:pc%NPart) = 0._RK
+          if ( this%Conductivity ) then
+            pc%Molecule%SiteQuadrupole(j)%vsuQx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteQuadrupole(j)%vsuQy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteQuadrupole(j)%vsuQz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteQuadrupole(j)%cQx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%cQy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%cQz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tuQx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tuQy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tuQz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tlQx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tlQy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tlQz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tdQx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tdQy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteQuadrupole(j)%tdQz(1:pc%NPart) = 0._RK
+          end if
         end if
         !TRANSPORT_END
 #endif
@@ -4623,22 +4652,24 @@ loop3:    do nc = 1, this%NComponents
       end if
 #if  TRANS == 1
       !TRANSPORT_start
-      do j = 1, this%Component(i)%NPart
-        this%Component(i)%FS(j, 1)    = 0._RK
-        this%Component(i)%FS(j, 2)    = 0._RK
-        this%Component(i)%FS(j, 3)    = 0._RK
-        this%Component(i)%FB(j, 1)    = 0._RK
-        this%Component(i)%FB(j, 2)    = 0._RK
-        this%Component(i)%FB(j, 3)    = 0._RK
-        if ( this%Conductivity ) then
-          this%Component(i)%FTC(j, 1)   = 0._RK
-          this%Component(i)%FTC(j, 2)   = 0._RK
-          this%Component(i)%FTC(j, 3)   = 0._RK
-          this%Component(i)%FRC(j, 1)   = 0._RK
-          this%Component(i)%FRC(j, 2)   = 0._RK
-          this%Component(i)%FRC(j, 3)   = 0._RK
-        end if
-      end do
+      if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        do j = 1, this%Component(i)%NPart
+          this%Component(i)%FS(j, 1)    = 0._RK
+          this%Component(i)%FS(j, 2)    = 0._RK
+          this%Component(i)%FS(j, 3)    = 0._RK
+          this%Component(i)%FB(j, 1)    = 0._RK
+          this%Component(i)%FB(j, 2)    = 0._RK
+          this%Component(i)%FB(j, 3)    = 0._RK
+          if ( this%Conductivity ) then
+            this%Component(i)%FTC(j, 1)   = 0._RK
+            this%Component(i)%FTC(j, 2)   = 0._RK
+            this%Component(i)%FTC(j, 3)   = 0._RK
+            this%Component(i)%FRC(j, 1)   = 0._RK
+            this%Component(i)%FRC(j, 2)   = 0._RK
+            this%Component(i)%FRC(j, 3)   = 0._RK
+          end if
+        end do
+      end if
       !TRANSPORT_END
 #endif
     end do
@@ -7962,7 +7993,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: value
     integer                   :: time_limit
 #if TRANS ==1
-    integer                   :: j
+    integer                   :: j, NStepsCF
 #endif
 
     if( Step == 1 ) then
@@ -8203,7 +8234,9 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if( mod( Step - this%NCorr, BlockSizeCF * this%NSpanCF ) == 0 .and. &
+    if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+    NStepsCF = (Step + NStepCorr -1) / NStepCorr
+    if( mod( NStepsCF - this%NCorr, BlockSizeCF * this%NSpanCF ) == 0 .and. &
 &     (this%Mmess > 0) ) then
       do i = 1, this%NComponents
         call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess  )
@@ -8222,6 +8255,7 @@ loop2:        do nc = 1, this%NComponents
       call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess )
       call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess )
       call UpdateCF( this%SumConduct, this%conduct, this%Mmess )
+    end if
     end if
 !TRANSPORT_END
 #endif
@@ -8519,7 +8553,7 @@ loop2:        do nc = 1, this%NComponents
 
       ! integration time
       do i  = 1, this%NCorr
-        value = TimeStep*UnitTime/1E-12_RK
+        value = TimeStepCorr*UnitTime/1E-12_RK
         write( IOBuffer, '(F10.5)' ) (i-1)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
@@ -9355,7 +9389,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%NCorr*TimeStep
+      value = this%NCorr*TimeStepCorr
       write( IOBuffer, '("Length ACF  ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -9363,7 +9397,7 @@ loop2:        do nc = 1, this%NComponents
 
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%NSpanCF*TimeStep
+      value = this%NSpanCF*TimeStepCorr
       write( IOBuffer, '("Time span between ACF ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -14377,7 +14411,7 @@ contains
     ! Declare local variables
     integer  :: nmess, i, j, j0, k, s
     integer  :: CFindex, Mindex
-    integer  :: NPart, NPart2
+    integer  :: NPart, NPart2, StepCorr
     integer  :: np, nc
 !     real(RK) :: sx(this%NComponents, this%NCorr ), sy(this%NComponents, this%NCorr )
 !     real(RK) :: sz(this%NComponents, this%NCorr )
@@ -14408,8 +14442,11 @@ contains
 !     EKinTran(:,:) = 0._RK
 !     EKinRot (:,:) = 0._RK
 
+    !Berechnung der verwinderten Laufzahlen
+    StepCorr = (Step + NStepCorr -1) / NStepCorr
+
     !Calculate matrix indexes
-    Mindex = mod(Step, this%NCorr )
+    Mindex = mod(StepCorr, this%NCorr )
     if (Mindex .eq. 0) then
       Mindex = this%NCorr
     end if
@@ -14517,14 +14554,15 @@ contains
       j0 = j0 + np
     end do    ! Component
 
-    tempf(:)  = this%sc(:)/Step
-    virf(:)   = this%sp(:)/Step
+    tempf(:)  = this%sc(:)/StepCorr
+    virf(:)   = this%sp(:)/StepCorr
 
-
+   
+    
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Calculate Auto Correlation Functions
-    if ( mod(Step, this%NSpanCF) .eq. 0 ) then
-     if (Step .gt. this%NCorr) then
+    if ( mod(StepCorr, this%NSpanCF) .eq. 0 ) then
+     if (StepCorr .gt. this%NCorr) then
 
       CFindex = Mindex +1
       this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
@@ -14774,7 +14812,7 @@ contains
     do i  = 1, this%NComponents
 !       helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess)
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess) * BoxLength_dt2
-      this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), TimeStep, this%NCorr )
+      this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), TimeStepCorr, this%NCorr )
       this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
     end do
 
@@ -14784,7 +14822,7 @@ contains
 !       helpvar =  1._RK /(3._RK *this%NPart * this%Mmess)
       helpvar =  1._RK /(3._RK *this%NPart * this%Mmess) * BoxLength_dt2
       do k = 1, ncomp2
-        this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), TimeStep, this%NCorr)
+        this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), TimeStepCorr, this%NCorr)
       end do
 
       if ( this%NComponents == 2 ) then
@@ -14858,12 +14896,12 @@ contains
 
 
     helpvar =  this%Density /(3._RK *this%NPart * this%Mmess * this%Temperature)
-    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), TimeStep, this%NCorr )
+    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), TimeStepCorr, this%NCorr )
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-    this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), TimeStep, this%NCorr )
+    this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), TimeStepCorr, this%NCorr )
     this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
     if (this%Conductivity) then
-      this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStep, this%NCorr )
+      this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStepCorr, this%NCorr )
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
     end if
 
