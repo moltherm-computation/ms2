@@ -304,6 +304,7 @@ integer :: RDFNSchale = 200
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
+  character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdNOrient                     = 'NOrient'
   character(*), parameter :: IdRSteps                      = 'RSteps'
@@ -346,7 +347,7 @@ integer :: RDFNSchale = 200
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
   ! RDF Flag
-  character(*), parameter :: IdRdfCalc                     = 'RDFCalculation'
+ ! character(*), parameter :: IdRdfCalc                     = 'RDFCalculation'
 #if  TRANS == 1
   !TRANSPORT_start
   character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
@@ -593,12 +594,15 @@ integer :: RDFNSchale = 200
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
+  ! Frequency of updating RDF file
+  integer :: RDFUpdateFrequency
+  
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
 
   ! Calculate the radial distribution function
-  logical :: RDFCalc
+  !logical :: RDFCalc
   integer :: CallsToRDF = 0
   
   !RDF

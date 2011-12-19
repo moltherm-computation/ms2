@@ -66,9 +66,6 @@ module ms2_simulation
 !TRANSPORT_END
 #endif
 
-!RDF Hilfsvariable
-	real(RK)                    :: RDFdr, RDFdr3
-
 
   end type TSimulation
 
@@ -147,7 +144,19 @@ module ms2_simulation
   interface VisualClose
     module procedure TSimulation_VisualClose
   end interface
+  
+  interface RDFOpen
+    module procedure TSimulation_RDFOpen
+  end interface
 
+  interface RDFUpdate
+    module procedure TSimulation_RDFUpdate
+  end interface
+
+  interface RDFClose
+    module procedure TSimulation_RDFClose
+  end interface
+  
   interface RestartSave
     module procedure TSimulation_RestartSave
   end interface
@@ -374,7 +383,7 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
-
+      RDFUpdateFrequency = 0
       ! Set cutoff mode
       CutoffMode = CenterofMass
 
@@ -636,7 +645,19 @@ contains
       end if
       call LogWrite
       call LogWriteBlank
-
+      
+      ! Read frequency of updating visualisation file
+      call FileReadParameter( RDFUpdateFrequency, iounit_params , IdRDFUpdateFrequency, .true., 0 )
+      if( RDFUpdateFrequency > 0 ) then
+        write( IOBuffer, &
+&        '("RDF files will be updated each", I7, " time steps")' ) &
+&         RDFUpdateFrequency
+      else
+        write( IOBuffer, '("RDF files will not be created")' )
+      end if
+      call LogWrite
+      call LogWriteBlank
+      
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
       select case( str )
@@ -659,22 +680,6 @@ contains
     ! Read number of ensembles
     call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
-    call LogWrite
-    
-    
-      ! Read type of units
-    call FileReadParameter( str, iounit_params , IdRdfCalc, .true., 'no' )
-    
-     select case( str )
-     case( 'yes' , 'ok', 'ja' )
-      RDFCalc = .true.
-      write( IOBuffer, '("The RDF will be calculated")' ) 
-    case( 'no', 'nein' )
-      RDFCalc = .false.
-      write( IOBuffer, '("The RDF will not be calculated")' ) 
-    case default
-      call Error( 'Unknown RDF option ('//trim(IdRdfCalc)//'='//trim(str)//')' )
-    end select
     call LogWrite
     
     
@@ -749,18 +754,9 @@ contains
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
+    call RDFOpen( this )
+    
 
-	!RDF VSchale berechnen
-	this%RDFdr = this%Ensemble(1)%RCutoffLJ126LJ126 / 200.0
-	!this%RDFdr3 = this%RDFdr * this%RDFdr * this%RDFdr
-	
-	! DEBUG_COL für jedes Ensemble
-	do i = 1, 200	
-	  !this%Ensemble(1)%RDFVSchale(i) = (4.0 * RDFdr3 / 3.0)     * Pi * (i*i*i - (i-1)*(i-1)*(i-1))
-	  this%Ensemble(1)%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
-	  !this%Ensemble(1)%RDFVSchale(i) = 4./3.*pi* RDFdr**3 *(i*i-i+1./3.)
-	  !write(*,*) this%Ensemble(1)%RDFVSchale(i)
-	end do
    ! steering initialization
 #if defined MS2_STEEREO
    numberOfPartitions = 1
@@ -825,7 +821,8 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-
+    call RDFClose( this )
+    
     ! Destroy accumulators
     call DestroyAccumulators( this )
 
@@ -1313,20 +1310,6 @@ eqloop: do
     end do eqloop
 
 
-   ! Run production
-
-    ! RDF, Sum nullen
-	! DEBUG_COL nullen auf Ensemble Ebene
-	 do i=1, this%Ensemble(1)%NComponents
-	  do j=1, this%Ensemble(1)%NComponents
-	   do s=1, this%Ensemble(1)%component(i)%molecule%NLJ126
-	    do t=1, this%Ensemble(1)%component(j)%molecule%NLJ126
-		  this%Ensemble(1)%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
-	    end do
-	   end do
-	  end do
-	 end do
-
     
     ! In the MC parallelization, every process is regarded as its own root from here 
     ! (the equilibration is finished. From now on, every process runs its own simulation etc.)
@@ -1608,6 +1591,7 @@ eqloop: do
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
+      call RDFUpdate ( this )
 
       ! Update log and result files
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) &
@@ -2059,7 +2043,7 @@ eqloop: do
 
     ! Save ensemble results
     do i = 1, this%NEnsembles
-      call ErrorsUpdate( this%Ensemble(i), this%RDFdr )
+      call ErrorsUpdate( this%Ensemble(i) )
     end do
 
   end subroutine TSimulation_ErrorsUpdate
@@ -2187,7 +2171,93 @@ eqloop: do
   end subroutine TSimulation_VisualClose
 
 
+!==============================================================!
+!  Subroutine TSimulation_RDFOpen                           !
+!==============================================================!
 
+  subroutine TSimulation_RDFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Open ensemble visualisation files
+    do i = 1, this%NEnsembles
+      call RDFOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_RDFOpen
+
+!==============================================================!
+!  Subroutine TSimulation_RDFUpdate                         !
+!==============================================================!
+
+  subroutine TSimulation_RDFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Return if equilibration
+    if( Equilibration ) return
+
+    ! Update ensemble visualisation files
+    if( mod( StepTotal - 1, RDFUpdateFrequency ) == 0 ) then
+      do i = 1, this%NEnsembles
+        call RDFUpdate( this%Ensemble(i) )
+      end do
+    end if
+
+  end subroutine TSimulation_RDFUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_RDFClose                          !
+!==============================================================!
+
+  subroutine TSimulation_RDFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Close ensemble visualisation files
+    do i = 1, this%NEnsembles
+      call RDFClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_RDFClose
+  
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !
 !==============================================================!

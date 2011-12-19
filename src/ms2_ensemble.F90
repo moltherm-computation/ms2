@@ -133,6 +133,11 @@ module ms2_ensemble
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
 
+ 
+    !RDF Hilfsvariable
+    real(RK) :: RDFdr, RDFdr3
+    real(RK) :: RDFVSchale(200)
+    
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
 
@@ -245,7 +250,7 @@ module ms2_ensemble
 #endif
 
 !RDF
-real(RK)         :: RDFVSchale(200)
+
 
   end type TEnsemble
 
@@ -540,6 +545,18 @@ real(RK)         :: RDFVSchale(200)
     module procedure TEnsemble_VisualClose
   end interface
 
+  interface RDFOpen
+    module procedure TEnsemble_RDFOpen
+  end interface
+
+  interface RDFUpdate
+    module procedure TEnsemble_RDFUpdate
+  end interface
+
+  interface RDFClose
+    module procedure TEnsemble_RDFClose
+  end interface
+  
   interface RestartSave
     module procedure TEnsemble_RestartSave
   end interface
@@ -657,6 +674,9 @@ contains
     if( .not. UseReducedUnits ) then
       this%RefDensity = this%RefDensity / UnitDensity
     end if
+    
+    
+
 
     ! Update log file
     write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) &
@@ -928,6 +948,8 @@ contains
       end if
     end if
 
+
+
     ! Read characteristic dielectric constant
     this%RFEpsilon = 0._RK
     if(( this%NDipoleMax > 0 ) .or. ( this%NChargeMax > 0 )) then
@@ -1066,7 +1088,13 @@ contains
 #if  TRANS == 1
     this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
 #endif
-
+    ! Calculate RDF VSchale 
+ !   write (*,*) this%RCutoffLJ126LJ126
+	this%RDFdr = this%RCutoffLJ126LJ126 / 200.0	
+	do i = 1, 200	
+	  this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
+	end do
+	
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') &
 &          this%EnsembleNumber
     call LogWrite
@@ -1238,6 +1266,9 @@ contains
     this%iounit_runave = iounit_runave + i
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
+
+
+
 
   end subroutine TEnsemble_ConstructSVC
 
@@ -6073,7 +6104,7 @@ loop2:        do nc = 1, this%NComponents
 !  Subroutine TEnsemble_ErrorsUpdate                           !
 !==============================================================!
 
-  subroutine TEnsemble_ErrorsUpdate( this,RDFdr )
+  subroutine TEnsemble_ErrorsUpdate( this )
 
     implicit none
 #if MPI_VER > 0
@@ -6081,7 +6112,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
     ! Declare arguments
     type(TEnsemble) :: this
-    real(RK), intent(in)     :: RDFdr
 
     ! Declare local variables
     real(RK)                  :: Average, Variance
@@ -7427,84 +7457,6 @@ loop2:        do nc = 1, this%NComponents
     call FileClose( this%iounit_errors )
 
 
-! Calculate and write the RDF - this is not really the best place for this, but it will have to do
-
-!RDF
-   if (RDFCalc) then
-   
-#if MPI_VER > 0
-    if (Nproc == NRootProc) then
-#endif 	
-    CallsToRDF  = CallsToRDF+1
-    ! Open RDF file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_rdf, &
-&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-
-
-    do i=1, this%NComponents
-	  do j=1, this%NComponents
-	   if (i .LE. j) then
-	   
-	   
-	   call GET_RDF( this%Interaction( i, j ), this%BoxLength, RDFdr )
-
- 	   
-	   do s=1, this%Component(i)%molecule%NLJ126
-	    do t=1, this%Component(j)%molecule%NLJ126
-        
-        
-        
-		if (s .LE. t) then	 	
-		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-		
-	    write(IOBuffer, '(2I3)') i, j
-          call FileWrite( this%iounit_rdf )
-          call FileWriteBlank( this%iounit_rdf )
-		write(IOBuffer, '(2I3)') s, t
-          call FileWrite( this%iounit_rdf )
-          call FileWriteBlank( this%iounit_rdf )
-		
-		do o = 1, 200
-	    
-		if (i .EQ. j) then
-		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-		else
-		RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-		end if
-		
-		
-		RDF(o) = RDFRhoLocal / RDFRho  
-		
-		  write(IOBuffer, '(F10.4)') RDF(o)
-          call FileWrite( this%iounit_rdf )
-         ! call FileWriteBlank( this%iounit_rdf )
-
-	    end do
-		end if
-		
-		end do
-	   end do
-	   end if
-	  end do
-	 end do
-
-    call FileWriteBlank( this%iounit_rdf )
-
-    ! Close RDF file
-    call FileClose( this%iounit_rdf )
-
-#if MPI_VER > 0
-    end if
-#endif 	
-	  
-	end if
-
-
-
-
 
   end subroutine TEnsemble_ErrorsUpdate
 
@@ -7753,6 +7705,158 @@ loop2:        do nc = 1, this%NComponents
     call FileClose( this%iounit_visual )
 
   end subroutine TEnsemble_VisualClose
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFOpen                             !
+!==============================================================!
+
+  subroutine TEnsemble_RDFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j, s, t
+
+
+
+    ! RDF, Sum nullen
+	! DEBUG_COL nullen auf Ensemble Ebene
+	 do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   do s=1, this%component(i)%molecule%NLJ126
+	    do t=1, this%component(j)%molecule%NLJ126
+		  this%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
+	    end do
+	   end do
+	  end do
+	 end do
+
+
+    ! Open visualization file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, &
+&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+    call FileWriteBlank( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFOpen
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFUpdate                           !
+!==============================================================!
+
+  subroutine TEnsemble_RDFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, s, t, o
+
+    ! Update visualization file
+
+
+! Calculate and write the RDF - this is not really the best place for this, but it will have to do
+
+!RDF
+ !  if (RDFCalc) then
+	
+    CallsToRDF  = CallsToRDF+1
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, &
+&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+
+    do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   if (i .LE. j) then
+	   
+	   
+	   call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+
+ 	   
+	   do s=1, this%Component(i)%molecule%NLJ126
+	    do t=1, this%Component(j)%molecule%NLJ126
+        
+        
+        
+		if (s .LE. t) then	 	
+		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+		
+	    write(IOBuffer, '(2I3)') i, j
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		write(IOBuffer, '(2I3)') s, t
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		
+		do o = 1, 200
+	    
+		if (i .EQ. j) then
+		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		else
+		RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		end if
+		
+		
+		RDF(o) = RDFRhoLocal / RDFRho  
+		
+		  write(IOBuffer, '(F10.4)') RDF(o)
+		  call FileWrite( this%iounit_rdf )
+         ! call FileWriteBlank( this%iounit_rdf )
+
+	    end do
+		end if
+		
+		end do
+	   end do
+	   end if
+	  end do
+	 end do
+
+    call FileWriteBlank( this%iounit_rdf )
+
+    ! Close RDF file
+    call FileClose( this%iounit_rdf )
+
+	
+	  
+!	end if
+!
+
+
+
+  end subroutine TEnsemble_RDFUpdate
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFClose                            !
+!==============================================================!
+
+  subroutine TEnsemble_RDFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close visualization file
+    write( IOBuffer, '("##")' )
+    call FileWrite( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFClose
 
 
 

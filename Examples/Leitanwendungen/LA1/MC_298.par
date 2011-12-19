@@ -18,6 +18,7 @@ RunSteps	=	100000
 ResultFreq	=	2000
 ErrorsFreq	=	5000
 VisualFreq	=	0
+RDFFreq     =   0
 CutoffMode	=	COM
 LongRange	=	ReactionField
 Kappa	=	5.6
