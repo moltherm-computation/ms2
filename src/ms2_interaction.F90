@@ -148,6 +148,10 @@ module ms2_interaction
   interface Force
     module procedure TInteraction_Force
   end interface
+  
+  interface GET_RDF
+   module procedure TInteraction_RDF
+  end interface
 
   interface ChemicalPotential
     module procedure TInteraction_ChemicalPotential
@@ -165,6 +169,10 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners
     module procedure TInteraction_CalcPartners1
   end interface
+  
+  interface CalcCutoffPartnersRDF
+    module procedure TInteraction_CalcPartnersRDF
+  end interface  
 
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
@@ -317,7 +325,9 @@ contains
 &           RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
           this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
-        end do
+          !RDF SUM = 0
+	        !allocate (this%PotLJ126LJ126(j1, j2)%RDFSum(210),STAT = stat)
+		end do
       end do
     end if
 
@@ -781,6 +791,35 @@ contains
 
   end subroutine TInteraction_Deallocate
 
+!==============================================================!
+!  Subroutine TInteraction_RDF                               !
+!==============================================================!
+
+  subroutine TInteraction_RDF( this, BoxLength,RDFdr )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    real(RK), intent(in)     :: RDFdr
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+
+    integer           :: i, j
+
+
+    ! Calculate interactions partners within cutoff sphere
+      call CalcCutoffPartnersRDF( this )
+
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+		call GET_RDF( this%PotLJ126LJ126( i, j ), BoxLength,RDFdr )
+      end do
+    end do
+    
+ end subroutine TInteraction_RDF
 
 
 !==============================================================!
@@ -817,7 +856,7 @@ contains
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-        call Force( this%PotLJ126LJ126( i, j ), &
+		call Force( this%PotLJ126LJ126( i, j ), &
 &         EPot, Virial, BoxLength )
       end do
     end do
@@ -2545,6 +2584,126 @@ contains
     end if
 
   end subroutine TInteraction_CalcPartners
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartners                        !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersRDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, N, N2, NInCutoff
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+    N = this%NPart1
+    this%NInCutoff(:) = 0
+ !   this%CutoffPartner(:, :) = 0
+
+    ! Assign local pointers
+    PX1 => this%PX1
+    PY1 => this%PY1
+    PZ1 => this%PZ1
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+
+    ! Calculate partners within cutoff sphere
+    if( this%SameComponent ) then
+
+      do i = 1, (N+1) / 2
+
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        NInCutoff = this%NInCutoff(i)
+        do j = i + 1, (N/2) + i
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+
+      do i = (N+1) / 2 + 1, N
+
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        NInCutoff = this%NInCutoff(i)
+        do j = 1, i - N/2 - 1
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        do j = i + 1, N
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+    else
+      N2 = this%NPart2
+
+      do i = 1, N
+
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        NInCutoff = this%NInCutoff(i)
+        do j = 1, N2
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+    end if
+
+  end subroutine TInteraction_CalcPartnersRDF
 
 
 

@@ -54,6 +54,10 @@ module ms2_potential
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
 
+	
+	!RDF SUM
+	integer                   :: RDFSum(210)
+
   end type TPotLJ126LJ126
 
   interface Construct
@@ -66,6 +70,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotLJLJ_Force
+  end interface
+   
+  interface GET_RDF
+    module procedure TPotLJLJ_RDF
   end interface
 
   interface ChemicalPotential
@@ -441,6 +449,11 @@ contains
     real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
 
+	
+	!RDF SUM = 0
+	!allocate (this%RDFSum(210),STAT = stat)
+	!this%RDFSum(:) = 0
+		
     ! Construct potential
     this%Site1 => Molecule1%SiteLJ126(j1)
     this%Site2 => Molecule2%SiteLJ126(j2)
@@ -634,6 +647,7 @@ contains
     real(RK), intent(in out) :: Virial
     real(RK), intent(in)     :: BoxLength
 
+
     ! Declare local variables
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -705,7 +719,8 @@ contains
     RCutoffSquared = this%RCutoffSquaredScaled
     EPotLocal   = 0._RK
     VirialLocal = 0._RK
-
+	
+	
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -829,6 +844,8 @@ loop1:  do k = 1, this%NInCutoff(i)
           r1z  = ( RZi-PZi ) * BoxLength
 #endif
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+		  
+		  
 #if TRANS==1
           RijSInvNorm   = Sqrt(RijSquaredInv)
 #endif
@@ -988,8 +1005,85 @@ loop2:  do j = j0, j1
     EPot = EPot + Epsilon4 * EPotLocal
     Virial = Virial + Third * VirialLocal * BoxLength
 
+
   end subroutine TPotLJLJ_Force
 
+
+!==============================================================!
+!  Subroutine TPotLJLJ_RDF                                   !
+!==============================================================!
+
+  subroutine TPotLJLJ_RDF( this,BoxLength,RDFdr )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotLJ126LJ126)     :: this
+    real(RK), intent(in)     :: RDFdr
+    real(RK), intent(in)     :: BoxLength
+    	
+!RDF RDFdr und RDFSchalenIndex
+	!real(RK)          :: RDFdr, hilf
+	real(RK)          :: hilf
+	integer           :: RDFSchalenIndex
+
+    ! Declare local variables
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: RXi, RYi, RZi
+    integer           :: i, j, k, i1, j1
+
+
+    ! Assign local variables
+   
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+
+	
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+
+
+ 
+      ! Loop over molecules
+
+      do i = 1, i1
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          
+          ! DEBUG_COL: die RXij Berechnungen unterscheiden sich in Abhängigkeit von site-site bzw. Center of mass
+          RXij = RXij - anint( RXij )
+          RYij = RYij - anint( RYij )
+          RZij = RZij - anint( RZij )
+
+
+!RDF in Schalen sortieren
+          hilf = sqrt(RXij**2 + RYij**2 + RZij**2) * BoxLength
+          RDFSchalenIndex = INT(hilf/RDFdr) + 1
+		  
+		  if (RDFSchalenIndex .LT. 201) then
+		    this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
+
+		  endif
+		  
+        end do loop1
+      end do
+
+
+  end subroutine TPotLJLJ_RDF
 
 
 !==============================================================!

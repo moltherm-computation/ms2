@@ -155,13 +155,14 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: Hardware = 'generic platform'
 #endif
 
+!RDF
+integer :: RDFNSchale = 200
 ! define platform-specific path separator
 #ifdef _WIN32
   character(*), parameter :: FileSep = '\'
 #else
   character(*), parameter :: FileSep = '/'
 #endif
-
   ! Extension of configuration file.
   character(*), parameter :: ConfigFileExtension = '.cfg'
 
@@ -188,6 +189,11 @@ character(*), parameter :: VersionString = 'v1.0'
 
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
+  
+  ! Extension of RDF file 
+  
+  character(*), parameter :: RDFFileExtension = '.rdf'
+  
 #if  TRANS == 1
 
 !TRANSPORT_start
@@ -250,8 +256,10 @@ character(*), parameter :: VersionString = 'v1.0'
 
   integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
   integer, parameter :: iounit_visual  = iounit_start + 10
+  integer, parameter :: iounit_rdf     = iounit_start + 11
 #else
   integer, parameter :: iounit_visual  = iounit_start + 9
+  integer, parameter :: iounit_rdf     = iounit_start + 10
 #endif
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
@@ -337,6 +345,8 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+  ! RDF Flag
+  character(*), parameter :: IdRdfCalc                     = 'RDFCalculation'
 #if  TRANS == 1
   !TRANSPORT_start
   character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
@@ -587,6 +597,15 @@ character(*), parameter :: VersionString = 'v1.0'
   ! equilibration is performed
   logical :: CommonEqui
 
+  ! Calculate the radial distribution function
+  logical :: RDFCalc
+  integer :: CallsToRDF = 0
+  
+  !RDF
+  real(RK) :: RDF(200) ! DEBUG_COL: 200 durch variable ersetzen
+  real(RK) :: RDFRho, RDFRhoLocal
+
+  
 #if  TRANS == 1
 !TRANSPORT_start
   ! Maximum number of blocks CF

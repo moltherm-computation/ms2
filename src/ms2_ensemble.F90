@@ -62,6 +62,10 @@ module ms2_ensemble
 
     ! I/O unit for visualization file
     integer :: iounit_visual
+    
+    ! I/O unit for RDF file
+    integer :: iounit_rdf
+    
 #if  TRANS == 1
     ! I/O unit for result ACF
     integer :: iounit_rescf   !TRANSPORT_thisline
@@ -239,6 +243,10 @@ module ms2_ensemble
 !    type(TAccumulatorCF)         :: SumConduct_r_pp
 !TRANSPORT_END
 #endif
+
+!RDF
+real(RK)         :: RDFVSchale(200)
+
   end type TEnsemble
 
   interface Construct
@@ -1054,6 +1062,7 @@ contains
     this%iounit_runave = iounit_runave + i
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
+    this%iounit_rdf = iounit_rdf + i
 #if  TRANS == 1
     this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
 #endif
@@ -2747,15 +2756,17 @@ loop:do l = 1, NPartInCell
 !  Subroutine TEnsemble_RunMDStep                              !
 !==============================================================!
 
-  subroutine TEnsemble_RunMDStep( this )
+  subroutine TEnsemble_RunMDStep( this)
 
     implicit none
 
     ! Declare arguments
     type(TEnsemble) :: this
-
+   
     ! Declare local variables
     integer :: i
+	
+	
 
     ! Zero displacement
     if( Step == 1 ) then
@@ -3525,7 +3536,7 @@ loop3:    do nc = 1, this%NComponents
 
     ! Declare arguments
     type(TEnsemble) :: this
-
+ 
     ! Declare local variables
     real(RK)                  :: EPot, Virial
     integer                   :: i, j
@@ -6062,7 +6073,7 @@ loop2:        do nc = 1, this%NComponents
 !  Subroutine TEnsemble_ErrorsUpdate                           !
 !==============================================================!
 
-  subroutine TEnsemble_ErrorsUpdate( this )
+  subroutine TEnsemble_ErrorsUpdate( this,RDFdr )
 
     implicit none
 #if MPI_VER > 0
@@ -6070,11 +6081,12 @@ loop2:        do nc = 1, this%NComponents
 #endif
     ! Declare arguments
     type(TEnsemble) :: this
+    real(RK), intent(in)     :: RDFdr
 
     ! Declare local variables
     real(RK)                  :: Average, Variance
     type(TComponent), pointer :: pc
-    integer                   :: i, j
+    integer                   :: i, j, s, t, o
 #if  TRANS == 1
     real(RK)                  :: value
 #endif
@@ -7413,6 +7425,86 @@ loop2:        do nc = 1, this%NComponents
 
     ! Close final result file
     call FileClose( this%iounit_errors )
+
+
+! Calculate and write the RDF - this is not really the best place for this, but it will have to do
+
+!RDF
+   if (RDFCalc) then
+   
+#if MPI_VER > 0
+    if (Nproc == NRootProc) then
+#endif 	
+    CallsToRDF  = CallsToRDF+1
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, &
+&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+
+    do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   if (i .LE. j) then
+	   
+	   
+	   call GET_RDF( this%Interaction( i, j ), this%BoxLength, RDFdr )
+
+ 	   
+	   do s=1, this%Component(i)%molecule%NLJ126
+	    do t=1, this%Component(j)%molecule%NLJ126
+        
+        
+        
+		if (s .LE. t) then	 	
+		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+		
+	    write(IOBuffer, '(2I3)') i, j
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		write(IOBuffer, '(2I3)') s, t
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		
+		do o = 1, 200
+	    
+		if (i .EQ. j) then
+		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		else
+		RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		end if
+		
+		
+		RDF(o) = RDFRhoLocal / RDFRho  
+		
+		  write(IOBuffer, '(F10.4)') RDF(o)
+          call FileWrite( this%iounit_rdf )
+         ! call FileWriteBlank( this%iounit_rdf )
+
+	    end do
+		end if
+		
+		end do
+	   end do
+	   end if
+	  end do
+	 end do
+
+    call FileWriteBlank( this%iounit_rdf )
+
+    ! Close RDF file
+    call FileClose( this%iounit_rdf )
+
+#if MPI_VER > 0
+    end if
+#endif 	
+	  
+	end if
+
+
+
+
 
   end subroutine TEnsemble_ErrorsUpdate
 

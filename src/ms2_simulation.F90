@@ -65,6 +65,11 @@ module ms2_simulation
     integer :: iounit_rescf
 !TRANSPORT_END
 #endif
+
+!RDF Hilfsvariable
+	real(RK)                    :: RDFdr, RDFdr3
+
+
   end type TSimulation
 
   interface Construct
@@ -179,7 +184,10 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: i
     integer                     :: stat
-    
+	
+	!RDF Hilfsvariable
+	!real(RK)                    :: RDFdr, RDFdr3
+
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
@@ -652,6 +660,24 @@ contains
     call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
+    
+    
+      ! Read type of units
+    call FileReadParameter( str, iounit_params , IdRdfCalc, .true., 'no' )
+    
+     select case( str )
+     case( 'yes' , 'ok', 'ja' )
+      RDFCalc = .true.
+      write( IOBuffer, '("The RDF will be calculated")' ) 
+    case( 'no', 'nein' )
+      RDFCalc = .false.
+      write( IOBuffer, '("The RDF will not be calculated")' ) 
+    case default
+      call Error( 'Unknown RDF option ('//trim(IdRdfCalc)//'='//trim(str)//')' )
+    end select
+    call LogWrite
+    
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Read correlation function mode
@@ -724,6 +750,17 @@ contains
     call ResultOpen( this )
     call VisualOpen( this )
 
+	!RDF VSchale berechnen
+	this%RDFdr = this%Ensemble(1)%RCutoffLJ126LJ126 / 200.0
+	!this%RDFdr3 = this%RDFdr * this%RDFdr * this%RDFdr
+	
+	! DEBUG_COL für jedes Ensemble
+	do i = 1, 200	
+	  !this%Ensemble(1)%RDFVSchale(i) = (4.0 * RDFdr3 / 3.0)     * Pi * (i*i*i - (i-1)*(i-1)*(i-1))
+	  this%Ensemble(1)%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
+	  !this%Ensemble(1)%RDFVSchale(i) = 4./3.*pi* RDFdr**3 *(i*i-i+1./3.)
+	  !write(*,*) this%Ensemble(1)%RDFVSchale(i)
+	end do
    ! steering initialization
 #if defined MS2_STEEREO
    numberOfPartitions = 1
@@ -759,6 +796,8 @@ contains
         this%Ensemble(1)%Component(i)%NPartMax)
      call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%P1, &
         this%Ensemble(1)%Component(i)%NPartMax)
+		
+	
    END DO
 
 !MS2_STEEREO
@@ -864,7 +903,7 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j
+    integer :: i, j, s, t
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
     integer :: k
@@ -874,7 +913,7 @@ contains
     integer :: n1, n2
     
     integer :: color, NGroups, Proc_Max_Eff
-    
+	
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
@@ -1273,6 +1312,21 @@ eqloop: do
       exit eqloop
     end do eqloop
 
+
+   ! Run production
+
+    ! RDF, Sum nullen
+	! DEBUG_COL nullen auf Ensemble Ebene
+	 do i=1, this%Ensemble(1)%NComponents
+	  do j=1, this%Ensemble(1)%NComponents
+	   do s=1, this%Ensemble(1)%component(i)%molecule%NLJ126
+	    do t=1, this%Ensemble(1)%component(j)%molecule%NLJ126
+		  this%Ensemble(1)%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
+	    end do
+	   end do
+	  end do
+	 end do
+
     
     ! In the MC parallelization, every process is regarded as its own root from here 
     ! (the equilibration is finished. From now on, every process runs its own simulation etc.)
@@ -1511,7 +1565,9 @@ eqloop: do
 #if TRANS==1
     integer:: i
 #endif
-
+	integer:: o, i, j, t, s
+	
+	
     ! Run simulation steps
     do Step = StepStart, StepEnd
 
@@ -1593,8 +1649,10 @@ eqloop: do
 #if defined MS2_STEEREO
       call simsteer_processqueue(0)
 #endif
+
     end do
 
+	
   end subroutine TSimulation_RunSteps
 
 
@@ -2001,7 +2059,7 @@ eqloop: do
 
     ! Save ensemble results
     do i = 1, this%NEnsembles
-      call ErrorsUpdate( this%Ensemble(i) )
+      call ErrorsUpdate( this%Ensemble(i), this%RDFdr )
     end do
 
   end subroutine TSimulation_ErrorsUpdate

@@ -12,6 +12,7 @@ Simulation	=	MD
 Integrator	=	Gear
 TimeStep	=	5.0E-4
 Ensemble	=	NPT
+RDFCalculation  =       no
 MCORSteps	=	0
 NVTSteps	=	20000
 NPTSteps	=	50000
