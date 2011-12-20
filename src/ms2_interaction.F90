@@ -70,7 +70,7 @@ module ms2_interaction
     logical           :: OptPressure
 
     ! Arrays for center of mass cutoff
-    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)!, RDFSum (:)
 
     ! Center of mass positions
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -325,8 +325,10 @@ contains
 &           RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
           this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
-          !RDF SUM = 0
-	        !allocate (this%PotLJ126LJ126(j1, j2)%RDFSum(210),STAT = stat)
+          if( RDFUpdateFrequency>0 ) then
+            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells+10), STAT = stat )
+            call AllocationError( stat, 'RDFSum', RDFNumberShells+10)
+          end if
 		end do
       end do
     end if
@@ -641,6 +643,7 @@ contains
     end if
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
+ !   nullify( this%RDFSum )
 
     ! allocated only for SimulationType .eq. SecondVirialCoeff
     nullify( this%MayerFFunction )
@@ -706,7 +709,9 @@ contains
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
     end if
-
+    
+   
+    
   end subroutine TInteraction_Allocate
 
 
@@ -780,14 +785,14 @@ contains
     end if
     if( associated( this%IntFFunction2 ) ) then
       deallocate( this%IntFFunction2 )
-    end if
-
+    end if 
     if( associated( this%NInCutoff ) ) then
       deallocate( this%NInCutoff )
     end if
     if( associated( this%CutoffPartner ) ) then
       deallocate( this%CutoffPartner )
     end if
+  
 
   end subroutine TInteraction_Deallocate
 

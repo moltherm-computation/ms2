@@ -658,6 +658,15 @@ contains
       call LogWrite
       call LogWriteBlank
       
+      if( RDFUpdateFrequency > 0 ) then
+      call FileReadParameter( RDFNumberShells, iounit_params , IdRDFNumberShells, .true., 200 )
+        write( IOBuffer, &
+&        '("RDF will operate with", I7, " shells")' ) &
+&         RDFNumberShells
+      call LogWrite
+      call LogWriteBlank
+      end if
+
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
       select case( str )

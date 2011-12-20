@@ -155,8 +155,6 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: Hardware = 'generic platform'
 #endif
 
-!RDF
-integer :: RDFNSchale = 200
 ! define platform-specific path separator
 #ifdef _WIN32
   character(*), parameter :: FileSep = '\'
@@ -305,6 +303,7 @@ integer :: RDFNSchale = 200
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
+  character(*), parameter :: IdRDFNumberShells             = 'NumShells'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdNOrient                     = 'NOrient'
   character(*), parameter :: IdRSteps                      = 'RSteps'
@@ -597,6 +596,9 @@ integer :: RDFNSchale = 200
   ! Frequency of updating RDF file
   integer :: RDFUpdateFrequency
   
+  ! Number of RDF shells
+  integer :: RDFNumberShells
+  
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
@@ -606,7 +608,7 @@ integer :: RDFNSchale = 200
   integer :: CallsToRDF = 0
   
   !RDF
-  real(RK) :: RDF(200) ! DEBUG_COL: 200 durch variable ersetzen
+!  real(RK) :: RDF(RDFNumberShells) 
   real(RK) :: RDFRho, RDFRhoLocal
 
   

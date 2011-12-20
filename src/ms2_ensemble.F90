@@ -136,7 +136,8 @@ module ms2_ensemble
  
     !RDF Hilfsvariable
     real(RK) :: RDFdr, RDFdr3
-    real(RK) :: RDFVSchale(200)
+    real(RK), pointer :: RDFVSchale(:)
+    real(RK), pointer :: RDF(:) 
     
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -1090,8 +1091,8 @@ contains
 #endif
     ! Calculate RDF VSchale 
  !   write (*,*) this%RCutoffLJ126LJ126
-	this%RDFdr = this%RCutoffLJ126LJ126 / 200.0	
-	do i = 1, 200	
+	this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
+	do i = 1, RDFNumberShells	
 	  this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
 	end do
 	
@@ -1909,6 +1910,15 @@ contains
 &     STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 
+    ! Allocate RDF arrays
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFVSchale(RDFNumberShells), &
+&       STAT = stat )
+      call AllocationError( stat, 'components', RDFNumberShells )
+      allocate( this%RDF(RDFNumberShells), &
+&       STAT = stat )
+      call AllocationError( stat, 'components', RDFNumberShells )    
+    endif
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
       allocate( this%P0Test( this%NTestMax, 3 ), STAT = stat )
@@ -2105,6 +2115,14 @@ contains
     if( associated( this%ScaleSigma ) ) then
       deallocate( this%ScaleSigma )
     end if
+    if( associated( this%RDFVSchale ) ) then
+      deallocate( this%RDFVSchale )
+    end if
+    if( associated( this%RDF ) ) then
+      deallocate( this%RDF )
+    end if    
+    
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Deallocate arrays for correlation fucntions
@@ -7798,7 +7816,7 @@ loop2:        do nc = 1, this%NComponents
           call FileWrite( this%iounit_rdf )
           call FileWriteBlank( this%iounit_rdf )
 		
-		do o = 1, 200
+		do o = 1, RDFNumberShells
 	    
 		if (i .EQ. j) then
 		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
@@ -7809,9 +7827,9 @@ loop2:        do nc = 1, this%NComponents
 		end if
 		
 		
-		RDF(o) = RDFRhoLocal / RDFRho  
+		this%RDF(o) = RDFRhoLocal / RDFRho  
 		
-		  write(IOBuffer, '(F10.4)') RDF(o)
+		  write(IOBuffer, '(F10.4)') this%RDF(o)
 		  call FileWrite( this%iounit_rdf )
          ! call FileWriteBlank( this%iounit_rdf )
 

@@ -20,6 +20,7 @@ ResultFreq	=	2000
 ErrorsFreq	=	5000
 VisualFreq	=	0
 RDFFreq         =       0
+NumShells       =       200
 CutoffMode	=	COM
 LongRange	=	ReactionField
 Kappa	=	5.6

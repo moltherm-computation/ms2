@@ -52,11 +52,10 @@ module ms2_potential
     real(RK)                  :: SigmaSquared
     real(RK)                  :: Epsilon4, Epsilon48
     real(RK)                  :: BoxlengthInv, BoxLengthThird
-    integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer          :: NInCutoff(:), CutoffPartner(:, :), RDFSum(:)
 
-	
 	!RDF SUM
-	integer                   :: RDFSum(210)
+!	integer, pointer          :: RDFSum(:)
 
   end type TPotLJ126LJ126
 
@@ -1074,7 +1073,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           hilf = sqrt(RXij**2 + RYij**2 + RZij**2) * BoxLength
           RDFSchalenIndex = INT(hilf/RDFdr) + 1
 		  
-		  if (RDFSchalenIndex .LT. 201) then
+		  if (RDFSchalenIndex .LT. RDFNumberShells+1) then
 		    this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
 
 		  endif
