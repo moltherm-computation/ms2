@@ -1107,9 +1107,14 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
+#ifdef ENABLE_OMP
+    real(RK) :: EPot(this%NPart2)
+#else
     real(RK), pointer :: EPot(:)
+#endif
     real(RK), pointer :: Virial(:)
     real(RK)          :: VirialLocal
+
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
@@ -1139,8 +1144,36 @@ contains
     integer           :: s1, s2, j, k
     logical   :: OptPressure
 
+#ifdef ENABLE_OMP
+this%EPot1(:)=0._RK
+#else
+   EPot => this%EPot1
+#endif
+
+    ! Zero energy
+EPot(:)= 0._RK
+
+      ! Calculate interactions partners within cutoff sphere
+      if( CutoffMode .eq. CenterofMass ) then
+        call CalcCutoffPartners( this, np )
+      end if
+      
+!$OMP PARALLEL &
+!$OMP PRIVATE(plj, pcc, pcd, pcq, pdc, pdd, pdq, pqc, pqd, pqq, Virial, VirialLocal, SigmaSquared ) &
+!$OMP PRIVATE(Epsilon, Epsilon2, Epsilon4, Epsilon48, RCutoffSquared, RCutoffSquaredScaled ) &
+!$OMP PRIVATE(RShieldSquared, BoxLengthThird, RX1, RY1, RZ1, RX2, RY2, RZ2 ) &
+!$OMP PRIVATE(PX2, PY2, PZ2, OX1, OY1, OZ1, OX2, OY2, OZ2 ) &
+!$OMP PRIVATE(RXi, RYi, RZi, PXi, PYi, PZi, OXi, OYi, OZi, RXij, RYij, RZij ) &
+!$OMP PRIVATE( FXij, FYij, FZij, Fij,  PXij, PYij, PZij, OXj, OYj, OZj, eX, eY, eZ ) &
+!$OMP PRIVATE(RijSquared, RijInv, RijSquaredInv, Rij3Inv, Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv ) &
+!$OMP PRIVATE(EPotLocal, CosThetai, CosThetaj, CosThetaiSquared, CosThetajSquared ) &
+!$OMP PRIVATE(CosAux, CosGammaij,  dCosThetai, dCosThetaj, dCosGammaij,  Tmp, RFConst2 ) &
+!$OMP PRIVATE(MueX2, MueY2, MueZ2, mueXi, mueYi, mueZi,  N, s1, s2, j, k,  OptPressure) 
+
+
+
+
     ! Assign local variables
-    EPot => this%EPot1
     OptPressure = this%OptPressure
     if ( OptPressure ) then
       Virial => this%Virial1
@@ -1159,8 +1192,7 @@ contains
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-    ! Zero energy
-    EPot(:) = 0._RK
+
 
     if ( OptPressure ) then
       ! Zero virial
@@ -1169,10 +1201,6 @@ contains
 
     if( CutoffMode .eq. CenterofMass ) then
 
-      ! Calculate interactions partners within cutoff sphere
-      if( CutoffMode .eq. CenterofMass ) then
-        call CalcCutoffPartners( this, np )
-      end if
 
       ! Calculate Lennard-Jones energy
       do s1 = 1, this%N1LJ126
@@ -1200,6 +1228,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1227,6 +1256,7 @@ contains
 &               + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
           end do
+!$OMP END DO          
         end do
       end do
 
@@ -1251,6 +1281,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1288,6 +1319,7 @@ contains
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
           end do
+!$OMP END DO         
         end do
         do s2 = 1, this%N2Dipole
           pcd => this%PotChargeDipole(s1, s2)
@@ -1311,6 +1343,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1352,6 +1385,7 @@ contains
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
           end do
+!$OMP END DO          
         end do
         do s2 = 1, this%N2Quadrupole
           pcq => this%PotChargeQuadrupole(s1, s2)
@@ -1375,6 +1409,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1418,6 +1453,7 @@ contains
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
           end do
+!$OMP END DO 
         end do
       end do
 
@@ -1448,6 +1484,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1486,6 +1523,7 @@ contains
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
           end do
+!$OMP END DO 
         end do
         do s2 = 1, this%N2Dipole
           pdd => this%PotDipoleDipole(s1, s2)
@@ -1515,6 +1553,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1566,6 +1605,7 @@ contains
 &                           * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
           end do
+!$OMP END DO 
         end do
         do s2 = 1, this%N2Quadrupole
           pdq => this%PotDipoleQuadrupole(s1, s2)
@@ -2371,6 +2411,11 @@ contains
 
     end if
 
+
+!$OMP END PARALLEL
+#ifdef ENABLE_OMP
+this%EPot1 = EPot
+#endif
   end subroutine TInteraction_Energy
 
 
@@ -2428,6 +2473,7 @@ contains
     this%NInCutoff(:) = 0
  !   this%CutoffPartner(:, :) = 0
 
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, N2, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
     ! Assign local pointers
     PX1 => this%PX1
     PY1 => this%PY1
@@ -2441,8 +2487,10 @@ contains
 #if MPI_VER > 0
       if( this%NPart10 <= (N+1)/2 ) then
         if( this%NPart12 > (N+1)/2 ) then
+!$OMP DO        
           do i = this%NPart10, (N+1) / 2
 #else
+!$OMP DO        
       do i = 1, (N+1) / 2
 #endif
         PXi = PX1(i)
@@ -2464,6 +2512,9 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
+!$OMP END DO      
+
+!$OMP DO
 #if MPI_VER > 0
           do i = (N+1) / 2 + 1, this%NPart12
 #else
@@ -2501,8 +2552,10 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
+!$OMP END DO      
 #if MPI_VER > 0
         else
+!$OMP DO         
           do i = this%NPart10, this%NPart12
             PXi = PX1(i)
             PYi = PY1(i)
@@ -2523,8 +2576,10 @@ contains
             end do
             this%NInCutoff(i) = NInCutoff
           end do
+!$OMP END DO          
         end if
       else
+!$OMP DO       
         do i = this%NPart10, this%NPart12
           PXi = PX1(i)
           PYi = PY1(i)
@@ -2558,10 +2613,13 @@ contains
           end do
           this%NInCutoff(i) = NInCutoff
         end do
+!$OMP END DO        
+        
       end if
 #endif
     else
       N2 = this%NPart2
+!$OMP DO      
 #if MPI_VER > 0
       do i = this%NPart10, this%NPart12
 #else
@@ -2586,8 +2644,9 @@ contains
         end do
         this%NInCutoff(i) = NInCutoff
       end do
+!$OMP END DO      
     end if
-
+!$OMP END PARALLEL
   end subroutine TInteraction_CalcPartners
 
 
