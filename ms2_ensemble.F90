@@ -1038,7 +1038,7 @@ contains
         write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr*NStepCorr
         call LogWrite
       else
-        this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF*NStepCorr
+        this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
         write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr*NStepCorr
         call LogWrite
       endif
@@ -4078,11 +4078,15 @@ loop3:    do nc = 1, this%NComponents
 
     ! Call Atom2Mol for each component
     do i = 1, this%NComponents
+#if  TRANS == 1
       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
          call Atom2Mol_Trans( this%Component(i), this%Component(i)%NPart )
       else
          call Atom2Mol( this%Component(i), this%Component(i)%NPart )
       end if
+#else
+      call Atom2Mol( this%Component(i), this%Component(i)%NPart )
+#endif
     end do
 
   end subroutine TEnsemble_Atom2Mol
