@@ -1044,7 +1044,7 @@ contains
       endif
       
       ! Correlation length output
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF*NSpanCF
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
