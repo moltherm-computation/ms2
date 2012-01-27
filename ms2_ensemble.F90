@@ -57,6 +57,7 @@ module ms2_ensemble
     ! I/O unit for result ACF
     integer :: iounit_rescf   !TRANSPORT_thisline
     logical :: Conductivity
+    logical :: EConductivity
 #endif
 
     ! Maximum number of particles
@@ -256,12 +257,12 @@ module ms2_ensemble
     integer :: NCorr,Mmess,MmessMax
     integer :: NSpanCF,Nviewcf
 !     real(RK), pointer :: cf_db(:), 
-    real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:)
+    real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
     real(RK), pointer :: lamda(:, :)
     real(RK), pointer :: sinte_i(:, :), sinte_lamda(:,:)
 !     real(RK), pointer :: sinte_db(:), 
     real(RK), pointer :: sinte_vs(:), sinte_vb(:)
-    real(RK), pointer :: sinte_c(:)
+    real(RK), pointer :: sinte_c(:), sinte_ec(:)
     real(RK), pointer :: a(:, :), A_SpanCF(:,:)
     real(RK), pointer :: cf_d (:, :), vsk(:, :)
     real(RK),pointer  :: vsp(:, :), vbk(:, :), vbp(:, :)
@@ -274,6 +275,7 @@ module ms2_ensemble
     real(RK)         :: visco_s
     real(RK)         :: visco_b
     real(RK)         :: conduct
+    real(RK)         :: econduct
 
     ! 4.) Transport properties
 
@@ -283,6 +285,7 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumVisco_s
     type(TAccumulatorCF)         :: SumVisco_b
     type(TAccumulatorCF)         :: SumConduct
+    type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
 #endif
 
@@ -1189,7 +1192,7 @@ contains
       call LogWrite
     end if
 
-! Initialization of the transport property "Conductivity"
+! Initialization of the transport property "Conductivity" and "EConductivity"
 #if TRANS == 1
       if ( this%NComponents < 2 .and. LongRange .eq. RField) then
         this%Conductivity = .true.
@@ -1198,6 +1201,13 @@ contains
       end if
       do i = 1,this%NComponents
         this%Component(i)%Conductivity = this%Conductivity
+      end do
+
+      this%EConductivity = .false.
+      do i = 1, this%NComponents
+         if ( (this%Component(i)%Molecule%Charge) .ne. 0._RK) then
+             this%EConductivity = .true.
+         end if
       end do
 #endif
 
@@ -2107,6 +2117,12 @@ contains
       this%SumConduct%TOTALSUM    = 0._RK
       this%SumConduct%AVERAGE     = 0._RK
       this%SumConduct%VARIANCE    = 0._RK
+
+      call ConstructCF( this%SumEConduct, .true. )
+      this%SumEConduct%BLOCKSUM(:) = 0._RK
+      this%SumEConduct%TOTALSUM    = 0._RK
+      this%SumEConduct%AVERAGE     = 0._RK
+      this%SumEConduct%VARIANCE    = 0._RK
     end if
 !TRANSPORT_END
 #endif
@@ -2185,6 +2201,7 @@ contains
       call DestructCF( this%SumVisco_s )
       call DestructCF( this%SumVisco_b )
       call DestructCF( this%SumConduct )
+      call DestructCF( this%SumEConduct )
     end if
 !TRANSPORT_END
 #endif
@@ -2583,6 +2600,9 @@ contains
       allocate( this%cf_c(this%NCorr), STAT = stat )
       call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
 
+      allocate( this%cf_ec(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'conductivity_cf_ec', this%NCorr )
+
       allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
       call AllocationError( stat, 'self_diffusion', this%NCorr )
 
@@ -2609,6 +2629,9 @@ contains
 
       allocate( this%sinte_c( this%NCorr), STAT = stat )
       call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+
+      allocate( this%sinte_ec( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'Electric_conductivity_integrated', this%NCorr )
 
       allocate( this%a( NPart3, this%NCorr), STAT = stat  )
       call AllocationError( stat, 'diffusion_matrix', NPart3 )
@@ -2653,6 +2676,7 @@ contains
       this%cf_vs( :  )    = 0._RK
       this%cf_vb( :  )    = 0._RK
       this%cf_c( :   )    = 0._RK
+      this%cf_ec( :   )    = 0._RK
 
       this%a(:  ,   :   ) = 0._RK
       this%A_SpanCF(:,: ) = 0._RK
@@ -2663,6 +2687,7 @@ contains
       this%sinte_vs(:   ) = 0._RK
       this%sinte_vb(:   ) = 0._RK
       this%sinte_c(:    ) = 0._RK
+      this%sinte_ec(:    ) = 0._RK
 
       this%selfd_i(:)     = 0._RK
       this%vsk(: ,  :)    = 0._RK
@@ -2781,6 +2806,9 @@ contains
     if( associated( this%cf_c  ) )   then
       deallocate( this%cf_c  )
     end if
+    if( associated( this%cf_ec  ) )   then
+      deallocate( this%cf_ec  )
+    end if
     if( associated( this%lamda ) )   then
       deallocate( this%lamda  )
     end if
@@ -2798,6 +2826,9 @@ contains
     end if
     if( associated( this%sinte_c)  ) then
       deallocate( this%sinte_c  )
+    end if
+    if( associated( this%sinte_ec)  ) then
+      deallocate( this%sinte_ec  )
     end if
 
     if( associated( this%a )  )   then
@@ -8259,6 +8290,7 @@ loop2:        do nc = 1, this%NComponents
       call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess )
       call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess )
       call UpdateCF( this%SumConduct, this%conduct, this%Mmess )
+      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess )
     end if
     end if
 !TRANSPORT_END
@@ -8521,6 +8553,11 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
+      if (this%EConductivity) then
+        write( IOBuffer, '(T13,"EC")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
+
 !       if( this%NComponents == 2 ) then
 !         write( IOBuffer, '(T9,"IntD12")' )
 !         call FileWriteNoAdvance( this%iounit_rescf )
@@ -8550,6 +8587,11 @@ loop2:        do nc = 1, this%NComponents
 
       if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
+
+      if (this%EConductivity) then
+        write( IOBuffer, '(T9,"Int EC")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
@@ -8596,6 +8638,12 @@ loop2:        do nc = 1, this%NComponents
         ! Thermal conductivity
         if (this%Conductivity) then
           write( IOBuffer, '(T5, F10.5)' ) this%cf_c(i)/this%cf_c(1)
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if
+
+        ! Electric Conductivity
+        if (this%EConductivity) then
+          write( IOBuffer, '(T5, F10.5)' ) this%cf_ec(i)/this%cf_ec(1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
@@ -8656,6 +8704,15 @@ loop2:        do nc = 1, this%NComponents
 &           this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
             call FileWriteNoAdvance( this%iounit_rescf )
         end if
+
+        ! electric conductivity
+        if (this%EConductivity) then
+           value = ElementaryCharge**2 /(dsqrt(UnitEnergy*UnitMass) * UnitLength**2)
+           write( IOBuffer, '(T5, F10.5)' ) &
+&             this%sinte_ec(i) / this%sinte_ec(this%NCorr) * this%econduct * value
+           call FileWriteNoAdvance( this%iounit_rescf )
+        end if
+
         call FileWriteBlank( this%iounit_rescf )
       end do
 
@@ -9559,6 +9616,28 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
+        if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
+          call ErrorCF(this%SumEConduct, this%Mmess)
+          Average  = this%SumEConduct%Average
+          Variance = this%SumEConduct%Variance
+        else
+          Average  = this%SumEConduct%Average
+          Variance = this%SumEConduct%Variance
+        end if
+        !e = 1.602176487E-19_RK !Elementarladung
+        value = ElementaryCharge**2 / (dsqrt(UnitEnergy*UnitMass) * UnitLength**2)
+        if (this%EConductivity) then
+          write( IOBuffer, '("Electric conductivity ", T29, "reduced:", 2F20.9)' ) &
+&                                                      this%econduct, Variance
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 1 / (Ohm m):", 2F20.9)' ) &
+&                                                      this%econduct*value, Variance*value
+        else
+          write( IOBuffer, '("Electric conductivity only defined for charged particles")' )
+        end if
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+
       else    ! ( this%Mmess > 0 )
 
         if ( this%NComponents==2 ) then
@@ -9598,6 +9677,16 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '("Thermal conductivity", T29, "reduced:", F20.9)' )  0._8
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in W / (m K) :", F20.9)' ) 0._8
+        end if
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+
+        if (this%EConductivity) then
+           write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._8
+           call FileWrite( this%iounit_errors )
+           write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._8
+        else
+          write( IOBuffer, '("Electric conductivity only defined for pure charged particles")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
@@ -10502,6 +10591,9 @@ if( RootProc .and. (CorrfunMode .eq. active) ) then
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
     end do
+    do i = 1, this%NCorr
+        write( iounit_restart, '(ES20.12E3)' ) this%cf_ec(i)
+    end do
 
 !     if (this%NComponents==2) then
 !         do i = 1, this%NCorr
@@ -10548,6 +10640,7 @@ if( RootProc .and. (CorrfunMode .eq. active) ) then
     call RestartSaveCF( this%SumVisco_s )
     call RestartSaveCF( this%SumVisco_b )
     call RestartSaveCF( this%SumConduct )
+    call RestartSaveCF( this%SumEConduct )
 
     do i = 1,3
       write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -10779,6 +10872,9 @@ endif
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
       end do
+      do i = 1, this%NCorr
+        read( iounit_restart, '(ES20.12E3)' ) this%cf_ec(i)
+      end do
 
 !       if (this%NComponents==2) then
 !         do i = 1, this%NCorr
@@ -10818,6 +10914,7 @@ endif
       call RestartReadCF( this%SumVisco_s )
       call RestartReadCF( this%SumVisco_b )
       call RestartReadCF( this%SumConduct )
+      call RestartReadCF( this%SumEConduct )
 
       do i = 1,3
         read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -14413,40 +14510,30 @@ contains
     ! Declare arguments
     type(TEnsemble) :: this
     ! Declare local variables
-    integer  :: nmess, i, j, j0, k, s
+    integer  :: nmess, i, j, j0, j1, j2, k, l, s
     integer  :: CFindex, Mindex
     integer  :: NPart, NPart2, StepCorr
-    integer  :: np, nc
-!     real(RK) :: sx(this%NComponents, this%NCorr ), sy(this%NComponents, this%NCorr )
-!     real(RK) :: sz(this%NComponents, this%NCorr )
+    integer  :: np, nc, np1, np2
+    real(RK) :: qi, qj
     real(RK) :: sx(this%NComponents), sy(this%NComponents)
     real(RK) :: sz(this%NComponents)
-!     real(RK) :: ACFindex(3*this%NPart)
     real(RK) :: SXindex(this%NComponents),SYindex(this%NComponents),SZindex(this%NComponents)
-!     real(RK) :: VSKindex(3),VSPindex(3)
-!     real(RK) :: VBKindex(3),VBPindex(3)
-!     real(RK) :: VCKTindex(3),VCKRindex(3)
-!     real(RK) :: VCPTindex(3),VCPRindex(3)
-!    real(RK) :: EKinTran(this%NPart)
     real(RK) :: EKinRot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
     real(RK) :: Mass
     real(RK), pointer :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
-    logical  :: Conductivity
+    logical  :: Conductivity, EConductivity
 
     NPart  = this%NPart
     NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
     Conductivity = this%Conductivity
+    EConductivity = this%EConductivity
 
-
-!     EKinTran(:,:) = 0._RK
-!     EKinRot (:,:) = 0._RK
-
-    !Berechnung der verwinderten Laufzahlen
+    !Reduced correlation steps
     StepCorr = (Step + NStepCorr -1) / NStepCorr
 
     !Calculate matrix indexes
@@ -14460,19 +14547,10 @@ contains
     this%vsp(Mindex,  :) = 0._RK
     this%vbk(Mindex,  :) = 0._RK
     this%vbp(Mindex,  :) = 0._RK
-!     this%vckt(Mindex, :) = 0._RK
-!     this%vckr(Mindex, :) = 0._RK
-!     this%vcpt(Mindex, :) = 0._RK
-!     this%vcpr(Mindex, :) = 0._RK
-
 
     !Evaluate FTC and FRC components (parallel version)
     do i = 1, this%NComponents
       call ForceTransport( this%Component(i) )
-! #if MPI_VER > 0
-!       call MPI_Bcast( this%Component(i)%P1(:, :), size( this%Component(i)%P1 ), MPI_RK, &
-! &      NRootProc, Communicator, ierror )
-! #endif
     end do
 
 
@@ -14509,11 +14587,9 @@ contains
       end if
 
 
-!       do j = 1, np
       do k =1, 3
         ! Calculate sum of terms of the pressure tensor (kinetic and potential)
         this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
-!         this%sc(k) = this%sc(k) + sum( pc%KinETran(:,k) )
         this%sp(k) = this%sp(k) + sum(pFB(:, k))
 
         ! part calculated together with force
@@ -14521,7 +14597,6 @@ contains
         this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k))
 
         !bulk diagonal terms and energy tensor kinetic part
-!         this%vbk(Mindex, k) = this%vbk(Mindex, k) + sum( pc%KinETran(:,k) )
         this%vbk(Mindex, k) = this%vbk(Mindex, k) + pc%KinETranTotal(k)
           
         if (Conductivity) then
@@ -14545,9 +14620,6 @@ contains
       this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1)
       this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2)
       this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3)
-!       this%a(j0+1:j0+np              , Mindex) = pc%P1(1:np,1)*BoxLength_dt
-!       this%a(j0+NPart+1 :j0+NPart +np, Mindex) = pc%P1(1:np,2)*BoxLength_dt
-!       this%a(j0+NPart2+1:j0+NPart2+np, Mindex) = pc%P1(1:np,3)*BoxLength_dt
 
       !parts of the stress and energy tensors
       ! shear off diagonal terms
@@ -14577,34 +14649,8 @@ contains
 !         CFindex = Mindex +1
       end if
 
-! -----------------------------------
-      ! Preparation for self diffusion coefficient / conductivity etc.
-!       if ( this%NComponents .gt. 1 ) then
-!         do nmess =1, this%NCorr
-!           j0 = 0
-!           do i = 1, this%NComponents
-!             np = this%Component(i)%NPart
-!             sx(i,nmess)  = sum(this%a(j0       +1:j0+np        , nmess))
-!             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
-!             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
-!             j0 = j0 + np
-!           end do
-!         end do
-!       end if
-! -----------------------------------
 !       ! Preparation of the Autocorrelation function - safe the Startpoints
 !       ACFindex = this%a(:,CFindex)
-!       SXindex  = sx(:, CFindex)
-!       SYindex  = sy(:, CFindex)
-!       SZindex  = sz(:, CFindex)
-!       VSKindex = this%vsk(CFindex,:)
-!       VSPindex = this%vsp(CFindex,:)
-!       VBKindex = this%vbk(CFindex,:)
-!       VBPindex = this%vbp(CFindex,:)
-!       VCPRindex= this%vcpr(CFindex,:)
-!       VCPTindex= this%vcpt(CFindex,:)
-!       VCKRindex= this%vckr(CFindex,:)
-!       VCKTindex= this%vckt(CFindex,:)
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
@@ -14616,40 +14662,22 @@ contains
 
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
-      s = CFindex    ! fuer 1 Schleife ueber nmess
+      s = CFindex    
       do nmess= 1, this%NCorr
-        ! --------------------------------------------
-        !  Update auf 0 ganz unten in der Schleife
-!         s = mod ((nmess + Mindex), this%NCorr)
-!         if (s .eq. 0) then
-!           s = this%NCorr
-!         end if
-        ! --------------------------------------------
-
         ! Loop over particles 
         !Calculate auto-correlation functions
-        !Nur selbstdiffusion
         ! Write the diffusion matrix
+        
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
-          ! alt
-          ! WURDE EBENFALLS NIEMALS AUSGENULLT! STRANGE!!!!! --> No, Methodisch so notwendig!!!
-          this%cf_d(i, nmess) = this%cf_d(i, nmess)  &
+                   this%cf_d(i, nmess) = this%cf_d(i, nmess)  &
 &            + DOT_PRODUCT( this%a(j0       +1 : j0+np       ,CFindex) , &
 &                                                     this%a(j0+1        : j0+np       ,s) ) &
 &            + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
 &                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
 &            + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
 &                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
-          ! mit Startwerten
-!           this%cf_d(i, nmess) = this%cf_d(i, nmess) + &
-! &            + DOT_PRODUCT( ACFindex(j0       +1 : j0+np       ) , &
-! &                                                     this%a(j0+1        : j0+np       ,s) ) &
-! &            + DOT_PRODUCT( ACFindex(j0+NPart +1 : j0+NPart +np) , &
-! &                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
-! &            + DOT_PRODUCT( ACFindex(j0+NPart2+1 : j0+NPart2+np) , &
-! &                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
 
           if ( this%NComponents .gt. 1 ) then
             sx(i)  = sum(this%a(j0       +1:j0+np        , s))
@@ -14667,9 +14695,6 @@ contains
           k = 1
           do i = 1, nc
             do j = 1,nc
-!               this%lamda(k, nmess) = this%lamda(k, nmess) + sx(i, CFindex)*sx(j, s) &
-! &                                           + sy(i, CFindex)*sy(j, s) &
-! &                                           + sz(i, CFindex)*sz(j, s)
               this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
 &                                                         + SYindex(i)*sy(j) &
 &                                                         + SZindex(i)*sz(j)
@@ -14678,14 +14703,6 @@ contains
           end do
         end if
 
-        ! If exactly two components are in the mixture
-        ! Maxwell-Stephan Diffusion coefficient
-!         if (this%NComponents==2) then
-!           this%cf_db(nmess) = this%cf_db(nmess) + sx(1, CFindex)*sx(1, s) &
-! &                                               + sy(1, CFindex)*sy(1, s) &
-! &                                               + sz(1, CFindex)*sz(1, s)
-!         end if
-
         ! Calculated in general
         do k = 1, 3
           ! shear viscosity
@@ -14693,10 +14710,7 @@ contains
 &                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsp(CFindex, k)*this%vsk(s, k)
-!           this%cf_vs(nmess) = this%cf_vs(nmess) + VSKindex(k)*this%vsk(s, k) + &
-! &                                                 VSPindex(k)*this%vsp(s, k) + &
-! &                                                 VSKindex(k)*this%vsp(s, k) + &
-! &                                                 VSPindex(k)*this%vsk(s, k)
+
           ! bulk viscosity
           do j = 1, 3 ! FIXME: PROBLEM mit gemischten Termen j index zuviel (vermutlich)
             this%cf_vb(nmess) =   this%cf_vb(nmess) + &
@@ -14704,11 +14718,6 @@ contains
 &                             ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
 &                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
 &                             ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
-!             this%cf_vb(nmess) =   this%cf_vb(nmess) + &
-! &                             ( VBKindex(j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
-! &                             ( VBPindex(j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
-! &                             ( VBKindex(j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
-! &                             ( VBPindex(j)-virf(j)) *(this%vbk(s, k)-tempf(k))
           end do
           ! conductivity
           if (Conductivity) then
@@ -14728,26 +14737,40 @@ contains
 &                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckr(s, k)
-!             this%cf_c(nmess) =  this%cf_c(nmess) + VCKTindex(k)*this%vckt(s, k) + &
-! &                                                  VCKRindex(k)*this%vckr(s, k) + &
-! &                                                  VCPTindex(k)*this%vcpt(s, k) + &
-! &                                                  VCPRindex(k)*this%vcpr(s, k) + &
-! &                                                  VCKTindex(k)*this%vcpt(s, k) + &
-! &                                                  VCPTindex(k)*this%vckt(s, k) + &
-! &                                                  VCKRindex(k)*this%vcpr(s, k) + &
-! &                                                  VCPRindex(k)*this%vckr(s, k) + &
-! &                                                  VCKRindex(k)*this%vckt(s, k) + &
-! &                                                  VCKTindex(k)*this%vckr(s, k) + &
-! &                                                  VCPTindex(k)*this%vcpr(s, k) + &
-! &                                                  VCPRindex(k)*this%vcpt(s, k) + &
-! &                                                  VCKTindex(k)*this%vcpr(s, k) + &
-! &                                                  VCPRindex(k)*this%vckt(s, k) + &
-! &                                                  VCKRindex(k)*this%vcpt(s, k) + &
-! &                                                  VCPTindex(k)*this%vckr(s, k)
+
           end if
         end do
+
+        ! electric conductivity
+        if (EConductivity) then
+           j1 = 0
+           do k = 1, this%NComponents
+              np1 = this%Component(k)%NPart
+              if((this%Component(k)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
+                 qi = this%Component(k)%Molecule%Charge*UnitCharge/ElementaryCharge
+                 do i = 1, np1
+                    j2 = 0
+                    do l = 1, this%NComponents
+                       np2 = this%Component(l)%NPart
+                       if((this%Component(l)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
+                           qj = this%Component(l)%Molecule%Charge*UnitCharge/ElementaryCharge
+                           do j = 1, np2
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+i, CFindex) * this%a(j2+j, s)
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart+i, CFindex) * this%a(j2+NPart+j, s)
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart2+i, CFindex) * this%a(j2+NPart2+j, s)          
+                           end do
+                       endif
+                       j2 = j2 + np2
+                    end do
+                 end do  
+              endif 
+              j1 = j1 + np1    
+           end do
+        end if !if(EConductivity)
+
         if (s == this%NCorr) s = 0
         s = s+1
+
       end do  ! NMess
       this%Mmess  = this%Mmess +1
       
@@ -14756,29 +14779,7 @@ contains
 
 ! -----------------------------------
      else ! if (Step .gt. this%NCorr)
-!       if ( this%NComponents .gt. 1 ) then
-!         do k =1, this%NSpanCF
-!           nmess = Step - (k-1)
-! !           sx(:,nmess) = 0._RK
-! !           sy(:,nmess) = 0._RK
-! !           sz(:,nmess) = 0._RK
-!           j0 = 0
-!           do i = 1, this%NComponents
-!             np = this%Component(i)%NPart
-!             sx(i,nmess)  = sum(this%a(j0       +1:np           , nmess))
-!             sy(i,nmess)  = sum(this%a(j0+NPart +1:j0+NPart +np , nmess))
-!             sz(i,nmess)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , nmess))
-!             j0 = j0 + np
-!           end do
-!         end do
-!       end if
-! ! -----------------------------------
-!       if (Mindex .eq. this%NCorr) then
-!         CFindex = this%NCorr                       !index of t = t0
-!       else
         CFindex = Mindex +1
-!       end if
-
         this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
      end if ! if (Step .gt. this%NCorr)
     end if ! if (mod(Step, this%NSpanCF).eq.0)
@@ -14907,6 +14908,10 @@ contains
     if (this%Conductivity) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStepCorr, this%NCorr )
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
+    end if
+    if (this%EConductivity) then
+      this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), TimeStepCorr, this%NCorr )
+      this%econduct = this%sinte_ec( this%NCorr ) * this%cf_ec(1) * (helpvar * BoxLength_dt2)
     end if
 
 
