@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_site                                             !
 !  Contains TSite* objects                                     !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -43,7 +49,7 @@ module ms2_site
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
-
+    integer, pointer          :: RDFSum(:)
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: vsLJx(:) , vsLJy(:), vsLJz(:)
@@ -354,6 +360,7 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+    nullify( this%RDFSum)
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsLJx )
@@ -386,8 +393,13 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    allocate( this%RZ( np ), STAT = stat )    
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
+      call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )
+    endif     
+    
+    call AllocationError( stat, 'particles', np )    
     if( SimulationType .eq. MolecularDynamics ) then
       allocate( this%FX( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
@@ -478,6 +490,9 @@ contains
     if( associated( this%RZ ) ) then
       deallocate( this%RZ )
     end if
+    if( associated( this%RDFSum ) ) then
+      deallocate( this%RDFSum )
+    end if    
     if( associated( this%FX ) ) then
       deallocate( this%FX )
     end if

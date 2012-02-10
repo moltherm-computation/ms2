@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_simulation                                       !
 !  Contains TSimulation object                                 !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -56,6 +62,7 @@ module ms2_simulation
     integer :: iounit_rescf
 !TRANSPORT_END
 #endif
+
 
 end type TSimulation
 
@@ -138,7 +145,19 @@ end type TSimulation
   interface VisualClose
     module procedure TSimulation_VisualClose
   end interface
+  
+  interface RDFOpen
+    module procedure TSimulation_RDFOpen
+  end interface
 
+  interface RDFUpdate
+    module procedure TSimulation_RDFUpdate
+  end interface
+
+  interface RDFClose
+    module procedure TSimulation_RDFClose
+  end interface
+  
   interface RestartSave
     module procedure TSimulation_RestartSave
   end interface
@@ -164,6 +183,13 @@ contains
     ! Declare arguments
     type(TSimulation) :: this
 
+#if defined MS2_STEEREO
+    integer simsteer_new
+    integer socketcommunicator_new
+    integer mpiintracommunicator_new
+    integer mpiintracommunicator_amiroot
+#endif
+
     ! Declare local variables
     character( IOBufferLength ) :: str
     integer                     :: i
@@ -172,6 +198,9 @@ contains
     real(RK)                    :: debyelen_h
     integer                     :: grid_h,spline_h
     integer                     :: nvecmax_h,nsqmax_h,nmax_h
+
+	!RDF Hilfsvariable
+	!real(RK)                    :: RDFdr, RDFdr3
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -223,6 +252,17 @@ contains
     call LogWrite
     write( IOBuffer, '(T20, "Reading parameters of simulation")' )
     call LogWrite
+
+#if defined MS2_STEEREO
+        call set_logger_level (2);
+        call FileReadParameter( CommandPath, iounit_params, IdCommandPath, .true., './commands')
+        write( IOBuffer, '("CommandPath: ",T26, A)' ) trim( CommandPath )
+        call LogWrite
+        CommandPathLength = len_trim (CommandPath)
+        call FileReadParameter( Port, iounit_params, IdSteereoPort, .true., 44446)
+        write( IOBuffer, '("Listening on port: ",T24, I5)' ) Port
+        call LogWrite
+#endif
 
     ! Read name tag for output files
 ! #if ARCH != 1 && ARCH != 2 && ARCH != 3
@@ -351,7 +391,7 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
-
+      RDFUpdateFrequency = 0
       ! Set cutoff mode
       CutoffMode = CenterofMass
 
@@ -388,10 +428,10 @@ contains
 
         ! Time step
         call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
-        write( IOBuffer, '("Time step: ",T26, F8.6, " fs")' ) &
+        write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) &
 &         TimeStep * UnitTime * 1E15_RK
         call LogWrite
-        write( IOBuffer, '("Reduced time step: ",T26, F8.6)' ) TimeStep
+        write( IOBuffer, '("Reduced time step: ",T26, F9.6)' ) TimeStep
         call LogWrite
         TimeStep2 = .5_RK * TimeStep
         TimeStepSquared = TimeStep**2
@@ -613,6 +653,27 @@ contains
       end if
       call LogWrite
       call LogWriteBlank
+      
+      ! Read frequency of updating visualisation file
+      call FileReadParameter( RDFUpdateFrequency, iounit_params , IdRDFUpdateFrequency, .true., 0 )
+      if( RDFUpdateFrequency > 0 ) then
+        write( IOBuffer, &
+&        '("RDF files will be updated each", I7, " time steps")' ) &
+&         RDFUpdateFrequency
+      else
+        write( IOBuffer, '("RDF files will not be created")' )
+      end if
+      call LogWrite
+      call LogWriteBlank
+      
+      if( RDFUpdateFrequency > 0 ) then
+      call FileReadParameter( RDFNumberShells, iounit_params , IdRDFNumberShells, .true., 200 )
+        write( IOBuffer, &
+&        '("RDF will operate with", I7, " shells")' ) &
+&         RDFNumberShells
+      call LogWrite
+      call LogWriteBlank
+      end if
 
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
@@ -718,6 +779,7 @@ contains
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
 
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Read correlation function mode
@@ -820,6 +882,50 @@ contains
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
+    call RDFOpen( this )
+    
+
+   ! steering initialization
+#if defined MS2_STEEREO
+   numberOfPartitions = 1
+   simSteerInst = simsteer_new ()
+
+#if MPI_VER > 0
+   intraComm = mpiintracommunicator_new ()
+   call mpiintracommunicator_generateequally (intraComm, NProc, numberOfPartitions, NProcs)
+   call simsteer_setintracommunicator (simSteerInst, intraComm)
+   if (mpiintracommunicator_amiroot (intraComm) > 0) then
+#endif
+      comm = socketCommunicator_new (port)
+      call simSteer_setCommunicator (simSteerInst, comm)
+      call simSteer_startListening (simSteerInst)
+#if MPI_VER > 0
+   end if
+#endif
+   call load_commands (simSteerInst, TRIM(CommandPath), CommandPathLength)
+   commandName='getMegaMolSnapshot'
+   commandNameSize = LEN_TRIM (commandName)
+
+   ms2_data%boxLength = this%Ensemble(1)%BoxLength
+   ms2_data%numberOfComponents = this%Ensemble(1)%NComponents
+   allocate (ms2_data%particleNumbers (this%Ensemble(1)%NComponents))
+   DO i=1, this%Ensemble(1)%NComponents
+      ms2_data%particleNumbers = this%Ensemble(1)%Component(i)%NPart1
+   END DO
+   call add_command_data (TRIM(commandName), commandNameSize, ms2_data)
+   DO i=1, this%Ensemble(1)%NComponents
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%P0, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%F, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+     call add_command_data_and_size (TRIM(commandName), commandNameSize, this%Ensemble(1)%Component(i)%P1, &
+        this%Ensemble(1)%Component(i)%NPartMax)
+		
+	
+   END DO
+
+!MS2_STEEREO
+#endif
 
   end subroutine TSimulation_Construct
 
@@ -843,7 +949,8 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-
+    call RDFClose( this )
+    
     ! Destroy accumulators
     call DestroyAccumulators( this )
 
@@ -924,13 +1031,14 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j
+    integer :: i, j, s, t
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
+    integer :: k
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
     type(TInteraction), pointer :: pi
-    integer :: k, n1, n2
+    integer :: n1, n2
     
     integer :: color, NGroups, Proc_Max_Eff
     integer :: statusHost, lengthHost, tmpVal
@@ -1516,13 +1624,19 @@ eqloop: do
          write( IOBuffer, '("  (adjustment of weighting factors)")' )
        end if
        call LogWriteTime
-
+       
        do Step = StepStart, GradInsInit
          do i = 1, this%NEnsembles
            call ChemicalPotential( this%Ensemble(i) )
          end do
        end do
-
+       
+       
+       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) &
+&           max(NStepsMC,1)*this%NEnsembles
+       call LogWrite
+       
+       Step = 1
        if( .not. TerminateProgram ) then
          write( IOBuffer, '("GradIns initialization completed")' )
          GradInsInitialization = .false.
@@ -1608,9 +1722,11 @@ eqloop: do
     logical :: AnyTerminateProgram
 #endif
 #if TRANS==1
-    integer:: i, StepCF
+    integer:: StepCF
 #endif
-
+	integer:: o, i, j, t, s
+	
+	
     ! Run simulation steps
     do Step = StepStart, StepEnd
 
@@ -1657,6 +1773,7 @@ eqloop: do
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
+      call RDFUpdate ( this )
 
       ! Update log and result files
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) &
@@ -1702,8 +1819,13 @@ eqloop: do
       ! Check for too many particles (GE only)
       if( tooManyParticles ) exit
 
+#if defined MS2_STEEREO
+      call simsteer_processqueue(0)
+#endif
+
     end do
 
+	
   end subroutine TSimulation_RunSteps
 
 
@@ -2308,7 +2430,93 @@ eqloop: do
   end subroutine TSimulation_VisualClose
 
 
+!==============================================================!
+!  Subroutine TSimulation_RDFOpen                           !
+!==============================================================!
 
+  subroutine TSimulation_RDFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Open ensemble visualisation files
+    do i = 1, this%NEnsembles
+      call RDFOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_RDFOpen
+
+!==============================================================!
+!  Subroutine TSimulation_RDFUpdate                         !
+!==============================================================!
+
+  subroutine TSimulation_RDFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Return if equilibration
+    if( Equilibration ) return
+
+    ! Update ensemble visualisation files
+    if( mod( StepTotal - 1, RDFUpdateFrequency ) == 0 ) then
+      do i = 1, this%NEnsembles
+        call RDFUpdate( this%Ensemble(i) )
+      end do
+    end if
+
+  end subroutine TSimulation_RDFUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_RDFClose                          !
+!==============================================================!
+
+  subroutine TSimulation_RDFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( RDFUpdateFrequency < 1 ) return
+
+    ! Close ensemble visualisation files
+    do i = 1, this%NEnsembles
+      call RDFClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_RDFClose
+  
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !
 !==============================================================!

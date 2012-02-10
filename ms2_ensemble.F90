@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_ensemble                                         !
 !  Contains TEnsemble object                                   !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -53,6 +59,9 @@ module ms2_ensemble
     ! I/O unit for visualization file
     integer :: iounit_visual
 
+    ! I/O unit for RDF file
+    integer :: iounit_rdf
+    
 #if  TRANS == 1
     ! I/O unit for result ACF
     integer :: iounit_rescf   !TRANSPORT_thisline
@@ -124,6 +133,12 @@ module ms2_ensemble
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
 
+ 
+    !RDF Hilfsvariable
+    real(RK) :: RDFdr, RDFdr3
+    real(RK), pointer :: RDFVSchale(:)
+    real(RK), pointer :: RDF(:) 
+    
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
 
@@ -288,8 +303,7 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
 #endif
-
-
+!RDF
 #if CONSTR > 0
    integer         :: NCons
    integer,pointer :: Cons1Comp(:)
@@ -622,7 +636,19 @@ module ms2_ensemble
   interface ResultClose
     module procedure TEnsemble_ResultClose
   end interface
+  
+  interface RDFOpen
+    module procedure TEnsemble_RDFOpen
+  end interface
 
+  interface RDFUpdate
+    module procedure TEnsemble_RDFUpdate
+  end interface
+
+  interface RDFClose
+    module procedure TEnsemble_RDFClose
+  end interface
+  
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
@@ -1507,10 +1533,17 @@ contains
     this%iounit_runave = iounit_runave + i
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
+    this%iounit_rdf = iounit_rdf + i
 #if  TRANS == 1
     this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
 #endif
-
+    ! Calculate RDF VSchale 
+ !   write (*,*) this%RCutoffLJ126LJ126
+	this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
+	do i = 1, RDFNumberShells	
+	  this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
+	end do
+	
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') &
 &          this%EnsembleNumber
     call LogWrite
@@ -2518,6 +2551,15 @@ contains
     allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
     call AllocationError( stat, 'NPartMax', this%NPartMax )
 
+    ! Allocate RDF arrays
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFVSchale(RDFNumberShells), &
+&       STAT = stat )
+      call AllocationError( stat, 'components', RDFNumberShells )
+      allocate( this%RDF(RDFNumberShells), &
+&       STAT = stat )
+      call AllocationError( stat, 'components', RDFNumberShells )    
+    endif
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
       allocate( this%P0Test( this%NTestMax, 3 ), STAT = stat )
@@ -2787,6 +2829,13 @@ contains
       deallocate( this%ScaleSigma )
     end if
     if( associated( this%BiasedPartners ) ) deallocate( this%BiasedPartners )
+    if( associated( this%RDFVSchale ) ) then
+      deallocate( this%RDFVSchale )
+    end if
+    if( associated( this%RDF ) ) then
+      deallocate( this%RDF )
+    end if    
+    
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -8801,7 +8850,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                  :: Average, Variance
     type(TComponent), pointer :: pc
-    integer                   :: i, j
+    integer                   :: i, j, s, t, o
 #if  TRANS == 1
     real(RK)                  :: value
 #endif
@@ -8927,6 +8976,26 @@ loop2:        do nc = 1, this%NComponents
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_errors, &
 &     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
+
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("*                           Publishing with ms2                            *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,         *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec               *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2011)                                   *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    call FileWriteBlank( this%iounit_errors )
 
     ! Separator
     write( IOBuffer, '(76("="))' )
@@ -10193,7 +10262,8 @@ loop2:        do nc = 1, this%NComponents
 &           this%ResidLength*UnitLength/Angstroem
       call FileWrite( this%iounit_errors )
     end if
-    
+    call FileWriteBlank( this%iounit_errors )
+
     ! Close final result file
     call FileClose( this%iounit_errors )
 
@@ -10221,7 +10291,28 @@ loop2:        do nc = 1, this%NComponents
     call FileRewrite( this%iounit_errors, &
 &     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
 
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("*                           Publishing with ms2                            *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,         *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec               *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2011)                                   *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    call FileWriteBlank( this%iounit_errors )
+
     ! Separator
+    call FileWriteBlank( this%iounit_errors )
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
@@ -10423,6 +10514,158 @@ loop2:        do nc = 1, this%NComponents
     call FileClose( this%iounit_visual )
 
   end subroutine TEnsemble_VisualClose
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFOpen                             !
+!==============================================================!
+
+  subroutine TEnsemble_RDFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j, s, t
+
+
+
+    ! RDF, Sum nullen
+	! DEBUG_COL nullen auf Ensemble Ebene
+	 do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   do s=1, this%component(i)%molecule%NLJ126
+	    do t=1, this%component(j)%molecule%NLJ126
+		  this%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
+	    end do
+	   end do
+	  end do
+	 end do
+
+
+    ! Open visualization file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, &
+&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+    call FileWriteBlank( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFOpen
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFUpdate                           !
+!==============================================================!
+
+  subroutine TEnsemble_RDFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, s, t, o
+
+    ! Update visualization file
+
+
+! Calculate and write the RDF - this is not really the best place for this, but it will have to do
+
+!RDF
+ !  if (RDFCalc) then
+	
+    CallsToRDF  = CallsToRDF+1
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, &
+&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+
+    do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   if (i .LE. j) then
+	   
+	   
+	   call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+
+ 	   
+	   do s=1, this%Component(i)%molecule%NLJ126
+	    do t=1, this%Component(j)%molecule%NLJ126
+        
+        
+        
+		if (s .LE. t) then	 	
+		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+		
+	    write(IOBuffer, '(2I3)') i, j
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		write(IOBuffer, '(2I3)') s, t
+          call FileWrite( this%iounit_rdf )
+          call FileWriteBlank( this%iounit_rdf )
+		
+		do o = 1, RDFNumberShells
+	    
+		if (i .EQ. j) then
+		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		else
+		RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+                    	  / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+		end if
+		
+		
+		this%RDF(o) = RDFRhoLocal / RDFRho  
+		
+		  write(IOBuffer, '(F10.4)') this%RDF(o)
+		  call FileWrite( this%iounit_rdf )
+         ! call FileWriteBlank( this%iounit_rdf )
+
+	    end do
+		end if
+		
+		end do
+	   end do
+	   end if
+	  end do
+	 end do
+
+    call FileWriteBlank( this%iounit_rdf )
+
+    ! Close RDF file
+    call FileClose( this%iounit_rdf )
+
+	
+	  
+!	end if
+!
+
+
+
+  end subroutine TEnsemble_RDFUpdate
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFClose                            !
+!==============================================================!
+
+  subroutine TEnsemble_RDFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close visualization file
+    write( IOBuffer, '("##")' )
+    call FileWrite( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFClose
 
 
 

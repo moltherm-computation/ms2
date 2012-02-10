@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_global                                           !
 !  Contains declarations of global constants and functions     !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -83,7 +89,7 @@ module ms2_global
 #endif
 
   ! Version of program
-character(*), parameter :: VersionString = 'v12'
+character(*), parameter :: VersionString = 'v1.0'
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -133,7 +139,6 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: FileSep = '/'
 #endif
 
-
   ! Extension of configuration file.
   character(*), parameter :: ConfigFileExtension = '.cfg'
 
@@ -160,6 +165,11 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
+  
+  ! Extension of RDF file 
+  
+  character(*), parameter :: RDFFileExtension = '.rdf'
+  
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -188,6 +198,28 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: iounit_start  = 1000
 #endif
 
+#if defined MS2_STEEREO
+   type :: ms2_struct
+      sequence
+      real(RK) :: boxLength
+      integer  :: numberOfComponents
+      integer, pointer :: particleNumbers (:)
+   end type ms2_struct
+
+   integer :: simSteerInst, comm, intraComm
+   character(LEN=80) :: commandName
+   integer :: commandNameSize
+   integer :: countVar
+   integer :: numberOfPartitions
+   type(ms2_struct) :: ms2_data
+   character(*),parameter :: IdCommandPath  = 'CommandPath'
+   character(*),parameter :: IdSteereoPort = 'Port'
+   character(LEN=255) :: CommandPath
+   integer :: CommandPathLength
+   integer :: Port
+
+#endif
+
   ! Define i/o unit numbers
   integer, parameter :: iounit_log     = iounit_start + 0
   integer, parameter :: iounit_config  = iounit_start + 1
@@ -201,8 +233,10 @@ character(*), parameter :: VersionString = 'v12'
 #if  TRANS == 1
   integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
   integer, parameter :: iounit_visual  = iounit_start + 10
+  integer, parameter :: iounit_rdf     = iounit_start + 11
 #else
   integer, parameter :: iounit_visual  = iounit_start + 9
+  integer, parameter :: iounit_rdf     = iounit_start + 10
 #endif
 
   ! Define number of output files for each ensemble
@@ -246,6 +280,8 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdBlockSize                   = 'ResultFreq'
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
+  character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
+  character(*), parameter :: IdRDFNumberShells             = 'NumShells'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdLongRange                   = 'LongRange'
   character(*), parameter :: IdKappa                       = 'Kappa'
@@ -295,6 +331,8 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+  ! RDF Flag
+ ! character(*), parameter :: IdRdfCalc                     = 'RDFCalculation'
 #if  TRANS == 1
   !TRANSPORT_start
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
@@ -581,10 +619,25 @@ character(*), parameter :: VersionString = 'v12'
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
+  ! Frequency of updating RDF file
+  integer :: RDFUpdateFrequency
+  
+  ! Number of RDF shells
+  integer :: RDFNumberShells
+  
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
 
+  ! Calculate the radial distribution function
+  !logical :: RDFCalc
+  integer :: CallsToRDF = 0
+  
+  !RDF
+!  real(RK) :: RDF(RDFNumberShells) 
+  real(RK) :: RDFRho, RDFRhoLocal
+
+  
 #if  TRANS == 1
 !TRANSPORT_start
   ! Maximum number of blocks CF
@@ -1344,6 +1397,45 @@ contains
     write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("*                         Publishing with ms2                          *")')
+    call LogWrite
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
+    call LogWrite
+    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
+    call LogWrite
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,     *")')
+    call LogWrite
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec           *")')
+    call LogWrite
+    write( IOBuffer, '("* Computer Physics Communications (2011)                               *")')
+    call LogWrite
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
+    call LogWrite
+    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
+    call LogWrite
+    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) &
 &          trim( ProgramFileName ), trim( VersionString )
     call LogWrite
@@ -1836,6 +1928,7 @@ contains
     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
+    ! RootProc knows length (len_trim) of parametervalue, but it's easier to bcast the whole buffer
     call MPI_Bcast( parametervalue, len(parametervalue), &
 &     MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
@@ -1944,6 +2037,7 @@ contains
         call LogWrite
         parametervariable = defaultvalue
       else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
@@ -1990,6 +2084,7 @@ contains
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
         write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
@@ -1997,6 +2092,7 @@ contains
         call LogWrite
         parametervariable = defaultvalue
       else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
@@ -2043,9 +2139,10 @@ contains
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
-        write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
+        write( IOBuffer, '("setting ",A," to default value ",G16.9)' ) &
 &             trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
@@ -2096,6 +2193,7 @@ contains
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
         write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifiers)
