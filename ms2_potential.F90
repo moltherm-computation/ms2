@@ -793,6 +793,11 @@ contains
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)			
+#endif 
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 #if MPI_VER > 0
@@ -804,7 +809,26 @@ contains
 !     real(RK)          :: VirAblSig
 !     real(RK)          :: VirAblEps
     real(RK)          :: dr2Abl
+#endif        
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+#ifdef ENABLE_OMP         
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
 #endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+ 
+
+ 
+!$OMP PARALLEL PRIVATE(i0, N1, N2, ji, EvenN, i, j, k, i1) &
+!$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
+!$OMP PRIVATE(FZ2, SigmaSquared, SigmaInv, Epsilon4, Epsilon48, RCutoffSquared) &
+!$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv )
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -847,14 +871,11 @@ contains
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-
 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -896,9 +917,15 @@ loop1:  do k = 1, this%NInCutoff(i)
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif          
 #ifdef ABL
           dr2Abl  = RXij**2 + RYij**2 + RZij**2
           VirAblSig = VirAblSig + Rij6Inv*(1._RK-4._RK*Rij6Inv)*(PXij*RXij+ &
@@ -911,10 +938,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         FY1(i) = FYi
         FZ1(i) = FZi
       end do
-
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)      
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -970,20 +998,33 @@ loop2:  do j = j0, j1
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif          
         end do loop2
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
       end do
-
+!$OMP END DO 
     end if
 
+!$OMP END PARALLEL
+
     ! Update potential energy and virial
-    EPot = EPot + Epsilon4 * EPotLocal
-    Virial = Virial + Third * VirialLocal * BoxLength
+#ifdef ENABLE_OMP              
+   FX2 = FX2 + forceTempX
+   FY2 = FY2 + forceTempY
+   FZ2 = FZ2 + forceTempZ
+#endif   
+   EPot = EPot + this%Epsilon4 * EPotLocal
+   Virial = Virial + Third * VirialLocal * BoxLength
 
 #ifdef ABL
     VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
@@ -1094,7 +1135,14 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
 !$OMP PRIVATE(FZ2, SigmaSquared, SigmaInv, Epsilon4, Epsilon48, RCutoffSquared) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv )
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity)
 
       ! Assign local variables
     SameComponent = this%SameComponent
@@ -1852,6 +1900,7 @@ loop2:do j = 1, N
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -1861,11 +1910,44 @@ loop2:do j = 1, N
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
     real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+#ifdef ENABLE_OMP    
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+#endif
+
     real(RK)          :: Rij2
+
     integer           :: i, j, k, i1
 #if MPI_VER > 0
     integer           :: i0
 #endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+#if MPI_VER > 0
+!$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
+!$omp private ( i0)
+#else
+!$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
+#endif
+
 
     ! Assign local variables
 #if MPI_VER > 0
@@ -1875,8 +1957,8 @@ loop2:do j = 1, N
     i1 = this%Site1%NPart
 #endif
     Epsilon = this%Epsilon
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -1888,9 +1970,9 @@ loop2:do j = 1, N
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -1899,6 +1981,7 @@ loop2:do j = 1, N
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -1913,6 +1996,7 @@ loop2:do j = 1, N
       PXi = PX1(i)
       PYi = PY1(i)
       PZi = PZ1(i)
+
 !CDIR NODEP
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
@@ -1933,12 +2017,14 @@ loop1:do k = 1, this%NInCutoff(i)
         RijInv = rsqrt( Rij2 )
 #else
         RijInv = 1._RK / sqrt( Rij2 )
+
 #endif
         eX = RXij * RijInv
         eY = RYij * RijInv
         eZ = RZij * RijInv
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
+
         VirialLocal = VirialLocal + EPotLocal1 * RijInv &
 &                       * (eX * PXij + eY * PYij + eZ * PZij)
         FXij = EPotLocal1 * RijInv * eX
@@ -1947,21 +2033,37 @@ loop1:do k = 1, this%NInCutoff(i)
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+#else          
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
+#endif         
+
+
       end do loop1
       FX1(i) = FXi
       FY1(i) = FYi
       FZ1(i) = FZi
+
     end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCC_Force
-
 
 
 !==============================================================!
@@ -2197,11 +2299,18 @@ loop1:do k = 1, this%NInCutoff(i)
   
   
 !$OMP PARALLEL &
-!$omp private ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$omp private (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #if MPI_VER > 0
 !$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
 !$omp private ( i0)
@@ -4715,6 +4824,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -4732,10 +4842,63 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+    
 #if MPI_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private (Epsilon,  RCutoffSquared, RFConstant2) &
+!$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!$omp private (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!$omp private (PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$omp private (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$omp private (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private (eX, eY, eZ, RijSquared, RijInv, Rij3Inv, Rij4Inv3) &
+!$omp private (CosThetai, CosThetaj, CosGammaij) &
+!$omp private (CosThetai3, CosThetaj3,  Tmp) &
+!$omp private (  SameComponent) &
+#if MPI_VER > 0
+!$omp private (i, j, k, i1, j0, j1) &
+!$omp private ( N1, N2, i0, ji, EvenN)
+#else
+!$omp private (i, j, k, i1, j0, j1)
+#endif
+
+
+
+
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -4752,8 +4915,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RFConstant2 = 2._RK * this%RFConstant
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -4771,15 +4934,15 @@ loop1:  do k = 1, this%NInCutoff(i)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -4790,6 +4953,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)      
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -4810,6 +4975,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PXi = PX1(i)
         PYi = PY1(i)
         PZi = PZ1(i)
+
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -4846,6 +5012,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           Rij4Inv3 = 3._RK * Rij3Inv * RijInv
           EPotLocal = EPotLocal +  Rij3Inv * Tmp
 !           EPotLocal = EPotLocal +  Rij3Inv * Tmp - RFConstant2 * CosGammaij
+
           FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                     - (eX * CosThetaj - OXj) * CosThetai)
           FYij = Rij4Inv3 * (eY * Tmp - (eY * CosThetai - OYi) * CosThetaj &
@@ -4856,15 +5023,32 @@ loop1:  do k = 1, this%NInCutoff(i)
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif 
+
+
           TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
           TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
           TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+          
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) + Rij3Inv * (eX * CosThetai3 - OXi)  
+          momTempY(j) = momTempY(j) + Rij3Inv * (eY * CosThetai3 - OYi)  
+          momTempZ(j) = momTempZ(j) + Rij3Inv * (eZ * CosThetai3 - OZi)  
+#else          
           TX2(j) = TX2(j) + Rij3Inv * (eX * CosThetai3 - OXi)
           TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi)
           TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi)
+#endif           
+
+
         end do loop1
         FX1(i) = FXi
         FY1(i) = FYi
@@ -4872,11 +5056,14 @@ loop1:  do k = 1, this%NInCutoff(i)
         TX1(i) = TXi
         TY1(i) = TYi
         TZ1(i) = TZi
-      end do
 
+      end do
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -4956,21 +5143,40 @@ loop2:  do j = j0, j1
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif  
+
           TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj) &
 &                         + RFConstant2 * OXj
           TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj) &
 &                         + RFConstant2 * OYj
           TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj) &
 &                         + RFConstant2 * OZj
+
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) + Rij3Inv * (eX * CosThetai3 - OXi) &
+&                         + RFConstant2 * OXi 
+          momTempY(j) = momTempY(j) + Rij3Inv * (eY * CosThetai3 - OYi) &
+&                         + RFConstant2 * OYi   
+          momTempZ(j) = momTempZ(j) + Rij3Inv * (eZ * CosThetai3 - OZi) &
+&                         + RFConstant2 * OZi   
+#else          
+
           TX2(j) = TX2(j) + Rij3Inv * (eX * CosThetai3 - OXi) &
 &                         + RFConstant2 * OXi
           TY2(j) = TY2(j) + Rij3Inv * (eY * CosThetai3 - OYi) &
 &                         + RFConstant2 * OYi
           TZ2(j) = TZ2(j) + Rij3Inv * (eZ * CosThetai3 - OZi) &
-&                         + RFConstant2 * OZi
+&                         + RFConstant2 * OZi       
+#endif  
+
         end do loop2
         FX1(i) = FXi
         FY1(i) = FYi
@@ -4979,14 +5185,27 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
+!$OMP END DO
 
     end if
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDD_Force
+
+
 
 !==============================================================!
 !  Subroutine TPotDD_Force_Trans                               !
@@ -5100,6 +5319,13 @@ loop2:  do j = j0, j1
 !$omp private (CosThetai, CosThetaj, CosGammaij) &
 !$omp private (CosThetai3, CosThetaj3,  Tmp) &
 !$omp private (  SameComponent) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #if MPI_VER > 0
 !$omp private (i, j, k, i1, j0, j1) &
 !$omp private ( N1, N2, i0, ji, EvenN)
@@ -8170,10 +8396,61 @@ loop2:do j = 1, j1
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+    
 #if MPI_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private (Epsilon,  RCutoffSquared) &
+!$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!$omp private (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!$omp private (PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$omp private (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$omp private (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
+!$omp private (CosThetai, CosThetaj, CosGammaij) &
+!$omp private (CosThetaiSquared, CosThetajSquared) &
+!$omp private (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
+!$omp private (EPotLocal1, SameComponent) &
+#if MPI_VER > 0
+!$omp private (i, j, k, i1, j0, j1) &
+!$omp private ( N1, N2, i0, ji, EvenN)
+#else
+!$omp private (i, j, k, i1, j0, j1)
+#endif
+
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -8189,8 +8466,8 @@ loop2:do j = 1, j1
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+!    EPotLocal   = 0._RK
+!    VirialLocal = 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -8208,15 +8485,15 @@ loop2:do j = 1, j1
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -8227,6 +8504,8 @@ loop2:do j = 1, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -8308,15 +8587,29 @@ loop1:  do k = 1, this%NInCutoff(i)
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif
+
           TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
           TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
           TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
           TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
           TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
           TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+#endif
+
         end do loop1
         FX1(i) = FXi
         FY1(i) = FYi
@@ -8325,10 +8618,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
+!$OMP END DO
 
     else ! Site-site cutoff
 
       ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -8425,15 +8721,29 @@ loop2:  do j = j0, j1
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
           FX2(j) = FX2(j) - FXij
           FY2(j) = FY2(j) - FYij
           FZ2(j) = FZ2(j) - FZij
+#endif
+
           TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
           TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
           TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
           TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
           TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
-          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#endif
+
         end do loop2
         FX1(i) = FXi
         FY1(i) = FYi
@@ -8442,14 +8752,27 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
+!$OMP END DO
 
     end if
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
+
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQQ_Force
+
 
 !==============================================================!
 !  Subroutine TPotQQ_Force_Trans                               !
@@ -8564,6 +8887,13 @@ loop2:  do j = j0, j1
 !$omp private (CosThetaiSquared, CosThetajSquared) &
 !$omp private (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
 !$omp private (EPotLocal1, SameComponent) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #if MPI_VER > 0
 !$omp private (i, j, k, i1, j0, j1) &
 !$omp private ( N1, N2, i0, ji, EvenN)
