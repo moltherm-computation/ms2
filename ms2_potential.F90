@@ -2102,6 +2102,12 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: approx, Faktor
     real(RK)          :: Fij,KappaRij
+#ifdef ENABLE_OMP    
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+#endif
+
     real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
 !     integer           :: sitecheck1,sitecheck2
@@ -2110,6 +2116,34 @@ loop1:do k = 1, this%NInCutoff(i)
 #if MPI_VER > 0
     integer           :: i0
 #endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+
+!$OMP PARALLEL &
+!$omp private ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$omp private (approx, Faktor, Fij,KappaRij) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+#if MPI_VER > 0
+!$omp private ( eX, eY, eZ  , RijInv,Rij ,EPotLocal1,  i, j, k, i1, i2) &
+!$omp private ( i0)
+#else
+!$omp private ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k, i1, i2)
+#endif
+
 
     ! Assign local variables
 #if MPI_VER > 0
@@ -2120,8 +2154,8 @@ loop1:do k = 1, this%NInCutoff(i)
     i2 = this%Site2%NPart
 #endif
     Epsilon = this%Epsilon
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
     Faktor = 2._RK/sqrt(Pi) * Kappa
 
     ! Assign pointers
@@ -2134,9 +2168,9 @@ loop1:do k = 1, this%NInCutoff(i)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -2145,6 +2179,7 @@ loop1:do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2159,6 +2194,7 @@ loop1:do k = 1, this%NInCutoff(i)
       PXi = PX1(i)
       PYi = PY1(i)
       PZi = PZ1(i)
+
 !CDIR NODEP
  loop1:do k = 1, this%NInCutoff(i),1
          j = this%CutoffPartner(k, i)
@@ -2211,20 +2247,37 @@ loop1:do k = 1, this%NInCutoff(i)
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+#else          
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
+#endif         
+
+
       end do loop1
       FX1(i) = FXi
       FY1(i) = FYi
       FZ1(i) = FZi
     end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotCC_Force_Ewald
+
 
 !==============================================================!
 !  Subroutine TPotCC_Force_Trans                               !
@@ -2606,7 +2659,13 @@ loop1:do k = 1, this%NInCutoff(i)
 !     real(RK)          :: test
 #if MPI_VER > 0
     integer           :: i0
+#endif    
+#ifdef ENABLE_OMP    
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
 #endif
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -2616,13 +2675,48 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
     real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
+
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+
     !TRANSPORT_END
 #endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
+!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi,  r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
+#if MPI_VER > 0
+!$omp private ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2) &
+!$omp private ( i0)
+#else
+!$omp private ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2)
+#endif
+
 
     ! Assign local variables
 #if MPI_VER > 0
@@ -2633,8 +2727,8 @@ loop1:do k = 1, this%NInCutoff(i)
     i2 = this%Site2%NPart
 #endif
     Epsilon = this%Epsilon
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
     Faktor = 2._RK/sqrt(Pi) * Kappa
 
     ! Assign pointers
@@ -2647,9 +2741,9 @@ loop1:do k = 1, this%NInCutoff(i)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -2658,16 +2752,19 @@ loop1:do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
+
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
+
 !TRANSPORT_END
 #endif
 
     ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2744,9 +2841,16 @@ loop1:do k = 1, this%NInCutoff(i)
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+#else          
         FX2(j) = FX2(j) - FXij
         FY2(j) = FY2(j) - FYij
         FZ2(j) = FZ2(j) - FZij
+#endif         
+
 #if TRANS==1
 !         UU        = Epsilon * RijInv + this%RFConstant * Rij2
         !TRANSPORT_start vielleicht
@@ -2756,6 +2860,7 @@ loop1:do k = 1, this%NInCutoff(i)
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
+
 #endif
       end do loop1
       FX1(i) = FXi
@@ -2769,9 +2874,18 @@ loop1:do k = 1, this%NInCutoff(i)
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
+
       !TRANSPORT_END
 #endif
     end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
