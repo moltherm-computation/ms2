@@ -823,12 +823,17 @@ contains
  
 
  
-!$OMP PARALLEL PRIVATE(i0, N1, N2, ji, EvenN, i, j, k, i1) &
+!$OMP PARALLEL PRIVATE( i, j, k, i1) &
 !$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, SigmaInv, Epsilon4, Epsilon48, RCutoffSquared) &
+!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv )
+#if MPI_VER > 0
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
+!$OMP PRIVATE(i0, N1, N2, ji, EvenN)
+#else
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) 
+#endif
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -852,8 +857,8 @@ contains
     Epsilon4 = this%Epsilon4
     Epsilon48 = this%Epsilon48
     RCutoffSquared = this%RCutoffSquaredScaled
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+ !   EPotLocal   = 0._RK
+ !   VirialLocal = 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -1133,7 +1138,7 @@ loop2:  do j = j0, j1
 !$OMP PARALLEL PRIVATE(i0, N1, N2, ji, EvenN, i, j, k, i1) &
 !$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, SigmaInv, Epsilon4, Epsilon48, RCutoffSquared) &
+!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
@@ -2306,10 +2311,10 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #if MPI_VER > 0
 !$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
