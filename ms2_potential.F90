@@ -1135,19 +1135,25 @@ loop2:  do j = j0, j1
  
 
  
-!$OMP PARALLEL PRIVATE(i0, N1, N2, ji, EvenN, i, j, k, i1) &
-!$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
+!$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
 !$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
+#if MPI_VER > 0
+!$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
+#endif
+#if  TRANS == 1
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity)
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+!$OMP PRIVATE( SameComponent )
 
       ! Assign local variables
     SameComponent = this%SameComponent
@@ -2362,6 +2368,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+#if  TRANS == 1
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
@@ -2369,12 +2376,11 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
-#if MPI_VER > 0
-!$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
-!$omp private ( i0)
-#else
-!$omp private ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
 #endif
+#if MPI_VER > 0
+!$OMP PRIVATE ( i0) &
+#endif
+!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
 
 
     ! Assign local variables
@@ -2705,17 +2711,17 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+#if  TRANS == 1
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi,  r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
-#if MPI_VER > 0
-!$omp private ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2) &
-!$omp private ( i0)
-#else
-!$omp private ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2)
 #endif
+#if MPI_VER > 0
+!$omp private ( i0) &
+#endif
+!$omp private ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2)
 
 
     ! Assign local variables
@@ -5438,6 +5444,7 @@ loop2:  do j = j0, j1
 !$omp private (CosThetai, CosThetaj, CosGammaij) &
 !$omp private (CosThetai3, CosThetaj3,  Tmp) &
 !$omp private (  SameComponent) &
+#if  TRANS == 1
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
@@ -5445,12 +5452,11 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
-#if MPI_VER > 0
-!$omp private (i, j, k, i1, j0, j1) &
-!$omp private ( N1, N2, i0, ji, EvenN)
-#else
-!$omp private (i, j, k, i1, j0, j1)
 #endif
+#if MPI_VER > 0
+!$omp private ( N1, N2, i0, ji, EvenN) &
+#endif
+!$omp private (i, j, k, i1, j0, j1)
 
 
 
@@ -9006,6 +9012,7 @@ loop2:  do j = j0, j1
 !$omp private (CosThetaiSquared, CosThetajSquared) &
 !$omp private (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
 !$omp private (EPotLocal1, SameComponent) &
+#if  TRANS == 1
 !$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
 !$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
@@ -9013,12 +9020,11 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
-#if MPI_VER > 0
-!$omp private (i, j, k, i1, j0, j1) &
-!$omp private ( N1, N2, i0, ji, EvenN)
-#else
-!$omp private (i, j, k, i1, j0, j1)
 #endif
+#if MPI_VER > 0
+!$omp private ( N1, N2, i0, ji, EvenN) &
+#endif
+!$omp private (i, j, k, i1, j0, j1)
 
 
     ! Assign local variables
