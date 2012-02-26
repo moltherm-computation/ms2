@@ -56,6 +56,15 @@ module ms2_global
 #endif
 
 
+!#if MPI_VER
+!  use mpi
+!#endif
+
+!#ifdef ENABLE_OMP
+!  use omp_lib
+!#endif
+
+
 
 !==============================================================!
 !  Global constants and variables                              !
@@ -960,6 +969,10 @@ contains
     integer,pointer                            :: ioranks(:)
     logical                                    :: flag
 #endif
+#ifdef ENABLE_OMP
+    integer                                    :: OMP_GET_MAX_THREADS, OMP_GET_NUM_PROCS
+    integer                                    :: ompmaxnumthreads, ompnumprocs
+#endif
 
     ! Initialize MPI
 #if MPI_VER > 0
@@ -1147,10 +1160,23 @@ contains
         call LogWrite
       end do
     end if
+    call LogWriteBlank
     if( associated( ioranks ) ) deallocate( ioranks )
     if( associated( procnames ) ) deallocate( procnames )
 #else
+#ifndef ENABLE_OMP
     write( IOBuffer, '("sequential Version")' )
+    call LogWrite
+#endif
+#endif
+#ifdef ENABLE_OMP
+    write( IOBuffer, '("OpenMP enabled")' )
+    call LogWrite
+    ompmaxnumthreads = OMP_GET_MAX_THREADS()
+    write( IOBuffer, '("Number of max. threads:",I4)' ) ompmaxnumthreads
+    call LogWrite
+    ompnumprocs = OMP_GET_NUM_PROCS()
+    write( IOBuffer, '("Number of processors  :",I4)' ) ompnumprocs
     call LogWrite
 #endif
     call LogWriteBlank
