@@ -10019,7 +10019,7 @@ loop2:        do nc = 1, this%NComponents
 #else
           write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
 &         100._RK * real( pc%NMoveSuccesses, RK ) / real ( pc%NMoveAttempts, RK )   
-#endif            
+#endif
         call FileWrite( this%iounit_errors )
 
         if( pc%Molecule%IsElongated ) then
@@ -10035,7 +10035,7 @@ loop2:        do nc = 1, this%NComponents
 #else
             write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
 &           * real( pc%NRotateSuccesses, RK ) / real ( pc%NRotateAttempts, RK )
-#endif         
+#endif
           call FileWrite( this%iounit_errors )
         end if
 
@@ -10055,7 +10055,7 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) &
 &           100._RK * real( pc%NMoveBiasedSuccesses, RK ) / &
 &           real ( pc%NMoveBiasedAttempts, RK )
-#endif              
+#endif
           call FileWrite( this%iounit_errors )
           if( pc%Molecule%IsElongated ) then
 #if MPI_VER > 0
@@ -10072,7 +10072,7 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '(T17, "biased rotates", T32, "in %:", F20.9)' ) &
 &             100._RK * real( pc%NRotateBiasedSuccesses, RK ) / &
 &             real ( pc%NRotateBiasedAttempts, RK )
-#endif          
+#endif
             call FileWrite( this%iounit_errors )
           end if
         end if
@@ -10169,7 +10169,7 @@ loop2:        do nc = 1, this%NComponents
           call FileWriteBlank( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-#endif             
+#endif
         end if
       end do
 
@@ -10233,32 +10233,32 @@ loop2:        do nc = 1, this%NComponents
     if ( this%ResidenceTime ) then
       write(IOBuffer, '("Average pairs between")' )
       call FileWrite( this%iounit_errors )
-      write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ), &
+      write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ) &
 &           this%ResidComp1, this%ResidSite1, &
 &           this%ResidComp2, this%ResidSite2, this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Average residence time between")' )
       call FileWrite( this%iounit_errors )
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ), &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
 &           this%ResidComp1, this%ResidSite1, &
 &           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
       else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ), &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ) &
 &           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
 &           this%ResidenceDuration*UnitTime*1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No pairing between the two components observed")' )
       else
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ), &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ) &
 &         this%ResidComp1,this%ResidSite1, &
 &         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
 &         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
       end if
       call FileWrite( this%iounit_errors )
-      write(IOBuffer, '("Critical distance: ",F10.5," A")' ), &
+      write(IOBuffer, '("Critical distance: ",F10.5," A")' ) &
 &           this%ResidLength*UnitLength/Angstroem
       call FileWrite( this%iounit_errors )
     end if
