@@ -10588,9 +10588,46 @@ loop2:        do nc = 1, this%NComponents
     do i=1, this%NComponents
 	  do j=1, this%NComponents
 	   if (i .LE. j) then
+	     call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+ 	     do s=1, this%Component(i)%molecule%NLJ126
+	       do t=1, this%Component(j)%molecule%NLJ126
+	         if (s .LE. t) then	 	
+	           write(IOBuffer, '(2I3)') i, j
+               call FileWriteNoAdvance( this%iounit_rdf )
+             endif
+           enddo
+         enddo            
+       endif
+      enddo
+    enddo
+    call FileWriteBlank( this%iounit_rdf )
+ 
+    do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   if (i .LE. j) then
+	 
+ 	     do s=1, this%Component(i)%molecule%NLJ126
+	       do t=1, this%Component(j)%molecule%NLJ126
+	         if (s .LE. t) then	 	
+ 	    	   write(IOBuffer, '(2I3)') s, t
+               call FileWriteNoAdvance( this%iounit_rdf )
+             endif
+           enddo
+         enddo
+        endif
+      enddo
+    enddo
+    call FileWriteBlank( this%iounit_rdf )
+
+
+
+	do o = 1, RDFNumberShells
+    do i=1, this%NComponents
+	  do j=1, this%NComponents
+	   if (i .LE. j) then
 	   
 	   
-	   call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+	  ! call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
 
  	   
 	   do s=1, this%Component(i)%molecule%NLJ126
@@ -10601,14 +10638,15 @@ loop2:        do nc = 1, this%NComponents
 		if (s .LE. t) then	 	
 		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
 		
-	    write(IOBuffer, '(2I3)') i, j
-          call FileWrite( this%iounit_rdf )
-          call FileWriteBlank( this%iounit_rdf )
-		write(IOBuffer, '(2I3)') s, t
-          call FileWrite( this%iounit_rdf )
-          call FileWriteBlank( this%iounit_rdf )
 		
-		do o = 1, RDFNumberShells
+	!    write(IOBuffer, '(2I3)') i, j
+    !      call FileWrite( this%iounit_rdf )
+    !      call FileWriteBlank( this%iounit_rdf )
+!		write(IOBuffer, '(2I3)') s, t
+ !         call FileWrite( this%iounit_rdf )
+ !         call FileWriteBlank( this%iounit_rdf )
+		
+	
 	    
 		if (i .EQ. j) then
 		RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
@@ -10622,10 +10660,13 @@ loop2:        do nc = 1, this%NComponents
 		this%RDF(o) = RDFRhoLocal / RDFRho  
 		
 		  write(IOBuffer, '(F10.4)') this%RDF(o)
-		  call FileWrite( this%iounit_rdf )
+		  call FileWriteNoAdvance( this%iounit_rdf )
          ! call FileWriteBlank( this%iounit_rdf )
 
-	    end do
+	    !end do
+
+	    !call FileWriteBlank( this%iounit_rdf )
+
 		end if
 		
 		end do
@@ -10633,8 +10674,10 @@ loop2:        do nc = 1, this%NComponents
 	   end if
 	  end do
 	 end do
-
     call FileWriteBlank( this%iounit_rdf )
+
+    enddo
+    !call FileWriteBlank( this%iounit_rdf )
 
     ! Close RDF file
     call FileClose( this%iounit_rdf )
