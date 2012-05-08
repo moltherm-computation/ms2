@@ -10550,6 +10550,7 @@ loop2:        do nc = 1, this%NComponents
 &     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
 
     call FileWriteBlank( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFOpen
 

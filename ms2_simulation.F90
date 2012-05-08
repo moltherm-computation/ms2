@@ -2511,9 +2511,9 @@ eqloop: do
     if( RDFUpdateFrequency < 1 ) return
 
     ! Close ensemble visualisation files
-    do i = 1, this%NEnsembles
-      call RDFClose( this%Ensemble(i) )
-    end do
+    !do i = 1, this%NEnsembles
+    !  call RDFClose( this%Ensemble(i) )
+    !end do
 
   end subroutine TSimulation_RDFClose
   

@@ -249,7 +249,7 @@ character(*), parameter :: VersionString = 'v1.0'
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
