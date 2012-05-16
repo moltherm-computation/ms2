@@ -10591,10 +10591,10 @@ loop2:        do nc = 1, this%NComponents
 	     call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
  	     do s=1, this%Component(i)%molecule%NLJ126
 	       do t=1, this%Component(j)%molecule%NLJ126
-	         if (s .LE. t) then	 	
-	           write(IOBuffer, '(2I3)') i, j
+	        ! if (s .LE. t) then	 	
+	           write(IOBuffer, '(I5,I4,I1)') i, j, ichar('0')
                call FileWriteNoAdvance( this%iounit_rdf )
-             endif
+             !endif
            enddo
          enddo            
        endif
@@ -10608,10 +10608,10 @@ loop2:        do nc = 1, this%NComponents
 	 
  	     do s=1, this%Component(i)%molecule%NLJ126
 	       do t=1, this%Component(j)%molecule%NLJ126
-	         if (s .LE. t) then	 	
- 	    	   write(IOBuffer, '(2I3)') s, t
+	        ! if (s .LE. t) then	 	
+ 	    	   write(IOBuffer, '(I5,I4,I1)') s, t, ichar('0')
                call FileWriteNoAdvance( this%iounit_rdf )
-             endif
+             !endif
            enddo
          enddo
         endif
@@ -10635,7 +10635,7 @@ loop2:        do nc = 1, this%NComponents
         
         
         
-		if (s .LE. t) then	 	
+		!if (s .LE. t) then	 	
 		RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
 		
 		
@@ -10667,7 +10667,7 @@ loop2:        do nc = 1, this%NComponents
 
 	    !call FileWriteBlank( this%iounit_rdf )
 
-		end if
+		!end if
 		
 		end do
 	   end do
