@@ -5220,7 +5220,7 @@ loop2:        do nc = 1, this%NComponents
           call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
 &           MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
         else
-            pc%ChemPot = ChemPot
+            pc%ChemPot = ChemPot * NProcs
         endif
 #else
         pc%ChemPot = ChemPot
