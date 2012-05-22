@@ -8950,7 +8950,7 @@ loop2:        do nc = 1, this%NComponents
           call Error( pc%SumVW )
 !           if( ConstantPressure .and. this%NRealComponents > 1 ) &
 ! &           call Error( pc%SumVW )
-        call Error( pc%SumVW )
+!        call Error( pc%SumVW )
         case default
           ! DO NOTHING
         end select
