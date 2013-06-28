@@ -2575,7 +2575,9 @@ contains
 
     ! Allocate components
     if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+&       EnsembleType .eq. EnsembleTypeHA .or. &
+&       SimulationType .eq. Gibbs .or. &
+&       SimulationType .eq. SecondVirialCoeff ) then
        do i = 1, this%NComponents
          this%Component(i)%NPartMax => this%NPartMax
          if( this%Component(i)%NTest > 0 ) then
@@ -2749,6 +2751,8 @@ contains
 
 ! Calculation of residence times
     if ( this%ResidenceTime ) then
+      this%ResidPairs=0
+      this%ResidCem=0
       nullify( this%CompPair )
       nullify( this%CompPair_Old )
       nullify( this%ResidTimesStart )
