@@ -5214,8 +5214,18 @@ loop2:        do nc = 1, this%NComponents
 &                                 this%EPotTest, this%BoxLength )
         end do
 
-        ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
+#if MPI_VER > 0
+        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+             ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
+&                   / pc%NTestAll
+        else
+              ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
 &                   / pc%NTest
+        endif
+#else
+        ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) &
+&                   / pc%NTestAll
+#endif
 
 
 #if MPI_VER > 0
@@ -5223,7 +5233,6 @@ loop2:        do nc = 1, this%NComponents
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
           call MPI_Reduce( ChemPot, pc%ChemPot, 1, &
 &           MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-            ChemPot = ChemPot/NProcs
         else
             pc%ChemPot = ChemPot
         endif
