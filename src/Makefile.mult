@@ -80,6 +80,13 @@ pgf_mpi:
 	-o ms2mpi.pgf $(SOURCES)
 	rm -f *.o *.mod
 
+pgf_mpi_omp:
+	@echo "Compiling using MPI_PGF90..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 -R/opt/openmpi-1.1.1/arch/lib \
+	-o ms2mpiomp.pgf $(SOURCES)
+	rm -f *.o *.mod
+
 gfortran_dbg:
 	@echo "Compiling debug version using GFORTRAN..."
 	#                                          -DTRANS=1
@@ -138,6 +145,13 @@ gfortran_mpi:
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
 	-O3 -fdefault-real-8 \
 	-o ms2mpi.gfortran $(SOURCES)
+	rm -f *.o *.mod
+
+gfortran_mpi_omp:
+	@echo "Compiling using MPI_GFORTRAN..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 \
+	-O3 -fdefault-real-8 \
+	-o ms2mpiomp.gfortran $(SOURCES)
 	rm -f *.o *.mod
 
 gfortran_coverage_mpi:
@@ -246,11 +260,11 @@ nehalem:
 	rm -f *.o *.mod *.il
 
 nehalem_mpi_omp:
-        @echo "Compiling for SSE4.2 using MPI_IFORT..."
-        mpif90 -openmp -DENABLE_OMP -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
-        -r8 -O3 -ipo -xSSE4.2 -vec_report0 \
-        -o ms2mpiomp $(SOURCES)
-        rm -f *.o *.mod *.il
+	@echo "Compiling for SSE4.2 using MPI_IFORT..."
+	mpif90 -openmp -DENABLE_OMP -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -xSSE4.2 -vec_report0 \
+	-o ms2mpiomp $(SOURCES)
+	rm -f *.o *.mod *.il
 
 
 nehalem_mpi:
@@ -300,6 +314,25 @@ jump_mpi:
 	-O5 \
 	-o ms2mpi $(SOURCES)
 
+leo: gfortran
+	@mv ms2.gfortran ms2.leo
+#	@echo "Compiling using PGF90..."
+#	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+#	-fastsse -r8 -tp amd64 \
+#	-o ms2.leo $(SOURCES)
+#	rm -f *.o *.mod
+
+leo_mpi: gfortran_mpi
+	@mv ms2mpi.gfortran ms2mpi.leo
+#	@echo "Compiling using MPI_PGF90..."
+#	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+#	-fastsse -r8 -tp amd64 \
+#	-o ms2mpi.leo $(SOURCES)
+#	rm -f *.o *.mod
+
+
+# ancient
+
 sx:
 	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
 	-C hopt -pi auto \
@@ -329,6 +362,19 @@ sx_mpi_dbg:
 	-o ms2mpi_dbg $(SOURCES)
 	rm -f *.mod
 
+xc2:
+	@echo "Compiling using PGF90-64..."
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-fastsse -r8 -tp amd64 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod
+
+xc2_mpi:
+	@echo "Compiling using MPI_PGF90..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 -tp amd64 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod
 
 xc1:
 	@echo "Compiling using IFORT..."
@@ -344,38 +390,7 @@ xc1_mpi:
 	-o ms2mpi $(SOURCES)
 	rm -f *.o *.mod *.il
 
-leo: gfortran
-	@mv ms2.gfortran ms2.leo
-#	@echo "Compiling using PGF90..."
-#	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-#	-fastsse -r8 -tp amd64 \
-#	-o ms2.leo $(SOURCES)
-#	rm -f *.o *.mod
 
-leo_mpi: gfortran_mpi
-	@mv ms2mpi.gfortran ms2mpi.leo
-#	@echo "Compiling using MPI_PGF90..."
-#	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-#	-fastsse -r8 -tp amd64 \
-#	-o ms2mpi.leo $(SOURCES)
-#	rm -f *.o *.mod
-
-xc2:
-	@echo "Compiling using PGF90-64..."
-	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-	-fastsse -r8 -tp amd64 \
-	-o ms2 $(SOURCES)
-	rm -f *.o *.mod
-
-xc2_mpi:
-	@echo "Compiling using MPI_PGF90..."
-	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-fastsse -r8 -tp amd64 \
-	-o ms2mpi $(SOURCES)
-	rm -f *.o *.mod
-
-
-# ancient
 
 alpha:
 	f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
