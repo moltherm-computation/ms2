@@ -81,9 +81,9 @@ pgf_mpi:
 	rm -f *.o *.mod
 
 pgf_mpi_omp:
-	@echo "Compiling using MPI_PGF90..."
+	@echo "Compiling using MPI_OMP_PGF90..."
 	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 -D_PGF \
-	-fastsse -r8 -R/opt/openmpi-1.1.1/arch/lib \
+	-fastsse -mp -r8 -R/opt/openmpi-1.1.1/arch/lib \
 	-o ms2mpiomp.pgf $(SOURCES)
 	rm -f *.o *.mod
 
@@ -148,9 +148,9 @@ gfortran_mpi:
 	rm -f *.o *.mod
 
 gfortran_mpi_omp:
-	@echo "Compiling using MPI_GFORTRAN..."
+	@echo "Compiling using MPI_OMP_GFORTRAN..."
 	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 \
-	-O3 -fdefault-real-8 \
+	-O3 -fopenmp -fdefault-real-8 \
 	-o ms2mpiomp.gfortran $(SOURCES)
 	rm -f *.o *.mod
 
@@ -188,6 +188,14 @@ ifort_mpi:
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
 	-r8 -O3 -ipo -vec_report0 \
 	-o ms2mpi.ifort $(SOURCES)
+	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	rm -f *.o *.mod *.il
+
+ifort_mpi_omp:
+	@echo "Compiling using MPI_OMP_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 -fpp \
+	-r8 -O3 -openmp -ipo -vec_report0 \
+	-o ms2mpiomp.ifort $(SOURCES)
 	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
 	rm -f *.o *.mod *.il
 
