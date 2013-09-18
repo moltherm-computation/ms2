@@ -1,0 +1,292 @@
+Program hms2mpi compiled for Linux/Ifort
+version v12 Feb 13 2008
+started by unknown user on xc2n228 on 04.03.2009 at 08:36:58
+
+   8 MPI processes initialized
+
+Signal handler set successfully
+
+Random number generator initialized
+
+Parameter file name: ge_gi.par
+
+Opening file <ge_gi.par> for reading
+
+Reading parameters of simulation
+Name tag for output files: ge_gi
+System of units: SI
+Unit of length:  3.500 A
+Unit of energy:  100.000 K
+Unit of mass:   40.000 a.u.
+Simulation type: Monte-Carlo
+Acceptance rate:  50.00%
+Ensemble type: GrandEquilibrium
+Number of NVT equilibration steps:    1000
+Number of GE equilibration steps:   10000
+Number of production steps: 1000000
+Result files will be updated each    100 time steps
+Final result files will be updated each  10000 time steps
+Visualization files will not be created
+Cutoff mode: Center of Mass
+Number of ensembles:  1
+
+Reading parameters of ensemble  1
+Temperature:   393.150 K
+Pressure0:  0.540000 MPa
+Liquid density: 17.551200 ( 0.033200) mol/l
+Liquid enthalpy: -35355.20 (    38.10) J/mol
+Liquid betaT: 0.001773( 0.000119) 1/MPa
+Liquid dHdP: 0.025483( 0.003096) l/mol
+Density:     0.010 mol/l
+Reduced temperature:  3.931500
+Reduced pressure0:  0.016769
+Reduced liquid density:  0.453170 ( 0.000857)
+Reduced liquid enthalpy:  -42.5223 (   0.0458)
+Reduced liquid betaT: 0.057094( 0.003832)
+Reduced liquid dHdP:   0.9870(   0.1199)
+Reduced density:  0.000258
+Number of components:  2
+Molar fraction of component MeOH.pm:  0.500000
+Reduced ChemPot0 of component MeOH.pm: -6.238000 ( 0.047000)
+Reduced PartMolVol of component MeOH.pm:  5.771400 (10.688500)
+Opening file <MeOH.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/MeOH.pm> closed
+Opening file <MeOH.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/MeOH.pm.nrm> closed
+Normalized potential model for MeOH.pm saved to file <MeOH.pm.nrm>
+Molar fraction of component ethanol.pm:  0.500000
+Reduced ChemPot0 of component ethanol.pm: -6.412000 ( 0.079000)
+Reduced PartMolVol of component ethanol.pm:  5.309700 (10.762300)
+Opening file <ethanol.pm> for reading
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ethanol.pm> closed
+Opening file <ethanol.pm.nrm> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ethanol.pm.nrm> closed
+Normalized potential model for ethanol.pm saved to file <ethanol.pm.nrm>
+Number of particles:        500
+Molar fraction of MeOH.pm: 0.500;  number of particles:        250
+Molar fraction of ethanol.pm: 0.500;  number of particles:        250
+Memory for MeOH.pm allocated successfully
+Memory for ethanol.pm allocated successfully
+MeOH.pm-ethanol.pm Lennard-Jones interaction:  eta = 1.000, xi = 1.000
+Reduced center of mass cutoff radius:  7.000
+Characteristic dielectric constant:  0.100000000E+11
+Cutoff correction to potential energy from LJ: -0.13969281
+Cutoff correction to pressure from LJ        : -0.28049066
+Cutoff correction to chem. pot. of MeOH.pm from LJ: -0.23174842
+Cutoff correction to chem. pot. of ethanol.pm from LJ: -0.32702281
+Cutoff correction to potential energy from reaction field: -0.01317526
+Cutoff correction to chem. pot. of MeOH.pm from reaction field: -0.02262162
+Cutoff correction to chem. pot. of ethanol.pm from reaction field: -0.03007944
+
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi.par> closed
+
+Opening file <ge_gi_1.run> for writing
+Opening file <ge_gi_1.rav> for writing
+
+Starting NVT equilibration on 04.03.2009 at 08:36:58
+   1000 steps completed on 04.03.2009 at 08:38:29
+NVT equilibration completed on 04.03.2009 at 08:38:29
+
+Starting GE equilibration on 04.03.2009 at 08:38:29
+GE equilibration ended with too many/too less particles on 04.03.2009 at 08:47:32
+Restarting equilibration
+Number of particles:        500
+Molar fraction of MeOH.pm: 0.514;  number of particles:        257
+Molar fraction of ethanol.pm: 0.486;  number of particles:        243
+
+Starting NVT equilibration on 04.03.2009 at 08:47:32
+   1000 steps completed on 04.03.2009 at 08:49:01
+NVT equilibration completed on 04.03.2009 at 08:49:01
+
+Starting GE equilibration on 04.03.2009 at 08:49:01
+   1000 steps completed on 04.03.2009 at 08:55:11
+   2000 steps completed on 04.03.2009 at 09:09:38
+GE equilibration ended with too many/too less particles on 04.03.2009 at 09:15:12
+Restarting equilibration
+Number of particles:        500
+Molar fraction of MeOH.pm: 0.530;  number of particles:        265
+Molar fraction of ethanol.pm: 0.470;  number of particles:        235
+
+Starting NVT equilibration on 04.03.2009 at 09:15:12
+   1000 steps completed on 04.03.2009 at 09:16:37
+NVT equilibration completed on 04.03.2009 at 09:16:37
+
+Starting GE equilibration on 04.03.2009 at 09:16:37
+   1000 steps completed on 04.03.2009 at 09:18:17
+   2000 steps completed on 04.03.2009 at 09:20:12
+   3000 steps completed on 04.03.2009 at 09:22:09
+   4000 steps completed on 04.03.2009 at 09:24:09
+   5000 steps completed on 04.03.2009 at 09:26:08
+   6000 steps completed on 04.03.2009 at 09:28:00
+   7000 steps completed on 04.03.2009 at 09:29:54
+   8000 steps completed on 04.03.2009 at 09:31:49
+   9000 steps completed on 04.03.2009 at 09:33:43
+  10000 steps completed on 04.03.2009 at 09:35:43
+GE equilibration ended with too many/too less particles on 04.03.2009 at 09:35:43
+Restarting equilibration
+Number of particles:        500
+Molar fraction of MeOH.pm: 0.560;  number of particles:        280
+Molar fraction of ethanol.pm: 0.440;  number of particles:        220
+
+Starting NVT equilibration on 04.03.2009 at 09:35:43
+   1000 steps completed on 04.03.2009 at 09:37:06
+NVT equilibration completed on 04.03.2009 at 09:37:06
+
+Starting GE equilibration on 04.03.2009 at 09:37:06
+   1000 steps completed on 04.03.2009 at 09:38:27
+   2000 steps completed on 04.03.2009 at 09:39:44
+   3000 steps completed on 04.03.2009 at 09:41:01
+   4000 steps completed on 04.03.2009 at 09:42:17
+   5000 steps completed on 04.03.2009 at 09:43:37
+   6000 steps completed on 04.03.2009 at 09:44:55
+   7000 steps completed on 04.03.2009 at 09:46:12
+   8000 steps completed on 04.03.2009 at 09:47:26
+   9000 steps completed on 04.03.2009 at 09:48:44
+  10000 steps completed on 04.03.2009 at 09:50:01
+GE equilibration completed on 04.03.2009 at 09:50:01
+
+Starting simulation on 04.03.2009 at 09:50:01
+   1000 steps completed on 04.03.2009 at 09:51:20
+   2000 steps completed on 04.03.2009 at 09:52:42
+   3000 steps completed on 04.03.2009 at 09:54:08
+   4000 steps completed on 04.03.2009 at 09:55:30
+   5000 steps completed on 04.03.2009 at 09:56:54
+   6000 steps completed on 04.03.2009 at 09:58:15
+   7000 steps completed on 04.03.2009 at 09:59:37
+   8000 steps completed on 04.03.2009 at 10:00:57
+   9000 steps completed on 04.03.2009 at 10:02:20
+  10000 steps completed on 04.03.2009 at 10:03:41
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  11000 steps completed on 04.03.2009 at 10:05:00
+  12000 steps completed on 04.03.2009 at 10:06:18
+  13000 steps completed on 04.03.2009 at 10:07:36
+  14000 steps completed on 04.03.2009 at 10:08:55
+  15000 steps completed on 04.03.2009 at 10:10:16
+  16000 steps completed on 04.03.2009 at 10:11:36
+  17000 steps completed on 04.03.2009 at 10:12:57
+  18000 steps completed on 04.03.2009 at 10:14:16
+  19000 steps completed on 04.03.2009 at 10:15:32
+  20000 steps completed on 04.03.2009 at 10:16:47
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  21000 steps completed on 04.03.2009 at 10:18:06
+  22000 steps completed on 04.03.2009 at 10:19:30
+  23000 steps completed on 04.03.2009 at 10:20:54
+  24000 steps completed on 04.03.2009 at 10:22:15
+  25000 steps completed on 04.03.2009 at 10:23:34
+  26000 steps completed on 04.03.2009 at 10:24:58
+  27000 steps completed on 04.03.2009 at 10:26:22
+  28000 steps completed on 04.03.2009 at 10:27:47
+  29000 steps completed on 04.03.2009 at 10:29:13
+  30000 steps completed on 04.03.2009 at 10:30:41
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  31000 steps completed on 04.03.2009 at 10:32:05
+  32000 steps completed on 04.03.2009 at 10:33:29
+  33000 steps completed on 04.03.2009 at 10:34:53
+  34000 steps completed on 04.03.2009 at 10:36:16
+  35000 steps completed on 04.03.2009 at 10:37:39
+  36000 steps completed on 04.03.2009 at 10:39:04
+  37000 steps completed on 04.03.2009 at 10:40:31
+  38000 steps completed on 04.03.2009 at 10:41:57
+  39000 steps completed on 04.03.2009 at 10:43:16
+  40000 steps completed on 04.03.2009 at 10:44:30
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  41000 steps completed on 04.03.2009 at 10:45:44
+  42000 steps completed on 04.03.2009 at 10:47:00
+  43000 steps completed on 04.03.2009 at 10:48:17
+  44000 steps completed on 04.03.2009 at 10:49:37
+  45000 steps completed on 04.03.2009 at 10:50:59
+  46000 steps completed on 04.03.2009 at 10:52:16
+  47000 steps completed on 04.03.2009 at 10:53:30
+  48000 steps completed on 04.03.2009 at 10:54:46
+  49000 steps completed on 04.03.2009 at 10:56:02
+  50000 steps completed on 04.03.2009 at 10:57:17
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  51000 steps completed on 04.03.2009 at 10:58:35
+  52000 steps completed on 04.03.2009 at 10:59:53
+  53000 steps completed on 04.03.2009 at 11:01:11
+  54000 steps completed on 04.03.2009 at 11:02:27
+  55000 steps completed on 04.03.2009 at 11:03:46
+  56000 steps completed on 04.03.2009 at 11:05:06
+  57000 steps completed on 04.03.2009 at 11:06:27
+  58000 steps completed on 04.03.2009 at 11:07:49
+  59000 steps completed on 04.03.2009 at 11:09:09
+  60000 steps completed on 04.03.2009 at 11:10:26
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  61000 steps completed on 04.03.2009 at 11:11:46
+  62000 steps completed on 04.03.2009 at 11:13:05
+  63000 steps completed on 04.03.2009 at 11:14:23
+  64000 steps completed on 04.03.2009 at 11:15:36
+  65000 steps completed on 04.03.2009 at 11:16:49
+  66000 steps completed on 04.03.2009 at 11:18:03
+  67000 steps completed on 04.03.2009 at 11:19:20
+  68000 steps completed on 04.03.2009 at 11:20:36
+  69000 steps completed on 04.03.2009 at 11:21:53
+  70000 steps completed on 04.03.2009 at 11:23:10
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  71000 steps completed on 04.03.2009 at 11:24:29
+  72000 steps completed on 04.03.2009 at 11:25:46
+  73000 steps completed on 04.03.2009 at 11:27:01
+  74000 steps completed on 04.03.2009 at 11:28:22
+  75000 steps completed on 04.03.2009 at 11:29:46
+  76000 steps completed on 04.03.2009 at 11:31:04
+  77000 steps completed on 04.03.2009 at 11:32:20
+  78000 steps completed on 04.03.2009 at 11:33:38
+  79000 steps completed on 04.03.2009 at 11:34:57
+  80000 steps completed on 04.03.2009 at 11:36:14
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  81000 steps completed on 04.03.2009 at 11:37:35
+  82000 steps completed on 04.03.2009 at 11:38:58
+  83000 steps completed on 04.03.2009 at 11:40:17
+  84000 steps completed on 04.03.2009 at 11:41:34
+  85000 steps completed on 04.03.2009 at 11:42:48
+  86000 steps completed on 04.03.2009 at 11:44:08
+  87000 steps completed on 04.03.2009 at 11:45:25
+  88000 steps completed on 04.03.2009 at 11:46:43
+  89000 steps completed on 04.03.2009 at 11:48:00
+  90000 steps completed on 04.03.2009 at 11:49:19
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+  91000 steps completed on 04.03.2009 at 11:50:35
+  92000 steps completed on 04.03.2009 at 11:51:55
+  93000 steps completed on 04.03.2009 at 11:53:11
+  94000 steps completed on 04.03.2009 at 11:54:30
+  95000 steps completed on 04.03.2009 at 11:55:50
+  96000 steps completed on 04.03.2009 at 11:57:06
+  97000 steps completed on 04.03.2009 at 11:58:25
+  98000 steps completed on 04.03.2009 at 11:59:42
+  99000 steps completed on 04.03.2009 at 12:00:59
+ 100000 steps completed on 04.03.2009 at 12:02:17
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+ 101000 steps completed on 04.03.2009 at 12:03:40
+ 102000 steps completed on 04.03.2009 at 12:05:03
+ 103000 steps completed on 04.03.2009 at 12:06:18
+ 104000 steps completed on 04.03.2009 at 12:07:35
+ 105000 steps completed on 04.03.2009 at 12:08:54
+ 106000 steps completed on 04.03.2009 at 12:10:12
+ 107000 steps completed on 04.03.2009 at 12:11:29
+ 108000 steps completed on 04.03.2009 at 12:12:44
+ 109000 steps completed on 04.03.2009 at 12:13:58
+ 110000 steps completed on 04.03.2009 at 12:15:18
+Saving simulation results
+Opening file <ge_gi_1.res> for writing
+File </lustre/data/home/ssck/wetk00/wetk04/deublein/Leitanwendung_ms2/LA2_both/ge_gi_1.res> closed
+Simulation terminated on 04.03.2009 at 12:16:28

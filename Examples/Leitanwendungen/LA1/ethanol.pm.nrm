@@ -1,0 +1,62 @@
+NSiteTypes = 2
+
+SiteType   = LJ126
+NSites     = 4
+
+x          =    0.2564808648E-23           # reduced value:     0.7328024710E-24
+y          =   -0.3387228028               # reduced value:    -0.9677794365E-01
+z          =    -1.471305978               # reduced value:    -0.4203731364
+sigma      =     3.607200000               # reduced value:      1.030628571
+epsilon    =     120.1500000               # reduced value:      1.201500000
+mass       =     15.00000000               # reduced value:     0.3750000000
+
+x          =   -0.1867729355E-23           # reduced value:    -0.5336369587E-24
+y          =    0.8835570547               # reduced value:     0.2524448728
+z          =    0.9173043374E-01           # reduced value:     0.2620869535E-01
+sigma      =     3.461200000               # reduced value:     0.9889142857
+epsilon    =     86.29100000               # reduced value:     0.8629100000
+mass       =     14.00000000               # reduced value:     0.3500000000
+
+x          =   -0.6000886452E-23           # reduced value:    -0.1714538986E-23
+y          =   -0.4502600965               # reduced value:    -0.1286457418
+z          =     1.171053177               # reduced value:     0.3345866221
+sigma      =     3.149559000               # reduced value:     0.8998740000
+epsilon    =     85.05344900               # reduced value:     0.8505344900
+mass       =     16.00000000               # reduced value:     0.4000000000
+
+x          =    0.8369026527E-22           # reduced value:     0.2391150436E-22
+y          =   -0.8479518018E-01           # reduced value:    -0.2422719434E-01
+z          =     2.048512754               # reduced value:     0.5852893584
+sigma      =     2.000000000               # reduced value:     0.5714285714
+epsilon    =     0.000000000               # reduced value:      0.000000000
+mass       =     0.000000000               # reduced value:      0.000000000
+
+SiteType   = Charge
+NSites     = 3
+
+x          =   -0.1867729355E-23           # reduced value:    -0.5336369587E-24
+y          =    0.8835570547               # reduced value:     0.2524448728
+z          =    0.9173043374E-01           # reduced value:     0.2620869535E-01
+charge     =    0.2556000000               # reduced value:      5.584894317
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.384480000               # reduced value:     0.3955657143
+
+x          =   -0.6000886452E-23           # reduced value:    -0.1714538986E-23
+y          =   -0.4502600965               # reduced value:    -0.1286457418
+z          =     1.171053177               # reduced value:     0.3345866221
+charge     =   -0.6971070000               # reduced value:     -15.23188154
+mass       =     0.000000000               # reduced value:      0.000000000
+shielding  =     1.259820000               # reduced value:     0.3599485714
+
+x          =    0.8369026527E-22           # reduced value:     0.2391150436E-22
+y          =   -0.8479518018E-01           # reduced value:    -0.2422719434E-01
+z          =     2.048512754               # reduced value:     0.5852893584
+charge     =    0.4415070000               # reduced value:      9.646987227
+mass       =     1.000000000               # reduced value:     0.2500000000E-01
+shielding  =     0.000000000               # reduced value:      0.000000000
+
+NRotAxes   = 3
+TotalMass  =     46.00000000               # reduced value:      1.150000000
+InertMomX  =     74.62853173               # reduced value:     0.1523031260
+InertMomY  =     58.72717501               # reduced value:     0.1198513776
+InertMomZ  =     15.90135672               # reduced value:     0.3245174840E-01

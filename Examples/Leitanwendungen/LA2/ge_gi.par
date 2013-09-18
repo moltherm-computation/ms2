@@ -1,0 +1,62 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units	=	SI
+LengthUnit	=	3.5
+EnergyUnit	=	100.0
+MassUnit	=	40.0
+Simulation	=	MC
+Acceptance	=	0.5
+Ensemble	=	GE
+NVTSteps	=	1000
+mueVTSteps	=	10000
+RunSteps	=	1000000
+ResultFreq	=	100
+ErrorsFreq	=	10000
+VisualFreq	=	0
+CutoffMode	=	COM
+NEnsembles	=	1
+
+#Flüssigkeit
+Temperature	=	393.15
+Pressure0	=	0.540
+LiqDensity	=	17.5512
+VarDensity	=	0.0332
+LiqEnthalpy	=	-35355.2
+VarEnthalpy	=	38.1
+LiqBetaT	=	0.001773
+VarBetaT	=	0.000119
+LiqdHdP	=	0.025483
+VardHdP	=	0.003096
+
+#Dampf
+Density	=	0.01000
+NParticles	=	500
+NComponents	=	2
+
+PotModel	=	MeOH.pm
+MolarFract	=	0.5000
+LiqMolarFract	=	0.4920
+ChemPot	=	-6.238
+VarChemPot	=	0.047
+PartMolVol	=	5.7714
+VarPartMolVol	=	10.6885
+
+
+PotModel	=	ethanol.pm
+MolarFract	=	0.5000
+LiqMolarFract	=	0.5080
+ChemPot	=	-6.412
+VarChemPot	=	0.079
+PartMolVol	=	5.3097
+VarPartMolVol	=	10.7623
+
+eta	=	1.000
+xi	=	1.000000000
+
+Cutoff	=	7.0
+Epsilon	=	1.0E10

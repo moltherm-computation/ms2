@@ -1,0 +1,42 @@
+Units	=	SI
+LengthUnit	=	3.0
+EnergyUnit	=	100.0
+MassUnit	=	100.0
+Ensemble	=	NPT
+Simulation	=	MD
+Integrator	=	Gear
+TimeStep	=	0.0003
+MCORSteps	=	100
+NVTSteps	=	100000
+NPTSteps	=	100000
+RunSteps	=	2000000
+ResultFreq	=	100
+ErrorsFreq	=	10000
+VisualFreq	=	0
+CutoffMode	=	COM
+NEnsembles	=	  1
+CorrfunMode	=	yes
+
+Temperature	=	298.15
+Pressure	=	0.1
+Density	=	20.121183253
+VapDensity	=	4.2
+PistonMass	=	0.00002
+NParticles	=	2048
+NTest	=	0
+NComponents	=	2
+Corrlength	=	14000
+SpanCorrfun	=	200
+ViewCorrfun	=	100
+ResultFreqCF	=	4
+
+PotModel	=	ethanol.pm
+MolarFract	=	0.5
+PotModel	=	MeOH.pm
+MolarFract	=	0.5
+
+eta		=	1.0
+xi	 =	1.0
+
+Cutoff	=	5.0
+Epsilon	 =	1.0E10

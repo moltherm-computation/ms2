@@ -1,0 +1,42 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units	=	SI
+LengthUnit	=	3.5
+EnergyUnit	=	100.0
+MassUnit	=	40.0
+Simulation	=	MC
+Acceptance	=	0.5
+Ensemble	=	NPT
+NVTSteps	=	5000
+NPTSteps	=	20000
+RunSteps	=	1000000
+ResultFreq	=	100
+ErrorsFreq	=	5000
+VisualFreq	=	0
+CutoffMode	=	COM
+LongRange	=	ReactionField
+Kappa	=	5.6
+NsqMax	=	27
+NVecMax	=	1000
+NMax	=	5
+NEnsembles	=	1
+
+#
+# Ensemble 1
+#
+Temperature	=	100.0
+Pressure	=	1.0
+Density	=	33.0
+NParticles	=	1372
+NComponents	=	1
+
+PotModel	=	Ar.pm
+MolarFract	=	1.0
+ChemPotMethod	=	none
+Cutoff	=	5.5
+Epsilon	=	1.0E10

@@ -1,16 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_site                                             !
 !  Contains TSite* objects                                     !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -39,6 +49,23 @@ module ms2_site
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer          :: RDFSum(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: vsLJx(:) , vsLJy(:), vsLJz(:)
+    real(RK), pointer :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
+    real(RK), pointer :: vbLJx(:) , vbLJy(:), vbLJz(:)
+    real(RK), pointer :: cLJx(:)  , cLJy(:),  cLJz(:)
+    real(RK), pointer :: tuLJx(:),  tuLJy(:),  tuLJz(:)
+    real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
+    real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
+    real(RK), pointer :: Q0r(:,:)
+!    logical  :: Conductivity
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
+!TRANSPORT_END
+#endif
 
   end type TSiteLJ126
 
@@ -81,6 +108,23 @@ module ms2_site
     real(RK), pointer :: PX(:), PY(:), PZ(:)
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: vsCx(:), vsCy(:), vsCz(:)
+    real(RK), pointer :: vsuCx(:), vsuCy(:), vsuCz(:)
+    real(RK), pointer :: vbCx(:), vbCy(:), vbCz(:)
+    real(RK), pointer :: cCx(:),  cCy(:),  cCz(:)
+    real(RK), pointer :: tuCx(:),  tuCy(:),  tuCz(:)
+    real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
+    real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
+    real(RK), pointer :: Q0r(:,:)
+!    logical  :: Conductivity
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
+!TRANSPORT_END
+#endif
 
   end type TSiteCharge
 
@@ -127,6 +171,23 @@ module ms2_site
     real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: vsDx(:), vsDy(:), vsDz(:)
+    real(RK), pointer :: vsuDx(:), vsuDy(:), vsuDz(:)
+    real(RK), pointer :: vbDx(:), vbDy(:), vbDz(:)
+    real(RK), pointer :: cDx(:),  cDy(:),  cDz(:)
+    real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
+    real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
+    real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
+    real(RK), pointer :: Q0r(:,:)
+!    logical  :: Conductivity
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
+!TRANSPORT_END
+#endif
+
   end type TSiteDipole
 
   interface Construct
@@ -172,6 +233,23 @@ module ms2_site
     real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: vsQx(:) , vsQy(:), vsQz(:)
+    real(RK), pointer :: vsuQx(:), vsuQy(:), vsuQz(:)
+    real(RK), pointer :: vbQx(:), vbQy(:), vbQz(:)
+    real(RK), pointer :: cQx(:) ,  cQy(:),  cQz(:)
+    real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
+    real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
+    real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
+!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
+!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
+!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
+    real(RK), pointer :: Q0r(:,:)
+ !   logical  :: Conductivity
+!TRANSPORT_END
+#endif
+
   end type TSiteQuadrupole
 
   interface Construct
@@ -208,27 +286,16 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdLJ126_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdLJ126_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdLJ126_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdLJ126_sig )
-    read( IOBuffer, * ) this%sig
-    call FileReadParameter( iounit_potmod, IdLJ126_eps )
-    read( IOBuffer, * ) this%eps
-    call FileReadParameter( iounit_potmod, IdLJ126_mass )
-    read( IOBuffer, * ) this%mass
+    call FileReadParameter( this%r(1), iounit_potmod, IdLJ126_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdLJ126_r3, .false. )
+    call FileReadParameter( this%sig, iounit_potmod, IdLJ126_sig, .false. )
+    call FileReadParameter( this%eps, iounit_potmod, IdLJ126_eps, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdLJ126_mass, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -254,11 +321,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
 
@@ -276,11 +338,6 @@ contains
   subroutine TSiteLJ126_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteLJ126) :: this
@@ -303,14 +360,46 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+    nullify( this%RDFSum)
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsLJx )
+    nullify( this%vsLJy )
+    nullify( this%vsLJz )
+    nullify( this%vsuLJx )
+    nullify( this%vsuLJy )
+    nullify( this%vsuLJz )
+    nullify( this%vbLJx )
+    nullify( this%vbLJy )
+    nullify( this%vbLJz )
+    nullify( this%cLJx )
+    nullify( this%cLJy )
+    nullify( this%cLJz )
+    nullify( this%tuLJx )
+    nullify( this%tuLJy )
+    nullify( this%tuLJz )
+    nullify( this%tlLJx )
+    nullify( this%tlLJy )
+    nullify( this%tlLJz )
+    nullify( this%tdLJx )
+    nullify( this%tdLJy )
+    nullify( this%tdLJz )
+!     nullify( this%Q0r )
+!TRANSPORT_END
+#endif
 
     ! Allocate arrays
     allocate( this%RX( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    allocate( this%RZ( np ), STAT = stat )    
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
+      call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )
+    endif     
+    
+    call AllocationError( stat, 'particles', np )    
     if( SimulationType .eq. MolecularDynamics ) then
       allocate( this%FX( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
@@ -318,6 +407,54 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if  TRANS == 1
+!TRANSPORT_start
+      allocate( this%vsLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdLJx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdLJy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdLJz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
+!TRANSPORT_END
+#endif
     end if
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
@@ -340,11 +477,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteLJ126) :: this
 
@@ -358,6 +490,9 @@ contains
     if( associated( this%RZ ) ) then
       deallocate( this%RZ )
     end if
+    if( associated( this%RDFSum ) ) then
+      deallocate( this%RDFSum )
+    end if    
     if( associated( this%FX ) ) then
       deallocate( this%FX )
     end if
@@ -377,6 +512,74 @@ contains
       deallocate( this%RZTest )
     end if
 
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsLJx ) ) then
+      deallocate( this%vsLJx )
+    end if
+    if( associated( this%vsLJy ) ) then
+      deallocate( this%vsLJy )
+    end if
+    if( associated( this%vsLJz ) ) then
+      deallocate( this%vsLJz )
+    end if
+    if( associated( this%vsuLJx ) ) then
+      deallocate( this%vsuLJx )
+    end if
+    if( associated( this%vsuLJy ) ) then
+      deallocate( this%vsuLJy )
+    end if
+    if( associated( this%vsuLJz ) ) then
+      deallocate( this%vsuLJz )
+    end if
+    if( associated( this%vbLJx ) ) then
+     deallocate( this%vbLJx )
+    end if
+    if( associated( this%vbLJy ) ) then
+      deallocate( this%vbLJy )
+    end if
+    if( associated( this%vbLJz ) ) then
+      deallocate( this%vbLJz )
+    end if
+    if( associated( this%cLJx ) ) then
+      deallocate( this%cLJx )
+    end if
+    if( associated( this%cLJy ) ) then
+      deallocate( this%cLJy )
+    end if
+    if( associated( this%cLJz ) ) then
+      deallocate( this%cLJz )
+    end if
+    if( associated( this%tuLJx ) ) then
+      deallocate( this%tuLJx )
+    end if
+    if( associated( this%tuLJy ) ) then
+      deallocate( this%tuLJy )
+    end if
+    if( associated( this%tuLJz ) ) then
+      deallocate( this%tuLJz )
+    end if
+    if( associated( this%tlLJx ) ) then
+      deallocate( this%tlLJx )
+    end if
+    if( associated( this%tlLJy ) ) then
+      deallocate( this%tlLJy )
+    end if
+    if( associated( this%tlLJz ) ) then
+      deallocate( this%tlLJz )
+    end if
+    if( associated( this%tdLJx ) ) then
+      deallocate( this%tdLJx )
+    end if
+    if( associated( this%tdLJy ) ) then
+      deallocate( this%tdLJy )
+    end if
+    if( associated( this%tdLJz ) ) then
+      deallocate( this%tdLJz )
+    end if
+!     if( associated( this%Q0r ) ) deallocate( this%Q0r )   ! FIXME merkwürdige allocationsprobleme - tauchen mehrfach auf...
+!TRANSPORT_END
+#endif
   end subroutine TSiteLJ126_Deallocate
 
 
@@ -388,11 +591,6 @@ contains
   subroutine TSiteLJ126_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteLJ126) :: this
@@ -429,27 +627,16 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteCharge) :: this
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdCharge_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdCharge_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdCharge_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdCharge_e )
-    read( IOBuffer, * ) this%e
-    call FileReadParameter( iounit_potmod, IdCharge_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdCharge_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdCharge_r3, .false. )
+    call FileReadParameter( this%e, iounit_potmod, IdCharge_e, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdCharge_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdCharge_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -475,11 +662,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteCharge) :: this
 
@@ -497,11 +679,6 @@ contains
   subroutine TSiteCharge_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -524,6 +701,32 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsCx )
+    nullify( this%vsCy )
+    nullify( this%vsCz )
+    nullify( this%vsuCx )
+    nullify( this%vsuCy )
+    nullify( this%vsuCz )
+    nullify( this%vbCx )
+    nullify( this%vbCy )
+    nullify( this%vbCz )
+    nullify( this%cCx )
+    nullify( this%cCy )
+    nullify( this%cCz )
+    nullify( this%tuCx )
+    nullify( this%tuCy )
+    nullify( this%tuCz )
+    nullify( this%tlCx )
+    nullify( this%tlCy )
+    nullify( this%tlCz )
+    nullify( this%tdCx )
+    nullify( this%tdCy )
+    nullify( this%tdCz )
+!     nullify( this%Q0r )
+!TRANSPORT_END
+#endif
 
     ! Allocate arrays
     allocate( this%RX( np ), STAT = stat )
@@ -539,6 +742,54 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if  TRANS == 1
+      !TRANSPORT_start
+      allocate( this%vsCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdCx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdCy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdCz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
+      !TRANSPORT_END
+#endif
     end if
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
@@ -560,11 +811,6 @@ contains
   subroutine TSiteCharge_Deallocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -597,6 +843,65 @@ contains
     if( associated( this%RZTest ) ) then
       deallocate( this%RZTest )
     end if
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsCx ) )  then
+      deallocate( this%vsCx )
+    end if
+    if( associated( this%vsCy ) ) then
+      deallocate( this%vsCy )
+    end if
+    if( associated( this%vsCz ) ) then
+      deallocate( this%vsCz )
+    end if
+    if( associated( this%vbCx ) ) then
+      deallocate( this%vbCx )
+    end if
+    if( associated( this%vbCy ) ) then
+      deallocate( this%vbCy )
+    end if
+    if( associated( this%vbCz ) ) then
+      deallocate( this%vbCz )
+    end if
+    if( associated( this%cCx ) ) then
+      deallocate( this%cCx )
+    end if
+    if( associated( this%cCy ) ) then
+      deallocate( this%cCy )
+    end if
+    if( associated( this%cCz ) ) then
+      deallocate( this%cCz )
+    end if
+    if( associated( this%tuCx ) ) then
+      deallocate( this%tuCx )
+    end if
+    if( associated( this%tuCy ) ) then
+      deallocate( this%tuCy )
+    end if
+    if( associated( this%tuCz ) ) then
+     deallocate( this%tuCz )
+    end if
+    if( associated( this%tlCx ) ) then
+      deallocate( this%tlCx )
+    end if
+    if( associated( this%tlCy ) ) then
+      deallocate( this%tlCy )
+    end if
+    if( associated( this%tlCz ) ) then
+      deallocate( this%tlCz )
+    end if
+    if( associated( this%tdCx ) ) then
+      deallocate( this%tdCx )
+    end if
+    if( associated( this%tdCy ) ) then
+      deallocate( this%tdCy )
+    end if
+    if( associated( this%tdCz ) ) then
+      deallocate( this%tdCz )
+    end if
+!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
+!TRANSPORT_END
+#endif
 
   end subroutine TSiteCharge_Deallocate
 
@@ -609,11 +914,6 @@ contains
   subroutine TSiteCharge_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteCharge) :: this
@@ -650,11 +950,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteDipole) :: this
 
@@ -662,22 +957,14 @@ contains
     real(RK) :: theta, phi
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdDipole_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdDipole_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdDipole_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdDipole_theta )
-    read( IOBuffer, * ) theta
-    call FileReadParameter( iounit_potmod, IdDipole_phi )
-    read( IOBuffer, * ) phi
-    call FileReadParameter( iounit_potmod, IdDipole_D )
-    read( IOBuffer, * ) this%D
-    call FileReadParameter( iounit_potmod, IdDipole_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdDipole_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdDipole_r3, .false. )
+    call FileReadParameter( theta, iounit_potmod, IdDipole_theta, .false. )
+    call FileReadParameter( phi, iounit_potmod, IdDipole_phi, .false. )
+    call FileReadParameter( this%D, iounit_potmod, IdDipole_D, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdDipole_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdDipole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -708,11 +995,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteDipole) :: this
 
@@ -730,11 +1012,6 @@ contains
   subroutine TSiteDipole_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -766,6 +1043,32 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsDx )
+    nullify( this%vsDy )
+    nullify( this%vsDz )
+    nullify( this%vsuDx )
+    nullify( this%vsuDy )
+    nullify( this%vsuDz )
+    nullify( this%vbDx )
+    nullify( this%vbDy )
+    nullify( this%vbDz )
+    nullify( this%cDx )
+    nullify( this%cDy )
+    nullify( this%cDz )
+    nullify( this%tuDx )
+    nullify( this%tuDy )
+    nullify( this%tuDz )
+    nullify( this%tlDx )
+    nullify( this%tlDy )
+    nullify( this%tlDz )
+    nullify( this%tdDx )
+    nullify( this%tdDy )
+    nullify( this%tdDz )
+!     nullify( this%Q0r )
+!TRANSPORT_END
+#endif
 
     ! Allocate arrays
     allocate( this%RX( np ), STAT = stat )
@@ -793,6 +1096,54 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if  TRANS == 1
+      !TRANSPORT_start
+      allocate( this%vsDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdDx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdDy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdDz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )   ! FIXME vielleicht zuviele allocates - werden nicht alle verwendet
+!TRANSPORT_END
+#endif
     end if
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
@@ -820,11 +1171,6 @@ contains
   subroutine TSiteDipole_Deallocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -884,6 +1230,74 @@ contains
     if( associated( this%OZTest ) ) then
       deallocate( this%OZTest )
     end if
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsDx ) ) then
+      deallocate( this%vsDx )
+    end if
+    if( associated( this%vsDy ) ) then
+      deallocate( this%vsDy )
+    end if
+    if( associated( this%vsDz ) ) then
+      deallocate( this%vsDz )
+    end if
+    if( associated( this%vsuDx ) ) then
+      deallocate( this%vsuDx )
+    end if
+    if( associated( this%vsuDy ) ) then
+      deallocate( this%vsuDy )
+    end if
+    if( associated( this%vsuDz ) ) then
+      deallocate( this%vsuDz )
+    end if
+    if( associated( this%vbDx ) ) then
+      deallocate( this%vbDx )
+    end if
+    if( associated( this%vbDy ) ) then
+      deallocate( this%vbDy )
+    end if
+    if( associated( this%vbDz ) ) then
+      deallocate( this%vbDz )
+    end if
+    if( associated( this%cDx ) ) then
+      deallocate( this%cDx )
+    end if
+    if( associated( this%cDy ) ) then
+      deallocate( this%cDy )
+    end if
+    if( associated( this%cDz ) ) then
+      deallocate( this%cDz )
+    end if
+    if( associated( this%tuDx ) ) then
+      deallocate( this%tuDx )
+    end if
+    if( associated( this%tuDy ) ) then
+      deallocate( this%tuDy )
+    end if
+    if( associated( this%tuDz ) ) then
+      deallocate( this%tuDz )
+    end if
+    if( associated( this%tlDx ) ) then
+      deallocate( this%tlDx )
+    end if
+    if( associated( this%tlDy ) ) then
+      deallocate( this%tlDy )
+    end if
+    if( associated( this%tlDz ) ) then
+      deallocate( this%tlDz )
+    end if
+    if( associated( this%tdDx ) ) then
+      deallocate( this%tdDx )
+    end if
+    if( associated( this%tdDy ) ) then
+      deallocate( this%tdDy )
+    end if
+    if( associated( this%tdDz ) ) then
+      deallocate( this%tdDz )
+    end if
+!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
+!TRANSPORT_END
+#endif
 
   end subroutine TSiteDipole_Deallocate
 
@@ -896,11 +1310,6 @@ contains
   subroutine TSiteDipole_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteDipole) :: this
@@ -946,11 +1355,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteQuadrupole) :: this
 
@@ -958,22 +1362,14 @@ contains
     real(RK) :: theta, phi
 
     ! Read site parameters
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r1 )
-    read( IOBuffer, * ) this%r(1)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r2 )
-    read( IOBuffer, * ) this%r(2)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_r3 )
-    read( IOBuffer, * ) this%r(3)
-    call FileReadParameter( iounit_potmod, IdQuadrupole_theta )
-    read( IOBuffer, * ) theta
-    call FileReadParameter( iounit_potmod, IdQuadrupole_phi )
-    read( IOBuffer, * ) phi
-    call FileReadParameter( iounit_potmod, IdQuadrupole_Q )
-    read( IOBuffer, * ) this%Q
-    call FileReadParameter( iounit_potmod, IdQuadrupole_mass )
-    read( IOBuffer, * ) this%mass
-    call FileReadParameter( iounit_potmod, IdQuadrupole_shield )
-    read( IOBuffer, * ) this%shield
+    call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdQuadrupole_r3, .false. )
+    call FileReadParameter( theta, iounit_potmod, IdQuadrupole_theta, .false. )
+    call FileReadParameter( phi, iounit_potmod, IdQuadrupole_phi, .false. )
+    call FileReadParameter( this%Q, iounit_potmod, IdQuadrupole_Q, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdQuadrupole_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdQuadrupole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -1004,11 +1400,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSiteQuadrupole) :: this
 
@@ -1026,11 +1417,6 @@ contains
   subroutine TSiteQuadrupole_Allocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this
@@ -1062,6 +1448,35 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsQx )
+    nullify( this%vsQy )
+    nullify( this%vsQz )
+    nullify( this%vsuQx )
+    nullify( this%vsuQy )
+    nullify( this%vsuQz )
+    nullify( this%vsQx )
+    nullify( this%vsQy )
+    nullify( this%vsQz )
+    nullify( this%vbQx )
+    nullify( this%vbQy )
+    nullify( this%vbQz )
+    nullify( this%cQx )
+    nullify( this%cQy )
+    nullify( this%cQz )
+    nullify( this%tuQx )
+    nullify( this%tuQy )
+    nullify( this%tuQz )
+    nullify( this%tlQx )
+    nullify( this%tlQy )
+    nullify( this%tlQz )
+    nullify( this%tdQx )
+    nullify( this%tdQy )
+    nullify( this%tdQz )
+!     nullify( this%Q0r )
+!TRANSPORT_END
+#endif
 
     ! Allocate arrays
     allocate( this%RX( np ), STAT = stat )
@@ -1089,6 +1504,54 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+#if  TRANS == 1
+      !TRANSPORT_start
+      allocate( this%vsQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdQx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdQy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdQz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!       allocate( this%Q0r( np , 4 ), STAT = stat )
+!       call AllocationError( stat, 'particles', np )
+      !TRANSPORT_END
+#endif
     end if
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
@@ -1116,11 +1579,6 @@ contains
   subroutine TSiteQuadrupole_Deallocate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this
@@ -1180,6 +1638,75 @@ contains
     if( associated( this%OZTest ) ) then
       deallocate( this%OZTest )
     end if
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsQx ) ) then
+      deallocate( this%vsQx )
+    end if
+    if( associated( this%vsQy ) ) then
+      deallocate( this%vsQy )
+    end if
+    if( associated( this%vsQz ) ) then
+      deallocate( this%vsQz )
+    end if
+    if( associated( this%vsuQx ) ) then
+      deallocate( this%vsuQx )
+    end if
+    if( associated( this%vsuQy ) ) then
+      deallocate( this%vsuQy )
+    end if
+    if( associated( this%vsuQz ) ) then
+      deallocate( this%vsuQz )
+    end if
+    if( associated( this%vbQx ) ) then
+      deallocate( this%vbQx )
+    end if
+    if( associated( this%vbQy ) ) then
+      deallocate( this%vbQy )
+    end if
+    if( associated( this%vbQz ) ) then
+      deallocate( this%vbQz )
+    end if
+    if( associated( this%cQx ) ) then
+      deallocate( this%cQx )
+    end if
+    if( associated( this%cQy ) ) then
+      deallocate( this%cQy )
+    end if
+    if( associated( this%cQz ) ) then
+      deallocate( this%cQz )
+    end if
+    if( associated( this%tuQx ) ) then
+      deallocate( this%tuQx )
+    end if
+    if( associated( this%tuQy ) ) then
+      deallocate( this%tuQy )
+    end if
+    if( associated( this%tuQz ) ) then
+      deallocate( this%tuQz )
+    end if
+    if( associated( this%tlQx ) ) then
+      deallocate( this%tlQx )
+    end if
+    if( associated( this%tlQy ) ) then
+      deallocate( this%tlQy )
+    end if
+    if( associated( this%tlQz ) ) then
+      deallocate( this%tlQz )
+    end if
+    if( associated( this%tdQx ) ) then
+      deallocate( this%tdQx )
+    end if
+    if( associated( this%tdQy ) ) then
+      deallocate( this%tdQy )
+    end if
+    if( associated( this%tdQz ) ) then
+      deallocate( this%tdQz )
+    end if
+!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
+!TRANSPORT_END
+#endif
+
 
   end subroutine TSiteQuadrupole_Deallocate
 
@@ -1192,11 +1719,6 @@ contains
   subroutine TSiteQuadrupole_Save( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSiteQuadrupole) :: this
