@@ -745,7 +745,7 @@ contains
       call AllocationError( stat, 'Mayer f-function' )
     end if
 
-    if( CutoffMode .eq. CenterofMass ) then
+    if(( CutoffMode .eq. CenterofMass ) .or. ( CutoffMode .eq. SiteSite ))  then
       N1 = max( N1, this%NTest1 )
       allocate( this%NInCutoff(N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 )
@@ -986,12 +986,32 @@ contains
       end if
 
       do j = 1, this%N2Dipole
-        call Force( this%PotChargeDipole( i, j ), &
-&            EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotChargeDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotChargeDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotChargeDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
       do j = 1, this%N2Quadrupole
-        call Force( this%PotChargeQuadrupole( i, j ), &
-&            EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotChargeQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotChargeQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotChargeQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
     end do
 
@@ -999,8 +1019,18 @@ contains
     ! Calculate dipolar forces
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
-        call Force( this%PotDipoleCharge( i, j ), &
-&            EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotDipoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotDipoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotDipoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
       do j = 1, this%N2Dipole
 #if  TRANS == 1
@@ -1017,8 +1047,18 @@ contains
 #endif
       end do
       do j = 1, this%N2Quadrupole
-           call Force( this%PotDipoleQuadrupole( i, j ), &
-&               EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotDipoleQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotDipoleQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotDipoleQuadrupole( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
     end do
 
@@ -1026,12 +1066,32 @@ contains
     ! Calculate quadrupolar forces
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
-        call Force( this%PotQuadrupoleCharge( i, j ), &
-&            EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotQuadrupoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotQuadrupoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotQuadrupoleCharge( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
       do j = 1, this%N2Dipole
-        call Force( this%PotQuadrupoleDipole( i, j ), &
-&         EPot, Virial, BoxLength )
+#if  TRANS == 1
+       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+          call Force_Trans( this%PotQuadrupoleDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+       else
+          call Force( this%PotQuadrupoleDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+       end if
+#else
+          call Force( this%PotQuadrupoleDipole( i, j ), &
+&              EPot, Virial, BoxLength )
+#endif
       end do
       do j = 1, this%N2Quadrupole
 #if  TRANS == 1

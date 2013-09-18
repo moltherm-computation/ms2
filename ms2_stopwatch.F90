@@ -1,14 +1,13 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
-!      P.O. Box 67653                                          !
-!      67653 Kaiserslautern                                    !
+!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
 !==============================================================!
-
-!****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
-!****************************************************************
+!> Module: ms2_stopwatch                                       !
+!          contains TStopwatch class                           !
+!> \author Martin Bernreuther <bernreuther@hlrs.de>            !
+!> \date   06.2009                                             !
+!==============================================================!
+! alternative: http://math.nist.gov/StopWatch/                 !
+!==============================================================!
 
 #ifndef ARCH
 #define ARCH    0
@@ -840,8 +839,8 @@ contains
 
     ! Declare local variables
 #ifdef STOPWATCH_USE_SYSCLK
-    integer :: sysclk_cnt_rate
-    integer :: sysclk_cnt_diff, sysclk_cnt_max
+    integer :: sysclk_cnt_rate, sysclk_cnt_max
+    integer :: sysclk_cnt_diff
     real :: sysclk_diff_sec, sysclk_max_sec
 #ifdef STOPWATCH_USE_MPIWTIME
     integer :: i
@@ -870,8 +869,8 @@ contains
       sysclk_cnt_diff = this%sysclk_cnt_stop-this%sysclk_cnt_start
       !sysclk_cnt_diff=mod(sysclk_cnt_diff+sysclk_cnt_max, sysclk_cnt_max) !sum needs long integer
       if( sysclk_cnt_diff<0 ) sysclk_cnt_diff = sysclk_cnt_diff+sysclk_cnt_max
-      sysclk_diff_sec = real(sysclk_cnt_diff)/real(sysclk_cnt_rate)
-      sysclk_max_sec = real(sysclk_cnt_max)/real(sysclk_cnt_rate)
+      sysclk_diff_sec = float(sysclk_cnt_diff)/float(sysclk_cnt_rate)
+      sysclk_max_sec = float(sysclk_cnt_max)/float(sysclk_cnt_rate)
 #ifdef STOPWATCH_USE_MPIWTIME
       if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
         i = NINT((this%wtime_diff(1)-sysclk_diff_sec)/sysclk_max_sec)
@@ -879,7 +878,7 @@ contains
       end if
 #endif
       write( IOBuffer, &
-&       '(T2,A," system_clock diff:", G18.9,"sec")' ) &
+&       '(T2,A," system_clock diff:", G16.9,"sec")' ) &
 &       trim(this%tag_string), sysclk_diff_sec
       call LogWrite
       write( IOBuffer, &
@@ -905,7 +904,7 @@ contains
     if (IAND(this%options,CStopwatch_omitCPUTIME) == 0) then
       cputime_diff = this%cputime_stop-this%cputime_start
       write( IOBuffer, &
-&       '(T2,A," cpu_time     diff:",G18.9,"sec")' ) &
+&       '(T2,A," cpu_time     diff:",G16.9," sec")' ) &
 &       trim(this%tag_string), &
 &       cputime_diff
 !    write( IOBuffer, &
@@ -924,19 +923,19 @@ contains
       if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
         ! min/max reduction available
         write( IOBuffer, &
-&         '(T2,A," wtime        diff:",G18.9,"-",G18.9,"sec")' ) &
+&         '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
           call LogWrite
-        write( IOBuffer,'(T30,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
+        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       else
         ! no min/max reduction available
         write( IOBuffer, &
-&         '(T2,A," wtime   root diff:",G18.9,"sec")' ) &
+&         '(T2,A," wtime   root diff:",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(1)
           call LogWrite
-        write( IOBuffer,'(T31,"=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
+        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       end if

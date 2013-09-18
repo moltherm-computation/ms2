@@ -91,9 +91,9 @@ module ms2_component
 
 #if  TRANS == 1
 !TRANSPORT_start
- ! Transport
     real(RK), pointer :: KinETran(:,:)
     real(RK) :: KinETranTotal(3)
+    real(RK) :: PartialMolarEnthalpy
 
     real(RK), pointer :: FS(:,:)
     real(RK), pointer :: FB(:,:)
@@ -123,7 +123,7 @@ module ms2_component
     real(RK), pointer :: FRC3All(:,:)
 #endif
 ! Stephan
-    logical :: Conductivity
+!    logical :: Conductivity
 !     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
 !     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
 !     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
@@ -183,6 +183,7 @@ module ms2_component
     integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
     real(RK) :: ChemPot, WidomContribution
+	real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG
@@ -225,7 +226,10 @@ module ms2_component
 !DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
+	type(TAccumulator) :: SumHW_counter
+	type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
+	type(TAccumulator) :: SumHM
 !DEBUG
     type(TAccumulator) :: SumVW1
     type(TAccumulator) :: SumVW2
@@ -458,12 +462,29 @@ contains
 &     trim( this%PotModFileName ), this%Fraction
     call LogWrite
 
+
+#if TRANS==1
+ ! Read partial molar enthalpy from the paremeters file     
+    call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
+
+    if (this%PartialMolarEnthalpy .ne. 0._RK) then
+      write( IOBuffer, &
+&       '("Reduced PartMolEnt of component ", A, ": ", F9.6 )' ) &
+&       trim( this%PotModFilename ), this%PartialMolarEnthalpy
+      call LogWrite
+    end if
+
+#endif
+
+
     ! Initialize flag for calculation of chemical potential
     this%CalcChemPot = .false.
     this%NTest = 0
 
     ! Initialize fluctuating state (for GradIns)
     this%FluctState = -1
+
+
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
       ! Read mole fraction of liquid simulation
@@ -531,6 +552,11 @@ contains
         if( this%NTest <= 0 ) &
 &         call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
+#if MPI_VER>0        
+        if ( .not. SimulationType .eq. MonteCarlo ) then
+           this%NTest = (this%NTest/NProcs +1)
+        end if
+#endif
       end if
 
       ! Read weighting factors method
@@ -599,6 +625,14 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
+
+
+
+
+
+
+
+
 
   end subroutine TComponent_Construct
 
@@ -823,7 +857,10 @@ contains
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
+	  call Construct( this%SumHW_counter, .false. )
+	  call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
+	  call Construct( this%SumHM, .true. )
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
@@ -865,7 +902,10 @@ contains
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
+	  call Destruct( this%SumHW_counter )
+	  call Destruct( this%SumHW_denom )
       call Destruct( this%SumVW )
+	  call Destruct( this%SumHM )
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. &
@@ -1239,7 +1279,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteLJ126(i)%Q0r => this%Q0
-      this%Molecule%SiteLJ126(i)%Conductivity = this%Conductivity
+!      this%Molecule%SiteLJ126(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteLJ126(i)%A11Save => this%A11Save
 !       this%Molecule%SiteLJ126(i)%A12Save => this%A12Save
 !       this%Molecule%SiteLJ126(i)%A13Save => this%A13Save
@@ -1269,7 +1309,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteCharge(i)%Q0r => this%Q0
-      this%Molecule%SiteCharge(i)%Conductivity = this%Conductivity
+!      this%Molecule%SiteCharge(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteCharge(i)%A11Save => this%A11Save
 !       this%Molecule%SiteCharge(i)%A12Save => this%A12Save
 !       this%Molecule%SiteCharge(i)%A13Save => this%A13Save
@@ -1299,7 +1339,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteDipole(i)%Q0r => this%Q0
-      this%Molecule%Sitedipole(i)%Conductivity = this%Conductivity
+!      this%Molecule%Sitedipole(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteDipole(i)%A11Save => this%A11Save
 !       this%Molecule%SiteDipole(i)%A12Save => this%A12Save
 !       this%Molecule%SiteDipole(i)%A13Save => this%A13Save
@@ -1329,7 +1369,7 @@ contains
       end if
 #if TRANS==1
       this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
-      this%Molecule%SiteQuadrupole(i)%Conductivity = this%Conductivity
+!      this%Molecule%SiteQuadrupole(i)%Conductivity = this%Conductivity
 !       this%Molecule%SiteQuadrupole(i)%A11Save => this%A11Save
 !       this%Molecule%SiteQuadrupole(i)%A12Save => this%A12Save
 !       this%Molecule%SiteQuadrupole(i)%A13Save => this%A13Save
@@ -2609,7 +2649,7 @@ contains
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
 &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-    if (this%Conductivity) then
+  !  if (this%Conductivity) then
       call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
 &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
@@ -2623,7 +2663,7 @@ contains
 &         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
 &         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    end if
+   ! end if
 !TRANSPORT_END
 #endif
 #endif
@@ -2678,7 +2718,7 @@ contains
     BoxLength_dt = this%BoxLength/TimeStep !TRANSPORT_thisline
     this%FS(:,:) = 0._RK
     this%FB(:,:) = 0._RK
-    if (this%Conductivity) then
+  !  if (this%Conductivity) then
       this%FTC(:,:) = 0._RK
       this%FRC(:,:) = 0._RK
       this%FTC1(:,:) = 0._RK
@@ -2687,7 +2727,7 @@ contains
       this%FRC1(:,:) = 0._RK
       this%FRC2(:,:) = 0._RK
       this%FRC3(:,:) = 0._RK
-    end if
+   ! end if
     !TRANSPORT_END
 #endif
 
@@ -2724,7 +2764,7 @@ contains
           vbx = pLJ126%vbLJx(i)
           vby = pLJ126%vbLJy(i)
           vbz = pLJ126%vbLJz(i)
-          if (this%Conductivity) then
+       !   if (this%Conductivity) then
             vsux= pLJ126%vsuLJx(i)
             vsuy= pLJ126%vsuLJy(i)
             vsuz= pLJ126%vsuLJz(i)
@@ -2740,7 +2780,7 @@ contains
             tdx = pLJ126%tdLJx(i)
             tdy = pLJ126%tdLJy(i)
             tdz = pLJ126%tdLJz(i)
-          end if
+       !   end if
           !TRANSPORT_END
 #endif
           r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
@@ -2761,7 +2801,7 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          if (this%Conductivity) then
+         ! if (this%Conductivity) then
             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
@@ -2781,7 +2821,7 @@ contains
             this%FRC3(i,1) = this%FRC3(i,1) + tly
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          end if
+         ! end if
            !TRANSPORT_END
 #endif
         end do
@@ -2802,7 +2842,7 @@ contains
           vbx = pCharge%vbCx(i)
           vby = pCharge%vbCy(i)
           vbz = pCharge%vbCz(i)
-          if (this%Conductivity) then
+      !    if (this%Conductivity) then
             vsux= pCharge%vsuCx(i)
             vsuy= pCharge%vsuCy(i)
             vsuz= pCharge%vsuCz(i)
@@ -2818,7 +2858,7 @@ contains
             tdx = pCharge%tdCx(i)
             tdy = pCharge%tdCy(i)
             tdz = pCharge%tdCz(i)
-          end if
+       !   end if
           !TRANSPORT_END
 #endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
@@ -2839,7 +2879,7 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          if (this%Conductivity) then
+        !  if (this%Conductivity) then
             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
@@ -2859,7 +2899,7 @@ contains
             this%FRC3(i,1) = this%FRC3(i,1) + tly
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          end if
+         ! end if
           !TRANSPORT_END
 #endif
         end do
@@ -2880,7 +2920,7 @@ contains
           vbx = pDipole%vbDx(i)
           vby = pDipole%vbDy(i)
           vbz = pDipole%vbDz(i)
-          if (this%Conductivity) then
+         ! if (this%Conductivity) then
             vsux= pDipole%vsuDx(i)
             vsuy= pDipole%vsuDy(i)
             vsuz= pDipole%vsuDz(i)
@@ -2896,7 +2936,7 @@ contains
             tdx = pDipole%tdDx(i)
             tdy = pDipole%tdDy(i)
             tdz = pDipole%tdDz(i)
-          end if
+        !  end if
           !TRANSPORT_END
 #endif
           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
@@ -2923,7 +2963,7 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          if (this%Conductivity) then
+       !   if (this%Conductivity) then
             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
@@ -2943,7 +2983,7 @@ contains
             this%FRC3(i,1) = this%FRC3(i,1) + tly
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          end if
+        !  end if
 !TRANSPORT_END
 #endif
         end do
@@ -2964,7 +3004,7 @@ contains
           vbx = pQuadrupole%vbQx(i)
           vby = pQuadrupole%vbQy(i)
           vbz = pQuadrupole%vbQz(i)
-          if (this%Conductivity) then
+     !     if (this%Conductivity) then
             vsux= pQuadrupole%vsuQx(i)
             vsuy= pQuadrupole%vsuQy(i)
             vsuz= pQuadrupole%vsuQz(i)
@@ -2980,7 +3020,7 @@ contains
             tdx = pQuadrupole%tdQx(i)
             tdy = pQuadrupole%tdQy(i)
             tdz = pQuadrupole%tdQz(i)
-          end if
+      !    end if
           !TRANSPORT_END
 #endif
           r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
@@ -3007,7 +3047,7 @@ contains
           this%FB(i, 2)= this%FB(i, 2)+ vby
           this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          if (this%Conductivity) then
+      !    if (this%Conductivity) then
             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
@@ -3027,7 +3067,7 @@ contains
             this%FRC3(i,1) = this%FRC3(i,1) + tly
             this%FRC3(i,2) = this%FRC3(i,2) + tlz
             this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          end if
+       !   end if
 !TRANSPORT_END
 #endif
         end do
@@ -3068,14 +3108,14 @@ contains
           vbx = pLJ126%vbLJx(i)
           vby = pLJ126%vbLJy(i)
           vbz = pLJ126%vbLJz(i)
-          if (this%Conductivity) then
+     !     if (this%Conductivity) then
             vsux= pLJ126%vsuLJx(i)
             vsuy= pLJ126%vsuLJy(i)
             vsuz= pLJ126%vsuLJz(i)
             cx  = pLJ126%cLJx(i)
             cy  = pLJ126%cLJy(i)
             cz  = pLJ126%cLJz(i)
-          end if
+      !    end if
           !TRANSPORT_END
 #endif
           this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
@@ -3090,7 +3130,7 @@ contains
           this%FB(i, 2) = this%FB(i, 2) + vby
           this%FB(i, 3) = this%FB(i, 3) + vbz
 
-          if (this%Conductivity) then
+       !   if (this%Conductivity) then
             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
@@ -3100,7 +3140,7 @@ contains
             this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
             this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
             this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-          end if
+        !  end if
 !TRANSPORT_END
 #endif
         end do
@@ -3185,7 +3225,7 @@ contains
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
 &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-    if (this%Conductivity) then
+ !   if (this%Conductivity) then
       call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
 &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
@@ -3199,7 +3239,7 @@ contains
 &         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
 &         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    end if
+  !  end if
 !TRANSPORT_END
 #endif
 #endif
@@ -4208,7 +4248,7 @@ subroutine TComponent_ForceTransport( this )
 
     if (RootProc) then
 
-      if (this%Conductivity) then
+   !   if (this%Conductivity) then
 #if MPI_VER > 0
         pFTC1 => this%FTC1All(:,:)
         pFTC2 => this%FTC2All(:,:)
@@ -4259,12 +4299,12 @@ subroutine TComponent_ForceTransport( this )
         this%KinETranTotal(1) = sum(this%KinETran(:,1))
         this%KinETranTotal(2) = sum(this%KinETran(:,2))
         this%KinETranTotal(3) = sum(this%KinETran(:,3))
-      else  ! Conductivity
+ !     else  ! Conductivity
 
-        this%KinETranTotal(1) = sum(this%P1(:,1)**2)* this%Molecule%Mass*BoxLength_dt2
-        this%KinETranTotal(2) = sum(this%P1(:,2)**2)* this%Molecule%Mass*BoxLength_dt2
-        this%KinETranTotal(3) = sum(this%P1(:,3)**2)* this%Molecule%Mass*BoxLength_dt2
-      end if
+  !      this%KinETranTotal(1) = sum(this%P1(:,1)**2)* this%Molecule%Mass*BoxLength_dt2
+  !      this%KinETranTotal(2) = sum(this%P1(:,2)**2)* this%Molecule%Mass*BoxLength_dt2
+  !      this%KinETranTotal(3) = sum(this%P1(:,3)**2)* this%Molecule%Mass*BoxLength_dt2
+    !  end if
 
     end if ! RootProc
 #endif

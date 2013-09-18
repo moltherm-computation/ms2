@@ -53,9 +53,9 @@ module ms2_potential
     real(RK),pointer          :: AblEpsCorr(:,:)
     real(RK),pointer          :: AblSigCorr(:,:)
 #endif
-#if TRANS == 1
-    logical :: Conductivity
-#endif
+!#if TRANS == 1
+ !   logical :: Conductivity
+!#endif
 
   end type TPotLJ126LJ126
 
@@ -107,9 +107,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
-#if TRANS == 1
-    logical :: Conductivity
-#endif
+!#if TRANS == 1
+ !   logical :: Conductivity
+!#endif
 
   end type TPotChargeCharge
 
@@ -161,6 +161,10 @@ module ms2_potential
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+ !   logical :: Conductivity
+!#endif
+
   end type TPotChargeDipole
 
   interface Construct
@@ -173,6 +177,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotCD_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotCD_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -199,6 +207,10 @@ module ms2_potential
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+ !   logical :: Conductivity
+!#endif
+
   end type TPotChargeQuadrupole
 
   interface Construct
@@ -211,6 +223,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotCQ_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotCQ_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -236,6 +252,10 @@ module ms2_potential
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
+
   end type TPotDipoleCharge
 
   interface Construct
@@ -248,6 +268,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotDC_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotDC_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -272,9 +296,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
-#if TRANS == 1
-    logical :: Conductivity
-#endif
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
 
   end type TPotDipoleDipole
 
@@ -317,6 +341,10 @@ module ms2_potential
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
+
   end type TPotDipoleQuadrupole
 
   interface Construct
@@ -329,6 +357,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotDQ_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotDQ_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -353,6 +385,10 @@ module ms2_potential
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
+
   end type TPotQuadrupoleCharge
 
   interface Construct
@@ -365,6 +401,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQC_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotQC_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -390,6 +430,10 @@ module ms2_potential
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
 
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
+
   end type TPotQuadrupoleDipole
 
   interface Construct
@@ -402,6 +446,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotQD_Force
+  end interface
+
+  interface Force_Trans
+    module procedure TPotQD_Force_Trans
   end interface
 
   interface ChemicalPotential
@@ -425,9 +473,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
-#if TRANS == 1
-    logical :: Conductivity
-#endif
+!#if TRANS == 1
+!    logical :: Conductivity
+!#endif
 
   end type TPotQuadrupoleQuadrupole
 
@@ -482,11 +530,7 @@ contains
     real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
 
-	
-	!RDF SUM = 0
-	!allocate (this%RDFSum(210),STAT = stat)
-	!this%RDFSum(:) = 0
-		
+
     ! Construct potential
     this%Site1 => Molecule1%SiteLJ126(j1)
     this%Site2 => Molecule2%SiteLJ126(j2)
@@ -575,10 +619,12 @@ contains
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
 
-#if TRANS == 1
-    this%Conductivity = this%Site1%Conductivity
-#endif
+!#if TRANS == 1
+!    this%Conductivity = this%Site1%Conductivity
+!#endif
 
+    
+ 
   contains
 
 
@@ -1115,7 +1161,7 @@ loop2:  do j = j0, j1
     real(RK)          :: BoxLength2
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    logical           :: Conductivity
+   ! logical           :: Conductivity
    !TRANSPORT_END
 #endif
 #ifdef ABL
@@ -1199,7 +1245,9 @@ loop2:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    Conductivity = this%Conductivity
+   ! Conductivity = this%Conductivity
+
+
     SigmaInvEps4 = Epsilon4/Sqrt(this%SigmaSquared)
     BoxLength2   = BoxLength**2
     VSx => this%Site1%vsLJx
@@ -1208,7 +1256,7 @@ loop2:  do j = j0, j1
     VBx => this%Site1%vbLJx
     VBy => this%Site1%vbLJy
     VBz => this%Site1%vbLJz
-    if ( Conductivity ) then
+   ! if ( Conductivity ) then
       VSux=> this%Site1%vsuLJx
       VSuy=> this%Site1%vsuLJy
       VSuz=> this%Site1%vsuLJz
@@ -1228,9 +1276,11 @@ loop2:  do j = j0, j1
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
       q4  => this%Site1%Q0r(:, 4)
-    end if
+   ! end if
 !TRANSPORT_END
 #endif
+
+
 
     if( CutoffMode .eq. CenterofMass ) then
 
@@ -1258,7 +1308,7 @@ loop2:  do j = j0, j1
         VBxi= 0._RK
         VByi= 0._RK
         VBzi= 0._RK
-        if ( Conductivity ) then
+     !   if ( Conductivity ) then
           VSuxi= 0._RK
           VSuyi= 0._RK
           VSuzi= 0._RK
@@ -1287,7 +1337,7 @@ loop2:  do j = j0, j1
           A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
           A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
           A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
-        end if
+      !  end if
         !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -1334,7 +1384,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
-          if ( Conductivity ) then
+       !   if ( Conductivity ) then
             VSuxi  = VSuxi+ FYij * PXij
             VSuyi  = VSuyi+ FZij * PXij
             VSuzi  = VSuzi+ FZij * PYij
@@ -1358,7 +1408,7 @@ loop1:  do k = 1, this%NInCutoff(i)
             tdxi   = tdxi + PXij*txi
             tdyi   = tdyi + PYij*tyi
             tdzi   = tdzi + PZij*tzi
-          end if
+        !  end if
           !TRANSPORT_END
 #endif
 #ifdef ABL
@@ -1380,7 +1430,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBx(i) + VBxi*BoxLength
         VBy(i) = VBy(i) + VByi*BoxLength
         VBz(i) = VBz(i) + VBzi*BoxLength
-        if (Conductivity) then
+      !  if (Conductivity) then
           VSux(i)= VSux(i)+ VSuxi*BoxLength
           VSuy(i)= VSuy(i)+ VSuyi*BoxLength
           VSuz(i)= VSuz(i)+ VSuzi*BoxLength
@@ -1397,7 +1447,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           tdx(i) = tdxi
           tdy(i) = tdyi
           tdz(i) = tdzi
-        end if
+       ! end if
         !TRANSPORT_END
 #endif
       end do
@@ -1866,9 +1916,9 @@ loop2:do j = 1, N
     this%RFConstant = this%Epsilon / RCutoff**3 &
 &     * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
-#if TRANS == 1
-    this%Conductivity = this%Site1%Conductivity
-#endif
+!#if TRANS == 1
+ !   this%Conductivity = this%Site1%Conductivity
+!#endif
 
   end subroutine TPotCC_Construct
 
@@ -2346,7 +2396,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    logical           :: Conductivity
+   ! logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -2415,14 +2465,14 @@ loop1:do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    Conductivity = this%Conductivity
+ !   Conductivity = this%Conductivity
     VSx => this%Site1%vsCx
     VSy => this%Site1%vsCy
     VSz => this%Site1%vsCz
     VBx => this%Site1%vbCx
     VBy => this%Site1%vbCy
     VBz => this%Site1%vbCz
-    if ( Conductivity ) then
+  !  if ( Conductivity ) then
       VSux=> this%Site1%vsuCx
       VSuy=> this%Site1%vsuCy
       VSuz=> this%Site1%vsuCz
@@ -2442,7 +2492,7 @@ loop1:do k = 1, this%NInCutoff(i)
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
       q4  => this%Site1%Q0r(:, 4)
-    end if
+   ! end if
 !TRANSPORT_END
 #endif
 
@@ -2470,7 +2520,7 @@ loop1:do k = 1, this%NInCutoff(i)
       VBxi= VBx(i)
       VByi= VBy(i)
       VBzi= VBz(i)
-      if ( Conductivity ) then
+  !    if ( Conductivity ) then
         VSuxi= VSux(i)
         VSuyi= VSuy(i)
         VSuzi= VSuz(i)
@@ -2498,7 +2548,7 @@ loop1:do k = 1, this%NInCutoff(i)
         A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
         A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
         A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
-      end if
+   !   end if
       !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -2553,7 +2603,7 @@ loop1:do k = 1, this%NInCutoff(i)
         VBxi   = VBxi + FXij * PXij
         VByi   = VByi + FYij * PYij
         VBzi   = VBzi + FZij * PZij
-        if ( Conductivity ) then
+      !  if ( Conductivity ) then
           VSuxi  = VSuxi+ FYij * PXij
           VSuyi  = VSuyi+ FZij * PXij
           VSuzi  = VSuzi+ FZij * PYij
@@ -2576,7 +2626,7 @@ loop1:do k = 1, this%NInCutoff(i)
           tdxi   = tdxi + PXij*txi
           tdyi   = tdyi + PYij*tyi
           tdzi   = tdzi + PZij*tzi
-        end if
+       ! end if
 #endif
       end do loop1
       FX1(i) = FXi
@@ -2590,7 +2640,7 @@ loop1:do k = 1, this%NInCutoff(i)
       VBx(i) = VBxi
       VBy(i) = VByi
       VBz(i) = VBzi
-      if ( Conductivity ) then
+    !  if ( Conductivity ) then
         VSux(i)= VSuxi
         VSuy(i)= VSuyi
         VSuz(i)= VSuzi
@@ -2606,7 +2656,7 @@ loop1:do k = 1, this%NInCutoff(i)
         tdx(i) = tdxi
         tdy(i) = tdyi
         tdz(i) = tdzi
-      end if
+     ! end if
       !TRANSPORT_END
 #endif
     end do
@@ -2696,7 +2746,7 @@ loop1:do k = 1, this%NInCutoff(i)
     FY2 => this%Site2%FY
     FZ2 => this%Site2%FZ
 #ifdef ENABLE_OMP   
-    forceTempX(:)=0._RK
+    forceTempX(:)=0._RK   
     forceTempY(:)=0._RK
     forceTempZ(:)=0._RK
 #endif
@@ -3695,6 +3745,386 @@ loop1:do k = 1, this%NInCutoff(i)
 
   end subroutine TPotCD_Force
 
+!==============================================================!
+!  Subroutine TPotCD_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotCD_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeDipole)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: EPotLocal, EPotLocal1, Viriallocal
+    integer           :: i, j, k, i1
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txi ,  tyi  , tzi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+  !  logical           :: Conductivity 
+    !TRANSPORT_END
+#endif
+   
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+#if  TRANS == 1
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+
+#if MPI_VER > 0
+!$omp private ( CosTheta, CosTheta3,  i, j, k, i1) &
+!$omp private ( i0)
+#else
+!$omp private ( CosTheta, CosTheta3, i, j, k, i1)
+#endif
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    Epsilon = this%Epsilon
+
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+#if  TRANS == 1
+    !TRANSPORT_start
+  !  Conductivity = this%Conductivity
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+   ! if ( Conductivity ) then
+      VSux=> this%Site1%vsuCx
+      VSuy=> this%Site1%vsuCy
+      VSuz=> this%Site1%vsuCz
+      Cx  => this%Site1%cCx
+      Cy  => this%Site1%cCy
+      Cz  => this%Site1%cCz
+      tux => this%Site1%tuCx
+      tuy => this%Site1%tuCy
+      tuz => this%Site1%tuCz
+      tlx => this%Site1%tlCx
+      tly => this%Site1%tlCy
+      tlz => this%Site1%tlCz
+      tdx => this%Site1%tdCx
+      tdy => this%Site1%tdCy
+      tdz => this%Site1%tdCz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+   ! end if
+!TRANSPORT_END
+#endif
+
+    ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)       
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+   !   if ( Conductivity ) then
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        r1x  = ( RXi-PXi ) * BoxLength
+        r1y  = ( RYi-PYi ) * BoxLength
+        r1z  = ( RZi-PZi ) * BoxLength
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+     ! end if
+      !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        OXj = OX2(j)
+        OYj = OY2(j)
+        OZj = OZ2(j)
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv                                                      ! Einheitsabstandvektor nach Price
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXj * ex + OYj * eY + OZj * eZ                              ! cos(alpha) nach Price
+        CosTheta3 = 3._RK * CosTheta
+        Epsilon1 = Epsilon * RijSquaredInv
+        Epsilon2 = Epsilon1 * RijInv
+        EPotlocal1 = Epsilon1 * CosTheta             !Define EPotLocal 1 
+        EPotLocal  = EPotLocal + EPotlocal1                         ! Uebereinstimmumg mit Price
+        FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
+        FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
+        FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+        momTempX(j) = momTempX(j) - Epsilon1 * eX   
+        momTempY(j) = momTempY(j) - Epsilon1 * eY   
+        momTempZ(j) = momTempZ(j) - Epsilon1 * eZ   
+
+#else          
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+        TX2(j) = TX2(j) - Epsilon1 * eX                                         ! Uebereinstimmung mit Price
+        TY2(j) = TY2(j) - Epsilon1 * eY
+        TZ2(j) = TZ2(j) - Epsilon1 * eZ        
+#endif          
+
+#if TRANS==1
+        !TRANSPORT_start vielleicht
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+      !  if ( Conductivity ) then
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          UU    =  EpotLocal1        !EpotLocal1 not defined
+          Uxi   =  UU * eX
+          Uyi   =  UU * eY
+          Uzi   =  UU * eZ
+          Cxi    = Cxi  + Uxi !Why was this term left out?
+          Cyi    = Cyi  + Uyi !Why was this term left out?
+          Czi    = Czi  + Uzi !Why was this term left out?
+          txii   = r1y * FZij - r1z * FYij
+          tyii   = r1z * FXij - r1x * FZij
+          tzii   = r1x * FYij - r1y * FXij
+          txi    = A11 * txii + A12 * tyii + A13 * tzii
+          tyi    = A21 * txii + A22 * tyii + A23 * tzii
+          tzi    = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXij*tyi
+          tuyi   = tuyi + PXij*tzi
+          tuzi   = tuzi + PYij*tzi
+          tlxi   = tlxi + PYij*txi
+          tlyi   = tlyi + PZij*txi
+          tlzi   = tlzi + PZij*tyi
+          tdxi   = tdxi + PXij*txi
+          tdyi   = tdyi + PYij*tyi
+          tdzi   = tdzi + PZij*tzi
+      !  end if
+#endif
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+    !  if ( Conductivity ) then
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+    !  end if
+      !TRANSPORT_END
+#endif
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+ end subroutine TPotCD_Force_Trans
+
 
 !==============================================================!
 !  Subroutine TPotCD_ChemicalPotential                         !
@@ -4177,6 +4607,387 @@ loop1:do k = 1, this%NInCutoff(i)
 
   end subroutine TPotCQ_Force
 
+!==============================================================!
+!  Subroutine TPotCQ_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotCQ_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotChargeQuadrupole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta2, CosAux
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    integer           :: i, j, k, i1
+
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+ 
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txi ,  tyi  , tzi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+   ! logical           :: Conductivity
+    !TRANSPORT_END
+#endif  
+ 
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+#if  TRANS == 1
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+#if MPI_VER > 0
+!$omp private ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!$omp private ( i0)
+#else
+!$omp private ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+#endif
+
+
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    Epsilon = this%Epsilon
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+#if  TRANS == 1
+    !TRANSPORT_start
+  !  Conductivity = this%Conductivity
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+   ! if ( Conductivity ) then
+      VSux=> this%Site1%vsuCx
+      VSuy=> this%Site1%vsuCy
+      VSuz=> this%Site1%vsuCz
+      Cx  => this%Site1%cCx
+      Cy  => this%Site1%cCy
+      Cz  => this%Site1%cCz
+      tux => this%Site1%tuCx
+      tuy => this%Site1%tuCy
+      tuz => this%Site1%tuCz
+      tlx => this%Site1%tlCx
+      tly => this%Site1%tlCy
+      tlz => this%Site1%tlCz
+      tdx => this%Site1%tdCx
+      tdy => this%Site1%tdCy
+      tdz => this%Site1%tdCz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+    !end if
+!TRANSPORT_END
+#endif
+    ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)     
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+     ! if ( Conductivity ) then
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
+        r1x  = ( RXi-PXi ) * BoxLength
+        r1y  = ( RYi-PYi ) * BoxLength
+        r1z  = ( RZi-PZi ) * BoxLength
+        A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+        A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+        A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+        A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+        A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+        A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+        A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+        A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+        A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+    !  end if
+      !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength                               ! Abstandsvektor von Q nach C wie bei Price
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        OXj = OX2(j)                                                            ! Orientierungsvektor Quadrupol
+        OYj = OY2(j)
+        OZj = OZ2(j)
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+        Epsilon1 = Epsilon * RijSquaredInv * RijInv
+        EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third ) !Gabriela: Definition of EpotLocal1 
+        EPotLocal = EPotLocal + EPotlocal1
+        CosTheta2 = 2._RK * CosTheta
+        CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+        Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                     ! F2 nach Price bzw. Kraft auf Punktladung
+        FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
+        FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+        
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+        momTempX(j) = momTempX(j) - Epsilon1 * CosTheta2 * eX   
+        momTempY(j) = momTempY(j) - Epsilon1 * CosTheta2 * eY   
+        momTempZ(j) = momTempZ(j) - Epsilon1 * CosTheta2 * eZ   
+
+#else          
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+        TX2(j) = TX2(j) - Epsilon1 * CosTheta2 * eX
+        TY2(j) = TY2(j) - Epsilon1 * CosTheta2 * eY
+        TZ2(j) = TZ2(j) - Epsilon1 * CosTheta2 * eZ     
+#endif         
+#if TRANS==1
+        !TRANSPORT_start vielleicht
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+  !      if ( Conductivity ) then
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          UU    =  EpotLocal1  ! Change: EPotLocal1 was not defined before .... 
+          Uxi   =  UU * eX
+          Uyi   =  UU * eY
+          Uzi   =  UU * eZ   
+          Cxi    = Cxi  + Uxi !Why was this term left out?
+          Cyi    = Cyi  + Uyi !Why was this term left out?
+          Czi    = Czi  + Uzi !Why was this term left out?
+          txii   = r1y * FZij - r1z * FYij
+          tyii   = r1z * FXij - r1x * FZij
+          tzii   = r1x * FYij - r1y * FXij
+          txi    = A11 * txii + A12 * tyii + A13 * tzii
+          tyi    = A21 * txii + A22 * tyii + A23 * tzii
+          tzi    = A31 * txii + A32 * tyii + A33 * tzii
+          tuxi   = tuxi + PXij*tyi
+          tuyi   = tuyi + PXij*tzi
+          tuzi   = tuzi + PYij*tzi
+          tlxi   = tlxi + PYij*txi
+          tlyi   = tlyi + PZij*txi
+          tlzi   = tlzi + PZij*tyi
+          tdxi   = tdxi + PXij*txi
+          tdyi   = tdyi + PYij*tyi
+          tdzi   = tdzi + PZij*tzi
+       ! end if
+#endif
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+#if  TRANS == 1
+      !TRANSPORT_start
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+    !  if ( Conductivity ) then
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+     ! end if
+      !TRANSPORT_END
+#endif  
+  end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotCQ_Force_Trans
 
 
 !==============================================================!
@@ -4646,6 +5457,368 @@ loop1:do k = 1, this%NInCutoff(i)
 
   end subroutine TPotDC_Force
 
+!==============================================================!
+!  Subroutine TPotDC_Force_Trans                               !
+!==============================================================!
+
+  
+  subroutine TPotDC_Force_Trans( this, EPot, Virial, BoxLength )
+
+!Hier noch die Transportgrößen rein!
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleCharge)   :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta3
+    real(RK)          :: EPotLocal, EPotLocal1, Viriallocal
+    integer           :: i, j, k, i1
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)			
+#endif     
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+   ! logical           :: Conductivity
+    !TRANSPORT_END
+#endif
+
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private ( OXi, OYi, OZi,  TXi, TYi, TZi,  eX, eY, eZ) &
+!$omp private (  RijSquaredInv, RijInv,  CosTheta, CosTheta3) &
+#if MPI_VER > 0
+!$omp private (  i, j, k, i1) &
+!$omp private ( i0)
+#else
+!$omp private (  i, j, k, i1) 
+#endif
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    Epsilon = this%Epsilon
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+#if  TRANS == 1
+    !TRANSPORT_start
+  !  Conductivity = this%Conductivity
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+   ! if ( Conductivity ) then
+      VSux=> this%Site1%vsuDx
+      VSuy=> this%Site1%vsuDy
+      VSuz=> this%Site1%vsuDz
+      Cx  => this%Site1%cDx
+      Cy  => this%Site1%cDy
+      Cz  => this%Site1%cDz
+      tux => this%Site1%tuDx
+      tuy => this%Site1%tuDy
+      tuz => this%Site1%tuDz
+      tlx => this%Site1%tlDx
+      tly => this%Site1%tlDy
+      tlz => this%Site1%tlDz
+      tdx => this%Site1%tdDx
+      tdy => this%Site1%tdDy
+      tdz => this%Site1%tdDz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+   ! end if
+!TRANSPORT_END
+#endif
+
+
+    ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)        
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+      OXi = OX1(i)
+      OYi = OY1(i)
+      OZi = OZ1(i)
+      TXi = TX1(i)
+      TYi = TY1(i)
+      TZi = TZ1(i)
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+    !    if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+       ! end if
+        !TRANSPORT_END
+#endif
+
+!CDIR NODEP
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = RXij * RijInv
+        eY = RYij * RijInv
+        eZ = RZij * RijInv
+        CosTheta  = OXi * ex + OYi * eY + OZi * eZ                              ! -cos(alpha) bei Price
+        CosTheta3 = 3._RK * CosTheta
+        Epsilon1 = Epsilon * RijSquaredInv
+        Epsilon2 = Epsilon1 * RijInv
+        EPotlocal1 = -Epsilon1 * CosTheta
+        EPotLocal  = EPotLocal + EPotLocal1                          ! Uebereinstimmumg mit Price
+        FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
+        FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
+        FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
+        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        FXi    = FXi    + FXij
+        FYi    = FYi    + FYij
+        FZi    = FZi    + FZij
+        TXi = TXi + Epsilon1 * eX   ! Uebereinstimmumg mit Price; Rest bei Atom2Mol in Component
+        TYi = TYi + Epsilon1 * eY   ! Reaktionsfeldbeitrag in Interaction
+        TZi = TZi + Epsilon1 * eZ
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) - FXij
+        forceTempY(j) = forceTempY(j) - FYij
+        forceTempZ(j) = forceTempZ(j) - FZij
+#else          
+        FX2(j) = FX2(j) - FXij
+        FY2(j) = FY2(j) - FYij
+        FZ2(j) = FZ2(j) - FZij
+#endif
+#if TRANS==1
+          !TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+        !  if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            UU     = EpotLocal1  !What is EPotLocal1?
+            Uxi     = UU * eX
+            Uyi     = UU * eY
+            Uzi     = UU * eZ   
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            FTXi = Epsilon1 * eX       ! Chequear                    
+            FTYi = Epsilon1 * eY       !Chequear
+            FTZi = Epsilon1 * eZ       !Chequear
+            txii   = OYi * FTZi - OZi * FTYi   ! Chequear 
+            tyii   = OZi * FTXi - OXi * FTZi   ! Chequear 
+            tzii   = OXi * FTYi - OYi * FTXi   ! Chequear 
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+         !  end if
+          !TRANSPORT_END
+#endif
+
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+      TX1(i) = TXi
+      TY1(i) = TYi
+      TZ1(i) = TZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+     !   if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+       ! end if
+        !TRANSPORT_END
+#endif
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+#endif
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDC_Force_Trans
 
 
 !==============================================================!
@@ -4900,9 +6073,9 @@ loop1:  do k = 1, this%NInCutoff(i)
 &     * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
 
-#if TRANS == 1
-    this%Conductivity = this%Site1%Conductivity
-#endif
+!#if TRANS == 1
+ !   this%Conductivity = this%Site1%Conductivity
+!#endif
 
   end subroutine TPotDD_Construct
 
@@ -5408,7 +6581,7 @@ loop2:  do j = j0, j1
     real(RK)          :: FTXi , FTYi , FTZi
     real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    logical           :: Conductivity
+    !logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -5513,14 +6686,14 @@ loop2:  do j = j0, j1
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    Conductivity = this%Conductivity
+   ! Conductivity = this%Conductivity
     VSx => this%Site1%vsDx
     VSy => this%Site1%vsDy
     VSz => this%Site1%vsDz
     VBx => this%Site1%vbDx
     VBy => this%Site1%vbDy
     VBz => this%Site1%vbDz
-    if ( Conductivity ) then
+  !  if ( Conductivity ) then
       VSux=> this%Site1%vsuDx
       VSuy=> this%Site1%vsuDy
       VSuz=> this%Site1%vsuDz
@@ -5540,7 +6713,7 @@ loop2:  do j = j0, j1
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
       q4  => this%Site1%Q0r(:, 4)
-    end if
+   ! end if
 !TRANSPORT_END
 #endif
 
@@ -5577,7 +6750,7 @@ loop2:  do j = j0, j1
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
-        if ( Conductivity ) then
+       ! if ( Conductivity ) then
           VSuxi= VSux(i)
           VSuyi= VSuy(i)
           VSuzi= VSuz(i)
@@ -5602,7 +6775,7 @@ loop2:  do j = j0, j1
           A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
           A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
           A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
-        end if
+       ! end if
         !TRANSPORT_END
 #endif
 !CDIR NODEP
@@ -5683,12 +6856,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
-          if ( Conductivity ) then
+        !  if ( Conductivity ) then
             VSuxi  = VSuxi+ FYij * PXij
             VSuyi  = VSuyi+ FZij * PXij
             VSuzi  = VSuzi+ FZij * PYij
             UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
-            !TRANSPORT_start
             Uxi       = UU * eX
             Uyi       = UU * eY
             Uzi       = UU * eZ
@@ -5713,7 +6885,7 @@ loop1:  do k = 1, this%NInCutoff(i)
             tdxi   = tdxi + PXij*txir
             tdyi   = tdyi + PYij*tyir
             tdzi   = tdzi + PZij*tzir
-           end if
+         !  end if
           !TRANSPORT_END
 #endif
         end do loop1
@@ -5731,7 +6903,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
-        if ( Conductivity ) then
+      !  if ( Conductivity ) then
           VSux(i)= VSuxi
           VSuy(i)= VSuyi
           VSuz(i)= VSuzi
@@ -5747,7 +6919,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           tdx(i) = tdxi
           tdy(i) = tdyi
           tdz(i) = tdzi
-        end if
+       ! end if
         !TRANSPORT_END
 #endif
       end do
@@ -6325,8 +7497,6 @@ loop2:do j = 1, j1
 
   end subroutine TPotDQ_Destruct
 
-
-
 !==============================================================!
 !  Subroutine TPotDQ_Force                                     !
 !==============================================================!
@@ -6713,6 +7883,565 @@ loop2:  do j = j0, j1
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotDQ_Force
+
+
+
+
+!==============================================================!
+!  Subroutine TPotDQ_Force_Trans                               !
+!==============================================================!
+
+  subroutine TPotDQ_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotDipoleQuadrupole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij4Inv
+    real(RK)          :: CosThetai, CosThetaj, CosThetaj2, CosGammaij
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i1, j0, j1
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+    
+#if MPI_VER > 0
+    integer           :: N1, N2, i0, ji
+    logical           :: EvenN
+#endif
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+  !  logical           :: Conductivity
+    !TRANSPORT_END
+#endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private (Epsilon,  RCutoffSquared) &
+!$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!$omp private (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!$omp private (PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$omp private (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$omp private (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!$omp private (CosThetai, CosThetaj, CosThetaj2, CosGammaij) &
+!$omp private (dCosThetai, dCosThetaj, dCosGammaij) &
+!$omp private (Tmp, EPotLocal1) &
+!$omp private ( SameComponent) &
+#if  TRANS == 1
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+#if MPI_VER > 0
+!$omp private (i, j, k, i1, j0, j1) &
+!$omp private ( N1, N2, i0, ji, EvenN)
+#else
+!$omp private (i, j, k, i1, j0, j1)
+#endif
+
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+!    EPotLocal   = 0._RK
+!    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+#if  TRANS == 1
+    !TRANSPORT_start
+   ! Conductivity = this%Conductivity
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+   ! if ( Conductivity ) then
+      VSux=> this%Site1%vsuDx
+      VSuy=> this%Site1%vsuDy
+      VSuz=> this%Site1%vsuDz
+      Cx  => this%Site1%cDx
+      Cy  => this%Site1%cDy
+      Cz  => this%Site1%cDz
+      tux => this%Site1%tuDx
+      tuy => this%Site1%tuDy
+      tuz => this%Site1%tuDz
+      tlx => this%Site1%tlDx
+      tly => this%Site1%tlDy
+      tlz => this%Site1%tlDz
+      tdx => this%Site1%tdDx
+      tdy => this%Site1%tdDy
+      tdz => this%Site1%tdDz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+   ! end if
+!TRANSPORT_END
+#endif
+
+    if( CutoffMode .eq. CenterofMass ) then
+
+      ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, i1
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+      !  if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !end if
+        !TRANSPORT_END
+#endif
+!CDIR NODEP
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetaj2 = CosThetaj**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
+&                      - CosThetai * (5._RK * CosThetaj2 - 1))
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
+          dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+          dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij      
+#endif
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#endif 
+#if TRANS==1
+          !TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+      !    if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            UU     =  EpotLocal1
+            Uxi    =  UU * eX
+            Uyi    =  UU * eY
+            Uzi    =  UU * eZ 
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi          
+            FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
+            FTYi   = - eY * dCosThetai - OYj * dCosGammaij  
+            FTZi   = - eZ * dCosThetaj - OZi * dCosGammaij 
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+        !   end if
+          !TRANSPORT_END
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+      !  if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+      !  end if
+        !TRANSPORT_END
+#endif      
+       end do
+!$OMP END DO
+    else ! Site-site cutoff
+
+      ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, merge( i1 - 1, i1, SameComponent )
+#endif
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+#if MPI_VER > 0
+        if( SameComponent ) then
+          j0 = i + 1
+          j1 = i + N2
+          if( EvenN .and. i > N2 ) j1 = j1 - 1
+        else
+          j0 = 1
+          j1 = N1
+        end if
+loop2:  do ji = j0, j1
+          j = 1 + mod( ji - 1, N1 )
+#else
+        j0 = merge( i + 1, 1, SameComponent )
+loop2:  do j = j0, j1
+#endif
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = (PXij - anint( RXij )) * BoxLength
+          PYij = (PYij - anint( RYij )) * BoxLength
+          PZij = (PZij - anint( RZij )) * BoxLength
+          RXij = (RXij - anint( RXij )) * BoxLength
+          RYij = (RYij - anint( RYij )) * BoxLength
+          RZij = (RZij - anint( RZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetaj2 = CosThetaj**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosGammaij * CosThetaj &
+&                      - CosThetai * (5._RK * CosThetaj2 - 1))
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (1 - 5._RK * CosThetaj2)
+          dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
+          dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij      
+#endif
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#endif            
+
+        end do loop2
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+!$OMP END DO
+
+    end if
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotDQ_Force_Trans
 
 
 
@@ -7362,6 +9091,383 @@ loop1:do k = 1, this%NInCutoff(i)
     Virial = Virial + Third * VirialLocal
 
   end subroutine TPotQC_Force
+
+!==============================================================!
+!  Subroutine TPotQC_Force_Trans                                     !
+!==============================================================!
+
+  subroutine TPotQC_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleCharge) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+
+    ! Declare local variables
+    real(RK)          :: Epsilon, Epsilon1, Epsilon2
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquaredInv, RijInv
+    real(RK)          :: CosTheta, CosTheta2, CosAux
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    integer           :: i, j, k, i1
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)			
+#endif 
+    
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+   ! logical           :: Conductivity
+    !TRANSPORT_END
+#endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+  
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK   
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!$omp private ( PX1, PY1, PZ1, PX2, PY2, PZ2, TXi, TYi, TZi) &
+!$omp private (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$omp private (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private (  eX, eY, eZ, RijSquaredInv, RijInv) &
+#if  TRANS == 1
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+#if MPI_VER > 0
+!$omp private ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!$omp private ( i0)
+#else
+!$omp private ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+#endif
+
+
+
+
+
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    Epsilon = this%Epsilon
+!    EPotLocal = 0._RK
+!    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+#if  TRANS == 1
+    !TRANSPORT_start
+   ! Conductivity = this%Conductivity
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+   ! if ( Conductivity ) then
+      VSux=> this%Site1%vsuQx
+      VSuy=> this%Site1%vsuQy
+      VSuz=> this%Site1%vsuQz
+      Cx  => this%Site1%cQx
+      Cy  => this%Site1%cQy
+      Cz  => this%Site1%cQz
+      tux => this%Site1%tuQx
+      tuy => this%Site1%tuQy
+      tuz => this%Site1%tuQz
+      tlx => this%Site1%tlQx
+      tly => this%Site1%tlQy
+      tlz => this%Site1%tlQz
+      tdx => this%Site1%tdQx
+      tdy => this%Site1%tdQy
+      tdz => this%Site1%tdQz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+   ! end if
+!TRANSPORT_END
+#endif
+    ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
+#if MPI_VER > 0
+    do i = i0, i1
+#else
+    do i = 1, i1
+#endif
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
+      FXi = FX1(i)
+      FYi = FY1(i)
+      FZi = FZ1(i)
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+      OXi = OX1(i)
+      OYi = OY1(i)
+      OZi = OZ1(i)
+      TXi = TX1(i)
+      TYi = TY1(i)
+      TZi = TZ1(i)
+!CDIR NODEP
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+       ! if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+       ! end if
+        !TRANSPORT_END
+#endif
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        RXij = (RXij - anint( PXij )) * BoxLength
+        RYij = (RYij - anint( PYij )) * BoxLength
+        RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
+        RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+        RijInv = sqrt( RijSquaredInv )
+        eX = - RXij * RijInv                          ! Normierter Abstandsvektor nach Price
+        eY = - RYij * RijInv
+        eZ = - RZij * RijInv
+        CosTheta  = OXi * ex + OYi * eY + OZi * eZ          ! Scalarprodukt normierter 
+!                                              Abstandsvektor mit Orientierungsvektor Quadrupol
+        Epsilon1 = Epsilon * RijSquaredInv * RijInv
+        EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+        CosTheta2 = 2._RK * CosTheta
+        CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
+        Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
+        FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
+        FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
+        FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
+        VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+        FXi    = FXi    - FXij
+        FYi    = FYi    - FYij
+        FZi    = FZi    - FZij
+#ifdef ENABLE_OMP          
+        forceTempX(j) = forceTempX(j) + FXij
+        forceTempY(j) = forceTempY(j) + FYij
+        forceTempZ(j) = forceTempZ(j) + FZij
+#else          
+        FX2(j) = FX2(j) + FXij
+        FY2(j) = FY2(j) + FYij
+        FZ2(j) = FZ2(j) + FZij
+#endif        
+
+        TXi    = TXi - Epsilon1*CosTheta2*eX  
+        ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
+        TYi    = TYi - Epsilon1*CosTheta2*eY  ! in Atom2Mol von Component
+        TZi    = TZi - Epsilon1*CosTheta2*eZ
+#if  TRANS == 1
+!TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+      !    if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            UU     = EpotLocal1  
+            Uxi    = UU * eX
+            Uyi    = UU * eY
+            Uzi    = UU * eZ
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            FTXi   = - Epsilon1*CosTheta2*eX 
+            FTYi   = - Epsilon1*CosTheta2*eY 
+            FTZi   = - Epsilon1*CosTheta2*eZ 
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+      !    end if
+          !TRANSPORT_END
+#endif
+      end do loop1
+      FX1(i) = FXi
+      FY1(i) = FYi
+      FZ1(i) = FZi
+      TX1(i) = TXi
+      TY1(i) = TYi
+      TZ1(i) = TZi
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+     !   if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+       ! end if
+        !TRANSPORT_END
+#endif
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQC_Force_Trans
 
 
 
@@ -8032,6 +10138,564 @@ loop2:  do j = j0, j1
 
   end subroutine TPotQD_Force
 
+!==============================================================!
+!  Subroutine TPotQD_Force_Trans                                     !
+!==============================================================!
+
+  subroutine TPotQD_Force_Trans( this, EPot, Virial, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotQuadrupoleDipole) :: this
+    real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: Virial
+    real(RK), intent(in)       :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: Epsilon
+    real(RK)          :: RCutoffSquared
+    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: OXi, OYi, OZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: TXi, TYi, TZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: FXij, FYij, FZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijSquared, RijInv, Rij4Inv
+    real(RK)          :: CosThetai, CosThetaj, CosThetai2, CosGammaij
+    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: Tmp
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    logical           :: SameComponent
+    integer           :: i, j, k, i1, j0, j1
+
+#ifdef ENABLE_OMP     
+    real(RK)          :: forceTempX(1:this%Site2%NPart)			
+    real(RK)          :: forceTempY(1:this%Site2%NPart)			
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: momTempX(1:this%Site2%NPart)			
+    real(RK)          :: momTempY(1:this%Site2%NPart)			
+    real(RK)          :: momTempZ(1:this%Site2%NPart)				
+#endif 
+    
+#if MPI_VER > 0
+    integer           :: N1, N2, i0, ji
+    logical           :: EvenN
+#endif
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
+    real(RK)          :: VBxi, VByi, VBzi
+    real(RK)          :: Cxi,  Cyi,  Czi
+    real(RK)          :: tuxi,  tuyi,  tuzi
+    real(RK)          :: tlxi,  tlyi,  tlzi
+    real(RK)          :: tdxi,  tdyi,  tdzi
+    real(RK)          :: txii,  tyii , tzii
+    real(RK)          :: txir , tyir , tzir
+    real(RK)          :: FTXi , FTYi , FTZi
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+   ! logical           :: Conductivity
+    !TRANSPORT_END
+#endif
+
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+#ifdef ENABLE_OMP   
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+#endif
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
+  
+!$OMP PARALLEL &
+!$omp private (Epsilon,  RCutoffSquared) &
+!$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!$omp private (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!$omp private (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!$omp private (PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!$omp private (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$omp private (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$omp private (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$omp private (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!$omp private (CosThetai, CosThetaj, CosThetai2, CosGammaij) &
+!$omp private (dCosThetai, dCosThetaj, dCosGammaij) &
+!$omp private (Tmp, EPotLocal1) &
+!$omp private (SameComponent) &
+#if  TRANS == 1
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+#endif
+#if MPI_VER > 0
+!$omp private (i, j, k, i1, j0, j1) &
+!$omp private ( N1, N2, i0, ji, EvenN)
+#else
+!$omp private (i, j, k, i1, j0, j1)
+#endif
+
+
+
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+!    EPotLocal   = 0._RK
+!    VirialLocal = 0._RK
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    OX1 => this%Site1%OX
+    OY1 => this%Site1%OY
+    OZ1 => this%Site1%OZ
+    OX2 => this%Site2%OX
+    OY2 => this%Site2%OY
+    OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+!    FX2 => this%Site2%FX
+!    FY2 => this%Site2%FY
+!    FZ2 => this%Site2%FZ
+    TX1 => this%Site1%TX
+    TY1 => this%Site1%TY
+    TZ1 => this%Site1%TZ
+!    TX2 => this%Site2%TX
+!    TY2 => this%Site2%TY
+!    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+#if  TRANS == 1
+    !TRANSPORT_start
+   ! Conductivity = this%Conductivity
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+    !if ( Conductivity ) then
+      VSux=> this%Site1%vsuQx
+      VSuy=> this%Site1%vsuQy
+      VSuz=> this%Site1%vsuQz
+      Cx  => this%Site1%cQx
+      Cy  => this%Site1%cQy
+      Cz  => this%Site1%cQz
+      tux => this%Site1%tuQx
+      tuy => this%Site1%tuQy
+      tuz => this%Site1%tuQz
+      tlx => this%Site1%tlQx
+      tly => this%Site1%tlQy
+      tlz => this%Site1%tlQz
+      tdx => this%Site1%tdQx
+      tdy => this%Site1%tdQy
+      tdz => this%Site1%tdQz
+      q1  => this%Site1%Q0r(:, 1)
+      q2  => this%Site1%Q0r(:, 2)
+      q3  => this%Site1%Q0r(:, 3)
+      q4  => this%Site1%Q0r(:, 4)
+    !end if
+!TRANSPORT_END
+#endif
+    if( CutoffMode .eq. CenterofMass ) then
+
+      ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, i1
+#endif
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+!CDIR NODEP
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+     !   if ( Conductivity ) then
+          VSuxi= VSux(i)
+          VSuyi= VSuy(i)
+          VSuzi= VSuz(i)
+          Cxi = Cx(i)
+          Cyi = Cy(i)
+          Czi = Cz(i)
+          tuxi = tux(i)
+          tuyi = tuy(i)
+          tuzi = tuz(i)
+          tlxi = tlx(i)
+          tlyi = tly(i)
+          tlzi = tlz(i)
+          tdxi = tdx(i)
+          tdyi = tdy(i)
+          tdzi = tdz(i)
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+       ! end if
+        !TRANSPORT_END
+#endif
+loop1:  do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetai2 = CosThetai**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
+&                                  - CosGammaij * CosThetai)
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
+          dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
+          dCosGammaij = -2._RK * Rij4Inv * CosThetai
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij      
+#endif
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#endif 
+
+#if  TRANS == 1
+!TRANSPORT_start
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+        !  if ( Conductivity ) then
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij          
+            UU     = EpotLocal1  
+            Uxi     = UU * eX
+            Uyi     = UU * eY
+            Uzi     = UU * eZ
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
+            FTYi   = - eY * dCosThetai - OYj * dCosGammaij
+            FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+        !  end if
+          !TRANSPORT_END
+#endif
+        end do loop1
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+
+#if  TRANS == 1
+        !TRANSPORT_start
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+    !   if ( Conductivity ) then
+          VSux(i)= VSuxi
+          VSuy(i)= VSuyi
+          VSuz(i)= VSuzi
+          Cx(i)  = Cxi
+          Cy(i)  = Cyi
+          Cz(i)  = Czi
+          tux(i) = tuxi
+          tuy(i) = tuyi
+          tuz(i) = tuzi
+          tlx(i) = tlxi
+          tly(i) = tlyi
+          tlz(i) = tlzi
+          tdx(i) = tdxi
+          tdy(i) = tdyi
+          tdz(i) = tdzi
+      !  end if
+        !TRANSPORT_END
+#endif
+      end do
+!$OMP END DO
+    else ! Site-site cutoff
+
+      ! Loop over molecules
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal) &
+!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+#if MPI_VER > 0
+      do i = i0, i1
+#else
+      do i = 1, merge( i1 - 1, i1, SameComponent )
+#endif
+        PXi = PX1(i)
+        PYi = PY1(i)
+        PZi = PZ1(i)
+        RXi = RX1(i)
+        RYi = RY1(i)
+        RZi = RZ1(i)
+        OXi = OX1(i)
+        OYi = OY1(i)
+        OZi = OZ1(i)
+        FXi = FX1(i)
+        FYi = FY1(i)
+        FZi = FZ1(i)
+        TXi = TX1(i)
+        TYi = TY1(i)
+        TZi = TZ1(i)
+#if MPI_VER > 0
+        if( SameComponent ) then
+          j0 = i + 1
+          j1 = i + N2
+          if( EvenN .and. i > N2 ) j1 = j1 - 1
+        else
+          j0 = 1
+          j1 = N1
+        end if
+!CDIR NODEP
+loop2:  do ji = j0, j1
+          j = 1 + mod( ji - 1, N1 )
+#else
+        j0 = merge( i + 1, 1, SameComponent )
+!CDIR NODEP
+loop2:  do j = j0, j1
+#endif
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          PXij = (PXij - anint( RXij )) * BoxLength
+          PYij = (PYij - anint( RYij )) * BoxLength
+          PZij = (PZij - anint( RZij )) * BoxLength
+          RXij = (RXij - anint( RXij )) * BoxLength
+          RYij = (RYij - anint( RYij )) * BoxLength
+          RZij = (RZij - anint( RZij )) * BoxLength
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
+          OXj = OX2(j)
+          OYj = OY2(j)
+          OZj = OZ2(j)
+#if ARCH == 3
+          RijInv = rsqrt( RijSquared )
+#else
+          RijInv = 1._RK / sqrt( RijSquared )
+#endif
+          eX = RXij * RijInv
+          eY = RYij * RijInv
+          eZ = RZij * RijInv
+          CosThetai = OXi * eX + OYi * eY + OZi * eZ
+          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+          CosThetai2 = CosThetai**2
+          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
+          Rij4Inv = Epsilon / RijSquared**2
+          EPotLocal1 = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) &
+&                                  - CosGammaij * CosThetai)
+          EPotLocal = EPotLocal + EPotLocal1
+          dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
+          dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
+          dCosGammaij = -2._RK * Rij4Inv * CosThetai
+          Tmp = -4._RK * RijInv * EPotLocal1
+          FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
+&                                    + (eX * CosThetaj - OXj) * dCosThetaj)
+          FYij = -eY * Tmp + RijInv * ((eY * CosThetai - OYi) * dCosThetai &
+&                                    + (eY * CosThetaj - OYj) * dCosThetaj)
+          FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
+&                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
+          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          FXi    = FXi    + FXij
+          FYi    = FYi    + FYij
+          FZi    = FZi    + FZij
+#ifdef ENABLE_OMP          
+          forceTempX(j) = forceTempX(j) - FXij
+          forceTempY(j) = forceTempY(j) - FYij
+          forceTempZ(j) = forceTempZ(j) - FZij
+#else          
+          FX2(j) = FX2(j) - FXij
+          FY2(j) = FY2(j) - FYij
+          FZ2(j) = FZ2(j) - FZij      
+#endif
+          TXi    = TXi    - eX * dCosThetai - OXj * dCosGammaij
+          TYi    = TYi    - eY * dCosThetai - OYj * dCosGammaij
+          TZi    = TZi    - eZ * dCosThetai - OZj * dCosGammaij
+#ifdef ENABLE_OMP          
+          momTempX(j) = momTempX(j) - eX * dCosThetaj - OXi * dCosGammaij
+          momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
+          momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#else          
+          TX2(j) = TX2(j) - eX * dCosThetaj - OXi * dCosGammaij
+          TY2(j) = TY2(j) - eY * dCosThetaj - OYi * dCosGammaij
+          TZ2(j) = TZ2(j) - eZ * dCosThetaj - OZi * dCosGammaij   
+#endif
+
+        end do loop2
+        FX1(i) = FXi
+        FY1(i) = FYi
+        FZ1(i) = FZi
+        TX1(i) = TXi
+        TY1(i) = TYi
+        TZ1(i) = TZi
+      end do
+!$OMP END DO
+
+    end if
+!$OMP END PARALLEL
+
+#ifdef ENABLE_OMP
+    FX2 = FX2 + forceTempX
+    FY2 = FY2 + forceTempY
+    FZ2 = FZ2 + forceTempZ
+    TX2 = TX2 + momTempX                                 
+    TY2 = TY2 + momTempY
+    TZ2 = TZ2 + momTempZ
+#endif
+
+    ! Update potential energy and virial
+    EPot = EPot + EPotLocal
+    Virial = Virial + Third * VirialLocal
+
+  end subroutine TPotQD_Force_Trans
+
 
 
 !==============================================================!
@@ -8455,9 +11119,9 @@ loop2:do j = 1, j1
     this%RCutoffSquared = RCutoff**2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
-#if TRANS == 1
-    this%Conductivity = this%Site1%Conductivity
-#endif
+!#if TRANS == 1
+ !   this%Conductivity = this%Site1%Conductivity
+!#endif
 
   end subroutine TPotQQ_Construct
 
@@ -8975,7 +11639,7 @@ loop2:  do j = j0, j1
     real(RK)          :: FTXi , FTYi , FTZi
     real(RK)          :: Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    logical           :: Conductivity
+ !   logical           :: Conductivity
     !TRANSPORT_END
 #endif
 
@@ -9077,14 +11741,14 @@ loop2:  do j = j0, j1
     PZ2 => this%Site2%PZ
 #if  TRANS == 1
     !TRANSPORT_start
-    Conductivity = this%Conductivity
+  !  Conductivity = this%Conductivity
     VSx => this%Site1%vsQx
     VSy => this%Site1%vsQy
     VSz => this%Site1%vsQz
     VBx => this%Site1%vbQx
     VBy => this%Site1%vbQy
     VBz => this%Site1%vbQz
-    if ( Conductivity ) then
+   ! if ( Conductivity ) then
       VSux=> this%Site1%vsuQx
       VSuy=> this%Site1%vsuQy
       VSuz=> this%Site1%vsuQz
@@ -9104,7 +11768,7 @@ loop2:  do j = j0, j1
       q2  => this%Site1%Q0r(:, 2)
       q3  => this%Site1%Q0r(:, 3)
       q4  => this%Site1%Q0r(:, 4)
-    end if
+  !  end if
 !TRANSPORT_END
 #endif
 
@@ -9142,7 +11806,7 @@ loop2:  do j = j0, j1
         VBxi= VBx(i)
         VByi= VBy(i)
         VBzi= VBz(i)
-        if ( Conductivity ) then
+      !  if ( Conductivity ) then
           VSuxi= VSux(i)
           VSuyi= VSuy(i)
           VSuzi= VSuz(i)
@@ -9167,7 +11831,7 @@ loop2:  do j = j0, j1
           A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
           A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
           A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
-        end if
+       ! end if
         !TRANSPORT_END
 #endif
 loop1:  do k = 1, this%NInCutoff(i)
@@ -9261,7 +11925,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           VBxi   = VBxi + FXij * PXij
           VByi   = VByi + FYij * PYij
           VBzi   = VBzi + FZij * PZij
-          if ( Conductivity ) then
+         ! if ( Conductivity ) then
             VSuxi  = VSuxi+ FYij * PXij
             VSuyi  = VSuyi+ FZij * PXij
             VSuzi  = VSuzi+ FZij * PYij
@@ -9289,7 +11953,7 @@ loop1:  do k = 1, this%NInCutoff(i)
             tdxi   = tdxi + PXij*txir
             tdyi   = tdyi + PYij*tyir
             tdzi   = tdzi + PZij*tzir
-          end if
+        !  end if
           !TRANSPORT_END
 #endif
         end do loop1
@@ -9307,7 +11971,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         VBx(i) = VBxi
         VBy(i) = VByi
         VBz(i) = VBzi
-        if ( Conductivity ) then
+     !   if ( Conductivity ) then
           VSux(i)= VSuxi
           VSuy(i)= VSuyi
           VSuz(i)= VSuzi
@@ -9323,7 +11987,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           tdx(i) = tdxi
           tdy(i) = tdyi
           tdz(i) = tdzi
-        end if
+      !  end if
         !TRANSPORT_END
 #endif
       end do
