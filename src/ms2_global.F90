@@ -207,28 +207,6 @@ character(*), parameter :: VersionString = 'v1.0'
   integer, parameter :: iounit_start  = 1000
 #endif
 
-#if defined MS2_STEEREO
-   type :: ms2_struct
-      sequence
-      real(RK) :: boxLength
-      integer  :: numberOfComponents
-      integer, pointer :: particleNumbers (:)
-   end type ms2_struct
-
-   integer :: simSteerInst, comm, intraComm
-   character(LEN=80) :: commandName
-   integer :: commandNameSize
-   integer :: countVar
-   integer :: numberOfPartitions
-   type(ms2_struct) :: ms2_data
-   character(*),parameter :: IdCommandPath  = 'CommandPath'
-   character(*),parameter :: IdSteereoPort = 'Port'
-   character(LEN=255) :: CommandPath
-   integer :: CommandPathLength
-   integer :: Port
-
-#endif
-
   ! Define i/o unit numbers
   integer, parameter :: iounit_log     = iounit_start + 0
   integer, parameter :: iounit_config  = iounit_start + 1
