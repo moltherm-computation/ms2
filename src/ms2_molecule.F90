@@ -111,9 +111,7 @@ module ms2_molecule
   end interface
 
 
-
 contains
-
 
 
 !==============================================================!
@@ -165,6 +163,7 @@ contains
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
+
       case( 'LJ126', 'lj126', 'LJ', 'lj' )
         call FileReadParameter( this%NLJ126, iounit_potmod, IdSite_NLJ126, .false. )
         if( this%NLJ126 > 0 ) then
@@ -174,6 +173,7 @@ contains
             call Construct( this%SiteLJ126(j) )
           end do
         end if
+
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
         call FileReadParameter( this%NCharge, iounit_potmod, IdSite_NCharge, .false. )
         if( this%NCharge > 0 ) then
@@ -184,6 +184,7 @@ contains
             this%Charge = this%Charge + this%SiteCharge(j)%e
           end do
         end if
+
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
         call FileReadParameter( this%NDipole, iounit_potmod, IdSite_NDipole, .false. )
         if( this%NDipole > 0 ) then
@@ -193,6 +194,7 @@ contains
             call Construct( this%SiteDipole(j) )
           end do
         end if
+
       case( 'QUADRUPOLE', 'Quadrupole', 'quadrupole', 'Q', 'q' )
         call FileReadParameter( this%NQuadrupole, iounit_potmod, IdSite_NQuadrupole, .false. )
         if( this%NQuadrupole > 0 ) then
@@ -202,6 +204,7 @@ contains
             call Construct( this%SiteQuadrupole(j) )
           end do
         end if
+
       case default
         call Error( trim( stype )//' potential is not implemented' )
       end select
@@ -246,18 +249,13 @@ contains
         end do
       end if
 #if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
+      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
-&         scaleeps > 1._RK .or. scaleest > 1._RK ) &
-&       call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
+      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. scaleeps > 1._RK .or. scaleest > 1._RK ) &
+&         call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
 
       ! Apply scaling factors
       do i = 1, this%NLJ126
@@ -265,16 +263,19 @@ contains
         this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
         this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
       end do
+
       do i = 1, this%NCharge
         this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
         this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
         this%SiteCharge(i)%e = this%SiteCharge(i)%e * scaleest
       end do
+
       do i = 1, this%NDipole
         this%SiteDipole(i)%r = this%SiteDipole(i)%r * scalegeo
         this%SiteDipole(i)%shield = this%SiteDipole(i)%shield * scalegeo
         this%SiteDipole(i)%D = this%SiteDipole(i)%D * scaleest
       end do
+
       do i = 1, this%NQuadrupole
         this%SiteQuadrupole(i)%r = this%SiteQuadrupole(i)%r * scalegeo
         this%SiteQuadrupole(i)%shield = this%SiteQuadrupole(i)%shield * scalegeo
@@ -300,14 +301,12 @@ contains
       if (LongRange .ne. Ewald) then
         if (LongRange .ne. PME) then
           do i =1, this%NCharge
-            this%Mue(:) = this%Mue(:) + &
-&             this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
+            this%Mue(:) = this%Mue(:) + this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
           end do
         end if
       end if
       do i =1, this%NDipole
-        this%Mue(:) = this%Mue(:) + &
-&         this%SiteDipole(i)%or(:) * this%SiteDipole(i)%D
+        this%Mue(:) = this%Mue(:) + this%SiteDipole(i)%or(:) * this%SiteDipole(i)%D
       end do
     end if
     this%MueSquared = sum( this%Mue(:)**2 )
@@ -380,26 +379,17 @@ contains
     integer                   :: ntypes
     integer                   :: i
 
-    ! Open file
-!     if( fluctstate < 1 ) then
-!       filename = trim( this%PotModFileName )//NormalizedPotModExtension
-!     else
-!       write( filename, '(A, ".", I0)') &
-! &       trim( this%PotModFileName )//NormalizedPotModExtension, fluctstate
-!     end if
     i = index(this%PotModFileName,'.',.true.)
     if ( i<=1 ) then
-      ! didn't find extension, so basename is filename itself
-      !i = len_trim(this%PotModFileName)
       i = len(trim(this%PotModFileName))
     end if
+
     if( fluctstate < 1 ) then
-      write( filename, '(A,".",A,A)') &
-&           trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),trim(NormalizedPotModExtension)
+      write( filename, '(A,".",A,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),trim(NormalizedPotModExtension)
+
     else
-      write( filename, '(A,".",A,"_",I0,A)') &
-&           trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
-&          ,trim(NormalizedPotModExtension)
+      write( filename, '(A,".",A,"_",I0,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
+&           ,trim(NormalizedPotModExtension)
     end if
     call FileRewrite( iounit_normal, filename )
 
@@ -471,22 +461,24 @@ contains
 
     ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
+&          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
 
     ! Save moments of inertia
     if( this%NDFRot > 0 ) then
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(1)
+&            this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(1)
+
       call FileWriteParameter( iounit_normal, IdSite_MOI1 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(2)
+&            this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(2)
+
       call FileWriteParameter( iounit_normal, IdSite_MOI2 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(3)
+&            this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(3)
       call FileWriteParameter( iounit_normal, IdSite_MOI3 )
     end if
 
@@ -495,8 +487,7 @@ contains
 
     ! Update log file
     write( IOBuffer, '("Normalized potential model for ", A, &
-&     " saved to file <", A, ">")' ) &
-&     trim( this%PotModFileName ), trim( filename )
+&          " saved to file <", A, ">")' ) trim( this%PotModFileName ), trim( filename )
     call LogWrite
 
   end subroutine TMolecule_Save
@@ -583,92 +574,65 @@ contains
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
     do i = 1, this%NLJ126
-      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
     end do
+
     do i = 1, this%NCharge
-      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
     end do
+
     do i = 1, this%NDipole
-      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
     end do
+
     do i = 1, this%NQuadrupole
-      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
     end do
 
     ! Transform to principal axes
     call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
     call eigen_sort( this%MOI(:), rotation(:,:) )
     do i = 1, this%NLJ126
-      this%SiteLJ126(i)%r(:) = &
-&       matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
+      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
     end do
+
     do i = 1, this%NCharge
-      this%SiteCharge(i)%r(:) = &
-&       matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
+      this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
     end do
+
     do i = 1, this%NDipole
-      this%SiteDipole(i)%r(:) = &
-&       matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
-      this%SiteDipole(i)%or(:) = &
-&       matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
+      this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
+      this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
     end do
+
     do i = 1, this%NQuadrupole
-      this%SiteQuadrupole(i)%r(:) = &
-&       matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
-      this%SiteQuadrupole(i)%or(:) = &
-&       matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
+      this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
+      this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
     end do
-    if( (this%NCharge > 0).or.(this%NDipole > 0) ) &
-&     this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
 
-
+    if( (this%NCharge > 0).or.(this%NDipole > 0) ) this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
 
   contains
-
 
 
     subroutine jrotate( a1, a2, s, tau )
@@ -719,14 +683,12 @@ contains
         do ip = 1, 2
           do iq = ip + 1, 3
             g = 100._RK * abs( a(ip, iq ) )
-            if( &
-&             (i > 4) &
-&             .and. (abs( d(ip) ) + g == abs( d(ip) )) &
-&             .and. (abs( d(iq) ) + g == abs( d(iq) )) &
-&           ) then
+            if((i > 4) .and. (abs( d(ip) ) + g == abs( d(ip) )) .and. (abs( d(iq) ) + g == abs( d(iq) ))) then
               a(ip, iq) = 0._RK
+
             else if( abs( a(ip, iq) ) > thresh ) then
               h = d(iq) - d(ip)
+
               if( abs( h ) + g == abs( h ) ) then
                 t = a(ip, iq) / h
               else
@@ -734,6 +696,7 @@ contains
                 t = 1._RK / (abs( theta ) + sqrt( 1._RK + theta**2 ))
                 if( theta < 0._RK ) t = -t
               end if
+
               c = 1._RK / sqrt( 1._RK + t**2 )
               s = t * c
               tau = s / (1._RK + c)
@@ -860,18 +823,17 @@ contains
 
     ! Check orientation of dipoles and quadrupoles
     if( this%NDFRot < 3 ) then
-      disoriented = this%NDFRot < 2 &
-&       .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+      disoriented = this%NDFRot < 2 .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+
       do i = 1, this%NDipole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
+        disoriented = disoriented .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
       end do
+
       do i = 1, this%NQuadrupole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
+        disoriented = disoriented .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
       end do
-      if( disoriented ) &
-&       call Error( 'Must specify moments of inertia manually' )
+
+      if( disoriented ) call Error( 'Must specify moments of inertia manually' )
     end if
 
     ! Calculate total number of degrees of freedom

@@ -345,7 +345,6 @@ contains
 
   end subroutine TAccumulator_Deallocate
 
-
 !TRANSPORT_start
 #if TRANS == 1
 !==============================================================!
@@ -392,8 +391,6 @@ contains
 
   end subroutine TAccumulator_Reset
 
-
-
 !==============================================================!
 !  Subroutine TAccumulator_Update                              !
 !==============================================================!
@@ -414,8 +411,7 @@ contains
         this%TotalSum = NBlocks * BlockSize * Value
         this%NTotalSum = NBlocks * BlockSize
         this%Average = this%TotalSum / real( this%NTotalSum, RK )
-        this%BlockAverage = this%BlockSum(NBlocks) &
-&         / real( this%NBlockSum(NBlocks), RK )
+        this%BlockAverage = this%BlockSum(NBlocks) / real( this%NBlockSum(NBlocks), RK )
       end if
     else
       this%BlockSum(NBlocks) = this%BlockSum(NBlocks) + Value
@@ -423,12 +419,10 @@ contains
       this%TotalSum = this%TotalSum + Value
       this%NTotalSum = this%NTotalSum + 1
       this%Average = this%TotalSum / real( this%NTotalSum, RK )
-      this%BlockAverage = this%BlockSum(NBlocks) &
-&       / real( this%NBlockSum(NBlocks), RK )
+      this%BlockAverage = this%BlockSum(NBlocks) / real( this%NBlockSum(NBlocks), RK )
     end if
 
   end subroutine TAccumulator_Update
-
 
 ! TRANSPORT_start
 #if TRANS==1
@@ -464,7 +458,6 @@ contains
 #endif
 !TRANSPORT_END
 
-
 !==============================================================!
 !  Subroutine TAccumulator_Error                               !
 !==============================================================!
@@ -496,7 +489,6 @@ contains
 &       this%BlockSumGathered(1:NBlocks), NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
       call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
 &       NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-
       call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
 &       NRootProc, Communicator, ierror )
 
@@ -509,8 +501,7 @@ contains
       Tau = 0._RK
       do i = 1, NBlockSizes
         do j = i, NBlocks, i
-          BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) &
-&           / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
+          BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
           Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
         end do
 #ifdef _PGF
@@ -524,8 +515,7 @@ contains
       Tau = 0._RK
       do i = 1, NBlockSizes
         do j = i, NBlocks, i
-          BlockAverage = sum( this%BlockSum(j - i + 1:j) ) &
-&           / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
+          BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
           Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
         end do
 #ifdef _PGF
@@ -540,8 +530,7 @@ contains
     Tau = 0._RK
     do i = 1, NBlockSizes
       do j = i, NBlocks, i
-        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) &
-&         / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
+        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
         Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
       end do
 #ifdef _PGF
@@ -601,7 +590,6 @@ contains
 &     NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
     call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
 &     NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-
     call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
 &     NRootProc, Communicator, ierror )
 
@@ -614,8 +602,7 @@ contains
       Tau = 0._RK
       do i = 1, NBlockSizes
         do j = i, NBlocks, i
-          BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) &
-&           / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
+          BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
           Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
         end do
 #ifdef _PGF
@@ -630,8 +617,7 @@ contains
     Tau = 0._RK
     do i = 1, NBlockSizes
       do j = i, NBlocks, i
-        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) &
-&         / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
+        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
         Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
       end do
 #ifdef _PGF
@@ -670,21 +656,16 @@ contains
       if (NProc/=NProc_W) then
         call MPI_Send(this%Variance,1, MPI_RK ,NRootProc,1,MPI_COMM_WORLD,ierror )
         call MPI_Send(this%Average,1, MPI_RK ,NRootProc,2,MPI_COMM_WORLD,ierror )
-
       endif
+
     elseif (NProc_W==NRootProc) then
-
-
       call MPI_Recv(this%Variance,1, MPI_RK ,NRootProc_W,1,MPI_COMM_WORLD,ierror )
       call MPI_Recv(this%Average,1, MPI_RK ,NRootProc_W,2,MPI_COMM_WORLD,ierror )
-
     endif
 
 #endif
 
-
   end subroutine TAccumulator_ErrorGI
-
 
 !TRANSPORT_start
 #if TRANS==1
@@ -793,21 +774,14 @@ contains
     if( RootProc ) then
       ! Read contents from restart file
       read( iounit_restart, '(I10)' ) i
-      read( iounit_restart, '(ES20.12E3, ";", I10)' ) &
-&       ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
-
+      read( iounit_restart, '(ES20.12E3, ";", I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
     endif
     
 #if MPI_VER >0
     if( SimulationType .eq. MonteCarlo ) then
-      call MPI_Bcast( this%BlockSum(:), size( this%BlockSum ), MPI_RK, &
-&       NRootProc, Communicator, ierror )
-
-      call MPI_Bcast( this%NBlockSum(:), size( this%NBlockSum ), MPI_INTEGER, &
-&       NRootProc, Communicator, ierror )
-     
-      call MPI_Bcast( i, 1, MPI_INTEGER, &
-&       NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%BlockSum(:), size( this%BlockSum ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%NBlockSum(:), size( this%NBlockSum ), MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( i, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
 
     elseif ( .not. RootProc) then
       return

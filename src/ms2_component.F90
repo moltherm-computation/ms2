@@ -122,12 +122,7 @@ module ms2_component
     real(RK), pointer :: FRC2All(:,:)
     real(RK), pointer :: FRC3All(:,:)
 #endif
-! Stephan
-!    logical :: Conductivity
-!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
-!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
-!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
-!TRANSPORT_END
+
 #endif
 
     ! Total dipole moment of molecule for reaction field
@@ -226,10 +221,10 @@ module ms2_component
 !DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
-	type(TAccumulator) :: SumHW_counter
-	type(TAccumulator) :: SumHW_denom
+    type(TAccumulator) :: SumHW_counter
+    type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
-	type(TAccumulator) :: SumHM
+    type(TAccumulator) :: SumHM
 !DEBUG
     type(TAccumulator) :: SumVW1
     type(TAccumulator) :: SumVW2
@@ -458,18 +453,15 @@ contains
     write( IOBuffer, '(T13, "Reading component", I3," for ensemble")') comp
     call LogWrite
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
-    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
-&     trim( this%PotModFileName ), this%Fraction
+    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) trim( this%PotModFileName ), this%Fraction
     call LogWrite
-
 
 #if TRANS==1
  ! Read partial molar enthalpy from the paremeters file     
     call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
-      write( IOBuffer, &
-&       '("Reduced PartMolEnt of component ", A, ": ", F9.6 )' ) &
+      write( IOBuffer,'("Reduced PartMolEnt of component ", A, ": ", F9.6 )' ) &
 &       trim( this%PotModFilename ), this%PartialMolarEnthalpy
       call LogWrite
     end if
@@ -496,14 +488,11 @@ contains
       call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
       call FileReadParameter( this%PartialMolarVolume, iounit_params , IdPartialMolarVolume, .false. )
       call FileReadParameter( this%VarPartialMolarVolume, iounit_params , IdVarPartialMolarVolume, .false. )
-      write( IOBuffer, &
-&       '("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+      write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
-      write( IOBuffer, &
-&       '("Reduced PartMolVol of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
-&       trim( this%PotModFilename ), this%PartialMolarVolume, &
-&       this%VarPartialMolarVolume
+      write( IOBuffer,'("Reduced PartMolVol of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+&       trim( this%PotModFilename ), this%PartialMolarVolume, this%VarPartialMolarVolume
       call LogWrite
 
     else if( EnsembleType .eq. EnsembleTypeHA ) then
@@ -511,11 +500,9 @@ contains
         ! Read chemical potential of phase changing component (first one)
         call FileReadParameter( this%ChemPot, iounit_params , IdChemPot, .false. )
         call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
-        write( IOBuffer, &
-&         '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+        write( IOBuffer, '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &         trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
         call LogWrite
-
       end if
 
     else
@@ -533,14 +520,11 @@ contains
         this%FluctState = 0
         str = 'gradual insertion'
       case default
-        call Error( trim( str )// &
-&         ' method for calculation of chemical potential is not implemented' )
+        call Error( trim( str )//  ' method for calculation of chemical potential is not implemented' )
       end select
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns .and. &
-&         .not. SimulationType .eq. MonteCarlo ) &
+      if( this%ChemPotMethod .eq. ChemPotMethodGradIns .and. .not. SimulationType .eq. MonteCarlo ) &
 &       call Error( 'Gradual insertion is only allowed for MonteCarlo simulation' )
-      write( IOBuffer, &
-&       '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
+      write( IOBuffer, '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
 &       trim( this%PotModFilename )
       call LogWrite
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
@@ -549,8 +533,7 @@ contains
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
-        if( this%NTest <= 0 ) &
-&         call Error( 'Number of test particles need to be > 0' )
+        if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 #if MPI_VER>0        
         if ( .not. SimulationType .eq. MonteCarlo ) then
@@ -574,11 +557,9 @@ contains
           this%WFMethod = WFMethodOptSet
           str = 'optimized set'
         case default
-          call Error( trim( str )// &
-&           ' method for weighting factors is not implemented' )
+          call Error( trim( str )// ' method for weighting factors is not implemented' )
         end select
-        write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) &
-&         trim( str )
+        write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
         call LogWrite
       end if
 
@@ -603,8 +584,7 @@ contains
       allocate( this%WF( 0:this%NFluctMax ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', &
 &       this%NFluctMax + 1 )
-      if( this%WFMethod .eq. WFMethodGuess .or. &
-&         this%WFMethod .eq. WFMethodOptSet ) then
+      if( this%WFMethod .eq. WFMethodGuess .or. this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
 #if MPI_VER > 0
         call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
@@ -617,8 +597,7 @@ contains
     nullify( this%NFluctComp )
     if( this%NFluctMax > 0 ) then
       allocate( this%NFluctComp( 0:this%NFluctMax ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle components', &
-&       this%NFluctMax + 1 )
+      call AllocationError( stat, 'fluctuating particle components', this%NFluctMax + 1 )
     end if
 
     write( IOBuffer, '(T8, "Reading component", I3," for ensemble successful")') comp
@@ -626,16 +605,7 @@ contains
     write( IOBuffer, '(72(1H-))')
     call LogWrite
 
-
-
-
-
-
-
-
-
   end subroutine TComponent_Construct
-
 
 
 !==============================================================!
@@ -857,14 +827,13 @@ contains
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
-	  call Construct( this%SumHW_counter, .false. )
-	  call Construct( this%SumHW_denom, .false. )
+      call Construct( this%SumHW_counter, .false. )
+      call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
-	  call Construct( this%SumHM, .true. )
+      call Construct( this%SumHM, .true. )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -902,20 +871,17 @@ contains
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
-	  call Destruct( this%SumHW_counter )
-	  call Destruct( this%SumHW_denom )
+      call Destruct( this%SumHW_counter )
+      call Destruct( this%SumHW_denom )
       call Destruct( this%SumVW )
-	  call Destruct( this%SumHM )
+      call Destruct( this%SumHM )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
   end subroutine TComponent_DestroyAccumulators
-
-
 
 !==============================================================!
 !  Subroutine TComponent_Allocate                              !
@@ -987,25 +953,12 @@ contains
     nullify( this%FB )
     nullify( this%FRC )
     nullify( this%FTC )
-
     nullify( this%FTC1)
     nullify( this%FTC2 )
     nullify( this%FTC3 )
-
     nullify( this%FRC1)
     nullify( this%FRC2 )
     nullify( this%FRC3 )
-
-! Stephan
-!     nullify( this%A11Save )
-!     nullify( this%A13Save )
-!     nullify( this%A13Save )
-!     nullify( this%A21Save )
-!     nullify( this%A22Save )
-!     nullify( this%A23Save )
-!     nullify( this%A31Save )
-!     nullify( this%A32Save )
-!     nullify( this%A33Save )
 
 #if MPI_VER > 0
     nullify( this%FSAll )
@@ -1022,88 +975,48 @@ contains
 #endif
 
     ! Transport
-
     allocate( this%KinETran( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FS( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FB( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC1( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC1( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%Q0( np, 4 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
-! Stephan
-!     allocate( this%A11Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A12Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A13Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A21Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A22Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A23Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A31Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A32Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
-!     allocate( this%A33Save( np ), STAT = stat )
-!     call AllocationError( stat, 'particles', np )
 
 #if MPI_VER > 0
     allocate( this%FSAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FBAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRCAll( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC1All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC2All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FTC3All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC1All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC2All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-
     allocate( this%FRC3All( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
@@ -1123,7 +1036,6 @@ contains
     this%FRC3(:,:)  = 0._RK
 !TRANSPORT_END
 #endif
-
 
     ! Centers of mass positions
     allocate( this%P0( np, 3 ), STAT = stat )
@@ -1250,13 +1162,10 @@ contains
     end if
 
     ! Gear corrector local arrays
-    if( SimulationType .eq. MolecularDynamics &
-&     .and. IntegratorType .eq. IntegratorTypeGear ) then
-      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ) ), &
-&               STAT = stat )
+    if( SimulationType .eq. MolecularDynamics .and. IntegratorType .eq. IntegratorTypeGear ) then
+      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ) ),STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ) ), &
-&               STAT = stat )
+      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ) ),STAT = stat )
       call AllocationError( stat, 'particles', np )
     end if
 
@@ -1268,29 +1177,23 @@ contains
       this%Molecule%SiteLJ126(i)%NPart0 => this%NPart0
       this%Molecule%SiteLJ126(i)%NPart1 => this%NPart1
       this%Molecule%SiteLJ126(i)%NPart2 => this%NPart2
+
       call Allocate( this%Molecule%SiteLJ126(i) )
       this%Molecule%SiteLJ126(i)%PX => this%P0(:, 1)
       this%Molecule%SiteLJ126(i)%PY => this%P0(:, 2)
       this%Molecule%SiteLJ126(i)%PZ => this%P0(:, 3)
+
       if( ntest > 0 ) then
         this%Molecule%SiteLJ126(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteLJ126(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteLJ126(i)%PZTest => this%P0Test(:, 3)
       end if
+
 #if TRANS==1
       this%Molecule%SiteLJ126(i)%Q0r => this%Q0
-!      this%Molecule%SiteLJ126(i)%Conductivity = this%Conductivity
-!       this%Molecule%SiteLJ126(i)%A11Save => this%A11Save
-!       this%Molecule%SiteLJ126(i)%A12Save => this%A12Save
-!       this%Molecule%SiteLJ126(i)%A13Save => this%A13Save
-!       this%Molecule%SiteLJ126(i)%A21Save => this%A21Save
-!       this%Molecule%SiteLJ126(i)%A22Save => this%A22Save
-!       this%Molecule%SiteLJ126(i)%A23Save => this%A23Save
-!       this%Molecule%SiteLJ126(i)%A31Save => this%A31Save
-!       this%Molecule%SiteLJ126(i)%A32Save => this%A32Save
-!       this%Molecule%SiteLJ126(i)%A33Save => this%A33Save
 #endif
     end do
+
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
@@ -1298,29 +1201,23 @@ contains
       this%Molecule%SiteCharge(i)%NPart0 => this%NPart0
       this%Molecule%SiteCharge(i)%NPart1 => this%NPart1
       this%Molecule%SiteCharge(i)%NPart2 => this%NPart2
+
       call Allocate( this%Molecule%SiteCharge(i) )
       this%Molecule%SiteCharge(i)%PX => this%P0(:, 1)
       this%Molecule%SiteCharge(i)%PY => this%P0(:, 2)
       this%Molecule%SiteCharge(i)%PZ => this%P0(:, 3)
+
       if( ntest > 0 ) then
         this%Molecule%SiteCharge(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteCharge(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteCharge(i)%PZTest => this%P0Test(:, 3)
       end if
+
 #if TRANS==1
       this%Molecule%SiteCharge(i)%Q0r => this%Q0
-!      this%Molecule%SiteCharge(i)%Conductivity = this%Conductivity
-!       this%Molecule%SiteCharge(i)%A11Save => this%A11Save
-!       this%Molecule%SiteCharge(i)%A12Save => this%A12Save
-!       this%Molecule%SiteCharge(i)%A13Save => this%A13Save
-!       this%Molecule%SiteCharge(i)%A21Save => this%A21Save
-!       this%Molecule%SiteCharge(i)%A22Save => this%A22Save
-!       this%Molecule%SiteCharge(i)%A23Save => this%A23Save
-!       this%Molecule%SiteCharge(i)%A31Save => this%A31Save
-!       this%Molecule%SiteCharge(i)%A32Save => this%A32Save
-!       this%Molecule%SiteCharge(i)%A33Save => this%A33Save
 #endif
     end do
+
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteDipole(i)%NPart => this%NPart
@@ -1328,29 +1225,23 @@ contains
       this%Molecule%SiteDipole(i)%NPart0 => this%NPart0
       this%Molecule%SiteDipole(i)%NPart1 => this%NPart1
       this%Molecule%SiteDipole(i)%NPart2 => this%NPart2
+
       call Allocate( this%Molecule%SiteDipole(i) )
       this%Molecule%SiteDipole(i)%PX => this%P0(:, 1)
       this%Molecule%SiteDipole(i)%PY => this%P0(:, 2)
       this%Molecule%SiteDipole(i)%PZ => this%P0(:, 3)
+
       if( ntest > 0 ) then
         this%Molecule%SiteDipole(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteDipole(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteDipole(i)%PZTest => this%P0Test(:, 3)
       end if
+
 #if TRANS==1
       this%Molecule%SiteDipole(i)%Q0r => this%Q0
-!      this%Molecule%Sitedipole(i)%Conductivity = this%Conductivity
-!       this%Molecule%SiteDipole(i)%A11Save => this%A11Save
-!       this%Molecule%SiteDipole(i)%A12Save => this%A12Save
-!       this%Molecule%SiteDipole(i)%A13Save => this%A13Save
-!       this%Molecule%SiteDipole(i)%A21Save => this%A21Save
-!       this%Molecule%SiteDipole(i)%A22Save => this%A22Save
-!       this%Molecule%SiteDipole(i)%A23Save => this%A23Save
-!       this%Molecule%SiteDipole(i)%A31Save => this%A31Save
-!       this%Molecule%SiteDipole(i)%A32Save => this%A32Save
-!       this%Molecule%SiteDipole(i)%A33Save => this%A33Save
 #endif
     end do
+
     do i = 1, this%Molecule%NQuadrupole
       this%Molecule%SiteQuadrupole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteQuadrupole(i)%NPart => this%NPart
@@ -1358,27 +1249,20 @@ contains
       this%Molecule%SiteQuadrupole(i)%NPart0 => this%NPart0
       this%Molecule%SiteQuadrupole(i)%NPart1 => this%NPart1
       this%Molecule%SiteQuadrupole(i)%NPart2 => this%NPart2
+
       call Allocate( this%Molecule%SiteQuadrupole(i) )
       this%Molecule%SiteQuadrupole(i)%PX => this%P0(:, 1)
       this%Molecule%SiteQuadrupole(i)%PY => this%P0(:, 2)
       this%Molecule%SiteQuadrupole(i)%PZ => this%P0(:, 3)
+
       if( ntest > 0 ) then
         this%Molecule%SiteQuadrupole(i)%PXTest => this%P0Test(:, 1)
         this%Molecule%SiteQuadrupole(i)%PYTest => this%P0Test(:, 2)
         this%Molecule%SiteQuadrupole(i)%PZTest => this%P0Test(:, 3)
       end if
+
 #if TRANS==1
       this%Molecule%SiteQuadrupole(i)%Q0r => this%Q0
-!      this%Molecule%SiteQuadrupole(i)%Conductivity = this%Conductivity
-!       this%Molecule%SiteQuadrupole(i)%A11Save => this%A11Save
-!       this%Molecule%SiteQuadrupole(i)%A12Save => this%A12Save
-!       this%Molecule%SiteQuadrupole(i)%A13Save => this%A13Save
-!       this%Molecule%SiteQuadrupole(i)%A21Save => this%A21Save
-!       this%Molecule%SiteQuadrupole(i)%A22Save => this%A22Save
-!       this%Molecule%SiteQuadrupole(i)%A23Save => this%A23Save
-!       this%Molecule%SiteQuadrupole(i)%A31Save => this%A31Save
-!       this%Molecule%SiteQuadrupole(i)%A32Save => this%A32Save
-!       this%Molecule%SiteQuadrupole(i)%A33Save => this%A33Save
 #endif
     end do
 
@@ -1389,10 +1273,7 @@ contains
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
       allocate( this%NStateWF( 0: nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
-!       allocate( this%NStateBF( nf ), STAT = stat )
-!       call AllocationError( stat, 'fluctuating particle states', nf )
-!       allocate( this%BFSumState( nf ), STAT = stat )
-!       call AllocationError( stat, 'fluctuating particle states', nf )
+
 !DEBUG
       allocate( this%NFluctUpAttempts( nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf )
@@ -1406,8 +1287,7 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) &
-&     trim( this%PotModFileName )
+    write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
 
   end subroutine TComponent_Allocate
@@ -1633,24 +1513,18 @@ contains
 
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
      ! Fluctuating particle states
-    if( associated( this%NState ) ) then
-      deallocate( this%NState )
-    end if
-    if( associated( this%NStateWF ) ) then
-      deallocate( this%NStateWF )
-    end if
-    if( associated( this%NFluctComp ) ) then
-      deallocate( this%NFluctComp )
-    end if
-    if( associated( this%WF ) ) then
-      deallocate( this%WF )
-    end if
-!     if( associated( this%NStateBF ) ) then
-!       deallocate( this%NStateBF )
-!     end if
-!     if( associated( this%BFSumState ) ) then
-!       deallocate( this%BFSumState )
-!     end if
+      if( associated( this%NState ) ) then
+        deallocate( this%NState )
+      end if
+      if( associated( this%NStateWF ) ) then
+        deallocate( this%NStateWF )
+      end if
+      if( associated( this%NFluctComp ) ) then
+        deallocate( this%NFluctComp )
+      end if
+      if( associated( this%WF ) ) then
+        deallocate( this%WF )
+      end if
 !DEBUG
       if( associated( this%NFluctUpAttempts ) ) then
         deallocate( this%NFluctUpAttempts )
@@ -1679,7 +1553,6 @@ contains
   end subroutine TComponent_Deallocate
 
 
-
 !==============================================================!
 !  Subroutine TComponent_LongRangeCheck                        !
 !==============================================================!
@@ -1696,24 +1569,20 @@ contains
    end do
 
    if (abs(q) .ge. 1e-1) this%charged = .true.
-!    ! Calculate the total charge of the system
-!      q = q + this%NPart * this%Molecule%Charge
 
 ! Reaction Field Check
-   if ((LongRange .eq. RField) .and. (abs(this%Molecule%Charge) .ge. 1e-1)) then
-     write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")')&
-&        this%Molecule%Charge
-     call Error
-   end if
+     if ((LongRange .eq. RField) .and. (abs(this%Molecule%Charge) .ge. 1e-1)) then
+       write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&
+&      red = ", F15.10, "\n Conflicts with ReactionField")') this%Molecule%Charge
+       call Error
+     end if
 
-   if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) &
-&         .and. (abs(q) .ge. 1e-1) ) then
-     write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
-     call Error
-   end if
+     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
+       write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
+       call Error
+     end if
 
    end subroutine TComponent_LongRangeCheck
-
 
 
 !==============================================================!
@@ -1748,7 +1617,6 @@ contains
   end subroutine TComponent_InitVelocities
 
 
-
 !==============================================================!
 !  Subroutine TComponent_InitIntegratorGear                    !
 !==============================================================!
@@ -1779,7 +1647,6 @@ contains
   end subroutine TComponent_InitIntegratorGear
 
 
-
 !==============================================================!
 !  Subroutine TComponent_InitIntegratorLeap                    !
 !==============================================================!
@@ -1793,13 +1660,13 @@ contains
 
     ! Zero accelerations
     this%P2(:, :) = 0._RK
+
     if( this%Molecule%isElongated ) then
       this%Q1(:, :) = 0._RK
       this%W1(:, :) = 0._RK
     end if
 
   end subroutine TComponent_InitIntegratorLeap
-
 
 
 !==============================================================!
@@ -1819,7 +1686,6 @@ contains
   end subroutine TComponent_InitIntegratorVerlet
 
 
-
 !==============================================================!
 !  Subroutine TComponent_InitIntegratorVV                      !
 !==============================================================!
@@ -1835,7 +1701,6 @@ contains
     call Error( 'Subroutine TComponent_InitIntegratorVV is not implemented' )
 
   end subroutine TComponent_InitIntegratorVV
-
 
 
 !==============================================================!
@@ -1861,11 +1726,10 @@ contains
     P(:) = 0._RK
     L(:) = 0._RK
     do i = 1, 3
-      P(i) = P(i) &
-&       + this%Molecule%Mass * sum( this%P1(1:this%NPart, i) )
-      if( i <= this%Molecule%NDFRot ) &
-&       L(i) = L(i) &
-&         + this%Molecule%MOI(i) * sum( this%W0(1:this%NPart, i) )
+      P(i) = P(i) + this%Molecule%Mass * sum( this%P1(1:this%NPart, i) )
+ 
+      if( i <= this%Molecule%NDFRot ) L(i) = L(i) + this%Molecule%MOI(i) * sum( this%W0(1:this%NPart, i) )
+ 
     end do
     P(:) = P(:) / this%NPart
     L(:) = L(:) / this%NPart
@@ -1876,6 +1740,7 @@ contains
       do j = 1, this%NPart
         this%P1(j, i) = this%P1(j, i) - Pim
       end do
+ 
       if( i <= this%Molecule%NDFRot ) then
         Pim = L(i) / this%Molecule%MOI(i)
         do j = 1, this%NPart
@@ -1885,7 +1750,6 @@ contains
     end do
 
   end subroutine TComponent_RemoveNetMomentum
-
 
 
 !==============================================================!
@@ -1914,7 +1778,6 @@ contains
     end do
 
   end subroutine TComponent_CalculateEKin
-
 
 
 !==============================================================!
@@ -1953,11 +1816,9 @@ contains
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
-&      MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) &
-&      call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
-&       MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+      if( this%Molecule%isElongated ) call MPI_Bcast( this%Q0(:, :), size( this%Q0 ),&
+      & MPI_RK, NRootProc, Communicator, ierror )
     endif
 #endif
 
@@ -2104,25 +1965,9 @@ contains
           end do
         end do
       end if
-
     end if
 
-
-#if  TRANS == 1
-    !TRANSPORT_start
-!     this%A11Save = A11
-!     this%A12Save = A12
-!     this%A13Save = A13
-!     this%A21Save = A21
-!     this%A22Save = A22
-!     this%A23Save = A23
-!     this%A31Save = A31
-!     this%A32Save = A32
-!     this%A33Save = A33
-#endif
-
   end subroutine TComponent_Mol2Atom
-
 
 
 !==============================================================!
@@ -2141,8 +1986,7 @@ contains
     real(RK)                       :: BoxLengthInv
     real(RK)                       :: PXi, PYi, PZi
     real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
-&                                     A31, A32, A33
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteLJ126), pointer      :: pLJ126
@@ -2283,7 +2127,6 @@ contains
   end subroutine TComponent_Mol2Atom1
 
 
-
 !==============================================================!
 !  Subroutine TComponent_Mol2AtomTest                          !
 !==============================================================!
@@ -2395,12 +2238,10 @@ contains
         or2 = pQuadrupole%or(2)
         or3 = pQuadrupole%or(3)
         do i = 1, np
-          pQuadrupole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + &
-&                                 r3 * A31(i)
-          pQuadrupole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + &
-&                                 r3 * A32(i)
-          pQuadrupole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + &
-&                                 r3 * A33(i)
+          pQuadrupole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pQuadrupole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pQuadrupole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+
           pQuadrupole%OXTest(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
           pQuadrupole%OYTest(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
           pQuadrupole%OZTest(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
@@ -2447,7 +2288,6 @@ contains
   end subroutine TComponent_Mol2AtomTest
 
 
-
 !==============================================================!
 !  Subroutine TComponent_Atom2Mol                              !
 !==============================================================!
@@ -2470,8 +2310,7 @@ contains
     real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
-&                                     A31, A32, A33
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
@@ -2637,32 +2476,23 @@ contains
 
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #if  TRANS == 1
+
 ! Transport  !TRANSPORT_start
-    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
   !  if (this%Conductivity) then
-      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
    ! end if
 !TRANSPORT_END
 #endif
@@ -2692,13 +2522,13 @@ contains
     real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
-&                                     A31, A32, A33
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK)                       :: vsx,vsy,vsz
@@ -2709,7 +2539,6 @@ contains
     real(RK)                       :: BoxLength_dt
 #endif
 !TRANSPORT_END
- 
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -3159,50 +2988,15 @@ contains
             vsx = pCharge%vsCx(i)
             vsy = pCharge%vsCy(i)
             vsz = pCharge%vsCz(i)
-!             vsux= pCharge%vsuCx(i)
-!             vsuy= pCharge%vsuCy(i)
-!             vsuz= pCharge%vsuCz(i)
             vbx = pCharge%vbCx(i)
             vby = pCharge%vbCy(i)
             vbz = pCharge%vbCz(i)
-!             cx  = pCharge%cCx(i)
-!             cy  = pCharge%cCy(i)
-!             cz  = pCharge%cCz(i)
-!             tux = pCharge%tuCx(i)
-!             tuy = pCharge%tuCy(i)
-!             tuz = pCharge%tuCz(i)
-!             tlx = pCharge%tlCx(i)
-!             tly = pCharge%tlCy(i)
-!             tlz = pCharge%tlCz(i)
-!             tdx = pCharge%tdCx(i)
-!             tdy = pCharge%tdCy(i)
-!             tdz = pCharge%tdCz(i)
             this%FS(i, 1)= this%FS(i, 1)+ vsx
             this%FS(i, 2)= this%FS(i, 2)+ vsy
             this%FS(i, 3)= this%FS(i, 3)+ vsz
             this%FB(i, 1)= this%FB(i, 1)+ vbx
             this%FB(i, 2)= this%FB(i, 2)+ vby
             this%FB(i, 3)= this%FB(i, 3)+ vbz
-
-!             this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-!             this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-!             this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-!             this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-!             this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-!             this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-!             this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-!             this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-!             this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-! 
-!             this%FRC1(i,1) = this%FRC1(i,1) + tdx
-!             this%FRC1(i,2) = this%FRC1(i,2) + tux
-!             this%FRC1(i,3) = this%FRC1(i,3) + tuy
-!             this%FRC2(i,1) = this%FRC2(i,1) + tlx
-!             this%FRC2(i,2) = this%FRC2(i,2) + tdy
-!             this%FRC2(i,3) = this%FRC2(i,3) + tuz
-!             this%FRC3(i,1) = this%FRC3(i,1) + tly
-!             this%FRC3(i,2) = this%FRC3(i,2) + tlz
-!             this%FRC3(i,3) = this%FRC3(i,3) + tdz
             !TRANSPORT_END
 #endif
           end do
@@ -3213,39 +3007,29 @@ contains
 
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
+    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+
 #if  TRANS == 1
 ! Transport  !TRANSPORT_start
-    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
  !   if (this%Conductivity) then
-      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), &
-&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), &
-&         MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
   !  end if
 !TRANSPORT_END
 #endif
 #endif
 
   end subroutine TComponent_Atom2Mol_Trans
-
 
 
 !==============================================================!
@@ -3270,26 +3054,11 @@ contains
     ! Predict COM positions and their derivatives
     do j = 1, 3
       do i = 1, np
-        this%P0(i, j) = this%P0(i, j) &
-&                     + this%P1(i, j) &
-&                     + this%P2(i, j) &
-&                     + this%P3(i, j) &
-&                     + this%P4(i, j) &
-&                     + this%P5(i, j)
-        this%P1(i, j) = this%P1(i, j) &
-&             + 2._RK * this%P2(i, j) &
-&             + 3._RK * this%P3(i, j) &
-&             + 4._RK * this%P4(i, j) &
-&             + 5._RK * this%P5(i, j)
-        this%P2(i, j) = this%P2(i, j) &
-&             + 3._RK * this%P3(i, j) &
-&             + 6._RK * this%P4(i, j) &
-&             +10._RK * this%P5(i, j)
-        this%P3(i, j) = this%P3(i, j) &
-&             + 4._RK * this%P4(i, j) &
-&             +10._RK * this%P5(i, j)
-        this%P4(i, j) = this%P4(i, j) &
-&             + 5._RK * this%P5(i, j)
+        this%P0(i, j) = this%P0(i, j) + this%P1(i, j) + this%P2(i, j) + this%P3(i, j) + this%P4(i, j) + this%P5(i, j)
+        this%P1(i, j) = this%P1(i, j) + 2._RK * this%P2(i, j) + 3._RK * this%P3(i, j) + 4._RK * this%P4(i, j) + 5._RK * this%P5(i, j)
+        this%P2(i, j) = this%P2(i, j) + 3._RK * this%P3(i, j) + 6._RK * this%P4(i, j) + 10._RK * this%P5(i, j)
+        this%P3(i, j) = this%P3(i, j) + 4._RK * this%P4(i, j) + 10._RK * this%P5(i, j)
+        this%P4(i, j) = this%P4(i, j) + 5._RK * this%P5(i, j)
       end do
     end do
 
@@ -3298,47 +3067,26 @@ contains
       ! Predict quaternion parameters and their derivatives
       do j = 1, 4
         do i = 1, np
-          this%Q0(i, j) = this%Q0(i, j) &
-&                       + this%Q1(i, j) &
-&                       + this%Q2(i, j) &
-&                       + this%Q3(i, j) &
-&                       + this%Q4(i, j)
-          this%Q1(i, j) = this%Q1(i, j) &
-&               + 2._RK * this%Q2(i, j) &
-&               + 3._RK * this%Q3(i, j) &
-&               + 4._RK * this%Q4(i, j)
-          this%Q2(i, j) = this%Q2(i, j) &
-&               + 3._RK * this%Q3(i, j) &
-&               + 6._RK * this%Q4(i, j)
-          this%Q3(i, j) = this%Q3(i, j) &
-&               + 4._RK * this%Q4(i, j)
+          this%Q0(i, j) = this%Q0(i, j) + this%Q1(i, j) + this%Q2(i, j) + this%Q3(i, j) + this%Q4(i, j)
+          this%Q1(i, j) = this%Q1(i, j) + 2._RK * this%Q2(i, j) + 3._RK * this%Q3(i, j) + 4._RK * this%Q4(i, j)
+          this%Q2(i, j) = this%Q2(i, j) + 3._RK * this%Q3(i, j) + 6._RK * this%Q4(i, j)
+          this%Q3(i, j) = this%Q3(i, j) + 4._RK * this%Q4(i, j)
         end do
       end do
 
       ! Predict angular velocities and their derivatives
       do j = 1, nra
         do i = 1, np
-          this%W0(i, j) = this%W0(i, j) &
-&                       + this%W1(i, j) &
-&                       + this%W2(i, j) &
-&                       + this%W3(i, j) &
-&                       + this%W4(i, j)
-          this%W1(i, j) = this%W1(i, j) &
-&               + 2._RK * this%W2(i, j) &
-&               + 3._RK * this%W3(i, j) &
-&               + 4._RK * this%W4(i, j)
-          this%W2(i, j) = this%W2(i, j) &
-&               + 3._RK * this%W3(i, j) &
-&               + 6._RK * this%W4(i, j)
-          this%W3(i, j) = this%W3(i, j) &
-&               + 4._RK * this%W4(i, j)
+          this%W0(i, j) = this%W0(i, j) + this%W1(i, j) + this%W2(i, j) + this%W3(i, j) + this%W4(i, j)
+          this%W1(i, j) = this%W1(i, j) + 2._RK * this%W2(i, j) + 3._RK * this%W3(i, j) + 4._RK * this%W4(i, j)
+          this%W2(i, j) = this%W2(i, j) + 3._RK * this%W3(i, j) + 6._RK * this%W4(i, j)
+          this%W3(i, j) = this%W3(i, j) + 4._RK * this%W4(i, j)
         end do
       end do
 
     end if
 
   end subroutine TComponent_PredictGear
-
 
 
 !==============================================================!
@@ -3377,11 +3125,11 @@ contains
 
     do j = 1, 3
       do i = 1, np
-        this%Corr0(i, j) = pF(i, j) &
-&         * TimeStepSquared2 * BoxLengthInv * MassInv
-        if( ConstantPressure .and. .not. NVTEquilibration ) &
-&         this%Corr0(i, j) = this%Corr0(i, j) &
+        this%Corr0(i, j) = pF(i, j) * TimeStepSquared2 * BoxLengthInv * MassInv
+
+        if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j) = this%Corr0(i, j) &
 &           - this%P1(i, j) * dLogVolumeThird
+
         this%Corr1(i, j) = this%Corr0(i, j) - this%P2(i, j)
         this%P0(i, j) = this%P0(i, j) + this%Corr1(i, j) * Gear20
         this%P1(i, j) = this%P1(i, j) + this%Corr1(i, j) * Gear21
@@ -3411,18 +3159,18 @@ contains
 
       ! Correct quaternion parameters and their derivatives
       do i = 1, np
-        this%Corr0(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) &
-&                                        - this%Q0(i, 3) * this%W0(i, 2) &
+        this%Corr0(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) - this%Q0(i, 3) * this%W0(i, 2) &
 &                                        - this%Q0(i, 4) * this%W0(i, 3))
-        this%Corr0(i, 2) = TimeStep2 * ( + this%Q0(i, 1) * this%W0(i, 1) &
-&                                        - this%Q0(i, 4) * this%W0(i, 2) &
+
+        this%Corr0(i, 2) = TimeStep2 * ( + this%Q0(i, 1) * this%W0(i, 1) - this%Q0(i, 4) * this%W0(i, 2) &
 &                                        + this%Q0(i, 3) * this%W0(i, 3))
-        this%Corr0(i, 3) = TimeStep2 * ( + this%Q0(i, 4) * this%W0(i, 1) &
-&                                        + this%Q0(i, 1) * this%W0(i, 2) &
+
+        this%Corr0(i, 3) = TimeStep2 * ( + this%Q0(i, 4) * this%W0(i, 1) + this%Q0(i, 1) * this%W0(i, 2) &
 &                                        - this%Q0(i, 2) * this%W0(i, 3))
-        this%Corr0(i, 4) = TimeStep2 * ( - this%Q0(i, 3) * this%W0(i, 1) &
-&                                        + this%Q0(i, 2) * this%W0(i, 2) &
+
+        this%Corr0(i, 4) = TimeStep2 * ( - this%Q0(i, 3) * this%W0(i, 1) + this%Q0(i, 2) * this%W0(i, 2) &
 &                                        + this%Q0(i, 1) * this%W0(i, 3))
+
       end do
       do j = 1, 4
         do i = 1, np
@@ -3443,19 +3191,18 @@ contains
 #endif
       TMoi1 = TimeStep / this%Molecule%MOI(1)
       TMoi2 = TimeStep / this%Molecule%MOI(2)
+
       if( this%Molecule%is3D ) then
         Moi23 = this%Molecule%MOI(2) - this%Molecule%MOI(3)
         Moi31 = this%Molecule%MOI(3) - this%Molecule%MOI(1)
         Moi12 = this%Molecule%MOI(1) - this%Molecule%MOI(2)
         TMoi3 = TimeStep / this%Molecule%MOI(3)
         do i = 1, np
-          this%Corr0(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * &
-&                             Moi23) * TMoi1
-          this%Corr0(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * &
-&                             Moi31) * TMoi2
-          this%Corr0(i, 3) = (pT(i, 3) + this%W0(i, 1) * this%W0(i, 2) * &
-&                             Moi12) * TMoi3
+          this%Corr0(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * Moi23) * TMoi1
+          this%Corr0(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * Moi31) * TMoi2
+          this%Corr0(i, 3) = (pT(i, 3) + this%W0(i, 1) * this%W0(i, 2) * Moi12) * TMoi3
         end do
+
       else
         do i = 1, np
           this%Corr0(i, 1) = pT(i, 1) * TMoi1
@@ -3530,21 +3277,23 @@ contains
         do j = 1, 4
           this%Q0tmp(i, j) = this%Q0(i, j) + .5_RK * this%Q1(i, j)
         end do
+
         do j = 1, nra
           this%W0(i, j) = Korr * this%W0(i, j) + .5_RK * this%W1(i, j)
         end do
-        this%Q1(i, 1) = TimeStep2 * ( - this%Q0tmp(i, 2) * this%W0(i, 1) &
-&                                     - this%Q0tmp(i, 3) * this%W0(i, 2) &
+
+        this%Q1(i, 1) = TimeStep2 * ( - this%Q0tmp(i, 2) * this%W0(i, 1) - this%Q0tmp(i, 3) * this%W0(i, 2) &
 &                                     - this%Q0tmp(i, 4) * this%W0(i, 3))
-        this%Q1(i, 2) = TimeStep2 * ( + this%Q0tmp(i, 1) * this%W0(i, 1) &
-&                                     - this%Q0tmp(i, 4) * this%W0(i, 2) &
+
+        this%Q1(i, 2) = TimeStep2 * ( + this%Q0tmp(i, 1) * this%W0(i, 1) - this%Q0tmp(i, 4) * this%W0(i, 2) &
 &                                     + this%Q0tmp(i, 3) * this%W0(i, 3))
-        this%Q1(i, 3) = TimeStep2 * ( + this%Q0tmp(i, 4) * this%W0(i, 1) &
-&                                     + this%Q0tmp(i, 1) * this%W0(i, 2) &
+
+        this%Q1(i, 3) = TimeStep2 * ( + this%Q0tmp(i, 4) * this%W0(i, 1) + this%Q0tmp(i, 1) * this%W0(i, 2) &
 &                                     - this%Q0tmp(i, 2) * this%W0(i, 3))
-        this%Q1(i, 4) = TimeStep2 * ( - this%Q0tmp(i, 3) * this%W0(i, 1) &
-&                                     + this%Q0tmp(i, 2) * this%W0(i, 2) &
+
+        this%Q1(i, 4) = TimeStep2 * ( - this%Q0tmp(i, 3) * this%W0(i, 1) + this%Q0tmp(i, 2) * this%W0(i, 2) &
 &                                     + this%Q0tmp(i, 1) * this%W0(i, 3))
+
         do j = 1, 4
           this%Q0(i, j) = this%Q0(i, j) + this%Q1(i, j)
         end do
@@ -3588,6 +3337,7 @@ contains
       do i = 1, np
         this%P2(i, j) = pF(i, j) * TimeStepSquared2 * BoxLengthInv * MassInv &
 &                      - (this%P1(i, j) + this%P2(i, j)) * dLogVolumeThird
+
         this%P1(i, j) = this%P1(i, j) + this%P2(i, j)
       end do
     end do
@@ -3607,13 +3357,11 @@ contains
         Moi31 = this%Molecule%MOI(3) - this%Molecule%MOI(1)
         Moi12 = this%Molecule%MOI(1) - this%Molecule%MOI(2)
         do i = 1, np
-          this%W1(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * Moi23) * &
-&                         TMoi1
-          this%W1(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * Moi31) * &
-&                         TMoi2
-          this%W1(i, 3) = (pT(i, 3) + this%W0(i, 1) * this%W0(i, 2) * Moi12) * &
-&                         TMoi3
+          this%W1(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * Moi23) * TMoi1
+          this%W1(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * Moi31) * TMoi2
+          this%W1(i, 3) = (pT(i, 3) + this%W0(i, 1) * this%W0(i, 2) * Moi12) * TMoi3
         end do
+
       else
         do i = 1, np
           this%W1(i, 1) = pT(i, 1) * TMoi1
@@ -3627,23 +3375,22 @@ contains
         end do
       end do
       do i = 1, np
-        this%Q1(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) &
-&                                     - this%Q0(i, 3) * this%W0(i, 2) &
+        this%Q1(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) - this%Q0(i, 3) * this%W0(i, 2) &
 &                                     - this%Q0(i, 4) * this%W0(i, 3))
-        this%Q1(i, 2) = TimeStep2 * ( + this%Q0(i, 1) * this%W0(i, 1) &
-&                                     - this%Q0(i, 4) * this%W0(i, 2) &
+
+        this%Q1(i, 2) = TimeStep2 * ( + this%Q0(i, 1) * this%W0(i, 1) - this%Q0(i, 4) * this%W0(i, 2) &
 &                                     + this%Q0(i, 3) * this%W0(i, 3))
-        this%Q1(i, 3) = TimeStep2 * ( + this%Q0(i, 4) * this%W0(i, 1) &
-&                                     + this%Q0(i, 1) * this%W0(i, 2) &
+
+        this%Q1(i, 3) = TimeStep2 * ( + this%Q0(i, 4) * this%W0(i, 1) + this%Q0(i, 1) * this%W0(i, 2) &
 &                                     - this%Q0(i, 2) * this%W0(i, 3))
-        this%Q1(i, 4) = TimeStep2 * ( - this%Q0(i, 3) * this%W0(i, 1) &
-&                                     + this%Q0(i, 2) * this%W0(i, 2) &
+
+        this%Q1(i, 4) = TimeStep2 * ( - this%Q0(i, 3) * this%W0(i, 1) + this%Q0(i, 2) * this%W0(i, 2) &
 &                                     + this%Q0(i, 1) * this%W0(i, 3))
+
       end do
     end if
 
   end subroutine TComponent_CorrectLeapFrog
-
 
 
 !==============================================================!
@@ -3768,15 +3515,19 @@ contains
     ! Update translational displacement
     if( this%NMoveSuccesses < this%NMoveAttempts * Acceptance ) then
       this%DispTran = this%DispTran * .95_RK
+
     else if( this%DispTran < DispTranLimit ) then
       this%DispTran = this%DispTran * 1.05_RK
+
     end if
 
     ! Update rotational displacement
     if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
       this%DispRot = this%DispRot * .95_RK
+
     else if( this%DispRot < DispRotLimit ) then
       this%DispRot = this%DispRot * 1.05_RK
+
     end if
 
   end subroutine TComponent_UpdateDisplacements
@@ -3815,7 +3566,6 @@ contains
     end if
 
   end subroutine TComponent_AddParticle
-
 
 
 !==============================================================!
@@ -4028,10 +3778,8 @@ contains
         end if
       else
         write( iounit_restart, '(ES20.12E3)' ) this%DispRot
-        write( iounit_restart, '(2I10)' ) this%NRotateAttempts, &
-&         this%NRotateSuccesses
-        write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
-&         this%NRotateBiasedSuccesses
+        write( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
+        write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
       end if
 
     end if
@@ -4069,8 +3817,7 @@ contains
 
       ! Read contents from restart file
       read( iounit_restart, '(I10)' ) np
-      if( np > this%NPartMax ) &
-&       call Error( 'Not enough memory to read particles from restart file' )
+      if( np > this%NPartMax ) call Error( 'Not enough memory to read particles from restart file' )
       this%NPart = np
 
       ! Centers of mass positions
@@ -4083,6 +3830,7 @@ contains
         do i = 1, np
           read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, : )
         end do
+
         do i = 1, np
           read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, : )
         end do
@@ -4091,18 +3839,21 @@ contains
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, : )
           end do
+
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, : )
           end do
+
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, : )
           end do
+
         end if
+
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-        read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
-&         this%NMoveBiasedSuccesses
+        read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
       end if
 
       if( this%Molecule%isElongated ) then
@@ -4121,9 +3872,11 @@ contains
             do i = 1, np
               read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, : )
             end do
+
             do i = 1, np
               read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, : )
             end do
+
             do i = 1, np
               read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, : )
             end do
@@ -4133,6 +3886,7 @@ contains
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, : )
           end do
+
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, : )
           end do
@@ -4141,19 +3895,21 @@ contains
             do i = 1, np
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, : )
             end do
+
             do i = 1, np
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, : )
             end do
+
             do i = 1, np
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, : )
             end do
+
           end if
+
         else
           read( iounit_restart, '(ES20.12E3)' ) this%DispRot
-          read( iounit_restart, '(2I10)' ) this%NRotateAttempts, &
-&           this%NRotateSuccesses
-          read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
-&           this%NRotateBiasedSuccesses
+          read( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
+          read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
         end if
       end if
 
@@ -4166,44 +3922,33 @@ contains
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
-&     Communicator, ierror )
-    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, &
-&     NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) &
-&     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_RK, &
+    call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+
+    if( this%Molecule%isElongated ) call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), MPI_RK, &
 &       NRootProc, Communicator, ierror )
+
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
-      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
-&       Communicator, ierror )
+
+      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
-&         Communicator, ierror )
-        call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
-&         Communicator, ierror )
-        call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
-&         Communicator, ierror )
-        call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
-&         Communicator, ierror )
-        call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
-&         NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
       end if
     end if
+
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
-&       NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, &
-&       NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
-&       NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
 
@@ -4211,7 +3956,6 @@ contains
     this%P0old = this%P0
 
   end subroutine TComponent_RestartRead
-
 
 
 !TRANSPORT_start
@@ -4288,9 +4032,6 @@ subroutine TComponent_ForceTransport( this )
 
         ! Calculate kinetic energy / molecule
         do j = 1, 3
-!         do i = 1, this%NPart
-!           this%KinETran(i,j) = this%P1(i,j)*this%P1(i,j)
-!         end do
           this%KinETran(:,j) = this%P1(:,j)*this%P1(:,j)
         end do
 
@@ -4299,12 +4040,6 @@ subroutine TComponent_ForceTransport( this )
         this%KinETranTotal(1) = sum(this%KinETran(:,1))
         this%KinETranTotal(2) = sum(this%KinETran(:,2))
         this%KinETranTotal(3) = sum(this%KinETran(:,3))
- !     else  ! Conductivity
-
-  !      this%KinETranTotal(1) = sum(this%P1(:,1)**2)* this%Molecule%Mass*BoxLength_dt2
-  !      this%KinETranTotal(2) = sum(this%P1(:,2)**2)* this%Molecule%Mass*BoxLength_dt2
-  !      this%KinETranTotal(3) = sum(this%P1(:,3)**2)* this%Molecule%Mass*BoxLength_dt2
-    !  end if
 
     end if ! RootProc
 #endif
@@ -4318,8 +4053,7 @@ subroutine TComponent_ForceTransport( this )
 !  Subroutine TComponent_CorrectGear                           !
 !==============================================================!
 
-  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,&
-&                  drx,dry,drz )
+  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
 
     implicit none
 
@@ -4359,46 +4093,14 @@ subroutine TComponent_ForceTransport( this )
       Corr0 = Corr1 + this%P2(aa,j)
 
       Corr0ff = Corr0
-      if (ConstantPressure .and. .not. NVTEquilibration) &
-&       Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
+      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
 
         ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-
         Forc = Forc + ff
-
         this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
-!         this%P1(aa, j) = this%P1(aa, j) + Corr1 * Gear21
-! !         this%P2(aa, j) = this%P2(aa, j) + Corr0
-! !         this%P3(aa, j) = this%P3(aa, j) + Corr1 * Gear23
-! !         this%P4(aa, j) = this%P4(aa, j) + Corr1 * Gear24
-! !         this%P5(aa, j) = this%P5(aa, j) + Corr1 * Gear25
-! ! 
-! ! ! Correction of the Accumulators
-! !         this%Corr1(aa,j) = this%Corr1(aa,j) + Corr1
-! !         this%Corr0(aa,j) = this%Corr0(aa,j) + Corr0
-
-!       this%Corr1(aa,j) = this%Corr1(aa,j) + dr(j) / Gear20
-!       this%Corr0(aa,j) = Corr1(aa,j) + this%P2(aa,j)
-! 
-!       Corr0ff = Corr0(aa,j)
-!       if (ConstantPressure .and. .not. NVTEquilibration) &
-! &       Corr0ff = Corr0ff + this%Pl(aa,j)*dLogVolumeThird
-! 
-!         ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-! 
-!         Forc = Forc + ff
-! 
-!         this%P0(i, j) = this%P0(i, j) + this%Corr1(i, j) * Gear20
-!         this%P1(i, j) = this%P1(i, j) + this%Corr1(i, j) * Gear21
-!         this%P2(i, j) =                    this%Corr0(i, j)
-!         this%P3(i, j) = this%P3(i, j) + this%Corr1(i, j) * Gear23
-!         this%P4(i, j) = this%P4(i, j) + this%Corr1(i, j) * Gear24
-!         this%P5(i, j) = this%P5(i, j) + this%Corr1(i, j) * Gear25
-
-        ! Calculate displacement
-!         this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
 
         ! Check for conservation of particles in primary cell
+
 #if ARCH == 1
         if( this%P0(aa, j) < -.5_RK ) then
           this%P0(aa, j) = this%P0(aa, j) + 1._RK
@@ -4410,75 +4112,6 @@ subroutine TComponent_ForceTransport( this )
 #endif
         this%P0old(aa, j) = this%P0(aa, j)
     end do
-
-!     if( this%Molecule%isElongated ) then
-! 
-!       ! Correct quaternion parameters and their derivatives
-!       do i = 1, np
-!         this%Corr0(i, 1) = TimeStep2 * ( - this%Q0(i, 2) * this%W0(i, 1) &
-! &                                        - this%Q0(i, 3) * this%W0(i, 2) &
-! &                                        - this%Q0(i, 4) * this%W0(i, 3))
-!         this%Corr0(i, 2) = TimeStep2 * ( + this%Q0(i, 1) * this%W0(i, 1) &
-! &                                        - this%Q0(i, 4) * this%W0(i, 2) &
-! &                                        + this%Q0(i, 3) * this%W0(i, 3))
-!         this%Corr0(i, 3) = TimeStep2 * ( + this%Q0(i, 4) * this%W0(i, 1) &
-! &                                        + this%Q0(i, 1) * this%W0(i, 2) &
-! &                                        - this%Q0(i, 2) * this%W0(i, 3))
-!         this%Corr0(i, 4) = TimeStep2 * ( - this%Q0(i, 3) * this%W0(i, 1) &
-! &                                        + this%Q0(i, 2) * this%W0(i, 2) &
-! &                                        + this%Q0(i, 1) * this%W0(i, 3))
-!       end do
-!       do j = 1, 4
-!         do i = 1, np
-!           this%Corr1(i, j) = this%Corr0(i, j) - this%Q1(i, j)
-!           this%Q0(i, j) = this%Q0(i, j) + this%Corr1(i, j) * Gear10
-!           this%Q1(i, j) =                 this%Corr0(i, j)
-!           this%Q2(i, j) = this%Q2(i, j) + this%Corr1(i, j) * Gear12
-!           this%Q3(i, j) = this%Q3(i, j) + this%Corr1(i, j) * Gear13
-!           this%Q4(i, j) = this%Q4(i, j) + this%Corr1(i, j) * Gear14
-!         end do
-!       end do
-! 
-!       ! Correct angular velocities and their derivatives
-! #if MPI_VER > 0
-!       pT => this%TAll(:, :)
-! #else
-!       pT => this%T(:, :)
-! #endif
-!       TMoi1 = TimeStep / this%Molecule%MOI(1)
-!       TMoi2 = TimeStep / this%Molecule%MOI(2)
-!       if( this%Molecule%is3D ) then
-!         Moi23 = this%Molecule%MOI(2) - this%Molecule%MOI(3)
-!         Moi31 = this%Molecule%MOI(3) - this%Molecule%MOI(1)
-!         Moi12 = this%Molecule%MOI(1) - this%Molecule%MOI(2)
-!         TMoi3 = TimeStep / this%Molecule%MOI(3)
-!         do i = 1, np
-!           this%Corr0(i, 1) = (pT(i, 1) + this%W0(i, 2) * this%W0(i, 3) * &
-! &                             Moi23) * TMoi1
-!           this%Corr0(i, 2) = (pT(i, 2) + this%W0(i, 3) * this%W0(i, 1) * &
-! &                             Moi31) * TMoi2
-!           this%Corr0(i, 3) = (pT(i, 3) + this%W0(i, 1) * this%W0(i, 2) * &
-! &                             Moi12) * TMoi3
-!         end do
-!       else
-!         do i = 1, np
-!           this%Corr0(i, 1) = pT(i, 1) * TMoi1
-!           this%Corr0(i, 2) = pT(i, 2) * TMoi2
-!         end do
-!       end if
-! 
-!       do j = 1, nra
-!         do i = 1, np
-!           this%Corr1(i, j) = this%Corr0(i, j) - this%W1(i, j)
-!           this%W0(i, j) = this%W0(i, j) + this%Corr1(i, j) * Gear10
-!           this%W1(i, j) = this%Corr0(i, j)
-!           this%W2(i, j) = this%W2(i, j) + this%Corr1(i, j) * Gear12
-!           this%W3(i, j) = this%W3(i, j) + this%Corr1(i, j) * Gear13
-!           this%W4(i, j) = this%W4(i, j) + this%Corr1(i, j) * Gear14
-!         end do
-!       end do
-! 
-!     end if
 
   end subroutine TComponent_CorrectGear_Constraint
 

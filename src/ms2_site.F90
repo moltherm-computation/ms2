@@ -50,6 +50,7 @@ module ms2_site
     real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
     integer, pointer          :: RDFSum(:)
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: vsLJx(:) , vsLJy(:), vsLJz(:)
@@ -60,10 +61,6 @@ module ms2_site
     real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
     real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
     real(RK), pointer :: Q0r(:,:)
-!    logical  :: Conductivity
-!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
-!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
-!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -88,7 +85,6 @@ module ms2_site
   interface Save
     module procedure TSiteLJ126_Save
   end interface
-
 
 
 !==============================================================!
@@ -119,10 +115,6 @@ module ms2_site
     real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
     real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
     real(RK), pointer :: Q0r(:,:)
-!    logical  :: Conductivity
-!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
-!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
-!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -181,10 +173,6 @@ module ms2_site
     real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
     real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
     real(RK), pointer :: Q0r(:,:)
-!    logical  :: Conductivity
-!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
-!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
-!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
 !TRANSPORT_END
 #endif
 
@@ -242,11 +230,7 @@ module ms2_site
     real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
     real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
     real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
-!     real(RK), pointer :: A11Save(:),A12Save(:),A13Save(:)
-!     real(RK), pointer :: A21Save(:),A22Save(:),A23Save(:)
-!     real(RK), pointer :: A31Save(:),A32Save(:),A33Save(:)
     real(RK), pointer :: Q0r(:,:)
- !   logical  :: Conductivity
 !TRANSPORT_END
 #endif
 
@@ -273,9 +257,7 @@ module ms2_site
   end interface
 
 
-
 contains
-
 
 
 !==============================================================!
@@ -312,7 +294,6 @@ contains
   end subroutine TSiteLJ126_Construct
 
 
-
 !==============================================================!
 !  Subroutine TSiteLJ126_Destruct                              !
 !==============================================================!
@@ -328,7 +309,6 @@ contains
     continue
 
   end subroutine TSiteLJ126_Destruct
-
 
 
 !==============================================================!
@@ -361,6 +341,7 @@ contains
     nullify( this%RYTest )
     nullify( this%RZTest )
     nullify( this%RDFSum)
+
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsLJx )
@@ -384,7 +365,6 @@ contains
     nullify( this%tdLJx )
     nullify( this%tdLJy )
     nullify( this%tdLJz )
-!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -407,6 +387,7 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+
 #if  TRANS == 1
 !TRANSPORT_start
       allocate( this%vsLJx( np ), STAT = stat )
@@ -451,11 +432,10 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-!       allocate( this%Q0r( np , 4 ), STAT = stat )
-!       call AllocationError( stat, 'particles', np )
 !TRANSPORT_END
 #endif
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -577,7 +557,6 @@ contains
     if( associated( this%tdLJz ) ) then
       deallocate( this%tdLJz )
     end if
-!     if( associated( this%Q0r ) ) deallocate( this%Q0r )   ! FIXME merkwürdige allocationsprobleme - tauchen mehrfach auf...
 !TRANSPORT_END
 #endif
   end subroutine TSiteLJ126_Deallocate
@@ -596,23 +575,17 @@ contains
     type(TSiteLJ126) :: this
 
     ! Save site parameters
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(1) * UnitLength / Angstroem, this%r(1)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdLJ126_r1 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(2) * UnitLength / Angstroem, this%r(2)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
     call FileWriteParameter( iounit_normal, IdLJ126_r2 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(3) * UnitLength / Angstroem, this%r(3)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
     call FileWriteParameter( iounit_normal, IdLJ126_r3 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%sig * UnitLength / Angstroem, this%sig
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%sig * UnitLength / Angstroem, this%sig
     call FileWriteParameter( iounit_normal, IdLJ126_sig )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%eps * UnitEnergy / kBoltzmann, this%eps
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%eps * UnitEnergy / kBoltzmann, this%eps
     call FileWriteParameter( iounit_normal, IdLJ126_eps )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
     call FileWriteParameter( iounit_normal, IdLJ126_mass )
 
   end subroutine TSiteLJ126_Save
@@ -701,6 +674,7 @@ contains
     nullify( this%RXTest )
     nullify( this%RYTest )
     nullify( this%RZTest )
+
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsCx )
@@ -724,7 +698,6 @@ contains
     nullify( this%tdCx )
     nullify( this%tdCy )
     nullify( this%tdCz )
-!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -742,6 +715,7 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsCx( np ), STAT = stat )
@@ -786,11 +760,10 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdCz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-!       allocate( this%Q0r( np , 4 ), STAT = stat )
-!       call AllocationError( stat, 'particles', np )
       !TRANSPORT_END
 #endif
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -801,7 +774,6 @@ contains
     end if
 
   end subroutine TSiteCharge_Allocate
-
 
 
 !==============================================================!
@@ -843,6 +815,7 @@ contains
     if( associated( this%RZTest ) ) then
       deallocate( this%RZTest )
     end if
+
 #if  TRANS == 1
     !TRANSPORT_start
     if( associated( this%vsCx ) )  then
@@ -899,7 +872,6 @@ contains
     if( associated( this%tdCz ) ) then
       deallocate( this%tdCz )
     end if
-!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -919,23 +891,17 @@ contains
     type(TSiteCharge) :: this
 
     ! Save site parameters
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(1) * UnitLength / Angstroem, this%r(1)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdCharge_r1 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(2) * UnitLength / Angstroem, this%r(2)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
     call FileWriteParameter( iounit_normal, IdCharge_r2 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(3) * UnitLength / Angstroem, this%r(3)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
     call FileWriteParameter( iounit_normal, IdCharge_r3 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%e * UnitCharge / ElementaryCharge,  this%e
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%e * UnitCharge / ElementaryCharge,  this%e
     call FileWriteParameter( iounit_normal, IdCharge_e )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
     call FileWriteParameter( iounit_normal, IdCharge_mass )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%shield * UnitLength / Angstroem, this%shield
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
     call FileWriteParameter( iounit_normal, IdCharge_shield )
 
   end subroutine TSiteCharge_Save
@@ -1043,6 +1009,7 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsDx )
@@ -1066,7 +1033,6 @@ contains
     nullify( this%tdDx )
     nullify( this%tdDy )
     nullify( this%tdDz )
-!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1096,6 +1062,7 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsDx( np ), STAT = stat )
@@ -1140,11 +1107,10 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdDz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-!       allocate( this%Q0r( np , 4 ), STAT = stat )
-!       call AllocationError( stat, 'particles', np )   ! FIXME vielleicht zuviele allocates - werden nicht alle verwendet
 !TRANSPORT_END
 #endif
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -1230,6 +1196,7 @@ contains
     if( associated( this%OZTest ) ) then
       deallocate( this%OZTest )
     end if
+
 #if  TRANS == 1
     !TRANSPORT_start
     if( associated( this%vsDx ) ) then
@@ -1295,7 +1262,6 @@ contains
     if( associated( this%tdDz ) ) then
       deallocate( this%tdDz )
     end if
-!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1315,32 +1281,25 @@ contains
     type(TSiteDipole) :: this
 
     ! Save site parameters
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(1) * UnitLength / Angstroem, this%r(1)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdDipole_r1 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(2) * UnitLength / Angstroem, this%r(2)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
     call FileWriteParameter( iounit_normal, IdDipole_r2 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(3) * UnitLength / Angstroem, this%r(3)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
     call FileWriteParameter( iounit_normal, IdDipole_r3 )
     write( IOBuffer, '(G20.10)' ) acos( this%or(3) ) * DegreesInRadian
     call FileWriteParameter( iounit_normal, IdDipole_theta )
     if( abs( this%or(1) ) > Zero .or. abs( this%or(2) ) > Zero ) then
-      write( IOBuffer, '(G20.10)' ) &
-&       atan2( this%or(2), this%or(1) ) * DegreesInRadian
+      write( IOBuffer, '(G20.10)' ) atan2( this%or(2), this%or(1) ) * DegreesInRadian
     else
       write( IOBuffer, '(G20.10)' ) 0._RK
     end if
     call FileWriteParameter( iounit_normal, IdDipole_phi )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%D * UnitDipole * DebyesInSI, this%D
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%D * UnitDipole * DebyesInSI, this%D
     call FileWriteParameter( iounit_normal, IdDipole_D )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
     call FileWriteParameter( iounit_normal, IdDipole_mass )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%shield * UnitLength / Angstroem, this%shield
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
     call FileWriteParameter( iounit_normal, IdDipole_shield )
 
   end subroutine TSiteDipole_Save
@@ -1448,6 +1407,7 @@ contains
     nullify( this%OXTest )
     nullify( this%OYTest )
     nullify( this%OZTest )
+
 #if  TRANS == 1
     !TRANSPORT_start
     nullify( this%vsQx )
@@ -1474,7 +1434,6 @@ contains
     nullify( this%tdQx )
     nullify( this%tdQy )
     nullify( this%tdQz )
-!     nullify( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1504,6 +1463,7 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
+
 #if  TRANS == 1
       !TRANSPORT_start
       allocate( this%vsQx( np ), STAT = stat )
@@ -1548,11 +1508,10 @@ contains
       call AllocationError( stat, 'particles', np )
       allocate( this%tdQz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-!       allocate( this%Q0r( np , 4 ), STAT = stat )
-!       call AllocationError( stat, 'particles', np )
       !TRANSPORT_END
 #endif
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -1638,6 +1597,7 @@ contains
     if( associated( this%OZTest ) ) then
       deallocate( this%OZTest )
     end if
+
 #if  TRANS == 1
     !TRANSPORT_start
     if( associated( this%vsQx ) ) then
@@ -1703,7 +1663,6 @@ contains
     if( associated( this%tdQz ) ) then
       deallocate( this%tdQz )
     end if
-!     if( associated( this%Q0r ) ) deallocate( this%Q0r )
 !TRANSPORT_END
 #endif
 
@@ -1724,32 +1683,25 @@ contains
     type(TSiteQuadrupole) :: this
 
     ! Save site parameters
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(1) * UnitLength / Angstroem, this%r(1)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
     call FileWriteParameter( iounit_normal, IdQuadrupole_r1 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(2) * UnitLength / Angstroem, this%r(2)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
     call FileWriteParameter( iounit_normal, IdQuadrupole_r2 )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%r(3) * UnitLength / Angstroem, this%r(3)
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
     call FileWriteParameter( iounit_normal, IdQuadrupole_r3 )
     write( IOBuffer, '(G20.10)' ) acos( this%or(3) ) * DegreesInRadian
     call FileWriteParameter( iounit_normal, IdQuadrupole_theta )
     if( abs( this%or(1) ) > Zero .or. abs( this%or(2) ) > Zero ) then
-      write( IOBuffer, '(G20.10)' ) &
-&       atan2( this%or(2), this%or(1) ) * DegreesInRadian
+      write( IOBuffer, '(G20.10)' ) atan2( this%or(2), this%or(1) ) * DegreesInRadian
     else
       write( IOBuffer, '(G20.10)' ) 0._RK
     end if
     call FileWriteParameter( iounit_normal, IdQuadrupole_phi )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%Q * UnitQuadrupole * BuckinghamsInSI, this%Q
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%Q * UnitQuadrupole * BuckinghamsInSI, this%Q
     call FileWriteParameter( iounit_normal, IdQuadrupole_Q )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
     call FileWriteParameter( iounit_normal, IdQuadrupole_mass )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%shield * UnitLength / Angstroem, this%shield
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
     call FileWriteParameter( iounit_normal, IdQuadrupole_shield )
 
   end subroutine TSiteQuadrupole_Save

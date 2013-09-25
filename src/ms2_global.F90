@@ -319,8 +319,7 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
-  ! RDF Flag
- ! character(*), parameter :: IdRdfCalc                     = 'RDFCalculation'
+
 #if  TRANS == 1
   !TRANSPORT_start
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
@@ -384,6 +383,7 @@ character(*), parameter :: VersionString = 'v1.0'
 #endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
+
 ! Calculation of residence times
   character(*), parameter :: IdResidTime                   = 'ResidTime'
   character(*), parameter :: IdResidComp1                  = 'ResidComp1'
@@ -496,7 +496,6 @@ character(*), parameter :: VersionString = 'v1.0'
   integer, parameter :: SiteSite     = 1
   integer, parameter :: CenterofMass = 2
   integer            :: CutoffMode
-!   integer            :: 
 
   ! Type of LongRange Mode
   character(80)      :: LongRangeString
@@ -618,11 +617,9 @@ character(*), parameter :: VersionString = 'v1.0'
   logical :: CommonEqui
 
   ! Calculate the radial distribution function
-  !logical :: RDFCalc
   integer :: CallsToRDF = 0
   
   !RDF
-!  real(RK) :: RDF(RDFNumberShells) 
   real(RK) :: RDFRho, RDFRhoLocal
 
   
@@ -789,9 +786,7 @@ character(*), parameter :: VersionString = 'v1.0'
     module procedure Global_FileReadParameter_String, &
 &                    Global_FileReadParameter_Int, &
 &                    Global_FileReadParameter_RK, &
-&                    Global_FileReadParameter_RKdim1!,
-!&                    Global_FileReadParameter_buffer
-!                    ambiguous for SX compiler, collision of _buffer with _Int
+&                    Global_FileReadParameter_RKdim1
   end interface
 
   interface FileWriteParameter
@@ -882,11 +877,7 @@ character(*), parameter :: VersionString = 'v1.0'
 
 #endif
 
-
-
 contains
-
-
 
 #if MPI_VER > 0
 !==============================================================!
@@ -916,7 +907,6 @@ contains
 
   end subroutine Global_SetCommunicator
 #endif
-
 
 
 !==============================================================!
@@ -970,17 +960,7 @@ contains
       end if
       call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
     end if
-    !
 #endif
-
-!DEBUG
-!   if( NProcs > 1 ) then
-!     write(IOBuffer, '("debug.out.", I0)') NProc
-!     open(999, file=trim(IOBuffer), status='REPLACE', action='WRITE')
-!   else
-!     open(999, file='debug.out', status='REPLACE', action='WRITE')
-!   endif
-!DEBUG
 
     ! Initialize flags
     Restart = .false.
@@ -1004,10 +984,8 @@ contains
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-        print *, trim( ProgramFileName ) &
-&              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
-        print *, 'usage: ', trim( ProgramFileName ) &
-&              , ' {<par-file[', ParameterFileExtension &
+        print *, trim( ProgramFileName ), ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
+        print *, 'usage: ', trim( ProgramFileName ) , ' {<par-file[', ParameterFileExtension &
 &              , ']|<rst-file>', RestartFileExtension, '}'
 
         ! Abort program
@@ -1039,6 +1017,7 @@ contains
         end if
         buffer=trim(buffer(i+1:))
       end if
+
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
@@ -1046,35 +1025,29 @@ contains
           RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
-          open( iounit_restart , file = RestartFileName, action = 'READ', &
-&           status = 'OLD', iostat = stat )
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
           if( stat /= 0 ) then
-            print *, 'Cannot open restart file ', trim( RestartFileName ), &
-&             ' for reading'
+            print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
 
             ! Abort program
 #if MPI_VER > 0
             call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
 #endif
             stop
-!           else
-!             write( IOBuffer, '("opened restart file ",A)' ) trim( RestartFileName )
-!             call LogWrite
           end if
 
           ! Read parameter file name from restart file
           read( iounit_restart, '(A128)' ) ParameterFileName
-!           buffer = ParameterFileName( 1:len( trim( ParameterFileName ) ) - 4 )
 
         else if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
 !           buffer = buffer( 1:dot - 1 )
           ParameterFileName =  trim( buffer )    ! possible truncation
         end if
       end if
+
       if( narg .ge. 2 ) then
         ! if present, the third argument should be the input file name
         call getarg( 2, buffer )
-        !call get_command_argument( 2, buffer )
         OutputNameTagfromCommandline = .true.
       else
         ! otherwise use the input file name without extension
@@ -1127,6 +1100,7 @@ contains
     call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
 &                  ,NRootProc, Communicator, ierror)
+
     if( RootProc ) then
       write( IOBuffer, '("rank:  I/O: processor name:")' )
       call LogWrite
@@ -1139,10 +1113,12 @@ contains
         call LogWrite
       end do
     end if
+
     call LogWriteBlank
     if( associated( ioranks ) ) deallocate( ioranks )
     if( associated( procnames ) ) deallocate( procnames )
 #else
+
 #ifndef ENABLE_OMP
     write( IOBuffer, '("sequential Version")' )
     call LogWrite
@@ -1194,10 +1170,8 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) &
-&     * real(VacuumPermittivity, RK) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) &
-&     * real(VacuumPermittivity, RK) ) ), RK )
+    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
+    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
 #else
     DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
@@ -1223,13 +1197,9 @@ contains
     ! Close log file
     call LogClose
 
-!DEBUG
-!   close(999)
-!DEBUG
 
     ! Finalize MPI
 #if MPI_VER > 0
-!    call MPI_Barrier( Communicator, ierror )
     call MPI_Finalize( ierror )
 #endif
 
@@ -1326,8 +1296,7 @@ contains
     ! Check for allocation error
 #if MPI_VER > 0
     ok = stat == 0
-    call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
-&     Communicator, ierror )
+    call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
     if( okAll ) return
 #else
     if( stat == 0 ) return
@@ -1335,9 +1304,7 @@ contains
 
     ! Terminate program
     if( present( NPart ) ) then
-      write( ErrorBuffer, &
-&       '("Cannot allocate memory for", I11, " ", A)' ) &
-&       NPart, str
+      write( ErrorBuffer, '("Cannot allocate memory for", I11, " ", A)' ) NPart, str
     else
       write( ErrorBuffer, '("Cannot allocate memory for ", A)' ) str
     end if
@@ -1389,11 +1356,7 @@ contains
 #endif
 
     ! Open log file
-! #if ARCH == 1 || ARCH == 2 || ARCH == 3
     call FileRewrite( iounit_log, trim( OutputNameTag )//LogFileExtension )
-! #else
-!     call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
-! #endif
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1441,19 +1404,17 @@ contains
     write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '("Program ", A, " version ", A)' ) &
-&          trim( ProgramFileName ), trim( VersionString )
+    write( IOBuffer, '("Program ", A, " version ", A)' ) trim( ProgramFileName ), trim( VersionString )
     call LogWrite
     write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
     call LogWrite
+
 ! cmp. http://predef.sourceforge.net/precomp.html
 !           __GFORTRAN__
 #if defined __GNUC__
-    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) &
-&          __GNUC_VERSION__
+    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
-    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) &
-&         __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
+    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
 #elif defined __PGI
     write( IOBuffer, '("Compiler version     : PGI pgf")' )
 #elif defined __SUNPRO_F95
@@ -1637,13 +1598,10 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-&     trim( filename )
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) trim( filename )
     call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', &
-&     iostat = stat )
-    if( stat /= 0 ) &
-&     call Error( 'Cannot open file '//trim( filename )//' for reading' )
+    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
 
   end subroutine Global_FileReset
 
@@ -1666,8 +1624,7 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for writing")' ) &
-&       trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for writing")' ) trim( filename )
       call LogWrite
     end if
     open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
@@ -1696,14 +1653,12 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for appending")' ) &
-&       trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
       call LogWrite
     end if
     inquire( file = filename, exist = ex )
     if( ex ) then
-      open( iounit, file = filename, action = 'WRITE', status = 'OLD', &
-&       position = 'APPEND' )
+      open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
     else
       write( IOBuffer, '("File does not exist. Creating new")' )
       call LogWrite
@@ -1852,21 +1807,18 @@ contains
       ! rewind file, if requested
       if( present(rewind_before) ) then
         if( rewind_before ) then
-!          write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
           rewind( iounit )
           FileReadParameter_LineNumber = 0
         end if
       end if
       linesread = 0
       ! loop to read lines until parameter is found
+
       do
         read( iounit, '(A)', IOSTAT = stat ) parametervalue
         ! error reading from file?
         if( stat > 0 ) then
-          call Error( "ERROR reading file "//trim(fn)// &
-&                     " while searching for parameter <"//parameterqualifiers//">" )
-          !if( present(status) ) status = stat
-          !return
+          call Error( "ERROR reading file "//trim(fn)// " while searching for parameter <"//parameterqualifiers//">" )
         ! end of file reached?
         elseif( stat < 0 ) then
           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
@@ -1875,7 +1827,6 @@ contains
           ! (try to) restore position
           if( present(rewind_before) ) then
             if( rewind_before ) then
-!              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
               rewind( iounit )
               FileReadParameter_LineNumber = 0
               linesread = 0
@@ -1885,7 +1836,6 @@ contains
           ! rewind to the position, where the reading process was started
           backspace( iounit )   ! "undo" last read, where eof was encountered
           do i = 1,linesread
-!            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
             backspace( iounit )
             FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
           end do
@@ -1893,19 +1843,13 @@ contains
         end if
         FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
         linesread = linesread + 1
-!        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
-!         check for comment token
         comment_pos = index( parametervalue, CommentSign )
         if( comment_pos > 0 ) then
-!          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
-!&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
-          !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
         delimiterpos2 = 0
         do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
           delimiterpos1 = delimiterpos2
-          !                   len_trim(parameterqualifiers)
           if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
           delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
           if( delimiterpos2>delimiterpos1 ) then
@@ -1918,8 +1862,6 @@ contains
             ! extract value part (after =)
             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
             parametervalue = strtrimlr( parametervalue )
-!            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
-!&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
             if( present(status) ) status = 0
             exit
           end if
@@ -1934,16 +1876,11 @@ contains
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
     ! RootProc knows length (len_trim) of parametervalue, but it's easier to bcast the whole buffer
-    call MPI_Bcast( parametervalue, len(parametervalue), &
-&     MPI_CHARACTER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( parametervalue, len(parametervalue), MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
-      call MPI_Bcast( status, 1, &
-&       MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( status, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
-
-!    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
 
   end function Global_FileReadParameter
 
@@ -1952,8 +1889,7 @@ contains
 !  Subroutine Global_FileReadParameter_buffer                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_buffer( iounit, parameterqualifier, &
-&                                            rewind_before, defaultvalue, status )
+  subroutine Global_FileReadParameter_buffer( iounit, parameterqualifier, rewind_before, defaultvalue, status )
   ! this subroutine is for backward compatibily purposes
 
     implicit none
@@ -1976,8 +1912,7 @@ contains
     IOBuffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) &
-&             trim(parameterqualifier), trim(defaultvalue)
+        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) trim(parameterqualifier), trim(defaultvalue)
         call LogWrite
         IOBuffer = defaultvalue
       else
@@ -1986,16 +1921,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter
-!#if MPI_VER > 0
-!    call MPI_Bcast( IOBuffer, IOBufferLength, &
-!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") IOBuffer ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),trim(IOBuffer); call LogWrite
 
   end subroutine Global_FileReadParameter_buffer
 
@@ -2037,8 +1962,7 @@ contains
       ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
-        write( IOBuffer, '("setting ",A," to default value ",A)' ) &
-&             trim(parameterqualifiers), trim(defaultvalue)
+        write( IOBuffer, '("setting ",A," to default value ",A)' ) trim(parameterqualifiers), trim(defaultvalue)
         call LogWrite
         parametervariable = defaultvalue
       else if ( .not. present(status) ) then
@@ -2048,16 +1972,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, len(parametervariable), &
-!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),trim(parametervariable); call LogWrite
 
   end subroutine Global_FileReadParameter_String
 
@@ -2089,11 +2003,11 @@ contains
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
     else !if ( stat < 0 ) then
+
       ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
-        write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
-&             trim(parameterqualifiers), defaultvalue
+        write( IOBuffer, '("setting ",A," to default value ",I7)' ) trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else if ( .not. present(status) ) then
@@ -2103,16 +2017,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_INTEGER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_Int
 
@@ -2143,12 +2047,12 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
+
     else !if ( stat < 0 ) then
       ! parameter could not be read
       if ( present(defaultvalue) ) then
         ! set default value
-        write( IOBuffer, '("setting ",A," to default value ",G16.9)' ) &
-&             trim(parameterqualifiers), defaultvalue
+        write( IOBuffer, '("setting ",A," to default value ",G16.9)' ) trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
       else if ( .not. present(status) ) then
@@ -2158,16 +2062,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_RK, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RK
 
@@ -2197,6 +2091,7 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
+
     else !if ( stat < 0 ) then
       ! parameter could not be read
       if ( present(defaultvalue) ) then
@@ -2213,17 +2108,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, size(parametervariable), &
-!&     MPI_INTEGER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Real Array ",A," =")' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers); call LogWrite
-!    write( IOBuffer, * ) parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RKdim1
 
@@ -2301,8 +2185,7 @@ contains
     integer :: iharvest
 
     ! Declare local variables
-    integer(K4B), parameter :: IA=16807, IM=2147483647, &
-&     IQ=127773, IR=2836
+    integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
     integer(K4B), save      :: k
 
     ! Generate random number
@@ -2312,8 +2195,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    iharvest = 1 + ishft(int(range, RK) * &
-&     ior(iand(IM, ieor(ix, iy)), 1), -31)
+    iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd
 
@@ -2334,8 +2216,7 @@ contains
     real(RK) :: rharvest
 
     ! Declare local variables
-    integer(K4B), parameter :: IA=16807, IM=2147483647, &
-&     IQ=127773, IR=2836
+    integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
     integer(K4B), save      :: k
 
     ! Generate random number
@@ -2345,8 +2226,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) &
-&     * (h_range - l_range)
+    rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) * (h_range - l_range)
 
   end function Global_Rrnd
 
@@ -2524,12 +2404,6 @@ contains
     ! Set flag to terminate program
     TerminateProgram = .true.
 
-! #if MPI_VER > 0
-!     ! Communicate Termination
-!     call MPI_Bcast( TerminateProgram, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
-!     call MPI_Barrier( Communicator )
-! #endif
-
 #ifdef __INTEL_COMPILER
     ! Set return value
     sigout = 0
@@ -2572,9 +2446,6 @@ contains
     integer :: range_size
     ! the function could return an array containing the indices, but NPart0..NPart2 are already scalar values.
 
-    ! Declare local variables
-    !integer :: range_size0             ! version 1 only: range size for the first process
-
 #if MPI_VER > 0
     if( NProcs > 0 ) then
       ! original version 0: last process might get smaller range_size
@@ -2591,20 +2462,7 @@ contains
         last_index = overall_size
         range_size=overall_size
       endif
-
-      ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
-      !range_size = ceiling( real(overall_size)/NProcs )
-      !range_size0 = mod( overall_size, range_size )
-      !last_index = range_size0 + NProc*range_size
-      !if ( NProc == 0 ) then
-      !  range_size = range_size0
-      !end if
-      !first_index = last_index-range_size+1
-
-      ! alternative version 2: distribute, use round instead of int?
-      !first_index = int(real(NProc)/NProcs*overall_size)+1
-      !last_index = int(real(NProc+1)/NProcs*overall_size)
-      !range_size = last_index - first_index + 1
+    
     else
       first_index=0
       last_index = -1
