@@ -43,7 +43,7 @@ module ms2_potential
     type(TSiteLJ126), pointer :: Site1, Site2
     real(RK)                  :: Sigma, Epsilon
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
-    real(RK)                  :: EPotCorr, VirialCorr, EPotTestCorr
+    real(RK)                  :: EPotCorr, VirialCorr, d2EpotdV2Corr,EPotTestCorr
     logical                   :: SameComponent
     real(RK)                  :: SigmaSquared
     real(RK)                  :: Epsilon4, Epsilon48
@@ -522,6 +522,10 @@ contains
 &         ( TISSp(-6, RCutoff, this%Sigma**2, tau1, tau2) &
 &         - TISSp(-3, RCutoff, this%Sigma**2, tau1, tau2) )
 
+        this%d2EpotdV2Corr = Pi89 * this%Epsilon * &
+&         ( TISSd2EpotdV2(-6, RCutoff, this%Sigma**2, tau1, tau2) &
+&         - TISSd2EpotdV2(-3, RCutoff, this%Sigma**2, tau1, tau2) )
+
 #ifdef ABL
       this%AblEpsCorr(i1,j1) = this%VirialCorr / this%Epsilon
       this%AblEpsCorr(i2,j2) = this%VirialCorr / this%Epsilon
@@ -548,6 +552,10 @@ contains
 &         ( TICSp(-6, RCutoff, this%Sigma**2, tau) &
 &         - TICSp(-3, RCutoff, this%Sigma**2, tau) )
 
+        this%d2EpotdV2Corr = Pi89 * this%Epsilon * &
+&         ( TICSd2EpotdV2(-6, RCutoff, this%Sigma**2, tau) &
+&         - TICSd2EpotdV2(-3, RCutoff, this%Sigma**2, tau) )
+
 #ifdef ABL
       this%AblEpsCorr(i1,j1) = this%VirialCorr / this%Epsilon
       this%AblEpsCorr(i2,j2) = this%VirialCorr / this%Epsilon
@@ -568,11 +576,11 @@ contains
 #endif
       endif
     else ! Site-site cutoff or both sites in center of mass
-     this%EPotCorr = Pi8 * this%Epsilon * ( TICCu(-6, RCutoff, this%Sigma**2)&
-&                    - TICCu(-3, RCutoff, this%Sigma**2) )
+     this%EPotCorr = Pi8 * this%Epsilon * ( TICCu(-6, RCutoff, this%Sigma**2) - TICCu(-3, RCutoff, this%Sigma**2) )
 
-     this%VirialCorr = Piminus83 * this%Epsilon * ( TICCp(-6, RCutoff, this%Sigma**2) &
-&                      - TICCp(-3, RCutoff, this%Sigma**2) )
+     this%VirialCorr = Piminus83 * this%Epsilon * ( TICCp(-6, RCutoff, this%Sigma**2) - TICCp(-3, RCutoff, this%Sigma**2) )
+
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
@@ -683,6 +691,106 @@ contains
     end function TICCp
 
 
+    real(RK) function TISSd2EpotdV2( n, rc, sigma2, tau1, tau2 )
+
+      ! Declare arguments
+      integer, intent(in)  :: n
+      real(RK), intent(in) :: rc, sigma2, tau1, tau2
+
+      ! Declare local variables
+      real(RK) :: tauPlus, tauMinus, A, B, C, D, AN, BN, CN, DN
+
+      tauPlus = tau1 + tau2
+      tauMinus = abs( tau1 - tau2 )
+
+      ! Calculate angle averaged partial integral
+      A = 18._RK*n**2*rc**3          -6._RK *n**2*rc**2*tauPlus&
+&        -3._RK *tauPlus**3          +6._RK *n*tauPlus**2*rc&
+&        +4._RK *rc**3*n**3          +12._RK*rc**3&
+&        +26._RK*n*rc**3             -9._RK *rc**2*tauPlus&
+&        +6._RK *tauPlus**2*rc       -15._RK*rc**2*n*tauPlus
+
+      B = 18._RK*n**2*rc**3          +6._RK *n**2*rc**2*tauPlus&
+&        +3._RK *tauPlus**3          +6._RK *n*tauPlus**2*rc&
+&        +4._RK *rc**3*n**3          +12._RK*rc**3&
+&        +26._RK*n*rc**3             +9._RK *rc**2*tauPlus&
+&        +6._RK *tauPlus**2*rc       +15._RK*rc**2*n*tauPlus
+
+      C = 18._RK*n**2*rc**3          -15._RK*rc**2*tauMinus*n&
+&        +4._RK *rc**3*n**3          +12._RK*rc**3&
+&        -6._RK *n**2*rc**2*tauMinus +6._RK *n*tauMinus**2*rc&
+&        -3._RK *tauMinus**3         +26._RK*n*rc**3&
+&        +6._RK *tauMinus**2*rc      -9._RK *rc**2*tauMinus
+
+      D = 18._RK*n**2*rc**3          +15._RK*rc**2*tauMinus*n&
+&        +4._RK *rc**3*n**3          +12._RK*rc**3&
+&        +6._RK *n**2*rc**2*tauMinus +6._RK *n*tauMinus**2*rc&
+&        +3._RK *tauMinus**3         +26._RK*n*rc**3&
+&        +6._RK *tauMinus**2*rc      +9._RK *rc**2*tauMinus
+
+      AN = (1._RK/8._RK)*(rc+tauPlus)**(2*n+3)/(tau1*tau2*(n+1._RK)*(2._RK*n+3._RK)*(rc+tauPlus)*(5._RK+2._RK*n)*(2._RK+n))
+
+      BN = (1._RK/8._RK)*(rc-tauPlus)**(2*n+3)/(tau1*tau2*(n+1._RK)*(2._RK*n+3._RK)*(rc-tauPlus)*(5._RK+2._RK*n)*(2._RK+n))
+
+      CN =-(1._RK/8._RK)*(rc+tauMinus)**(2*n+3)/(tau1*tau2*(n+1._RK)*(2._RK*n+3._RK)*(rc+tauMinus)*(5._RK+2._RK*n)*(2._RK+n))
+
+      DN =-(1._RK/8._RK)*(rc-tauMinus)**(2*n+3)/(tau1*tau2*(n+1._RK)*(2._RK*n+3._RK)*(rc-tauMinus)*(5._RK+2._RK*n)*(2._RK+n))
+
+      TISSd2EpotdV2 =-(A*AN+B*BN+C*CN+D*DN)/sigma2**n -2._RK * TISSp(n,rc,sigma2,tau1,tau2)
+
+    end function TISSd2EpotdV2
+
+
+    real(RK) function TICSd2EpotdV2( n, rc, sigma2, tau )
+
+      ! Declare arguments
+      integer, intent(in)  :: n
+      real(RK), intent(in) :: rc, sigma2, tau
+
+      ! Declare local variables
+      real(RK) :: A, B, AN, BN
+
+      ! Calculate angle averaged partial integral
+
+      A = 3._RK *tau**3         +3._RK *rc**2*tau&
+&        +12._RK*n**2*rc**3     +11._RK*n*rc**3&
+&        +6._RK *n**2*rc**2*tau +9._RK *n*rc**2*tau&
+&        +3._RK *rc**3          +4._RK *n**3*rc**3&
+&        +3._RK *rc*tau**2      +6._RK *rc*n*tau**2
+
+      B =-3._RK *tau**3         -3._RK *rc**2*tau&
+&        +12._RK*n**2*rc**3     +11._RK*n*rc**3&
+&        -6._RK *n**2*rc**2*tau -9._RK *n*rc**2*tau&
+&        +3._RK *rc**3          +4._RK *n**3*rc**3&
+&        +3._RK *rc*tau**2      +6._RK *rc*n*tau**2
+
+      AN = -(1._RK/4._RK)*(rc-tau)**(2*n+2)/(tau*(n+1._RK)*(rc-tau)*(2._RK+n)*(3._RK+2._RK*n))
+
+      BN =  (1._RK/4._RK)*(rc+tau)**(2*n+2)/(tau*(n+1._RK)*(rc+tau)*(2._RK+n)*(3._RK+2._RK*n))
+
+      TICSd2EpotdV2 =-(A*AN+B*BN)/sigma2**n - 2._RK * TICSp(n,rc,sigma2,tau)
+
+    end function TICSd2EpotdV2
+
+
+    real(RK) function TICCd2EpotdV2( n, rc, sigma2 )
+
+      ! Declare arguments
+      integer, intent(in)  :: n
+      real(RK), intent(in) :: rc, sigma2
+
+      ! Declare local variables
+      real(RK) :: A, AN
+
+      A = rc**(3+2*n)
+
+      AN = 2._RK*n*(2._RK*n-1._RK)/(3._RK+2._RK*n)
+
+      ! Calculate angle averaged partial integral
+      TICCd2EpotdV2 =-(A*AN)/sigma2**n
+
+    end function TICCd2EpotdV2 
+
 
     real(RK) function TISSuAbl( n, rc, sigma2, tau1, tau2 )
 
@@ -754,10 +862,10 @@ contains
 !==============================================================!
 
 #ifdef ABL
-  subroutine TPotLJLJ_Force( this, EPot, Virial, BoxLength,&
+  subroutine TPotLJLJ_Force( this, EPot, Virial, d2EpotdV2, BoxLength,&
 &           VirAblSig, VirAblEps, eps1,eps2)
 #else
-  subroutine TPotLJLJ_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotLJLJ_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 #endif
 
     implicit none
@@ -766,6 +874,7 @@ contains
     type(TPotLJ126LJ126)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 #ifdef ABL
     real(RK), intent(in out) :: VirAblSig
@@ -789,6 +898,7 @@ contains
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
 #ifdef ENABLE_OMP     
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -815,8 +925,8 @@ contains
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
- 
- 
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL PRIVATE( i, j, k, i1) &
 !$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
@@ -902,7 +1012,8 @@ loop1:  do k = 1, this%NInCutoff(i)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
           EPotLocal = EPotLocal + EPotLocal1
@@ -911,6 +1022,10 @@ loop1:  do k = 1, this%NInCutoff(i)
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -993,6 +1108,10 @@ loop2:  do j = j0, j1
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ SS
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1023,6 +1142,7 @@ loop2:  do j = j0, j1
 #endif   
    EPot = EPot + this%Epsilon4 * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
+   d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
     VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
@@ -1036,10 +1156,10 @@ loop2:  do j = j0, j1
 !==============================================================!
 
 #ifdef ABL
-  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, BoxLength,&
+  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength,&
 &           VirAblSig, VirAblEps, eps1,eps2)
 #else
-  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 #endif
 
     implicit none
@@ -1048,6 +1168,7 @@ loop2:  do j = j0, j1
     type(TPotLJ126LJ126)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 #ifdef ABL
     real(RK), intent(in out) :: VirAblSig
@@ -1071,6 +1192,7 @@ loop2:  do j = j0, j1
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 #if MPI_VER > 0
@@ -1125,8 +1247,8 @@ loop2:  do j = j0, j1
 #endif    
     EPotLocal=0._RK
     VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
 
- 
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
@@ -1294,7 +1416,8 @@ loop1:  do k = 1, this%NInCutoff(i)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
           EPotLocal = EPotLocal + EPotLocal1
@@ -1303,6 +1426,10 @@ loop1:  do k = 1, this%NInCutoff(i)
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1445,6 +1572,10 @@ loop2:  do j = j0, j1
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ SS T
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1476,6 +1607,7 @@ loop2:  do j = j0, j1
 #endif   
    EPot = EPot + this%Epsilon4 * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
+   d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
     VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
@@ -1868,7 +2000,7 @@ loop2:do j = 1, N
 !  Subroutine TPotCC_Force                                     !
 !==============================================================!
 
-  subroutine TPotCC_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotCC_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -1876,6 +2008,7 @@ loop2:do j = 1, N
     type(TPotChargeCharge)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -1893,6 +2026,7 @@ loop2:do j = 1, N
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
     real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
 #ifdef ENABLE_OMP    
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -1916,8 +2050,8 @@ loop2:do j = 1, N
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
@@ -2002,8 +2136,10 @@ loop1:do k = 1, this%NInCutoff(i)
         eZ = RZij * RijInv
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
-
         VirialLocal = VirialLocal + EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
+        d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !XXXX CC
         FXij = EPotLocal1 * RijInv * eX
         FYij = EPotLocal1 * RijInv * eY
         FZij = EPotLocal1 * RijInv * eZ
@@ -2038,6 +2174,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCC_Force
 
@@ -2046,7 +2183,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCC_Force_Ewald                               !
 !==============================================================!
 
-  subroutine TPotCC_Force_Ewald( this, EPot, Virial, BoxLength, Kappa )
+  subroutine TPotCC_Force_Ewald( this, EPot, Virial, d2EpotdV2, BoxLength, Kappa )
 
     implicit none
 
@@ -2054,6 +2191,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotChargeCharge)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
     real(RK), intent(in)     :: Kappa
 
@@ -2231,13 +2369,14 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCC_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotCC_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotCC_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
     ! Declare arguments
     type(TPotChargeCharge)   :: this
     real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in out) :: Virial
     real(RK), intent(in)     :: BoxLength
 
@@ -2255,6 +2394,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
     real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     real(RK)          :: Rij2
     integer           :: i, j, k, i1
 
@@ -2303,8 +2443,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
@@ -2462,6 +2602,9 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
         VirialLocal = VirialLocal + EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
+        d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !xxxx CC T
         FXij = EPotLocal1 * RijInv * eX
         FYij = EPotLocal1 * RijInv * eY
         FZij = EPotLocal1 * RijInv * eZ
@@ -2553,6 +2696,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCC_Force_Trans
 
@@ -2562,7 +2706,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCC_Force_Ewald_Trans                         !
 !==============================================================!
 
-  subroutine TPotCC_Force_Ewald_Trans( this, EPot, Virial, BoxLength, Kappa )
+  subroutine TPotCC_Force_Ewald_Trans( this, EPot, Virial, d2EpotdV2, BoxLength, Kappa )
 
     implicit none
 
@@ -2570,6 +2714,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotChargeCharge)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
     real(RK), intent(in)     :: Kappa
 
@@ -2632,7 +2777,6 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
   
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -3173,7 +3317,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCD_Force                                     !
 !==============================================================!
 
-  subroutine TPotCD_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotCD_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -3181,6 +3325,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     type(TPotChargeDipole)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -3201,6 +3346,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, Viriallocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 #ifdef ENABLE_OMP     
     real(RK)          :: forceTempX(1:this%Site2%NPart)
@@ -3232,7 +3378,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -3326,6 +3473,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -3367,6 +3517,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCD_Force
 
@@ -3374,7 +3525,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCD_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotCD_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotCD_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -3382,6 +3533,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotChargeDipole)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -3402,6 +3554,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, EPotLocal1, Viriallocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 #ifdef ENABLE_OMP     
     real(RK)          :: forceTempX(1:this%Site2%NPart)
@@ -3458,7 +3611,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -3630,6 +3784,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + EPotlocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD T
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -3731,6 +3888,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
  end subroutine TPotCD_Force_Trans
 
@@ -4008,13 +4166,14 @@ loop1:  do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCQ_Force                                     !
 !==============================================================!
 
-  subroutine TPotCQ_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotCQ_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
     real(RK), intent(in out)   :: EPot
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in)       :: BoxLength
 
@@ -4036,6 +4195,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
 
@@ -4069,8 +4229,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
@@ -4165,6 +4325,10 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ
+
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -4206,6 +4370,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCQ_Force
 
@@ -4213,7 +4378,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotCQ_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotCQ_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotCQ_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -4221,6 +4386,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotChargeQuadrupole) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
@@ -4241,6 +4407,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
 
@@ -4299,8 +4466,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
@@ -4472,6 +4639,10 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ T
+
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -4572,6 +4743,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCQ_Force_Trans
 
@@ -4851,7 +5023,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !  Subroutine TPotDC_Force                                     !
 !==============================================================!
 
-  subroutine TPotDC_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotDC_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -4859,6 +5031,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     type(TPotDipoleCharge)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -4880,6 +5053,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, Viriallocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 #ifdef ENABLE_OMP     
     real(RK)          :: forceTempX(1:this%Site2%NPart)
@@ -4901,8 +5075,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -5002,6 +5176,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local - Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -5036,6 +5213,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDC_Force
 
@@ -5044,7 +5222,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !==============================================================!
 
   
-  subroutine TPotDC_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotDC_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
 !Hier noch die Transportgrößen rein!
 
@@ -5054,6 +5232,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotDipoleCharge)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -5075,6 +5254,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta3
     real(RK)          :: EPotLocal, EPotLocal1, Viriallocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 #ifdef ENABLE_OMP     
     real(RK)          :: forceTempX(1:this%Site2%NPart)
@@ -5119,7 +5299,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -5283,6 +5464,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
         VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC T
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -5382,6 +5566,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDC_Force_Trans
 
@@ -5664,7 +5849,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !  Subroutine TPotDD_Force                                     !
 !==============================================================!
 
-  subroutine TPotDD_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotDD_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -5672,6 +5857,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     type(TPotDipoleDipole)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -5699,6 +5885,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: CosThetai3, CosThetaj3
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -5733,8 +5920,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared, RFConstant2) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -5868,6 +6055,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -5990,6 +6182,11 @@ loop2:  do j = j0, j1
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD ss
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -6052,6 +6249,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDD_Force
 
@@ -6061,7 +6259,7 @@ loop2:  do j = j0, j1
 !  Subroutine TPotDD_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotDD_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotDD_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -6069,6 +6267,7 @@ loop2:  do j = j0, j1
     type(TPotDipoleDipole)   :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -6095,6 +6294,7 @@ loop2:  do j = j0, j1
     real(RK)          :: CosThetai3, CosThetaj3
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -6154,7 +6354,8 @@ loop2:  do j = j0, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared, RFConstant2) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -6357,6 +6558,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -6540,6 +6746,11 @@ loop2:  do j = j0, j1
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD ss T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -6602,6 +6813,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDD_Force_Trans
 
@@ -7039,7 +7251,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotDQ_Force                                     !
 !==============================================================!
 
-  subroutine TPotDQ_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotDQ_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -7047,6 +7259,7 @@ loop2:do j = 1, j1
     type(TPotDipoleQuadrupole) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
@@ -7072,6 +7285,7 @@ loop2:do j = 1, j1
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -7106,8 +7320,8 @@ loop2:do j = 1, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -7245,6 +7459,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -7370,6 +7589,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ ss
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -7420,6 +7644,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDQ_Force
 
@@ -7430,7 +7655,7 @@ loop2:  do j = j0, j1
 !  Subroutine TPotDQ_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotDQ_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotDQ_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -7438,6 +7663,7 @@ loop2:  do j = j0, j1
     type(TPotDipoleQuadrupole) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
@@ -7463,6 +7689,7 @@ loop2:  do j = j0, j1
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -7521,7 +7748,8 @@ loop2:  do j = j0, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -7733,6 +7961,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -7920,6 +8153,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ ss T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -7971,6 +8209,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDQ_Force_Trans
 
@@ -8427,7 +8666,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotQC_Force                                     !
 !==============================================================!
 
-  subroutine TPotQC_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotQC_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -8435,6 +8674,7 @@ loop2:do j = 1, j1
     type(TPotQuadrupoleCharge) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
 
@@ -8457,6 +8697,7 @@ loop2:do j = 1, j1
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
 #ifdef ENABLE_OMP     
@@ -8481,7 +8722,8 @@ loop2:do j = 1, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -8583,6 +8825,10 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
         VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC
+
         FXi    = FXi    - FXij
         FYi    = FYi    - FYij
         FZi    = FZi    - FZij
@@ -8622,6 +8868,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQC_Force
 
@@ -8629,7 +8876,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotQC_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotQC_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotQC_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -8637,6 +8884,7 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotQuadrupoleCharge) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
 
@@ -8659,6 +8907,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
 #ifdef ENABLE_OMP     
@@ -8707,7 +8956,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$omp private (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -8883,6 +9133,9 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
         VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+        d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC T
         FXi    = FXi    - FXij
         FYi    = FYi    - FYij
         FZi    = FZi    - FZij
@@ -8985,6 +9238,7 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQC_Force_Trans
 
@@ -9272,7 +9526,7 @@ loop1:  do k = 1, this%NInCutoff(i)
 !  Subroutine TPotQD_Force                                     !
 !==============================================================!
 
-  subroutine TPotQD_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotQD_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -9280,6 +9534,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     type(TPotQuadrupoleDipole) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
@@ -9305,6 +9560,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -9339,8 +9595,8 @@ loop1:  do k = 1, this%NInCutoff(i)
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -9476,6 +9732,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -9603,6 +9864,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD ss
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -9654,6 +9920,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQD_Force
 
@@ -9661,7 +9928,7 @@ loop2:  do j = j0, j1
 !  Subroutine TPotQD_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotQD_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotQD_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -9669,6 +9936,7 @@ loop2:  do j = j0, j1
     type(TPotQuadrupoleDipole) :: this
     real(RK), intent(in out)   :: EPot
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
@@ -9694,6 +9962,7 @@ loop2:  do j = j0, j1
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -9752,7 +10021,8 @@ loop2:  do j = j0, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -9962,6 +10232,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -10153,6 +10428,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD ss T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -10205,6 +10485,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQD_Force_Trans
 
@@ -10665,7 +10946,7 @@ loop2:do j = 1, j1
 !  Subroutine TPotQQ_Force                                     !
 !==============================================================!
 
-  subroutine TPotQQ_Force( this, EPot, Virial, BoxLength )
+  subroutine TPotQQ_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -10673,6 +10954,7 @@ loop2:do j = 1, j1
     type(TPotQuadrupoleQuadrupole) :: this
     real(RK), intent(in out)       :: EPot
     real(RK), intent(in out)       :: Virial
+    real(RK), intent(in out)       :: d2EpotdV2
     real(RK), intent(in)           :: BoxLength
 
     ! Declare local variables
@@ -10699,6 +10981,7 @@ loop2:do j = 1, j1
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -10733,8 +11016,8 @@ loop2:do j = 1, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -10884,6 +11167,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -11026,6 +11314,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ ss
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -11081,6 +11374,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQQ_Force
 
@@ -11089,7 +11383,7 @@ loop2:  do j = j0, j1
 !  Subroutine TPotQQ_Force_Trans                               !
 !==============================================================!
 
-  subroutine TPotQQ_Force_Trans( this, EPot, Virial, BoxLength )
+  subroutine TPotQQ_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
 
     implicit none
 
@@ -11097,6 +11391,7 @@ loop2:  do j = j0, j1
     type(TPotQuadrupoleQuadrupole) :: this
     real(RK), intent(in out)       :: EPot
     real(RK), intent(in out)       :: Virial
+    real(RK), intent(in out)       :: d2EpotdV2
     real(RK), intent(in)           :: BoxLength
 
     ! Declare local variables
@@ -11123,6 +11418,7 @@ loop2:  do j = j0, j1
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
+    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
 
@@ -11182,8 +11478,8 @@ loop2:  do j = j0, j1
 #endif
     EPotLocal=0._RK
     VirialLocal=0._RK
-  
-  
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$omp private (Epsilon,  RCutoffSquared) &
 !$omp private (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -11405,6 +11701,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -11611,6 +11912,11 @@ loop2:  do j = j0, j1
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ ss T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -11664,6 +11970,7 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQQ_Force_Trans
 

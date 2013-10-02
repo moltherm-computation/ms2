@@ -168,11 +168,14 @@ module ms2_ensemble
     ! Potential energy
     real(RK) :: EPot
 
+	! d2EpotdV2
+    real(RK) :: d2EpotdV2
+
     ! Potential energy of test particles
     real(RK), pointer :: EPotTest(:)
 
     ! Long-range corrections
-    real(RK) :: EPotCorrLJ, VirialCorrLJ
+    real(RK) :: EPotCorrLJ, VirialCorrLJ, d2EpotdV2CorrLJ
     real(RK) :: EPotCorrRF
     real(RK) :: EPotCorrRFPart, EPotCorrRFVol
     real(RK) :: VirialCorrRF
@@ -187,6 +190,8 @@ module ms2_ensemble
     type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
     type(TAccumulator) :: SumNPart
+    type(TAccumulator) :: SumdEpotdV
+    type(TAccumulator) :: Sumd2EpotdV2
 
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
@@ -195,6 +200,20 @@ module ms2_ensemble
     type(TAccumulator) :: SumEnthalpySquared
     type(TAccumulator) :: SumEnthalpyV
     type(TAccumulator) :: SumVolumeSquared
+    type(TAccumulator) :: SumEPotCubic
+    type(TAccumulator) :: SumdEpotdVSquared
+    type(TAccumulator) :: SumEPotdEpotdV
+    type(TAccumulator) :: SumEPotSquareddEpotdV
+    type(TAccumulator) :: SumEPotdEpotdVSquared
+    type(TAccumulator) :: SumEPotd2EpotdV2
+    type(TAccumulator) :: SumA10resNVT
+    type(TAccumulator) :: SumA01resNVT
+    type(TAccumulator) :: SumA20resNVT
+    type(TAccumulator) :: SumA11resNVT
+    type(TAccumulator) :: SumA02resNVT
+    type(TAccumulator) :: SumA30resNVT
+    type(TAccumulator) :: SumA21resNVT
+    type(TAccumulator) :: SumA12resNVT
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -523,6 +542,10 @@ module ms2_ensemble
 
   interface GetVirial
     module procedure TEnsemble_GetVirial
+  end interface
+
+  interface Getd2EpotdV2
+    module procedure TEnsemble_Getd2EpotdV2
   end interface
 
   interface Move
@@ -2034,6 +2057,8 @@ contains
       call Construct( this%SumEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
+      call Construct( this%SumdEpotdV, .false. )
+      call Construct( this%Sumd2EpotdV2, .false. )
 
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Construct( this%SumNPart, .false. )
@@ -2046,6 +2071,12 @@ contains
       call Construct( this%SumEnthalpySquared, .false. )
       call Construct( this%SumEnthalpyV, .false. )
       call Construct( this%SumVolumeSquared, .false. )
+      call Construct( this%SumEPotCubic, .false. )
+      call Construct( this%SumdEpotdVSquared, .false. )
+      call Construct( this%SumEPotdEpotdV, .false. )
+      call Construct( this%SumEPotSquareddEpotdV, .false. )
+      call Construct( this%SumEPotdEpotdVSquared, .false. )
+      call Construct( this%SumEPotd2EpotdV2, .false. )
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -2054,6 +2085,14 @@ contains
       call Construct( this%SumCV, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
+      call Construct( this%SumA10resNVT, .true. )
+      call Construct( this%SumA01resNVT, .true. )
+      call Construct( this%SumA20resNVT, .true. )
+      call Construct( this%SumA11resNVT, .true. )
+      call Construct( this%SumA02resNVT, .true. )
+      call Construct( this%SumA30resNVT, .true. )
+      call Construct( this%SumA21resNVT, .true. )
+      call Construct( this%SumA12resNVT, .true. )
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -2157,6 +2196,8 @@ contains
     call Destruct( this%SumEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
+    call Destruct( this%SumdEpotdV )
+    call Destruct( this%Sumd2EpotdV2 )
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumNPart )
@@ -2169,6 +2210,12 @@ contains
     call Destruct( this%SumEnthalpySquared )
     call Destruct( this%SumEnthalpyV )
     call Destruct( this%SumVolumeSquared )
+    call Destruct( this%SumEPotCubic )
+    call Destruct( this%SumdEpotdVSquared )
+    call Destruct( this%SumEPotdEpotdV )
+    call Destruct( this%SumEPotSquareddEpotdV )
+    call Destruct( this%SumEPotdEpotdVSquared )
+    call Destruct( this%SumEPotd2EpotdV2 )
 
     ! 3.) Derived sums
     call Destruct( this%SumBetaT )
@@ -2177,6 +2224,14 @@ contains
     call Destruct( this%SumCV )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
+    call Destruct( this%SumA10resNVT )
+    call Destruct( this%SumA01resNVT )
+    call Destruct( this%SumA20resNVT )
+    call Destruct( this%SumA11resNVT )
+    call Destruct( this%SumA02resNVT )
+    call Destruct( this%SumA30resNVT )
+    call Destruct( this%SumA21resNVT )
+    call Destruct( this%SumA12resNVT )
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -2973,6 +3028,8 @@ contains
     this%EPotCorrRF   = 0._RK
     this%VirialCorrLJ = 0._RK
     this%VirialCorrRF = 0._RK
+    this%d2EpotdV2CorrLJ   = 0._RK
+
     do i1 = 1, this%NComponents
       this%Component(i1)%EPotTestCorrLJ = 0._RK
     end do
@@ -2987,6 +3044,7 @@ contains
               plj => this%Interaction(i1, i2)%PotLJ126LJ126(j1, j2)
               this%EPotCorrLJ = this%EPotCorrLJ + Scale * plj%EPotCorr
               this%VirialCorrLJ = this%VirialCorrLJ + Scale * plj%VirialCorr
+              this%d2EpotdV2CorrLJ = this%d2EpotdV2CorrLJ + Scale * plj%d2EpotdV2Corr
               this%Component(i1)%EPotTestCorrLJ = this%Component(i1)%EPotTestCorrLJ &
 &                 + this%Component(i2)%Fraction * plj%EPotTestCorr
               this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( plj%RCutoffSquared ) )
@@ -2997,6 +3055,7 @@ contains
 
       this%EPotCorrLJ = this%EPotCorrLJ / NProcs
       this%VirialCorrLJ = this%VirialCorrLJ / NProcs
+      this%d2EpotdV2CorrLJ = this%d2EpotdV2CorrLJ / NProcs
     end if
 
     ! Calculate electrostatic long-range corrections
@@ -3061,6 +3120,7 @@ contains
       if( this%NLJ126Max > 0 ) then
         this%EPotCorrLJ = this%EPotCorrLJ * NProcs
         this%VirialCorrLJ = this%VirialCorrLJ * NProcs
+        this%d2EpotdV2CorrLJ = this%d2EpotdV2CorrLJ * NProcs
       endif
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -3697,6 +3757,7 @@ loop1:do nc = 1, this%NComponents
 
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
         if ( this%OptPressure ) then
           call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
         endif
@@ -3704,6 +3765,7 @@ loop1:do nc = 1, this%NComponents
     else
 
       this%EPot = GetEnergy( this )
+      this%d2EpotdV2 = Getd2EpotdV2( this )
       if ( this%OptPressure ) then
         this%Virial = GetVirial( this )
       endif
@@ -3713,6 +3775,7 @@ loop1:do nc = 1, this%NComponents
 #else
 
     this%EPot = GetEnergy( this )
+    this%d2EpotdV2 = Getd2EpotdV2( this )
     if ( this%OptPressure ) then
       this%Virial = GetVirial( this )
     endif
@@ -4379,7 +4442,7 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK)                  :: EPot, Virial
+    real(RK)                  :: EPot, Virial, d2EpotdV2
     integer                   :: i, j
     type(TComponent), pointer :: pc
 #ifdef ABL
@@ -4567,15 +4630,18 @@ loop3:    do nc = 1, this%NComponents
     ! Zero virial
     Virial = this%Density * this%VirialCorrLJ
 
+    ! Zero d2Epot/dV2
+    d2EpotdV2 = this%Density * this%d2EpotdV2CorrLJ 
+
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
 #ifndef ABL
-        call Force( this%Interaction( i, j ), EPot, Virial, this%BoxLength )
+        call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
 #else
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
-        call Force( this%Interaction( i, j ), EPot, Virial, this%BoxLength, i, j)
+        call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, i, j)
 #endif
       end do
     end do
@@ -4594,9 +4660,12 @@ loop3:    do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
     call MPI_Reduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( d2EpotdV2, this%d2EpotdV2, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+
 #else
     this%EPot = EPot
     this%Virial = Virial
+    this%d2EpotdV2 = d2EpotdV2
 #endif
 
     if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
@@ -5018,6 +5087,7 @@ loop2:        do nc = 1, this%NComponents
         n1 = pi%NPart1
         n2 = pi%NPart2
         pi%EPot(1:n1, 1:n2) = pi%EPotNew(1:n1, 1:n2)
+        pi%d2EpotdV2(1:n1, 1:n2) = pi%d2EpotdV2New(1:n1, 1:n2)
         if ( this%OptPressure ) then
           pi%Virial(1:n1, 1:n2) = pi%VirialNew(1:n1, 1:n2)
         end if
@@ -5050,12 +5120,14 @@ loop2:        do nc = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2
       pi%EPot(np, 1:n) = pi%EPot1(1:n)
+      pi%d2EpotdV2(np, 1:n) = pi%d2EpotdV21(1:n)
 
       if ( this%OptPressure ) then
         pi%Virial(np, 1:n) = pi%Virial1(1:n)
       end if
 
       this%Interaction(i, nc)%EPot(1:n, np) = pi%EPot1(1:n)
+      this%Interaction(i, nc)%d2EpotdV2(1:n, np) = pi%d2EpotdV21(1:n)
 
       if ( this%OptPressure ) then
         this%Interaction(i, nc)%Virial(1:n, np) = pi%Virial1(1:n)
@@ -5107,6 +5179,8 @@ loop2:        do nc = 1, this%NComponents
 
           ! Save new energy matrix
           pi%EPotNew(np, 1:n) = pi%EPot1(1:n)
+          pi%d2EpotdV2New(np, 1:n) = pi%d2EpotdV21(1:n)
+
           if ( this%OptPressure ) then
             pi%VirialNew(np, 1:n) = pi%Virial1(1:n)
           end if
@@ -5391,6 +5465,36 @@ loop2:        do nc = 1, this%NComponents
 
   end function TEnsemble_GetVirial
 
+!==============================================================!
+!  Function TEnsemble_Getd2EpotdV2                                !
+!==============================================================!
+
+  function TEnsemble_Getd2EpotdV2( this ) result(V)
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: V
+
+    ! Declare local variables
+    integer :: i, j
+    integer :: n
+
+    ! Calculate potential energy of a particle
+    V = 0._RK
+    do i = 1, this%NComponents
+      n = this%Component(i)%NPart
+      do j = 1, this%NComponents
+        V = V + sum( this%Interaction(j, i)% &
+&         d2EpotdV2(1:this%Component(j)%NPart, 1:n) )
+      end do
+    end do
+    V = .5_RK * V + this%Density * this%d2EpotdV2CorrLJ
+
+  end function TEnsemble_Getd2EpotdV2
 
 
 !==============================================================!
@@ -7725,6 +7829,10 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i,err
     real(RK)                  :: value
+    real(RK)                  :: currentdEpotdV,currentd2EpotdV2
+    real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
+    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
+
     integer                   :: time_limit
 #if TRANS ==1
     integer                   :: j, NStepsCF
@@ -7740,6 +7848,9 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
+      call Reset( this%SumdEpotdV )
+      call Reset( this%Sumd2EpotdV2 )
+
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Reset( this%SumNPart )
 
@@ -7761,6 +7872,12 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumEnthalpySquared )
       call Reset( this%SumEnthalpyV )
       call Reset( this%SumVolumeSquared )
+      call Reset( this%SumEPotCubic )
+      call Reset( this%SumdEpotdVSquared )
+      call Reset( this%SumEPotdEpotdV )
+      call Reset( this%SumEPotSquareddEpotdV )
+      call Reset( this%SumEPotdEpotdVSquared )
+      call Reset( this%SumEPotd2EpotdV2 )
 
       ! 3.) Derived sums
       if( ConstantPressure ) then
@@ -7772,6 +7889,15 @@ loop2:        do nc = 1, this%NComponents
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
       endif
+      call Reset( this%SumA10resNVT )
+      call Reset( this%SumA01resNVT )
+      call Reset( this%SumA20resNVT ) 
+      call Reset( this%SumA11resNVT )
+      call Reset( this%SumA02resNVT )
+      call Reset( this%SumA30resNVT )
+      call Reset( this%SumA21resNVT )
+      call Reset( this%SumA12resNVT )
+
 
       ! 4.) Chemical potential and partial molar volumes
       do i = 1, this%NRealComponents
@@ -7924,6 +8050,12 @@ loop2:        do nc = 1, this%NComponents
 
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
+
+    currentdEpotdV   = -this%Density*this%Virial/real( this%NPart, RK )
+    currentd2EpotdV2 =  this%Density**2*(2._RK*this%Virial/3._RK + this%d2EpotdV2) / (real( this%NPart, RK ))**2
+    call Update( this%SumdEpotdV,   currentdEpotdV)
+    call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
+
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Update( this%SumNPart, real( this%NPart, RK ) )
 
@@ -7934,7 +8066,14 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     ! 2.) Combined sums
-    call Update( this%SumEPotSquared, ( this%EPot / real( this%NPart, RK ) )**2 )
+    call Update( this%SumEPotSquared,      ( this%EPot / real( this%NPart, RK ) )**2 )
+    call Update( this%SumEPotCubic,          this%EPot**3 )
+    call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
+    call Update( this%SumEPotdEpotdV,        this%EPot    * currentdEpotdV    )             
+    call Update( this%SumEPotSquareddEpotdV, this%EPot**2 * currentdEpotdV    )
+    call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
+    call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
+
 
     call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
 
@@ -7974,6 +8113,48 @@ loop2:        do nc = 1, this%NComponents
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
     endif
+
+    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
+      Beta    = 1._RK/this%RefTemperature
+      Beta2   = Beta*Beta
+      Beta3   = Beta*Beta2
+      specv   = 1._RK/this%Density
+      specv2  = specv*specv
+      Numb    = real( this%NPart, RK )
+      U       = this%SumEpot%Average*real( this%NPart, RK )
+      U2      = this%SumEpotSquared%Average*real( this%NPart, RK )**2
+      U3      = this%SumEpotCubic%Average
+      dUdV    = this%SumdEpotdV%Average
+      dUdV2   = this%SumdEpotdVSquared%Average
+      UdUdV   = this%SumEpotdEpotdV%Average
+      U2dUdV  = this%SumEPotSquareddEpotdV%Average
+      UdUdV2  = this%SumEPotdEpotdVSquared%Average
+      d2UdV2  = this%Sumd2EpotdV2%Average
+      Ud2UdV2 = this%SumEPotd2EpotdV2%Average
+
+      A10res =  Beta*U/Numb
+      A01res = -Beta*specv*dUdV
+      A20res =  Beta2*(U*U-U2)/Numb
+      A11res =  specv*(-Beta*dUdV + Beta2*UdUdV - Beta2*U*dUdV)
+      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV
+      A30res =  Beta3*(U3 -3._RK*U*U2 + 2._RK*U**3)/Numb
+      A21res =  specv*( Beta2*( 2._RK*UdUdV - 2._RK*U*dUdV) + Beta3*(U2*dUdV - U2dUdV + 2._RK*U*UdUdV - 2._RK*U**2*dUdV) )
+      A12res =  Numb*specv2*Beta3*( UdUdV2 + 2._RK*U*dUdV**2 - U*dUdV2 - 2._RK*UdUdV*dUdV)+&
+&               Numb*specv2*Beta2*( 2._RK*dUdV**2 + U*d2UdV2 - 2._RK*dUdV2 - Ud2UdV2)+&
+&               Numb*specv2*Beta*d2UdV2+&
+&               specv*Beta2*(2._RK*U*dUdV - 2._RK*UdUdV)+&
+&               specv*Beta*2._RK*dUdV
+
+      call Update( this%SumA10resNVT, A10res )
+      call Update( this%SumA01resNVT, A01res )
+      call Update( this%SumA20resNVT, A20res )
+      call Update( this%SumA11resNVT, A11res )
+      call Update( this%SumA02resNVT, A02res )
+      call Update( this%SumA30resNVT, A30res )
+      call Update( this%SumA21resNVT, A21res )
+      call Update( this%SumA12resNVT, A12res )
+    end if
+ 
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
@@ -8516,6 +8697,27 @@ loop2:        do nc = 1, this%NComponents
     call Error( this%SumEPot )
     call Error( this%SumEnthalpy )
     call Error( this%SumVolume )
+
+    call Error( this%SumdEpotdV )
+    call Error( this%Sumd2EpotdV2 )
+
+    call Error( this%SumEPotSquared)
+    call Error( this%SumEPotCubic)
+    call Error( this%SumdEpotdVSquared)
+    call Error( this%SumEPotdEpotdV)
+    call Error( this%SumEPotSquareddEpotdV)
+    call Error( this%SumEPotdEpotdVSquared)
+    call Error( this%SumEPotd2EpotdV2)
+
+    call Error( this%SumA10resNVT )
+    call Error( this%SumA01resNVT )
+    call Error( this%SumA20resNVT )
+    call Error( this%SumA11resNVT )
+    call Error( this%SumA02resNVT )
+    call Error( this%SumA30resNVT )
+    call Error( this%SumA21resNVT )
+    call Error( this%SumA12resNVT )
+
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NComponents
         pc => this%Component(i)
@@ -8832,6 +9034,68 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
+! Some of the ensemble averages used in calculation of Amn's (they are not necessarily candidates for .res file output)
+
+    ! EpotSuared
+!    Average = this%SumEpotSquared%Average
+!    Variance = this%SumEpotSquared%Variance
+!    write( IOBuffer, '("EpotSquared", T29, "reduced:", 2F20.9)' ) &
+!&     Average, Variance
+!    call FileWrite( this%iounit_errors )
+!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+!&     Average * UnitEnergy * NAvogadro, &
+!&     Variance * UnitEnergy * NAvogadro
+!    call FileWrite( this%iounit_errors )
+!    call FileWriteBlank( this%iounit_errors )
+
+    ! dEpot/dV
+!    Average = this%SumdEpotdV%Average
+!    Variance = this%SumdEpotdV%Variance
+!    write( IOBuffer, '("dEpot/dV", T29, "reduced:", 2F20.9)' ) &
+!&     Average, Variance
+!    call FileWrite( this%iounit_errors )
+!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+!&     Average * UnitEnergy * NAvogadro, &
+!&     Variance * UnitEnergy * NAvogadro
+!    call FileWrite( this%iounit_errors )
+!    call FileWriteBlank( this%iounit_errors )
+
+    ! dEpot/dVSquared
+!    Average = this%SumdEpotdVSquared%Average
+!    Variance = this%SumdEpotdVSquared%Variance
+!    write( IOBuffer, '("dEpot/dVSquared", T29, "reduced:", 2F20.9)' ) &
+!&     Average, Variance
+!    call FileWrite( this%iounit_errors )
+!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+!&     Average * UnitEnergy * NAvogadro, &
+!&     Variance * UnitEnergy * NAvogadro
+!    call FileWrite( this%iounit_errors )
+!    call FileWriteBlank( this%iounit_errors )
+
+    ! d2Epot/dV2
+!    Average = this%Sumd2EpotdV2%Average
+!    Variance = this%Sumd2EpotdV2%Variance
+!    write( IOBuffer, '("d2Epot/dV2", T29, "reduced:", 2F20.9)' ) &
+!&     Average, Variance
+!    call FileWrite( this%iounit_errors )
+!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+!&     Average * UnitEnergy * NAvogadro, &
+!&     Variance * UnitEnergy * NAvogadro
+!    call FileWrite( this%iounit_errors )
+!    call FileWriteBlank( this%iounit_errors )
+
+    ! EpotdEpot/dV
+!    Average = this%SumEPotdEpotdV%Average
+!    Variance = this%SumEPotdEpotdV%Variance
+!    write( IOBuffer, '("EpotdEpot/dV", T29, "reduced:", 2F20.9)' ) &
+!&     Average, Variance
+!    call FileWrite( this%iounit_errors )
+!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
+!&     Average * UnitEnergy * NAvogadro, &
+!&     Variance * UnitEnergy * NAvogadro
+!    call FileWrite( this%iounit_errors )
+!    call FileWriteBlank( this%iounit_errors )
+
     ! Enthalpy
     Average = this%SumEnthalpy%Average
     Variance = this%SumEnthalpy%Variance
@@ -9051,6 +9315,72 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank( this%iounit_errors )
       endif
 
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then 
+      ! A10
+      Average = this%SumA10resNVT%Average
+      Variance = this%SumA10resNVT%Variance
+      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A01
+      Average = this%SumA01resNVT%Average
+      Variance = this%SumA01resNVT%Variance
+      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A20
+      Average = this%SumA20resNVT%Average
+      Variance = this%SumA20resNVT%Variance
+      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A11
+      Average = this%SumA11resNVT%Average
+      Variance = this%SumA11resNVT%Variance
+      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A02
+      Average = this%SumA02resNVT%Average
+      Variance = this%SumA02resNVT%Variance
+      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A30
+      Average = this%SumA30resNVT%Average
+      Variance = this%SumA30resNVT%Variance
+      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A21
+      Average = this%SumA21resNVT%Average
+      Variance = this%SumA21resNVT%Variance
+      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A12
+      Average = this%SumA12resNVT%Average
+      Variance = this%SumA12resNVT%Variance
+      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
     end if
 
     ! Separator
@@ -10252,6 +10582,9 @@ loop2:        do nc = 1, this%NComponents
     call RestartSave( this%SumEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
+    call RestartSave( this%SumdEpotdV )
+    call RestartSave( this%Sumd2EpotdV2 )
+
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartSave( this%SumNPart )
       do i = 1, this%NComponents
@@ -10267,6 +10600,12 @@ loop2:        do nc = 1, this%NComponents
     call RestartSave( this%SumEnthalpySquared )
     call RestartSave( this%SumEnthalpyV )
     call RestartSave( this%SumVolumeSquared )
+    call RestartSave( this%SumEPotCubic )
+    call RestartSave( this%SumdEpotdVSquared )
+    call RestartSave( this%SumEPotdEpotdV )
+    call RestartSave( this%SumEPotSquareddEpotdV )
+    call RestartSave( this%SumEPotdEpotdVSquared )
+    call RestartSave( this%SumEPotd2EpotdV2 )
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -10278,6 +10617,14 @@ loop2:        do nc = 1, this%NComponents
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
+    call RestartSave( this%SumA10resNVT )
+    call RestartSave( this%SumA01resNVT )
+    call RestartSave( this%SumA20resNVT )
+    call RestartSave( this%SumA11resNVT )
+    call RestartSave( this%SumA02resNVT )
+    call RestartSave( this%SumA30resNVT )
+    call RestartSave( this%SumA21resNVT )
+    call RestartSave( this%SumA12resNVT )
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
@@ -10500,6 +10847,8 @@ endif
     call RestartRead( this%SumEnthalpy )
     call RestartRead( this%SumVolume )
     call RestartRead( this%SumVirial )
+    call RestartRead( this%SumdEpotdV )
+    call RestartRead( this%Sumd2EpotdV2 )
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartRead( this%SumNPart )
@@ -10516,6 +10865,12 @@ endif
     call RestartRead( this%SumEnthalpySquared )
     call RestartRead( this%SumEnthalpyV )
     call RestartRead( this%SumVolumeSquared )
+    call RestartRead( this%SumEPotCubic )
+    call RestartRead( this%SumdEpotdVSquared )
+    call RestartRead( this%SumEPotdEpotdV )
+    call RestartRead( this%SumEPotSquareddEpotdV )
+    call RestartRead( this%SumEPotdEpotdVSquared )
+    call RestartRead( this%SumEPotd2EpotdV2 )
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -10527,6 +10882,14 @@ endif
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
     endif
+    call RestartRead( this%SumA10resNVT )
+    call RestartRead( this%SumA01resNVT )
+    call RestartRead( this%SumA20resNVT )
+    call RestartRead( this%SumA11resNVT )
+    call RestartRead( this%SumA02resNVT )
+    call RestartRead( this%SumA30resNVT )
+    call RestartRead( this%SumA21resNVT )
+    call RestartRead( this%SumA12resNVT )
 
     ! 4.) Chemical potential and partial molar volumes
     counter = this%NRealComponents+1

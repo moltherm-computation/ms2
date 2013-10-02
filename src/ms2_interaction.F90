@@ -65,6 +65,8 @@ module ms2_interaction
     real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
     logical           :: OptPressure
 
+    real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :)
+
     ! Arrays for center of mass cutoff
     integer, pointer :: NInCutoff(:), CutoffPartner(:, :)!, RDFSum (:)
 
@@ -661,6 +663,10 @@ contains
     nullify( this%EPot )
     nullify( this%EPot1 )
     nullify( this%EPotNew )
+    nullify( this%d2EpotdV2 )
+    nullify( this%d2EpotdV21 )
+    nullify( this%d2EpotdV2New )
+
     if (this%OptPressure) then
       nullify( this%Virial )
       nullify( this%Virial1 )
@@ -695,6 +701,13 @@ contains
       allocate( this%EPot1(N2), STAT = stat )
       call AllocationError( stat, 'particles', N2 )
       allocate( this%EPotNew(N1, N2), STAT = stat )
+      call AllocationError( stat, 'particles', N1 * N2 )
+
+     allocate( this%d2EpotdV2(N1, N2), STAT = stat )
+      call AllocationError( stat, 'particles', N1 * N2 )
+      allocate( this%d2EpotdV21(N2), STAT = stat )
+      call AllocationError( stat, 'particles', N2 )
+      allocate( this%d2EpotdV2New(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
 
       if ( this%OptPressure ) then
@@ -761,6 +774,16 @@ contains
     end if
     if( associated( this%EPotNew ) ) then
       deallocate( this%EPotNew )
+    end if
+
+    if( associated( this%d2EpotdV2 ) ) then
+      deallocate( this%d2EpotdV2 )
+    end if
+    if( associated( this%d2EpotdV21 ) ) then
+      deallocate( this%d2EpotdV21 )
+    end if
+    if( associated( this%d2EpotdV2New ) ) then
+      deallocate( this%d2EpotdV2New )	  
     end if
 
     if ( this%OptPressure ) then
@@ -856,9 +879,9 @@ contains
 !  Subroutine TInteraction_Force                               !
 !==============================================================!
 #ifndef ABL
-  subroutine TInteraction_Force( this, EPot, Virial, BoxLength )
+  subroutine TInteraction_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
 #else
-  subroutine TInteraction_Force( this, EPot, Virial, BoxLength,C1,C2)
+  subroutine TInteraction_Force( this, EPot, Virial, d2EpotdV2, BoxLength,C1,C2)
 #endif
 
     implicit none
@@ -867,6 +890,7 @@ contains
     type(TInteraction)       :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 #ifdef ABL
     integer, intent(in)      :: C1,C2
@@ -899,29 +923,29 @@ contains
 #ifndef ABL
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-         call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, BoxLength )
+         call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 
        else
-         call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, BoxLength )
+         call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 
 #else
-       call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, BoxLength )
+       call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
 
 #else
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
          call Force_Trans( this%PotLJ126LJ126( i, j ), &
-&             EPot, Virial, BoxLength,  AblSig, AblEps,eps1,eps2)
+&             EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
 
        else
          call Force( this%PotLJ126LJ126( i, j ), &
-&             EPot, Virial, BoxLength,  AblSig, AblEps,eps1,eps2)
+&             EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
        end if
 #else
        call Force( this%PotLJ126LJ126( i, j ), &
-&           EPot, Virial, BoxLength,  AblSig, AblEps,eps1,eps2)
+&           EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
 #endif
 
         this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
@@ -946,14 +970,14 @@ contains
 
 #if  TRANS == 1
           if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-               call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength, this%Kappa )
+               call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
 
           else
-               call Force( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength, this%Kappa )
+               call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
           end if
 
 #else
-          call Force( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength, this%Kappa )
+          call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
 #endif
         end do
 
@@ -962,14 +986,14 @@ contains
 
 #if  TRANS == 1
          if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-            call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength )
+            call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 
          else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength )
+            call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
          end if
 
 #else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, BoxLength )
+            call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
         end do
       end if
@@ -977,27 +1001,27 @@ contains
       do j = 1, this%N2Dipole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 
        else
-          call Force( this%PotChargeDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 
 #else
-          call Force( this%PotChargeDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
 
       do j = 1, this%N2Quadrupole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 
 #else
-          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
     end do
@@ -1008,36 +1032,36 @@ contains
       do j = 1, this%N2Charge
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
 
       do j = 1, this%N2Dipole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
 
       do j = 1, this%N2Quadrupole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
     end do
@@ -1048,36 +1072,36 @@ contains
       do j = 1, this%N2Charge
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
 
       do j = 1, this%N2Dipole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
 
       do j = 1, this%N2Quadrupole
 #if  TRANS == 1
        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        else
-          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
        end if
 #else
-          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, BoxLength )
+          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
 #endif
       end do
     end do
@@ -1268,6 +1292,7 @@ contains
     real(RK), pointer :: EPot(:)
 #endif
     real(RK), pointer :: Virial(:)
+    real(RK), pointer :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
 
@@ -1287,6 +1312,7 @@ contains
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquared, RijInv, RijSquaredInv, Rij3Inv
+    real(RK)          :: RijInv4, RijInv2
     real(RK)          :: Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
@@ -1295,6 +1321,7 @@ contains
     real(RK)          :: Tmp, RFConst2
     real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
+    real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, Rij, approx, Faktor, q
     integer           :: N
     integer           :: s1, s2, j, k
@@ -1326,6 +1353,8 @@ EPot(:)= 0._RK
 !$OMP PRIVATE(CosAux, CosGammaij,  dCosThetai, dCosThetaj, dCosGammaij,  Tmp, RFConst2 ) &
 !$OMP PRIVATE(MueX2, MueY2, MueZ2, mueXi, mueYi, mueZi,  N, s1, s2, j, k,  OptPressure) 
 
+    d2EpotdV2 => this%d2EpotdV21
+
 
     ! Assign local variables
     OptPressure = this%OptPressure
@@ -1347,7 +1376,8 @@ EPot(:)= 0._RK
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-
+    ! d2Epot/dV2
+    d2EpotdV2(:) = 0._RK
 
     if ( OptPressure ) then
       ! Zero virial
@@ -1415,6 +1445,10 @@ EPot(:)= 0._RK
               FZij = Fij * RZij
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
+            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
 !$OMP END DO          
         end do
@@ -1476,7 +1510,6 @@ EPot(:)= 0._RK
                 end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
@@ -1537,10 +1570,13 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
           end do
 !$OMP END DO         
         end do
@@ -1607,10 +1643,13 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
- 
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
+
           end do
 !$OMP END DO          
         end do
@@ -1676,9 +1715,11 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
             end if
           end do
 !$OMP END DO 
@@ -1748,10 +1789,12 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
           end do
 !$OMP END DO 
         end do
@@ -1831,10 +1874,13 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Third*Third !xxxx5 DD
           end do
 !$OMP END DO 
         end do
@@ -1917,11 +1963,14 @@ EPot(:)= 0._RK
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
             end if
-
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx6 DQ
           end do
         end do
       end do
@@ -1991,10 +2040,12 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) - Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx7 QC
           end do
         end do
         do s2 = 1, this%N2Dipole
@@ -2076,10 +2127,13 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx8 QD
           end do
         end do
 
@@ -2173,10 +2227,13 @@ EPot(:)= 0._RK
               end if
             end if
             EPot(j) = EPot(j) + EPotLocal
-
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
           end do
         end do
       end do
@@ -2377,6 +2434,10 @@ EPot(:)= 0._RK
               FZij = Fij * RZij
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
+            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
@@ -2470,6 +2531,10 @@ EPot(:)= 0._RK
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
           end do
         end do
 
@@ -2561,6 +2626,10 @@ EPot(:)= 0._RK
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
           end do
         end do
       end do
@@ -2651,11 +2720,14 @@ EPot(:)= 0._RK
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
             end if
-
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -2759,6 +2831,10 @@ EPot(:)= 0._RK
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
+            RijInv2  =  RijInv*RijInv
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
           end do
         end do
       end do
