@@ -1021,7 +1021,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
-          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
@@ -1102,12 +1102,12 @@ loop2:  do j = j0, j1
           if( RijSquared >= RCutoffSquared ) cycle loop2
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
           Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
-          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ SS
@@ -1425,7 +1425,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
-          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
@@ -1566,12 +1566,12 @@ loop2:  do j = j0, j1
           if( RijSquared >= RCutoffSquared ) cycle loop2
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
           Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
-          VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+          VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ SS T
@@ -2136,7 +2136,7 @@ loop1:do k = 1, this%NInCutoff(i)
         eZ = RZij * RijInv
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
-        VirialLocal = VirialLocal + EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+        VirialLocal = VirialLocal + (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !XXXX CC
@@ -2326,7 +2326,7 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv * approx
         EPotLocal  = EPotLocal + EPotLocal1
         Fij  = (EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
-        VirialLocal = VirialLocal + Fij * (eX * PXij + eY * PYij + eZ * PZij)
+        VirialLocal = VirialLocal +( Fij * (eX * PXij + eY * PYij + eZ * PZij))
         FXij = Fij * eX
         FYij = Fij * eY
         FZij = Fij * eZ
@@ -2601,7 +2601,7 @@ loop1:do k = 1, this%NInCutoff(i)
         eZ = RZij * RijInv
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
-        VirialLocal = VirialLocal + EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+        VirialLocal = VirialLocal + (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !xxxx CC T
@@ -2898,7 +2898,7 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv * approx
         EPotLocal  = EPotLocal + EPotLocal1
         Fij  = (EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
-        VirialLocal = VirialLocal + Fij * (eX * PXij + eY * PYij + eZ * PZij)
+        VirialLocal = VirialLocal + (Fij * (eX * PXij + eY * PYij + eZ * PZij))
         FXij = Fij * eX
         FYij = Fij * eY
         FZij = Fij * eZ
@@ -3262,7 +3262,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         eZ = RZij * RijInv
         EPotLocal1 = Epsilon * RijInv * approx
         EPotLocal  = EPotLocal + EPotLocal1
-        VirialLocal = VirialLocal + EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
+        VirialLocal = VirialLocal +(EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
       end if
       EPot(j) = EPot(j) + EPotLocal
       Virial(j) = Virial(j) + Third * VirialLocal
@@ -3474,7 +3474,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F2*R_COM_Price; stimmt so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD
@@ -3785,7 +3785,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F2*R_COM_Price; stimmt so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotlocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD T
@@ -4326,7 +4326,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                     ! F2 nach Price bzw. Kraft auf Punktladung
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ
@@ -4640,7 +4640,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )                     ! F2 nach Price bzw. Kraft auf Punktladung
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ T
@@ -5177,7 +5177,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F1*(-R_COM_Price); stimmt so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local - Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC
@@ -5465,7 +5465,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
-        VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij     ! F1*(-R_COM_Price); stimmt so
+        VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F1*(-R_COM_Price); stimmt so
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC T
@@ -6056,7 +6056,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -6175,7 +6175,7 @@ loop2:  do j = j0, j1
           Tmp = CosGammaij - CosThetai * CosThetaj3
           Rij3Inv = Epsilon * RijInv**3
           Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-          EPotLocal = EPotLocal + Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          EPotLocal = EPotLocal + (Rij3Inv * Tmp - RFConstant2 * CosGammaij)
 
           FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                     - (eX * CosThetaj - OXj) * CosThetai)
@@ -6183,7 +6183,7 @@ loop2:  do j = j0, j1
 &                                     - (eY * CosThetaj - OYj) * CosThetai)
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -6559,7 +6559,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -6739,7 +6739,7 @@ loop2:  do j = j0, j1
           Tmp = CosGammaij - CosThetai * CosThetaj3
           Rij3Inv = Epsilon * RijInv**3
           Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-          EPotLocal = EPotLocal + Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          EPotLocal = EPotLocal + (Rij3Inv * Tmp - RFConstant2 * CosGammaij)
 
           FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                     - (eX * CosThetaj - OXj) * CosThetai)
@@ -6747,7 +6747,7 @@ loop2:  do j = j0, j1
 &                                     - (eY * CosThetaj - OYj) * CosThetai)
           FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -7460,7 +7460,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -7590,7 +7590,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -7962,7 +7962,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -8154,7 +8154,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -8826,7 +8826,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
-        VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+        VirialLocal = VirialLocal - (FXij * PXij - FYij * PYij - FZij * PZij)     ! Vorzeichen richtig
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC
@@ -9134,7 +9134,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
-        VirialLocal = VirialLocal - FXij * PXij - FYij * PYij - FZij * PZij     ! Vorzeichen richtig
+        VirialLocal = VirialLocal - (FXij * PXij - FYij * PYij - FZij * PZij)     ! Vorzeichen richtig
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC T
@@ -9733,7 +9733,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -9865,7 +9865,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -10233,7 +10233,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -10429,7 +10429,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -11168,7 +11168,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -11315,7 +11315,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -11702,7 +11702,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
@@ -11913,7 +11913,7 @@ loop2:  do j = j0, j1
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
-          VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
+          VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
