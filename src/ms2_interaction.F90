@@ -270,6 +270,12 @@ contains
     this%PX2 => Component2%P0(:, 1)
     this%PY2 => Component2%P0(:, 2)
     this%PZ2 => Component2%P0(:, 3)
+!    write(*,*) "after PX1 ",LOC(this%PX1)
+!    write(*,*) "after PY1 ",LOC(this%PY1)
+!    write(*,*) "after PZ1 ",LOC(this%PZ1)
+!    write(*,*) "after PX2 ",LOC(this%PX2)
+!    write(*,*) "after PY2 ",LOC(this%PY2)
+!    write(*,*) "after PZ2 ",LOC(this%PZ2)
 
     ! Total dipole moments of molecules for reaction field
     this%MueX1 => Component1%MueX(:)
@@ -1345,7 +1351,7 @@ EPot(:)= 0._RK
 !$OMP PRIVATE(plj, pcc, pcd, pcq, pdc, pdd, pdq, pqc, pqd, pqq, Virial, VirialLocal, SigmaSquared ) &
 !$OMP PRIVATE(Epsilon, Epsilon2, Epsilon4, Epsilon48, RCutoffSquared, RCutoffSquaredScaled ) &
 !$OMP PRIVATE(RShieldSquared, BoxLengthThird, RX1, RY1, RZ1, RX2, RY2, RZ2 ) &
-!$OMP PRIVATE(PX2, PY2, PZ2, OX1, OY1, OZ1, OX2, OY2, OZ2 ) &
+!$OMP PRIVATE(Plen2,sitecorr,PX2, PY2, PZ2, OX1, OY1, OZ1, OX2, OY2, OZ2 ) &
 !$OMP PRIVATE(RXi, RYi, RZi, PXi, PYi, PZi, OXi, OYi, OZi, RXij, RYij, RZij ) &
 !$OMP PRIVATE( FXij, FYij, FZij, Fij,  PXij, PYij, PZij, OXj, OYj, OZj, eX, eY, eZ ) &
 !$OMP PRIVATE(RijSquared, RijInv, RijSquaredInv, Rij3Inv, Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv ) &
@@ -2911,6 +2917,13 @@ this%EPot1 = EPot
     PY2 => this%PY2
     PZ2 => this%PZ2
 
+!    write(*,*) "-- after PX1 ",LOC(this%PX1)
+!    write(*,*) "-- after PY1 ",LOC(this%PY1)
+!    write(*,*) "-- after PZ1 ",LOC(this%PZ1)
+!    write(*,*) "-- after PX2 ",LOC(this%PX2)
+!    write(*,*) "-- after PY2 ",LOC(this%PY2)
+!    write(*,*) "-- after PZ2 ",LOC(this%PZ2)
+    
     ! Calculate partners within cutoff sphere
     if( this%SameComponent ) then
 #if MPI_VER > 0
