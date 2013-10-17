@@ -3203,7 +3203,9 @@ loop1:  do k = 1, this%NInCutoff(i)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-
+    VirialLocal    = 0_RK       
+    EPotLocal      = 0_RK
+ 
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
