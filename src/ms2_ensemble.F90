@@ -2555,6 +2555,8 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
+    nullify( this%RDF )
+    nullify( this%RDFVSchale )
 
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), STAT = stat )
@@ -8079,12 +8081,19 @@ loop2:        do nc = 1, this%NComponents
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
 
-    call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+    if( ConstantPressure ) then
+       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                this%RefPressure / this%Density - this%RefTemperature )**2 )
-
-    call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
+   
+       call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
 &                this%RefPressure / this%Density - this%RefTemperature ) / this%Density )
-
+    else
+       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+&                this%Pressure / this%Density - this%RefTemperature )**2 )
+   
+       call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
+&                this%Pressure / this%Density - this%RefTemperature ) / this%Density )
+    end if
     call Update( this%SumVolumeSquared, 1._RK / this%Density**2 )
 
     ! 3.) Derived sums
