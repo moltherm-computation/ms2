@@ -2376,8 +2376,8 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeCharge)   :: this
     real(RK), intent(in out) :: EPot
-    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -4175,8 +4175,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
     real(RK), intent(in out)   :: EPot
-    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in out)   :: Virial
+    real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables

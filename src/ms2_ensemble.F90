@@ -4990,10 +4990,12 @@ loop2:        do nc = 1, this%NComponents
 
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 
+
 #if MPI_VER > 0
+        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
           call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( this%EPot, 1, MPI_RK,  NRootProc, Communicator, ierror )
-
+        endif
 #endif
 
         ! partial molar enthalpy
