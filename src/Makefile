@@ -1,18 +1,32 @@
 ########################################
 # Makefile for ms2
 ########################################
-MPI=1
-ifneq ($(MPI),)
+COMPILER = GNU
+CONFIG = makefiles/$(COMPILER).mk
+include $(CONFIG)
+TARGET    = RELEASE
+MPI       = 0
+OMP       = 0
+PROG      = ms2
+
+ifeq ($(MPI),1)
   F90 = mpif90
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF
-  PROG =  ms2mpi
+  CPPFLAGS += -DMPI_VER=1
+  PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
-  F90 = pgf90 
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF
-  PROG =  ms2
+  CPPFLAGS += -DMPI_VER=0
+  PROG     :=  $(PROG)_$(COMPILER)
 endif
-F90FLAGS = -g -C
-LDFLAGS =
+
+F90FLAGS = $(F90FLAGS_$(TARGET))
+LDFLAGS  = $(LDFLAGS_$(TARGET))
+
+ifeq ($(OMP),1)
+CPPFLAGS += -DENABLE_OMP
+F90FLAGS += $(OMPFLAGS)
+LDFLAGS  += $(OMPFLAGS)
+PROG     := $(PROG)_omp
+endif
 
 SRCS =  ms2.F90 \
         ms2_stopwatch.F90 \
