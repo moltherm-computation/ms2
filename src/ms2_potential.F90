@@ -913,51 +913,6 @@ contains
     real(RK)          :: dr2Abl
 #endif        
 
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
-    d2EpotdV2Local= 0._RK
-
-!$OMP PARALLEL PRIVATE( i, j, k, i1) &
-!$OMP PRIVATE( j0, j1, SameComponent, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE(Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
-!$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-#if MPI_VER > 0
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
-!$OMP PRIVATE(i0, N1, N2, ji, EvenN)
-#else
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) 
-#endif
-
-    ! Assign local variables
-    SameComponent = this%SameComponent
-#if MPI_VER > 0
-    N1 = this%Site2%NPart
-    N2 = N1 / 2
-    EvenN = mod( N1, 2 ) == 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-#else
-    i1 = this%Site1%NPart
-    j1 = this%Site2%NPart
-#endif
-#ifdef ABL
-    VirAblSig = 0.0_RK
-    VirAblEps = 0.0_RK
-    eps1      = this%Site1%eps
-    eps2      = this%Site2%eps
-#endif
-    SigmaSquared = this%SigmaSquared
-    Epsilon4 = this%Epsilon4
-    Epsilon48 = this%Epsilon48
-    RCutoffSquared = this%RCutoffSquaredScaled
-
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -974,6 +929,49 @@ contains
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+
+    ! Assign local variables
+#ifdef ABL
+    VirAblSig = 0.0_RK
+    VirAblEps = 0.0_RK
+    eps1      = this%Site1%eps
+    eps2      = this%Site2%eps
+#endif
+    SameComponent = this%SameComponent
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+    SigmaSquared = this%SigmaSquared
+    Epsilon4 = this%Epsilon4
+    Epsilon48 = this%Epsilon48
+    RCutoffSquared = this%RCutoffSquaredScaled
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+
+!$OMP PARALLEL DEFAULT(SHARED) & 
+!$OMP FIRSTPRIVATE( i, j, k, i1, j0, j1) &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE(i0, N1, N2, ji, EvenN) &
+#endif
+!$OMP PRIVATE(Plen2, sitecorr, EPotLocal1) &
+!$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
+!$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
