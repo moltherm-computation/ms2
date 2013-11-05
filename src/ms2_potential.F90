@@ -10613,59 +10613,6 @@ loop2:do j = 1, j1
     logical           :: EvenN
 #endif
 
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ    
-
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK    
-    EPotLocal=0._RK
-    VirialLocal=0._RK
-    d2EpotdV2Local= 0._RK
-
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
-!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
-!$OMP PRIVATE (EPotLocal1, SameComponent) &
-#if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
-#else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
-#endif
-
-    ! Assign local variables
-    SameComponent = this%SameComponent
-#if MPI_VER > 0
-    N1 = this%Site2%NPart
-    N2 = N1 / 2
-    EvenN = mod( N1, 2 ) == 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-#else
-    i1 = this%Site1%NPart
-    j1 = this%Site2%NPart
-#endif
-    Epsilon = this%Epsilon
-    RCutoffSquared = this%RCutoffSquared
-
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -10691,6 +10638,50 @@ loop2:do j = 1, j1
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+
+    ! Assign local variables
+    SameComponent = this%SameComponent
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+
+!$OMP PARALLEL &
+!$OMP FIRSTPRIVATE (i, j, k, i1, j0, j1) &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
+#endif
+!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
+!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
+!$OMP PRIVATE (EPotLocal1, Plen2, sitecorr) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
