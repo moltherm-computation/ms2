@@ -1333,32 +1333,16 @@ contains
     integer           :: s1, s2, j, k
     logical           :: OptPressure
 
-#ifdef ENABLE_OMP
-this%EPot1(:)=0._RK
-#else
-   EPot => this%EPot1
-#endif
+    this%EPot1(:)=0._RK
 
     ! Zero energy
-EPot(:)= 0._RK
+    EPot(:)= 0._RK
 
-      ! Calculate interactions partners within cutoff sphere
-      if( CutoffMode .eq. CenterofMass ) then
-        call CalcCutoffPartners( this, np )
-      end if
+    ! Calculate interactions partners within cutoff sphere
+    if( CutoffMode .eq. CenterofMass ) then
+      call CalcCutoffPartners( this, np )
+    end if
       
-!$OMP PARALLEL &
-!$OMP PRIVATE(plj, pcc, pcd, pcq, pdc, pdd, pdq, pqc, pqd, pqq, Virial, VirialLocal, SigmaSquared ) &
-!$OMP PRIVATE(Epsilon, Epsilon2, Epsilon4, Epsilon48, RCutoffSquared, RCutoffSquaredScaled ) &
-!$OMP PRIVATE(RShieldSquared, BoxLengthThird, RX1, RY1, RZ1, RX2, RY2, RZ2 ) &
-!$OMP PRIVATE(Plen2,sitecorr,PX2, PY2, PZ2, OX1, OY1, OZ1, OX2, OY2, OZ2 ) &
-!$OMP PRIVATE(RXi, RYi, RZi, PXi, PYi, PZi, OXi, OYi, OZi, RXij, RYij, RZij ) &
-!$OMP PRIVATE( FXij, FYij, FZij, Fij,  PXij, PYij, PZij, OXj, OYj, OZj, eX, eY, eZ ) &
-!$OMP PRIVATE(RijSquared, RijInv, RijSquaredInv, Rij3Inv, Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv ) &
-!$OMP PRIVATE(EPotLocal, CosThetai, CosThetaj, CosThetaiSquared, CosThetajSquared ) &
-!$OMP PRIVATE(CosAux, CosGammaij,  dCosThetai, dCosThetaj, dCosGammaij,  Tmp, RFConst2 ) &
-!$OMP PRIVATE(MueX2, MueY2, MueZ2, mueXi, mueYi, mueZi,  N, s1, s2, j, k,  OptPressure) 
-
     d2EpotdV2 => this%d2EpotdV21
 
 
@@ -1425,7 +1409,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1456,7 +1439,6 @@ EPot(:)= 0._RK
             d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
             d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
-!$OMP END DO          
         end do
       end do
 
@@ -1542,7 +1524,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1584,7 +1565,6 @@ EPot(:)= 0._RK
             sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
             d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
           end do
-!$OMP END DO         
         end do
        end if ! ReactionField - Ewald-Summation
 !
@@ -1610,7 +1590,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1657,7 +1636,6 @@ EPot(:)= 0._RK
             d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
 
           end do
-!$OMP END DO          
         end do
         do s2 = 1, this%N2Quadrupole
           pcq => this%PotChargeQuadrupole(s1, s2)
@@ -1681,7 +1659,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1728,7 +1705,6 @@ EPot(:)= 0._RK
             d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
             end if
           end do
-!$OMP END DO 
         end do
       end do
 
@@ -1759,7 +1735,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1802,7 +1777,6 @@ EPot(:)= 0._RK
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
             d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
           end do
-!$OMP END DO 
         end do
         do s2 = 1, this%N2Dipole
           pdd => this%PotDipoleDipole(s1, s2)
@@ -1832,7 +1806,6 @@ EPot(:)= 0._RK
 
           ! Loop over molecules
 !CDIR NODEP
-!$OMP DO REDUCTION(+:EPot)
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1888,7 +1861,6 @@ EPot(:)= 0._RK
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
             d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Third*Third !xxxx5 DD
           end do
-!$OMP END DO 
         end do
         do s2 = 1, this%N2Quadrupole
           pdq => this%PotDipoleQuadrupole(s1, s2)
@@ -2847,12 +2819,8 @@ EPot(:)= 0._RK
 
     end if
 
-
-!$OMP END PARALLEL
-#ifdef ENABLE_OMP
-this%EPot1 = EPot
-#endif
-  end subroutine TInteraction_Energy
+    this%EPot1 = EPot
+end subroutine TInteraction_Energy
 
 
 
