@@ -1292,11 +1292,7 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-#ifdef ENABLE_OMP
     real(RK) :: EPot(this%NPart2)
-#else
-    real(RK), pointer :: EPot(:)
-#endif
     real(RK), pointer :: Virial(:)
     real(RK), pointer :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
