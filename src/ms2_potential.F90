@@ -958,16 +958,18 @@ contains
     EvenN = mod( N1, 2 ) == 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
+    j1 = 0
 #else
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
 
 !$OMP PARALLEL DEFAULT(SHARED) & 
-!$OMP FIRSTPRIVATE( i, j, k, i1, j0, j1) &
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
+!$OMP FIRSTPRIVATE(i1, j1) &
+!$OMP PRIVATE( i, j, k, j0) &
 !$OMP PRIVATE(Plen2, sitecorr, EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
 !$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
@@ -1225,25 +1227,25 @@ loop2:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
-!$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
-!$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
+!!$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
+!!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
+!!$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 #if MPI_VER > 0
-!$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
+!!$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
-!$OMP PRIVATE( SameComponent )
+!!$OMP PRIVATE( SameComponent )
 
       ! Assign local variables
     SameComponent = this%SameComponent
@@ -1323,7 +1325,7 @@ loop2:  do j = j0, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -1484,11 +1486,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)      
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)      
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -1558,10 +1560,10 @@ loop2:  do j = j0, j1
         FY1(i) = FYi
         FZ1(i) = FZi
       end do
-!$OMP END DO 
+!!$OMP END DO 
     end if
 
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
  
     ! Update potential energy and virial
    FX2 = FX2 + forceTempX
@@ -1694,9 +1696,16 @@ loop1:  do k = 1, this%NInCutoff(i)
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
+!$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
+!$OMP PRIVATE (RijSquared,RijSquaredInv,Rij6Inv) &
+!$OMP PRIVATE (EpotLocal,i,j,k) 
+
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, this%Site1%NTest
         RXi = RX1(i)
         RYi = RY1(i)
@@ -1724,10 +1733,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         end do loop1
         EPotTest(i) = EPotTest(i) + Epsilon4 * EPotLocal
       end do
-
+!$OMP END DO
     else
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, this%Site1%NTest
         RXi = RX1(i)
         RYi = RY1(i)
@@ -1750,8 +1760,9 @@ loop2:  do j = 1, N2
         end do loop2
         EPotTest(i) = EPotTest(i) + Epsilon4 * EPotLocal
       end do
+!$OMP END DO
     end if
-
+!$OMP END PARALLEL
   end subroutine TPotLJLJ_ChemicalPotential
 
 
@@ -2010,17 +2021,17 @@ loop2:do j = 1, N
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if MPI_VER > 0
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
 #endif
 
 
@@ -2051,7 +2062,7 @@ loop2:do j = 1, N
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2114,8 +2125,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FZ1(i) = FZi
 
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -2180,18 +2191,18 @@ loop1:do k = 1, this%NInCutoff(i)
     EPotLocal=0._RK
     VirialLocal=0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!$OMP PRIVATE (approx, Faktor, Fij,KappaRij) &
-!$OMP PRIVATE ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!!$OMP PRIVATE (approx, Faktor, Fij,KappaRij) &
+!!$OMP PRIVATE ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if MPI_VER > 0
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij ,EPotLocal1,  i, j, k, i1, i2) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij ,EPotLocal1,  i, j, k, i1, i2) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k, i1, i2)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k, i1, i2)
 #endif
 
     ! Assign local variables
@@ -2223,7 +2234,7 @@ loop1:do k = 1, this%NInCutoff(i)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2289,8 +2300,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FY1(i) = FYi
       FZ1(i) = FZi
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -2379,25 +2390,25 @@ loop1:do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!$OMP PRIVATE(Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!!$OMP PRIVATE(Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( i0) &
+!!$OMP PRIVATE ( i0) &
 #endif
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
 
 
     ! Assign local variables
@@ -2456,7 +2467,7 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2612,8 +2623,8 @@ loop1:do k = 1, this%NInCutoff(i)
 
 #endif
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -2700,24 +2711,24 @@ loop1:do k = 1, this%NInCutoff(i)
     EPotLocal=0._RK
     VirialLocal=0._RK
   
-!$OMP PARALLEL &
-!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
+!!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi,  r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi,  r1x, r1y, r1z) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( i0) &
+!!$OMP PRIVATE ( i0) &
 #endif
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2)
+!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, Rij, EPotLocal1,  i, j, k, i1, i2)
 
 
     ! Assign local variables
@@ -2761,7 +2772,7 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2858,8 +2869,8 @@ loop1:do k = 1, this%NInCutoff(i)
       !TRANSPORT_END
 #endif
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -3292,18 +3303,18 @@ loop1:  do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta3,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta3,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta3, i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta3, i, j, k, i1)
 #endif
 
     ! Assign local variables
@@ -3336,8 +3347,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     OZ2 => this%Site2%OZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)       
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)       
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -3404,8 +3415,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FY1(i) = FYi
       FZ1(i) = FZi
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -3509,28 +3520,28 @@ loop1:do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE ( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE ( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta3,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta3,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta3, i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta3, i, j, k, i1)
 #endif
 
     ! Assign local variables
@@ -3592,8 +3603,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)       
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)       
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -3759,8 +3770,8 @@ loop1:do k = 1, this%NInCutoff(i)
       !TRANSPORT_END
 #endif
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -4111,18 +4122,18 @@ loop1:  do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
-!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
+!!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
 #endif
 
     ! Assign local variables
@@ -4155,8 +4166,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     OZ2 => this%Site2%OZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)     
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)     
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -4225,8 +4236,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FY1(i) = FYi
       FZ1(i) = FZi
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -4332,27 +4343,27 @@ loop1:do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
-!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
+!!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
+!!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
 #endif
 
     ! Assign local variables
@@ -4415,8 +4426,8 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
  
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)     
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)     
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -4583,8 +4594,8 @@ loop1:do k = 1, this%NInCutoff(i)
       !TRANSPORT_END
 #endif  
   end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -4926,19 +4937,19 @@ loop1:  do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXi, OYi, OZi,  TXi, TYi, TZi,  eX, eY, eZ) &
-!$OMP PRIVATE (  RijSquaredInv, RijInv,  CosTheta, CosTheta3) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXi, OYi, OZi,  TXi, TYi, TZi,  eX, eY, eZ) &
+!!$OMP PRIVATE (  RijSquaredInv, RijInv,  CosTheta, CosTheta3) &
 #if MPI_VER > 0
-!$OMP PRIVATE (  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE (  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE (  i, j, k, i1) 
+!!$OMP PRIVATE (  i, j, k, i1) 
 #endif
 
     ! Assign local variables
@@ -4974,7 +4985,7 @@ loop1:  do k = 1, this%NInCutoff(i)
     TZ1 => this%Site1%TZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)        
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)        
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -5045,8 +5056,8 @@ loop1:do k = 1, this%NInCutoff(i)
       TY1(i) = TYi
       TZ1(i) = TZi
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -5138,19 +5149,19 @@ loop1:do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE ( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( OXi, OYi, OZi,  TXi, TYi, TZi,  eX, eY, eZ) &
-!$OMP PRIVATE (  RijSquaredInv, RijInv,  CosTheta, CosTheta3) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE ( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE ( OXi, OYi, OZi,  TXi, TYi, TZi,  eX, eY, eZ) &
+!!$OMP PRIVATE (  RijSquaredInv, RijInv,  CosTheta, CosTheta3) &
 #if MPI_VER > 0
-!$OMP PRIVATE (  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE (  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE (  i, j, k, i1) 
+!!$OMP PRIVATE (  i, j, k, i1) 
 #endif
 
     ! Assign local variables
@@ -5215,7 +5226,7 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)        
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)        
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -5386,8 +5397,8 @@ loop1:do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -5747,24 +5758,24 @@ loop1:  do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij3Inv, Rij4Inv3) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
-!$OMP PRIVATE (CosThetai3, CosThetaj3,  Tmp) &
-!$OMP PRIVATE (  SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij3Inv, Rij4Inv3) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!!$OMP PRIVATE (CosThetai3, CosThetaj3,  Tmp) &
+!!$OMP PRIVATE (  SameComponent) &
 #if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
 #else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 #endif
 
     ! Assign local variables
@@ -5812,8 +5823,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)      
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)      
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -5908,12 +5919,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         TZ1(i) = TZi
 
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -6029,10 +6040,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -6147,32 +6158,32 @@ loop2:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij3Inv, Rij4Inv3) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
-!$OMP PRIVATE (CosThetai3, CosThetaj3,  Tmp) &
-!$OMP PRIVATE (  SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij3Inv, Rij4Inv3) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!!$OMP PRIVATE (CosThetai3, CosThetaj3,  Tmp) &
+!!$OMP PRIVATE (  SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
 #endif
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -6249,8 +6260,8 @@ loop2:  do j = j0, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)      
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)      
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -6440,12 +6451,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -6557,10 +6568,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -7077,25 +7088,25 @@ loop2:do j = 1, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosThetaj2, CosGammaij) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
-!$OMP PRIVATE (Tmp, EPotLocal1) &
-!$OMP PRIVATE ( SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosThetaj2, CosGammaij) &
+!!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
+!!$OMP PRIVATE (Tmp, EPotLocal1) &
+!!$OMP PRIVATE ( SameComponent) &
 #if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
 #else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 #endif
 
 
@@ -7143,8 +7154,8 @@ loop2:do j = 1, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -7242,12 +7253,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -7358,10 +7369,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -7475,34 +7486,34 @@ loop2:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosThetaj2, CosGammaij) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
-!$OMP PRIVATE (Tmp, EPotLocal1) &
-!$OMP PRIVATE ( SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosThetaj2, CosGammaij) &
+!!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
+!!$OMP PRIVATE (Tmp, EPotLocal1) &
+!!$OMP PRIVATE ( SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
 #else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 #endif
 
 
@@ -7581,8 +7592,8 @@ loop2:  do j = j0, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -7778,12 +7789,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif      
        end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -7894,10 +7905,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -8420,18 +8431,18 @@ loop2:do j = 1, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2, TXi, TYi, TZi) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (  eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2, TXi, TYi, TZi) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (  eX, eY, eZ, RijSquaredInv, RijInv) &
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
 #endif
 
 
@@ -8468,7 +8479,7 @@ loop2:do j = 1, j1
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -8546,8 +8557,8 @@ loop1:do k = 1, this%NInCutoff(i)
       TY1(i) = TYi
       TZ1(i) = TZi
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -8642,27 +8653,27 @@ loop1:do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2, TXi, TYi, TZi) &
-!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (  eX, eY, eZ, RijSquaredInv, RijInv) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2, TXi, TYi, TZi) &
+!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (  eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
-!$OMP PRIVATE ( i0)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
+!!$OMP PRIVATE ( i0)
 #else
-!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
+!!$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1)
 #endif
 
 
@@ -8728,7 +8739,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !TRANSPORT_END
 #endif
     ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
 
 #if MPI_VER > 0
     do i = i0, i1
@@ -8904,8 +8915,8 @@ loop1:do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
     end do
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -9269,25 +9280,25 @@ loop1:  do k = 1, this%NInCutoff(i)
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosThetai2, CosGammaij) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
-!$OMP PRIVATE (Tmp, EPotLocal1) &
-!$OMP PRIVATE (SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosThetai2, CosGammaij) &
+!!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
+!!$OMP PRIVATE (Tmp, EPotLocal1) &
+!!$OMP PRIVATE (SameComponent) &
 #if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
 #else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 #endif
 
     ! Assign local variables
@@ -9334,8 +9345,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -9432,12 +9443,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -9551,10 +9562,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -9665,34 +9676,34 @@ loop2:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosThetai2, CosGammaij) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
-!$OMP PRIVATE (Tmp, EPotLocal1) &
-!$OMP PRIVATE (SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr,PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij4Inv) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosThetai2, CosGammaij) &
+!!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij) &
+!!$OMP PRIVATE (Tmp, EPotLocal1) &
+!!$OMP PRIVATE (SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN)
 #else
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 #endif
 
 
@@ -9768,8 +9779,8 @@ loop2:  do j = j0, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -9967,12 +9978,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
       end do
-!$OMP END DO
+!!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -10086,10 +10097,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
@@ -10658,6 +10669,10 @@ loop2:do j = 1, j1
     EPotLocal=0._RK
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
+    i = 0
+    j = 0
+    k = 0
+    j0= 0
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -11053,33 +11068,33 @@ loop2:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
-!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
-!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
-!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
-!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
-!$OMP PRIVATE (EPotLocal1, SameComponent) &
+!!$OMP PARALLEL &
+!!$OMP PRIVATE (Epsilon,  RCutoffSquared) &
+!!$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
+!!$OMP PRIVATE (OX1, OY1, OZ1, OX2, OY2, OZ2) &
+!!$OMP PRIVATE (FX1, FY1, FZ1, TX1, TY1, TZ1) &
+!!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
+!!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
+!!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
+!!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
+!!$OMP PRIVATE (EPotLocal1, SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
-!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
-!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!!$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!!$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
+!!$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
+!!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
 #endif
 #if MPI_VER > 0
-!$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
+!!$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
 #endif
-!$OMP PRIVATE (i, j, k, i1, j0, j1)
+!!$OMP PRIVATE (i, j, k, i1, j0, j1)
 
     ! Assign local variables
     SameComponent = this%SameComponent
@@ -11155,8 +11170,8 @@ loop2:  do j = j0, j1
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -11366,13 +11381,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
       end do
-!$OMP END DO
+!!$OMP END DO
 
     else ! Site-site cutoff
 
       ! Loop over molecules
-!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
-!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
+!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local) &
+!!$OMP REDUCTION(+:momTempX, momTempY, momTempZ)
 #if MPI_VER > 0
       do i = i0, i1
 #else
@@ -11501,10 +11516,10 @@ loop2:  do j = j0, j1
         TY1(i) = TYi
         TZ1(i) = TZi
       end do
-!$OMP END DO
+!!$OMP END DO
 
     end if
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ

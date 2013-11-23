@@ -3275,8 +3275,10 @@ end subroutine TInteraction_Energy
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
-
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere
+!$OMP DO
     do i = 1, this%NTest1
       PXi = PX1(i)
       PYi = PY1(i)
@@ -3299,9 +3301,8 @@ end subroutine TInteraction_Energy
       end do
       this%NInCutoff(i) = NInCutoff
     end do
-
+!$OMP END DO
+!$OMP END PARALLEL
   end subroutine TInteraction_CalcPartnersTest
-
-
 
 end module ms2_interaction
