@@ -2012,39 +2012,6 @@ loop2:do j = 1, N
     integer           :: i0
 #endif
 
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
-    d2EpotdV2Local= 0._RK
-
-!!$OMP PARALLEL &
-!!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!!$OMP PRIVATE (Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-#if MPI_VER > 0
-!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1) &
-!!$OMP PRIVATE ( i0)
-#else
-!!$OMP PRIVATE ( eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k, i1)
-#endif
-
-
-    ! Assign local variables
-#if MPI_VER > 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-#else
-    i1 = this%Site1%NPart
-#endif
-    Epsilon = this%Epsilon
-
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -2061,9 +2028,37 @@ loop2:do j = 1, N
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+    Epsilon = this%Epsilon
+
+!$OMP PARALLEL &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE (i0) &
+#endif
+!$OMP FIRSTPRIVATE(i1) &
+!$OMP PRIVATE (Plen2,sitecorr) &
+!$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
+!$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE (eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k)
 
     ! Loop over molecules
-!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2126,8 +2121,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FZ1(i) = FZi
 
     end do
-!!$OMP END DO
-!!$OMP END PARALLEL
+!$OMP END DO
+!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
