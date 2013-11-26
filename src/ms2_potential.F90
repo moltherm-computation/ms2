@@ -959,6 +959,7 @@ contains
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
     j1 = 0
+    ji = 0
 #else
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
@@ -10679,6 +10680,8 @@ loop2:do j = 1, j1
     EvenN = mod( N1, 2 ) == 0
     i0 = this%Site1%NPart0
     i1 = this%Site1%NPart2
+    ji = 0
+    j1 = 0
 #else
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
@@ -11601,9 +11604,19 @@ loop2:  do j = j0, j1
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
+!$OMP PRIVATE (OXi, OYi, OZi, OXj, OYj, OZj) &
+!$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared,RijSquared,RijInv, Rij5Inv) &
+!$OMP PRIVATE (Tmp,eX,eY,eZ) &
+!$OMP PRIVATE (EPotLocal,i,j,k) 
+
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
+!$OMP DO 
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -11682,10 +11695,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -11694,7 +11708,6 @@ loop1:  do k = 1, this%NInCutoff(i)
         OYi = OY1(i)
         OZi = OZ1(i)
         EPotLocal = 0._RK
-
 #if ARCH == 3
         hit = .false.
 #endif
@@ -11741,8 +11754,8 @@ loop2:  do j = 1, j1
 #else
           Rij5Inv = Epsilon * RijInv**5
 #endif
-          EPotLocal = EPotLocal + Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&           - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2)
+          EPotLocal = EPotLocal + (Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&           - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2))
         end do loop2
 
 #if ARCH == 3
@@ -11755,8 +11768,9 @@ loop2:  do j = 1, j1
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     end if
+!$OMP END PARALLEL
 
   end subroutine TPotQQ_ChemicalPotential
 
