@@ -1297,6 +1297,7 @@ contains
     real(RK), pointer :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
+    real(RK)          :: d2EpotdV2Local
 
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
@@ -1314,7 +1315,7 @@ contains
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquared, RijInv, RijSquaredInv, Rij3Inv
-    real(RK)          :: RijInv4, RijInv2
+    real(RK)          :: RijInv2
     real(RK)          :: Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
@@ -1348,6 +1349,8 @@ contains
       Virial => this%Virial1
       VirialLocal = 1E33_RK
     end if
+    d2EpotdV2Local = 1E33_RK
+
 
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
@@ -1551,15 +1554,16 @@ contains
                 eZ = RZij * RijInv
                 VirialLocal = EPotLocal * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
+              d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
        end if ! ReactionField - Ewald-Summation
@@ -1622,14 +1626,15 @@ contains
 &                                + ( Tmp * eY - OYj ) * PYij &
 &                                + ( Tmp * eZ - OZj ) * PZij )
               end if
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
 
           end do
         end do
@@ -1692,14 +1697,15 @@ contains
 &                              + ( CosAux * eY - Tmp * OYj ) * PYij &
 &                              + ( CosAux * eZ - Tmp * OZj ) * PZij )
               end if
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
             end if
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
       end do
@@ -1764,14 +1770,15 @@ contains
 &                                + ( OYi - Tmp * eY ) * PYij &
 &                                + ( OZi - Tmp * eZ ) * PZij )
               end if
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * VirialLocal
             end if
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
         do s2 = 1, this%N2Dipole
@@ -1847,15 +1854,16 @@ contains
                 FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                           - (eZ * CosThetaj - OZj) * CosThetai)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Third*Third !xxxx5 DD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Third*Third !xxxx5 DD
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -1936,15 +1944,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx6 DQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx6 DQ
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
       end do
@@ -2012,14 +2021,15 @@ contains
                 FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
                 FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
               end if
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx7 QC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) - Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx7 QC
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
         do s2 = 1, this%N2Dipole
@@ -2099,15 +2109,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx8 QD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx8 QD
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
 
@@ -2199,15 +2210,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
       end do
@@ -2500,15 +2512,16 @@ contains
                 FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                           - (eZ * CosThetaj - OZj) * CosThetai)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
 
@@ -2595,15 +2608,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
       end do
@@ -2693,15 +2707,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -2800,15 +2815,16 @@ contains
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
               end if
+              RijInv2  =  RijInv*RijInv
+              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+              sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
+              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
               Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            RijInv2  =  RijInv*RijInv
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
+            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
           end do
         end do
       end do
