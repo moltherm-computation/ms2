@@ -2178,40 +2178,6 @@ loop1:do k = 1, this%NInCutoff(i)
     integer           :: i0
 #endif
 
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
-
-!!$OMP PARALLEL &
-!!$OMP PRIVATE ( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!!$OMP PRIVATE (  FX1, FY1, FZ1, FX2, FY2, FZ2) &
-!!$OMP PRIVATE (approx, Faktor, Fij,KappaRij) &
-!!$OMP PRIVATE ( PX1, PY1, PZ1, PX2, PY2, PZ2) &
-!!$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
-!!$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-#if MPI_VER > 0
-!!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij ,EPotLocal1,  i, j, k, i1, i2) &
-!!$OMP PRIVATE ( i0)
-#else
-!!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k, i1, i2)
-#endif
-
-    ! Assign local variables
-#if MPI_VER > 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-#else
-    i1 = this%Site1%NPart
-    i2 = this%Site2%NPart
-#endif
-    Epsilon = this%Epsilon
-    Faktor = 2._RK/sqrt(Pi) * Kappa
-
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -2222,6 +2188,9 @@ loop1:do k = 1, this%NInCutoff(i)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
@@ -2229,8 +2198,37 @@ loop1:do k = 1, this%NInCutoff(i)
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+    i2 = 0
+#else
+    i1 = this%Site1%NPart
+    i2 = this%Site2%NPart
+#endif
+    Epsilon = this%Epsilon
+    Faktor = 2._RK/sqrt(Pi) * Kappa
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+
+!$OMP PARALLEL DEFAULT(SHARED) &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE ( i0) &
+#endif
+!$OMP FIRSTPRIVATE (i1, i2) &
+!$OMP PRIVATE ( approx, Fij,KappaRij,Rij2) &
+!$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
+!$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k)
+
+
     ! Loop over molecules
-!!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
+!$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
 #if MPI_VER > 0
     do i = i0, i1
 #else
@@ -2296,8 +2294,8 @@ loop1:do k = 1, this%NInCutoff(i)
       FY1(i) = FYi
       FZ1(i) = FZi
     end do
-!!$OMP END DO
-!!$OMP END PARALLEL
+!$OMP END DO
+!$OMP END PARALLEL
 
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
