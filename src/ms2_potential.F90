@@ -6646,9 +6646,18 @@ loop2:  do j = j0, j1
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
+!$OMP PRIVATE (OXi, OYi, OZi, OXj, OYj, OZj) &
+!$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (Tmp,RijSquared,RijInv, Rij3Inv) &
+!$OMP PRIVATE (eX,eY,eZ) &
+!$OMP PRIVATE (EPotLocal,i,j,k) 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -6715,10 +6724,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -6776,9 +6786,9 @@ loop2:  do j = 1, j1
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     end if
-
+!$OMP END PARALLEL
   end subroutine TPotDD_ChemicalPotential
 
 
@@ -7982,9 +7992,18 @@ loop2:  do j = j0, j1
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
+!$OMP PRIVATE (OXi, OYi, OZi, OXj, OYj, OZj) &
+!$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (RijSquared,RijInv, Rij4Inv) &
+!$OMP PRIVATE (eX,eY,eZ) &
+!$OMP PRIVATE (EPotLocal,i,j,k) 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -8051,10 +8070,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -8114,9 +8134,9 @@ loop2:  do j = 1, j1
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     end if
-
+!$OMP END PARALLEL
   end subroutine TPotDQ_ChemicalPotential
 
 
@@ -10174,9 +10194,19 @@ loop2:  do j = j0, j1
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
+!$OMP PRIVATE (OXi, OYi, OZi, OXj, OYj, OZj) &
+!$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (RijSquared,RijInv, Rij4Inv) &
+!$OMP PRIVATE (eX,eY,eZ) &
+!$OMP PRIVATE (EPotLocal,i,j,k) 
+
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -10244,10 +10274,11 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     else ! Site-site cutoff
 
       ! Loop over test particles
+!$OMP DO
       do i = 1, i1
         RXi = RX1(i)
         RYi = RY1(i)
@@ -10306,9 +10337,9 @@ loop2:  do j = 1, j1
         EPotTest(i) = EPotTest(i) + EPotLocal
 #endif
       end do
-
+!$OMP END DO
     end if
-
+!$OMP END PARALLEL
   end subroutine TPotQD_ChemicalPotential
 
 
