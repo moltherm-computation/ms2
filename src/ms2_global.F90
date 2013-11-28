@@ -127,6 +127,8 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: Hardware = 'pc/pathf9X'
 #elif defined _PGF
   character(*), parameter :: Hardware = 'pc/PGF'
+#elif defined _CRAYFTN
+  character(*), parameter :: Hardware = 'XE6/CRAY'
 #elif defined __GNUC__
   character(*), parameter :: Hardware = 'pc/gfortran'
 #else
@@ -1001,9 +1003,11 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__
+#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
-#elif ARCH==3 || defined __GNUC__
+#elif defined _CRAYFTN
+        call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
+#elif ARCH==3 || defined __GNUC__ 
         call chdir( buffer(:max(i-1,1)), stat )
 #else
         print *, 'chdir not supported!'
@@ -1333,7 +1337,8 @@ contains
     character(*), parameter   :: hostname = 'unknown host'
     character(*), parameter   :: username = 'unknown user'
 #endif
-
+    integer :: length,stat
+    character :: Version*6
     ! Check for root process
     if( .not. RootProc ) return
 
@@ -1411,7 +1416,10 @@ contains
 
 ! cmp. http://predef.sourceforge.net/precomp.html
 !           __GFORTRAN__
-#if defined __GNUC__
+#if defined _CRAYFTN
+    call GET_ENVIRONMENT_VARIABLE('CRAY_CC_VERSION',Version,length,stat,.FALSE.)
+    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version 
+#elif defined __GNUC__
     write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
     write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
