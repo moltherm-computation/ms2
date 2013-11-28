@@ -1142,7 +1142,8 @@ contains
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
-#ifdef __GNUC__
+#ifdef _CRAYFTN
+#elif defined  __GNUC__
     call signal( 1, IgnoreSignal )
     call signal( 2, SetTerminateProgram )
     call signal( 15, SetTerminateProgram )
@@ -1353,8 +1354,9 @@ contains
 #endif
     if( i .ne. 0 ) hostname = 'unknown host'
 #endif
-
-#if ARCH == 1 || defined _PGF
+#ifdef _CRAYFTN
+   username = 'Getlog is not supported'
+#elif ARCH == 1 || defined _PGF
     username = getlog()
 #elif ARCH == 2 || ARCH == 3
     call getlog( username )
