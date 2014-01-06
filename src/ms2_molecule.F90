@@ -719,12 +719,6 @@ contains
       if  (this%Unit(i)%isElongated) this%NEUnit = this%NEunit + 1
     end do
 
-    if (UseIntDegFreed) then
-      ! Save  used potential model with IDF
-       call SaveIDF( this )
-    end if
-
-
     !Consider Intramolecular interactions
     if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
        call Error('Check *.par file, molecule too small, &
@@ -1460,7 +1454,10 @@ contains
 
     ! Save used potential model
     call Save( this, fluctstate )
-
+    if (UseIntDegFreed) then
+      ! Save  used potential model with IDF
+       call SaveIDF( this )
+    end if
 
 
     contains
@@ -1777,6 +1774,7 @@ contains
 
     ! Save information about Idf
     ! Save number of potential types
+    call FileWriteBlank( iounit_normal )
     call FileWriteBlank( iounit_normal )
     nidftypes = 0
     if( this%NBond > 0 ) nidftypes = nidftypes + 1
@@ -2304,6 +2302,54 @@ contains
         if (Site1 .and. Site2) exit
       end do
     end if
+    
+    ! Michael Sch.: added Dipole and Quadrupole sites to consider for bonds/bond-partners
+    
+    if((.not. Site1 .or. .not. Site2) .and. (this%NDipole > 0) ) then
+      do i = 1, this%NDipole
+        if (this%SiteDipole(i)%SiteId==SiteId1) then
+          r1(1)=this%SiteDipole(i)%r(1)
+          r1(2)=this%SiteDipole(i)%r(2)
+          r1(3)=this%SiteDipole(i)%r(3)
+          Site1 = .true.
+          Bond%UnitId1=this%SiteDipole(i)%UnitNumber
+          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+        else if (this%SiteDipole(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteDipole(i)%r(1)
+          r2(2)=this%SiteDipole(i)%r(2)
+          r2(3)=this%SiteDipole(i)%r(3)
+          Site2 = .true.
+          Bond%UnitId2=this%SiteDipole(i)%UnitNumber
+          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+        end if
+        if (Site1 .and. Site2) exit
+      end do
+    end if
+    
+    if((.not. Site1 .or. .not. Site2) .and. (this%NQuadrupole > 0) ) then
+      do i = 1, this%NQuadrupole
+        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
+          r1(1)=this%SiteQuadrupole(i)%r(1)
+          r1(2)=this%SiteQuadrupole(i)%r(2)
+          r1(3)=this%SiteQuadrupole(i)%r(3)
+          Site1 = .true.
+          Bond%UnitId1=this%SiteQuadrupole(i)%UnitNumber
+          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
+          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteQuadrupole(i)%r(1)
+          r2(2)=this%SiteQuadrupole(i)%r(2)
+          r2(3)=this%SiteQuadrupole(i)%r(3)
+          Site2 = .true.
+          Bond%UnitId2=this%SiteQuadrupole(i)%UnitNumber
+          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
+          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+        end if
+        if (Site1 .and. Site2) exit
+      end do
+    end if
 
 
     if (.not. Site1 .or. .not. Site2) then
@@ -2396,6 +2442,7 @@ contains
         if (Site1 .and. Site2 .and. Site3) exit
       end do
     end if
+    
     if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) then
       do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
@@ -2428,6 +2475,7 @@ contains
         if (Site1 .and. Site2 .and. Site3) exit
       end do
     end if
+    
     if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NDipole > 0) ) then
       do i = 1, this%NDipole
         if (this%SiteDipole(i)%SiteId==SiteId1) then
@@ -2474,6 +2522,7 @@ contains
         if (Site1 .and. Site2 .and. Site3) exit
       end do
     end if
+    
     if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NQuadrupole > 0) ) then
       do i = 1, this%NQuadrupole
         if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
@@ -2819,6 +2868,8 @@ contains
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
       end if
     end if
+    
+    ! Michael Sch.: add calculation of equlibrium dihedral here (needs introduction of r1-4(3))
 
   end subroutine TMolecule_FindDihedral
 

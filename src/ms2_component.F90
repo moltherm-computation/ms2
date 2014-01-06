@@ -3585,7 +3585,6 @@ contains
           ! Loop over molecules
           do i = 1, np
             ik = (i-1)*nu+k
-            ! Positions and quaternions of unit k in particle i
             PX(ik) = this%P0(i, 1, k)
             PY(ik) = this%P0(i, 2, k)
             PZ(ik) = this%P0(i, 3, k)
@@ -3714,7 +3713,7 @@ contains
            end do
          end do
 
-         ! Loop over LJ126 sites in molecule
+         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
           do j = 1, np
@@ -3899,7 +3898,7 @@ contains
              pLJ126%RZ(np) = this%P0(np, 3, k)
          end do
 
-         ! Loop over LJ126 sites in molecule
+         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
           pCharge%RX(np) = this%P0(np, 1, k)
@@ -4078,7 +4077,7 @@ contains
            pLJ126%RZ(np) = this%P0(np, 3, nu)
          end do
 
-         ! Loop over LJ126 sites in molecule
+         ! Loop over charge sites in molecule
          do i = 1, this%Molecule%Unit(nu)%NCharge
            pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
            pCharge%RX(np) = this%P0(np, 1, nu)
@@ -4142,10 +4141,7 @@ contains
     if ( this%Molecule%isElongated ) then
       ! Loop over all units in Molecule
       do k = 1, nu
-        ! Check number of rotation axes
-!        if( this%Molecule%Unit(k)%isElongated ) then
-!           print *, 'Unit is elongated'
-            ik = (np-1)*nu+k
+            ik = (np-1)*nu+k !!!Michael Sch. ik nicht benoetigt
             ! Positions and quaternions of unit k in particle i
             PX = this%P0(np, 1, k)
             PY = this%P0(np, 2, k)
@@ -4262,7 +4258,7 @@ contains
              pLJ126%RZ(np) = this%P0(np, 3, k)
          end do
 
-         ! Loop over LJ126 sites in molecule
+         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
           pCharge%RX(np) = this%P0(np, 1, k)
@@ -4448,16 +4444,29 @@ contains
 
        else
 
+       !!! Michael Sch.: added forces of charge sites for not elongated units
+       
         ! Loop over LJ126 sites in unit
          do j = 1, this%Molecule%Unit(k)%NLJ126
            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(j)
            do i = 1, np
-             ik = (i-1)*nu+k
+             !ik = (i-1)*nu+k
              this%F(i, 1, k) = this%F(i, 1, k) + pLJ126%FX(i)
              this%F(i, 2, k) = this%F(i, 2, k) + pLJ126%FY(i)
              this%F(i, 3, k) = this%F(i, 3, k) + pLJ126%FZ(i)
            end do
          end do
+         
+        ! Loop over charge sites in molecule
+          do j = 1, this%Molecule%Unit(k)%NCharge
+            pCharge => this%Molecule%Unit(k)%SiteCharge(j)
+            do i = 1, np
+             this%F(i, 1, k) = this%F(i, 1, k) + pCharge%FX(i)
+             this%F(i, 2, k) = this%F(i, 2, k) + pCharge%FY(i)
+             this%F(i, 3, k) = this%F(i, 3, k) + pCharge%FZ(i)
+            end do
+        end do
+         
        end if
 
     end do
@@ -4617,7 +4626,7 @@ contains
     do i=1,nup
       ! Check number of rotation axes
       ik = (np-1)*nup+i
-      ! Positions and quaternions of unit k in particle i
+      ! Positions and quaternions of unit i in particle np
       PX = this%P0(np, 1, i)
       PY = this%P0(np, 2, i)
       PZ = this%P0(np, 3, i)
@@ -4627,7 +4636,7 @@ contains
       q3 = this%Q0(np, 3, i)
       q4 = this%Q0(np, 4, i)
 
-      ! Loop over LJ126 sites in unit
+      ! Loop over LJ126 sites in unit ??? COM of unit
       r1 = (PX-this%Pm0(np,1)) * BoxLengthInv
       r2 = (PY-this%Pm0(np,2)) * BoxLengthInv
       r3 = (PZ-this%Pm0(np,3)) * BoxLengthInv
@@ -5553,10 +5562,13 @@ contains
     if ( UseIntDegFreed ) write( iounit_restart, '(I10)' ) nu
 
 
-    ! Centers of mass positions for units
+    ! Centers of mass positions for units               !!!Michael Sch. changed all following expressions from : to 1,2,3(,..,5) to suppress I/O error messages
     do i = 1, np
       do k = 1, nu
-        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P0( i, :, k )
+        !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P0( i, :, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 1, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 2, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 3, k )
       end do
     end do
 
@@ -5564,29 +5576,44 @@ contains
       ! Centers of mass positions' derivatives
       do i = 1, np
         do k = 1, nu
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, :, k )
+          !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, :, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 1, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 2, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 3, k )
         end do
       end do
       do i = 1, np
         do k = 1, nu
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, :, k )
+          !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, :, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 1, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 2, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 3, k )
         end do
       end do
 
       if( IntegratorType .eq. IntegratorTypeGear ) then
         do i = 1, np
           do k = 1, nu
-             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, :, k )
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, :, k )
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, :, k )
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 3, k )
           end do
         end do
       end if
@@ -5607,7 +5634,11 @@ contains
       ! Quaternion parameters
       do i = 1, np
          do  k = 1, nu
-            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q0( i, :, k )
+            !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q0( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 3, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 4, k )
          end do
       end do
 
@@ -5615,24 +5646,40 @@ contains
         ! Quaternion parameters' derivatives
         do i = 1, np
          do  k = 1, nu
-            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q1( i, :, k )
+            !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q1( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 3, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 4, k )
          end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             do  k = 1, nu
-              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, :, k )
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 4, k )
             end do
           end do
           do i = 1, np
             do  k = 1, nu
-              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, :, k )
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 4, k )
             end do
           end do
           do i = 1, np
             do  k = 1, nu
-              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, :, k )
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 4, k )
             end do
           end do
         end if
@@ -5640,29 +5687,44 @@ contains
         ! Angular velocities and their derivatives
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, :, k )
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, :, k )
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 3, k )
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             do k= 1, nu
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, :, k )
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 3, k )
             end do
           end do
           do i = 1, np
             do k= 1, nu
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, :, k )
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 3, k )
             end do
           end do
           do i = 1, np
             do k= 1, nu
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, :, k )
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 3, k )
             end do
           end do
         end if

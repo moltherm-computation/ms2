@@ -4,6 +4,8 @@
 PROGS =	ms2_global.F90 \
 	ms2_accumulator.F90 \
 	ms2_site.F90 \
+	ms2_idf.F90 \
+	ms2_unit.F90 \
 	ms2_molecule.F90 \
 	ms2_component.F90 \
 	ms2_potential.F90 \
