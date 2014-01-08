@@ -709,7 +709,7 @@ contains
       allocate( this%EPotNew(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
 
-     allocate( this%d2EpotdV2(N1, N2), STAT = stat )
+      allocate( this%d2EpotdV2(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
       allocate( this%d2EpotdV21(N2), STAT = stat )
       call AllocationError( stat, 'particles', N2 )
@@ -727,6 +727,8 @@ contains
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
+      allocate( this%d2EpotdV21(N2), STAT = stat )
+      call AllocationError( stat, 'particles', N2 )
       allocate( this%EPot1(this%NPartMax), STAT = stat )
       call AllocationError( stat, 'particles', this%NPartMax )
       if ( this%OptPressure ) then
