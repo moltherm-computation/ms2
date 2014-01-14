@@ -1244,7 +1244,7 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 !$OMP PRIVATE( SameComponent )
 
@@ -2397,7 +2397,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( i0) &
@@ -3528,7 +3528,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 
 #if MPI_VER > 0
@@ -4351,7 +4351,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
 !$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
@@ -6172,7 +6172,7 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
@@ -7511,7 +7511,7 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE (i, j, k, i1, j0, j1) &
@@ -8681,7 +8681,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( CosTheta, CosTheta2, CosAux,  i, j, k, i1) &
@@ -9711,7 +9711,7 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE (i, j, k, i1, j0, j1) &
@@ -11116,7 +11116,7 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
 !$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
-!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33, Conductivity) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( N1, N2, i0, ji, EvenN) &
