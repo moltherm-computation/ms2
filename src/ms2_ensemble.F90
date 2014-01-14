@@ -9577,7 +9577,7 @@ loop2:        do nc = 1, this%NComponents
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
         elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eq. .true.) then
+          if (this%MolarEnthConduct .eqv. .true.) then
                write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
                call FileWrite( this%iounit_errors )
                write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
@@ -9648,7 +9648,7 @@ loop2:        do nc = 1, this%NComponents
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
 
         elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eq. .true.) then
+          if (this%MolarEnthConduct .eqv. .true.) then
                write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
                call FileWrite( this%iounit_errors )
                write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
