@@ -537,7 +537,7 @@ contains
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 #if MPI_VER>0        
         if ( .not. SimulationType .eq. MonteCarlo ) then
-           this%NTest = (this%NTest/NProcs +1)
+           this%NTest = ((this%NTest -1)/NProcs +1)
         end if
 #endif
       end if
