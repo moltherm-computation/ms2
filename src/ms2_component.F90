@@ -818,6 +818,7 @@ contains
       call Construct( this%SumInvChemPot2, .true. )
 !DEBUG
       call Construct( this%SumVW, .true. )
+      call Construct( this%SumHM, .true. )
 !DEBUG
       call Construct( this%SumVW1, .true. )
       call Construct( this%SumVW2, .true. )
@@ -862,6 +863,7 @@ contains
       call Destruct( this%SumInvChemPot2 )
 !DEBUG
       call Destruct( this%SumVW )
+      call Destruct( this%SumHM )
 !DEBUG
       call Destruct( this%SumVW1 )
       call Destruct( this%SumVW2 )
