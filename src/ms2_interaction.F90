@@ -3347,7 +3347,7 @@ end subroutine TInteraction_Energy
     logical           :: intra15, intra14
     logical           :: SameComponent
     real(RK)          :: num, den, ax, ay, az, bx, by, bz, cx, cy, cz, EPotAdd
-    real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
+    real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, signum, arg, earg!, si
     logical           :: OptPressure
 
     ! Assign local variables
