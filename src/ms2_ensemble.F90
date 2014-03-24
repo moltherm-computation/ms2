@@ -1336,8 +1336,8 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
-      write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ / this%NPart
+    if ( SimulationType .eq. MonteCarlo .and. (.not. (Equilibration .and. CommonEqui)))  then
+      write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ  / this%NPart
 
     else
       write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ * Nprocs/ this%NPart
@@ -1346,7 +1346,7 @@ contains
     call LogWrite
 
     if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then  
-      write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ / this%NPart
+      write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ  / this%NPart
 
     else
       write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ * NProcs / this%NPart
@@ -1362,7 +1362,7 @@ contains
 
     if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
-&       this%EPotCorrRF / this%NPart
+&       this%EPotCorrRF  / this%NPart
 
     else
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
@@ -3118,7 +3118,6 @@ contains
 
 #if MPI_VER >0
   if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then
-    if (Step .ne. 0) then 
       if( this%NLJ126Max > 0 ) then
         this%EPotCorrLJ = this%EPotCorrLJ * NProcs
         this%VirialCorrLJ = this%VirialCorrLJ * NProcs
@@ -3133,7 +3132,6 @@ contains
         this%EPotCorrRFPart = this%EPotCorrRFPart * NProcs
         this%EPotCorrRFVol  = this%EPotCorrRFVol  * NProcs
       end if
-    endif
   endif
 #endif
 
