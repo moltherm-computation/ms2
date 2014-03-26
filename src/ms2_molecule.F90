@@ -519,7 +519,7 @@ contains
     call AllocationError( stat, 'Units', this%NUnit)
 
     ! Rewind File for reading Constraints
-    call FileRewind( iounit_potmod, this%PotModFileName )
+    call FileRewind( iounit_potmod, this%PotModFileName )  !Michael Sch.: fix me ... needed? if not delete whole rewind-routine
 
     
     ! Construct Units
@@ -571,7 +571,6 @@ contains
         k=1
         if (this%NConstraint > 0) then
           call sort_array(this%ConstraintSiteIds)
-!         print *, 'ConstraintSiteIds=', this%ConstraintSiteIds
           do i = 1, this%NSite
             call binar_search(this%ConstraintSiteIds, this%SiteIds(i), ok, index)
             if (.not. ok) then

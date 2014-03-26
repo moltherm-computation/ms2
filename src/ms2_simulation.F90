@@ -753,8 +753,7 @@ contains
 
     end if
 
-    ! Read type of simulation with/without internal degree of freedom
-    ! Read type of MD simulation with/without internal degree of freedom  
+    ! Read type of simulation with/without internal degree of freedom 
     call FileReadParameter( str, iounit_params , IdUseIntDegFreed, .true., "off" )
     select case( str )
     case( 'ON', 'On', 'on', 'YES', 'yes' )
@@ -762,6 +761,10 @@ contains
        str = 'Flexible molecules'
     case( 'OFF', 'off', 'no', 'No' )
        UseIntDegFreed = .false.
+       printIDF = .false.
+       IntraLJEl = .false.
+       LJEl14 = .false.
+       Shake = 0.0_RK
        str = 'Rigid molecules'
     case default
        call Error( trim( str )//'To switch on internal degree of freedom use on or yes' )
@@ -1213,7 +1216,9 @@ contains
         end do
         
         ! Recalculate Energies to avoid energy artefacts 
-        call Mol2Atom( this%Ensemble(j) )
+        call Mol2Unit( this%Ensemble(j) )
+        call Unit2Atom( this%Ensemble(j) )
+
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
@@ -1470,9 +1475,9 @@ eqloop: do
           do i = 1, this%Ensemble(k)%NRealComponents
             do j = 1, this%Ensemble(k)%NRealComponents
               pi => this%Ensemble(k)%Interaction(j, i)
-              n1 = pi%NPart1
-              n2 = pi%NPart2
-        
+              n1 = pi%NPart1 * pi%NUnit1
+              n2 = pi%NPart2 * pi%NUnit2
+
               call MPI_Allreduce( pi%EPot(1:n1, 1:n2), pi%EPotNew(1:n1, 1:n2), n1*n2 , &
 &                  MPI_RK, MPI_SUM, Communicator, ierror )
               pi%EPot(1:n1, 1:n2) =  pi%EPotNew(1:n1, 1:n2)
@@ -1481,13 +1486,28 @@ eqloop: do
                 call MPI_Allreduce( pi%Virial(1:n1, 1:n2) ,pi%VirialNew(1:n1, 1:n2), n1*n2 , &
 &                    MPI_RK, MPI_SUM, Communicator, ierror )
                 pi%Virial(1:n1, 1:n2)  =  pi%VirialNew(1:n1, 1:n2)
-              endif
+              end if
+
+!              if ( pi%SameComponent .and. UseIntDegFreed ) then
+!                n1 = pi%NPart1 * pi%NAngle
+!                n2 = pi%NPart1 * pi%NDihedral
+!                if (n1 .gt. 0) then
+!                  call MPI_Allreduce( pi%EPotAngle(1:n1), pi%EPotAngleNew(1:n1), n1 , &
+!&                      MPI_RK, MPI_SUM, Communicator, ierror )
+!                  pi%EPotAngle(1:n1) =  pi%EPotAngleNew(1:n1)
+!                endif
+!                if (n2 .gt. 0) then
+!                  call MPI_Allreduce( pi%EPotTo(1:n2), pi%EPotToNew(1:n2), n2 , &
+!&                      MPI_RK, MPI_SUM, Communicator, ierror )
+!                  pi%EPotTo(1:n2) =  pi%EPotToNew(1:n2)
+!                endif
+!              endif
             end do
           end do
       end do
       
       
-      if (NProcs_W .gt. Proc_Max_Eff) then
+      if (multNodes) then
       
         if (RootProc) then
           if (NProc_W .ne. NRootProc) then
@@ -1517,11 +1537,14 @@ eqloop: do
                call MPI_Bcast( this%Ensemble(j)%EPot, 1, MPI_RK, NRootProc, Communicator, ierror )
                call MPI_Bcast( this%Ensemble(j)%DispVol, 1, MPI_RK, NRootProc, Communicator, ierror )            
                do i = 1, this%Ensemble(j)%NComponents
-                 call MPI_Bcast( this%Ensemble(j)%Component(i)%Pm0(:, :), size( this%Ensemble(j)%Component(i)%P0 ), &
+                 call MPI_Bcast( this%Ensemble(j)%Component(i)%Pm0(:, :), size( this%Ensemble(j)%Component(i)%Pm0 ), &
 &                     MPI_RK, NRootProc, Communicator, ierror )
-
+                 call MPI_Bcast( this%Ensemble(j)%Component(i)%P0(:, :, :), size( this%Ensemble(j)%Component(i)%P0 ), &
+&                     MPI_RK, NRootProc, Communicator, ierror )
                  if( this%Ensemble(j)%Component(i)%Molecule%isElongated ) then
-                    call MPI_Bcast( this%Ensemble(j)%Component(i)%Qm0(:, :), size( this%Ensemble(j)%Component(i)%Q0 ), &
+                    call MPI_Bcast( this%Ensemble(j)%Component(i)%Qm0(:, :), size( this%Ensemble(j)%Component(i)%Qm0 ), &
+&                        MPI_RK, NRootProc, Communicator, ierror )
+                    call MPI_Bcast( this%Ensemble(j)%Component(i)%Q0(:, :, :), size( this%Ensemble(j)%Component(i)%Q0 ), &
 &                        MPI_RK, NRootProc, Communicator, ierror )
                  endif 
                enddo
@@ -1549,7 +1572,7 @@ eqloop: do
           pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
         end do
         ! Convert molecular coordinates to atom positions
-        call Mol2Atom( this%Ensemble(j) )
+        call Unit2Atom( this%Ensemble(j) )
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
