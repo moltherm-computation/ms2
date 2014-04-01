@@ -1,0 +1,43 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MC
+Acceptance  =       0.5
+Ensemble    =       NVT
+NVTSteps    =       10000
+NPTSteps    =       25000
+RunSteps    =       200000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+#
+# Ensemble 1
+#
+Temperature = 260.0
+Pressure    = 2.4
+Density     = 22.642271074
+PistonMass  = 5.0E-4
+OptPressure = Yes
+NParticles  = 864
+NComponents = 1
+
+
+PotModel    = CO2_3lj.pm
+MoleFract  = 1.0
+ChemPotMethod= widom
+NTest        = 3456
+
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10
