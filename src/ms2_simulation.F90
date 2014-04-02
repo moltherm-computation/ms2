@@ -625,6 +625,7 @@ contains
         if( ErrorsUpdateFrequency < NSteps ) then
           write( IOBuffer, '("Final result files will be updated each", I7, " time steps")' ) ErrorsUpdateFrequency
         else
+          ErrorsUpdateFrequency = NSteps
           write( IOBuffer, '("Final result files will be created at the end")' )
         end if
 
