@@ -10,7 +10,9 @@ OMP       = 0
 PROG      = ms2
 TRANS     = 0
 ifeq ($(MPI),1)
-  F90 = mpif90
+  ifneq ($(COMPILER),CRAY)
+     F90 = mpif90
+  endif
   CPPFLAGS += -DMPI_VER=1
   PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
