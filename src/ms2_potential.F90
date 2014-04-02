@@ -8819,7 +8819,6 @@ loop1:do k = 1, this%NInCutoff(i)
         RZij = RZi - RZ2(j)
         PXij = PXi - PX2(j)
         PYij = PYi - PY2(j)
-include 'mpif.h'
         PZij = PZi - PZ2(j)
         RXij = (RXij - anint( PXij )) * BoxLength
         RYij = (RYij - anint( PYij )) * BoxLength
