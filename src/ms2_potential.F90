@@ -8819,6 +8819,7 @@ loop1:do k = 1, this%NInCutoff(i)
         RZij = RZi - RZ2(j)
         PXij = PXi - PX2(j)
         PYij = PYi - PY2(j)
+include 'mpif.h'
         PZij = PZi - PZ2(j)
         RXij = (RXij - anint( PXij )) * BoxLength
         RYij = (RYij - anint( PYij )) * BoxLength
@@ -8834,7 +8835,8 @@ loop1:do k = 1, this%NInCutoff(i)
         CosTheta  = OXi * ex + OYi * eY + OZi * eZ          ! Scalarprodukt normierter 
 !                                              Abstandsvektor mit Orientierungsvektor Quadrupol
         Epsilon1 = Epsilon * RijSquaredInv * RijInv
-        EPotLocal  = EPotLocal + Epsilon1 * ( CosTheta * CosTheta - Third )
+        EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third )
+        EPotLocal  = EPotLocal + EPotLocal1
         CosTheta2 = 2._RK * CosTheta
         CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
         Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv
