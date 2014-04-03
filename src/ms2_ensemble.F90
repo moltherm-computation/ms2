@@ -4628,7 +4628,7 @@ loop3:    do nc = 1, this%NComponents
     EPot = this%Density * this%EPotCorrLJ + this%EPotCorrRF
 
     ! Zero virial
-    Virial = this%Density * this%VirialCorrLJ
+    Virial = this%Density * this%VirialCorrLJ + this%VirialCorrRF*this%Volume0
 
     ! Zero d2Epot/dV2
     d2EpotdV2 = this%Density * this%d2EpotdV2CorrLJ 
@@ -11764,9 +11764,9 @@ endif
        Facy = KVec(2)*this%Ewald_Prefac(i)*vorfac
        Facz = KVec(3)*this%Ewald_Prefac(i)*vorfac
 
+       ChargeNumber = 0
        DO j=1,this%NComponents,1
          mol => this%Component(j)%Molecule
-         q => mol%SiteCharge(1:mol%NCharge)%e
          molec = this%Component(j)%NPart
          DO l=1,mol%NCharge
            RX => this%Component(j)%Molecule%SiteCharge(l)%RX(1:molec)
@@ -11781,9 +11781,10 @@ endif
            distx(1:molec) = (RXloc - PXloc)*BoxLength
            disty(1:molec) = (RYloc - PYloc)*BoxLength
            distz(1:molec) = (RZloc - PZloc)*BoxLength
-            VirIntraLocal = VirIntraLocal + sum(Facx*HFac*distx(1:molec)) &
-&                                         + sum(Facy*HFac*disty(1:molec)) &
-&                                         + sum(Facz*HFac*distz(1:molec))
+           VirIntraLocal = VirIntraLocal + sum(Facx*HFac*distx(1:molec)) &
+&                                        + sum(Facy*HFac*disty(1:molec)) &
+&                                        + sum(Facz*HFac*distz(1:molec))
+           ChargeNumber = ChargeNumber + molec
          END DO
        END DO
      end if

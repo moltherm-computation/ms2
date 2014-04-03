@@ -1403,7 +1403,7 @@ eqloop: do
       end do
       
       
-      if (NProcs_W .gt. Proc_Max_Eff) then
+      if (multNodes) then
       
         if (RootProc) then
           if (NProc_W .ne. NRootProc) then
