@@ -10466,7 +10466,7 @@ loop2:        do nc = 1, this%NComponents
     !RDF
     CallsToRDF  = CallsToRDF + 1
    
-    if(mod(CallsToRDF*RDFUpdateFrequency,ErrorsUpdateFrequency)==0)then
+    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
       ! Open RDF file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
@@ -10515,7 +10515,7 @@ loop2:        do nc = 1, this%NComponents
 &                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
           end if
           this%RDF(o) = RDFRhoLocal / RDFRho  
-          if(mod(CallsToRDF*RDFUpdateFrequency,ErrorsUpdateFrequency)==0)then
+          if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
             write(IOBuffer, '(F10.4)') this%RDF(o)
             call FileWriteNoAdvance( this%iounit_rdf )
           endif
@@ -10524,13 +10524,16 @@ loop2:        do nc = 1, this%NComponents
        end if
       end do
      end do
-     call FileWriteBlank( this%iounit_rdf )
+     if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+        call FileWriteBlank( this%iounit_rdf )
+     end if
     enddo
 
-    if(mod(CallsToRDF*RDFUpdateFrequency,ErrorsUpdateFrequency)==0)then
+    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
       ! Close RDF file
       call FileClose( this%iounit_rdf )
-    endif
+      CallsToRDF = 0
+    end if
   end subroutine TEnsemble_RDFUpdate
 
 
