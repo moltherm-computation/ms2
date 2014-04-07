@@ -10470,20 +10470,24 @@ loop2:        do nc = 1, this%NComponents
       ! Open RDF file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    endif
 
-      do i=1, this%NComponents
-       do j=1, this%NComponents
-        if (i .LE. j) then
-         call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+    do i=1, this%NComponents
+     do j=1, this%NComponents
+      if (i .LE. j) then
+       call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+       if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
          do s=1, this%Component(i)%molecule%NLJ126
           do t=1, this%Component(j)%molecule%NLJ126
            write(IOBuffer, '(I5,I5)') i, j
            call FileWriteNoAdvance( this%iounit_rdf )
           enddo
          enddo            
-        endif
-       enddo
-      enddo
+       endif
+      endif
+     enddo
+    enddo
+    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
       call FileWriteBlank( this%iounit_rdf )
  
       do i=1, this%NComponents
@@ -10500,6 +10504,7 @@ loop2:        do nc = 1, this%NComponents
       enddo
       call FileWriteBlank( this%iounit_rdf )
     endif
+
     do o = 1, RDFNumberShells
      do i=1, this%NComponents
       do j=1, this%NComponents
