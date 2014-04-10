@@ -10459,50 +10459,53 @@ loop2:        do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, s, t, o
+    integer  :: i, j, s, t, o, LocalErrFreq=0
 
     ! Update visualization file
 
     !RDF
     CallsToRDF  = CallsToRDF + 1
+    LocalErrFreq = LocalErrFreq + 1
    
-    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
       ! Open RDF file
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-    endif
+     write( IOBuffer, '(I16)' ) this%EnsembleNumber
+     call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    end if
 
     do i=1, this%NComponents
      do j=1, this%NComponents
       if (i .LE. j) then
        call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
-       if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-         do s=1, this%Component(i)%molecule%NLJ126
-          do t=1, this%Component(j)%molecule%NLJ126
-           write(IOBuffer, '(I5,I5)') i, j
-           call FileWriteNoAdvance( this%iounit_rdf )
-          enddo
-         enddo            
+       if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+        do s=1, this%Component(i)%molecule%NLJ126
+         do t=1, this%Component(j)%molecule%NLJ126
+          write(IOBuffer, '(I5,I5)') i, j
+          call FileWriteNoAdvance( this%iounit_rdf )
+         enddo
+        enddo            
        endif
       endif
      enddo
     enddo
-    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      call FileWriteBlank( this%iounit_rdf )
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+     call FileWriteBlank( this%iounit_rdf )
+    end if
  
-      do i=1, this%NComponents
-       do j=1, this%NComponents
-        if (i .LE. j) then
-         do s=1, this%Component(i)%molecule%NLJ126
-          do t=1, this%Component(j)%molecule%NLJ126 
-           write(IOBuffer, '(I5,I5)') s, t
-           call FileWriteNoAdvance( this%iounit_rdf )
-          enddo
+   if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       if (i .LE. j) then
+        do s=1, this%Component(i)%molecule%NLJ126
+         do t=1, this%Component(j)%molecule%NLJ126 
+          write(IOBuffer, '(I5,I5)') s, t
+          call FileWriteNoAdvance( this%iounit_rdf )
          enddo
-        endif
-       enddo
+        enddo
+       endif
       enddo
-      call FileWriteBlank( this%iounit_rdf )
+     enddo
+     call FileWriteBlank( this%iounit_rdf )
     endif
 
     do o = 1, RDFNumberShells
@@ -10520,7 +10523,7 @@ loop2:        do nc = 1, this%NComponents
 &                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
           end if
           this%RDF(o) = RDFRhoLocal / RDFRho  
-          if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+          if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
             write(IOBuffer, '(F10.4)') this%RDF(o)
             call FileWriteNoAdvance( this%iounit_rdf )
           endif
@@ -10529,15 +10532,15 @@ loop2:        do nc = 1, this%NComponents
        end if
       end do
      end do
-     if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+     if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
         call FileWriteBlank( this%iounit_rdf )
      end if
     enddo
 
-    if(CallsToRDF*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
       ! Close RDF file
       call FileClose( this%iounit_rdf )
-      CallsToRDF = 0
+      LocalErrFreq = 0
     end if
   end subroutine TEnsemble_RDFUpdate
 
