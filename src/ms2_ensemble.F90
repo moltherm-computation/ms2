@@ -1016,9 +1016,15 @@ contains
           call LogWrite
         endif
       case( 'NO', 'No', 'no')
-        CommonEqui = .false.
-        write( IOBuffer, '("Common equilibration: ",T30, A)' ) trim( str )
-        call LogWrite
+        if( SimulationType .eq. MolecularDynamics ) then
+          CommonEqui = .true.
+          write(IOBuffer, '("MD simulation: Logical CommonEqui no is invalid, set to yes")' )
+          call LogWrite
+        else
+          CommonEqui = .false.
+          write( IOBuffer, '("Common equilibration: ",T30, A)' ) trim( str )
+          call LogWrite
+        endif
       case default
         call Error( 'Select yes/no for common equilibration '// ProgramFileName//ConfigFileExtension )
     end select
@@ -1336,7 +1342,7 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. (Equilibration .and. CommonEqui)))  then
+    if ( SimulationType .eq. MonteCarlo .and. (.not.  CommonEqui))  then
       write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ  / this%NPart
 
     else
@@ -1345,7 +1351,7 @@ contains
 
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then  
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then  
       write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ  / this%NPart
 
     else
@@ -1360,7 +1366,7 @@ contains
       call LogWrite
     end do
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then 
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF  / this%NPart
 
