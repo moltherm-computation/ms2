@@ -7776,6 +7776,27 @@ loop2:        do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     if( Restart ) then
+#if MPI_VER > 0
+      if (SimulationType .eq. MonteCarlo) then
+        call FileAppend_parallel( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+
+        if( .not. SimulationType .eq. SecondVirialCoeff ) then
+
+          ! Open running average result file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileAppend_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+        end if
+      else
+        call FileAppend( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+
+        if( .not. SimulationType .eq. SecondVirialCoeff ) then
+
+          ! Open running average result file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileAppend( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+        end if
+      endif
+#else
       ! Open result file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -7786,7 +7807,7 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileAppend( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
-
+#endif
 #if TRANS ==1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
@@ -7794,6 +7815,31 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     else
+#if MPI_VER > 0
+      if (SimulationType .eq. MonteCarlo) then
+        ! Open result file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite_parallel( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+        if( .not. SimulationType .eq. SecondVirialCoeff ) then
+
+          ! Open running average result file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileRewrite_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+        end if
+     else
+        ! Open result file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+
+        if( .not. SimulationType .eq. SecondVirialCoeff ) then
+
+          ! Open running average result file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+        end if
+     endif
+#else
+
       ! Open result file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -7804,7 +7850,7 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
-
+#endif
 #if  TRANS == 1
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -7828,6 +7874,10 @@ loop2:        do nc = 1, this%NComponents
 
 #if MPI_VER > 0
   include 'mpif.h'
+    integer         :: fields = 0
+    integer         :: accumulate_step = 0
+    integer(kind=MPI_OFFSET_KIND) :: offset = 0 
+    integer                       :: ierr
 #endif
 
     ! Declare arguments
@@ -7845,7 +7895,6 @@ loop2:        do nc = 1, this%NComponents
 #if TRANS ==1
     integer                   :: j, NStepsCF
 #endif
-
     if( Step == 1 ) then
       ! Reset accumulators
       ! 1.) Basic sums
@@ -7941,121 +7990,361 @@ loop2:        do nc = 1, this%NComponents
         end do
 
       ! Update result header
-      call FileWriteBlank( this%iounit_result )
-      call FileWriteBlank( this%iounit_runave )
+      if (SimulationType .eq. MonteCarlo) then
+#if MPI_VER > 0
+         fields = 0
+         fields = fields + 7
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 3
+         enddo
+         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + min(9, this%NComponents) + 1
+#if CONSTR > 0
+         fields = fields + 2 *  this%NCons
+#endif
 
-      ! Number of steps
-      write( IOBuffer, '("     NR")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+         if (NProc .eq. NProcs - 1) then
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! PROC
+           write( IOBuffer, '("       PROC")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Displacement
-      if( SimulationType .eq. MolecularDynamics ) then
-        write( IOBuffer, '("     DISP")' )
-        call FileWriteNoAdvance( this%iounit_runave )
-      end if
+           ! Number of steps
+           write( IOBuffer, '("         NR")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Pressure
-      write( IOBuffer, '("      PRESS")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+           ! Pressure
+           write( IOBuffer, '("      PRESS")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Density
-      write( IOBuffer, '("    DENSITY")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+           ! Density
+           write( IOBuffer, '("    DENSITY")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Temperature
-      write( IOBuffer, '("       TEMP")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+           ! Temperature
+           write( IOBuffer, '("       TEMP")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Potential energy
-      write( IOBuffer, '("       EPOT")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+           ! Potential energy
+           write( IOBuffer, '("       EPOT")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Enthalpy
-      write( IOBuffer, '("      ENTLP")' )
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+           ! Enthalpy
+           write( IOBuffer, '("      ENTLP")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Chemical potential
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("      MUE_", I1)' ) i
+               else
+                 write( IOBuffer, '("     MUE_", I2)' ) i
+               end if
+               call FileWriteNoAdvance( this%iounit_result )
+               call FileWriteNoAdvance( this%iounit_runave )
+             end if
+           end do
 
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( i < 10 ) then
-            write( IOBuffer, '("      MUE_", I1)' ) i
-          else
-            write( IOBuffer, '("     MUE_", I2)' ) i
-          end if
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end if
-      end do
+           ! Partial molar volume
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("       VW_", I1)' ) i
+               else
+                 write( IOBuffer, '("      VW_", I2)' ) i
+               end if
+               call FileWriteNoAdvance( this%iounit_result )
+               call FileWriteNoAdvance( this%iounit_runave )
+             end if
+           end do
 
-      ! Partial molar volume
-      do i = 1, this%NRealComponents
-        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( i < 10 ) then
-            write( IOBuffer, '("       VW_", I1)' ) i
-          else
-            write( IOBuffer, '("      VW_", I2)' ) i
-          end if
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end if
-      end do
+           ! Partial molar enthalpy
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("       HM_", I1)' ) i
+               else
+                 write( IOBuffer, '("      HM_", I2)' ) i
+               end if
+               call FileWriteNoAdvance( this%iounit_result )
+               call FileWriteNoAdvance( this%iounit_runave )
+             end if
+           end do
 
-      ! Partial molar enthalpy
-      do i = 1, this%NRealComponents
-        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( i < 10 ) then
-            write( IOBuffer, '("       HM_", I1)' ) i
-          else
-            write( IOBuffer, '("      HM_", I2)' ) i
-          end if
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end if
-      end do
+           ! Number of particles in ensemble
+           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+             write( IOBuffer, '("      NPART")' )
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
 
-      ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '("      NPART")' )
+             ! Mole fraction of each component
+             do i = 1, this%NComponents
+               if( i < 10 ) then
+                 write( IOBuffer, '("    FRACT_", I1)' ) i
+               else
+                 write( IOBuffer, '("   FRACT_", I2)' ) i
+               end if
+               call FileWriteNoAdvance( this%iounit_result )
+               call FileWriteNoAdvance( this%iounit_runave )
+             end do
+           end if
+
+#if CONSTR > 0
+           do i=1, this%NCons
+             if ( i < 10 ) then
+               write( IOBuffer, '("      PMF_", I1)' ) i
+               call FileWriteNoAdvance( this%iounit_runave )
+               write( IOBuffer, '("      MF_",  I1)' ) i
+               call FileWriteNoAdvance( this%iounit_runave )
+             else
+               write( IOBuffer, '("     PMF_", I2)' ) i
+               call FileWriteNoAdvance( this%iounit_runave )
+               write( IOBuffer, '("     MF_",  I2)' ) i
+               call FileWriteNoAdvance( this%iounit_runave )
+             end if
+           end do
+#endif  
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+         endif
+#else
+         call FileWriteBlank( this%iounit_result )
+         call FileWriteBlank( this%iounit_runave )
+         ! Number of steps
+         write( IOBuffer, '("     NR")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Displacement
+         if( SimulationType .eq. MolecularDynamics ) then
+           write( IOBuffer, '("     DISP")' )
+           call FileWriteNoAdvance( this%iounit_runave )
+         end if
+
+         ! Pressure
+         write( IOBuffer, '("      PRESS")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Density
+         write( IOBuffer, '("    DENSITY")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Temperature
+         write( IOBuffer, '("       TEMP")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Potential energy
+         write( IOBuffer, '("       EPOT")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Enthalpy
+         write( IOBuffer, '("      ENTLP")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
+
+         ! Chemical potential
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+             if( i < 10 ) then
+               write( IOBuffer, '("      MUE_", I1)' ) i
+             else
+               write( IOBuffer, '("     MUE_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
+
+         ! Partial molar volume
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+             if( i < 10 ) then
+               write( IOBuffer, '("       VW_", I1)' ) i
+             else
+               write( IOBuffer, '("      VW_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
+
+         ! Partial molar enthalpy
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+             if( i < 10 ) then
+               write( IOBuffer, '("       HM_", I1)' ) i
+             else
+               write( IOBuffer, '("      HM_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
+
+         ! Number of particles in ensemble
+         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+           write( IOBuffer, '("      NPART")' )
+           call FileWriteNoAdvance( this%iounit_result )
+           call FileWriteNoAdvance( this%iounit_runave )
+
+           ! Mole fraction of each component
+           do i = 1, this%NComponents
+             if( i < 10 ) then
+               write( IOBuffer, '("    FRACT_", I1)' ) i
+             else
+               write( IOBuffer, '("   FRACT_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end do
+         end if
+
+#if CONSTR > 0
+         do i=1, this%NCons
+           if ( i < 10 ) then
+             write( IOBuffer, '("      PMF_", I1)' ) i
+             call FileWriteNoAdvance( this%iounit_runave )
+             write( IOBuffer, '("      MF_",  I1)' ) i
+             call FileWriteNoAdvance( this%iounit_runave )
+           else
+             write( IOBuffer, '("     PMF_", I2)' ) i
+             call FileWriteNoAdvance( this%iounit_runave )
+             write( IOBuffer, '("     MF_",  I2)' ) i
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
+#endif  
+
+#endif
+      else
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
+        ! Number of steps
+        write( IOBuffer, '("     NR")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          if( i < 10 ) then
-            write( IOBuffer, '("    FRACT_", I1)' ) i
-          else
-            write( IOBuffer, '("   FRACT_", I2)' ) i
-          end if
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-      end if
-
-#if CONSTR > 0
-      do i=1, this%NCons
-        if ( i < 10 ) then
-          write( IOBuffer, '("      PMF_", I1)' ) i
-          call FileWriteNoAdvance( this%iounit_runave )
-          write( IOBuffer, '("      MF_",  I1)' ) i
-          call FileWriteNoAdvance( this%iounit_runave )
-        else
-          write( IOBuffer, '("     PMF_", I2)' ) i
-          call FileWriteNoAdvance( this%iounit_runave )
-          write( IOBuffer, '("     MF_",  I2)' ) i
+        ! Displacement
+        if( SimulationType .eq. MolecularDynamics ) then
+          write( IOBuffer, '("     DISP")' )
           call FileWriteNoAdvance( this%iounit_runave )
         end if
-      end do
-#endif
 
+        ! Pressure
+        write( IOBuffer, '("      PRESS")' )
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Density
+        write( IOBuffer, '("    DENSITY")' )
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Temperature
+        write( IOBuffer, '("       TEMP")' )
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Potential energy
+        write( IOBuffer, '("       EPOT")' )
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '("      ENTLP")' )
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( i < 10 ) then
+              write( IOBuffer, '("      MUE_", I1)' ) i
+            else
+              write( IOBuffer, '("     MUE_", I2)' ) i
+            end if
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end if
+        end do
+
+        ! Partial molar volume
+        do i = 1, this%NRealComponents
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( i < 10 ) then
+              write( IOBuffer, '("       VW_", I1)' ) i
+            else
+              write( IOBuffer, '("      VW_", I2)' ) i
+            end if
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end if
+        end do
+
+        ! Partial molar enthalpy
+        do i = 1, this%NRealComponents
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( i < 10 ) then
+              write( IOBuffer, '("       HM_", I1)' ) i
+            else
+              write( IOBuffer, '("      HM_", I2)' ) i
+            end if
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end if
+        end do
+
+        ! Number of particles in ensemble
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '("      NPART")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            if( i < 10 ) then
+              write( IOBuffer, '("    FRACT_", I1)' ) i
+            else
+              write( IOBuffer, '("   FRACT_", I2)' ) i
+            end if
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end if
+
+#if CONSTR > 0
+        do i=1, this%NCons
+          if ( i < 10 ) then
+            write( IOBuffer, '("      PMF_", I1)' ) i
+            call FileWriteNoAdvance( this%iounit_runave )
+            write( IOBuffer, '("      MF_",  I1)' ) i
+            call FileWriteNoAdvance( this%iounit_runave )
+          else
+            write( IOBuffer, '("     PMF_", I2)' ) i
+            call FileWriteNoAdvance( this%iounit_runave )
+            write( IOBuffer, '("     MF_",  I2)' ) i
+            call FileWriteNoAdvance( this%iounit_runave )
+          end if
+        end do
+#endif  
+        
+      end if
       call FileWriteBlank( this%iounit_result )
       call FileWriteBlank( this%iounit_runave )
-    end if
+    endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END IF of step ==1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -8286,114 +8575,283 @@ loop2:        do nc = 1, this%NComponents
 
     ! Update result files
     if( mod( Step, BlockSize ) == 0 ) then
+      if(SimulationType .eq. MonteCarlo) then
+#if MPI_VER > 0
+        accumulate_step = accumulate_step + BlockSize
+        if (Step .lt. accumulate_step) then
+          offset = ((NProc + 2) + NProcs * ((accumulate_step/BlockSize) - 1)) * (11 * fields + 1) + 2 
+        else
+          offset = ((NProc + 1) + NProcs * ((accumulate_step/BlockSize) - 1)) * (11 * fields + 1) + 1
+        endif
+        call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
+        call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+        ! PROC
+        write( IOBuffer, '(I11)' ) NProc
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Number of steps
-      write( IOBuffer, '(I7)' ) Step
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+        ! Number of steps
+        if (Equilibration) then
+          write( IOBuffer, '(I11)' ) Step
+        else
+          write( IOBuffer, '(I11)' ) ((Step/BlockSize) - 1) * (BlockSize * NProcs)  + (NProc + 1) * BlockSize
+        endif
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Displacement
-      if( SimulationType .eq. MolecularDynamics ) then
-        value = 0._RK
-        do i = 1, this%NComponents
-          value = value + sum( this%Component(i)%Disp(:, :)**2 )
-        end do
-        value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
-        write( IOBuffer, '(" ",F8.3)' ) value
-        call FileWriteNoAdvance( this%iounit_runave )
-      end if
-
-      ! Pressure
-      if( SimulationType .eq. MolecularDynamics ) then
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-      else
         if ( this%OptPressure ) then
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
+        else
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
+        end if
+
+        ! Density
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! Temperature
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! Potential energy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+
+            ! Update time limit according to consumed time necessary
+            time_limit = 60
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.5)' ) 0._RK
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            else
+              if( pc%NPart > 1 ) then
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                end select
+
+              else
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                end select
+              end if
+            end if
+          end if
+        end do
+
+      ! Partial molar volume
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end if
+          end if
+        end do
+
+     ! Partial molar enthalphy
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )     
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end if
+          end if
+        end do
+
+      ! Number of particles in ensemble
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
+  
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+          end do
+        end if
+  
+#if CONSTR == 0
+         write( IOBuffer, '()' )
+         call FileWriteNoAdvance_parallel( this%iounit_runave )
+#else
+        this%consup = .true.
+#endif
+        write( IOBuffer, '(A)' )new_line('a')
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+#else
+        ! Number of steps
+        write( IOBuffer, '(I7)' ) Step
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Displacement
+        if( SimulationType .eq. MolecularDynamics ) then
+          value = 0._RK
+          do i = 1, this%NComponents
+            value = value + sum( this%Component(i)%Disp(:, :)**2 )
+          end do
+          value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
+          write( IOBuffer, '(" ",F8.3)' ) value
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
+
+        ! Pressure
+        if( SimulationType .eq. MolecularDynamics ) then
           write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
           call FileWriteNoAdvance( this%iounit_runave )
         else
-          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-          call FileWriteNoAdvance( this%iounit_runave )
-        end if
-      end if
-
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Potential energy
-      write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Enthalpy
-      write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.5)' ) 0._RK
+          if ( this%OptPressure ) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
             call FileWriteNoAdvance( this%iounit_runave )
           else
-            if( pc%NPart > 1 ) then
-              select case( pc%ChemPotMethod )
-
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
-
-            else
-              select case( pc%ChemPotMethod )
-
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
-            end if
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance( this%iounit_runave )
           end if
         end if
-      end do
+
+        ! Density
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Temperature
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Potential energy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+
+            ! Update time limit according to consumed time necessary
+            time_limit = 60
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.5)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              if( pc%NPart > 1 ) then
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+
+              else
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+              end if
+            end if
+          end if
+        end do
 
       ! Partial molar volume
         do i = 1, this%NRealComponents
@@ -8431,35 +8889,207 @@ loop2:        do nc = 1, this%NComponents
         end do
 
       ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
           call FileWriteNoAdvance( this%iounit_runave )
-        end do
-      end if
-
-      call FileWriteBlank( this%iounit_result )
+  
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end if
+  
+        call FileWriteBlank( this%iounit_result )
 #if CONSTR == 0
-      call FileWriteBlank( this%iounit_runave )
+        call FileWriteBlank( this%iounit_runave )
 #else
-    this%consup = .true.
+        this%consup = .true.
 #endif
 #if ARCH == 2
-      call flush( this%iounit_result )
-      call flush( this%iounit_runave )
+        call flush( this%iounit_result )
+        call flush( this%iounit_runave )
+#endif
+#endif
+      else
+        ! Number of steps
+        write( IOBuffer, '(I7)' ) Step
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Displacement
+        if( SimulationType .eq. MolecularDynamics ) then
+          value = 0._RK
+          do i = 1, this%NComponents
+            value = value + sum( this%Component(i)%Disp(:, :)**2 )
+          end do
+          value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
+          write( IOBuffer, '(" ",F8.3)' ) value
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
+
+        ! Pressure
+        if( SimulationType .eq. MolecularDynamics ) then
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        else
+          if ( this%OptPressure ) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          else
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance( this%iounit_runave )
+          end if
+        end if
+
+        ! Density
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Temperature
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Potential energy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+
+            ! Update time limit according to consumed time necessary
+            time_limit = 60
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.5)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              if( pc%NPart > 1 ) then
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+
+              else
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+              end if
+            end if
+          end if
+        end do
+
+      ! Partial molar volume
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end if
+          end if
+        end do
+
+     ! Partial molar enthalphy
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )     
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end if
+          end if
+        end do
+
+      ! Number of particles in ensemble
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+  
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end if
+  
+        call FileWriteBlank( this%iounit_result )
+#if CONSTR == 0
+        call FileWriteBlank( this%iounit_runave )
+#else
+        this%consup = .true.
+#endif
+#if ARCH == 2
+        call flush( this%iounit_result )
+        call flush( this%iounit_runave )
 #endif
 
+      end if
     end if
-
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
     if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) ) then
@@ -8667,12 +9297,25 @@ loop2:        do nc = 1, this%NComponents
     ! Declare arguments
     type(TEnsemble) :: this
 
-    ! Close running average result file
+#if MPI_VER > 0    
+    if (SimulationType .eq. MonteCarlo) then
+      ! Close running average result file
+      if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose_parallel( this%iounit_runave )
+  
+      ! Close result file
+      call FileClose_parallel( this%iounit_result )
+    else
+      if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
+  
+      ! Close result file
+      call FileClose( this%iounit_result )
+    endif
+#else
     if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
-
+  
     ! Close result file
     call FileClose( this%iounit_result )
-
+#endif
   end subroutine TEnsemble_ResultClose
 
 

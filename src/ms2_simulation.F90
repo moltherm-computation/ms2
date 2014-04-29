@@ -1415,7 +1415,6 @@ eqloop: do
             call LogClose
           endif
         endif
-         
           if (NProcs_W .gt. NGroups*Proc_Max_Eff) then
            ! build new communicator, including the Root and all processes not having
            ! equilibrated
@@ -1888,10 +1887,14 @@ eqloop: do
 
     ! Declare local variables
     integer :: i
-
+#if MPI_VER > 0
+    if(SimulationType .ne. MonteCarlo) then
+      if( .not. RootProc ) return
+    endif
+#else
     ! Check for root process
     if( .not. RootProc ) return
-
+#endif
     ! Return if no output
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
@@ -1951,9 +1954,14 @@ eqloop: do
     ! Declare local variables
     integer :: i
 
+#if MPI_VER > 0
+    if(SimulationType .ne. MonteCarlo) then
+      if( .not. RootProc ) return
+    endif
+#else
     ! Check for root process
     if( .not. RootProc ) return
-
+#endif
     ! Return if no output
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 

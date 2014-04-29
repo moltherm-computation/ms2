@@ -227,6 +227,10 @@ character(*), parameter :: VersionString = 'v1.0'
   integer, parameter :: iounit_visual  = iounit_start + 9
   integer, parameter :: iounit_rdf     = iounit_start + 10
 #endif
+#if MPI_VER > 0
+  integer            :: iounit_result_parallel = iounit_start + 6
+  integer            :: iounit_runave_parallel = iounit_start + 7
+#endif
 
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 1
@@ -754,6 +758,24 @@ character(*), parameter :: VersionString = 'v1.0'
   interface FileReset
     module procedure Global_FileReset
   end interface
+
+# if MPI_VER > 0 
+  interface FileRewrite_parallel
+    module procedure Global_FileRewrite_parallel
+  end interface
+
+  interface FileWriteNoAdvance_parallel
+    module procedure Global_FileWriteNoAdvance_parallel
+  end interface
+
+  interface FileAppend_parallel
+    module procedure Global_FileAppend_parallel
+  end interface
+
+  interface FileClose_parallel
+    module procedure Global_FileClose_parallel
+  end interface
+#endif
 
   interface FileRewrite
     module procedure Global_FileRewrite
@@ -1615,7 +1637,143 @@ contains
 
   end subroutine Global_FileReset
 
+#if MPI_VER > 0
+!==============================================================!
+!  Subroutine Global_FileClose_parallel                        !
+!==============================================================!
 
+  subroutine Global_FileClose_parallel( iounit )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in) :: iounit
+    integer             :: ierr
+
+    ! Declare local variables
+    character(FileNameLength) :: fn
+#ifdef _WIN32
+    integer :: i
+#endif
+
+    if( RootProc )then 
+
+      ! Close file
+      inquire( iounit, NAME = fn )
+#ifdef _WIN32
+      i = index( fn, '\', BACK=.true. )
+      if( i > 0 ) fn = fn( i+1:len( fn ) )
+#endif
+    endif
+    call MPI_File_Close(iounit, ierr)
+
+    if( RootProc )then 
+      if( iounit /= iounit_log ) then
+        write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
+        call LogWrite
+      end if
+    endif
+
+  end subroutine Global_FileClose_parallel
+
+
+!==============================================================!
+!  Subroutine Global_FileRewrite_parallel                      !
+!==============================================================!
+
+  subroutine Global_FileRewrite_parallel( iounit, filename )
+
+    implicit none
+    include 'mpif.h'
+    ! Declare arguments
+    integer                       :: iounit 
+    integer                       :: ierr
+    character(*), intent(in)      :: filename
+
+    if(RootProc) then
+      ! open file for writing
+      if( iounit /= iounit_log ) then
+        write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
+        call logwrite
+        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+        close(iounit)
+      end if
+    end if
+    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierr)
+    if(RootProc) then
+      if( ierr .ne. 0 ) then
+        write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
+        call logwrite
+      end if
+    end if
+
+  end subroutine Global_FileRewrite_parallel
+
+!==============================================================!
+!  Subroutine Global_FileAppend_parallel                       !
+!==============================================================!
+
+  subroutine Global_FileAppend_parallel( iounit, filename )
+
+    implicit none
+    include 'mpif.h'
+    ! Declare arguments
+    integer, intent(in)           :: iounit
+    integer                       :: ierr
+    character(*), intent(in)      :: filename
+
+    ! Declare local variables
+
+    logical :: ex
+
+    ! Check for root process
+    if( RootProc ) then
+
+      ! Open file for writing
+      if( iounit /= iounit_log ) then
+        write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
+        call LogWrite
+      end if
+
+      inquire( file = filename, exist = ex )
+      if( ex ) then
+        open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
+      else
+        write( IOBuffer, '("File does not exist. Creating new")' )
+        call LogWrite
+        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+      end if
+    endif
+    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierr)
+    if(RootProc) then
+      if( ierr /= 0 ) then
+        write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
+        call logwrite
+      end if
+    end if
+
+  end subroutine Global_FileAppend_parallel
+
+!==============================================================!
+!  Subroutine Global_FileWriteNoAdvance_parallel               !
+!==============================================================!
+
+  subroutine Global_FileWriteNoAdvance_parallel( iounit )
+
+    implicit none
+    include 'mpif.h'
+    ! Declare arguments
+    integer             :: status(MPI_STATUS_SIZE)
+    integer, intent(in) :: iounit
+    integer             :: ierr
+
+    ! Write contents of buffer to file
+    call MPI_File_write(iounit,IOBuffer, sizeof(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
+
+
+  end subroutine Global_FileWriteNoAdvance_parallel
+
+#endif
 
 !==============================================================!
 !  Subroutine Global_FileRewrite                               !
