@@ -8048,8 +8048,8 @@ loop2:        do nc = 1, this%NComponents
                else
                  write( IOBuffer, '("     MUE_", I2)' ) i
                end if
-               call FileWriteNoAdvance( this%iounit_result )
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
 
@@ -8061,8 +8061,8 @@ loop2:        do nc = 1, this%NComponents
                else
                  write( IOBuffer, '("      VW_", I2)' ) i
                end if
-               call FileWriteNoAdvance( this%iounit_result )
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
 
@@ -8074,16 +8074,16 @@ loop2:        do nc = 1, this%NComponents
                else
                  write( IOBuffer, '("      HM_", I2)' ) i
                end if
-               call FileWriteNoAdvance( this%iounit_result )
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
 
            ! Number of particles in ensemble
            if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
              write( IOBuffer, '("      NPART")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
+             call FileWriteNoAdvance_parallel( this%iounit_result )
+             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
              ! Mole fraction of each component
              do i = 1, this%NComponents
@@ -8092,8 +8092,8 @@ loop2:        do nc = 1, this%NComponents
                else
                  write( IOBuffer, '("   FRACT_", I2)' ) i
                end if
-               call FileWriteNoAdvance( this%iounit_result )
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              end do
            end if
 
@@ -8101,14 +8101,18 @@ loop2:        do nc = 1, this%NComponents
            do i=1, this%NCons
              if ( i < 10 ) then
                write( IOBuffer, '("      PMF_", I1)' ) i
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
                write( IOBuffer, '("      MF_",  I1)' ) i
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              else
                write( IOBuffer, '("     PMF_", I2)' ) i
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
                write( IOBuffer, '("     MF_",  I2)' ) i
-               call FileWriteNoAdvance( this%iounit_runave )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
 #endif  
