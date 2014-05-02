@@ -2370,8 +2370,12 @@ contains
       call LogWrite
 
       if( pc%NTestAll > 0 ) then
-        write( IOBuffer, '("Number of test particles:",T36, I11)' ) pc%NTestAll
-        call LogWrite
+         if (SimulationType .eq. MolecularDynamics) then        
+           write( IOBuffer, '("Number of test particles:",T36, I11)' ) pc%NTestAll
+         else
+           write( IOBuffer, '("Number of test particles:",T36, I11)' ) pc%NTest
+         end if
+         call LogWrite
       end if
 
     end do
@@ -9581,7 +9585,11 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '("Chemical potential calculated by gradual insertion")' )
           call FileWrite( this%iounit_errors )
         case( ChemPotMethodWidom )
-          write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTestAll
+          if (SimulationType .eq. MolecularDynamics) then
+            write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTestAll
+          else
+            write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTest
+          end if
           call FileWrite( this%iounit_errors )
         end select
       end do
