@@ -14840,7 +14840,7 @@ loop2:do j = 1, j1
     real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: R, RSquared, R6Inv
+    real(RK)          :: R, RSquared
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -14925,13 +14925,11 @@ loop2:do j = 1, j1
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
-        !
         RXij = (RXij - anint( RXij )) * BoxLength
         RYij = (RYij - anint( RYij )) * BoxLength
         RZij = (RZij - anint( RZij )) * BoxLength
-        !
+
         RSquared=RXij**2+RYij**2+RZij**2
-        R6Inv= 1.0 / (RSquared*RSquared*Rsquared)
         R=dsqrt(RSquared) ! Bond length
 
         ! Deviation from equilibrium
@@ -14955,17 +14953,16 @@ loop2:do j = 1, j1
         PXij = PXi - PX2(i)
         PYij = PYi - PY2(i)
         PZij = PZi - PZ2(i)
-        !
         PXij = (PXij - anint( PXij )) * BoxLength
         PYij = (PYij - anint( PYij )) * BoxLength
         PZij = (PZij - anint( PZij )) * BoxLength
 
         ! Contribution to virial
-        VirialLocal = VirialLocal + PXij * FXij + PYij * FYij + PZij * FZij
+        VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
         !Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-        !sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared     !Michael Sch.: d2EpotdV2 contribution needs to be checked by Gabor!!!
-        !d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * R6Inv * (12._RK*R6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx LJ SS
-        !d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * R6Inv * (156._RK*R6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+        !sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
+        !d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * ForConst * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx LJ SS
+        !d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * ForConst *  sitecorr * sitecorr*Third*Third
 
          ! New Forces
          FX1(i) = FX1(i) + FXij

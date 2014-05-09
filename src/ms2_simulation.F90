@@ -783,7 +783,8 @@ contains
       case default
          call Error( trim( str )//'To print contributions to intramolecular energy use on or yes' )
       end select
-    ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
+
+      ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
       call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
       if ( Shake > 0 ) then 
         str = 'yes'
@@ -795,8 +796,9 @@ contains
       if (str == 'yes') then 
         write( IOBuffer, '("Shake tolerance: ", F9.6)' ) Shake
         call LogWrite
-      end if   
-    ! Read parameters for intramolecular nonbonded interactions
+      end if
+
+      ! Read parameters for intramolecular nonbonded interactions
       call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "no" )
       select case( str )
       case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
@@ -1997,8 +1999,14 @@ eqloop: do
     ! Declare local variables
     integer :: i
 
+#if MPI_VER > 0
+    if(SimulationType .ne. MonteCarlo) then
+      if( .not. RootProc ) return
+    endif
+#else
     ! Check for root process
     if( .not. RootProc ) return
+#endif
 
     ! Return if no output
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
@@ -2059,8 +2067,14 @@ eqloop: do
     ! Declare local variables
     integer :: i
 
+#if MPI_VER > 0
+    if(SimulationType .ne. MonteCarlo) then
+      if( .not. RootProc ) return
+    endif
+#else
     ! Check for root process
     if( .not. RootProc ) return
+#endif
 
     ! Return if no output
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return

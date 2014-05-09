@@ -237,6 +237,13 @@ ifort_impi:
 	-o ms2impi.ifort $(SOURCES)
 	rm -f *.o *.mod *.il
 
+ifort_impi_trans:
+	@echo "Compiling using MPI_IFORT..."
+	mpiifort -DARCH=2 -DTRANS1 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2impi.ifort $(SOURCES)
+	rm -f *.o *.mod *.il
+
 ifort_papi:
 	@echo "Compiling with PAPI support using IFORT..."
 	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DUSE_PAPI -fpp \

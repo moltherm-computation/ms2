@@ -600,8 +600,10 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
-#if MPI_VER>0        
-        this%NTest = (this%NTest/NProcs +1)
+#if MPI_VER>0
+        if (SimulationType .eq. MolecularDynamics) then
+          this%NTest = ((this%NTest-1)/NProcs +1)
+        endif
 #endif
       end if
 
