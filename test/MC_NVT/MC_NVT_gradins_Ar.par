@@ -24,8 +24,8 @@ NEnsembles  =       1
 #
 # Ensemble 1
 #
-Temperature = 125.0
-Pressure    = 1.5
+Temperature = 130.0
+Pressure    = 2.5
 Density     = 28.023599623
 PistonMass  = 5.0E-4
 OptPressure = Yes

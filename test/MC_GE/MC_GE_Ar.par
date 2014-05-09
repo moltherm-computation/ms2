@@ -22,29 +22,29 @@ CutoffMode  =       COM
 NEnsembles    =       1
 
 #results from liquid run
-Temperature = 125.0
-Pressure0     =       1.500
-LiqDensity    =      27.9670
-VarDensity    =       0.0805
-LiqEnthalpy   =   -5418.2
-VarEnthalpy   =      13.8
-LiqBetaT      =       0.006290
-VarBetaT      =       0.001670
-LiqdHdP       =       0.007091
-VardHdP       =       0.008350
+Temperature = 130.0
+Pressure0     =       2.500
+LiqDensity    =      26.9906
+VarDensity    =       0.0254
+LiqEnthalpy   =   -5253.5
+VarEnthalpy   =       4.0
+LiqBetaT      =       0.009986
+VarBetaT      =       0.000559
+LiqdHdP       =      -0.008257
+VardHdP       =       0.002404
 
 #parameters for vapor run
-Density       =       1.500
+Density       =       1.000
 NParticles    =     500
 NComponents   =       1
 
 PotModel      =      Ar.pm
 MolarFract    =       1.0000
 LiqMolarFract =       1.0000
-ChemPot       =      -3.432
-VarChemPot    =       0.019
-PartMolVol    =       1.3848
-VarPartMolVol =       0.0040
+ChemPot       =      -3.229
+VarChemPot    =       0.006
+PartMolVol    =       1.4349
+VarPartMolVol =       0.0013
 
 eta           =   1.0
 xi            =   1.0

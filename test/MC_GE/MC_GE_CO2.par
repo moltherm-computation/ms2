@@ -23,28 +23,28 @@ NEnsembles    =       1
 
 #results from liquid run
 Temperature = 260.0
-Pressure0     =       2.400
-LiqDensity    =      22.5627
-VarDensity    =       0.0567
-LiqEnthalpy   =  -14078.5
-VarEnthalpy   =      33.8
-LiqBetaT      =       0.003615
-VarBetaT      =       0.000937
-LiqdHdP       =      -0.002574
-VardHdP       =       0.012727
+Pressure0     =       3.000
+LiqDensity    =      22.6532
+VarDensity    =       0.0204
+LiqEnthalpy   =  -14104.7
+VarEnthalpy   =      11.4
+LiqBetaT      =       0.004191
+VarBetaT      =       0.000246
+LiqdHdP       =      -0.012890
+VardHdP       =       0.003094
 
 #parameters for vapor run
-Density       =       1.300
+Density       =       1.000
 NParticles    =     500
 NComponents   =       1
 
 PotModel      = CO2_3lj.pm
 MolarFract    =       1.0000
 LiqMolarFract =       1.0000
-ChemPot       =      -3.820
-VarChemPot    =       0.031
-PartMolVol    =       1.7165
-VarPartMolVol =       0.0043
+ChemPot       =      -3.755
+VarChemPot    =       0.007
+PartMolVol    =       1.7097
+VarPartMolVol =       0.0015
 
 eta           =   1.0
 xi            =   1.0
