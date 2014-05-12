@@ -8235,7 +8235,8 @@ loop2:        do nc = 1, this%NComponents
            end if
          end do
 #endif  
-
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
 #endif
       else
         call FileWriteBlank( this%iounit_result )
@@ -8347,11 +8348,10 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance( this%iounit_runave )
           end if
         end do
-#endif  
-        
+#endif   
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
       end if
-      call FileWriteBlank( this%iounit_result )
-      call FileWriteBlank( this%iounit_runave )
     endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END IF of step ==1
@@ -8745,6 +8745,7 @@ loop2:        do nc = 1, this%NComponents
   
 #if CONSTR == 0
          write( IOBuffer, '()' )
+         call FileWriteNoAdvance_parallel( this%iounit_result )
          call FileWriteNoAdvance_parallel( this%iounit_runave )
 #else
         this%consup = .true.
