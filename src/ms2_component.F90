@@ -5748,7 +5748,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       do i = 1, np
         do k = 1, nu
           quat(:) = this%Q0(i,:, k)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+          write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
         end do
       end do
 
@@ -5757,7 +5757,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         do i = 1, np
           do k = 1, nu
             quat(:) = this%Q1(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
         end do
 
@@ -5765,19 +5765,19 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q2(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q3(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q4(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
         end if
