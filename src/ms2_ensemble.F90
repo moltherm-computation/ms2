@@ -8190,7 +8190,7 @@ loop2:        do nc = 1, this%NComponents
 
          ! Partial molar volume
          do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
              if( i < 10 ) then
                write( IOBuffer, '("       VW_", I1)' ) i
              else
@@ -8203,7 +8203,7 @@ loop2:        do nc = 1, this%NComponents
 
          ! Partial molar enthalpy
          do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
              if( i < 10 ) then
                write( IOBuffer, '("       HM_", I1)' ) i
              else
@@ -8304,7 +8304,7 @@ loop2:        do nc = 1, this%NComponents
 
         ! Partial molar volume
         do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
               write( IOBuffer, '("       VW_", I1)' ) i
             else
@@ -8317,7 +8317,7 @@ loop2:        do nc = 1, this%NComponents
 
         ! Partial molar enthalpy
         do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
               write( IOBuffer, '("       HM_", I1)' ) i
             else
@@ -9199,7 +9199,7 @@ loop2:        do nc = 1, this%NComponents
       ! Partial molar volume
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -9217,7 +9217,7 @@ loop2:        do nc = 1, this%NComponents
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -9371,7 +9371,7 @@ loop2:        do nc = 1, this%NComponents
       ! Partial molar volume
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -9389,7 +9389,7 @@ loop2:        do nc = 1, this%NComponents
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -10215,7 +10215,7 @@ loop2:        do nc = 1, this%NComponents
       ! Partial molar volume
       do i = 1, this%NRealComponents
         pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
           Average = pc%SumVW%Average
           Variance = pc%SumVW%Variance
           write( IOBuffer, '("Partial molar volume of ", A, T33, "r`d:", 2F20.9)' ) &
