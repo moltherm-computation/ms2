@@ -1007,7 +1007,7 @@ contains
     end if
 
     ! Read whether to perform the MC equilibration in parallel
-    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "yes" )
+    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "no" )
     select case( str )
       case( 'YES', 'Yes', 'yes' )
         CommonEqui = .true.
