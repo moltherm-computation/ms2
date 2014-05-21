@@ -2479,7 +2479,7 @@ contains
 
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( size(this%F) /= 0) call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F), MPI_RK, MPI_SUM, 0, MPI_COMM_WORLD, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #if  TRANS == 1
