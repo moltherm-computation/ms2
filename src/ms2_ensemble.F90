@@ -8012,18 +8012,13 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
          if (RootProc) then
-           if(.not. Equilibration) then
-             if (CommonEqui) then
-               offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
-             else
-               offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
-             endif
-             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+           if (CommonEqui) then
+             offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
            else
-             call MPI_File_Seek((this%iounit_result), 0, MPI_SEEK_END, ierr)
-             call MPI_File_Seek((this%iounit_runave), 0, MPI_SEEK_END, ierr)
+             offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
            endif
+           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
+           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
