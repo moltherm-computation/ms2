@@ -7782,6 +7782,7 @@ loop2:        do nc = 1, this%NComponents
     if( Restart ) then
 #if MPI_VER > 0
       if (SimulationType .eq. MonteCarlo) then
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileAppend_parallel( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
 
         if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -7791,6 +7792,7 @@ loop2:        do nc = 1, this%NComponents
           call FileAppend_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
       else
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileAppend( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
 
         if( .not. SimulationType .eq. SecondVirialCoeff ) then
