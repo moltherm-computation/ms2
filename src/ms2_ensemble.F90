@@ -7969,12 +7969,6 @@ loop2:        do nc = 1, this%NComponents
         case( ChemPotMethodGradIns )
           call Reset( this%Component(i)%SumInvChemPotRho )
           call Reset( this%Component(i)%SumInvChemPot )
-!DEBUG
-          call Reset( this%Component(i)%SumInvChemPotRho1 )
-          call Reset( this%Component(i)%SumInvChemPot1 )
-          call Reset( this%Component(i)%SumInvChemPotRho2 )
-          call Reset( this%Component(i)%SumInvChemPot2 )
-!DEBUG
         case( ChemPotMethodWidom )
           call Reset( this%Component(i)%SumChemPotV )
           call Reset( this%Component(i)%SumChemPotVV )
@@ -7987,12 +7981,6 @@ loop2:        do nc = 1, this%NComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
             call Reset( this%Component(i)%SumVW )
             call Reset( this%Component(i)%SumHM )
-!DEBUG
-            if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-              call Reset( this%Component(i)%SumVW1 )
-              call Reset( this%Component(i)%SumVW2 )
-            end if
-!DEBUG
           end if
         end do
 
@@ -8547,12 +8535,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
           call Update( pc%SumInvChemPotRho, 1._RK / pc%ChemPot )
           call Update( pc%SumInvChemPot, 1._RK / pc%ChemPot1 )
-!DEBUG
-          call Update( pc%SumInvChemPotRho1, this%Density / pc%ChemPot1 )
-          call Update( pc%SumInvChemPot1, 1._RK / pc%ChemPot1 )
-          call Update( pc%SumInvChemPotRho2, 1._RK / pc%ChemPot2 )
-          call Update( pc%SumInvChemPot2, 1._RK / pc%ChemPot1 )
-!DEBUG
         case( ChemPotMethodWidom )
           call Update( pc%SumChemPotV, pc%ChemPot / this%Density )
           call Update( pc%SumChemPotVV, pc%ChemPot / this%Density**2 )
@@ -8574,13 +8556,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
           call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
-!DEBUG
-          call Update( pc%SumVW1, this%NPart * ( this%SumVolume%Average &
-&                    - pc%SumInvChemPot1%Average / pc%SumInvChemPotRho1%Average ) )
-
-          call Update( pc%SumVW2, this%NPart * ( this%SumVolume%Average &
-&                    - pc%SumInvChemPot2%Average / pc%SumInvChemPotRho2%Average ) )
-!DEBUG
 
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
@@ -9786,12 +9761,6 @@ loop2:        do nc = 1, this%NComponents
 #endif          
           
           call ErrorGI( pc%SumInvChemPotRho )
-!DEBUG
-          call ErrorGI( pc%SumInvChemPotRho1 )
-          call ErrorGI( pc%SumInvChemPotRho2 )
-!DEBUG
-          call ErrorGI( pc%SumVW1 )
-          call ErrorGI( pc%SumVW2 )
           call ErrorGI( pc%SumVW )
             
 #if MPI_VER > 0          
@@ -10161,18 +10130,6 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
-!DEBUG
-            Variance = pc%SumInvChemPotRho1%Variance / pc%SumInvChemPotRho1%Average
-            Average = log( pc%Fraction * pc%SumInvChemPotRho1%Average )
-            write( IOBuffer, '("Chemical potential 0 of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
-            Variance = pc%SumInvChemPotRho2%Variance / pc%SumInvChemPotRho2%Average
-            Average = log( pc%Fraction * pc%SumInvChemPotRho2%Average )
-            write( IOBuffer, '("Chemical potential 1 of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
-!DEBUG
 !MERKER
           else
             Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
@@ -10236,25 +10193,6 @@ loop2:        do nc = 1, this%NComponents
 &                Variance * UnitEnergy * NAvogadro
           call FileWrite( this%iounit_errors )
 
-
-!DEBUG
-          if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-            Average = pc%SumVW1%Average
-            Variance = pc%SumVW1%Variance
-            write( IOBuffer, '("Partial molar volume0 of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T28, "in l/mol:", 2F20.9)' ) Average / UnitDensity, Variance / UnitDensity
-            call FileWrite( this%iounit_errors )
-            Average = pc%SumVW2%Average
-            Variance = pc%SumVW2%Variance
-            write( IOBuffer, '("Partial molar volume1 of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T28, "in l/mol:", 2F20.9)' ) Average / UnitDensity, Variance / UnitDensity
-            call FileWrite( this%iounit_errors )
-          end if
-!DEBUG
         end if
       end do
       if( any(this%Component(:)%ChemPotMethod .ne. ChemPotMethodNone)) call FileWriteBlank( this%iounit_errors )
@@ -11677,12 +11615,6 @@ loop2:        do nc = 1, this%NComponents
       case( ChemPotMethodGradIns )
         call RestartSave( pc%SumInvChemPotRho )
         call RestartSave( pc%SumInvChemPot )
-!DEBUG
-        call RestartSave( pc%SumInvChemPotRho1 )
-        call RestartSave( pc%SumInvChemPot1 )
-        call RestartSave( pc%SumInvChemPotRho2 )
-        call RestartSave( pc%SumInvChemPot2 )
-!DEBUG
       case( ChemPotMethodWidom )
         call RestartSave( pc%SumChemPotV )
         call RestartSave( pc%SumChemPotVV )
@@ -11693,12 +11625,6 @@ loop2:        do nc = 1, this%NComponents
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartSave( pc%SumVW )
        call RestartSave( pc%SumHM )
-!DEBUG
-        if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-          call RestartSave( pc%SumVW1 )
-          call RestartSave( pc%SumVW2 )
-        end if
-!DEBUG
       end if
     end do
 
@@ -11943,12 +11869,6 @@ endif
       case( ChemPotMethodGradIns )
         call RestartRead( pc%SumInvChemPotRho )
         call RestartRead( pc%SumInvChemPot )
-!DEBUG
-        call RestartRead( pc%SumInvChemPotRho1 )
-        call RestartRead( pc%SumInvChemPot1 )
-        call RestartRead( pc%SumInvChemPotRho2 )
-        call RestartRead( pc%SumInvChemPot2 )
-!DEBUG
         pc%NFluctState = 0
         do j = counter,counter + this%Component(i)%Molecule%NFluct-1
           if (this%Component(j)%NPart .eq. 1) then
@@ -11966,12 +11886,6 @@ endif
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartRead( pc%SumVW )
         call RestartRead( pc%SumHM )
-!DEBUG
-        if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-          call RestartRead( pc%SumVW1 )
-          call RestartRead( pc%SumVW2 )
-        end if
-!DEBUG
       end if
     end do
 

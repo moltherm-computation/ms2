@@ -213,22 +213,12 @@ module ms2_component
     ! Accumulated sums, averages and errors
     type(TAccumulator) :: SumInvChemPotRho
     type(TAccumulator) :: SumInvChemPot
-!DEBUG
-    type(TAccumulator) :: SumInvChemPotRho1
-    type(TAccumulator) :: SumInvChemPot1
-    type(TAccumulator) :: SumInvChemPotRho2
-    type(TAccumulator) :: SumInvChemPot2
-!DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
     type(TAccumulator) :: SumHW_counter
     type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
     type(TAccumulator) :: SumHM
-!DEBUG
-    type(TAccumulator) :: SumVW1
-    type(TAccumulator) :: SumVW2
-!DEBUG
     type(TAccumulator) :: SumFraction
 
     ! Potential model for this component
@@ -814,18 +804,8 @@ contains
     case( ChemPotMethodGradIns )
       call Construct( this%SumInvChemPotRho, .true. )
       call Construct( this%SumInvChemPot, .true. )
-!DEBUG
-      call Construct( this%SumInvChemPotRho1, .true. )
-      call Construct( this%SumInvChemPot1, .true. )
-      call Construct( this%SumInvChemPotRho2, .true. )
-      call Construct( this%SumInvChemPot2, .true. )
-!DEBUG
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
-!DEBUG
-      call Construct( this%SumVW1, .true. )
-      call Construct( this%SumVW2, .true. )
-!DEBUG
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
@@ -859,18 +839,8 @@ contains
     case( ChemPotMethodGradIns )
       call Destruct( this%SumInvChemPotRho )
       call Destruct( this%SumInvChemPot )
-!DEBUG
-      call Destruct( this%SumInvChemPotRho1 )
-      call Destruct( this%SumInvChemPot1 )
-      call Destruct( this%SumInvChemPotRho2 )
-      call Destruct( this%SumInvChemPot2 )
-!DEBUG
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
-!DEBUG
-      call Destruct( this%SumVW1 )
-      call Destruct( this%SumVW2 )
-!DEBUG
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
