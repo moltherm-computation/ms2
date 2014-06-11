@@ -7880,6 +7880,7 @@ loop2:        do nc = 1, this%NComponents
   include 'mpif.h'
     integer         :: fields = 0
     integer         :: accumulate_step = 0
+    integer         :: headers = 0
     integer(kind=MPI_OFFSET_KIND) :: offset = 0 
     integer                       :: ierr
 #endif
@@ -7997,6 +7998,7 @@ loop2:        do nc = 1, this%NComponents
       if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
          fields = 0
+         headers = headers + 1
          fields = fields + 7
          do i = 1, this%NRealComponents
            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
@@ -8004,20 +8006,23 @@ loop2:        do nc = 1, this%NComponents
               if ( EnsembleType .eq. EnsembleTypeNPT) fields = fields + 2
            endif
          enddo
-         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + min(9, this%NComponents) + 1
+         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
 #if CONSTR > 0
          fields = fields + 2 *  this%NCons
 #endif
 
-         if (NProc .eq. NProcs - 1) then
+         if (RootProc) then
            if(.not. Equilibration) then
              if (CommonEqui) then
-               offset = (accumulate_step/BlockSize+1) * (11 * fields + 1) + 1 
+               offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
              else
-               offset = (NProcs * (accumulate_step/BlockSize)+1) * (11 * fields + 1) + 1 
+               offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
              endif
              call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
              call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+           else
+             call MPI_File_Seek((this%iounit_result), 0, MPI_SEEK_END, ierr)
+             call MPI_File_Seek((this%iounit_runave), 0, MPI_SEEK_END, ierr)
            endif
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -8598,9 +8603,8 @@ loop2:        do nc = 1, this%NComponents
       if(SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
         if (Equilibration) then
-          accumulate_step = accumulate_step + BlockSize
           if(CommonEqui) then
-            offset = (Step/BlockSize) * (11 * fields + 1) + 1
+            offset = (accumulate_step/BlockSize+headers) * (11 * fields + 1) + headers
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
             if (RootProc) then
@@ -8762,7 +8766,7 @@ loop2:        do nc = 1, this%NComponents
                call FileWriteNoAdvance_parallel( this%iounit_runave )
             endif
           else
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs +1) * (11 * fields + 1) + 1
+            offset = (NProc  + ((accumulate_step/BlockSize)) * NProcs +headers) * (11 * fields + 1) + headers
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
             ! PROC
@@ -8922,11 +8926,12 @@ loop2:        do nc = 1, this%NComponents
              call FileWriteNoAdvance_parallel( this%iounit_result )
              call FileWriteNoAdvance_parallel( this%iounit_runave )
           endif
+          accumulate_step = accumulate_step + BlockSize
         else
           if (CommonEqui) then
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+2)) * (11 * fields + 1) + 2 
+            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers 
           else
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+2) * (11 * fields + 1) + 2 
+            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+headers) * (11 * fields + 1) + headers 
           endif
           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
