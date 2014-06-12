@@ -8969,10 +8969,17 @@ loop2:        do nc = 1, this%NComponents
                   select case( pc%ChemPotMethod )
   
                   case( ChemPotMethodGradIns )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) then
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    else      
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    endif
   
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
@@ -8985,10 +8992,17 @@ loop2:        do nc = 1, this%NComponents
                   select case( pc%ChemPotMethod )
   
                   case( ChemPotMethodGradIns )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) then
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    else      
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    endif
   
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
