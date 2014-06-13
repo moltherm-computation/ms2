@@ -177,6 +177,7 @@ module ms2_component
     logical  :: CalcChemPot
     integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
+    integer  :: GradInsInit
     real(RK) :: ChemPot, WidomContribution
 	real (RK) :: HW_counter, HW_denom
 !DEBUG
@@ -519,6 +520,13 @@ contains
       call LogWrite
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
+
+      ! Read Gradual Insertion Initialization Steps
+      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+        call FileReadParameter( this%GradInsInit, iounit_params , IdGradInsInit, .false., 0 )
+        write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
+        call LogWrite
+      end if
 
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then

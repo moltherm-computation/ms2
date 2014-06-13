@@ -942,7 +942,7 @@ contains
     ! Read optional pressure calculation
     this%OptPressure = .true.
     if( SimulationType .eq. MonteCarlo ) then
-      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "yes" )
+      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "no" )
       select case( str )
         case( 'YES', 'Yes', 'yes' )
           this%OptPressure = .true.
@@ -4764,8 +4764,7 @@ loop3:    do nc = 1, this%NComponents
 #endif
 
     ! Outer loop over components
- componentLoop:       do i = 1, this%NRealComponents
-
+componentLoop:       do i = 1, this%NRealComponents
       pc => this%Component(i)
       if( Equilibration .and. pc%WFMethod .ne. WFMethodGuess ) cycle
       select case( pc%ChemPotMethod )
@@ -4773,7 +4772,7 @@ loop3:    do nc = 1, this%NComponents
       ! Chemical potential by gradual insertion
       case( ChemPotMethodGradIns )
         if( Equilibration) cycle componentLoop
-        if( GradInsInitialization .and. (pc%WFMethod .ne. WFMethodGuess)) cycle componentLoop
+        if( (((pc%GradInsInit .eq. 0) .or. (Step .gt. pc%GradInsInit)) .and. GradInsInitialization) .or. (pc%WFMethod .ne. WFMethodGuess)) cycle componentLoop
 
         ! Reset variables
         if( Step == 1 ) then
@@ -4915,7 +4914,7 @@ loop2:        do nc = 1, this%NComponents
           pc%ChemPot = 0._RK
         end if
 
-        if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. ( GradInsInitialization .and. mod(Step, max(NStepsMC,1)) ==0 ) ) then
+         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. ( GradInsInitialization))  then
           ! Here we sum up the NStateWF over all processes 
           ! dealing with a specific component to improve statistics
 #if MPI_VER > 0
@@ -10143,7 +10142,6 @@ loop2:        do nc = 1, this%NComponents
             Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
 !MERKER
           else
             Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average

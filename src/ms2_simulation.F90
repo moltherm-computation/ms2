@@ -516,10 +516,6 @@ contains
 
       else
         MCOverlapReduction = .false.
-        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
-        GradInsInit = NStepsMC
-        write( IOBuffer, '("Grad. Ins. initialization (if needed): ", T40, I7)' ) GradInsInit
-        call LogWrite
       end if
 
       ! Read number of NVT equilibration steps
@@ -974,7 +970,7 @@ contains
     type(TInteraction), pointer :: pi
     integer :: n1, n2
     
-    integer :: color, NGroups, Proc_Max_Eff
+    integer :: color, NGroups, Proc_Max_Eff, NGradInsInit
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
@@ -1507,16 +1503,19 @@ eqloop: do
        end if
        call LogWriteTime
        
-       do Step = StepStart, GradInsInit
-         do i = 1, this%NEnsembles
-           call ChemicalPotential( this%Ensemble(i) )
-         end do
+       NGradInsInit = 1      
+       do j= 1, this%NEnsembles  
+        do i = 1, this%Ensemble(j)%NComponents
+         NGradInsInit = NGradInsInit + this%Ensemble(j)%Component(i)%GradInsInit
+        end do 
        end do
-       
-       
-       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) max(NStepsMC,1)*this%NEnsembles
-       call LogWrite
-       
+      
+       do j= 1, this%NEnsembles
+        do Step = StepStart, NGradInsInit
+        call ChemicalPotential( this%Ensemble(j) )
+        end do 
+       end do
+             
        Step = 1
        if( .not. TerminateProgram ) then
          write( IOBuffer, '("GradIns initialization completed")' )

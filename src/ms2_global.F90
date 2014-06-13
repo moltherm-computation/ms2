@@ -306,6 +306,8 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdPotModFileName              = 'PotModel'
   character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
+  !Koester
+  character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
   character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract:LiqMoleFract'
