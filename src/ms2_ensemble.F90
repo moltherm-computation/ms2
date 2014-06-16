@@ -1,4 +1,4 @@
-!==============================================================!
+﻿!==============================================================!
 !  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
 !  (c) 2011 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
@@ -3209,6 +3209,10 @@ loop:do l = 1, NPartInCell
         end do
       end do
     end do loop
+
+    do i = 1, this%NComponents
+      this%Component(i)%P0 = this%Component(i)%P0 - 0.5_RK
+    end do
 
     ! Save old positions
     do i = 1, this%NComponents
