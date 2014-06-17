@@ -55,7 +55,7 @@ MODS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).mod)
 # Rules to build the target
 #
 default: all
-
+	@make clean
 all: $(PROG)
 
 $(PROG): $(OBJS)
