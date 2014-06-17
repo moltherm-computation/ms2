@@ -960,7 +960,7 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j, s, t
+    integer :: i, j, s, t, NGradInsInit
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
     integer :: k
@@ -970,7 +970,7 @@ contains
     type(TInteraction), pointer :: pi
     integer :: n1, n2
     
-    integer :: color, NGroups, Proc_Max_Eff, NGradInsInit
+    integer :: color, NGroups, Proc_Max_Eff
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
