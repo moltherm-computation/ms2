@@ -1,0 +1,61 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MC
+Acceptance  =       0.5
+Ensemble    =       NVT
+NVTSteps    =       10000
+RunSteps    =       200000
+ResultFreq  =       100
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+#
+# Ensemble 1
+#
+Temperature = 250.00   
+Density     = 22.486534697
+OptPressure = Yes
+NParticles  = 864
+NComponents = 2
+
+
+PotModel    = CO2_3lj.pm
+MolarFract  = 0.9
+ChemPotMethod= GradIns
+WeightFactors=Guess
+   1.00
+   2.00
+   3.00
+   5.00
+  10.00
+  20.00
+  40.00
+  60.00
+
+PotModel    = CH4.pm
+MolarFract  = 0.1
+ChemPotMethod= GradIns
+WeightFactors=Guess
+   1.00
+   2.00
+   3.00
+   5.00
+  10.00
+  20.00
+  40.00
+  60.00
+
+eta         = 1.0
+xi          = 1.0
+Cutoff      = 4.0
+Epsilon     = 1.0E10

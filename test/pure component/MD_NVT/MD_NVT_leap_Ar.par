@@ -1,0 +1,41 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MD
+Integrator  =       Leapfrog
+TimeStep    =       0.00005
+Ensemble    =       NVT
+MCORSteps   =       0
+NVTSteps    =       50000
+RunSteps    =       1000000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+#
+# Ensemble 1
+#
+Temperature = 130.0
+Density     = 27.039174885
+OptPressure = Yes
+NParticles  = 864
+NComponents = 1
+
+PotModel    = Ar.pm
+MoleFract  = 1.0
+ChemPotMethod= widom
+NTest        = 3456
+
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

@@ -1,0 +1,43 @@
+Units       =       Reduced
+LengthUnit  =       1.0
+EnergyUnit  =       1.0
+MassUnit    =       1.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       0.001
+Ensemble    =       NPT
+MCORSteps   =       100
+NVTSteps    =       50000
+NPTSteps    =       200000
+RunSteps    =       4000000
+ResultFreq  =       1000
+ErrorsFreq  =       1000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+
+Temperature = 1.00
+Pressure    = 0.100
+Density     = 0.700
+PistonMass  = 5.0E-4
+NParticles  = 864
+NComponents = 2
+
+
+PotModel    = lj_A.pm
+MolarFract  = 0.8
+ChemPotMethod = widom
+NTest       = 3456
+
+PotModel    = lj_B.pm
+MolarFract  = 0.2
+ChemPotMethod = widom
+NTest       = 3456
+
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

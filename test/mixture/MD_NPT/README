@@ -1,0 +1,1 @@
+Molecular dynamics NPT simulations for the binary mixtures CH4 + CO2, O2 + acetone and hydrazine + water. The chemical potential is calculated by Widom's test particle method. Both the Gear- and the Leapfrog integrator can be tested. The State points are close to the saturated liquid lines (at moderate temperatures). 

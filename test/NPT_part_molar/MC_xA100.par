@@ -1,0 +1,34 @@
+Units       =       Reduced
+LengthUnit  =       1.0
+EnergyUnit  =       1.0
+MassUnit    =       1.0
+Simulation  =       MC
+Acceptance  =       0.5
+Ensemble    =       NPT
+NVTSteps    =       20000
+NPTSteps    =       40000
+RunSteps    =       250000
+ResultFreq  =       1000
+ErrorsFreq  =       1000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+
+Temperature = 1.00
+Pressure    = 0.100
+Density     = 0.700
+NParticles  = 864
+NComponents = 1
+
+
+PotModel    = lj_A.pm
+MolarFract  = 1.0
+ChemPotMethod = widom
+NTest       = 3456
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

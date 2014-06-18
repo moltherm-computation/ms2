@@ -1,0 +1,41 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MC
+Acceptance  =       0.5
+Ensemble    =       NPT
+NVTSteps    =       10000
+NPTSteps    =       25000
+RunSteps    =       200000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+#
+# Ensemble 1
+#
+Temperature = 400.0
+Pressure    = 0.7
+Density     = 11.4
+NParticles  = 864
+NComponents = 1
+
+
+PotModel    = aceton.pm
+MoleFract  = 1.0
+ChemPotMethod= widom
+NTest        = 3456
+
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

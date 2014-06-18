@@ -1,0 +1,63 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.0
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation    =      MC
+Acceptance    =      0.5
+Ensemble      =      GE
+NVTSteps      =   10000
+mueVTSteps    =   25000
+RunSteps      =  200000
+ResultFreq    =     100
+ErrorsFreq    =    1000
+VisualFreq    =       0
+CutoffMode  =       COM
+NEnsembles    =       1
+
+#results from liquid run
+Temperature = 391.35
+Pressure0     =       0.101
+LiqDensity    =      32.5841
+VarDensity    =       0.0049
+LiqEnthalpy   =  -44497.3
+VarEnthalpy   =       6.7
+LiqBetaT      =       0.000397
+VarBetaT      =       0.000015
+LiqdHdP       =       0.018299
+VardHdP       =       0.000500
+
+#parameters for vapor run
+Density       =       1.000
+NParticles    =     500
+NComponents   =       2
+
+PotModel      = TIP4P_w6.pm
+MolarFract    =       0.5000
+LiqMolarFract =       0.2558
+ChemPot       =     -10.103
+VarChemPot    =       0.137
+PartMolVol    =       0.7274
+VarPartMolVol =       0.8228
+
+
+PotModel      =  N2H4_7.pm
+MolarFract    =       0.5000
+LiqMolarFract =       0.7442
+ChemPot       =      -8.138
+VarChemPot    =       0.233
+PartMolVol    =       1.1561
+VarPartMolVol =       1.7277
+
+eta         = 1.0
+xi          = 1.3
+
+
+Cutoff      = 5.0
+Epsilon     = 1.0E10

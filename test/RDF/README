@@ -1,0 +1,1 @@
+Molecular dynamics and Monte Carlo simulations for a quaternary mixture consisting of benzene, phosgene, hydrogen chloride and "dat24" (both NPT and NVT ensemble). The radial distribution function (RDF) is calculated in every step, RDF results are stored in the *.rdf files. 
