@@ -1,4 +1,4 @@
-﻿!==============================================================!
+!==============================================================!
 !  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
 !  (c) 2011 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
@@ -2948,6 +2948,7 @@ contains
     end if
 
     if( associated( this%vckr ) ) then
+
       deallocate( this%vckr )
     end if
 
@@ -11159,6 +11160,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec               *")')
     call FileWrite( this%iounit_errors )
+
     write( IOBuffer, '("* Computer Physics Communications (2011)                                   *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
