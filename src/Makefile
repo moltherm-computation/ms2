@@ -7,6 +7,7 @@ include $(CONFIG)
 TARGET    = RELEASE
 MPI       = 0
 OMP       = 0
+SP        = 0
 PROG      = ms2
 TRANS     = 0
 ifeq ($(MPI),1)
@@ -28,6 +29,12 @@ CPPFLAGS += -DENABLE_OMP
 F90FLAGS += $(OMPFLAGS)
 LDFLAGS  += $(OMPFLAGS)
 PROG     := $(PROG)_omp
+endif
+
+ifeq ($(SP),1)
+CPPFLAGS += -DSINGLEPRECISION
+LDFLAGS  += -DSINGLEPRECISION
+PROG     := $(PROG)_SP
 endif
 
 ifeq ($(TRANS),1)
