@@ -430,8 +430,8 @@ character(*), parameter :: VersionString = 'v1.0'
   ! Some physical units
   real(RK), parameter :: Angstroem = 1E-10_RK
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
-  real(RK)            :: DebyesInSI
-  real(RK)            :: BuckinghamsInSI
+  real(8)            :: DebyesInSI
+  real(8)            :: BuckinghamsInSI
 
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
@@ -1199,8 +1199,8 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
+    DebyesInSI = real( sqrt( 1E49_8 / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), 8 )
+    BuckinghamsInSI = real( sqrt( 1E69_8 / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), 8 )
 #else
     DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
