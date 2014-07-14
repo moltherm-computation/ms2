@@ -14741,7 +14741,7 @@ contains
     ! Declare arguments
     type(TEnsemble) :: this
     ! Declare local variables
-    integer  :: nmess, i, j, j0, j1, j2, k, l, s
+    integer  :: nmess, i, j, j0, j1, j2, k, l, s, CFTMP
     integer  :: CFindex, Mindex
     integer  :: NPart, NPart2, StepCorr
     integer  :: np, nc, np1, np2
@@ -14812,7 +14812,7 @@ contains
       ! Und die Summation ausschliesslich ueber die 1:3 gehen soll.
       ! Ich weiss nicht, wie ich Fortran das beibringen soll
       ! CWG: Hab ich bei EKinTran nun gemacht... aber bei EKinRot geht das nicht so wirklich.
-      ! SR: Wärmeleitfähigkeit wird jetzt auch für Mischungen berechnet
+      ! SR: WÃ¤rmeleitfÃ¤higkeit wird jetzt auch fÃ¼r Mischungen berechnet
    
         pFTC => this%Component(i)%FTC(:,:)
         pFRC => this%Component(i)%FRC(:,:)
@@ -14894,12 +14894,21 @@ contains
 
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
-      s = CFindex    
+!mn      s = CFindex    Has to be set inside of the loop for OMP parallelisation
+      CFtmp=CFindex
+! Directive inserted by Cray Reveal.  May be incomplete.
+!$OMP  parallel do default(none)                                         &
+!$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
+!$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
+!$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp)           &
+!$OMP&   private (sx,sy,sz)
       do nmess= 1, this%NCorr
         ! Loop over particles 
         !Calculate auto-correlation functions
         ! Write the diffusion matrix
         
+        s=CFtmp+nmess-1
+        if (s >= this%NCorr) s = s-this%NCorr+1
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
@@ -15007,8 +15016,8 @@ contains
            end do
         end if !if(EConductivity)
 
-        if (s == this%NCorr) s = 0
-        s = s+1
+!mn        if (s == this%NCorr) s = 0
+!mn        s = s+1
 
       end do  ! NMess
       this%Mmess  = this%Mmess +1
