@@ -452,7 +452,7 @@ contains
     call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
-      write( IOBuffer,'("Reduced PartMolEnt of component ", A, ": ", F9.6 )' ) &
+      write( IOBuffer,'("Reduced PartMolEnt of component ", A, ": ", F12.8 )' ) &
 &       trim( this%PotModFilename ), this%PartialMolarEnthalpy
       call LogWrite
     end if

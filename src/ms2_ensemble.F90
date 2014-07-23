@@ -1264,11 +1264,20 @@ contains
       end if
 
       this%EConductivity = .false.
-      do i = 1, this%NComponents
-         if ( (this%Component(i)%Molecule%Charge) .ne. 0._RK) then
+
+      if (LongRange .eq. Ewald) then
+	do i = 1, this%NComponents
+	  if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
              this%EConductivity = .true.
-         end if
-      end do
+	  end if
+	end do
+      end if
+
+!      do i = 1, this%NComponents
+!         if ( (this%Component(i)%Molecule%Charge) .ne. 0._RK) then
+!             this%EConductivity = .true.
+!         end if
+!      end do
 #endif
 
 #if CONSTR > 0
