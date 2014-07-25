@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
+!  MOLECULAR SIMULATION PROGRAM MS2 Version 2.0                !
 !==============================================================!
 !> Module: ms2_stopwatch                                       !
 !          contains TStopwatch class                           !

@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -1404,13 +1404,13 @@ contains
     call LogWrite
     write( IOBuffer, '("* -------------------------------------------------------------------- *")')
     call LogWrite
-    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,     *")')
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster,            *")')
     call LogWrite
-    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec           *")')
+    write( IOBuffer, '("* G. Guevara-Carrion, A. Wafai, M. Horsch, M. Bernreuther,             *")')
     call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2011)                               *")')
+    write( IOBuffer, '("* T. Windmann, H. Hasse, J. Vrabec                                     *")')
     call LogWrite
-    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    write( IOBuffer, '("* Computer Physics Communications (2014)                               *")')
     call LogWrite
     write( IOBuffer, '(72("*"))')
     call LogWrite
