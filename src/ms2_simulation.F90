@@ -974,6 +974,7 @@ contains
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
+    logical :: AnyNPartOk = .false.
 
 #endif 
 
@@ -1216,7 +1217,6 @@ eqloop: do
         call LogWriteTime
         StepStart = 1
       end if
-
       ! Run GE or NPT equilibration
       if( Equilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsP
@@ -1238,6 +1238,12 @@ eqloop: do
 
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, MPI_COMM_WORLD, ierror )
+            if ( .not. AnyNPartOk) then
+                NPartsOk = .false.
+            endif
+#endif
 
             if( NPartsOk ) then
               write( IOBuffer, '("GE equilibration completed")' )
