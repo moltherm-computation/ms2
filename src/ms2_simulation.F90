@@ -1598,6 +1598,7 @@ eqloop: do
     ! Declare local variables
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
+    logical :: AnyTooManyParticles
 #endif
 
 #if TRANS==1
@@ -1683,6 +1684,10 @@ eqloop: do
         end if
       endif
       
+      call MPI_Allreduce( tooManyParticles, AnyTooManyParticles, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+         if( AnyTooManyParticles ) then
+            tooManyParticles = .true.
+          end if
 #else
       if( TerminateProgram ) exit
 #endif
