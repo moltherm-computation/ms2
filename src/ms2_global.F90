@@ -1652,28 +1652,11 @@ contains
     integer, intent(in) :: iounit
     integer             :: ierr
 
-    ! Declare local variables
-    character(FileNameLength) :: fn
-#ifdef _WIN32
-    integer :: i
-#endif
-
-    if( RootProc )then 
-
-      ! Close file
-      inquire( iounit, NAME = fn )
-#ifdef _WIN32
-      i = index( fn, '\', BACK=.true. )
-      if( i > 0 ) fn = fn( i+1:len( fn ) )
-#endif
-    endif
     call MPI_File_Close(iounit, ierr)
 
     if( RootProc )then 
-      if( iounit /= iounit_log ) then
-        write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
+        write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
         call LogWrite
-      end if
     endif
 
   end subroutine Global_FileClose_parallel
