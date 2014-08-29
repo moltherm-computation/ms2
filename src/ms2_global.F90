@@ -1652,7 +1652,7 @@ contains
     call MPI_File_Close(iounit, ierr)
 
     if( RootProc )then 
-      write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
+      write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav" 
       call LogWrite
     endif
 
