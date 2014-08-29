@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -2856,7 +2856,7 @@ contains
             RYij = RYij - anint( RYij )
             RZij = RZij - anint( RZij )
             RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared >= RCutoffSquared ) cycle
+            if( RijSquared >= RCutoffSquaredScaled ) cycle
             RijSquaredInv = SigmaSquared / RijSquared
             Rij6Inv = RijSquaredInv**3
             jk = (j-1)*this%NUnit2 + plj%Site2%UnitNumber

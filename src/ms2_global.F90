@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -306,6 +306,7 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdPotModFileName              = 'PotModel'
   character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
+  character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
   character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract:LiqMoleFract'
@@ -1648,28 +1649,11 @@ contains
     integer, intent(in) :: iounit
     integer             :: ierr
 
-    ! Declare local variables
-    character(FileNameLength) :: fn
-#ifdef _WIN32
-    integer :: i
-#endif
-
-    if( RootProc )then 
-
-      ! Close file
-      inquire( iounit, NAME = fn )
-#ifdef _WIN32
-      i = index( fn, '\', BACK=.true. )
-      if( i > 0 ) fn = fn( i+1:len( fn ) )
-#endif
-    endif
     call MPI_File_Close(iounit, ierr)
 
     if( RootProc )then 
-      if( iounit /= iounit_log ) then
-        write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
-        call LogWrite
-      end if
+      write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
+      call LogWrite
     endif
 
   end subroutine Global_FileClose_parallel

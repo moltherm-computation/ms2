@@ -1,7 +1,6 @@
-
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -517,10 +516,6 @@ contains
 
       else
         MCOverlapReduction = .false.
-        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
-        GradInsInit = NStepsMC
-        write( IOBuffer, '("Grad. Ins. initialization (if needed): ", T40, I7)' ) GradInsInit
-        call LogWrite
       end if
 
       ! Read number of NVT equilibration steps
@@ -1041,7 +1036,7 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j
+    integer :: i, j, NGradInsInit
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
 
@@ -1054,6 +1049,7 @@ contains
     integer :: statusHost, lengthHost, tmpVal
     character(255) :: hostnameStr
     logical :: multNodes
+    logical :: AnyNPartOk = .false.
 
 #endif 
 
@@ -1334,6 +1330,12 @@ eqloop: do
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
 
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, MPI_COMM_WORLD, ierror )
+            if ( .not. AnyNPartOk) then
+                NPartsOk = .false.
+            endif
+#endif
             if( NPartsOk ) then
               write( IOBuffer, '("GE equilibration completed")' )
               Equilibration = .false.
@@ -1617,14 +1619,20 @@ eqloop: do
        end if
        call LogWriteTime
        
-       do Step = StepStart, GradInsInit
-         do i = 1, this%NEnsembles
-           call ChemicalPotential( this%Ensemble(i) )
-         end do
+       NGradInsInit = 1      
+       do j= 1, this%NEnsembles  
+         do i = 1, this%Ensemble(j)%NComponents
+           NGradInsInit = NGradInsInit + this%Ensemble(j)%Component(i)%GradInsInit
+         end do 
+       end do
+      
+       do j= 1, this%NEnsembles
+         do Step = StepStart, NGradInsInit
+           call ChemicalPotential( this%Ensemble(j) )
+         end do 
        end do
        
-       
-       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) max(NStepsMC,1)*this%NEnsembles
+       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) NGradInsInit*this%NEnsembles
        call LogWrite
        
        Step = 1
@@ -1703,6 +1711,7 @@ eqloop: do
     ! Declare local variables
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
+    logical :: AnyTooManyParticles
 #endif
 #if TRANS==1
     integer:: StepCF, i
@@ -1785,6 +1794,10 @@ eqloop: do
         end if
       endif
       
+      call MPI_Allreduce( tooManyParticles, AnyTooManyParticles, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+      if( AnyTooManyParticles ) then
+        tooManyParticles = .true.
+      end if
 #else
       if( TerminateProgram ) exit
 #endif

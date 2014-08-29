@@ -1,12 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v11            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2005 by Bernhard Eckl, ITT
-!  (c) 2007 by Ekaterina Elts, TUM
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
-!  Module ms2_idf                                             !
-!  Contains TIdf* objects                                     !
+!  Program ms2                                                 !
+!  This file contains the main routine                         !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
