@@ -7629,6 +7629,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if ( tooManyParticles ) return
     np = pc%NPart
     this%NPart = this%NPart + 1
+    this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
 
     ! Convert molecular coordinates to atom positions
     nu = pc%Molecule%NUnit
@@ -7679,6 +7680,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Reject Insertion
         call RemoveParticle( pc, np )
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
         call EwaldFourierEnergy ( this, nc, np, -1 )
         this%USelbstTerm = USelbst
         this%UIntra  = UIntra
@@ -7730,6 +7732,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Reject Insertion
         call RemoveParticle( pc, np )
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       end if 
 
     end if
@@ -7833,6 +7836,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end if
 
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
 
         ! Update density
         this%Density = this%NPart / this%Volume0
@@ -7857,10 +7861,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       this%qgrida_old = this%qgrida
       call chargegrid_min ( this, nc,np )
       this%NPart = this%NPart - 1
+      this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart - 1
       call PMESelfTermMC ( this )
 ! For further use of the following code
       this%NPart = this%NPart + 1
+      this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart + 1
       write(*,*) 'Molecule Deletion is not supported yet with PME'
       STOP
@@ -7916,6 +7922,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end if
 
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
 
         ! Update density
         this%Density = this%NPart / this%Volume0
@@ -8626,10 +8633,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       this%qgrida_old = this%qgrida
       call chargegrid_min ( this, nc,np )
       this%NPart = this%NPart - 1
+      this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart - 1
       call PMESelfTermMC ( this )
 ! For further use of the following code
       this%NPart = this%NPart + 1
+      this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart + 1
       write(*,*) 'Molecule Deletion is not supported yet with PME'
       STOP
@@ -8706,6 +8715,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call AddParticle( pc, r, q )
     np = pc%NPart
     this%NPart = this%NPart + 1
+    this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
 
     ! Convert molecular coordinates to atom positions
     nu = pc%Molecule%NUnit
@@ -8750,6 +8760,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Reject Insertion
         call RemoveParticle( pc, np )
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
         call EwaldFourierEnergy ( this, nc, np, -1 )
         this%USelbstTerm = USelbst
         this%UIntra  = UIntra
@@ -8787,6 +8798,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Reject Insertion
         call RemoveParticle( pc, np )
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       end if 
 
     end if
@@ -8842,6 +8854,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%Interaction(nc, nc)%EPot(np, np) = 0._RK
         this%Interaction(nc, nc)%Virial(np, np) = 0._RK
         this%NPart = this%NPart - 1
+        this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
 
         ! Update density
         this%Density = this%NPart / this%Volume0
@@ -9321,7 +9334,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: value
     real(RK)                  :: currentdEpotdV, currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
-    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3
+    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, AvgUnit, Numb, U, U2, U3
     real(RK)                  :: dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
     integer                   :: time_limit
 #if TRANS ==1
@@ -9942,9 +9955,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     if( ConstantPressure ) then
-      call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%RefPressure / this%Density - this%RefTemperature )
+      call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
+&      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     else
-      call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%Pressure / this%Density - this%RefTemperature )
+      call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%Pressure / this%Density - &
+&      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     end if
 
     call Update( this%SumVolume, 1._RK / this%Density )
@@ -9952,8 +9967,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
 
-    currentdEpotdV   = -this%Density*this%Virial/real( this%NPart, RK )
-    currentd2EpotdV2 =  this%Density**2*(2._RK*this%Virial/3._RK + this%d2EpotdV2) / (real( this%NPart, RK ))**2
+    currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
+    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
 
@@ -9967,31 +9982,31 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
     ! 2.) Combined sums
-    call Update( this%SumEPotSquared,      ( this%EPot / real( this%NPart, RK ) )**2 )
-    call Update( this%SumEPotCubic,          this%EPot**3 )
+    call Update( this%SumEPotSquared,      ( this%EPotInter / real( this%NPart, RK ) )**2 )
+    call Update( this%SumEPotCubic,          this%EPotInter**3 )
     call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
-    call Update( this%SumEPotdEpotdV,        this%EPot    * currentdEpotdV    )             
-    call Update( this%SumEPotSquareddEpotdV, this%EPot**2 * currentdEpotdV    )
-    call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
-    call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
+    call Update( this%SumEPotdEpotdV,        this%EPotInter    * currentdEpotdV    )             
+    call Update( this%SumEPotSquareddEpotdV, this%EPotInter**2 * currentdEpotdV    )
+    call Update( this%SumEPotdEpotdVSquared, this%EPotInter    * currentdEpotdV**2 )
+    call Update( this%SumEPotd2EpotdV2,      this%EPotInter    * currentd2EpotdV2  )
 
 
-    call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
+    call Update( this%SumEPotV, this%EPotInter / this%Volume0  )
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
 
     if( ConstantPressure ) then
-       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - this%RefTemperature )**2 )
+       call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
+&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
    
-       call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - this%RefTemperature ) / this%Density )
+       call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
+&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
     else
-       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
-&                this%Pressure / this%Density - this%RefTemperature )**2 )
+       call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
+&                this%Pressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
    
-       call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
-&                this%Pressure / this%Density - this%RefTemperature ) / this%Density )
+       call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
+&                this%Pressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
     end if
     call Update( this%SumVolumeSquared, 1._RK / this%Density**2 )
 
@@ -10002,7 +10017,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
 
       call Update( this%SumdHdP, this%SumVolume%Average - real( this%NPart, RK ) / this%RefTemperature &
-&                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
+&                * ( this%SumEPotV%Average - this%SumEPotInter%Average * this%SumVolume%Average + this%RefPressure &
 &                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
 
       call Update( this%SumCP, real( this%NPart, RK ) / this%RefTemperature**2 &
@@ -10014,22 +10029,22 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     else
 
-      call Update( this%SumdUdV, this%Density / ( 3. * real( this%NPart, RK )) * (this%NPart / this%RefTemperature &
+      call Update( this%SumdUdV,  (this%NPart / this%RefTemperature &
 &                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
-&                + this%SumVirial%Average ) )
+&                + this%SumVirial%Average ) / 3._RK / this%Volume0 )
 
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
-&                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
+&                * ( this%SumEPotSquared%Average - this%SumEPotInter%Average**2 ) )
     endif
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
       Beta    = 1._RK/this%RefTemperature
       Beta2   = Beta*Beta
       Beta3   = Beta*Beta2
+      Numb    = real( this%NPart, RK )
       specv   = 1._RK/this%Density
       specv2  = specv*specv
-      Numb    = real( this%NPart, RK )
-      U       = this%SumEpot%Average*real( this%NPart, RK )
+      U       = this%SumEpotInter%Average*real( this%NPart, RK )
       U2      = this%SumEpotSquared%Average*real( this%NPart, RK )**2
       U3      = this%SumEpotCubic%Average
       dUdV    = this%SumdEpotdV%Average

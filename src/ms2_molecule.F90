@@ -1456,11 +1456,6 @@ contains
 
     ! Save used potential model
     call Save( this, fluctstate ) 
-    if (UseIntDegFreed) then
-      ! Save  used potential model with IDF
-       call SaveIDF( this )
-    end if
-
 
     contains
 
@@ -1747,6 +1742,11 @@ contains
       call FileWriteParameter( iounit_normal, IdSite_MOI3 )
     end if
 
+    if (UseIntDegFreed) then
+      ! Save used potential model with IDF
+       call SaveIDF( this )
+    end if
+
     ! Close file
     call FileClose( iounit_normal )
 
@@ -1774,10 +1774,6 @@ contains
     character(FileNameLength)      :: filename
     integer                        :: nidftypes
     integer                        :: i
-
-    ! Open file
-    filename = trim( this%PotModFileName )//NormalizedPotModExtension
-    call FileAppend( iounit_normal, filename )
 
     ! Save information about Idf
     ! Save number of potential types
@@ -1842,17 +1838,11 @@ contains
        end do
      end if
 
-
-    ! Close file
-    call FileClose( iounit_normal )
-
     ! Update log file
-    write( IOBuffer, '("Normalized potential model with IDF for ", A, &
-&     " saved to file <", A, ">")' )trim( this%PotModFileName ), trim( filename )
+    write( IOBuffer, '("Added IDf to the normalized potential model for ", A)' )trim( this%PotModFileName )
     call LogWrite
 
   end subroutine TMolecule_SaveIDF
-
 
 
 !==============================================================!

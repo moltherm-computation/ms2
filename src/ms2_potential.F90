@@ -14847,7 +14847,7 @@ loop2:do j = 1, j1
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: EPotLocal, VirialLocal
-    real(RK)          :: d2EpotdV2Local  !, Plen2, sitecorr
+    real(RK)          :: d2EpotdV2Local , Plen2, sitecorr
     real(RK)          :: dR, F0, R0, ForConst
 
     integer           :: i, i1
@@ -14959,10 +14959,10 @@ loop2:do j = 1, j1
 
         ! Contribution to virial
         VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
-        !Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-        !sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
-        !d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * ForConst * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx LJ SS
-        !d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * ForConst *  sitecorr * sitecorr*Third*Third
+        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
+        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * ForConst * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond CC
+        d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * ForConst * sitecorr * sitecorr *Third*Third
 
          ! New Forces
          FX1(i) = FX1(i) + FXij
