@@ -1404,7 +1404,7 @@ contains
     call LogWrite
     write( IOBuffer, '("* -------------------------------------------------------------------- *")')
     call LogWrite
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster,            *")')
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster,            *")')
     call LogWrite
     write( IOBuffer, '("* G. Guevara-Carrion, A. Wafai, M. Horsch, M. Bernreuther,             *")')
     call LogWrite
