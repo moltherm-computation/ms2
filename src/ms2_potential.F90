@@ -6750,6 +6750,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
+          if( RijSquared >= RCutoffSquared ) cycle loop2
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -8096,7 +8097,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-
+          if( RijSquared >= RCutoffSquared ) cycle loop2
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -10301,7 +10302,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-
+          if( RijSquared >= RCutoffSquared ) cycle loop2
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -11745,7 +11746,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-
+          if( RijSquared >= RCutoffSquared ) cycle loop2
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
