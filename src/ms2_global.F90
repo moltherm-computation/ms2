@@ -98,7 +98,7 @@ module ms2_global
 #endif
 
   ! Version of program
-character(*), parameter :: VersionString = 'v1.0'
+character(*), parameter :: VersionString = 'v2.0'
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
