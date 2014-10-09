@@ -1525,6 +1525,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1592,6 +1593,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2336,28 +2338,29 @@ contains
               EPot(j) = EPot(j) +this%RFConst2 * ( muexi * this%MueX1(np) + mueyi * this%MueY1(np) + muezi * this%MueZ1(np) )
             end do
 
-          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
-            pcc => this%PotChargeCharge(1, 1)
-            Epsilon = pcc%Epsilon
-            RShieldSquared = pcc%RShieldSquared
-
-          ! Assign pointers to site positions
-            RX1 => pcc%Site1%RX
-            RY1 => pcc%Site1%RY
-            RZ1 => pcc%Site1%RZ
-            RX2 => pcc%Site2%RX
-            RY2 => pcc%Site2%RY
-            RZ2 => pcc%Site2%RZ
-            do k = 1, this%NInCutoff(np)
-              j = this%CutoffPartner(k, np)
-              RXij = RX2(j)-RX1(np)
-              RYij = RY2(j)-RY1(np)
-              RZij = RZ2(j)-RZ1(np)
-              RXij = (RXij - anint(RXij))*BoxLength
-              RYij = (RYij - anint(RYij))*BoxLength
-              RZij = (RZij - anint(RZij))*BoxLength
-              Rij = (RXij**2+RYij**2+RZij**2)
-            end do
+! This part seems to do nothing, therefore it has been commented out.
+!          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
+!            pcc => this%PotChargeCharge(1, 1)
+!            Epsilon = pcc%Epsilon
+!            RShieldSquared = pcc%RShieldSquared
+!
+!          ! Assign pointers to site positions
+!            RX1 => pcc%Site1%RX
+!            RY1 => pcc%Site1%RY
+!            RZ1 => pcc%Site1%RZ
+!            RX2 => pcc%Site2%RX
+!            RY2 => pcc%Site2%RY
+!            RZ2 => pcc%Site2%RZ
+!            do k = 1, this%NInCutoff(np)
+!              j = this%CutoffPartner(k, np)
+!              RXij = RX2(j)-RX1(np)
+!              RYij = RY2(j)-RY1(np)
+!              RZij = RZ2(j)-RZ1(np)
+!              RXij = (RXij - anint(RXij))*BoxLength
+!              RYij = (RYij - anint(RYij))*BoxLength
+!              RZij = (RZij - anint(RZij))*BoxLength
+!              Rij = (RXij**2+RYij**2+RZij**2)
+!            end do
           end if
         end if 
       end if 
