@@ -11096,6 +11096,7 @@ loop2:        do nc = 1, this%NComponents
 
 ! Calculation of residence times
     if ( this%ResidenceTime ) then
+      call Error( this%SumResidenceDuration )
       write(IOBuffer, '("Average pairs between")' )
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ) &
