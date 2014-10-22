@@ -98,7 +98,8 @@ module ms2_global
 #endif
 
   ! Version of program
-character(*), parameter :: VersionString = 'v2.0'
+  character(*), parameter :: VersionString = 'v2.0'
+  real(RK)                :: ms2VersionNr = 2.0_RK
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -254,6 +255,7 @@ character(*), parameter :: VersionString = 'v2.0'
 
   ! Define identifiers used in parameters file
   character(*), parameter :: IdOutputNameTag               = 'OutputNameTag'
+  character(*), parameter :: IdparVersionNr                = 'ms2Version'
   character(*), parameter :: IdUseReducedUnits             = 'Units'
   character(*), parameter :: IdUnitLength                  = 'LengthUnit'
   character(*), parameter :: IdUnitEnergy                  = 'EnergyUnit'
@@ -433,6 +435,9 @@ character(*), parameter :: VersionString = 'v2.0'
   real(8)            :: DebyesInSI
   real(8)            :: BuckinghamsInSI
 
+  ! Version of the parameter file
+  real(RK) :: parVersionNr
+  
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
 
@@ -524,18 +529,6 @@ character(*), parameter :: VersionString = 'v2.0'
   integer, parameter :: WFMethodAuto   = 1
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
-
-#if  TRANS == 1
-!TRANSPORT_start
-  ! Correlation function status
-  character(80)      :: CorrfunModeString
-  integer, parameter :: inactive               = 0
-  integer, parameter :: active                 = 1
-  integer            :: CorrfunMode
-  real(RK)           :: TimeStepCorr
-  integer            :: NStepCorr
-!TRANSPORT_END
-#endif
 
   ! MD time step
   real(RK) :: TimeStep, TimeStep2

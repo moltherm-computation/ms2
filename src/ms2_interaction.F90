@@ -158,7 +158,11 @@ module ms2_interaction
   interface Force
     module procedure TInteraction_Force
   end interface
-  
+
+  interface Force_Trans
+    module procedure TInteraction_Force_Trans
+  end interface
+
   interface GET_RDF
    module procedure TInteraction_RDF
   end interface
@@ -929,39 +933,14 @@ contains
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
 #ifndef ABL
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-         call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-
-       else
-         call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-
-#else
        call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
-
-#else
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-         call Force_Trans( this%PotLJ126LJ126( i, j ), &
-&             EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-
-       else
-         call Force( this%PotLJ126LJ126( i, j ), &
-&             EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-       end if
 #else
        call Force( this%PotLJ126LJ126( i, j ), &
 &           EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-#endif
-
         this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
         this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
-
         if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
           this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
-
         else
           fac = 2._RK*sqrt(eps1*eps2)
           this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
@@ -975,62 +954,21 @@ contains
     do i = 1, this%N1Charge
       if ( .not. this%ReactionField ) then
         do j = 1, this%N2Charge
-
-#if  TRANS == 1
-          if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-               call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
-
-          else
-               call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
-          end if
-
-#else
           call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
-#endif
         end do
 
       else
         do j = 1, this%N2Charge
-
-#if  TRANS == 1
-         if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-            call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-
-         else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-         end if
-
-#else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+          call Force( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
         end do
       end if
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-
-       else
-          call Force( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-
-#else
-          call Force( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-
-#else
-          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1038,39 +976,15 @@ contains
     ! Calculate dipolar forces
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1078,39 +992,15 @@ contains
     ! Calculate quadrupolar forces
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-       if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       else
-          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-       end if
-#else
-          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#endif
+        call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1171,6 +1061,181 @@ contains
 
   end subroutine TInteraction_Force
 
+
+
+!==============================================================!
+!  Subroutine TInteraction_Force_Trans                         !
+!==============================================================!
+#ifndef ABL
+  subroutine TInteraction_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
+#else
+  subroutine TInteraction_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength,C1,C2)
+#endif
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
+    real(RK), intent(in)     :: BoxLength
+#ifdef ABL
+    integer, intent(in)      :: C1,C2
+#endif
+
+    ! Declare local variables
+    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
+    real(RK)          :: RFTX, RFTY, RFTZ
+    real(RK)          :: EPotLocal, TXi, TYi, TZi
+    integer           :: i, j, k, i1
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+#ifdef ABL
+    real(RK)          :: AblSig, AblEps
+    real(RK)          :: eps1,eps2,fac
+#endif
+
+    ! Calculate interactions partners within cutoff sphere
+    if( CutoffMode .eq. CenterofMass ) then
+      call CalcCutoffPartners( this )
+    end if
+
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+#ifndef ABL
+       call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+#else
+       call Force_Trans( this%PotLJ126LJ126( i, j ), &
+&           EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
+        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
+        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
+        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
+          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
+        else
+          fac = 2._RK*sqrt(eps1*eps2)
+          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
+          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
+        end if
+#endif
+      end do
+    end do
+
+    ! Calculate point charge forces
+    do i = 1, this%N1Charge
+      if ( .not. this%ReactionField ) then
+        do j = 1, this%N2Charge
+          call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength, this%Kappa )
+        end do
+
+      else
+        do j = 1, this%N2Charge
+          call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        end do
+      end if
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+    end do
+
+
+    ! Calculate dipolar forces
+    do i = 1, this%N1Dipole
+      do j = 1, this%N2Charge
+        call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+    end do
+
+
+    ! Calculate quadrupolar forces
+    do i = 1, this%N1Quadrupole
+      do j = 1, this%N2Charge
+        call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+    end do
+
+    ! Explicit reaction field contribution
+    if ( this%ReactionField ) then
+      MueX1 => this%MueX1
+      MueY1 => this%MueY1
+      MueZ1 => this%MueZ1
+      MueX2 => this%MueX2
+      MueY2 => this%MueY2
+      MueZ2 => this%MueZ2
+      TX1 => this%tRFX1
+      TY1 => this%tRFY1
+      TZ1 => this%tRFZ1
+      TX2 => this%tRFX2
+      TY2 => this%tRFY2
+      TZ2 => this%tRFZ2
+      EPotLocal = 0._RK
+
+#if MPI_VER > 0
+      i0 = this%NPart10
+      i1 = this%NPart12
+      do i = i0, i1
+#else
+      i1 = this%NPart1
+      do i = 1, i1
+#endif
+        TXi = 0._RK
+        TYi = 0._RK
+        TZi = 0._RK
+        mueXi = MueX1(i)
+        mueYi = MueY1(i)
+        mueZi = MueZ1(i)
+        do k = 1, this%NInCutoff(i)
+          j = this%CutoffPartner(k, i)
+          mueXj = MueX2(j)
+          mueYj = MueY2(j)
+          mueZj = MueZ2(j)
+          RFTX = this%RFConst2 * (mueZi * mueYj - mueYi * mueZj)
+          RFTY = this%RFConst2 * (mueXi * mueZj - mueZi * mueXj)
+          RFTZ = this%RFConst2 * (mueYi * mueXj - mueXi * mueYj)
+          TXi = TXi + RFTX
+          TYi = TYi + RFTY
+          TZi = TZi + RFTZ
+          TX2(j) = TX2(j) - RFTX
+          TY2(j) = TY2(j) - RFTY
+          TZ2(j) = TZ2(j) - RFTZ
+
+          EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+        end do
+        TX1(i) = TX1(i) + TXi
+        TY1(i) = TY1(i) + TYi
+        TZ1(i) = TZ1(i) + TZi
+      end do
+
+      EPot = EPot + this%RFConst2 * EPotlocal
+    end if
+
+  end subroutine TInteraction_Force_Trans
 
 
 !==============================================================!

@@ -196,13 +196,14 @@ contains
 !  Subroutine TAccumulatorCF_Construct                         !
 !==============================================================!
 
-  subroutine TAccumulatorCF_Construct( this, UpdateByAverage )
+  subroutine TAccumulatorCF_Construct( this, UpdateByAverage, NBlocksMaxCF )
 
     implicit none
 
     ! Declare arguments
     type(TAccumulatorCF):: this
     logical, intent(in) :: UpdateByAverage
+    integer, intent(in) :: NBlocksMaxCF
 
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
@@ -211,7 +212,7 @@ contains
     this%TotalSum = 0._RK
 
     ! Allocate arrays
-    call AllocateCF( this )
+    call AllocateCF( this, NBlocksMaxCF )
 
   end subroutine TAccumulatorCF_Construct
 #endif
@@ -238,7 +239,7 @@ contains
 !TRANSPORT_start
 #if TRANS == 1
 !==============================================================!
-!  Subroutine TAccumulatorCF_Destruct                            !
+!  Subroutine TAccumulatorCF_Destruct                          !
 !==============================================================!
 
   subroutine TAccumulatorCF_Destruct( this )
@@ -305,12 +306,13 @@ contains
 !  Subroutine TAccumulatorCF_Allocate                            !
 !==============================================================!
 
-  subroutine TAccumulatorCF_Allocate( this )
+  subroutine TAccumulatorCF_Allocate( this, NBlocksMaxCF )
 
     implicit none
 
     ! Declare arguments
     type(TAccumulatorCF) :: this
+    integer, intent(in)  :: NBlocksMaxCF
 
     ! Declare local variables
     integer :: stat
@@ -430,7 +432,7 @@ contains
 !  Subroutine TAccumulatorCF_Update                              !
 !==============================================================!
 
-  subroutine TAccumulatorCF_Update( this, Value , Mmess )
+  subroutine TAccumulatorCF_Update( this, Value , Mmess, BlockSizeCF, NBlocksCF )
 
     implicit none
 
@@ -438,6 +440,8 @@ contains
     type(TAccumulatorCF)    :: this
     real(RK), intent(in)    :: Value
     integer, intent(in)     :: Mmess
+    integer, intent(in)     :: BlockSizeCF
+    integer, intent(in)     :: NBlocksCF
 
     ! Nullify total sum
     if( Mmess == 1 ) this%TotalSum = 0._RK
@@ -673,13 +677,17 @@ contains
 !  Subroutine TAccumulatorCF_Error                             !
 !==============================================================!
 
-  subroutine TAccumulatorCF_Error( this, Mmess )
+  subroutine TAccumulatorCF_Error( this, Mmess, NBlockSizesCF, NBlocksCF, BlockSizeCF )
 
     implicit none
 
     ! Declare arguments
     type(TAccumulatorCF) :: this
-    integer :: Mmess
+    integer, intent(in)  :: Mmess
+    integer, intent(in)  :: NBlockSizesCF
+    integer, intent(in)  :: NBlocksCF
+    integer, intent(in)  :: BlockSizeCF
+
     ! Declare local variables
     real(RK) :: Tau(NBlockSizesCF)
     real(RK) :: BlockAverage
@@ -803,12 +811,14 @@ contains
 !  Subroutine TAccumulator_RestartSaveCF                         !
 !==============================================================!
 
-  subroutine TAccumulator_RestartSaveCF( this )
+  subroutine TAccumulator_RestartSaveCF( this, NBlocksRestartCF )
 
     implicit none
 
     ! Declare arguments
     type(TAccumulatorCF) :: this
+    integer, intent(in)  :: NBlocksRestartCF
+
     ! Declare local variables
     integer :: j
 
@@ -835,12 +845,14 @@ contains
 !  Subroutine TAccumulator_RestartReadCF                        !
 !==============================================================!
 
-  subroutine TAccumulator_RestartReadCF( this )
+  subroutine TAccumulator_RestartReadCF( this, NBlocksRestartCF )
 
     implicit none
 
     ! Declare arguments
     type(TAccumulatorCF) :: this
+    integer, intent(in)  :: NBlocksRestartCF
+
     ! Declare local variables
     integer :: j
 

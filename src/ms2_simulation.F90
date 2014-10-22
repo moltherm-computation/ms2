@@ -240,6 +240,15 @@ contains
 
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
+    ! Read parVersionNr
+    call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1.0_RK )
+    write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
+    call LogWrite
+    if ( parVersionNr .lt. ms2VersionNr ) then
+      write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
+      call LogWrite
+    endif
+
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')
     call LogWrite
@@ -413,6 +422,14 @@ contains
 
         ! Time step
         call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
+        if (.not. UseReducedUnits ) then
+          if ( parVersionNr .ge. 2.0_RK ) then
+            TimeStep = TimeStep / UnitTime
+          else
+            write( IOBuffer, '("WARNING: Time step in SI-Units was not implemented for your version of the par-file.")' )
+            call LogWrite
+          endif
+        endif
         write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) TimeStep * UnitTime * 1E15_RK
         call LogWrite
         write( IOBuffer, '("Reduced time step: ",T26, F9.6)' ) TimeStep
@@ -754,30 +771,6 @@ contains
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
 
-    
-#if  TRANS == 1
-!TRANSPORT_start
-    ! Read correlation function mode
-    call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
-    select case( str )
-
-    case( 'yes' , 'ok', 'ja' )
-      CorrfunMode = active
-      CorrfunModeString = 'Include transport properties'
-
-    case( 'no', 'nein' )
-      CorrfunMode = inactive
-      CorrfunModeString = 'No transport properties'
-      call Error( 'Use a binary compiled without -DTRANS if you do not &
-&                  wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
-
-    case default
-      call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
-    end select
-    write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)
-    call LogWrite
-!TRANSPORT_END
-#endif
 
     if( (SimulationType .eq. Gibbs .and. this%NEnsembles .ne. 2) )  &
 &       call Error( trim( SimulationTypeString )//" simulation of " &
@@ -786,6 +779,33 @@ contains
     ! Create ensembles
     allocate( this%Ensemble(this%NEnsembles), STAT = stat )
     call AllocationError( stat, 'ensembles', this%NEnsembles )
+
+#if  TRANS == 1
+!TRANSPORT_start
+    ! Read correlation function mode
+    if ( parVersionNr .lt. 2.0_RK ) then
+      call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
+      select case( str )
+
+      case( 'yes' , 'ok', 'ja' )
+        this%Ensemble(:)%CorrFunMode = .true.
+        str = 'Include transport properties for all ensembles'
+
+      case( 'no', 'nein' )
+        this%Ensemble(:)%CorrFunMode = .false.
+        str = 'No transport properties for any ensemble'
+        call Error( 'Use a binary compiled without -DTRANS if you do not &
+&                    wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
+
+      case default
+        call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
+      end select
+      write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
+      call LogWrite
+    endif
+!TRANSPORT_END
+#endif
+
     do i = 1, this%NEnsembles
       if (LongRange .eq. Ewald) then
             this%Ensemble(i)%KappaL = KappaL_h
@@ -819,6 +839,22 @@ contains
         call Construct( this%Ensemble(i), i )
       end if
     end do
+
+#if  TRANS == 1
+!TRANSPORT_start
+    ! Read correlation function mode
+    if ( parVersionNr .ge. 2.0_RK ) then
+      if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
+        str = 'No transport properties for any ensemble'
+        call Error( 'Use a binary compiled without -DTRANS if you do not &
+&                    wish to calculate transport properties. If you do, set CorrFunMode = yes for one ensemble ' )
+
+        write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
+        call LogWrite
+      endif
+    endif
+!TRANSPORT_END
+#endif
 
   GradInsFrequency = BlockSize
   NFullFluct = 20
@@ -1620,18 +1656,22 @@ eqloop: do
 
 #if TRANS==1
       ! Run simulation step
-        if(( CorrfunMode == active ).and.(.not. Equilibration )) then
+        if ( .not. Equilibration ) then
           do i = 1, this%Nensembles
-            if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
-              StepCF = (Step + NStepCorr -1) / NStepCorr
-              if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
-                NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
-              else
-                NBlocksCF     = 0
-                NBlockSizesCF = 0
+            if ( this%Ensemble(i)%CorrFunMode ) then
+              if(mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
+                StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
+                if ( StepCF >= this%Ensemble(i)%Ncorr )then
+                  this%Ensemble(i)%NBlocksCF = 1 + int(( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
+&                                            ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ))
+                  this%Ensemble(i)%NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
+&                                                ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                else
+                  this%Ensemble(i)%NBlocksCF     = 0
+                  this%Ensemble(i)%NBlockSizesCF = 0
+                end if
               end if
-          
+
             end if
           end do
         end if

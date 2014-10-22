@@ -277,8 +277,23 @@ module ms2_ensemble
 #if  TRANS == 1
 !TRANSPORT_start
     ! Correlation functions
-    integer :: NCorr,Mmess,MmessMax
-    integer :: NSpanCF,Nviewcf
+    logical  :: CorrFunMode
+    ! Frequency of updating result file CF
+    integer :: BlockSizeCF
+    ! Maximum number of blocks CF
+    integer :: NBlocksMaxCF
+    ! Maximum number of block sizes for error calculation CF
+    integer :: NBlockSizesMaxCF
+    ! Number of block sizes for error calculation CF
+    integer :: NBlockSizesCF
+    ! Current number of blocks CF
+    integer :: NBlocksCF
+    ! Total number of blocks CF; necessary for the restart
+    integer :: NBlocksRestartCF
+    integer  :: NStepCorr
+    real(RK) :: TimeStepCorr
+    integer  :: NCorr,Mmess,MmessMax
+    integer  :: NSpanCF,Nviewcf
     real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
     real(RK), pointer :: lamda(:, :)
     real(RK), pointer :: sinte_i(:, :), sinte_lamda(:,:)
@@ -1052,11 +1067,30 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
+    if ( parVersionNr .ge. 2.0_RK ) then
+      call FileReadParameter( str , iounit_params , IdCorrFun, .false. , 'no' )
+      select case( str )
+
+      case( 'yes' , 'ok', 'ja' )
+        this%CorrFunMode = .true.
+        str = 'Include transport properties'
+
+      case( 'no', 'nein' )
+        this%CorrFunMode = .false.
+        str = 'No transport properties'
+
+      case default
+        call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
+      end select
+      write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
+      call LogWrite
+    endif
+
     ! Read correlation function
-    if( CorrfunMode .eq. active ) then
+    if( this%CorrfunMode ) then
 
       ! Calculate correlation function every n-th time step
-      call FileReadParameter( NStepCorr , iounit_params , IdNStepcf )
+      call FileReadParameter( this%NStepCorr , iounit_params , IdNStepcf )
 
       ! Read legth of the correlation function
       call FileReadParameter( this%NCorr , iounit_params , IdCorrlength )
@@ -1066,32 +1100,32 @@ contains
 
       ! Calculation of the correlation function every n-th time step
 
-      if(mod(this%NSpanCF, NStepCorr) .eq. 0) then
-        this%NSpanCF = this%NSpanCF/NStepCorr
-        this%NCorr = this%NCorr/NStepCorr
-        write( IOBuffer, '("CorrFunction is calculated every",I7,"-th time step")') NStepCorr
+      if(mod(this%NSpanCF, this%NStepCorr) .eq. 0) then
+        this%NSpanCF = this%NSpanCF/this%NStepCorr
+        this%NCorr = this%NCorr/this%NStepCorr
+        write( IOBuffer, '("CorrFunction is calculated every",I7,"-th time step")') this%NStepCorr
         call LogWrite
 
       else
-        NStepCorr = 1
+        this%NStepCorr = 1
         write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
         call LogWrite
       endif
 
-      TimeStepCorr = TimeStep * NStepCorr
+      this%TimeStepCorr = TimeStep * this%NStepCorr
 
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr*NStepCorr
+        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr*this%NStepCorr
         call LogWrite
 
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
-        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr*NStepCorr
+        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr*this%NStepCorr
         call LogWrite
       endif
       
       ! Correlation length output
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF*NStepCorr
+      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF*this%NStepCorr
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
@@ -1105,27 +1139,27 @@ contains
       end if
 
       ! Read frequency of updating result file CF
-      call FileReadParameter( BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 0 )
+      call FileReadParameter( this%BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 0 )
       if( BlockSize > 0 ) then
-        write( IOBuffer, '("Result files will be updated each", I7, " Correlation Functions")' ) BlockSizeCF
+        write( IOBuffer, '("Result files will be updated each", I7, " Correlation Functions")' ) this%BlockSizeCF
       else
         write( IOBuffer, '("Result files will not be created")' )
       end if
       call LogWrite
 
       ! Calculate MmessMax
-      this%MmessMax = int((((NSteps+NStepCorr-1)/NStepCorr)-this%NCorr)/this%NSpanCF)
+      this%MmessMax = int((((NSteps+this%NStepCorr-1)/this%NStepCorr)-this%NCorr)/this%NSpanCF)
 
       ! Initialization
       this%Mmess = 0
 
-      if( BlockSizeCF > 0 ) then
-        NBlocksMaxCF = this%MmessMax / BlockSizeCF
-        NBlockSizesMaxCF = int( sqrt( real( NBlocksMaxCF, RK ) ) )
+      if( this%BlockSizeCF > 0 ) then
+        this%NBlocksMaxCF = int(this%MmessMax / this%BlockSizeCF)
+        this%NBlockSizesMaxCF = int( sqrt( real(this%NBlocksMaxCF,RK) ) )
 
       else
-        NBlocksMaxCF = 0
-        NBlockSizesMaxCF = 0
+        this%NBlocksMaxCF = 0
+        this%NBlockSizesMaxCF = 0
       end if
 
     end if
@@ -2112,58 +2146,58 @@ contains
 #if  TRANS == 1
 !TRANSPORT_start
     ! 4.) Transport properties
-    if( CorrfunMode .eq. active ) then
+    if( this%CorrfunMode ) then
       do i = 1, this%NComponents
-        call ConstructCF( this%Sumself_i(i),  .true. )
+        call ConstructCF( this%Sumself_i(i),  .true., this%NBlocksMaxCF )
         this%Sumself_i(i)%BLOCKSUM(:) = 0._RK
         this%Sumself_i(i)%TOTALSUM    = 0._RK
         this%Sumself_i(i)%AVERAGE     = 0._RK
         this%Sumself_i(i)%VARIANCE    = 0._RK
       end do
 
-      call ConstructCF( this%SumBin_d,   .true. )
+      call ConstructCF( this%SumBin_d,  .true., this%NBlocksMaxCF )
       this%SumBin_d%BLOCKSUM(:) = 0._RK
       this%SumBin_d%TOTALSUM    = 0._RK
       this%SumBin_d%AVERAGE     = 0._RK
       this%SumBin_d%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_a,  .true. )
+      call ConstructCF( this%SumTer_a,  .true., this%NBlocksMaxCF )
       this%SumTer_a%BLOCKSUM(:) = 0._RK
       this%SumTer_a%TOTALSUM    = 0._RK
       this%SumTer_a%AVERAGE     = 0._RK
       this%SumTer_a%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_b,  .true. )
+      call ConstructCF( this%SumTer_b,  .true., this%NBlocksMaxCF )
       this%SumTer_b%BLOCKSUM(:) = 0._RK
       this%SumTer_b%TOTALSUM    = 0._RK
       this%SumTer_b%AVERAGE     = 0._RK
       this%SumTer_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_c,  .true. )
+      call ConstructCF( this%SumTer_c,  .true., this%NBlocksMaxCF )
       this%SumTer_c%BLOCKSUM(:) = 0._RK
       this%SumTer_c%TOTALSUM    = 0._RK
       this%SumTer_c%AVERAGE     = 0._RK
       this%SumTer_c%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_s, .true. )
+      call ConstructCF( this%SumVisco_s, .true., this%NBlocksMaxCF )
       this%SumVisco_s%BLOCKSUM(:) = 0._RK
       this%SumVisco_s%TOTALSUM    = 0._RK
       this%SumVisco_s%AVERAGE     = 0._RK
       this%SumVisco_s%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_b, .true. )
+      call ConstructCF( this%SumVisco_b, .true., this%NBlocksMaxCF )
       this%SumVisco_b%BLOCKSUM(:) = 0._RK
       this%SumVisco_b%TOTALSUM    = 0._RK
       this%SumVisco_b%AVERAGE     = 0._RK
       this%SumVisco_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumConduct, .true. )
+      call ConstructCF( this%SumConduct, .true., this%NBlocksMaxCF )
       this%SumConduct%BLOCKSUM(:) = 0._RK
       this%SumConduct%TOTALSUM    = 0._RK
       this%SumConduct%AVERAGE     = 0._RK
       this%SumConduct%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumEConduct, .true. )
+      call ConstructCF( this%SumEConduct, .true., this%NBlocksMaxCF )
       this%SumEConduct%BLOCKSUM(:) = 0._RK
       this%SumEConduct%TOTALSUM    = 0._RK
       this%SumEConduct%AVERAGE     = 0._RK
@@ -2250,7 +2284,7 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
-    if( CorrfunMode.eq.active ) then
+    if( this%CorrfunMode ) then
 
       do i = 1, this%NComponents
          call DestructCF( this%Sumself_i(i) )
@@ -2666,7 +2700,7 @@ contains
       NComp2 = this%NComponents*this%NComponents
 
     ! Allocate correlation fucntions
-     if( CorrfunMode .eq. active ) then
+     if( this%CorrfunMode ) then
 
       allocate( this%cf_vs(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
@@ -3703,7 +3737,7 @@ loop:do l = 1, NPartInCell
 #if  TRANS == 1
 
 !TRANSPORT_start
-    if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+    if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
       call CalCorrFun( this )  
     end if
 !TRANSPORT_END
@@ -4069,7 +4103,7 @@ loop3:    do nc = 1, this%NComponents
     ! Call Atom2Mol for each component
     do i = 1, this%NComponents
 #if  TRANS == 1
-      if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
+      if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
          call Atom2Mol_Trans( this%Component(i), this%Component(i)%NPart )
       else
          call Atom2Mol( this%Component(i), this%Component(i)%NPart )
@@ -4483,7 +4517,7 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteLJ126(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%NPart) = 0._RK
@@ -4517,7 +4551,7 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCz(1:pc%NPart) = 0._RK
@@ -4554,7 +4588,7 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteDipole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteDipole(j)%vsDz(1:pc%NPart) = 0._RK
@@ -4591,7 +4625,7 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteQuadrupole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteQuadrupole(j)%vsQz(1:pc%NPart) = 0._RK
@@ -4626,7 +4660,7 @@ loop3:    do nc = 1, this%NComponents
       end if
 #if  TRANS == 1
       !TRANSPORT_start
-      if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+      if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
         do j = 1, this%Component(i)%NPart
           this%Component(i)%FS(j, 1)    = 0._RK
           this%Component(i)%FS(j, 2)    = 0._RK
@@ -4660,12 +4694,30 @@ loop3:    do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
+#if TRANS == 1
+#ifndef ABL
+        if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
+        else
+          call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
+        endif
+#else
+        this%Interaction(i,j)%AblPS => this%AblPS
+        this%Interaction(i,j)%AblPE => this%AblPE
+        if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, i, j)
+        else
+          call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, i, j)
+        endif
+#endif
+#else
 #ifndef ABL
         call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
 #else
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
         call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, i, j)
+#endif
 #endif
       end do
     end do
@@ -8508,28 +8560,28 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
-    NStepsCF = (Step + NStepCorr -1) / NStepCorr
-    if( mod( NStepsCF - this%NCorr, BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
+    if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
+    NStepsCF = (Step + this%NStepCorr -1) / this%NStepCorr
+    if( mod( NStepsCF - this%NCorr, this%BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
 
       do i = 1, this%NComponents
-        call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess  )
+        call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess, this%BlockSizeCF, this%NBlocksCF  )
       end do
 
       if(this%NComponents == 2) then
-        call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess )
+        call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
       end if
 
      if(this%NComponents == 3 ) then
-        call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess )
-        call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess )
-        call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess )
+        call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
       end if
 
-      call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess )
-      call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess )
-      call UpdateCF( this%SumConduct, this%conduct, this%Mmess )
-      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess )
+      call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumConduct, this%conduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
     end if
     end if
 !TRANSPORT_END
@@ -9504,7 +9556,7 @@ loop2:        do nc = 1, this%NComponents
 
       ! integration time
       do i  = 1, this%NCorr
-        value = TimeStepCorr*UnitTime/1E-12_RK
+        value = this%TimeStepCorr*UnitTime/1E-12_RK
         write( IOBuffer, '(F10.5)' ) (i-1)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
@@ -10382,7 +10434,7 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
-    if (CorrfunMode .eq. active) Then
+    if ( this%CorrfunMode ) Then
 
       write( IOBuffer, '(T24, "TRANSPORT PROPERTIES")' )
       call FileWrite( this%iounit_errors )
@@ -10399,7 +10451,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%NCorr*TimeStepCorr
+      value = this%NCorr*this%TimeStepCorr
       write( IOBuffer, '("Length ACF  ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
 
@@ -10408,7 +10460,7 @@ loop2:        do nc = 1, this%NComponents
 
       call FileWriteBlank( this%iounit_errors )
 
-      value = this%NSpanCF*TimeStepCorr
+      value = this%NSpanCF*this%TimeStepCorr
       write( IOBuffer, '("Time span between ACF ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
 
@@ -10420,8 +10472,8 @@ loop2:        do nc = 1, this%NComponents
 
         if( this%NComponents == 2  ) then
 
-          if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-            call ErrorCF(this%SumBin_d, this%Mmess)
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+            call ErrorCF(this%SumBin_d, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
             Average  = this%SumBin_d%Average
             Variance = this%SumBin_d%Variance
           else
@@ -10441,8 +10493,8 @@ loop2:        do nc = 1, this%NComponents
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
-          if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_a, this%Mmess)
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+            call ErrorCF(this%SumTer_a, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
             Average  = this%SumTer_a%Average
             Variance = this%SumTer_a%Variance
 
@@ -10458,8 +10510,8 @@ loop2:        do nc = 1, this%NComponents
           call FileWriteBlank( this%iounit_errors )
 
 
-          if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_b, this%Mmess)
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+            call ErrorCF(this%SumTer_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
             Average  = this%SumTer_b%Average
             Variance = this%SumTer_b%Variance
           else
@@ -10473,8 +10525,8 @@ loop2:        do nc = 1, this%NComponents
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_c, this%Mmess)
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+            call ErrorCF(this%SumTer_c, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
             Average  = this%SumTer_c%Average
             Variance = this%SumTer_c%Variance
           else
@@ -10492,8 +10544,8 @@ loop2:        do nc = 1, this%NComponents
 
 
         do i = 1, this%NComponents
-          if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-            call ErrorCF(this%Sumself_i(i), this%Mmess)
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+            call ErrorCF(this%Sumself_i(i), this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
             Average  = this%Sumself_i(i)%Average
             Variance = this%Sumself_i(i)%Variance
           else
@@ -10510,8 +10562,8 @@ loop2:        do nc = 1, this%NComponents
         end do
         call FileWriteBlank( this%iounit_errors )
 
-        if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-          call ErrorCF(this%SumVisco_s, this%Mmess)
+        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+          call ErrorCF(this%SumVisco_s, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumVisco_s%Average
           Variance = this%SumVisco_s%Variance
         else
@@ -10526,8 +10578,8 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-          call ErrorCF(this%SumVisco_b, this%Mmess)
+        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+          call ErrorCF(this%SumVisco_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumVisco_b%Average
           Variance = this%SumVisco_b%Variance
         else
@@ -10541,8 +10593,8 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-          call ErrorCF(this%SumConduct, this%Mmess)
+        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+          call ErrorCF(this%SumConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumConduct%Average
           Variance = this%SumConduct%Variance
         else
@@ -10570,8 +10622,8 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        if((NBlockSizesCF >= 2 ).and.(NBlocksCF.le.NBlocksMaxCF))then
-          call ErrorCF(this%SumEConduct, this%Mmess)
+        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+          call ErrorCF(this%SumEConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumEConduct%Average
           Variance = this%SumEConduct%Variance
         else
@@ -10655,7 +10707,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-    end if   ! (CorrfunMode .eq. active)
+    end if   ! (this%CorrfunMode)
 #endif
 
     ! Too large cutoff radius
@@ -11652,7 +11704,7 @@ loop2:        do nc = 1, this%NComponents
     end do
 
 #if TRANS ==1
-if( RootProc .and. (CorrfunMode .eq. active) ) then
+if( RootProc .and. this%CorrfunMode ) then
     write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
@@ -11716,32 +11768,32 @@ if( RootProc .and. (CorrfunMode .eq. active) ) then
       end do
     end if
 
-    if(NBlocksCF .le. NBlocksMaxCF) then
-          NBlocksRestartCF = NBlocksCF
+    if(this%NBlocksCF .le. this%NBlocksMaxCF) then
+          this%NBlocksRestartCF = this%NBlocksCF
     else
-          NBlocksRestartCF = NBlocksMaxCF
+          this%NBlocksRestartCF = this%NBlocksMaxCF
     end if
 
-    write( iounit_restart, '(I10)' ) NBlocksRestartCF
+    write( iounit_restart, '(I10)' ) this%NBlocksRestartCF
 
     do i = 1, this%NComponents
-      call RestartSaveCF( this%Sumself_i(i) )
+      call RestartSaveCF( this%Sumself_i(i), this%NBlocksRestartCF )
     end do
 
     if(this%NComponents == 2) then
-      call RestartSaveCF( this%SumBin_d )
+      call RestartSaveCF( this%SumBin_d, this%NBlocksRestartCF )
     end if
 
     if(this%NComponents == 3) then
-      call RestartSaveCF( this%SumTer_a )
-      call RestartSaveCF( this%SumTer_b )
-      call RestartSaveCF( this%SumTer_c )
+      call RestartSaveCF( this%SumTer_a, this%NBlocksRestartCF )
+      call RestartSaveCF( this%SumTer_b, this%NBlocksRestartCF )
+      call RestartSaveCF( this%SumTer_c, this%NBlocksRestartCF )
     end if
 
-    call RestartSaveCF( this%SumVisco_s )
-    call RestartSaveCF( this%SumVisco_b )
-    call RestartSaveCF( this%SumConduct )
-    call RestartSaveCF( this%SumEConduct )
+    call RestartSaveCF( this%SumVisco_s, this%NBlocksRestartCF )
+    call RestartSaveCF( this%SumVisco_b, this%NBlocksRestartCF )
+    call RestartSaveCF( this%SumConduct, this%NBlocksRestartCF )
+    call RestartSaveCF( this%SumEConduct, this%NBlocksRestartCF )
 
     do i = 1,3
       write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -11913,7 +11965,7 @@ endif
     end do
 
 #if TRANS ==1
-    if( CorrfunMode .eq. active ) then
+    if( this%CorrfunMode ) then
       if( RootProc ) then
         read( iounit_restart, '(I10)' ) this%NCorr
         read( iounit_restart, '(I10)' ) this%Mmess
@@ -11985,26 +12037,26 @@ endif
         end do
       end if
 
-      read( iounit_restart, '(I10)' ) NBlocksRestartCF
+      read( iounit_restart, '(I10)' ) this%NBlocksRestartCF
 
       do i = 1, this%NComponents
-      call RestartReadCF( this%Sumself_i(i) )
+      call RestartReadCF( this%Sumself_i(i), this%NBlocksRestartCF )
       end do
 
       if(this%NComponents == 2) then
-        call RestartReadCF( this%SumBin_d )
+        call RestartReadCF( this%SumBin_d, this%NBlocksRestartCF )
       end if
 
       if(this%NComponents == 3) then
-        call RestartReadCF( this%SumTer_a )
-        call RestartReadCF( this%SumTer_b )
-        call RestartReadCF( this%SumTer_c )
+        call RestartReadCF( this%SumTer_a, this%NBlocksRestartCF )
+        call RestartReadCF( this%SumTer_b, this%NBlocksRestartCF )
+        call RestartReadCF( this%SumTer_c, this%NBlocksRestartCF )
       end if
 
-      call RestartReadCF( this%SumVisco_s )
-      call RestartReadCF( this%SumVisco_b )
-      call RestartReadCF( this%SumConduct )
-      call RestartReadCF( this%SumEConduct )
+      call RestartReadCF( this%SumVisco_s, this%NBlocksRestartCF )
+      call RestartReadCF( this%SumVisco_b, this%NBlocksRestartCF )
+      call RestartReadCF( this%SumConduct, this%NBlocksRestartCF )
+      call RestartReadCF( this%SumEConduct, this%NBlocksRestartCF )
 
       do i = 1,3
         read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -12315,8 +12367,10 @@ endif
    real(RK):: HFac(1:this%NPart)
    real(RK):: HFacX(1:this%NPart), HFacY(1:this%NPart), HFacZ(1:this%NPart)
    real(RK):: distx(1:this%NPart),disty(1:this%NPart),distz(1:this%NPart)
-   real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
-   real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
+   real(RK),allocatable:: qsinfac(:)
+   real(RK),allocatable:: qcosfac(:)
+   !real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
+   !real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
    integer :: ChargeNumber
 #if MPI_VER > 0
    integer, pointer:: i0,i1
@@ -12338,6 +12392,13 @@ endif
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
    BoxLength = this%BoxLength
    vorfac = 2._RK/BoxLength
+
+   m = 0
+   do i=1,this%NComponents
+     m = m + this%Component(i)%NPart*this%Component(i)%Molecule%NCharge
+   enddo
+   qsinfac(1:m)=0
+   qcosfac(1:m)=0
 
    ! Virial
    this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
@@ -12625,8 +12686,10 @@ endif
    real(RK):: Faktor(1:this%NPart)
    real(RK):: HFac(1:this%NPart)
    real(RK):: distx(1:this%NPart),disty(1:this%NPart),distz(1:this%NPart)
-   real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
-   real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
+   real(RK),allocatable:: qsinfac(:)
+   real(RK),allocatable:: qcosfac(:)
+   !real(RK):: qsinfac(1:this%NPart*this%NComponents*5)
+   !real(RK):: qcosfac(1:this%NPart*this%NComponents*5)
    integer :: ChargeNumber
 
 
@@ -12635,6 +12698,13 @@ endif
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
    BoxLength = this%BoxLength
    vorfac = 2._RK / this%BoxLength
+
+   m = 0
+   do i=1,this%NComponents
+     m = m + this%Component(i)%NPart*this%Component(i)%Molecule%NCharge
+   enddo
+   qsinfac(1:m)=0
+   qcosfac(1:m)=0
 
    if (this%OptPressure) then
      VirIntraLocal = 0._RK
@@ -14770,7 +14840,7 @@ contains
     EConductivity = this%EConductivity
 
     !Reduced correlation steps
-    StepCorr = (Step + NStepCorr -1) / NStepCorr
+    StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
  
 
     !Calculate matrix indexes
@@ -15068,7 +15138,7 @@ contains
 
     do i  = 1, this%NComponents
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess) * BoxLength_dt2
-      this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), TimeStepCorr, this%NCorr )
+      this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
       this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
     end do
 
@@ -15076,7 +15146,7 @@ contains
     if ( this%NComponents .gt. 1) then
       helpvar =  1._RK /(3._RK *this%NPart * this%Mmess) * BoxLength_dt2
       do k = 1, ncomp2
-        this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), TimeStepCorr, this%NCorr)
+        this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), this%TimeStepCorr, this%NCorr)
       end do
 
       if ( this%NComponents == 2 ) then
@@ -15143,18 +15213,18 @@ contains
 
 
     helpvar =  this%Density /(3._RK *this%NPart * this%Mmess * this%Temperature)
-    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), TimeStepCorr, this%NCorr )
+    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-    this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), TimeStepCorr, this%NCorr )
+    this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), this%TimeStepCorr, this%NCorr )
     this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
 
     if (this%Conductivity) then
-      this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), TimeStepCorr, this%NCorr )
+      this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
     end if
 
     if (this%EConductivity) then
-      this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), TimeStepCorr, this%NCorr )
+      this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%econduct = this%sinte_ec( this%NCorr ) * this%cf_ec(1) * (helpvar * BoxLength_dt2)
     end if
 
