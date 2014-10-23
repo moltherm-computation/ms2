@@ -623,29 +623,6 @@ module ms2_global
   !RDF
   real(RK) :: RDFRho, RDFRhoLocal
 
-  
-#if  TRANS == 1
-!TRANSPORT_start
-  ! Maximum number of blocks CF
-  integer :: NBlocksMaxCF
-
-  ! Frequency of updating result file CF
-  integer :: BlockSizeCF
-
-  ! Maximum number of block sizes for error calculation CF
-  integer :: NBlockSizesMaxCF
-
-  ! Number of block sizes for error calculation CF
-  integer :: NBlockSizesCF
-
-  ! Current number of blocks CF
-  integer :: NBlocksCF
-
-  ! Total number of blocks CF; necessary for the restart
-  integer :: NBlocksRestartCF
-!TRANSPORT_END
-#endif
-
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
 
