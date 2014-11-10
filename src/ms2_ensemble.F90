@@ -11592,7 +11592,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i
 #if TRANS ==1
-    integer                   :: j
+    integer                   :: j, k, Mindex, StepCorr
 #endif
 
     if( SimulationType .eq. MonteCarlo ) then
@@ -11705,6 +11705,22 @@ loop2:        do nc = 1, this%NComponents
 
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
+
+    !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
+    !Reduced correlation steps
+    StepCorr = (Step + NStepCorr -1) / NStepCorr
+
+    !Calculate matrix indexes
+    Mindex = mod(StepCorr, this%NCorr )
+    if (Mindex .eq. 0) then
+      Mindex = this%NCorr
+    end if
+
+    k=mod(Mindex,this%NSpanCF)
+    this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
+    !Aenderungen Koester
+
+
     write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
@@ -11828,7 +11844,7 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,stat, counter
+    integer                   :: i,j,stat,counter,k,Mindex,StepCorr
 
     if( RootProc ) then
 
@@ -11978,11 +11994,29 @@ endif
 #endif
 
     if ( RootProc ) then
+
+      !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
+      !Reduced correlation steps
+      StepCorr = (Step + NStepCorr -1) / NStepCorr
+
+      !Calculate matrix indexes
+      Mindex = mod(StepCorr, this%NCorr )
+      if (Mindex .eq. 0) then
+       Mindex = this%NCorr
+      end if
+
+      k=mod(Mindex,this%NSpanCF)
+      !Aenderungen Koester
+
       do i = 1, 3*this%NPart
         do j = 1, this%NCorr
           read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
       end do
+
+      !Aenderungen Koester
+      this%A_SpanCF(:,1:k) =  this%a(:,Mindex + 1 - k:Mindex )
+      !Aenderungen Koester
 
       do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
