@@ -504,7 +504,7 @@ contains
       call LogWrite
 
       ! Check whether simulation type is applicable to ensemble type
-      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature ) &
+      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature .and. EnsembleType .eq. .not. EnsembleTypeNVE) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
@@ -539,6 +539,15 @@ contains
       call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ",T40, I7)' ) NStepsV
       call LogWrite
+
+      ! Read number of NVE equilibration steps
+      if( EnsembleType .eq. EnsembleTypeNVE ) then
+        call FileReadParameter( NStepsE, iounit_params , IdNStepsE, .true., 0 )
+        write( IOBuffer, '("Number of NVE equilibration steps: ",T40, I7)' ) NStepsE
+        call LogWrite
+      else
+        NStepsE = 0
+      end if
 
       ! Read number of NPT equilibration steps
       if( ConstantPressure ) then
@@ -585,7 +594,7 @@ contains
 
       ! Calculate number of blocks and block sizes
       if( BlockSize > 0 ) then
-        NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+        NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
 
         ! Warning, if simulation is extended
         if ( mod(NSteps,BlockSize) .ne. 0._RK) then
@@ -603,7 +612,7 @@ contains
             BlockSize = NSteps
             write( IOBuffer, '("BlockSize is reduced to ",T40, I7, " due to small number of steps")' ) BlockSize
             call LogWrite
-            NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+            NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
           endif
         end if
 
@@ -1136,7 +1145,10 @@ contains
               endif
 
               if (Equilibration) then
-                NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeHA ) NStepsP = 1
+                if( ConstantPressure ) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeNVE ) NStepsE = 1
               endif
            endif
            if (RootProc) then
@@ -1253,10 +1265,11 @@ eqloop: do
         call LogWriteTime
         StepStart = 1
       end if
-      ! Run GE or NPT equilibration
+      ! Run GE, NpT or NVE equilibration
       if( Equilibration .and. .not. TerminateProgram ) then
-        StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
+          StepEnd = NStepsP
+
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming GE equilibration")' )
@@ -1303,6 +1316,7 @@ eqloop: do
           call LogWriteTime
 
         else if( EnsembleType .eq. EnsembleTypeHA ) then
+          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming HA equilibration")' )
@@ -1340,6 +1354,7 @@ eqloop: do
           call LogWriteTime
 
         else if( ConstantPressure ) then
+          StepEnd = NStepsP		
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming NPT equilibration")' )
@@ -1405,6 +1420,30 @@ eqloop: do
           end if
           call LogWriteTime
 
+        else if( EnsembleType .eq. EnsembleTypeNVE ) then
+          StepEnd = NStepsE
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming NVE equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting NVE equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"NVE equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("NVE equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("NVE equilibration TERMINATED")' )
+          end if
+          call LogWriteTime
 
         else
           Equilibration = .false.

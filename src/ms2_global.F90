@@ -268,6 +268,7 @@ module ms2_global
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
   character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
+  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
@@ -292,6 +293,7 @@ module ms2_global
   character(*), parameter :: IdMaxRadius                   = 'RMaxRadius'
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
+  character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
   character(*), parameter :: IdRefPressure                 = 'Pressure'
   character(*), parameter :: IdPressure0                   = 'Pressure0'
   character(*), parameter :: IdLiqDensity                  = 'LiqDensity'
@@ -558,6 +560,9 @@ module ms2_global
 
   ! Number of NVT equilibration time steps
   integer :: NStepsV
+
+  ! Number of NVE equilibration time steps
+  integer :: NStepsE
 
   ! Number of NPT equilibration time steps
   integer :: NStepsP
