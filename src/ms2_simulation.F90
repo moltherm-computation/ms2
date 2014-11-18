@@ -504,7 +504,7 @@ contains
       call LogWrite
 
       ! Check whether simulation type is applicable to ensemble type
-      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature .and. EnsembleType .eq. .not. EnsembleTypeNVE) &
+      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature .and. EnsembleType .ne. EnsembleTypeNVE) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 

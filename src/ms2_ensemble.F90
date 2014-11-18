@@ -12021,7 +12021,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
     !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
     !Reduced correlation steps
-    StepCorr = (Step + NStepCorr -1) / NStepCorr
+    StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
     !Calculate matrix indexes
     Mindex = mod(StepCorr, this%NCorr )
@@ -12310,7 +12310,7 @@ endif
 
       !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
       !Reduced correlation steps
-      StepCorr = (Step + NStepCorr -1) / NStepCorr
+      StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
       !Calculate matrix indexes
       Mindex = mod(StepCorr, this%NCorr )
