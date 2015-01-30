@@ -12744,6 +12744,8 @@ endif
    do i=1,this%NComponents
      m = m + this%Component(i)%NPart*this%Component(i)%Molecule%NCharge
    enddo
+   allocate(qsinfac(1:m))
+   allocate(qcosfac(1:m))
    qsinfac(1:m)=0
    qcosfac(1:m)=0
 
@@ -13050,6 +13052,8 @@ endif
    do i=1,this%NComponents
      m = m + this%Component(i)%NPart*this%Component(i)%Molecule%NCharge
    enddo
+   allocate(qsinfac(1:m))
+   allocate(qcosfac(1:m))
    qsinfac(1:m)=0
    qcosfac(1:m)=0
 
