@@ -11461,36 +11461,48 @@ loop2:        do nc = 1, this%NComponents
 
 ! Calculation of residence times
     if ( this%ResidenceTime ) then
-      call Error( this%SumResidenceDuration )
+      do i = 1, NBlockSizes
+        do j = i, NBlocks, i
+          if ( sum(this%SumResidenceDuration%NBlockSum(j - i + 1:j)) == 0 ) then
+             this%SumResidenceDuration%NBlockSum(j - i + 1) = 1
+             this%SumResidenceDuration%BlockSum(j - i + 1) = this%SumResidenceDuration%Average
+          end if
+        end do
+      end do
       write(IOBuffer, '("Average pairs between")' )
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ) &
-&           this%ResidComp1, this%ResidSite1, this%ResidComp2, this%ResidSite2, &
-&           this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Average residence time between")' )
       call FileWrite( this%iounit_errors )
+      call Error (this%SumResidenceDuration)
 
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
-&             this%ResidComp1, this%ResidSite1, this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
+         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
 
       else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ) &
-&             this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2, this%ResidenceDuration*UnitTime*1E15_RK
+&           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
+&           this%ResidenceDuration*UnitTime*1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No pairing between the two components observed")' )
 
       else
         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ) &
-&             this%ResidComp1,this%ResidSite1, this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
-&             this%SumResidenceDuration%Variance*UnitTime*1E15_RK
+&         this%ResidComp1,this%ResidSite1, &
+&         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
+&         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
       end if
 
       call FileWrite( this%iounit_errors )
-      write(IOBuffer, '("Critical distance: ",F10.5," A")' ) this%ResidLength*UnitLength/Angstroem
+      write(IOBuffer, '("Critical distance: ",F10.5," A")' ) &
+&           this%ResidLength*UnitLength/Angstroem
       call FileWrite( this%iounit_errors )
     end if
     call FileWriteBlank( this%iounit_errors )
