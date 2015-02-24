@@ -193,6 +193,21 @@ module ms2_ensemble
     type(TAccumulator) :: SumdEpotdV
     type(TAccumulator) :: Sumd2EpotdV2
 
+    !if( this%EnsembleType .eq. this%EnsembleTypeNVE .and. this%LongRange .eq. this%Rfield) then
+      type(TAccumulator) :: SumHmU
+      type(TAccumulator) :: SumHmUm1
+      type(TAccumulator) :: SumHmUm2
+      type(TAccumulator) :: SumHmUm3
+      type(TAccumulator) :: SumHmUm1dUdV
+      type(TAccumulator) :: SumHmUm1dUdV2
+      type(TAccumulator) :: SumHmUm1d2UdV2
+      type(TAccumulator) :: SumHmUm2dUdV
+      type(TAccumulator) :: SumHmUm2dUdV2
+      type(TAccumulator) :: SumHmUm2d2UdV2
+      type(TAccumulator) :: SumHmUm3dUdV
+      type(TAccumulator) :: SumHmUm3dUdV2
+    !end if
+
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
     type(TAccumulator) :: SumEPotV
@@ -206,14 +221,24 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotSquareddEpotdV
     type(TAccumulator) :: SumEPotdEpotdVSquared
     type(TAccumulator) :: SumEPotd2EpotdV2
-    type(TAccumulator) :: SumA10resNVT
-    type(TAccumulator) :: SumA01resNVT
-    type(TAccumulator) :: SumA20resNVT
-    type(TAccumulator) :: SumA11resNVT
-    type(TAccumulator) :: SumA02resNVT
-    type(TAccumulator) :: SumA30resNVT
-    type(TAccumulator) :: SumA21resNVT
-    type(TAccumulator) :: SumA12resNVT
+    !if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      type(TAccumulator) :: SumA10resI
+      type(TAccumulator) :: SumA01resI
+      type(TAccumulator) :: SumA20resI
+      type(TAccumulator) :: SumA11resI
+      type(TAccumulator) :: SumA02resI
+      type(TAccumulator) :: SumA30resI
+      type(TAccumulator) :: SumA21resI
+      type(TAccumulator) :: SumA12resI
+      type(TAccumulator) :: SumA10resII
+      type(TAccumulator) :: SumA01resII
+      type(TAccumulator) :: SumA20resII
+      type(TAccumulator) :: SumA11resII
+      type(TAccumulator) :: SumA02resII
+      type(TAccumulator) :: SumA30resII
+      type(TAccumulator) :: SumA21resII
+      type(TAccumulator) :: SumA12resII
+    !end if
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -2142,6 +2167,20 @@ contains
       call Construct( this%SumEPotSquareddEpotdV, .false. )
       call Construct( this%SumEPotdEpotdVSquared, .false. )
       call Construct( this%SumEPotd2EpotdV2, .false. )
+      if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+        call Construct( this%SumHmU, .false. )
+        call Construct( this%SumHmUm1, .false. )
+        call Construct( this%SumHmUm2, .false. )
+        call Construct( this%SumHmUm3, .false. )
+        call Construct( this%SumHmUm1dUdV, .false. )
+        call Construct( this%SumHmUm1dUdV2, .false. )
+        call Construct( this%SumHmUm1d2UdV2, .false. )
+        call Construct( this%SumHmUm2dUdV, .false. )
+        call Construct( this%SumHmUm2dUdV2, .false. )
+        call Construct( this%SumHmUm2d2UdV2, .false. )
+        call Construct( this%SumHmUm3dUdV, .false. )
+        call Construct( this%SumHmUm3dUdV2, .false. )
+      end if
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -2150,14 +2189,24 @@ contains
       call Construct( this%SumCV, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
-      call Construct( this%SumA10resNVT, .true. )
-      call Construct( this%SumA01resNVT, .true. )
-      call Construct( this%SumA20resNVT, .true. )
-      call Construct( this%SumA11resNVT, .true. )
-      call Construct( this%SumA02resNVT, .true. )
-      call Construct( this%SumA30resNVT, .true. )
-      call Construct( this%SumA21resNVT, .true. )
-      call Construct( this%SumA12resNVT, .true. )
+      if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+        call Construct( this%SumA10resI, .true. )
+        call Construct( this%SumA01resI, .true. )
+        call Construct( this%SumA20resI, .true. )
+        call Construct( this%SumA11resI, .true. )
+        call Construct( this%SumA02resI, .true. )
+        call Construct( this%SumA30resI, .true. )
+        call Construct( this%SumA21resI, .true. )
+        call Construct( this%SumA12resI, .true. )
+        call Construct( this%SumA10resII, .true. )
+        call Construct( this%SumA01resII, .true. )
+        call Construct( this%SumA20resII, .true. )
+        call Construct( this%SumA11resII, .true. )
+        call Construct( this%SumA02resII, .true. )
+        call Construct( this%SumA30resII, .true. )
+        call Construct( this%SumA21resII, .true. )
+        call Construct( this%SumA12resII, .true. )
+      end if
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -2281,6 +2330,20 @@ contains
     call Destruct( this%SumEPotSquareddEpotdV )
     call Destruct( this%SumEPotdEpotdVSquared )
     call Destruct( this%SumEPotd2EpotdV2 )
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call Destruct( this%SumHmU )
+      call Destruct( this%SumHmUm1)
+      call Destruct( this%SumHmUm2 )
+      call Destruct( this%SumHmUm3 )
+      call Destruct( this%SumHmUm1dUdV )
+      call Destruct( this%SumHmUm1dUdV2 )
+      call Destruct( this%SumHmUm1d2UdV2 )
+      call Destruct( this%SumHmUm2dUdV )
+      call Destruct( this%SumHmUm2dUdV2 )
+      call Destruct( this%SumHmUm2d2UdV2 )
+      call Destruct( this%SumHmUm3dUdV )
+      call Destruct( this%SumHmUm3dUdV2 )
+    end if
 
     ! 3.) Derived sums
     call Destruct( this%SumBetaT )
@@ -2289,14 +2352,24 @@ contains
     call Destruct( this%SumCV )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
-    call Destruct( this%SumA10resNVT )
-    call Destruct( this%SumA01resNVT )
-    call Destruct( this%SumA20resNVT )
-    call Destruct( this%SumA11resNVT )
-    call Destruct( this%SumA02resNVT )
-    call Destruct( this%SumA30resNVT )
-    call Destruct( this%SumA21resNVT )
-    call Destruct( this%SumA12resNVT )
+    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      call Destruct( this%SumA10resI )
+      call Destruct( this%SumA01resI )
+      call Destruct( this%SumA20resI )
+      call Destruct( this%SumA11resI )
+      call Destruct( this%SumA02resI )
+      call Destruct( this%SumA30resI )
+      call Destruct( this%SumA21resI )
+      call Destruct( this%SumA12resI )
+      call Destruct( this%SumA10resII )
+      call Destruct( this%SumA01resII )
+      call Destruct( this%SumA20resII )
+      call Destruct( this%SumA11resII )
+      call Destruct( this%SumA02resII )
+      call Destruct( this%SumA30resII )
+      call Destruct( this%SumA21resII )
+      call Destruct( this%SumA12resII )
+    end if
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -8273,6 +8346,11 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
+    real(RK)                  :: currentHmU, currentHmUm1
+    real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
+    real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
+    real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
+    real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
 
     integer                   :: time_limit
 #if TRANS ==1
@@ -8318,6 +8396,20 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumEPotSquareddEpotdV )
       call Reset( this%SumEPotdEpotdVSquared )
       call Reset( this%SumEPotd2EpotdV2 )
+      if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+        call Reset( this%SumHmU )
+        call Reset( this%SumHmUm1)
+        call Reset( this%SumHmUm2 )
+        call Reset( this%SumHmUm3 )
+        call Reset( this%SumHmUm1dUdV )
+        call Reset( this%SumHmUm1dUdV2 )
+        call Reset( this%SumHmUm1d2UdV2 )
+        call Reset( this%SumHmUm2dUdV )
+        call Reset( this%SumHmUm2dUdV2 )
+        call Reset( this%SumHmUm2d2UdV2 )
+        call Reset( this%SumHmUm3dUdV )
+        call Reset( this%SumHmUm3dUdV2 )
+      end if
 
       ! 3.) Derived sums
       if( ConstantPressure ) then
@@ -8329,15 +8421,24 @@ loop2:        do nc = 1, this%NComponents
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
       endif
-      call Reset( this%SumA10resNVT )
-      call Reset( this%SumA01resNVT )
-      call Reset( this%SumA20resNVT ) 
-      call Reset( this%SumA11resNVT )
-      call Reset( this%SumA02resNVT )
-      call Reset( this%SumA30resNVT )
-      call Reset( this%SumA21resNVT )
-      call Reset( this%SumA12resNVT )
-
+      if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+        call Reset( this%SumA10resI )
+        call Reset( this%SumA01resI )
+        call Reset( this%SumA20resI )
+        call Reset( this%SumA11resI )
+        call Reset( this%SumA02resI )
+        call Reset( this%SumA30resI )
+        call Reset( this%SumA21resI )
+        call Reset( this%SumA12resI )
+        call Reset( this%SumA10resII )
+        call Reset( this%SumA01resII )
+        call Reset( this%SumA20resII )
+        call Reset( this%SumA11resII )
+        call Reset( this%SumA02resII )
+        call Reset( this%SumA30resII )
+        call Reset( this%SumA21resII )
+        call Reset( this%SumA12resII )
+      end if
 
       ! 4.) Chemical potential and partial molar volumes
       do i = 1, this%NRealComponents
@@ -8780,6 +8881,22 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
     call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
+      currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot)
+      currentHmUm1 = 1._RK/currentHmU
+      call Update( this%SumHmU,            currentHmU )
+      call Update( this%SumHmUm1,          currentHmUm1 )
+      call Update( this%SumHmUm2,          currentHmUm1**2 )
+      call Update( this%SumHmUm3,          currentHmUm1**3 )
+      call Update( this%SumHmUm1dUdV,      currentHmUm1     * currentdEpotdV    )
+      call Update( this%SumHmUm1dUdV2,     currentHmUm1     * currentdEpotdV**2 )
+      call Update( this%SumHmUm1d2UdV2,    currentHmUm1     * currentd2EpotdV2  )
+      call Update( this%SumHmUm2dUdV,      currentHmUm1**2  * currentdEpotdV    )
+      call Update( this%SumHmUm2dUdV2,     currentHmUm1**2  * currentdEpotdV**2 )
+      call Update( this%SumHmUm2d2UdV2,    currentHmUm1**2  * currentd2EpotdV2  )
+      call Update( this%SumHmUm3dUdV,      currentHmUm1**3  * currentdEpotdV    )
+      call Update( this%SumHmUm3dUdV2,     currentHmUm1**3  * currentdEpotdV**2 )
+    endif
 
     call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
 
@@ -8858,16 +8975,159 @@ loop2:        do nc = 1, this%NComponents
 &               specv*Beta2*(2._RK*U*dUdV - 2._RK*UdUdV)+&
 &               specv*Beta*2._RK*dUdV
 
-      call Update( this%SumA10resNVT, A10res )
-      call Update( this%SumA01resNVT, A01res )
-      call Update( this%SumA20resNVT, A20res )
-      call Update( this%SumA11resNVT, A11res )
-      call Update( this%SumA02resNVT, A02res )
-      call Update( this%SumA30resNVT, A30res )
-      call Update( this%SumA21resNVT, A21res )
-      call Update( this%SumA12resNVT, A12res )
+      call Update( this%SumA10resI, A10res )
+      call Update( this%SumA01resI, A01res )
+      call Update( this%SumA20resI, A20res )
+      call Update( this%SumA11resI, A11res )
+      call Update( this%SumA02resI, A02res )
+      call Update( this%SumA30resI, A30res )
+      call Update( this%SumA21resI, A21res )
+      call Update( this%SumA12resI, A12res )
     end if
- 
+
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      specv       = 1._RK/this%Density
+      specv2      = specv*specv
+      Numb        = real( this%NPart, RK )
+      rho         = this%Density
+      rho2        = rho*rho
+      if( SimulationType .eq. MolecularDynamics ) then 
+       F = (real(this%NDF, RK)- 3._RK)/2._RK
+      else
+       F = real(this%NDF, RK)/2._RK
+      endif
+      invF        = 2._RK/real(this%NDF, RK)
+      dUdV        = this%SumdEpotdV%Average
+      dUdV2       = this%SumdEpotdVSquared%Average
+      d2UdV2      = this%Sumd2EpotdV2%Average
+       HmU         =this%SumHmU%Average
+      HmUm1       =this%SumHmUm1%Average
+      HmUm2       =this%SumHmUm2%Average
+      HmUm3       =this%SumHmUm3%Average
+      HmUm1dUdV   =this%SumHmUm1dUdV%Average
+      HmUm1dUdV2  =this%SumHmUm1dUdV2%Average
+      HmUm1d2UdV2 =this%SumHmUm1d2UdV2%Average
+      HmUm2dUdV   =this%SumHmUm2dUdV%Average
+      HmUm2dUdV2  =this%SumHmUm2dUdV2%Average
+      HmUm2d2UdV2 =this%SumHmUm2d2UdV2%Average
+      HmUm3dUdV   =this%SumHmUm3dUdV%Average
+      HmUm3dUdV2  =this%SumHmUm3dUdV2%Average
+
+      O00 = HmU*invF
+      O10 = 1._RK
+      O01 = rho*HmU*invF - dUdV
+      O20 = (F-1._RK)*HmUm1
+      O11 = rho + (1._RK-F)*HmUm1dUdV
+      O02 = rho*rho*(1._RK-1._RK/Numb)*HmU*invF - 2._RK*rho*dUdV - d2UdV2 + (F-1._RK)*HmUm1dUdV2
+      O30 = (F*F-3._RK*F+2._RK)*HmUm2
+      O21 = rho*(F-1._RK)*HmUm1+(3._RK*F-F*F-2._RK)*HmUm2dUdV
+      O12 = rho*(rho*(1._RK-1._RK/Numb) + 2._RK*HmUm1dUdV*(1._RK-F)) + (1._RK-F)*HmUm1d2UdV2 + (2._RK-3._RK*F+F*F)*HmUm2dUdV2
+      O40 = (F*F*F-6._RK*F*F+11._RK*F-6._RK)*HmUm3
+      O31 = rho*(F*F-3._RK*F+2._RK)*HmUm2 + (6._RK-11._RK*F+6._RK*F*F-F*F*F)*HmUm3dUdV
+      O22 = rho*rho*(F-1._RK-F/Numb+1._RK/Numb)*HmUm1 + rho*(6._RK*F-2._RK*F*F-4._RK)*HmUm2dUdV + (3._RK*F-F*F-2._RK)*HmUm2d2UdV2 + (F*F*F-6._RK*F*F+11._RK*F-6._RK)*HmUm3dUdV2
+
+      O00m1 = 1._RK/O00
+      O00m2 = O00m1*O00m1
+      O00m3 = O00m2*O00m1
+      O012  = O01*O01
+
+      !Entropy definition I
+
+      S01 =  O00m1*O01
+      S10 =  O00m1
+      S02 = -O00m2*O012+O00m1*O02
+      S11 = -O00m2*O01 +O00m1*O11
+      S20 = -O00m2     +O00m1*O20
+      S12 = 2._RK*O00m3*O012-2._RK*O00m2*O01*O11      -O00m2*O02+O00m1*O12
+      S21 = 2._RK*O00m3*O01       -O00m2*O01*O20-2._RK*O00m2*O11+O00m1*O21
+      S30 = 2._RK*O00m3     -3._RK*O00m2*O20          +O00m1*O30
+
+      S20m1 = 1._RK/S20
+      S20m2 = S20m1*S20m1
+      S20m3 = S20m2*S20m1
+
+      A01res =  S01
+      A10res = -this%RefHamiltonian*Numb
+      A02res =  S02-S11*S11*S20m1
+      A11res =  S11*S20m1
+      A20res = -S20m1
+      A12res =  S20m1*(S11*S20m1*(S11*S20m1*S30-2._RK*S21)+S12)
+      A21res = -S20m2*(S11*S20m1*S30-S21)
+      A30res =  S20m3*S30
+
+      ! Substraction of the ideal part
+
+      Beta    = O00m1
+      Beta2   = Beta*Beta
+      Beta3   = Beta*Beta2
+
+      A10res =  A10res-(      -F*O00   ) !Beta=O00m1
+      A20res =  A20res-(       F*O00**2)
+      A30res =  A30res-(-2._RK*F*O00**3)
+      A01res =  A01res-  rho
+      A02res =  A02res-(-rho2/Numb)
+
+      ! Final conversion
+
+      call Update( this%SumA10resI, -A10res*Beta/Numb )
+      call Update( this%SumA01resI,  A01res*specv ) !=-(-V*A01res)/Numb
+      call Update( this%SumA20resI, -A20res*Beta2/Numb )
+      call Update( this%SumA11resI,  A11res*Beta*specv ) !=-(-V*Beta*A11res)/Numb
+      call Update( this%SumA02resI, -(specv2*A02res*Numb + 2._RK*specv*A01res) ) !=-(V^2*A02res+2V*A01res)/Numb
+      call Update( this%SumA30resI, -A30res*Beta3/Numb )
+      call Update( this%SumA21resI,  A21res*specv*Beta2 ) !=-(-V*Beta2*A21res)/Numb
+      call Update( this%SumA12resI, -Beta*(specv2*A12res*Numb + 2._RK*specv*A11res) ) !=-Beta*(V^2*A12res+2V*A11res)/Numb
+
+      !Entropy definition II
+
+      S01 =  O11
+      S10 =  O20
+      S02 = -O11*O11+O12
+      S11 = -O11*O20+O21
+      S20 = -O20*O20+O30
+      S12 = 2._RK*O11*O11*O20-2._RK*O11*O21      -O12*O20+O22
+      S21 = 2._RK*O11*O20*O20      -O11*O30-2._RK*O20*O21+O31
+      S30 = 2._RK*O20*O20*O20-3._RK*O20*O30      +O40
+
+      S20m1 = 1._RK/S20
+      S20m2 = S20m1*S20m1
+      S20m3 = S20m2*S20m1
+
+      A01res =  S01
+      A10res = -this%RefHamiltonian*Numb
+      A02res =  S02-S11*S11*S20m1
+      A11res =  S11*S20m1
+      A20res = -S20m1
+      A12res =  S20m1*(S11*S20m1*(S11*S20m1*S30-2._RK*S21)+S12)
+      A21res = -S20m2*(S11*S20m1*S30-S21)
+      A30res =  S20m3*S30
+
+      ! Substraction of the ideal part
+
+      O20m1   = 1._RK/O20
+      Beta    = O20
+      Beta2   = Beta*Beta
+      Beta3   = Beta*Beta2
+
+      funcF=(1._RK-invF)
+
+      A10res =  A10res-(      -F* funcF*O20m1    )       !Beta=O20
+      A20res =  A20res-(       F*(funcF*O20m1)**2)/funcF
+      A30res =  A30res-(-2._RK*F*(funcF*O20m1)**3)/funcF**2
+      A01res =  A01res-rho
+      A02res =  A02res-(-rho2/Numb)
+
+      ! Final conversion
+
+      call Update( this%SumA10resII, -A10res*Beta/Numb )
+      call Update( this%SumA01resII,  A01res*specv ) !=-(-V*A01res)/Numb
+      call Update( this%SumA20resII, -A20res*Beta2/Numb )
+      call Update( this%SumA11resII,  A11res*Beta*specv ) !=-(-V*Beta*A11res)/Numb
+      call Update( this%SumA02resII, -(specv2*A02res*Numb + 2._RK*specv*A01res) ) !=-(V^2*A02res+2V*A01res)/Numb
+      call Update( this%SumA30resII, -A30res*Beta3/Numb )
+      call Update( this%SumA21resII,  A21res*specv*Beta2 ) !=-(-V*Beta2*A21res)/Numb
+      call Update( this%SumA12resII, -Beta*(specv2*A12res*Numb + 2._RK*specv*A11res) ) !=-Beta*(V^2*A12res+2V*A11res)/Numb
+    end if
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
@@ -10099,15 +10359,39 @@ loop2:        do nc = 1, this%NComponents
     call Error( this%SumEPotSquareddEpotdV)
     call Error( this%SumEPotdEpotdVSquared)
     call Error( this%SumEPotd2EpotdV2)
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call Error( this%SumHmU )
+      call Error( this%SumHmUm1)
+      call Error( this%SumHmUm2 )
+      call Error( this%SumHmUm3 )
+      call Error( this%SumHmUm1dUdV )
+      call Error( this%SumHmUm1dUdV2 )
+      call Error( this%SumHmUm1d2UdV2 )
+      call Error( this%SumHmUm2dUdV )
+      call Error( this%SumHmUm2dUdV2 )
+      call Error( this%SumHmUm2d2UdV2 )
+      call Error( this%SumHmUm3dUdV )
+      call Error( this%SumHmUm3dUdV2 )
+    end if
 
-    call Error( this%SumA10resNVT )
-    call Error( this%SumA01resNVT )
-    call Error( this%SumA20resNVT )
-    call Error( this%SumA11resNVT )
-    call Error( this%SumA02resNVT )
-    call Error( this%SumA30resNVT )
-    call Error( this%SumA21resNVT )
-    call Error( this%SumA12resNVT )
+    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      call Error( this%SumA10resI )
+      call Error( this%SumA01resI )
+      call Error( this%SumA20resI )
+      call Error( this%SumA11resI )
+      call Error( this%SumA02resI )
+      call Error( this%SumA30resI )
+      call Error( this%SumA21resI )
+      call Error( this%SumA12resI )
+      call Error( this%SumA10resII )
+      call Error( this%SumA01resII )
+      call Error( this%SumA20resII )
+      call Error( this%SumA11resII )
+      call Error( this%SumA02resII )
+      call Error( this%SumA30resII )
+      call Error( this%SumA21resII )
+      call Error( this%SumA12resII )
+    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NComponents
@@ -10676,64 +10960,194 @@ loop2:        do nc = 1, this%NComponents
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then 
       ! A10
-      Average = this%SumA10resNVT%Average
-      Variance = this%SumA10resNVT%Variance
+      Average = this%SumA10resI%Average
+      Variance = this%SumA10resI%Variance
       write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A01
-      Average = this%SumA01resNVT%Average
-      Variance = this%SumA01resNVT%Variance
+      Average = this%SumA01resI%Average
+      Variance = this%SumA01resI%Variance
       write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A20
-      Average = this%SumA20resNVT%Average
-      Variance = this%SumA20resNVT%Variance
+      Average = this%SumA20resI%Average
+      Variance = this%SumA20resI%Variance
       write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A11
-      Average = this%SumA11resNVT%Average
-      Variance = this%SumA11resNVT%Variance
+      Average = this%SumA11resI%Average
+      Variance = this%SumA11resI%Variance
       write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A02
-      Average = this%SumA02resNVT%Average
-      Variance = this%SumA02resNVT%Variance
+      Average = this%SumA02resI%Average
+      Variance = this%SumA02resI%Variance
       write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A30
-      Average = this%SumA30resNVT%Average
-      Variance = this%SumA30resNVT%Variance
+      Average = this%SumA30resI%Average
+      Variance = this%SumA30resI%Variance
       write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A21
-      Average = this%SumA21resNVT%Average
-      Variance = this%SumA21resNVT%Variance
+      Average = this%SumA21resI%Average
+      Variance = this%SumA21resI%Variance
       write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A12
-      Average = this%SumA12resNVT%Average
-      Variance = this%SumA12resNVT%Variance
+      Average = this%SumA12resI%Average
+      Variance = this%SumA12resI%Variance
+      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then 
+      ! A10I
+      Average = this%SumA10resI%Average
+      Variance = this%SumA10resI%Variance
+      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A01I
+      Average = this%SumA01resI%Average
+      Variance = this%SumA01resI%Variance
+      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A20I
+      Average = this%SumA20resI%Average
+      Variance = this%SumA20resI%Variance
+      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A11I
+      Average = this%SumA11resI%Average
+      Variance = this%SumA11resI%Variance
+      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A02I
+      Average = this%SumA02resI%Average
+      Variance = this%SumA02resI%Variance
+      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A30I
+      Average = this%SumA30resI%Average
+      Variance = this%SumA30resI%Variance
+      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A21I
+      Average = this%SumA21resI%Average
+      Variance = this%SumA21resI%Variance
+      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A12I
+      Average = this%SumA12resI%Average
+      Variance = this%SumA12resI%Variance
+      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A10II
+      Average = this%SumA10resII%Average
+      Variance = this%SumA10resII%Variance
+      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A01II
+      Average = this%SumA01resII%Average
+      Variance = this%SumA01resII%Variance
+      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A20II
+      Average = this%SumA20resII%Average
+      Variance = this%SumA20resII%Variance
+      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A11II
+      Average = this%SumA11resII%Average
+      Variance = this%SumA11resII%Variance
+      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A02II
+      Average = this%SumA02resII%Average
+      Variance = this%SumA02resII%Variance
+      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A30II
+      Average = this%SumA30resII%Average
+      Variance = this%SumA30resII%Variance
+      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A21II
+      Average = this%SumA21resII%Average
+      Variance = this%SumA21resII%Variance
+      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! A12II
+      Average = this%SumA12resII%Average
+      Variance = this%SumA12resII%Variance
       write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
@@ -11988,7 +12402,20 @@ loop2:        do nc = 1, this%NComponents
     call RestartSave( this%SumEPotSquareddEpotdV )
     call RestartSave( this%SumEPotdEpotdVSquared )
     call RestartSave( this%SumEPotd2EpotdV2 )
-
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumHmU )
+      call RestartSave( this%SumHmUm1)
+      call RestartSave( this%SumHmUm2 )
+      call RestartSave( this%SumHmUm3 )
+      call RestartSave( this%SumHmUm1dUdV )
+      call RestartSave( this%SumHmUm1dUdV2 )
+      call RestartSave( this%SumHmUm1d2UdV2 )
+      call RestartSave( this%SumHmUm2dUdV )
+      call RestartSave( this%SumHmUm2dUdV2 )
+      call RestartSave( this%SumHmUm2d2UdV2 )
+      call RestartSave( this%SumHmUm3dUdV )
+      call RestartSave( this%SumHmUm3dUdV2 )
+    end if
     ! 3.) Derived sums
     if( ConstantPressure ) then
       call RestartSave( this%SumBetaT )
@@ -11999,14 +12426,24 @@ loop2:        do nc = 1, this%NComponents
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
-    call RestartSave( this%SumA10resNVT )
-    call RestartSave( this%SumA01resNVT )
-    call RestartSave( this%SumA20resNVT )
-    call RestartSave( this%SumA11resNVT )
-    call RestartSave( this%SumA02resNVT )
-    call RestartSave( this%SumA30resNVT )
-    call RestartSave( this%SumA21resNVT )
-    call RestartSave( this%SumA12resNVT )
+    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumA10resI )
+      call RestartSave( this%SumA01resI )
+      call RestartSave( this%SumA20resI )
+      call RestartSave( this%SumA11resI )
+      call RestartSave( this%SumA02resI )
+      call RestartSave( this%SumA30resI )
+      call RestartSave( this%SumA21resI )
+      call RestartSave( this%SumA12resI )
+      call RestartSave( this%SumA10resII )
+      call RestartSave( this%SumA01resII )
+      call RestartSave( this%SumA20resII )
+      call RestartSave( this%SumA11resII )
+      call RestartSave( this%SumA02resII )
+      call RestartSave( this%SumA30resII )
+      call RestartSave( this%SumA21resII )
+      call RestartSave( this%SumA12resII )
+    end if
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
@@ -12257,6 +12694,20 @@ endif
     call RestartRead( this%SumEPotSquareddEpotdV )
     call RestartRead( this%SumEPotdEpotdVSquared )
     call RestartRead( this%SumEPotd2EpotdV2 )
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartRead( this%SumHmU )
+      call RestartRead( this%SumHmUm1)
+      call RestartRead( this%SumHmUm2 )
+      call RestartRead( this%SumHmUm3 )
+      call RestartRead( this%SumHmUm1dUdV )
+      call RestartRead( this%SumHmUm1dUdV2 )
+      call RestartRead( this%SumHmUm1d2UdV2 )
+      call RestartRead( this%SumHmUm2dUdV )
+      call RestartRead( this%SumHmUm2dUdV2 )
+      call RestartRead( this%SumHmUm2d2UdV2 )
+      call RestartRead( this%SumHmUm3dUdV )
+      call RestartRead( this%SumHmUm3dUdV2 )
+    end if
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -12268,14 +12719,24 @@ endif
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
     endif
-    call RestartRead( this%SumA10resNVT )
-    call RestartRead( this%SumA01resNVT )
-    call RestartRead( this%SumA20resNVT )
-    call RestartRead( this%SumA11resNVT )
-    call RestartRead( this%SumA02resNVT )
-    call RestartRead( this%SumA30resNVT )
-    call RestartRead( this%SumA21resNVT )
-    call RestartRead( this%SumA12resNVT )
+    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      call RestartRead( this%SumA10resI )
+      call RestartRead( this%SumA01resI )
+      call RestartRead( this%SumA20resI )
+      call RestartRead( this%SumA11resI )
+      call RestartRead( this%SumA02resI )
+      call RestartRead( this%SumA30resI )
+      call RestartRead( this%SumA21resI )
+      call RestartRead( this%SumA12resI )
+      call RestartRead( this%SumA10resII )
+      call RestartRead( this%SumA01resII )
+      call RestartRead( this%SumA20resII )
+      call RestartRead( this%SumA11resII )
+      call RestartRead( this%SumA02resII )
+      call RestartRead( this%SumA30resII )
+      call RestartRead( this%SumA21resII )
+      call RestartRead( this%SumA12resII )
+    end if
 
     ! 4.) Chemical potential and partial molar volumes
     counter = this%NRealComponents+1
