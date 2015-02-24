@@ -8341,7 +8341,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,err
+    integer                   :: i,j,err
     real(RK)                  :: value
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
@@ -8351,10 +8351,11 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
+    real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
 
     integer                   :: time_limit
 #if TRANS ==1
-    integer                   :: j, NStepsCF
+    integer                   :: NStepsCF
 #endif
     if( Step == 1 ) then
       ! Reset accumulators
@@ -8882,7 +8883,20 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot)
+      if( SimulationType .eq. MolecularDynamics ) then  
+        Momentum(:) = 0._RK
+        Mass = 0._RK
+        do j = 1, this%NComponents
+          Mass=Mass+this%Component(j)%Molecule%Mass*real(this%Component(j)%NPart, RK)
+          do i = 1, 3
+            Momentum(i)=Momentum(i)+this%Component(j)%Molecule%Mass*sum(this%Component(j)%P1(1:this%Component(j)%NPart,i))
+          end do
+        end do
+        Momentumd2Mass=(Momentum(1)*Momentum(1)+Momentum(2)*Momentum(2)+Momentum(3)*Momentum(3))/(2._RK*Mass)
+        currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot) - Momentumd2Mass
+      else
+        currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot)
+      endif
       currentHmUm1 = 1._RK/currentHmU
       call Update( this%SumHmU,            currentHmU )
       call Update( this%SumHmUm1,          currentHmUm1 )
@@ -9000,7 +9014,7 @@ loop2:        do nc = 1, this%NComponents
       dUdV        = this%SumdEpotdV%Average
       dUdV2       = this%SumdEpotdVSquared%Average
       d2UdV2      = this%Sumd2EpotdV2%Average
-       HmU         =this%SumHmU%Average
+      HmU         =this%SumHmU%Average
       HmUm1       =this%SumHmUm1%Average
       HmUm2       =this%SumHmUm2%Average
       HmUm3       =this%SumHmUm3%Average
