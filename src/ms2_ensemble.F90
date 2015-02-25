@@ -8883,20 +8883,21 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      if( SimulationType .eq. MolecularDynamics ) then  
-        Momentum(:) = 0._RK
-        Mass = 0._RK
-        do j = 1, this%NComponents
-          Mass=Mass+this%Component(j)%Molecule%Mass*real(this%Component(j)%NPart, RK)
-          do i = 1, 3
-            Momentum(i)=Momentum(i)+this%Component(j)%Molecule%Mass*sum(this%Component(j)%P1(1:this%Component(j)%NPart,i))
-          end do
-        end do
-        Momentumd2Mass=(Momentum(1)*Momentum(1)+Momentum(2)*Momentum(2)+Momentum(3)*Momentum(3))/(2._RK*Mass)
-        currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot) - Momentumd2Mass
-      else
+      !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because the results are identical with and without it.
+      !if( SimulationType .eq. MolecularDynamics ) then  
+      !  Momentum(:) = 0._RK
+      !  Mass = 0._RK
+      !  do j = 1, this%NComponents
+      !    Mass=Mass+this%Component(j)%Molecule%Mass*real(this%Component(j)%NPart, RK)
+      !    do i = 1, 3
+      !      Momentum(i)=Momentum(i)+this%Component(j)%Molecule%Mass*sum(this%Component(j)%P1(1:this%Component(j)%NPart,i))
+      !    end do
+      !  end do
+      !  Momentumd2Mass=(Momentum(1)*Momentum(1)+Momentum(2)*Momentum(2)+Momentum(3)*Momentum(3))/(2._RK*Mass)
+      !  currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot) - Momentumd2Mass
+      !else
         currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot)
-      endif
+      !endif
       currentHmUm1 = 1._RK/currentHmU
       call Update( this%SumHmU,            currentHmU )
       call Update( this%SumHmUm1,          currentHmUm1 )
@@ -9005,11 +9006,12 @@ loop2:        do nc = 1, this%NComponents
       Numb        = real( this%NPart, RK )
       rho         = this%Density
       rho2        = rho*rho
-      if( SimulationType .eq. MolecularDynamics ) then 
-       F = (real(this%NDF, RK)- 3._RK)/2._RK
-      else
+      !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because it deteriorates the results considerably.
+      !if( SimulationType .eq. MolecularDynamics ) then 
+      ! F = (real(this%NDF, RK)- 3._RK)/2._RK
+      !else
        F = real(this%NDF, RK)/2._RK
-      endif
+      !endif
       invF        = 2._RK/real(this%NDF, RK)
       dUdV        = this%SumdEpotdV%Average
       dUdV2       = this%SumdEpotdVSquared%Average
