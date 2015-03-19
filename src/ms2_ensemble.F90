@@ -13323,10 +13323,10 @@ endif
          disty(1:molec) = (RY-PY)*BoxLength
          distz(1:molec) = (RZ-PZ)*BoxLength
 
-         HFac = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
-         HFacX = Facx*HFac(1:molec)
-         HFacy = Facy*HFac(1:molec)
-         HFacZ = Facz*HFac(1:molec)
+         HFac(1:molec) = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
+         HFacX(1:molec) = Facx*HFac(1:molec)
+         HFacy(1:molec) = Facy*HFac(1:molec)
+         HFacZ(1:molec) = Facz*HFac(1:molec)
          
          FX = FX + HFacX(1:molec)
          FY = FY + HFacY(1:molec)
@@ -13628,15 +13628,15 @@ endif
            PX => this%Component(j)%Molecule%SiteCharge(l)%PX(1:molec)
            PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
            PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
-           HFac = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - &
-&                 qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
+
+           HFac(1:molec) = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
 
            distx(1:molec) = (RXloc - PXloc)*BoxLength
            disty(1:molec) = (RYloc - PYloc)*BoxLength
            distz(1:molec) = (RZloc - PZloc)*BoxLength
-           VirIntraLocal = VirIntraLocal + sum(Facx*HFac*distx(1:molec)) &
-&                                        + sum(Facy*HFac*disty(1:molec)) &
-&                                        + sum(Facz*HFac*distz(1:molec))
+           VirIntraLocal = VirIntraLocal + sum(Facx*HFac(1:molec)*distx(1:molec)) &
+&                                        + sum(Facy*HFac(1:molec)*disty(1:molec)) &
+&                                        + sum(Facz*HFac(1:molec)*distz(1:molec))
            ChargeNumber = ChargeNumber + molec
          END DO
        END DO
