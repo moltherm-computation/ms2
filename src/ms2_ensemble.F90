@@ -15909,13 +15909,14 @@ contains
            j1 = 0
            do k = 1, this%NComponents
               np1 = this%Component(k)%NPart
-              if((this%Component(k)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
+              if( abs(this%Component(k)%Molecule%Charge) .gt. 1e-7) then !Electric conductivity only defined for charged particles
+!             if((this%Component(k)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
                  qi = this%Component(k)%Molecule%Charge*UnitCharge/ElementaryCharge
                  do i = 1, np1
                     j2 = 0
                     do l = 1, this%NComponents
                        np2 = this%Component(l)%NPart
-                       if((this%Component(l)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
+                       if( abs(this%Component(l)%Molecule%Charge) .gt. 1e-7) then !Electric conductivity only defined for charged particles
                            qj = this%Component(l)%Molecule%Charge*UnitCharge/ElementaryCharge
                            do j = 1, np2
                               this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+i, CFindex) * this%a(j2+j, s)
