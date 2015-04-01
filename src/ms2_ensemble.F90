@@ -10490,7 +10490,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster, G. Guevara-Carrion *")')
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Kï¿½ster, G. Guevara-Carrion *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* A. Wafai, M. Horsch, M. Bernreuther, T. Windmann, H. Hasse, J. Vrabec        *")')
     call FileWrite( this%iounit_errors )
@@ -10825,7 +10825,9 @@ loop2:        do nc = 1, this%NComponents
             Average = -log( 1/pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature*pc%SumInvChemPotRho%Average
+            Variance = this%Temperature*pc%SumInvChemPotRho%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -10847,7 +10849,9 @@ loop2:        do nc = 1, this%NComponents
             Average = -log( pc%SumChemPotV%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
+            Variance = this%Temperature / pc%SumChemPotV%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -11971,7 +11975,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster, G. Guevara-Carrion *")')
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Kï¿½ster, G. Guevara-Carrion *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* A. Wafai, M. Horsch, M. Bernreuther, T. Windmann, H. Hasse, J. Vrabec        *")')
     call FileWrite( this%iounit_errors )
