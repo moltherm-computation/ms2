@@ -181,17 +181,14 @@ module ms2_molecule
     module procedure TMolecule_FindNDF
   end interface
 
-  ! Find bond  distance
   interface FindBondR
     module procedure TMolecule_FindBondR
   end interface
 
-  ! Find  bond angle
   interface FindAngle
     module procedure TMolecule_FindAngle
   end interface
 
-  ! Check  dihedral angle
   interface FindDihedral
     module procedure TMolecule_FindDihedral
   end interface
@@ -402,20 +399,20 @@ contains
        nullify( this%BoPartner )
        allocate (this%BondCount(this%NSite), STAT = stat)
        call AllocationError( stat, 'BondCount', this%NSite )
-       allocate (this%BoPartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite), STAT = stat)
+       allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
        call AllocationError( stat, 'BoPartner', this%NSite )
        nullify( this%AngleCount )
        nullify( this%AnglePartner )
-       allocate (this%AngleCount(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral), STAT = stat)
-       call AllocationError( stat, 'AngleCount', this%NSite )
-       allocate (this%AnglePartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite), STAT = stat)
+       allocate (this%AngleCount(this%NSite*2), STAT = stat)
+       call AllocationError( stat, 'AngleCount', this%NSite*2 )
+       allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
        call AllocationError( stat, 'AnglePartner', this%NSite )
        nullify( this%DihedralCount )
        nullify( this%DihedralPartner )
        allocate (this%DihedralCount(this%NSite*2), STAT = stat)
        call AllocationError( stat, 'DihedralCount', this%NSite*2 )
-       allocate (this%DihedralPartner(this%NLJ126+this%NCharge+this%NAngle+this%NDihedral,this%NSite*2), STAT = stat)
-       call AllocationError( stat, 'DihedralPartner', this%NSite*2 )
+       allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
+       call AllocationError( stat, 'DihedralPartner', this%NSite )
 
        ! Initialize
        this%BondCount = 0
@@ -651,45 +648,74 @@ contains
       this%Unit(1)%NDFRot = -1
     end if
 
+    !sort_sitetypes
+    do i=1,this%NLJ126
+      do j=i+1,this%NLJ126
+        if (this%SiteLJ126(i)%UnitNumber>this%SiteLJ126(j)%Unitnumber) then
+          call sort_LJsitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NCharge
+      do j=i+1,this%NCharge
+        if (this%SiteCharge(i)%UnitNumber>this%SiteCharge(j)%Unitnumber) then
+          call sort_chargesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NDipole
+      do j=i+1,this%NDipole
+        if (this%SiteDipole(i)%UnitNumber>this%SiteDipole(j)%Unitnumber) then
+          call sort_dipolesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NQuadrupole
+      do j=i+1,this%NQuadrupole
+        if (this%SiteQuadrupole(i)%UnitNumber>this%SiteQuadrupole(j)%Unitnumber) then
+          call sort_quadrupolesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
 
+
+    !Michael Sch.: changed mechanics here.
     if (UseIntDegFreed) then
        if (this%NBond>0) then ! check bonds and find initial bond lengths
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
-           if (j<=this%NBond) then
+           !if (j<=this%NBond) then
              call FindBondR(this,this%IdfBond(j), j) 
              ! Number of bonds can change in this procedure!
-           else
-             exit
-           end if
-          end do
+           !else
+           !  exit
+           !end if
+         end do
        end if
 
-      if (this%NAngle>0) then ! check angles and find initial angles
-        this%AngleCount(1:this%NUnit)=0  ! Zero arrays
+       if (this%NAngle>0) then ! check angles and find initial angles
+         this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
-           if (j<=this%NAngle) then
-              call FindAngle(this,this%IdfAngle(j), j) 
-              ! Number of angles can change in this procedure!
-           else
-             exit
-           end if
-        end do
-      end if
+           !if (j<=this%NAngle) then
+             call FindAngle(this,this%IdfAngle(j), j) 
+           !  ! Number of angles can change in this procedure!
+           !else
+           !  exit
+           !end if
+         end do
+       end if
 
-      if ( this%NDihedral > 0 ) then
-        this%DihedralCount(1:this%NUnit)=0
-        do j = 1, this%NDihedral
-           if (j<=this%NDihedral) then
-              call FindDihedral(this,this%IdfDihedral(j), j) 
-              ! Number of angles can change in this procedure!
-           else
-             exit
-           end if
-        end do
-        do i=1, this%NUnit
-        end do
-      end if
+       if ( this%NDihedral > 0 ) then
+         this%DihedralCount(1:this%NUnit)=0
+         do j = 1, this%NDihedral
+           !if (j<=this%NDihedral) then
+             call FindDihedral(this,this%IdfDihedral(j), j) 
+             ! Number of angles can change in this procedure!
+           !else
+           !  exit
+           !end if
+         end do
+       end if
     end if
 
     ! Assigning Number of interaction sites to vectors
@@ -698,7 +724,7 @@ contains
     nullify( this%UnitDP )
     nullify( this%UnitQP )
 
-    ! Allocate simulation box length
+    ! Allocate unit site counters
     allocate( this%UnitLJ(this%NUnit+1), STAT = stat )
     call AllocationError( stat, 'UnitLJ' )
     allocate( this%UnitC(this%NUnit+1), STAT = stat )
@@ -1483,6 +1509,70 @@ contains
       b = temp
    end subroutine change
 
+    subroutine sort_LJsitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteLJ126), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteLJ126(i)
+    this%SiteLJ126(i) = this%SiteLJ126(j)
+    this%SiteLJ126(j) = temptype
+
+    end subroutine sort_LJsitetypes
+
+    subroutine sort_chargesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteCharge), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteCharge(i)
+    this%SiteCharge(i) = this%SiteCharge(j)
+    this%SiteCharge(j) = temptype
+
+    end subroutine sort_chargesitetypes
+
+    subroutine sort_dipolesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteDipole), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteDipole(i)
+    this%SiteDipole(i) = this%SiteDipole(j)
+    this%SiteDipole(j) = temptype
+
+    end subroutine sort_dipolesitetypes
+
+    subroutine sort_quadrupolesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteQuadrupole), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteQuadrupole(i)
+    this%SiteQuadrupole(i) = this%SiteQuadrupole(j)
+    this%SiteQuadrupole(j) = temptype
+
+    end subroutine sort_quadrupolesitetypes
+
     subroutine binar_search (array, Id, treffer, index)
 
       ! Declare arguments
@@ -1771,7 +1861,6 @@ contains
     type(TMolecule) :: this
 
     ! Declare local variables
-    character(FileNameLength)      :: filename
     integer                        :: nidftypes
     integer                        :: i
 
@@ -2208,7 +2297,7 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfBond)      :: Bond
-    integer, intent(in out) :: j
+    integer, intent(in) :: j
 
     ! Declare local variables
     integer:: SiteId1, SiteId2
@@ -2216,7 +2305,7 @@ contains
     logical           :: Site1, Site2
     real(RK)          :: r1(3),r2(3)
     real(RK)          :: RX, RY, RZ
-    character(10)      ::stb
+    character(10)      ::str
 
     SiteId1 = Bond%SiteId1
     SiteId2 = Bond%SiteId2
@@ -2318,26 +2407,29 @@ contains
 
 
     if (.not. Site1 .or. .not. Site2) then
-      write (stb, '(i10)') j
-      call Error('Uncorrect sites for bond' // stb)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for bond' // str)
     end if
 
-    if (Bond%UnitId1==Bond%UnitId2) then
-      this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
-      this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
-      Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
-      Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
-      Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
-      Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
-      Bond%ForConst = this%IdfBond(this%NBond)%ForConst
-      Bond%R0       = this%IdfBond(this%NBond)%R0
-      j = j - 1 ! the procedure of bond definition will be repeated for the same bond
-      this%NBond = this%NBond - 1
-    else
-      RX=r2(1)-r1(1)
-      RY=r2(2)-r1(2)
-      RZ=r2(3)-r1(3)
-      Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
+    if (Bond%UnitId1==Bond%UnitId2) then  !Michael Sch.: changed due to different reading scheme
+      call Error('Sites of the same unit can not be bonded')
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for bond' // str)
+    !  this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
+    !  this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
+    !  Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
+    !  Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
+    !  Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
+    !  Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
+    !  Bond%ForConst = this%IdfBond(this%NBond)%ForConst
+    !  Bond%R0       = this%IdfBond(this%NBond)%R0
+    !  j = j - 1 ! the procedure of bond definition will be repeated for the same bond
+    !  this%NBond = this%NBond - 1
+    !else
+    !  RX=r2(1)-r1(1)
+    !  RY=r2(2)-r1(2)
+    !  RZ=r2(3)-r1(3)
+    !  Bond%R0=sqrt(RX**2+RY**2+RZ**2)
     end if
 
   end subroutine TMolecule_FindBondR
@@ -2355,7 +2447,7 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfAngle)     :: Angle
-    integer, intent(in out) :: j
+    integer, intent(in) :: j
 
     ! Declare local variables
     integer           :: i
@@ -2365,7 +2457,7 @@ contains
     real(RK)          :: R1X, R1Y, R1Z, R1S
     real(RK)          :: R2X, R2Y, R2Z, R2S
     real(RK)          ::cosa, R1R2
-    character(10)     ::sta
+    character(10)     ::str
 
     SiteId1 = Angle%SiteId1
     SiteId2 = Angle%SiteId2
@@ -2536,28 +2628,31 @@ contains
     end if
 
     if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
-      write (sta, '(i10)') j
-      call Error('Uncorrect sites for angle' // sta)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for angle' // str)
     end if
 
 
-    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
-      this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
-      this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
-      this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
-      Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
-      Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
-      Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
-      Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
-      Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
-      Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
-      Angle%orientation1 = this%IdfAngle(this%NAngle)%orientation1
-      Angle%orientation2 = this%IdfAngle(this%NAngle)%orientation2
-      Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
-      Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
-      j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
-      this%NAngle = this%NAngle - 1
-    else ! calculate value of this angle
+    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then  !Michael Sch.: changed due to different reading scheme
+      call Error('At leas one site of a given angle potential has to be of another unit')
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for angle' // str)
+    !  this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+    !  this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+    !  this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
+    !  Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
+    !  Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
+    !  Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
+    !  Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
+    !  Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
+    !  Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
+    !  Angle%orientation1 = this%IdfAngle(this%NAngle)%orientation1
+    !  Angle%orientation2 = this%IdfAngle(this%NAngle)%orientation2
+    !  Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
+    !  Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
+    !  j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
+    !  this%NAngle = this%NAngle - 1
+    else
       if (Angle%UnitId1==Angle%UnitId2) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       end if
@@ -2567,35 +2662,35 @@ contains
       if (Angle%UnitId1==Angle%UnitId3) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       end if
-      
-      if ( .not. Angle%orientation1 ) then
-        R1X=r1(1)-r2(1)
-        R1Y=r1(2)-r2(2)
-        R1Z=r1(3)-r2(3)
-      else
-        R1X=r1(1)
-        R1Y=r1(2)
-        R1Z=r1(3)
-      end if
-      if ( .not. Angle%orientation2 ) then
-        R2X=r3(1)-r2(1)
-        R2Y=r3(2)-r2(2)
-        R2Z=r3(3)-r2(3)
-      else
-        R2X=r3(1)
-        R2Y=r3(2)
-        R2Z=r3(3)
-      end if
+  
+    !  if ( .not. Angle%orientation1 ) then
+    !    R1X=r1(1)-r2(1)
+    !    R1Y=r1(2)-r2(2)
+    !    R1Z=r1(3)-r2(3)
+    !  else
+    !    R1X=r1(1)
+    !    R1Y=r1(2)
+    !    R1Z=r1(3)
+    !  end if
+    !  if ( .not. Angle%orientation2 ) then
+    !    R2X=r3(1)-r2(1)
+    !    R2Y=r3(2)-r2(2)
+    !    R2Z=r3(3)-r2(3)
+    !  else
+    !    R2X=r3(1)
+    !    R2Y=r3(2)
+    !    R2Z=r3(3)
+    !  end if
 
-      R1S=R1X**2+R1Y**2+R1Z**2
-      R2S=R2X**2+R2Y**2+R2Z**2
-      R1R2=dsqrt(R1S*R2S)
+    !  R1S=R1X**2+R1Y**2+R1Z**2
+    !  R2S=R2X**2+R2Y**2+R2Z**2
+    !  R1R2=sqrt(R1S*R2S)
 
-      cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
-      if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
-      if ( cosa .lt. -1.0d0) cosa = -1.0d0
+    !  cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
+    !  if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
+    !  if ( cosa .lt. -1.0d0) cosa = -1.0d0
 
-      Angle%Angle0=dacos(cosa)
+    !  Angle%Angle0=acos(cosa)
     end if
 
   end subroutine TMolecule_FindAngle
@@ -2610,16 +2705,16 @@ contains
     implicit none
 
     ! Declare arguments
-    type(TMolecule)         :: this
-    type(TIdfDihedral)      :: Dihedral
-    integer, intent(in out) :: j
+    type(TMolecule)     :: this
+    type(TIdfDihedral)  :: Dihedral
+    integer, intent(in) :: j
 
     ! Declare local variables
 
     integer           :: i
     integer           :: SiteId1, SiteId2, SiteId3, SiteId4
     logical           :: Site1, Site2, Site3, Site4
-    character(10)     ::sta
+    character(10)     ::str
 
     SiteId1 = Dihedral%SiteId1
     SiteId2 = Dihedral%SiteId2
@@ -2769,36 +2864,39 @@ contains
     end if
 
     if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
-      write (sta, '(i10)') j
-      call Error('Uncorrect sites for dihedral angle' // sta)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for dihedral angle' // str)
     end if
 
 
     if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 &
-&             .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then
-      this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-      this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-      this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
-      this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
-      Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
-      Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
-      Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
-      Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
-      Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
-      Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
-      Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
-      Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
-      Dihedral%orientation1 = this%IdfDihedral(this%NDihedral)%orientation1
-      Dihedral%orientation2 = this%IdfDihedral(this%NDihedral)%orientation2
-      Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
-      Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
-      Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
-      if (LJEl14 .and. (Dihedral%multi .gt. 0)) then
-        Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
-        Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
-      end if
-      j = j - 1 !the procedure of Dihedral definition will be repeated for the same Dihedral angle
-      this%NDihedral = this%NDihedral - 1
+&             .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then  !Michael Sch.: changed due to different reading scheme
+      call Error('At leas one site of a given dihedral potential has to be of another unit')
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for angle' // str)
+    !  this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+    !  this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+    !  this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+    !  this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
+    !  Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
+    !  Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
+    !  Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
+    !  Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
+    !  Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
+    !  Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
+    !  Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
+    !  Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
+    !  Dihedral%orientation1 = this%IdfDihedral(this%NDihedral)%orientation1
+    !  Dihedral%orientation2 = this%IdfDihedral(this%NDihedral)%orientation2
+    !  Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
+    !  Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
+    !  Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
+    !  if (LJEl14 .and. (Dihedral%multi .gt. 0)) then
+    !    Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
+    !    Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
+    !  end if
+    !  j = j - 1 !the procedure of Dihedral definition will be repeated for the same Dihedral angle
+    !  this%NDihedral = this%NDihedral - 1
     else !
       if (Dihedral%UnitId1==Dihedral%UnitId2) then
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
@@ -2831,8 +2929,6 @@ contains
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
       end if
     end if
-    
-    ! Michael Sch.: add calculation of equlibrium dihedral here (needs introduction of r1-4(3))
 
   end subroutine TMolecule_FindDihedral
 

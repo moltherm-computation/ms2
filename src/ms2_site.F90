@@ -392,7 +392,8 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )    
+    allocate( this%RZ( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
       call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )

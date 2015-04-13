@@ -240,6 +240,17 @@ contains
 
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
+    ! Read ms2VersionNr
+    call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1._RK )
+    if (.not. parVersionNr .eq. 1.0_RK ) then
+      write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
+      call LogWrite
+    endif
+    if ( parVersionNr .lt. ms2VersionNr ) then
+      write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
+      call LogWrite
+    endif
+
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')
     call LogWrite
@@ -413,6 +424,14 @@ contains
 
         ! Time step
         call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
+        if (.not. UseReducedUnits ) then
+          if ( parVersionNr .ge. 2.0_RK ) then
+            TimeStep = TimeStep / UnitTime
+          else
+            write( IOBuffer, '("WARNING: Time step in SI-Units was not implemented at your file version.")' )
+            call LogWrite
+          endif
+        endif
         write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) TimeStep * UnitTime * 1E15_RK
         call LogWrite
         write( IOBuffer, '("Reduced time step: ",T26, F9.6)' ) TimeStep
@@ -487,7 +506,7 @@ contains
       call LogWrite
 
       ! Check whether simulation type is applicable to ensemble type
-      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature ) &
+      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature .and. EnsembleType .ne. EnsembleTypeNVE ) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
@@ -522,6 +541,15 @@ contains
       call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ",T40, I7)' ) NStepsV
       call LogWrite
+
+      ! Read number of NVE equilibration steps
+      if( EnsembleType .eq. EnsembleTypeNVE ) then
+        call FileReadParameter( NStepsE, iounit_params , IdNStepsE, .true., 0 )
+        write( IOBuffer, '("Number of NVE equilibration steps: ",T40, I7)' ) NStepsE
+        call LogWrite
+      else
+        NStepsE = 0
+      end if
 
       ! Read number of NPT equilibration steps
       if( ConstantPressure ) then
@@ -568,7 +596,7 @@ contains
 
       ! Calculate number of blocks and block sizes
       if( BlockSize > 0 ) then
-        NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+        NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
 
         ! Warning, if simulation is extended
         if ( mod(NSteps,BlockSize) .ne. 0._RK) then
@@ -586,7 +614,7 @@ contains
             BlockSize = NSteps
             write( IOBuffer, '("BlockSize is reduced to ",T40, I7, " due to small number of steps")' ) BlockSize
             call LogWrite
-            NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+            NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
           endif
         end if
 
@@ -779,22 +807,24 @@ contains
          call Error( trim( str )//'To print contributions to intramolecular energy use on or yes' )
       end select
 
-      ! Read tolerance for Shake/QShake algorithm, if < 0, then no constraint dynamics is used and all bond lengths can vibrate
-      call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
-      if ( Shake > 0 ) then 
-        str = 'yes'
-      else 
-        str = 'no, all bonds can vibrate' 
-      end if
-      write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
-      call LogWrite
-      if (str == 'yes') then 
-        write( IOBuffer, '("Shake tolerance: ", F9.6)' ) Shake
+      ! Read tolerance for Shake/QShake algorithm, if <= 0, then no constraint dynamics is used and all bond lengths can vibrate
+      if (SimulationType .eq. MolecularDynamics) then
+        call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
+        if ( Shake > 0 ) then 
+          str = 'yes'
+        else 
+          str = 'no, all bonds can vibrate' 
+        end if
+        write( IOBuffer, '("Using Shake algorithm for bonds: ", A)' ) trim( str )
         call LogWrite
+        if (str == 'yes') then 
+          write( IOBuffer, '("Shake tolerance: ", F9.6)' ) Shake
+          call LogWrite
+        end if
       end if
 
       ! Read parameters for intramolecular nonbonded interactions
-      call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "no" )
+      call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "off" )
       select case( str )
       case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
          IntraLJEl = .true.
@@ -809,7 +839,7 @@ contains
       call LogWrite
 
       if (IntraLJEl) then 
-        call FileReadParameter( str, iounit_params , IdLJEl14, .true., "no" )
+        call FileReadParameter( str, iounit_params , IdLJEl14, .true., "off" )
         select case( str )
         case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
            LJEl14 = .true.
@@ -830,30 +860,6 @@ contains
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
 
-    
-#if  TRANS == 1
-!TRANSPORT_start
-    ! Read correlation function mode
-    call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
-    select case( str )
-
-    case( 'yes' , 'ok', 'ja' )
-      CorrfunMode = active
-      CorrfunModeString = 'Include transport properties'
-
-    case( 'no', 'nein' )
-      CorrfunMode = inactive
-      CorrfunModeString = 'No transport properties'
-      call Error( 'Use a binary compiled without -DTRANS if you do not &
-&                  wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
-
-    case default
-      call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
-    end select
-    write( IOBuffer, '("Transport properties:",T26, A)' ) trim(CorrfunModeString)
-    call LogWrite
-!TRANSPORT_END
-#endif
 
     if( (SimulationType .eq. Gibbs .and. this%NEnsembles .ne. 2) )  &
 &       call Error( trim( SimulationTypeString )//" simulation of " &
@@ -862,6 +868,33 @@ contains
     ! Create ensembles
     allocate( this%Ensemble(this%NEnsembles), STAT = stat )
     call AllocationError( stat, 'ensembles', this%NEnsembles )
+
+#if  TRANS == 1
+!TRANSPORT_start
+    ! Read correlation function mode
+    if ( parVersionNr .lt. 2.0_RK ) then
+      call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
+      select case( str )
+
+      case( 'yes' , 'ok', 'ja' )
+        this%Ensemble(:)%CorrFunMode = .true.
+        str = 'Include transport properties for all ensembles'
+
+      case( 'no', 'nein' )
+        this%Ensemble(:)%CorrFunMode = .false.
+        str = 'No transport properties for any ensemble'
+        call Error( 'Use a binary compiled without -DTRANS if you do not &
+&                    wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
+
+      case default
+        call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
+      end select
+      write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
+      call LogWrite
+    endif
+!TRANSPORT_END
+#endif
+
     do i = 1, this%NEnsembles
       if (LongRange .eq. Ewald) then
             this%Ensemble(i)%KappaL = KappaL_h
@@ -895,6 +928,22 @@ contains
         call Construct( this%Ensemble(i), i )
       end if
     end do
+
+#if  TRANS == 1
+!TRANSPORT_start
+    ! Read correlation function mode
+    if ( parVersionNr .ge. 2.0_RK ) then
+      if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
+        str = 'No transport properties for any ensemble'
+        call Error( 'Use a binary compiled without -DTRANS if you do not &
+&                    wish to calculate transport properties. If you do, set CorrFunMode = yes for one ensemble ' )
+
+        write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
+        call LogWrite
+      endif
+    endif
+!TRANSPORT_END
+#endif
 
   GradInsFrequency = BlockSize
   NFullFluct = 20
@@ -1175,7 +1224,11 @@ contains
               endif
 
               if (Equilibration) then
-                NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeHA ) NStepsP = 1
+                if( ConstantPressure ) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeNVE ) NStepsE = 1
+                !NStepsP = 1
               endif
            endif
            if (RootProc) then
@@ -1308,10 +1361,11 @@ eqloop: do
         StepStart = 1
       end if
 
-      ! Run GE or NPT equilibration
+      ! Run GE, NVE or NPT equilibration
       if( Equilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
+          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming GE equilibration")' )
@@ -1395,6 +1449,7 @@ eqloop: do
           call LogWriteTime
 
         else if( ConstantPressure ) then
+          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming NPT equilibration")' )
@@ -1460,6 +1515,30 @@ eqloop: do
           end if
           call LogWriteTime
 
+        else if( EnsembleType .eq. EnsembleTypeNVE ) then
+          StepEnd = NStepsE
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming NVE equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting NVE equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"NVE equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("NVE equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("NVE equilibration TERMINATED")' )
+          end if
+          call LogWriteTime
 
         else
           Equilibration = .false.
@@ -1730,18 +1809,19 @@ eqloop: do
 
 #if TRANS==1
       ! Run simulation step
-        if(( CorrfunMode == active ).and.(.not. Equilibration )) then
+        if ( .not. Equilibration ) then
           do i = 1, this%Nensembles
-            if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
-              StepCF = (Step + NStepCorr -1) / NStepCorr
-              if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
-                NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
-              else
-                NBlocksCF     = 0
-                NBlockSizesCF = 0
+            if ( this%Ensemble(i)%CorrFunMode ) then
+              if(mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
+                StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
+                if ( StepCF >= this%Ensemble(i)%Ncorr )then
+                  this%Ensemble(i)%NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf )
+                  this%Ensemble(i)%NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                else
+                  this%Ensemble(i)%NBlocksCF     = 0
+                  this%Ensemble(i)%NBlockSizesCF = 0
+                end if
               end if
-          
             end if
           end do
         end if
