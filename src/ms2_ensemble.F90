@@ -10779,10 +10779,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     if( ConstantPressure ) then
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
-&      this%RefTemperature ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
+&      this%RefTemperature) ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     else
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%Pressure / this%Density - &
-&      this%RefTemperature ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
+&      this%RefTemperature) ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     end if
 
     call Update( this%SumVolume, 1._RK / this%Density )
