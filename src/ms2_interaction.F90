@@ -1795,6 +1795,9 @@ contains
     PZi = this%PZ1(np, nu)
 
     ! Assign pointers to COM positions
+    PX1 => this%PX1
+    PY1 => this%PY1
+    PZ1 => this%PZ1
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
