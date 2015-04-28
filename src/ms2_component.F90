@@ -478,6 +478,9 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: stat
 
+    ! Read file name for potential model
+    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
+
     ! Allocate number of particles in component
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
@@ -494,8 +497,6 @@ contains
     allocate( this%NTest, STAT = stat )
     call AllocationError( stat, 'number of test particles' )
 
-    ! Read file name for potential model
-    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
     write( IOBuffer, '(72(1H-))')
