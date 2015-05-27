@@ -633,7 +633,7 @@ module ms2_global
 
   ! Internal variables of random number generator
   integer, parameter :: K4B = selected_int_kind(9)
-  integer(K4B)       :: ix, iy, tpix
+  integer(K4B)       :: ix, iy, tpix, randk
   real(RK)           :: am
 
   ! Internal variable of FileReadParameter
@@ -1728,7 +1728,7 @@ contains
     integer             :: ierr
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, sizeof(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
 
 
   end subroutine Global_FileWriteNoAdvance_parallel
@@ -2314,14 +2314,13 @@ contains
 
     ! Declare local variables
     integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
-    integer(K4B), save      :: k
 
     ! Generate random number
     ix = ieor(ix, ishft(ix, 13))
     ix = ieor(ix, ishft(ix, -17))
     ix = ieor(ix, ishft(ix, 5))
-    k = iy / IQ
-    iy = IA * (iy - k * IQ) - IR * k
+    randk = iy / IQ
+    iy = IA * (iy - randk * IQ) - IR * randk
     if( iy < 0 ) iy = iy + IM
     iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
@@ -2345,14 +2344,13 @@ contains
 
     ! Declare local variables
     integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
-    integer(K4B), save      :: k
 
     ! Generate random number
     ix = ieor(ix, ishft(ix, 13))
     ix = ieor(ix, ishft(ix, -17))
     ix = ieor(ix, ishft(ix, 5))
-    k = iy / IQ
-    iy = IA * (iy - k * IQ) - IR * k
+    randk = iy / IQ
+    iy = IA * (iy - randk * IQ) - IR * randk
     if( iy < 0 ) iy = iy + IM
     rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) * (h_range - l_range)
 

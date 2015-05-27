@@ -829,11 +829,14 @@ contains
    ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
       do j = 1, NBlocksRestartCF
-       write( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
+        write( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
+        write( iounit_restart, '(I10)' )  this%NBlockSum(j)  
       end do
-      write( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM
-      write( iounit_restart, '(ES20.12E3)' )  this%AVERAGE
-      write( iounit_restart, '(ES20.12E3)' )  this%VARIANCE
+      write( iounit_restart, '(ES20.12E3)' )  this%TotalSum
+      write( iounit_restart, '(I10)' )  this%NTotalSum
+      write( iounit_restart, '(ES20.12E3)' )  this%Average
+      write( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
+      write( iounit_restart, '(ES20.12E3)' )  this%Variance
 
   end subroutine TAccumulator_RestartSaveCF
 #endif
@@ -862,12 +865,15 @@ contains
     ! Read contents from restart file
 !    read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-    do j = 1, NBlocksRestartCF
-       read( iounit_restart, '(ES20.12E3)' )  this%BLOCKSUM(j)
+      do j = 1, NBlocksRestartCF
+        read( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
+        read( iounit_restart, '(I10)' )  this%NBlockSum(j)
       end do
-      read( iounit_restart, '(ES20.12E3)' )  this%TOTALSUM
-      read( iounit_restart, '(ES20.12E3)' )  this%AVERAGE
-      read( iounit_restart, '(ES20.12E3)' )  this%VARIANCE
+      read( iounit_restart, '(ES20.12E3)' )  this%TotalSum
+      read( iounit_restart, '(I10)' )  this%NTotalSum
+      read( iounit_restart, '(ES20.12E3)' )  this%Average
+      read( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
+      read( iounit_restart, '(ES20.12E3)' )  this%Variance
 
   end subroutine TAccumulator_RestartReadCF
 #endif

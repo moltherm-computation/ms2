@@ -800,7 +800,13 @@ module ms2_ensemble
 
 contains
 
-
+#ifdef NECSX
+  function new_line( c  ) result(newline)
+    implicit none
+    character :: c,newline
+    newline = achar(10) 
+  end function new_line
+#endif
 
 !==============================================================!
 !  Subroutine TEnsemble_Construct                              !
@@ -2189,23 +2195,34 @@ contains
       call Construct( this%SumCV, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
-      if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-        call Construct( this%SumA10resI, .true. )
-        call Construct( this%SumA01resI, .true. )
-        call Construct( this%SumA20resI, .true. )
-        call Construct( this%SumA11resI, .true. )
-        call Construct( this%SumA02resI, .true. )
-        call Construct( this%SumA30resI, .true. )
-        call Construct( this%SumA21resI, .true. )
-        call Construct( this%SumA12resI, .true. )
-        call Construct( this%SumA10resII, .true. )
-        call Construct( this%SumA01resII, .true. )
-        call Construct( this%SumA20resII, .true. )
-        call Construct( this%SumA11resII, .true. )
-        call Construct( this%SumA02resII, .true. )
-        call Construct( this%SumA30resII, .true. )
-        call Construct( this%SumA21resII, .true. )
-        call Construct( this%SumA12resII, .true. )
+      if( LongRange .eq. Rfield) then
+        if ( EnsembleType .eq. EnsembleTypeNVT ) then
+          call Construct( this%SumA10resI, .true. )
+          call Construct( this%SumA01resI, .true. )
+          call Construct( this%SumA20resI, .true. )
+          call Construct( this%SumA11resI, .true. )
+          call Construct( this%SumA02resI, .true. )
+          call Construct( this%SumA30resI, .true. )
+          call Construct( this%SumA21resI, .true. )
+          call Construct( this%SumA12resI, .true. )
+        elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+          call Construct( this%SumA10resI, .true. )
+          call Construct( this%SumA01resI, .true. )
+          call Construct( this%SumA20resI, .true. )
+          call Construct( this%SumA11resI, .true. )
+          call Construct( this%SumA02resI, .true. )
+          call Construct( this%SumA30resI, .true. )
+          call Construct( this%SumA21resI, .true. )
+          call Construct( this%SumA12resI, .true. )
+          call Construct( this%SumA10resII, .true. )
+          call Construct( this%SumA01resII, .true. )
+          call Construct( this%SumA20resII, .true. )
+          call Construct( this%SumA11resII, .true. )
+          call Construct( this%SumA02resII, .true. )
+          call Construct( this%SumA30resII, .true. )
+          call Construct( this%SumA21resII, .true. )
+          call Construct( this%SumA12resII, .true. )
+        end if
       end if
 
 #if  TRANS == 1
@@ -2352,23 +2369,34 @@ contains
     call Destruct( this%SumCV )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
-    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-      call Destruct( this%SumA10resI )
-      call Destruct( this%SumA01resI )
-      call Destruct( this%SumA20resI )
-      call Destruct( this%SumA11resI )
-      call Destruct( this%SumA02resI )
-      call Destruct( this%SumA30resI )
-      call Destruct( this%SumA21resI )
-      call Destruct( this%SumA12resI )
-      call Destruct( this%SumA10resII )
-      call Destruct( this%SumA01resII )
-      call Destruct( this%SumA20resII )
-      call Destruct( this%SumA11resII )
-      call Destruct( this%SumA02resII )
-      call Destruct( this%SumA30resII )
-      call Destruct( this%SumA21resII )
-      call Destruct( this%SumA12resII )
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
+        call Destruct( this%SumA10resI )
+        call Destruct( this%SumA01resI )
+        call Destruct( this%SumA20resI )
+        call Destruct( this%SumA11resI )
+        call Destruct( this%SumA02resI )
+        call Destruct( this%SumA30resI )
+        call Destruct( this%SumA21resI )
+        call Destruct( this%SumA12resI )
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+        call Destruct( this%SumA10resI )
+        call Destruct( this%SumA01resI )
+        call Destruct( this%SumA20resI )
+        call Destruct( this%SumA11resI )
+        call Destruct( this%SumA02resI )
+        call Destruct( this%SumA30resI )
+        call Destruct( this%SumA21resI )
+        call Destruct( this%SumA12resI )
+        call Destruct( this%SumA10resII )
+        call Destruct( this%SumA01resII )
+        call Destruct( this%SumA20resII )
+        call Destruct( this%SumA11resII )
+        call Destruct( this%SumA02resII )
+        call Destruct( this%SumA30resII )
+        call Destruct( this%SumA21resII )
+        call Destruct( this%SumA12resII )
+      end if
     end if
 
 #if  TRANS == 1
@@ -8422,23 +8450,34 @@ loop2:        do nc = 1, this%NComponents
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
       endif
-      if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-        call Reset( this%SumA10resI )
-        call Reset( this%SumA01resI )
-        call Reset( this%SumA20resI )
-        call Reset( this%SumA11resI )
-        call Reset( this%SumA02resI )
-        call Reset( this%SumA30resI )
-        call Reset( this%SumA21resI )
-        call Reset( this%SumA12resI )
-        call Reset( this%SumA10resII )
-        call Reset( this%SumA01resII )
-        call Reset( this%SumA20resII )
-        call Reset( this%SumA11resII )
-        call Reset( this%SumA02resII )
-        call Reset( this%SumA30resII )
-        call Reset( this%SumA21resII )
-        call Reset( this%SumA12resII )
+      if( LongRange .eq. Rfield) then
+        if ( EnsembleType .eq. EnsembleTypeNVT ) then
+          call Reset( this%SumA10resI )
+          call Reset( this%SumA01resI )
+          call Reset( this%SumA20resI )
+          call Reset( this%SumA11resI )
+          call Reset( this%SumA02resI )
+          call Reset( this%SumA30resI )
+          call Reset( this%SumA21resI )
+          call Reset( this%SumA12resI )
+        elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+          call Reset( this%SumA10resI )
+          call Reset( this%SumA01resI )
+          call Reset( this%SumA20resI )
+          call Reset( this%SumA11resI )
+          call Reset( this%SumA02resI )
+          call Reset( this%SumA30resI )
+          call Reset( this%SumA21resI )
+          call Reset( this%SumA12resI )
+          call Reset( this%SumA10resII )
+          call Reset( this%SumA01resII )
+          call Reset( this%SumA20resII )
+          call Reset( this%SumA11resII )
+          call Reset( this%SumA02resII )
+          call Reset( this%SumA30resII )
+          call Reset( this%SumA21resII )
+          call Reset( this%SumA12resII )
+        end if
       end if
 
       ! 4.) Chemical potential and partial molar volumes
@@ -10375,38 +10414,48 @@ loop2:        do nc = 1, this%NComponents
     call Error( this%SumEPotSquareddEpotdV)
     call Error( this%SumEPotdEpotdVSquared)
     call Error( this%SumEPotd2EpotdV2)
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call Error( this%SumHmU )
-      call Error( this%SumHmUm1)
-      call Error( this%SumHmUm2 )
-      call Error( this%SumHmUm3 )
-      call Error( this%SumHmUm1dUdV )
-      call Error( this%SumHmUm1dUdV2 )
-      call Error( this%SumHmUm1d2UdV2 )
-      call Error( this%SumHmUm2dUdV )
-      call Error( this%SumHmUm2dUdV2 )
-      call Error( this%SumHmUm2d2UdV2 )
-      call Error( this%SumHmUm3dUdV )
-      call Error( this%SumHmUm3dUdV2 )
-    end if
 
-    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-      call Error( this%SumA10resI )
-      call Error( this%SumA01resI )
-      call Error( this%SumA20resI )
-      call Error( this%SumA11resI )
-      call Error( this%SumA02resI )
-      call Error( this%SumA30resI )
-      call Error( this%SumA21resI )
-      call Error( this%SumA12resI )
-      call Error( this%SumA10resII )
-      call Error( this%SumA01resII )
-      call Error( this%SumA20resII )
-      call Error( this%SumA11resII )
-      call Error( this%SumA02resII )
-      call Error( this%SumA30resII )
-      call Error( this%SumA21resII )
-      call Error( this%SumA12resII )
+    if ( LongRange .eq. Rfield ) then
+      if( EnsembleType .eq. EnsembleTypeNVE ) then
+        call Error( this%SumHmU )
+        call Error( this%SumHmUm1)
+        call Error( this%SumHmUm2 )
+        call Error( this%SumHmUm3 )
+        call Error( this%SumHmUm1dUdV )
+        call Error( this%SumHmUm1dUdV2 )
+        call Error( this%SumHmUm1d2UdV2 )
+        call Error( this%SumHmUm2dUdV )
+        call Error( this%SumHmUm2dUdV2 )
+        call Error( this%SumHmUm2d2UdV2 )
+        call Error( this%SumHmUm3dUdV )
+        call Error( this%SumHmUm3dUdV2 )
+
+        call Error( this%SumA10resI )
+        call Error( this%SumA01resI )
+        call Error( this%SumA20resI )
+        call Error( this%SumA11resI )
+        call Error( this%SumA02resI )
+        call Error( this%SumA30resI )
+        call Error( this%SumA21resI )
+        call Error( this%SumA12resI )
+        call Error( this%SumA10resII )
+        call Error( this%SumA01resII )
+        call Error( this%SumA20resII )
+        call Error( this%SumA11resII )
+        call Error( this%SumA02resII )
+        call Error( this%SumA30resII )
+        call Error( this%SumA21resII )
+        call Error( this%SumA12resII )
+      elseif ( EnsembleType .eq. EnsembleTypeNVT ) then
+        call Error( this%SumA10resI )
+        call Error( this%SumA01resI )
+        call Error( this%SumA20resI )
+        call Error( this%SumA11resI )
+        call Error( this%SumA02resI )
+        call Error( this%SumA30resI )
+        call Error( this%SumA21resI )
+        call Error( this%SumA12resI )
+      end if
     end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -12446,23 +12495,34 @@ loop2:        do nc = 1, this%NComponents
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
-    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-      call RestartSave( this%SumA10resI )
-      call RestartSave( this%SumA01resI )
-      call RestartSave( this%SumA20resI )
-      call RestartSave( this%SumA11resI )
-      call RestartSave( this%SumA02resI )
-      call RestartSave( this%SumA30resI )
-      call RestartSave( this%SumA21resI )
-      call RestartSave( this%SumA12resI )
-      call RestartSave( this%SumA10resII )
-      call RestartSave( this%SumA01resII )
-      call RestartSave( this%SumA20resII )
-      call RestartSave( this%SumA11resII )
-      call RestartSave( this%SumA02resII )
-      call RestartSave( this%SumA30resII )
-      call RestartSave( this%SumA21resII )
-      call RestartSave( this%SumA12resII )
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
+        call RestartSave( this%SumA10resI )
+        call RestartSave( this%SumA01resI )
+        call RestartSave( this%SumA20resI )
+        call RestartSave( this%SumA11resI )
+        call RestartSave( this%SumA02resI )
+        call RestartSave( this%SumA30resI )
+        call RestartSave( this%SumA21resI )
+        call RestartSave( this%SumA12resI )
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+        call RestartSave( this%SumA10resI )
+        call RestartSave( this%SumA01resI )
+        call RestartSave( this%SumA20resI )
+        call RestartSave( this%SumA11resI )
+        call RestartSave( this%SumA02resI )
+        call RestartSave( this%SumA30resI )
+        call RestartSave( this%SumA21resI )
+        call RestartSave( this%SumA12resI )
+        call RestartSave( this%SumA10resII )
+        call RestartSave( this%SumA01resII )
+        call RestartSave( this%SumA20resII )
+        call RestartSave( this%SumA11resII )
+        call RestartSave( this%SumA02resII )
+        call RestartSave( this%SumA30resII )
+        call RestartSave( this%SumA21resII )
+        call RestartSave( this%SumA12resII )
+      end if
     end if
 
     ! 4.) Chemical potential and partial molar volumes
@@ -12739,23 +12799,34 @@ endif
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
     endif
-    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-      call RestartRead( this%SumA10resI )
-      call RestartRead( this%SumA01resI )
-      call RestartRead( this%SumA20resI )
-      call RestartRead( this%SumA11resI )
-      call RestartRead( this%SumA02resI )
-      call RestartRead( this%SumA30resI )
-      call RestartRead( this%SumA21resI )
-      call RestartRead( this%SumA12resI )
-      call RestartRead( this%SumA10resII )
-      call RestartRead( this%SumA01resII )
-      call RestartRead( this%SumA20resII )
-      call RestartRead( this%SumA11resII )
-      call RestartRead( this%SumA02resII )
-      call RestartRead( this%SumA30resII )
-      call RestartRead( this%SumA21resII )
-      call RestartRead( this%SumA12resII )
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
+        call RestartRead( this%SumA10resI )
+        call RestartRead( this%SumA01resI )
+        call RestartRead( this%SumA20resI )
+        call RestartRead( this%SumA11resI )
+        call RestartRead( this%SumA02resI )
+        call RestartRead( this%SumA30resI )
+        call RestartRead( this%SumA21resI )
+        call RestartRead( this%SumA12resI )
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+        call RestartRead( this%SumA10resI )
+        call RestartRead( this%SumA01resI )
+        call RestartRead( this%SumA20resI )
+        call RestartRead( this%SumA11resI )
+        call RestartRead( this%SumA02resI )
+        call RestartRead( this%SumA30resI )
+        call RestartRead( this%SumA21resI )
+        call RestartRead( this%SumA12resI )
+        call RestartRead( this%SumA10resII )
+        call RestartRead( this%SumA01resII )
+        call RestartRead( this%SumA20resII )
+        call RestartRead( this%SumA11resII )
+        call RestartRead( this%SumA02resII )
+        call RestartRead( this%SumA30resII )
+        call RestartRead( this%SumA21resII )
+        call RestartRead( this%SumA12resII )
+      end if
     end if
 
     ! 4.) Chemical potential and partial molar volumes
