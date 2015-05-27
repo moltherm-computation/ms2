@@ -563,9 +563,9 @@ module ms2_potential
     type(TIdfDihedral), pointer  :: Dihedral
     integer                      :: Site1, Site2, Site3, Site4
     integer                      :: Unit1, Unit2, Unit3, Unit4
-    integer                      :: multi
-    real(RK),pointer             :: ForConst
-    real(RK)                     :: gamma
+    integer                      :: nmax
+    real(RK),pointer             :: ForConst(:)
+    real(RK),pointer             :: gamma0(:)
 
   end type TPotDihedral
 
@@ -15224,9 +15224,9 @@ loop2:do j = 1, j1
     this%Unit2 = this%Dihedral%UnitId2
     this%Unit3 = this%Dihedral%UnitId3
     this%Unit4 = this%Dihedral%UnitId4
+    this%nmax = this%Dihedral%nmax
     this%ForConst => this%Dihedral%ForConst
-    this%gamma = this%Dihedral%gamma
-    this%multi = this%Dihedral%multi
+    this%gamma0 => this%Dihedral%gamma0
 
   end subroutine TPotDihedral_Construct
 
@@ -15278,9 +15278,9 @@ loop2:do j = 1, j1
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: num, den, de1, ax, ay, az, bx, by, bz, cx, cy, cz
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
-    real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl, ForConst, gamma
+    real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl
 
-    integer           :: i, i1, multi
+    integer           :: i, i1, j
 #if MPI_VER > 0
      integer           :: i0
 !    integer           :: N1, N2, ji
@@ -15296,10 +15296,6 @@ loop2:do j = 1, j1
 #else
      i1 = this%Dihedral%NPart
 #endif
-
-    gamma = this%gamma
-    ForConst = this%ForConst
-    multi =this%multi
 
     EPotLocal   = 0._RK
     VirialLocal = 0._RK
@@ -15365,9 +15361,11 @@ loop2:do j = 1, j1
 
 !CDIR NODEP
 
-        if (multi .eq. 0) then
-           EPotLocal = EPotLocal+ForConst*2._RK
-        else
+        deri = 0._RK
+        if (this%nmax .ge. 0) then
+           EPotLocal = EPotLocal+this%ForConst(1)*2._RK
+        end if
+        if (this%nmax .ne. 0) then
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
@@ -15424,25 +15422,25 @@ loop2:do j = 1, j1
             if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
 
-            if (multi > 0) then
-               ! Normal Amber-type torsion angle
-               earg= multi*arg-gamma   !!! Michael Sch. arg in ° or rad? has to be °!!!
-
-               ! Energy and forces:
-               ! formulae  E = ForConst*( 1 + cos(earg) )
-               !           F = ForConst*n*sin(earg)
-
-                EPotLocal  = EPotLocal + ForConst*(1.d0+cos(earg))
-                deri= -ForConst*multi*sin(earg)
+            if (this%nmax > 0) then
+              ! Normal Amber-type torsion angle
+              do j = 1,this%nmax
+                earg= j*arg-this%gamma0(j+1)
+                ! Energy and forces:
+                ! formulae  E = ForConst*( 1 + cos(earg) )
+                !           F = ForConst*n*sin(earg)
+                EPotLocal  = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
+                deri = deri - this%ForConst(j+1)*j*sin(earg)
+              end do
 
              else ! Improper dihedral angle
-               earg= arg-gamma
+               earg= arg-this%gamma0(1)
 
                ! Energy and forces:
                ! formulae  E = ForConst*earg**2
                !           F = -2*ForConst*earg
-                EPotLocal  = EPotLocal + ForConst*earg**2
-                deri= 2.d0*ForConst*earg
+                EPotLocal = this%ForConst(1)*earg**2
+                deri = 2._RK*this%ForConst(1)*earg
              end if
 
              ! Calculate Forces
@@ -15505,7 +15503,7 @@ loop2:do j = 1, j1
             FZ4(i) = FZl+ffl
 
           endif ! den>0
-        endif ! multi/=0
+        endif ! nmax/=0
       enddo
 
     ! Update potential energy, no contribution to virial!

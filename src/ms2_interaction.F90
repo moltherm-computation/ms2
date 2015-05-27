@@ -1737,8 +1737,8 @@ contains
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:, :), PY1(:, :), PZ1(:, :), PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -1795,9 +1795,6 @@ contains
     PZi = this%PZ1(np, nu)
 
     ! Assign pointers to COM positions
-    PX1 => this%PX1
-    PY1 => this%PY1
-    PZ1 => this%PZ1
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
@@ -2799,9 +2796,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            PXi = PX1(np, nu)
-            PYi = PY1(np, nu)
-            PZi = PZ1(np, nu)
+            !PXi = PX1(np, nu) !changed: Michael Sch.
+            !PYi = PY1(np, nu)
+            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
@@ -2848,9 +2845,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            PXi = PX1(np, nu)
-            PYi = PY1(np, nu)
-            PZi = PZ1(np, nu)
+            !PXi = PX1(np, nu) !changed: Michael Sch.
+            !PYi = PY1(np, nu)
+            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
@@ -3454,9 +3451,8 @@ end subroutine TInteraction_Energy
     real(RK)          :: r, dr, rsquared
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
     real(RK)          :: f0
-    real(RK)          :: ForConst, gamma
-    integer           :: N, multi
-    integer           :: s1, s2, j, k
+    integer           :: N, nmax
+    integer           :: s1, s2, i, j, k
     integer           :: bi, u1, u2, u3, u4
     integer           :: unit1,unit2, nu2
     logical           :: intra15, intra14
@@ -5197,9 +5193,7 @@ end subroutine TInteraction_Energy
         u2 = pto%Unit2 ! unit2 of dihedral
         u3 = pto%Unit3 ! unit3 of dihedral
         u4 = pto%Unit4 ! unit4 of dihedral
-        multi = pto%multi
-        gamma = pto%gamma
-        ForConst = pto%ForConst
+        nmax = pto%nmax
 
         ! Assign pointers to site positions
         RXi=pto%Dihedral%RX1(np)
@@ -5215,9 +5209,11 @@ end subroutine TInteraction_Energy
         RYl=pto%Dihedral%RY4(np)
         RZl=pto%Dihedral%RZ4(np)
 
-        if (multi .eq. 0) then
-          EPotAdd=ForConst*2._RK
-        else !multi /= 0
+        EPotAdd = 0
+        if (nmax .ge. 0) then
+          EPotAdd = pto%ForConst(1)*2._RK ! Michael Sch.: correct like this
+        end if
+        if (nmax .ne. 0) then
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
@@ -5274,20 +5270,22 @@ end subroutine TInteraction_Energy
             !si = sin(arg)
             !if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
-            if (multi > 0) then
+            if (nmax > 0) then
               ! Normal Amber-type torsion angle
-              earg= multi*arg-gamma
-              ! Energy:
-              ! formulae  E = ForConst*( 1 + cos(earg) )
-              EPotAdd = ForConst*(1.d0+cos(earg))
+              do i =1, nmax
+                earg= i*arg-pto%gamma0(i+1)
+                ! Energy:
+                ! formulae  E = ForConst*( 1 + cos(earg) )
+                EPotAdd = EPotAdd + pto%ForConst(i+1)*(1._RK+cos(earg))
+              end do
             else ! Improper dihedral angle
-              earg= arg-gamma
+              earg= arg-pto%gamma0(1)
               ! Energy
               ! formulae  E = ForConst*earg**2
-              EPotAdd = ForConst*earg**2
+              EPotAdd = pto%ForConst(1)*earg**2
             end if
           endif ! den>0
-        endif ! multi/=0
+        endif ! nmax/=0
 
 #if MPI_VER > 0
         if (Equilibration .and. CommonEqui) then

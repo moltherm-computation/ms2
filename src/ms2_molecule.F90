@@ -1121,7 +1121,7 @@ contains
      if (LJEl14) then
        k=1
        do i=1, this%NDihedral
-         if (this%IdfDihedral(i)%multi>=0) then  !If proper dihedral
+         if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
            Site1=this%IdfDihedral(i)%SiteId1
            Site4=this%IdfDihedral(i)%SiteId4
            if (Site1>Site4) then
@@ -2304,7 +2304,6 @@ contains
     integer           :: i
     logical           :: Site1, Site2
     real(RK)          :: r1(3),r2(3)
-    real(RK)          :: RX, RY, RZ
     character(10)      ::str
 
     SiteId1 = Bond%SiteId1
@@ -2415,21 +2414,6 @@ contains
       call Error('Sites of the same unit can not be bonded')
       write (str, '(i10)') j
       call Error('Uncorrect sites for bond' // str)
-    !  this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
-    !  this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
-    !  Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
-    !  Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
-    !  Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
-    !  Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
-    !  Bond%ForConst = this%IdfBond(this%NBond)%ForConst
-    !  Bond%R0       = this%IdfBond(this%NBond)%R0
-    !  j = j - 1 ! the procedure of bond definition will be repeated for the same bond
-    !  this%NBond = this%NBond - 1
-    !else
-    !  RX=r2(1)-r1(1)
-    !  RY=r2(2)-r1(2)
-    !  RZ=r2(3)-r1(3)
-    !  Bond%R0=sqrt(RX**2+RY**2+RZ**2)
     end if
 
   end subroutine TMolecule_FindBondR
@@ -2454,9 +2438,6 @@ contains
     integer           :: SiteId1, SiteId2, SiteId3
     logical           :: Site1, Site2, Site3
     real(RK)          :: r1(3),r2(3),r3(3)
-    real(RK)          :: R1X, R1Y, R1Z, R1S
-    real(RK)          :: R2X, R2Y, R2Z, R2S
-    real(RK)          ::cosa, R1R2
     character(10)     ::str
 
     SiteId1 = Angle%SiteId1
@@ -2637,21 +2618,7 @@ contains
       call Error('At leas one site of a given angle potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
-    !  this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
-    !  this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
-    !  this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
-    !  Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
-    !  Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
-    !  Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
-    !  Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
-    !  Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
-    !  Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
-    !  Angle%orientation1 = this%IdfAngle(this%NAngle)%orientation1
-    !  Angle%orientation2 = this%IdfAngle(this%NAngle)%orientation2
-    !  Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
-    !  Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
-    !  j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
-    !  this%NAngle = this%NAngle - 1
+
     else
       if (Angle%UnitId1==Angle%UnitId2) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
@@ -2662,35 +2629,6 @@ contains
       if (Angle%UnitId1==Angle%UnitId3) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       end if
-  
-    !  if ( .not. Angle%orientation1 ) then
-    !    R1X=r1(1)-r2(1)
-    !    R1Y=r1(2)-r2(2)
-    !    R1Z=r1(3)-r2(3)
-    !  else
-    !    R1X=r1(1)
-    !    R1Y=r1(2)
-    !    R1Z=r1(3)
-    !  end if
-    !  if ( .not. Angle%orientation2 ) then
-    !    R2X=r3(1)-r2(1)
-    !    R2Y=r3(2)-r2(2)
-    !    R2Z=r3(3)-r2(3)
-    !  else
-    !    R2X=r3(1)
-    !    R2Y=r3(2)
-    !    R2Z=r3(3)
-    !  end if
-
-    !  R1S=R1X**2+R1Y**2+R1Z**2
-    !  R2S=R2X**2+R2Y**2+R2Z**2
-    !  R1R2=sqrt(R1S*R2S)
-
-    !  cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
-    !  if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
-    !  if ( cosa .lt. -1.0d0) cosa = -1.0d0
-
-    !  Angle%Angle0=acos(cosa)
     end if
 
   end subroutine TMolecule_FindAngle
@@ -2874,29 +2812,6 @@ contains
       call Error('At leas one site of a given dihedral potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
-    !  this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-    !  this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-    !  this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
-    !  this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
-    !  Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
-    !  Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
-    !  Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
-    !  Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
-    !  Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
-    !  Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
-    !  Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
-    !  Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
-    !  Dihedral%orientation1 = this%IdfDihedral(this%NDihedral)%orientation1
-    !  Dihedral%orientation2 = this%IdfDihedral(this%NDihedral)%orientation2
-    !  Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
-    !  Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
-    !  Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
-    !  if (LJEl14 .and. (Dihedral%multi .gt. 0)) then
-    !    Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
-    !    Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
-    !  end if
-    !  j = j - 1 !the procedure of Dihedral definition will be repeated for the same Dihedral angle
-    !  this%NDihedral = this%NDihedral - 1
     else !
       if (Dihedral%UnitId1==Dihedral%UnitId2) then
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1

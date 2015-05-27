@@ -965,12 +965,11 @@ contains
     ! Declare local variables
     integer :: np, ntest, nf
     integer :: nu, nup, neu, neup
-    integer :: i, j, index
+    integer :: i, j
     integer :: nlj, nch, ndi, nqu
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
-    logical :: ok
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -1362,152 +1361,78 @@ contains
       this%Molecule%Unit(i)%PZ => this%P0(:, 3, i)
       if (this%Molecule%Unit(i)%NLJ126 > 0) then
         do j = 1, this%Molecule%Unit(i)%NLJ126
-!            call binar_search(this%Molecule%SiteLJ126%SiteId,&
-!&                   this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
-!            if (ok) then
-!              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
-!              this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
-!              this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
-!              this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
-!            end if
-!          else
-              nlj = nlj+1
-              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
-              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
-              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
-              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
-              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
-              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
-              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
-              this%Molecule%SiteLJ126(nlj)%PX =>this%Molecule%Unit(i)%PX
-              this%Molecule%SiteLJ126(nlj)%PY =>this%Molecule%Unit(i)%PY
-              this%Molecule%SiteLJ126(nlj)%PZ =>this%Molecule%Unit(i)%PZ
+          nlj = nlj+1
+          this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
+          this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
+          this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
+          this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
+          this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
+          this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
+          this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
+          this%Molecule%SiteLJ126(nlj)%PX =>this%Molecule%Unit(i)%PX
+          this%Molecule%SiteLJ126(nlj)%PY =>this%Molecule%Unit(i)%PY
+          this%Molecule%SiteLJ126(nlj)%PZ =>this%Molecule%Unit(i)%PZ
         end do
       end if
       if (this%Molecule%Unit(i)%NCharge > 0) then
         do j = 1, this%Molecule%Unit(i)%NCharge
-!            call binar_search(this%Molecule%SiteCharge%SiteId, &
-!&                  this%Molecule%Unit(i)%SiteCharge(j)%SiteId, ok, index )
-!            if (ok) then
-!              this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(index)%r
-!              this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(index)%RX
-!              this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(index)%RY
-!              this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(index)%RZ
-!              this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(index)%FX
-!              this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(index)%FY
-!              this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(index)%FZ
-!              this%Molecule%SiteCharge(index)%PX =>this%Molecule%Unit(i)%PX
-!              this%Molecule%SiteCharge(index)%PY =>this%Molecule%Unit(i)%PY
-!              this%Molecule%SiteCharge(index)%PZ =>this%Molecule%Unit(i)%PZ
-!            end if
-!          else
-              nch = nch+1
-              this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(nch)%r
-              this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(nch)%RX
-              this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(nch)%RY
-              this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(nch)%RZ
-              this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(nch)%FX
-              this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(nch)%FY
-              this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(nch)%FZ
-              this%Molecule%SiteCharge(nch)%PX => this%Molecule%Unit(i)%PX
-              this%Molecule%SiteCharge(nch)%PY => this%Molecule%Unit(i)%PY
-              this%Molecule%SiteCharge(nch)%PZ => this%Molecule%Unit(i)%PZ
+          nch = nch+1
+          this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(nch)%r
+          this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(nch)%RX
+          this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(nch)%RY
+          this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(nch)%RZ
+          this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(nch)%FX
+          this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(nch)%FY
+          this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(nch)%FZ
+          this%Molecule%SiteCharge(nch)%PX => this%Molecule%Unit(i)%PX
+          this%Molecule%SiteCharge(nch)%PY => this%Molecule%Unit(i)%PY
+          this%Molecule%SiteCharge(nch)%PZ => this%Molecule%Unit(i)%PZ
         end do
       end if
       if (this%Molecule%Unit(i)%NDipole > 0) then
         do j = 1, this%Molecule%Unit(i)%NDipole
-!            call binar_search(this%Molecule%SiteDipole%SiteId, &
-!&               this%Molecule%Unit(i)%SiteDipole(j)%SiteId, ok, index )
-!            if (ok) then
-!              this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(index)%r
-!              this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(index)%or
-!              this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(index)%RX
-!              this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(index)%RY
-!              this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(index)%RZ
-!              this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(index)%OX
-!              this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(index)%OY
-!              this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(index)%OZ
-!              this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(index)%FX
-!              this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(index)%FY
-!              this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(index)%FZ
-!              this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(index)%TX
-!              this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(index)%TY
-!              this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(index)%TZ
-!              this%Molecule%SiteDipole(index)%PX => this%Molecule%Unit(i)%PX
-!              this%Molecule%SiteDipole(index)%PY => this%Molecule%Unit(i)%PY
-!              this%Molecule%SiteDipole(index)%PZ => this%Molecule%Unit(i)%PZ
-!            end if
-!          else
-              ndi = ndi+1
-              this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(ndi)%r
-              this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(ndi)%or
-              this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(ndi)%RX
-              this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(ndi)%RY
-              this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(ndi)%RZ
-              this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(ndi)%OX
-              this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(ndi)%OY
-              this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(ndi)%OZ
-              this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(ndi)%FX
-              this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(ndi)%FY
-              this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(ndi)%FZ
-              this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(ndi)%TX
-              this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(ndi)%TY
-              this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(ndi)%TZ
-              this%Molecule%SiteDipole(ndi)%PX=> this%Molecule%Unit(i)%PX
-              this%Molecule%SiteDipole(ndi)%PY=> this%Molecule%Unit(i)%PY
-              this%Molecule%SiteDipole(ndi)%PZ=> this%Molecule%Unit(i)%PZ
+          ndi = ndi+1
+          this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(ndi)%r
+          this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(ndi)%or
+          this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(ndi)%RX
+          this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(ndi)%RY
+          this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(ndi)%RZ
+          this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(ndi)%OX
+          this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(ndi)%OY
+          this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(ndi)%OZ
+          this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(ndi)%FX
+          this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(ndi)%FY
+          this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(ndi)%FZ
+          this%Molecule%Unit(i)%SiteDipole(j)%TX=>this%Molecule%SiteDipole(ndi)%TX
+          this%Molecule%Unit(i)%SiteDipole(j)%TY=>this%Molecule%SiteDipole(ndi)%TY
+          this%Molecule%Unit(i)%SiteDipole(j)%TZ=>this%Molecule%SiteDipole(ndi)%TZ
+          this%Molecule%SiteDipole(ndi)%PX=> this%Molecule%Unit(i)%PX
+          this%Molecule%SiteDipole(ndi)%PY=> this%Molecule%Unit(i)%PY
+          this%Molecule%SiteDipole(ndi)%PZ=> this%Molecule%Unit(i)%PZ
          end do
-       end if
-       if (this%Molecule%Unit(i)%NQuadrupole > 0) then
-         do j = 1, this%Molecule%Unit(i)%NQuadrupole
-!             call binar_search(this%Molecule%SiteQuadrupole%SiteId, &
-!&               this%Molecule%Unit(i)%SiteQuadrupole(j)%SiteId, ok, index )
-!             if (ok) then
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(index)%r
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(index)%or
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(index)%RX
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(index)%RY
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(index)%RZ
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(index)%OX
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(index)%OY
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(index)%OZ
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(index)%FX
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(index)%FY
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(index)%FZ
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(index)%TX
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(index)%TY
-!               this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(index)%TZ
-!               this%Molecule%SiteQuadrupole(index)%PX=>this%Molecule%Unit(i)%PX
-!               this%Molecule%SiteQuadrupole(index)%PY=>this%Molecule%Unit(i)%PY
-!               this%Molecule%SiteQuadrupole(index)%PZ=>this%Molecule%Unit(i)%PZ
-!             end if
-!           else
-               nqu = nqu+1
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(nqu)%r
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(nqu)%or
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(nqu)%RX
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(nqu)%RY
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(nqu)%RZ
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(nqu)%OX
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(nqu)%OY
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(nqu)%OZ
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(nqu)%FX
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(nqu)%FY
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(nqu)%FZ
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(nqu)%TX
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(nqu)%TY
-               this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(nqu)%TZ
-               this%Molecule%SiteQuadrupole(nqu)%PX=> this%Molecule%Unit(i)%PX
-               this%Molecule%SiteQuadrupole(nqu)%PY=> this%Molecule%Unit(i)%PY
-               this%Molecule%SiteQuadrupole(nqu)%PZ=> this%Molecule%Unit(i)%PZ
-         end do
-       end if
+      end if
+      if (this%Molecule%Unit(i)%NQuadrupole > 0) then
+        do j = 1, this%Molecule%Unit(i)%NQuadrupole
+          nqu = nqu+1
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(nqu)%r
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(nqu)%or
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(nqu)%RX
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(nqu)%RY
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(nqu)%RZ
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(nqu)%OX
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(nqu)%OY
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(nqu)%OZ
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(nqu)%FX
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(nqu)%FY
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(nqu)%FZ
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%TX=>this%Molecule%SiteQuadrupole(nqu)%TX
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%TY=>this%Molecule%SiteQuadrupole(nqu)%TY
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%TZ=>this%Molecule%SiteQuadrupole(nqu)%TZ
+          this%Molecule%SiteQuadrupole(nqu)%PX=> this%Molecule%Unit(i)%PX
+          this%Molecule%SiteQuadrupole(nqu)%PY=> this%Molecule%Unit(i)%PY
+          this%Molecule%SiteQuadrupole(nqu)%PZ=> this%Molecule%Unit(i)%PZ
+        end do
+      end if
     end do
 
     ! Idf Site positions and  forces
@@ -2020,35 +1945,6 @@ contains
     ! Update log file
     write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
-    
-!    contains
-
-!    subroutine binar_search (array, Id, treffer, index)
-!
-!      ! Declare arguments
-!      integer, dimension(:), intent( in ) :: array
-!      integer, intent( in )               :: Id
-!      logical, intent( out )              :: treffer
-!      integer, intent( out )              :: index
-!
-!      ! Declare local variables
-!      integer                             :: anfang, ende, mitte
-!
-!      anfang = 1
-!      ende = size (array)
-!      do
-!         if ( anfang == ende ) exit
-!         mitte = (anfang + ende)*0.5
-!         if ( id <= array(mitte) ) then
-!           ende = mitte
-!         else
-!           anfang = mitte + 1
-!         end if
-!      end do
-!      index = anfang
-!      treffer = (id == array(index))
-!
-!    end subroutine binar_search
 
 
   end subroutine TComponent_Allocate
@@ -3802,23 +3698,23 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       end if
 
     else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NLJ126
-          pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, nu)
-          pLJ126%RY(np) = this%P0(np, 2, nu)
-          pLJ126%RZ(np) = this%P0(np, 3, nu)
-        end do
 
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NCharge
-          pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
-          pCharge%RX(np) = this%P0(np, 1, nu)
-          pCharge%RY(np) = this%P0(np, 2, nu)
-          pCharge%RZ(np) = this%P0(np, 3, nu)
-        end do
+      ! Loop over LJ126 sites in molecule
+      do i = 1, this%Molecule%Unit(nu)%NLJ126
+        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
+        pLJ126%RX(np) = this%P0(np, 1, nu)
+        pLJ126%RY(np) = this%P0(np, 2, nu)
+        pLJ126%RZ(np) = this%P0(np, 3, nu)
       end do
+
+      ! Loop over charge sites in molecule
+      do i = 1, this%Molecule%Unit(nu)%NCharge
+        pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
+        pCharge%RX(np) = this%P0(np, 1, nu)
+        pCharge%RY(np) = this%P0(np, 2, nu)
+        pCharge%RZ(np) = this%P0(np, 3, nu)
+      end do
+
     end if
 
   end subroutine TComponent_Unit2Atom1
@@ -4847,7 +4743,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst * 1e10_RK
     end do
     do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst * 1e10_RK
+      this%Molecule%IDFDihedral(i)%ForConst(:) = this%Molecule%IDFDihedral(i)%ForConst(:) * 1e10_RK
     end do
 
   end subroutine TComponent_Flex2Rigid
@@ -5404,27 +5300,27 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Declare local variables
     logical                        :: need
+    type(TIdfBond), pointer        :: pBond
+    integer                        :: np, nu, it, itmax
+    integer                        :: i, j, k, Unit1, Unit2
     real(RK)                       :: BoxLength, BoxLengthInv, Shake2
     real(RK)                       :: RX1, RY1, RZ1, RX2, RY2, RZ2
     real(RK)                       :: PX1, PY1, PZ1, PX2, PY2, PZ2
     real(RK)                       :: RXij(this%Molecule%NBond), RYij(this%Molecule%NBond), RZij(this%Molecule%NBond)
     real(RK)                       :: R0Xij(this%NPart,this%Molecule%NBond), R0Yij(this%NPart,this%Molecule%NBond), R0Zij(this%NPart,this%Molecule%NBond)
     real(RK)                       :: P0Xij(this%NPart,this%Molecule%NBond), P0Yij(this%NPart,this%Molecule%NBond), P0Zij(this%NPart,this%Molecule%NBond)
-    real(RK)                       :: R02, RSquared !RSquared(this%Molecule%NBond), PSquared(this%Molecule%NBond), R0, R02
-    real(RK)                       :: dRSquared(this%Molecule%NBond), dRmax(this%NPart)
+    real(RK)                       :: dRmax, dRmaxold(this%NPart), dRmaxstart(this%NPart)
+    real(RK)                       :: PR1(this%NPart,this%Molecule%NBond,3), PR2(this%NPart,this%Molecule%NBond,3)
+    real(RK)                       :: e(this%Npart,this%Molecule%NBond,3), EffM(this%Npart,this%Molecule%NBond)
+    real(RK)                       :: RSquared, R0Sq, dRSquared(this%Molecule%NBond)
     real(RK)                       :: fx, fy, fz, Fijconstr
-    !real(RK)                       :: q1, q2, q3, q4, qinv
-    !real(RK)                       :: sax, say, saz, saex, saey, saez, trx, try, trz, sabx, saby, sabz
-    !real(RK)                       :: vix, viy, viz, vxi, vyi, vzi, doti
-    !real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    !real(RK)                       :: r1x, r1y, r1z, r2x, r2y, r2z 
-    !real(RK)                       :: invI(3)
-    real(RK)                       :: EffMass, MassInv, EMass1, EMass2, Coeff
-    integer                        :: np, nu, it, i, j, k, Unit1, Unit2
-    real(RK)                       :: tempP1(this%NPart,3,this%Molecule%NUnit), tempP0(this%NPart,3,this%Molecule%NUnit)
-    real(RK)                       :: tempF(this%NPart,3,this%Molecule%NUnit)!, r(3)
+    real(RK)                       :: TMoi1, TMoi2, TMoi3
+    real(RK)                       :: Moi12, Moi23, Moi31
+    real(RK)                       :: EMass1, EMass2, Coeff
+    real(RK)                       :: Term1(3), Term2(3), Term3(3), MOI(3), q(4)
+    real(RK)                       :: tempP0(this%NPart,3,this%Molecule%NUnit)!, tempP1(this%NPart,3,this%Molecule%NUnit)
+    real(RK)                       :: tempF(this%NPart,3,this%Molecule%NUnit), tempT(this%NPart,3,this%Molecule%NUnit)
 
-    type(TIdfBond), pointer      :: pBond
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -5434,9 +5330,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     nu = this%Molecule%NUnit
     need = .true.
     it = 0
+    itmax = 1000
     VirialShake = 0._RK
-    tempF(:,:,:) = 0._RK
-    dRmax(:) = 1._RK
     this%EKinTran = 0._RK
     this%EKinRot = 0._RK
 
@@ -5471,35 +5366,127 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         P0Xij(i,j) = PX1 - PX2
         P0Yij(i,j) = PY1 - PY2
         P0Zij(i,j) = PZ1 - PZ2
+
+        ! Calculate unit-site distance vector's at start of this timestep; anint not needed
+        if (this%Molecule%Unit(Unit1)%IsElongated) then
+         PR1(i,j,1) = (RX1 - PX1) * BoxLength
+         PR1(i,j,2) = (RY1 - PY1) * BoxLength
+         PR1(i,j,3) = (RZ1 - PZ1) * BoxLength
+        endif
+        if (this%Molecule%Unit(Unit2)%IsElongated) then
+         PR2(i,j,1) = (RX2 - PX2) * BoxLength
+         PR2(i,j,2) = (RY2 - PY2) * BoxLength
+         PR2(i,j,3) = (RZ2 - PZ2) * BoxLength
+        endif
+
+        R0Xij(i,j) = (R0Xij(i,j) - anint( R0Xij(i,j) )) * BoxLength
+        R0Yij(i,j) = (R0Yij(i,j) - anint( R0Yij(i,j) )) * BoxLength
+        R0Zij(i,j) = (R0Zij(i,j) - anint( R0Zij(i,j) )) * BoxLength
+        P0Xij(i,j) = (P0Xij(i,j) - anint( P0Xij(i,j) )) * BoxLength
+        P0Yij(i,j) = (P0Yij(i,j) - anint( P0Yij(i,j) )) * BoxLength
+        P0Zij(i,j) = (P0Zij(i,j) - anint( P0Zij(i,j) )) * BoxLength
+
+        e(i,j,1) = R0Xij(i,j)/pBond%R0
+        e(i,j,2) = R0Yij(i,j)/pBond%R0
+        e(i,j,3) = R0Zij(i,j)/pBond%R0
+        
+            EMass1 = 1._RK/this%Molecule%Unit(Unit1)%Mass
+            EMass2 = 1._RK/this%Molecule%Unit(Unit2)%Mass
+
+            ! Contribution of the units to the effective mass; changing Shake to QShake
+            ! e_ = d_/d = (RXij/R0, RYij/R0, RZij/R0)
+            ! sA_ = PR1(i,j,:) 
+            ! IA_ = (MOI(1) 0 0; 0 MOI(2) 0; 0 0 MOI(3) )
+            if (this%Molecule%Unit(Unit1)%IsElongated) then
+              MOI(:) = this%Molecule%Unit(Unit1)%MOI(:)
+
+              Term3(1) = PR1(i,j,2)*e(i,j,3) - PR1(i,j,3)*e(i,j,2)
+              Term3(2) = PR1(i,j,3)*e(i,j,1) - PR1(i,j,1)*e(i,j,3)
+              Term3(3) = PR1(i,j,1)*e(i,j,2) - PR1(i,j,2)*e(i,j,1)
+
+              q(:) = this%Q0(i,:,Unit1) - this%Q1(i,:,Unit1)
+              call qTerm( q(:), MOI(:), Term3(:), Term2(:) )
+
+              Term1(1) = Term2(2)*PR1(i,j,3) - Term2(3)*PR1(i,j,2)
+              Term1(2) = Term2(3)*PR1(i,j,1) - Term2(1)*PR1(i,j,3)
+              Term1(3) = Term2(1)*PR1(i,j,2) - Term2(2)*PR1(i,j,1)
+
+              EMass1 = EMass1 + Term1(1)*e(i,j,1) + Term1(2)*e(i,j,2) + Term1(3)*e(i,j,3)
+            endif
+            if (this%Molecule%Unit(Unit2)%IsElongated) then
+              MOI(:) = this%Molecule%Unit(Unit2)%MOI(:)
+              
+              Term3(1) = PR2(i,j,2)*e(i,j,3) - PR2(i,j,3)*e(i,j,2)
+              Term3(2) = PR2(i,j,3)*e(i,j,1) - PR2(i,j,1)*e(i,j,3)
+              Term3(3) = PR2(i,j,1)*e(i,j,2) - PR2(i,j,2)*e(i,j,1)
+
+              q(:) = this%Q0(i,:,Unit2) - this%Q1(i,:,Unit2)
+              call qTerm( q(:), MOI(:), Term3(:), Term2(:) )
+
+              Term1(1) = Term2(2)*PR2(i,j,3) - Term2(3)*PR2(i,j,2)
+              Term1(2) = Term2(3)*PR2(i,j,1) - Term2(1)*PR2(i,j,3)
+              Term1(3) = Term2(1)*PR2(i,j,2) - Term2(2)*PR2(i,j,1)
+
+              EMass1 = EMass1 + Term1(1)*e(i,j,1) + Term1(2)*e(i,j,2) + Term1(3)*e(i,j,3)
+            endif
+            EffM(i,j)=1._RK/(EMass1+EMass2) 
+
       end do
     end do
-
-    R0Xij(:,:) = (R0Xij(:,:) - anint( R0Xij(:,:) )) * BoxLength
-    R0Yij(:,:) = (R0Yij(:,:) - anint( R0Yij(:,:) )) * BoxLength
-    R0Zij(:,:) = (R0Zij(:,:) - anint( R0Zij(:,:) )) * BoxLength
-    P0Xij(:,:) = (P0Xij(:,:) - anint( P0Xij(:,:) )) * BoxLength
-    P0Yij(:,:) = (P0Yij(:,:) - anint( P0Yij(:,:) )) * BoxLength
-    P0Zij(:,:) = (P0Zij(:,:) - anint( P0Zij(:,:) )) * BoxLength
 
     !calculates site positions of unconstrained timestep
     call Unit2Atom(this, np, nu)
 
+    do i = 1, np ! Loop over all molecules          
+      dRmax = 0._RK 
+      ! Loop over all bonds in molecule
+      do j = 1, this%Molecule%NBond
+        pBond => this%Molecule%IdfBond(j)
 
-    do while (need .and. ( it < 1000 )) ! calculate shake-force iteratively
+        R0Sq = pBond%R0**2 ! squared equlibrium bond length
+        RX1 = pBond%RX1(i)
+        RY1 = pBond%RY1(i)
+        RZ1 = pBond%RZ1(i)
+        RX2 = pBond%RX2(i)
+        RY2 = pBond%RY2(i)
+        RZ2 = pBond%RZ2(i)
+
+        ! Calculate temporary bond vector
+        RXij(j) = RX1 - RX2
+        RYij(j) = RY1 - RY2
+        RZij(j) = RZ1 - RZ2
+        RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
+        RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
+        RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
+
+        RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
+
+        ! Deviation from equilibrium
+        dRSquared(j) = (R0Sq - RSquared)
+        dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
+      end do
+      dRmaxstart(i) = dRmax
+    end do
+    dRmaxold(:) = dRmaxstart(:)
+
+    do while (need .and. ( it < itmax )) ! calculate shake-force iteratively
     
-      need = .false.
-      it = it+1
+      need = .false.  ! for mpi mor efficient to do while-loop inside of molecule-loop
+      it = it+1       ! so molecules are iterated ony by one (and each process gets a few)
+      tempF(:,:,:) = 0._RK
+      tempT(:,:,:) = 0._RK
 
 loop1: do i = 1, np ! Loop over all molecules          
 
-        if (dRmax(i) > Shake2) then !speed up through molecules with already fixed boxlength, not essential
-          dRmax(i) = 0._RK !if not yet fixed calculate deviation anew 
+        dRmax = 0._RK
+        if (dRmaxold(i) > Shake2) then !skip constraints already inside defined precision
+          call Unit2Atom1(this, i)
 
-          ! Loop over all bonds in molecule
+          !Loop over all bonds in molecule
           do j = 1, this%Molecule%NBond
             pBond => this%Molecule%IdfBond(j)
 
-            R02 = pBond%R0**2 ! squared equlibrium bond length
+            R0Sq = pBond%R0**2 ! squared equlibrium bond length
             RX1 = pBond%RX1(i)
             RY1 = pBond%RY1(i)
             RZ1 = pBond%RZ1(i)
@@ -5518,12 +5505,32 @@ loop1: do i = 1, np ! Loop over all molecules
             RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
 
             ! Deviation from equilibrium
-            dRSquared(j) = (R02 - RSquared)
-            dRmax(i)=max(dRmax(i),abs(dRSquared(j)/R02))
+            dRSquared(j) = (R0Sq - RSquared)
+            dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
           end do
-        end if 
 
-        if (dRmax(i) > Shake2 ) then
+          if ( dRmax > dRmaxold(i) .or. dRmax > dRmaxstart(i) ) then
+            write( IOBuffer, '("QShake was not working/convergent for molecule", I6, " in step", I10)' ) i, Step
+            call LogWrite
+            if (dRmaxstart(i) .lt. dRmaxold(i)) then
+              do j = 1, this%Molecule%NBond
+                Unit1 = this%Molecule%IdfBond(j)%UnitId1
+                VirialShake = VirialShake - ( tempF(i,1,Unit1)*P0Xij(i,j) + tempF(i,2,Unit1)*P0Yij(i,j) + tempF(i,3,Unit1)*P0Zij(i,j) )
+              end do
+              tempF(i,1:3,:) = 0._RK
+              write( IOBuffer, '("No Forces were applied for this molecule, since no better solution could be found through iterations.")' )
+            else
+              write( IOBuffer, '("Best solution at iteration", I6, " was used to improve bond-constraints")' ) it
+            end if
+            call LogWrite
+            dRmax = 0._RK
+            dRmaxold(i) = 0._RK
+          end if
+
+        end if ! dRmaxold > Shake2
+
+
+        if (dRmax > Shake2 ) then !calculate force constraints if deviation outside defined precision
           need = .true.
 
           do j= 1, this%Molecule%NBond
@@ -5531,36 +5538,79 @@ loop1: do i = 1, np ! Loop over all molecules
 
             Unit1 = pBond%UnitId1
             Unit2 = pBond%UnitId2
-            EMass1 = 1._RK/this%Molecule%Unit(Unit1)%Mass
-            EMass2 = 1._RK/this%Molecule%Unit(Unit2)%Mass
-            EffMass=1._RK/(EMass1+EMass2)
-
-            Coeff = EffMass*TimeStepSquaredInv2 * dRSquared(j)
+            Coeff = EffM(i,j)*TimeStepSquaredInv2 * dRSquared(j)
             Fijconstr = Coeff / ( R0Xij(i,j)*RXij(j)+R0Yij(i,j)*RYij(j)+R0Zij(i,j)*RZij(j) )
 
             fx = Fijconstr * R0Xij(i,j)
             fy = Fijconstr * R0Yij(i,j)
             fz = Fijconstr * R0Zij(i,j)
 
-            EMass1 = TimeStepSquared * EMass1 * BoxLengthInv
-            EMass2 = TimeStepSquared * EMass2 * BoxLengthInv
-            pBond%RX1(i) = pBond%RX1(i) + EMass1*fx
-            pBond%RY1(i) = pBond%RY1(i) + EMass1*fy
-            pBond%RZ1(i) = pBond%RZ1(i) + EMass1*fz
-            pBond%RX2(i) = pBond%RX2(i) - EMass2*fx
-            pBond%RY2(i) = pBond%RY2(i) - EMass2*fy
-            pBond%RZ2(i) = pBond%RZ2(i) - EMass2*fz
-
-            tempF(i, 1, Unit1) = tempF(i, 1, Unit1) + fx
-            tempF(i, 2, Unit1) = tempF(i, 2, Unit1) + fy
-            tempF(i, 3, Unit1) = tempF(i, 3, Unit1) + fz
-            tempF(i, 1, Unit2) = tempF(i, 1, Unit2) - fx
-            tempF(i, 2, Unit2) = tempF(i, 2, Unit2) - fy
-            tempF(i, 3, Unit2) = tempF(i, 3, Unit2) - fz
-
             VirialShake = VirialShake + ( fx*P0Xij(i,j) + fy*P0Yij(i,j) + fz*P0Zij(i,j) )
 
-          end do
+            tempF(i,1,Unit1) = tempF(i,1,Unit1) + fx
+            tempF(i,2,Unit1) = tempF(i,2,Unit1) + fy
+            tempF(i,3,Unit1) = tempF(i,3,Unit1) + fz
+            tempF(i,1,Unit2) = tempF(i,1,Unit2) - fx
+            tempF(i,2,Unit2) = tempF(i,2,Unit2) - fy
+            tempF(i,3,Unit2) = tempF(i,3,Unit2) - fz
+            if (this%Molecule%Unit(Unit1)%IsElongated) then
+              ! Torque
+              tempT(i,1,Unit1) = tempT(i,1,Unit1) + PR1(i,j,2)*fz - PR1(i,j,3)*fy
+              tempT(i,2,Unit1) = tempT(i,2,Unit1) + PR1(i,j,3)*fx - PR1(i,j,1)*fz
+              tempT(i,3,Unit1) = tempT(i,3,Unit1) + PR1(i,j,1)*fy - PR1(i,j,2)*fx
+            end if
+            if (this%Molecule%Unit(Unit1)%IsElongated) then
+              ! Torque
+              tempT(i,1,Unit2) = tempT(i,1,Unit2) - PR2(i,j,2)*fz + PR2(i,j,3)*fy
+              tempT(i,2,Unit2) = tempT(i,2,Unit2) - PR2(i,j,3)*fx + PR2(i,j,1)*fz
+              tempT(i,3,Unit2) = tempT(i,3,Unit2) - PR2(i,j,1)*fy + PR2(i,j,2)*fx
+            end if
+
+            end do ! constraint force calculation
+
+          do j=1,nu
+            Coeff = TimeStepSquared * BoxLengthInv / this%Molecule%Unit(j)%Mass
+            ! Translational Correction
+            this%P0(i, 1, j) = this%P0(i, 1, j) + Coeff*tempF(i,1,j)
+            this%P0(i, 2, j) = this%P0(i, 2, j) + Coeff*tempF(i,2,j)
+            this%P0(i, 3, j) = this%P0(i, 3, j) + Coeff*tempF(i,3,j)
+
+            ! Rotational Correction
+            if (this%Molecule%Unit(j)%IsElongated) then
+              ! Changes to Rotational Matrix due to QShake
+              TMoi1 = TimeStep / this%Molecule%Unit(j)%MOI(1)
+              TMoi2 = TimeStep / this%Molecule%Unit(j)%MOI(2)
+              if( this%Molecule%Unit(j)%is3D ) then
+                TMoi3 = TimeStep / this%Molecule%Unit(j)%MOI(3)
+                Moi23 = this%Molecule%Unit(j)%MOI(2) - this%Molecule%Unit(j)%MOI(3)
+                Moi31 = this%Molecule%Unit(j)%MOI(3) - this%Molecule%Unit(j)%MOI(1)
+                Moi12 = this%Molecule%Unit(j)%MOI(1) - this%Molecule%Unit(j)%MOI(2)
+                this%W1(i, 1, j) = (tempT(i,1,j) + this%W0(i, 2, j) * this%W0(i, 3, j) * Moi23) * TMoi1
+                this%W1(i, 2, j) = (tempT(i,2,j) + this%W0(i, 3, j) * this%W0(i, 1, j) * Moi31) * TMoi2
+                this%W1(i, 3, j) = (tempT(i,3,j) + this%W0(i, 1, j) * this%W0(i, 2, j) * Moi12) * TMoi3
+              else
+                this%W1(i, 1, j) = tempT(i,1,j) * TMoi1
+                this%W1(i, 2, j) = tempT(i,2,j) * TMoi2
+              end if
+              do k = 1, this%Molecule%Unit(j)%NDFRot
+                this%W0(i, k, j) = this%W0(i, k, j) + this%W1(i, k, j)
+              end do
+              this%Q1(i, 1, j) = TimeStep2 * ( - this%Q0(i, 2, j) * this%W0(i, 1, j) &
+&                                  - this%Q0(i, 3, j) * this%W0(i, 2, j) - this%Q0(i, 4, j) * this%W0(i, 3, j))
+              this%Q1(i, 2, j) = TimeStep2 * ( + this%Q0(i, 1, j) * this%W0(i, 1, j) &
+&                                  - this%Q0(i, 4, j) * this%W0(i, 2, j) + this%Q0(i, 3, j) * this%W0(i, 3, j))
+              this%Q1(i, 3, j) = TimeStep2 * ( + this%Q0(i, 4, j) * this%W0(i, 1, j) &
+&                                  + this%Q0(i, 1, j) * this%W0(i, 2, j) - this%Q0(i, 2, j) * this%W0(i, 3, j))
+              this%Q1(i, 4, j) = TimeStep2 * ( - this%Q0(i, 3, j) * this%W0(i, 1, j) &
+&                                  + this%Q0(i, 2, j) * this%W0(i, 2, j) + this%Q0(i, 1, j) * this%W0(i, 3, j))
+              this%Q0(i, 1:4, j) = this%Q0(i, 1:4, j) + this%Q1(i, 1:4, j)
+            end if
+
+          end do ! unit loop
+
+
+          dRmaxold(i) = dRmax
+
         end if
 
       end do loop1 ! molecule loop
@@ -5571,72 +5621,81 @@ loop1: do i = 1, np ! Loop over all molecules
     if (.not. need) then
       VirialShake = Third*VirialShake !correct like this
 
-      do k = 1, nu
-        MassInv = 1._RK / this%Molecule%Unit(k)%Mass
-        do j = 1, 3
-          do i = 1, np
-            Coeff = tempF(i, j, k) * TimeStepSquared * BoxLengthInv * MassInv
-            !this%EKinTran = this%EkinTran + this%BoxLength**2*TimeStepSquaredInv2/MassInv*(tempP1(i, j, k)+Coeff/2._RK)**2
-            this%P0(i, j, k) = this%P0(i, j, k) + Coeff
-            this%P1(i, j, k) = this%P1(i, j, k) + Coeff!*scale
-            this%P2(i, j, k) = this%P2(i, j, k) + Coeff/2._RK
+      do i=1,np
+        do k=1,3
+          do j=1,nu
+            Coeff = this%P0(i,k,j) - ( tempP0(i,k,j) + this%P1(i,k,j) )
+            this%P1(i,k,j) = this%P1(i,k,j) + Coeff
+            this%P2(i,k,j) = this%P2(i,k,j) + 0.5_RK * Coeff
           end do
         end do
       end do
 
-      !! almost nothing from below needed, since the COM doesn't change!
-
-      !! Calculate new positions of COM for molecules from new COM of units
-      !do i = 1, np
-      !  r(:) = 0._RK
-      !  do k= 1, nu
-      !     r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      !  end do
-      !  this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      !end do
-
-      ! Calculate displacement of molecules
-      !do i = 1, np
-      !  do j = 1, 3
-      !    this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-      ! Check for conservation of particles in primary cell
-!#if ARCH == 1
-      !    if( this%Pm0(i, j) < -.5_RK ) then
-      !      do k = 1, nu
-      !         this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-      !      end do
-      !    elseif( this%Pm0(i, j) > .5_RK ) then
-      !      do k = 1, nu
-      !         this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-      !      end do
-      !    end if
-!#else
-      !    do k = 1, nu
-      !      this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
-      !    end do
-      !  end do
-      !end do
-!#endif
-      ! Calculate new positions of COM for molecules from new COM of units
-      !do i = 1, np
-      !  r(:) = 0._RK
-      !  do k= 1, nu
-      !     r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      !  end do
-      !  this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      !  this%Pm0old(i,:) = this%Pm0(i, :)
-      !end do
     end if
 
-    if (need .and. .not. (it < 1000)) then
+    if (need .and. .not. (it < itmax)) then  !Michael Sch.: this case should never happen
       write( IOBuffer, '("Too many iterations for QShake at step: ", I10)' ) Step
       call LogWrite
       call Error( 'Too many iterations for QShake' )
     end if
 
- end subroutine TComponent_Constraints
 
+contains
+
+    subroutine qTerm (q, MOI, term3, term2)
+
+    ! Declare arguments
+    real(RK), intent( in )  :: q(4)
+    real(RK), intent( in )  :: MOI(3)
+    real(RK), intent( in )  :: term3(3)
+    real(RK), intent( out ) :: term2(3)
+
+    ! Declare local variables
+    real(RK)                :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    real(RK)                :: M11, M12, M13, M21, M22, M23, M31, M32, M33
+
+    term2(:) = 0._RK
+
+    A11 = q(1)**2 + q(2)**2 - q(3)**2 - q(4)**2
+    A12 = 2._RK * ( q(2) * q(3) + q(1) * q(4))
+    A13 = 2._RK * ( q(2) * q(4) - q(1) * q(3))
+    A21 = 2._RK * ( q(2) * q(3) - q(1) * q(4))
+    A22 = q(1)**2 -  q(2)**2 + q(3)**2 - q(4)**2
+    A23 = 2._RK * (q(3) * q(4) + q(1) * q(2))
+
+    M11 = A11**2/MOI(1) + A21**2/MOI(2)
+    M12 = A11*A12/MOI(1) + A21*A22/MOI(2)
+    M13 = A11*A13/MOI(1) + A21*A23/MOI(2)
+    M21 = A12*A11/MOI(1) + A22*A21/MOI(2)
+    M22 = A12**2/MOI(1) + A22**2/MOI(2)
+    M23 = A12*A13/MOI(1) + A22*A23/MOI(2)
+    M31 = A13*A11/MOI(1) + A23*A21/MOI(2)
+    M32 = A13*A12/MOI(1) + A23*A22/MOI(2)
+    M33 = A13**2/MOI(1) + A23**2/MOI(2)
+
+    if (MOI(3) > Zero) then
+      A31 = 2._RK * (q(2) * q(4) + q(1) * q(3))
+      A32 = 2._RK * (q(3) * q(4) - q(1) * q(2))
+      A33 = q(1)**2 -  q(2)**2 - q(3)**2 + q(4)**2
+      M11 = M11 + A31**2/MOI(3)
+      M12 = M12 + A31*A32/MOI(3)
+      M13 = M13 + A31*A33/MOI(3)
+      M21 = M21 + A32*A31/MOI(3)
+      M22 = M22 + A32**2/MOI(3)
+      M23 = M23 + A32*A33/MOI(3)
+      M31 = M31 + A33*A31/MOI(3)
+      M32 = M32 + A33*A32/MOI(3)
+      M33 = M33 + A33**2/MOI(3)
+    end if
+
+    term2(1) = M11*term3(1) + M12*term3(2) + M13*term3(3)
+    term2(2) = M21*term3(1) + M22*term3(2) + M23*term3(3)
+    term2(3) = M31*term3(1) + M32*term3(2) + M33*term3(3)
+
+    end subroutine qTerm
+
+
+ end subroutine TComponent_Constraints
 
 
 !==============================================================!

@@ -2620,7 +2620,7 @@ contains
 
 ! Error Analysis
    if (abs(q) .ge. 1e-1) then
-     write (ErrorBuffer,'("You have a non-neutral system.\n NetCharge normred = ", &
+     write (ErrorBuffer,'("You have a non-neutral system.\n NetCharge normed = ", &
 &                 F20.10, "\n Conflicts arise applying long range corrections")') q
      call Error
    end if
@@ -2761,7 +2761,6 @@ contains
     end do
 
   end subroutine TEnsemble_FindNSiteMax
-
 
 
 !==============================================================!
@@ -3004,15 +3003,15 @@ contains
       nullify( this%ResidPairsCem )
 
       allocate(this%CompPair(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
-      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      call AllocationError( stat, 'CompPair' )
       allocate(this%CompPair_Old(this%Component(this%ResidComp1)%NPart*10,2),STAT=stat)
-      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      call AllocationError( stat, 'CompPair_Old' )
       allocate(this%ResidTimesStart(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
-      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      call AllocationError( stat, 'ResidTimesStart' )
       allocate(this%ResidTimesStart_Old(this%Component(this%ResidComp1)%NPart*10),STAT=stat)
-      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      call AllocationError( stat, 'ResidTimesStart_Old' )
       allocate(this%ResidPairsCem(this%Component(this%ResidComp1)%NPart*10,4),STAT=stat)
-      if(stat >0) write(*,*) 'Allocation Error this%CompPair'
+      call AllocationError( stat, 'ResidPairsCem' )
     end if
 
   end subroutine TEnsemble_Allocate
@@ -3967,11 +3966,10 @@ loop:do l = 1, NPartInCell
 
     ! Declare local variables
     integer  :: r, s, t
-    integer  :: nc, np, ndf, nu, nc1, nc2, nu1, nu2
-    integer  :: i, NPart2, j, k, l
+    integer  :: nc, np, ndf, nu
+    integer  :: i, NPart2
     real(RK) :: rx, sx
     real(RK) :: diffpressure
-    !real(RK) :: NDFsystem
 
     ! Zero number of MC attempts and successes
     if( Step == 1 ) call ZeroNAttempts( this )
@@ -4632,12 +4630,11 @@ loop5:    do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
     call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-
     BoxLengthOld = this%BoxLength
     call UpdateBoxLength( this )
 
     DelBoxL = this%BoxLength / BoxLengthOld
-    call Mol2Resize(this, DelBoxL) !Michael Sch.: correct?
+    call Mol2Resize(this, DelBoxL)
 
   end subroutine TEnsemble_PredictVol
 
@@ -4660,6 +4657,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     real(RK) :: Volume2, Corr
+    real(RK) :: BoxLengthOld, DelBoxL
 
 #ifdef ABL
     real(RK) :: vol
@@ -4683,6 +4681,16 @@ loop5:    do nc = 1, this%NComponents
         this%Volume3 = this%Volume3 + Corr * Gear23
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
+
+#if MPI_VER > 0
+        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+        call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+        BoxLengthOld = this%BoxLength
+        call UpdateBoxLength( this )
+
+        DelBoxL = this%BoxLength / BoxLengthOld
+        call Mol2Resize(this, DelBoxL)
 
 #if ABL
         vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
@@ -4710,12 +4718,6 @@ loop5:    do nc = 1, this%NComponents
       end select
       
     end if
-
-#if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-    call UpdateBoxLength( this )
 
   end subroutine TEnsemble_CorrectVol
 
@@ -8948,10 +8950,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if MPI_VER > 0
     real(RK) :: EPotNew
 #endif
-    real(RK) :: tempTotal, tempIntra, tempAngleTo
-    real(RK) :: tempTotalNew, tempIntraNew, tempAngleToNew
-    real(RK) :: tempDiffInter, tempDiffIntra
-    integer  :: i, j, k, l, nc1, nc2, nu1, nu2
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -10176,7 +10174,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i, j, err
+    integer                   :: i, err
     real(RK)                  :: value
     real(RK)                  :: currentdEpotdV, currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
