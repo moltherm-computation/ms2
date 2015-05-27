@@ -8546,7 +8546,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
-        VirialLocal = VirialLocal - (FXij * PXij - FYij * PYij - FZij * PZij)     ! Vorzeichen richtig
+        VirialLocal = VirialLocal - (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC
@@ -8843,7 +8843,7 @@ loop1:do k = 1, this%NInCutoff(i)
         FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXi ) ! Kraft auf die Punktladung, sprich F2
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
-        VirialLocal = VirialLocal - (FXij * PXij - FYij * PYij - FZij * PZij)     ! Vorzeichen richtig
+        VirialLocal = VirialLocal - (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC T
@@ -11549,7 +11549,7 @@ loop2:  do j = j0, j1
 
     end if
 !$OMP END PARALLEL
-
+    FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
     TX2 = TX2 + momTempX                                 
