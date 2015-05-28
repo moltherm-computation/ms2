@@ -2604,7 +2604,7 @@ contains
   end function Global_GetProcRange
 
 !==============================================================!
-!  Subroutine Write Restart File on xc2 in Karlsruhe, Germany  !
+!  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
 
 #if MPI_VER > 0
@@ -2617,7 +2617,7 @@ contains
 
     real(RK) :: time_remaining
     real(RK) :: cputime,max_cpu_time
-    integer  :: max_time
+    
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
     integer  :: err
@@ -2625,13 +2625,35 @@ contains
 #ifdef KARLS
     character*10 string_max_time
 #endif
+
+#ifdef SMUC
+    real(RK) :: time_elapsed
+    real(RK), save :: first_time
+    logical, save :: FirstCAll =.TRUE.
+#endif
+
+    integer  :: max_time
     integer  :: time_limit
 
+
+
+#ifdef SMUC 
+    if (FirstCAll)then
+       first_time = MPI_WTIME()
+       FirstCall = .FALSE.
+    end if
+ 
+    time_elapsed = MPI_WTIME() - first_time
+
+!Define walltime for the supercomputer in minutes
+    max_time = 1440
+#else 
 ! Get CPU time consumed by each task and compute the maximum value
     call cpu_time(cputime)
-!    call MPI_Allreduce(cputime,max_cpu_time,1,MPI_DOUBLE_PREICSION,MPI_MAX,MPI_COMM_WORLD,ierror)
 
     max_time = 1e7
+#endif
+
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t
     call getenv('JMS_t',string_max_time)
@@ -2647,7 +2669,13 @@ contains
 #endif
 
 ! Compute the remaining CPU time
+
+#ifdef SMUC
+   time_remaining = max_time - real(time_elapsed)/60.
+!  write(*,*) time_remaining
+#else
     time_remaining = max_time - real(cputime)/60.
+#endif
 
     if (time_remaining .le. time_limit) then
        write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster")' )

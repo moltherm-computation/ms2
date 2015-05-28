@@ -117,11 +117,20 @@ module ms2_accumulator
     ! Block sum
     real(RK), pointer :: BlockSum(:) => NULL()
 
+    ! Number of summed values in block
+    integer , pointer :: NBlockSum(:) => NULL()
+
     ! Total sum
     real(RK) :: TotalSum
+    
+    ! Total number of summed values
+    integer :: NTotalSum
 
-    ! Average and variance
-    real(RK) :: Average, Variance
+    ! Average 
+    real(RK) :: Average, BlockAverage
+
+    ! Variance
+    real(RK) :: Variance
 
     ! Method of updating
     logical :: UpdateByAverage
@@ -210,6 +219,7 @@ contains
 
     ! Initialize
     this%TotalSum = 0._RK
+    this%NTotalSum = 0
 
     ! Allocate arrays
     call AllocateCF( this, NBlocksMaxCF )
@@ -320,7 +330,11 @@ contains
     ! Allocate arrays
     allocate( this%BlockSum( NBlocksMaxCF ), STAT = stat )
     call AllocationError( stat, 'output blocks', NBlocksMaxCF )
+    allocate( this%NBlockSum( NBlocksMaxCF ), STAT = stat )
+    call AllocationError( stat, 'output blocks', NBlocksMaxCF )
     this%BlockSum = 0._RK
+    this%NBlockSum = 0
+
   end subroutine TAccumulatorCF_Allocate
 #endif
 !TRANSPORT_END
@@ -360,11 +374,15 @@ contains
     ! Declare arguments
     type(TAccumulatorCF) :: this
 
-
     ! Deallocate arrays
     if( associated( this%BlockSum ) ) then
        deallocate( this%BlockSum )
     end if
+
+   if( associated( this%NBlockSum ) ) then
+      deallocate( this%NBlockSum )
+    end if
+
 
   end subroutine TAccumulatorCF_Deallocate
 #endif
@@ -451,12 +469,21 @@ contains
     if( this%UpdateByAverage ) then
       if( mod( Mmess, BlockSizeCF ) == 0) then
         this%BlockSum(NBlocksCF) = NBlocksCF * BlockSizeCF * Value - this%TotalSum
+        this%NBlockSum(NBlocksCF) = BlockSizeCF
         this%TotalSum = NBlocksCF * BlockSizeCF * Value
+        this%NTotalSum = NBlocksCF * BlockSizeCF
+        this%Average = this%TotalSum / real( this%NTotalSum, RK )
+        this%BlockAverage = this%BlockSum(NBlocksCF)/ real( this%NBlockSum(NBlocksCF), RK )
+
       end if
     else
       if( mod( Mmess, BlockSizeCF ) == 0 ) this%BlockSum(NBlocksCF) = 0._RK
       this%BlockSum(NBlocksCF) = this%BlockSum(NBlocksCF) + Value
+      this%NBlockSum(NBlocksCF) = this%NBlockSum(NBlocksCF) + 1
       this%TotalSum = this%TotalSum + Value
+      this%NTotalSum = this%NTotalSum + 1
+      this%Average = this%TotalSum / real( this%NTotalSum, RK )
+      this%BlockAverage = this%BlockSum(NBlocksCF)/ real( this%NBlockSum(NBlocksCF), RK )
     end if
   end subroutine TAccumulatorCF_Update
 #endif
@@ -696,7 +723,7 @@ contains
     integer :: i, j
 
     ! Calculate average
-    this%Average = this%TotalSum / Mmess
+  !  this%Average = this%TotalSum / Mmess 
 
     ! Calculate variance
     Tau = 0._RK
@@ -826,14 +853,14 @@ contains
     if( .not. RootProc ) return
 
     ! Save contents to restart file
-   ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
+     ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
       do j = 1, NBlocksRestartCF
-        write( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
-        write( iounit_restart, '(I10)' )  this%NBlockSum(j)  
+       write( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
+       write( iounit_restart, '(I10)' )       this%NBlockSum(j)  
       end do
       write( iounit_restart, '(ES20.12E3)' )  this%TotalSum
-      write( iounit_restart, '(I10)' )  this%NTotalSum
+      write( iounit_restart, '(I10)' )        this%NTotalSum
       write( iounit_restart, '(ES20.12E3)' )  this%Average
       write( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
       write( iounit_restart, '(ES20.12E3)' )  this%Variance
@@ -865,15 +892,16 @@ contains
     ! Read contents from restart file
 !    read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-      do j = 1, NBlocksRestartCF
-        read( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
-        read( iounit_restart, '(I10)' )  this%NBlockSum(j)
+    do j = 1, NBlocksRestartCF
+       read( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
+       read( iounit_restart, '(I10)' )        this%NBlockSum(j)
       end do
       read( iounit_restart, '(ES20.12E3)' )  this%TotalSum
-      read( iounit_restart, '(I10)' )  this%NTotalSum
+      read( iounit_restart, '(I10)' )        this%NTotalSum
       read( iounit_restart, '(ES20.12E3)' )  this%Average
       read( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
       read( iounit_restart, '(ES20.12E3)' )  this%Variance
+
 
   end subroutine TAccumulator_RestartReadCF
 #endif

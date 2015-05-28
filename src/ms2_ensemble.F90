@@ -68,6 +68,7 @@ module ms2_ensemble
     logical :: Conductivity
     logical :: EConductivity
     logical :: MolarEnthConduct
+    logical :: Bulkviscosity
 #endif
 
     ! Maximum number of particles
@@ -319,32 +320,45 @@ module ms2_ensemble
     real(RK) :: TimeStepCorr
     integer  :: NCorr,Mmess,MmessMax
     integer  :: NSpanCF,Nviewcf
+    real(RK), pointer :: cf_db(:), cf_soret(:)
+    real(RK), pointer :: average_cf_db(:), average_cf_soret(:)
     real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
+    real(RK), pointer :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
     real(RK), pointer :: lamda(:, :)
+    real(RK), pointer :: average_lamda(:, :)
     real(RK), pointer :: sinte_i(:, :), sinte_lamda(:,:)
+    real(RK), pointer :: average_sinte_i(:, :), average_sinte_lamda(:,:)
+    real(RK), pointer :: sinte_db(:), sinte_soret(:)
+    real(RK), pointer :: average_sinte_soret(:), average_sinte_db(:)
     real(RK), pointer :: sinte_vs(:), sinte_vb(:)
+    real(RK), pointer :: average_sinte_vs(:), average_sinte_vb(:)
     real(RK), pointer :: sinte_c(:), sinte_ec(:)
+    real(RK), pointer :: average_sinte_c(:), average_sinte_ec(:)
     real(RK), pointer :: a(:, :), A_SpanCF(:,:)
-    real(RK), pointer :: cf_d (:, :), vsk(:, :)
+    real(RK), pointer :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
     real(RK),pointer  :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
     real(RK),pointer :: selfd_i(:)
+    real(RK),pointer :: Onsager(:,:)
     real(RK)         :: ternary_a, ternary_b, ternary_c
     real(RK)         :: binary_d
     real(RK)         :: visco_s
     real(RK)         :: visco_b
     real(RK)         :: conduct
+    real(RK)         :: soret
     real(RK)         :: econduct
 
     ! 4.) Transport properties
 
     type(TAccumulatorCF),pointer :: Sumself_i(:)
-    type(TAccumulatorCF)         :: SumTer_a, SumTer_b, SumTer_c
+!    type(TAccumulatorCF)         :: SumTer_a, SumTer_b, SumTer_c
     type(TAccumulatorCF)         :: SumBin_d
+    type(TAccumulatorCF),pointer :: SumOnsager(:,:)
     type(TAccumulatorCF)         :: SumVisco_s
     type(TAccumulatorCF)         :: SumVisco_b
+    type(TAccumulatorCF)         :: SumSoret
     type(TAccumulatorCF)         :: SumConduct
     type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
@@ -824,6 +838,10 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
+
+    !Declare variable for walltime solution in ms2_global 
+    integer :: time_limit
+
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -1319,33 +1337,35 @@ contains
 ! Initialization of the transport property "Conductivity" and "EConductivity"
 #if TRANS == 1
       
-
+     this%Bulkviscosity = .true.
      this%MolarEnthConduct = .true.
      this%Conductivity = .true.
+     this%EConductivity = .false.
+
+     if (EnsembleType .eq. EnsembleTypeNVE) then
+         this%Bulkviscosity = .true.
+     else
+         this%Bulkviscosity = .false.
+     end if
 
 
       if (LongRange .eq. Rfield) then
          this%Conductivity = .true.
-
       else
          this%Conductivity = .false.
-
       end if
 
  
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
        do i = 1, this%NComponents
-
             if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
                this%Conductivity = .false.
                this%MolarEnthConduct = .false.
             end if
-
        end do
       end if
 
-      this%EConductivity = .false.
-
+      
       if (LongRange .eq. Ewald) then
 	do i = 1, this%NComponents
 	  if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
@@ -1354,11 +1374,7 @@ contains
 	end do
       end if
 
-!      do i = 1, this%NComponents
-!         if ( (this%Component(i)%Molecule%Charge) .ne. 0._RK) then
-!             this%EConductivity = .true.
-!         end if
-!      end do
+
 #endif
 
 #if CONSTR > 0
@@ -1643,6 +1659,19 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
+
+#if TRANS == 1
+    time_limit = 60
+#else
+    time_limit = 15
+#endif
+
+#if MPI_VER > 0
+! Abortion of simulation run due to wall-time Constraints
+    call time_left(time_limit)
+#endif
+
+
 
   end subroutine TEnsemble_Construct
 
@@ -2140,7 +2169,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i
+    integer :: i, j
 
     ! Construct accumulators
     if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -2230,56 +2259,74 @@ contains
     ! 4.) Transport properties
     if( this%CorrfunMode ) then
       do i = 1, this%NComponents
-        call ConstructCF( this%Sumself_i(i),  .true., this%NBlocksMaxCF )
+        call ConstructCF( this%Sumself_i(i),  .false., this%NBlocksMaxCF )
         this%Sumself_i(i)%BLOCKSUM(:) = 0._RK
         this%Sumself_i(i)%TOTALSUM    = 0._RK
         this%Sumself_i(i)%AVERAGE     = 0._RK
         this%Sumself_i(i)%VARIANCE    = 0._RK
       end do
 
-      call ConstructCF( this%SumBin_d,  .true., this%NBlocksMaxCF )
+      call ConstructCF( this%SumBin_d,  .false., this%NBlocksMaxCF )
       this%SumBin_d%BLOCKSUM(:) = 0._RK
       this%SumBin_d%TOTALSUM    = 0._RK
       this%SumBin_d%AVERAGE     = 0._RK
       this%SumBin_d%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_a,  .true., this%NBlocksMaxCF )
-      this%SumTer_a%BLOCKSUM(:) = 0._RK
-      this%SumTer_a%TOTALSUM    = 0._RK
-      this%SumTer_a%AVERAGE     = 0._RK
-      this%SumTer_a%VARIANCE    = 0._RK
+      
+      do i = 1, this%NComponents
+        do j = 1, this%NComponents
+           call ConstructCF( this%SumOnsager(i,j), .false., this%NBlocksMaxCF )
+           this%SumOnsager(i,j)%BLOCKSUM(:) = 0._RK
+           this%SumOnsager(i,j)%TOTALSUM    = 0._RK
+           this%SumOnsager(i,j)%AVERAGE     = 0._RK
+           this%SumOnsager(i,j)%VARIANCE    = 0._RK
+        end do
+     end do
 
-      call ConstructCF( this%SumTer_b,  .true., this%NBlocksMaxCF )
-      this%SumTer_b%BLOCKSUM(:) = 0._RK
-      this%SumTer_b%TOTALSUM    = 0._RK
-      this%SumTer_b%AVERAGE     = 0._RK
-      this%SumTer_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_c,  .true., this%NBlocksMaxCF )
-      this%SumTer_c%BLOCKSUM(:) = 0._RK
-      this%SumTer_c%TOTALSUM    = 0._RK
-      this%SumTer_c%AVERAGE     = 0._RK
-      this%SumTer_c%VARIANCE    = 0._RK
+!       call ConstructCF( this%SumTer_a,  .true., this%NBlocksMaxCF )
+!       this%SumTer_a%BLOCKSUM(:) = 0._RK
+!       this%SumTer_a%TOTALSUM    = 0._RK
+!       this%SumTer_a%AVERAGE     = 0._RK
+!       this%SumTer_a%VARIANCE    = 0._RK
+! 
+!       call ConstructCF( this%SumTer_b,  .true., this%NBlocksMaxCF )
+!       this%SumTer_b%BLOCKSUM(:) = 0._RK
+!       this%SumTer_b%TOTALSUM    = 0._RK
+!       this%SumTer_b%AVERAGE     = 0._RK
+!       this%SumTer_b%VARIANCE    = 0._RK
+! 
+!       call ConstructCF( this%SumTer_c,  .true., this%NBlocksMaxCF )
+!       this%SumTer_c%BLOCKSUM(:) = 0._RK
+!       this%SumTer_c%TOTALSUM    = 0._RK
+!       this%SumTer_c%AVERAGE     = 0._RK
+!       this%SumTer_c%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_s, .true., this%NBlocksMaxCF )
+      call ConstructCF( this%SumVisco_s, .false., this%NBlocksMaxCF )
       this%SumVisco_s%BLOCKSUM(:) = 0._RK
       this%SumVisco_s%TOTALSUM    = 0._RK
       this%SumVisco_s%AVERAGE     = 0._RK
       this%SumVisco_s%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_b, .true., this%NBlocksMaxCF )
+      call ConstructCF( this%SumVisco_b, .false., this%NBlocksMaxCF )
       this%SumVisco_b%BLOCKSUM(:) = 0._RK
       this%SumVisco_b%TOTALSUM    = 0._RK
       this%SumVisco_b%AVERAGE     = 0._RK
       this%SumVisco_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumConduct, .true., this%NBlocksMaxCF )
+      call ConstructCF( this%SumConduct, .false., this%NBlocksMaxCF )
       this%SumConduct%BLOCKSUM(:) = 0._RK
       this%SumConduct%TOTALSUM    = 0._RK
       this%SumConduct%AVERAGE     = 0._RK
       this%SumConduct%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumEConduct, .true., this%NBlocksMaxCF )
+      call ConstructCF( this%SumSoret, .false., this%NBlocksMaxCF )
+      this%SumSoret%BLOCKSUM(:) = 0._RK
+      this%SumSoret%TOTALSUM    = 0._RK
+      this%SumSoret%AVERAGE     = 0._RK
+      this%SumSoret%VARIANCE    = 0._RK
+
+      call ConstructCF( this%SumEConduct, .false., this%NBlocksMaxCF )
       this%SumEConduct%BLOCKSUM(:) = 0._RK
       this%SumEConduct%TOTALSUM    = 0._RK
       this%SumEConduct%AVERAGE     = 0._RK
@@ -2316,7 +2363,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i
+    integer :: i, j
 
     ! Destruct accumulators
     ! 1.) Basic sums
@@ -2408,12 +2455,20 @@ contains
       end do
 
       call DestructCF( this%SumBin_d   )
-      call DestructCF( this%SumTer_a   )
-      call DestructCF( this%Sumter_b   )
-      call DestructCF( this%Sumter_c   )
+!       call DestructCF( this%SumTer_a   )
+!       call DestructCF( this%Sumter_b   )
+!       call DestructCF( this%Sumter_c   )
+
+      do i = 1, this%NComponents
+         do j = 1, this%NComponents
+            call DestructCF( this%SumOnsager(i,j) )
+         end do
+      end do
+
       call DestructCF( this%SumVisco_s )
       call DestructCF( this%SumVisco_b )
       call DestructCF( this%SumConduct )
+      call DestructCF( this%SumSoret )
       call DestructCF( this%SumEConduct )
 
     end if
@@ -2822,37 +2877,97 @@ contains
       allocate( this%cf_vs(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
 
+      allocate( this%average_cf_vs(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+
       allocate( this%cf_vb(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'viscosity_bulk_cf_vb', this%NCorr )
+
+      allocate( this%average_cf_vb(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_bulk_cf_vb', this%NCorr )
 
       allocate( this%cf_c(this%NCorr), STAT = stat )
       call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
 
+      allocate( this%average_cf_c(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
+
       allocate( this%cf_ec(this%NCorr), STAT = stat )
+      call AllocationError( stat, 'conductivity_cf_ec', this%NCorr )
+
+      allocate( this%average_cf_ec(this%NCorr), STAT = stat )
       call AllocationError( stat, 'conductivity_cf_ec', this%NCorr )
 
       allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
       call AllocationError( stat, 'self_diffusion', this%NCorr )
 
-      allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
+      allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'self_diffusion', this%NCorr )
+
+      allocate( this%cf_db( this%NCorr), STAT = stat )
       call AllocationError( stat, 'binary_diffusion', this%NCorr )
+
+      allocate( this%average_cf_db( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'binary_diffusion', this%NCorr )
+
+      allocate( this%cf_soret( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'thermal_diffusion', this%NCorr )
+
+      allocate( this%average_cf_soret( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'thermal_diffusion', this%NCorr )
+
+      allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
+      call AllocationError( stat, 'onsager_coefficient', this%NCorr )
+
+      allocate( this%average_lamda( NComp2, this%NCorr ), STAT = stat )
+      call AllocationError( stat, 'onsager_coefficient', this%NCorr )
 
       allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
       call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
 
+      allocate( this%average_sinte_i( this%NComponents, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
+
+      allocate( this%sinte_db( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'mutual_diffusion integrated', this%NCorr )
+
+      allocate( this%average_sinte_db( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'mutual_diffusion integrated', this%NCorr )
+
+      allocate( this%sinte_soret( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
+
+      allocate( this%average_sinte_soret( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
+
       allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
       call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
 
+      allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
+      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )      
+
       allocate( this%sinte_vs( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+
+      allocate( this%average_sinte_vs( this%NCorr), STAT = stat )
       call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
 
       allocate( this%sinte_vb( this%NCorr), STAT = stat )
       call AllocationError( stat, 'bulk_viscosity_integrated', this%NCorr )
 
+      allocate( this%average_sinte_vb( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'bulk_viscosity_integrated', this%NCorr )
+
       allocate( this%sinte_c( this%NCorr), STAT = stat )
       call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
 
+      allocate( this%average_sinte_c( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+
       allocate( this%sinte_ec( this%NCorr), STAT = stat )
+      call AllocationError( stat, 'Electric_conductivity_integrated', this%NCorr )
+
+      allocate( this%average_sinte_ec( this%NCorr), STAT = stat )
       call AllocationError( stat, 'Electric_conductivity_integrated', this%NCorr )
 
       allocate( this%a( NPart3, this%NCorr), STAT = stat  )
@@ -2894,23 +3009,54 @@ contains
       allocate( this%Sumself_i(this%NComponents), STAT = stat  )
       call AllocationError( stat, 'Sumselfd_i', this%NComponents )
 
+       allocate( this%Onsager(this%NComponents,this%NComponents), STAT = stat  )
+      call AllocationError( stat, 'Onsager', this%NComponents )
+
+      allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
+      call AllocationError( stat, 'SumOnsager', this%NComponents )
+
+
+
 
       ! Set correlation-fucntion vectors
       this%cf_d(:,:)      = 0._RK
+      this%cf_db(:)       = 0._RK
+      this%cf_soret(:)    = 0._RK
+      this%lamda(:,:)     = 0._RK
       this%cf_vs(:)       = 0._RK
       this%cf_vb(:)       = 0._RK
       this%cf_c(:)        = 0._RK
       this%cf_ec(:)       = 0._RK
 
+      this%average_cf_d(:,:)   = 0._RK
+      this%average_cf_db(:)    = 0._RK
+      this%average_cf_soret(:) = 0._RK
+      this%average_lamda(:,:)  = 0._RK
+      this%average_cf_vs(:)    = 0._RK
+      this%average_cf_vb(:)    = 0._RK
+      this%average_cf_c(:)     = 0._RK
+      this%average_cf_ec(:)    = 0._RK
+  
       this%a(:,:)           = 0._RK
       this%A_SpanCF(:,:)    = 0._RK
-      this%lamda(:,:)       = 0._RK
+      
       this%sinte_i(:,:)     = 0._RK
       this%sinte_lamda(:,:) = 0._RK
+      this%sinte_db (:)     = 0._RK
+      this%sinte_soret(:)   = 0._RK
       this%sinte_vs(:)      = 0._RK
       this%sinte_vb(:)      = 0._RK
       this%sinte_c(:)       = 0._RK
       this%sinte_ec(:)      = 0._RK
+      
+      this%average_sinte_i(:,:)     = 0._RK
+      this%average_sinte_db (:)     = 0._RK
+      this%average_sinte_soret(:)   = 0._RK
+      this%average_sinte_lamda(:,:) = 0._RK
+      this%average_sinte_vs(:)      = 0._RK
+      this%average_sinte_vb(:)      = 0._RK
+      this%average_sinte_c(:)       = 0._RK
+      this%average_sinte_ec(:)      = 0._RK
 
       this%selfd_i(:)  = 0._RK
       this%vsk(:,:)    = 0._RK
@@ -3038,45 +3184,121 @@ contains
     if( associated( this%cf_d  ) )   then
       deallocate( this%cf_d  )
     end if
+   
+     if( associated( this%average_cf_d  ) )   then
+      deallocate( this%average_cf_d  )
+    end if
+
+     if( associated( this%cf_db ) )   then
+       deallocate( this%cf_db )
+     end if
+
+     if( associated( this%average_cf_db ) )   then
+       deallocate( this%average_cf_db )
+     end if
+
+    if( associated( this%cf_soret ) )   then
+       deallocate( this%cf_soret )
+     end if
+
+    if( associated( this%average_cf_soret ) )   then
+       deallocate( this%average_cf_soret )
+     end if
 
     if( associated( this%cf_vs ) )   then
       deallocate( this%cf_vs )
+    end if
+
+    if( associated( this%average_cf_vs ) )   then
+      deallocate( this%average_cf_vs )
     end if
 
     if( associated( this%cf_vb ) )   then
       deallocate( this%cf_vb )
     end if
 
+    if( associated( this%average_cf_vb ) )   then
+      deallocate( this%average_cf_vb )
+    end if
+
     if( associated( this%cf_c  ) )   then
       deallocate( this%cf_c  )
+    end if
+
+    if( associated( this%average_cf_c  ) )   then
+      deallocate( this%average_cf_c  )
     end if
 
     if( associated( this%cf_ec  ) )   then
       deallocate( this%cf_ec  )
     end if
 
+    if( associated( this%average_cf_ec  ) )   then
+      deallocate( this%average_cf_ec  )
+    end if
+
     if( associated( this%lamda ) )   then
       deallocate( this%lamda  )
+    end if
+
+    if( associated( this%average_lamda ) )   then
+      deallocate( this%average_lamda  )
     end if
 
     if( associated( this%sinte_i) )  then
       deallocate( this%sinte_i  )
     end if
-    
+
+    if( associated( this%average_sinte_i) )  then
+      deallocate( this%average_sinte_i  )
+    end if
+
+     if( associated( this%sinte_db) ) then
+       deallocate( this%sinte_db )
+    end if
+
+    if( associated( this%average_sinte_db) ) then
+       deallocate( this%average_sinte_db )
+    end if
+
+    if( associated( this%sinte_soret) ) then
+       deallocate( this%sinte_soret )
+    end if
+
+    if( associated( this%average_sinte_soret) ) then
+       deallocate( this%average_sinte_soret )
+    end if
+
     if( associated( this%sinte_vs) ) then
       deallocate( this%sinte_vs )
     end if
 
+    if( associated( this%average_sinte_vs) ) then
+      deallocate( this%average_sinte_vs )
+    end if
+    
     if( associated( this%sinte_vb) ) then
       deallocate( this%sinte_vb )
     end if
 
-    if( associated( this%sinte_c)  ) then
-      deallocate( this%sinte_c  )
+    if( associated( this%average_sinte_vb) ) then
+      deallocate( this%average_sinte_vb )
     end if
 
-    if( associated( this%sinte_ec)  ) then
-      deallocate( this%sinte_ec  )
+    if( associated( this%sinte_c) ) then
+      deallocate( this%sinte_c )
+    end if
+
+    if( associated( this%average_sinte_c) ) then
+      deallocate( this%average_sinte_c )
+    end if
+
+    if( associated( this%sinte_ec) ) then
+      deallocate( this%sinte_ec )
+    end if
+
+    if( associated( this%average_sinte_ec)  ) then
+      deallocate( this%average_sinte_ec )
     end if
 
     if( associated( this%a )  )   then
@@ -3131,6 +3353,15 @@ contains
     if( associated( this%Sumself_i ) ) then
       deallocate( this%Sumself_i )
     end if
+
+    if( associated( this%Onsager ) ) then
+      deallocate( this%Onsager )
+    end if
+
+    if( associated( this%SumOnsager ) ) then
+      deallocate( this%SumOnsager )
+    end if
+
 !TRANSPORT_END
 #endif
 
@@ -9186,29 +9417,39 @@ loop2:        do nc = 1, this%NComponents
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
-    NStepsCF = (Step + this%NStepCorr -1) / this%NStepCorr
-    if( mod( NStepsCF - this%NCorr, this%BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
+    if( mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0 ) then
+       NStepsCF = (Step + this%NStepCorr -1) / this%NStepCorr
 
-      do i = 1, this%NComponents
-        call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess, this%BlockSizeCF, this%NBlocksCF  )
-      end do
+      if( mod( NStepsCF - this%NCorr, this%BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
 
-      if(this%NComponents == 2) then
+        do i = 1, this%NComponents
+          call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess, this%BlockSizeCF, this%NBlocksCF  )
+        end do
+
+        if(this%NComponents == 2) then
         call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-      end if
+        call UpdateCF( this%SumSoret, this%soret, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        end if
 
-     if(this%NComponents == 3 ) then
-        call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-      end if
+!      if(this%NComponents == 3 ) then
+!         call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+!         call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+!         call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+!       end if
 
-      call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-      call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-      call UpdateCF( this%SumConduct, this%conduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-    end if
+         if(this%NComponents .gt. 1 ) then
+           do i = 1, this%NComponents
+             do j = 1, this%NComponents
+               call UpdateCF( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+             end do
+           end do
+         end if
+           
+        call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%SumConduct, this%conduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%SumEConduct, this%econduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      end if
     end if
 !TRANSPORT_END
 #endif
@@ -10137,12 +10378,18 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T13,"VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T13,"VB")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Bulkviscosity) then
+        write( IOBuffer, '(T13,"VB")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
       if (this%Conductivity) then
         write( IOBuffer, '(T13,"CO")' )
         call FileWriteNoAdvance( this%iounit_rescf )
+        if(this%Ncomponents==2)then
+            write( IOBuffer, '(T10,"Th_Diff")' )
+            call FileWriteNoAdvance( this%iounit_rescf )
+        end if
       end if
 
       if (this%EConductivity) then
@@ -10165,12 +10412,18 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '(T9,"Int VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T9,"Int VB")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Bulkviscosity) then
+        write( IOBuffer, '(T9,"Int VB")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
       if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
         call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%NComponents == 2 ) then
+          write( IOBuffer, '(T10,"Int Th_Diff")' )
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if       
       end if
 
       if (this%EConductivity) then
@@ -10186,54 +10439,60 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(F10.5)' ) (i-1)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
-!         ! Diffusion coefficient
+!         ! Onsager Diffusion coefficients
         if(this%Ncomponents>1)then
           do j=1,this%NComponents*this%NComponents
-              write( IOBuffer, '(T5, F10.5)' ) this%lamda(j, i)/this%lamda(j,1)
+              write( IOBuffer, '(T5, F10.5)' )  this%average_lamda(j, i)/this%average_lamda(j,1)
               call FileWriteNoAdvance( this%iounit_rescf )
           end do
         end if
 
         ! Self-diffusion coefficients
         do j = 1, this%NComponents
-          write( IOBuffer, '(T5, F10.5)' ) this%cf_d(j,i)/this%cf_d(j,1)
+          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_d(j,i)/this%average_cf_d(j,1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
 
         ! Shear viscosity
-        write( IOBuffer, '(T5, F10.5)' ) this%cf_vs(i)/this%cf_vs(1)
+        write( IOBuffer, '(T5, F10.5)' ) this%average_cf_vs(i)/this%average_cf_vs(1)
         call FileWriteNoAdvance( this%iounit_rescf )
 
         ! Bulk viscosity
-        write( IOBuffer, '(T5, F10.5)' ) this%cf_vb(i)/this%cf_vb(1)
-        call FileWriteNoAdvance( this%iounit_rescf )
-
-        ! Thermal conductivity
-        if (this%Conductivity) then
-          write( IOBuffer, '(T5, F10.5)' ) this%cf_c(i)/this%cf_c(1)
+        if (this%Bulkviscosity) then
+          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_vb(i)/this%average_cf_vb(1)
           call FileWriteNoAdvance( this%iounit_rescf )
+        end if
+
+        ! Thermal conductivity and thermal diffusion
+        if (this%Conductivity) then
+          write( IOBuffer, '(T5, F10.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
+          call FileWriteNoAdvance( this%iounit_rescf )
+          if (this%NComponents==2)then
+            write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(i)/this%average_cf_soret(1)
+            call FileWriteNoAdvance( this%iounit_rescf )
+          end if
         end if
 
         ! Electric Conductivity
         if (this%EConductivity) then
-          write( IOBuffer, '(T5, F10.5)' ) this%cf_ec(i)/this%cf_ec(1)
+          write( IOBuffer, '(T5, F10.5)' )  this%average_cf_ec(i)/this%average_cf_ec(1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
         ! integral ======================================================!
         value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
-        ! Diffusion coefficient
+        ! Onsager Diffusion coefficients
         if( this%Ncomponents > 1) then
           do j = 1, this%NComponents*this%NComponents
-             write( IOBuffer, '(T5, F10.4)' ) this%sinte_lamda(j,i) / this%sinte_lamda(j,this%Ncorr)* value
+             write( IOBuffer, '(T5, F10.4)' )  this%average_sinte_lamda(j,i)*value !this%sinte_lamda(j,i) / this%sinte_lamda(j,this%Ncorr)* value
              call FileWriteNoAdvance( this%iounit_rescf )
           end do
         end if
 
         ! Self-diffusion coefficient
         do j = 1, this%NComponents
-          write( IOBuffer, '(T5, F10.4)' ) this%sinte_i(j,i) / this%sinte_i(j,this%NCorr) * this%selfd_i(j) * value
+          write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_i(j,i)* value !this%sinte_i(j,i) / this%sinte_i(j,this%NCorr) * this%selfd_i(j) * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
 
@@ -10241,19 +10500,25 @@ loop2:        do nc = 1, this%NComponents
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
 
        !shear
-        write( IOBuffer, '(T5, F10.5)' ) this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
+        write( IOBuffer, '(T5, F10.5)' )  this%average_sinte_vs(i)* value !this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! bulk
-        write( IOBuffer, '(T5, F10.5)' ) this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
-        call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%Bulkviscosity) then
+          write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value !this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if 
 
        ! thermal conductivity
         if (this%Conductivity) then
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-
-          write( IOBuffer, '(T5, F10.5)' ) this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
+          write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_c(i)*value !this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
+          call FileWriteNoAdvance( this%iounit_rescf )
+          if ( this%NComponents == 2) then
+            value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
+            write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_soret(i)*value !/ this%average_sinte_soret(this%NCorr) * this%soret * value
             call FileWriteNoAdvance( this%iounit_rescf )
+          end if
         end if
 
         ! electric conductivity
@@ -10367,6 +10632,16 @@ loop2:        do nc = 1, this%NComponents
     integer                   :: i, j, s, t, o
 #if  TRANS == 1
     real(RK)                  :: value
+    real(RK)                  :: x1, x2, x3
+    real(RK)                  :: Inv_x1, Inv_x2, Inv_x3
+    real(RK)                  :: delta_11, delta_12, delta_21, delta_22
+    real(RK)                  :: err_delta_11, err_delta_12, err_delta_21, err_delta_22
+    real(RK)                  :: det, inv_det
+    real(RK)                  :: B11, B12, B21, B22
+    real(RK)                  :: err_B11, err_B12, err_B21, err_B22
+    real(RK)                  :: D_13, D_12, D_23
+    real(RK)                  :: err_D13, err_D12, err_D23
+    real(RK)                  :: L(3,3)
 #endif
 
     ! Declare local variables for velocity of sound
@@ -11253,7 +11528,6 @@ loop2:        do nc = 1, this%NComponents
 
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
       call FileWrite( this%iounit_errors )
-
       call FileWriteBlank( this%iounit_errors )
 
       value = this%NSpanCF*this%TimeStepCorr
@@ -11264,8 +11538,33 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
+        
       if ( this%Mmess > 0 ) then
 
+
+       ! Onsager coefficients
+        if ( this%NComponents > 1 ) then
+           do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                 if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+                    call ErrorCF(this%SumOnsager(i,j),this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
+                    Average  = this%SumOnsager(i,j)%Average
+                    Variance = this%SumOnsager(i,j)%Variance
+                 else
+                    Average  = this%SumOnsager(i,j)%Average
+                    Variance = this%SumOnsager(i,j)%Variance
+                 end if
+                 value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+                 write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
+                 call FileWrite( this%iounit_errors )
+                 write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+                 call FileWrite( this%iounit_errors )     
+              end do
+           end do 
+           call FileWriteBlank( this%iounit_errors )
+        end if !this%NComponents
+
+       !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
 
           if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
@@ -11276,69 +11575,142 @@ loop2:        do nc = 1, this%NComponents
             Average  = this%SumBin_d%Average
             Variance = this%SumBin_d%Variance
           end if
-
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) this%binary_d, Variance
+          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) Average, Variance
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) this%binary_d*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if
 
+          if (this%MolarEnthConduct .eqv. .true.) then
+            if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+              call ErrorCF(this%SumSoret, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
+              Average  = this%SumSoret%Average
+              Variance = this%SumSoret%Variance
+            else
+              Average  = this%SumSoret%Average
+              Variance = this%SumSoret%Variance
+            end if
+            value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
+            write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", 2F20.9)' ) Average*value, Variance*value
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+          end if  !this%MolarEnthConduct
 
+        end if !this components = 2
+     
+        !Ternary diffusion
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_a, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-            Average  = this%SumTer_a%Average
-            Variance = this%SumTer_a%Variance
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then !calculate from Onsager
+             x1 = this%Component(1)%Fraction 
+	     x2 = this%Component(2)%Fraction
+	     x3 = this%Component(3)%Fraction
+	     Inv_x1 = 1._RK / x1
+	     Inv_x2 = 1._RK / x2
+	     Inv_x3 = 1._RK / x3
 
-          else
-            Average  = this%SumTer_a%Average
-            Variance = this%SumTer_a%Variance
+             !simplify by averaging Lij and Lji
+             L(1,1) = this%SumOnsager(1,1)%Average
+             L(1,2) = (this%SumOnsager(1,2)%Average + this%SumOnsager(2,1)%Average)/2._RK
+             L(1,3) = (this%SumOnsager(1,3)%Average + this%SumOnsager(3,1)%Average)/2._RK
+             L(2,1) = L(1,2)
+             L(2,2) = this%SumOnsager(2,2)%Average
+             L(2,3) = (this%SumOnsager(2,3)%Average + this%SumOnsager(3,2)%Average)/2._RK
+             L(3,1) = L(1,3)
+             L(3,2) = L(2,3)
+             L(3,3) = this%SumOnsager(3,3)%Average
+
+             !obtain matrix [delta] Equations 28 to 31 from Supplementary material 
+             !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
+             delta_11 = (((1._RK - x1)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)))-((x1)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)+ &
+&                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
+             delta_12 = (((1._RK - x1)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)))-((x1)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)+ &
+&                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
+             delta_21 = (((1._RK - x2)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)))-((x2)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)+ &
+&                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
+             delta_22 = (((1._RK - x2)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)))-((x2)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)+ &
+&                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
+
+             !calculate variance by error propagation
+
+              err_delta_11 = (1._RK-x1)*Inv_x1*this%SumOnsager(1,1)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
+&			                       this%SumOnsager(2,1)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
+&                                              this%SumOnsager(3,1)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
+             
+              err_delta_12 = (1._RK-x1)*Inv_x2*this%SumOnsager(1,2)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
+&			             x1*Inv_x2*this%SumOnsager(2,2)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
+&                                    x1*Inv_x2*this%SumOnsager(3,2)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
+
+              err_delta_21 = (1._RK-x2)*Inv_x1*this%SumOnsager(2,1)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
+&			             x2*Inv_x1*this%SumOnsager(1,1)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
+&                                    x2*Inv_x1*this%SumOnsager(3,1)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
+
+              err_delta_22 = (1._RK-x2)*Inv_x2*this%SumOnsager(2,2)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
+&			                       this%SumOnsager(1,2)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
+&                                              this%SumOnsager(3,2)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
+
+              ! determinat of matrix [delta]
+	      det = (delta_11*delta_22)-(delta_12*delta_21)
+	      inv_det = 1._RK/det
+
+              !obtain matrix [B] so that [B]=[D]-1
+	      B11 =  inv_det* delta_22 !B1
+	      B12 =  inv_det*-delta_12 !B2
+	      B21 =  inv_det*-delta_21 !B3
+	      B22 =  inv_det* delta_11 !B4
+
+              !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
+              !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+              err_B11 = ABS(B11*B11) * err_delta_11 + ABS(B11*B21)* err_delta_12 + &
+&                       ABS(B11*B12)* err_delta_21 + ABS(B12*B21)* err_delta_22
+
+              err_B12 = ABS(B11*B12) * err_delta_11 + ABS(B11*B22)* err_delta_12 + &
+&                       ABS(B12*B12)* err_delta_21 + ABS(B22*B12)* err_delta_22
+
+              err_B21 = ABS(B11*B21) * err_delta_11 + ABS(B21*B21)* err_delta_12 + &
+&                       ABS(B22*B11)* err_delta_21 + ABS(B22*B21)* err_delta_22
+
+              err_B22 = ABS(B12*B21) * err_delta_11 + ABS(B22*B21)* err_delta_12 + &
+&                       ABS(B22*B12)* err_delta_21 + ABS(B22*B22)* err_delta_22
+
+              !Calculate diffusion coefficients
+              D_13 =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )         ! D_13    
+	      D_12 =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))   ! D_12
+	      D_23 =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))          ! D_23
+
+              !Obtain error of Diffusion coefficients
+              err_D13 = ABS(1._RK/((x2*Inv_x1*B12+B11)**2))*err_B11 + ABS(x2*Inv_x1/((B11+x2*Inv_x1*B12)**2))*err_B12
+              err_D12 = ABS(1._RK/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B11 + ABS(((x1+x3)*Inv_x1)/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B12              
+              err_D23 = ABS(1._RK/((x1*Inv_x2*B21+B22)**2))*err_B22 + ABS(x1*Inv_x2/((B22+x1*Inv_x2*B21)**2))*err_B21 
           end if
 
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) this%ternary_a, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) this%ternary_a*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-            Average  = this%SumTer_b%Average
-            Variance = this%SumTer_b%Variance
-          else
-            Average  = this%SumTer_b%Average
-            Variance = this%SumTer_b%Variance
-          end if
-
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) this%ternary_b, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12 
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) this%ternary_b*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%SumTer_c, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-            Average  = this%SumTer_c%Average
-            Variance = this%SumTer_c%Variance
-          else
-            Average  = this%SumTer_c%Average
-            Variance = this%SumTer_c%Variance
-          end if
-
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) this%ternary_c, Variance
+          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) this%ternary_c*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         end if
 
-
-
+       
+       !self-diffusion coefficient
         do i = 1, this%NComponents
           if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
             call ErrorCF(this%Sumself_i(i), this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
@@ -11348,16 +11720,16 @@ loop2:        do nc = 1, this%NComponents
             Average  = this%Sumself_i(i)%Average
             Variance = this%Sumself_i(i)%Variance
           end if
-
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
           write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' )  &
-&                trim( this%Component(i)%Molecule%PotModFileName ), this%selfd_i(i), Variance
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) this%selfd_i(i)*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
           call FileWrite( this%iounit_errors )
         end do
         call FileWriteBlank( this%iounit_errors )
 
+        !shear viscosity
         if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
           call ErrorCF(this%SumVisco_s, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumVisco_s%Average
@@ -11366,29 +11738,35 @@ loop2:        do nc = 1, this%NComponents
           Average  = this%SumVisco_s%Average
           Variance = this%SumVisco_s%Variance
         end if
-
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", 2F20.9)' ) this%visco_s, Variance
+        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) this%visco_s*value, Variance*value
+        write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-          call ErrorCF(this%SumVisco_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-          Average  = this%SumVisco_b%Average
-          Variance = this%SumVisco_b%Variance
+        !bulk viscosity
+        if (this%Bulkviscosity ) then
+          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
+             call ErrorCF(this%SumVisco_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
+             Average  = this%SumVisco_b%Average
+             Variance = this%SumVisco_b%Variance
+          else
+             Average  = this%SumVisco_b%Average
+             Variance = this%SumVisco_b%Variance
+          end if
+          write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
         else
-          Average  = this%SumVisco_b%Average
-          Variance = this%SumVisco_b%Variance
+          write( IOBuffer, '("Bulk viscosity only defined for the NVE ensemble")' )
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
         end if
 
-        write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) this%visco_b, Variance
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) this%visco_b*value, Variance*value
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-
+        !Thermal conductivity
         if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
           call ErrorCF(this%SumConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumConduct%Average
@@ -11397,27 +11775,26 @@ loop2:        do nc = 1, this%NComponents
           Average  = this%SumConduct%Average
           Variance = this%SumConduct%Variance
         end if
-
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
         elseif (this%NComponents==1) then
-           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
+           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
            call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
+           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
         elseif (this%NComponents .gt. 1) then
           if (this%MolarEnthConduct .eqv. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
+               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
                call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
+               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
           else
                write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
           end if
         end if
-
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
+        !Electric conductivity
         if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
           call ErrorCF(this%SumEConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
           Average  = this%SumEConduct%Average
@@ -11426,13 +11803,11 @@ loop2:        do nc = 1, this%NComponents
           Average  = this%SumEConduct%Average
           Variance = this%SumEConduct%Variance
         end if
-
-        !e = 1.602176487E-19_RK !Elementarladung
         value = ElementaryCharge**2 / (dsqrt(UnitEnergy*UnitMass) * UnitLength**2)
         if (this%EConductivity) then
-          write( IOBuffer, '("Electric conductivity ", T29, "reduced:", 2F20.9)' ) this%econduct, Variance
+          write( IOBuffer, '("Electric conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T23, "in 1 / (Ohm m):", 2F20.9)' ) this%econduct*value, Variance*value
+          write( IOBuffer, '(T23, "in 1 / (Ohm m):", 2F20.9)' ) Average*value, Variance*value
         else
           write( IOBuffer, '("Electric conductivity only defined for charged particles")' )
         end if
@@ -11441,55 +11816,90 @@ loop2:        do nc = 1, this%NComponents
 
       else    ! ( this%Mmess > 0 )
 
+         !Onsager coefficients
+        if ( this%NComponents > 1 ) then
+           do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                 write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,0._RK
+                 call FileWrite( this%iounit_errors )
+                 write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+                 call FileWrite( this%iounit_errors )
+              end do
+           end do
+           call FileWriteBlank( this%iounit_errors )
+        end if
+
         if ( this%NComponents==2 ) then
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", F20.9)' ) 0._8
+          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._8
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         end if
 
-        do i = 1, this%NComponents
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._8
+        
+
+         !ternary diffusion coefficient
+        if( this%NComponents == 3 ) then
+          D_13 = 0._RK
+          D_12 = 0._RK
+          D_23 = 0._RK
+          err_D13 = 0._RK
+          err_D12 = 0._RK
+          err_D23 = 0._RK
+          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)') 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._8
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+        end if    
+
+
+        do i = 1, this%NComponents
+          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
         end do
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", F20.9)' )  0._8
+        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", F20.9)' )  0._RK
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._8
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-
-        write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._8
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._8
+        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        if (LongRange .eq. Ewald) then
-          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
-           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
-           call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
+        write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
+        call FileWrite( this%iounit_errors )
+        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
 
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eqv. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) this%conduct, Variance
-               call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) this%conduct*value, Variance*value
-          else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
-          end if
-        end if
+        write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
+        call FileWrite( this%iounit_errors )
+        write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
 
         if (this%EConductivity) then
-           write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._8
+           write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._RK
            call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._8
+           write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
         else
           write( IOBuffer, '("Electric conductivity only defined for pure charged particles")' )
         end if
@@ -12227,7 +12637,7 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_VisualClose
 
 !==============================================================!
-!  Subroutine TEnsemble_RDFOpen                             !
+!  Subroutine TEnsemble_RDFOpen                                !
 !==============================================================!
 
   subroutine TEnsemble_RDFOpen( this )
@@ -12366,7 +12776,7 @@ loop2:        do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TEnsemble_RDFClose                            !
+!  Subroutine TEnsemble_RDFClose                               !
 !==============================================================!
 
   subroutine TEnsemble_RDFClose( this )
@@ -12562,7 +12972,6 @@ if( RootProc .and. this%CorrfunMode ) then
     this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
     !Aenderungen Koester
 
-
     write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
@@ -12600,28 +13009,34 @@ if( RootProc .and. this%CorrfunMode ) then
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcmt(i,:)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
+        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%cf_ec(i)
+        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
     end do
+
+    if (this%NComponents==2) then
+      do i = 1, this%NCorr
+        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i)
+      end do
+    end if
 
     do i = 1, this%NComponents
       do j = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
       end do
     end do
 
     if (this%NComponents > 1) then
       do i = 1, this%NComponents*this%NComponents
         do j = 1, this%NCorr
-          write( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+          write( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
         end do
       end do
     end if
@@ -12642,16 +13057,25 @@ if( RootProc .and. this%CorrfunMode ) then
       call RestartSaveCF( this%SumBin_d, this%NBlocksRestartCF )
     end if
 
-    if(this%NComponents == 3) then
-      call RestartSaveCF( this%SumTer_a, this%NBlocksRestartCF )
-      call RestartSaveCF( this%SumTer_b, this%NBlocksRestartCF )
-      call RestartSaveCF( this%SumTer_c, this%NBlocksRestartCF )
+!     if(this%NComponents == 3) then
+!       call RestartSaveCF( this%SumTer_a, this%NBlocksRestartCF )
+!       call RestartSaveCF( this%SumTer_b, this%NBlocksRestartCF )
+!       call RestartSaveCF( this%SumTer_c, this%NBlocksRestartCF )
+!     end if
+
+     if(this%NComponents > 1) then
+      do i = 1, this%NComponents
+         do j = 1, this%NComponents
+           call RestartSaveCF( this%SumOnsager(i,j), this%NBlocksRestartCF )
+         end do
+      end do
     end if
 
     call RestartSaveCF( this%SumVisco_s, this%NBlocksRestartCF )
     call RestartSaveCF( this%SumVisco_b, this%NBlocksRestartCF )
     call RestartSaveCF( this%SumConduct, this%NBlocksRestartCF )
-    call RestartSaveCF( this%SumEConduct, this%NBlocksRestartCF )
+    call RestartSaveCF( this%SumSoret,   this%NBlocksRestartCF )
+    call RestartSaveCF( this%SumEConduct,this%NBlocksRestartCF )
 
     do i = 1,3
       write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -12923,27 +13347,33 @@ endif
         read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcmt(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%cf_c(i)
+        read( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%cf_vb(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%cf_vs(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%cf_ec(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_ec(i)
       end do
+
+      if (this%NComponents==2) then
+        do i = 1, this%NCorr
+          read( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i)
+        end do
+      end if
 
       do i = 1, this%NComponents
         do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' ) this%cf_d(i , j)
+          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
         end do
       end do
       if (this%Ncomponents>1) then
         do i = 1, this%NComponents*this%NComponents
           do j = 1, this%NCorr
-            read( iounit_restart, '(ES20.12E3)' ) this%lamda(i , j)
+            read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
           end do
         end do
       end if
@@ -12958,16 +13388,25 @@ endif
         call RestartReadCF( this%SumBin_d, this%NBlocksRestartCF )
       end if
 
-      if(this%NComponents == 3) then
-        call RestartReadCF( this%SumTer_a, this%NBlocksRestartCF )
-        call RestartReadCF( this%SumTer_b, this%NBlocksRestartCF )
-        call RestartReadCF( this%SumTer_c, this%NBlocksRestartCF )
+!       if(this%NComponents == 3) then
+!         call RestartReadCF( this%SumTer_a, this%NBlocksRestartCF )
+!         call RestartReadCF( this%SumTer_b, this%NBlocksRestartCF )
+!         call RestartReadCF( this%SumTer_c, this%NBlocksRestartCF )
+!       end if
+
+      if(this%NComponents >= 2) then
+        do i = 1, this%NComponents
+           do j = 1, this%NComponents
+             call RestartReadCF( this%SumOnsager(i,j), this%NBlocksRestartCF )
+           end do
+        end do
       end if
 
       call RestartReadCF( this%SumVisco_s, this%NBlocksRestartCF )
       call RestartReadCF( this%SumVisco_b, this%NBlocksRestartCF )
       call RestartReadCF( this%SumConduct, this%NBlocksRestartCF )
-      call RestartReadCF( this%SumEConduct, this%NBlocksRestartCF )
+      call RestartReadCF( this%SumSoret,   this%NBlocksRestartCF )
+      call RestartReadCF( this%SumEConduct,this%NBlocksRestartCF )
 
       do i = 1,3
         read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -15734,18 +16173,19 @@ contains
     integer  :: nmess, i, j, j0, j1, j2, k, l, s, CFTMP
     integer  :: CFindex, Mindex
     integer  :: NPart, NPart2, StepCorr
-    integer  :: np, nc, np1, np2
+    integer  :: np, nc, np1, np2, ncomp2
     real(RK) :: qi, qj
     real(RK) :: sx(this%NComponents), sy(this%NComponents)
     real(RK) :: sz(this%NComponents)
     real(RK) :: SXindex(this%NComponents),SYindex(this%NComponents),SZindex(this%NComponents)
+    real(RK) :: Sindex(3), ss(3)
     real(RK) :: KinERot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
     real(RK) :: Mass
     real(RK), pointer :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
-    logical  :: Conductivity, EConductivity
+    logical  :: Conductivity, EConductivity, Bulkviscosity
 
     NPart  = this%NPart
     NPart2 = 2*this%NPart
@@ -15753,6 +16193,9 @@ contains
     BoxLength_dt2      =  BoxLength_dt**2
     Conductivity = this%Conductivity
     EConductivity = this%EConductivity
+    Bulkviscosity = this%Bulkviscosity
+    ncomp2 = this%NComponents*this%NComponents
+
 
     !Reduced correlation steps
     StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
@@ -15796,13 +16239,6 @@ contains
       pFS => this%Component(i)%FS(:,:)
 #endif
 
-
-      ! Die Schleife ueber "np" habe ich spontan nicht wegbekommen, weil ich ansonsten ff. haette.
-      ! this%vckt(Mindex, k)= sum( pc%P1(:, k) * sum(EKinTran(:,1:3)) ) * Mass*BoxLength_dt
-      ! Und die Summation ausschliesslich ueber die 1:3 gehen soll.
-      ! Ich weiss nicht, wie ich Fortran das beibringen soll
-      ! CWG: Hab ich bei EKinTran nun gemacht... aber bei EKinRot geht das nicht so wirklich.
-      ! SR: WÃ¤rmeleitfÃ¤higkeit wird jetzt auch fÃ¼r Mischungen berechnet
    
         pFTC => this%Component(i)%FTC(:,:)
         pFRC => this%Component(i)%FRC(:,:)
@@ -15814,28 +16250,25 @@ contains
 
       do k =1, 3
         ! Calculate sum of terms of the pressure tensor (kinetic and potential)
-        this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
-        this%sp(k) = this%sp(k) + sum(pFB(:, k))
+        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! part calculated together with force
 
-        ! part calculated together with force
-        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k))
-        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k))
-
-        !bulk diagonal terms and energy tensor kinetic part
-        this%vbk(Mindex, k) = this%vbk(Mindex, k) + pc%KinETranTotal(k)
-          
+        if (Bulkviscosity) then
+          this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
+          this%sp(k) = this%sp(k) + sum(pFB(:, k))
+          this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! part calculated together with force
+          this%vbk(Mindex, k) = this%vbk(Mindex, k) + pc%KinETranTotal(k)!bulk diagonal terms and energy tensor kinetic part
+        end if
+                  
         if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
-          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k) *  sum( pc%KinETran(:,1:3),2 )  ) * &
-&                                0.5_RK *BoxLength_dt
-
+          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k)*sum( pc%KinETran(:,1:3),2 ) )*0.5_RK*BoxLength_dt
           this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k)) 
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k) * KinERot(:) ) *BoxLength_dt
           end if
         end if
-      end do
+      end do !k =1, 3
 
       ! kinetic part
       !Diffusion matrix a
@@ -15855,13 +16288,17 @@ contains
       j0 = j0 + np
     end do    ! Component
 
-    tempf(:)  = this%sc(:)/StepCorr
-    virf(:)   = this%sp(:)/StepCorr
+    if (Bulkviscosity) then
+      tempf(:)  = this%sc(:)/StepCorr
+      virf(:)   = this%sp(:)/StepCorr
+    end if
 
    
-    
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Calculate Auto Correlation Functions
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Calculate Auto Correlation Functions      !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
     if ( mod(StepCorr, this%NSpanCF) .eq. 0 ) then
      if (StepCorr .gt. this%NCorr) then
 
@@ -15872,7 +16309,28 @@ contains
         CFindex = 1                       !index of t = t0
       end if
 
-!       ! Preparation of the Autocorrelation function - safe the Startpoints
+     ! nullify the autocorrelation functions
+	do i = 1, this%NComponents
+	  this%cf_d(i, :) = 0._RK
+        end do
+
+        this%cf_vs(:) = 0._RK
+        this%cf_c(:)  = 0._RK
+        this%cf_vb(:) = 0._RK
+        this%cf_ec(:) = 0._RK
+
+        if (this%NComponents == 2) then
+	  this%cf_soret = 0._RK
+        end if
+ 
+        if (this%NComponents .gt. 1) then 
+          do k = 1, ncomp2
+             this%lamda(k,:) = 0._RK
+          end do
+        end if
+
+
+       ! Preparation of the Autocorrelation function - safe the Startpoints
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
@@ -15881,6 +16339,10 @@ contains
           SZindex(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , CFindex))
           j0 = j0 + np
         end do
+
+        Sindex(1)=SXindex(2)*BoxLength_dt  !mass flux for thermal diffusion
+        Sindex(2)=SYindex(2)*BoxLength_dt 
+        Sindex(3)=SZindex(2)*BoxLength_dt 
 
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
@@ -15892,11 +16354,10 @@ contains
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
 !$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp)           &
 !$OMP&   private (sx,sy,sz)
+
+      
       do nmess= 1, this%NCorr
-        ! Loop over particles 
-        !Calculate auto-correlation functions
-        ! Write the diffusion matrix
-        
+         ! Loop over particles      
         s=CFtmp+nmess-1
         if (s >= this%NCorr) s = s-this%NCorr+1
         j0 = 0
@@ -15914,10 +16375,12 @@ contains
             sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
             sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
           end if
-
           j0 = j0 + np
         end do
 
+        ss(1) = sx(2)* BoxLength_dt 
+        ss(2) = sy(2)* BoxLength_dt 
+        ss(3) = sz(2)* BoxLength_dt  
 
         ! Just loops over components!
         if (this%NComponents .gt. 1) then
@@ -15942,13 +16405,15 @@ contains
 &                                                 this%vsp(CFindex, k)*this%vsk(s, k)
 
           ! bulk viscosity
-          do j = 1, 3 ! FIXME: PROBLEM mit gemischten Termen j index zuviel (vermutlich)
-            this%cf_vb(nmess) =   this%cf_vb(nmess) + &
-&                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
-&                             ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
-&                             ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
-&                             ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
-          end do
+          if (Bulkviscosity) then
+            do j = 1, 3 
+              this%cf_vb(nmess) =   this%cf_vb(nmess) + &
+&                               ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
+&                               ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
+&                               ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
+&                               ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
+            end do
+          end if
 
           ! conductivity
             this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
@@ -15978,6 +16443,22 @@ contains
 &                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
         end do
+
+         !Thermal diffusivity
+	if (this%Ncomponents==2) then
+           do k = 1, 3
+	     this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
+&	               					    this%vckr(CFindex, k)*ss(k) + &
+&		  					    this%vcpt(CFindex, k)*ss(k) + &
+&							    this%vcpr(CFindex, k)*ss(k) + &
+&							    this%vcmt(CFindex, k)*ss(k) + &
+&							    Sindex(k)*this%vckt(s, k) + &
+&							    Sindex(k)*this%vckr(s, k) + &
+&							    Sindex(k)*this%vcpt(s, k) + &
+&							    Sindex(k)*this%vcpr(s, k) + &
+&							    Sindex(k)*this%vcmt(s, k) 
+            end do
+         end if
 
         ! electric conductivity
         if (EConductivity) then
@@ -16012,6 +16493,26 @@ contains
 
       end do  ! NMess
       this%Mmess  = this%Mmess +1
+
+      do i = 1, this%NComponents
+	 this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+      end do
+
+      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs)
+      this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb)
+      this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c)
+      this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec)
+
+      if (this%NComponents == 2) then 
+	this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret)
+      end if
+
+      if (this%NComponents .gt. 1) then 
+        do k = 1, ncomp2
+           this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
+        end do
+      end if
+
       
       ! Call integration for ACF
       call IntCorrFun ( this )
@@ -16041,29 +16542,54 @@ contains
     ! Declare arguments
     type(TEnsemble) :: this
     ! Declare local varibles
-    integer  :: i, k
+    integer  :: i, j, k
     integer  :: ncomp2
-    real(RK) :: helpvar, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3
-    real(RK) :: Inv_x1, Inv_x2, Inv_x3
-    real(RK) :: B11, B12, B21, B22
+    real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
+    real(RK) :: x1, x2, x3, w1, w2
+!    real(RK) :: Inv_x1, Inv_x2, Inv_x3
+!    real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
+    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/&
+&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
+    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/&
+&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
+
+    
 
     do i  = 1, this%NComponents
-      helpvar =  1._RK /(3._RK *this%Component(i)%NPart * this%Mmess) * BoxLength_dt2
-      this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
-      this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
+      helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
+      if (abs(this%cf_d(i, 1)) .gt. 1e-7) then 
+         this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
+         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this% TimeStepCorr, this%NCorr )
+         this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
+         this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
+      end if
     end do
 
 
     if ( this%NComponents .gt. 1) then
-      helpvar =  1._RK /(3._RK *this%NPart * this%Mmess) * BoxLength_dt2
+      helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
-        this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), this%TimeStepCorr, this%NCorr)
+        if (abs(this%lamda(k, 1)) .gt. 1e-7) then 
+           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this% TimeStepCorr, this%NCorr)
+           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this% TimeStepCorr, this%NCorr)
+           this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+        end if
       end do
+      
+      k = 1
+       do i = 1, this%NComponents
+         do j = 1, this%NComponents
+           if (abs(this%lamda(k, 1)) .gt. 1e-7) then
+             this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
+             k = k +1
+           end if
+         end do
+      end do   
+
 
       if ( this%NComponents == 2 ) then
         this%binary_d = (((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1)) * &
@@ -16074,73 +16600,94 @@ contains
 &                       (this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
       end if
 
-      if( this%NComponents == 3 ) then
-
-        x1 = this%Component(1)%Fraction
-        x2 = this%Component(2)%Fraction
-        x3 = this%Component(3)%Fraction
-        Inv_x1 = 1._RK / x1
-        Inv_x2 = 1._RK / x2
-        Inv_x3 = 1._RK / x3
-
-        deter1 = (((1._RK - x1)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
-&                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-&                         ((x1)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
-&                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
-&                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
-&                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-
-        deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-&                         ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
-&                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-&                             ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-
-        deter3 = (((1._RK - x2)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
-&                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
-&                         ((x2)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
-&                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
-&                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
-&                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-
-        deter4 = (((1._RK - x2)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
-&                        ((x2)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
-&                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
-&                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-&                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+!       if( this%NComponents == 3 ) then
+! 
+!         x1 = this%Component(1)%Fraction
+!         x2 = this%Component(2)%Fraction
+!         x3 = this%Component(3)%Fraction
+!         Inv_x1 = 1._RK / x1
+!         Inv_x2 = 1._RK / x2
+!         Inv_x3 = 1._RK / x3
+! 
+!         deter1 = (((1._RK - x1)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
+! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
+! &                         ((x1)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
+! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
+! &                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
+! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+! 
+!         deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
+! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
+! &                         ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
+! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
+! &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
+! &                             ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+! 
+!         deter3 = (((1._RK - x2)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
+! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
+! &                         ((x2)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
+! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
+! &                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
+! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
+! 
+!         deter4 = (((1._RK - x2)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
+! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
+! &                        ((x2)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
+! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
+! &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
+! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
 
         !obtain matrix [B] so that [B]=[D]-1
         ! determinat of matrix [B]
-        det = (deter1*deter4)-(deter2*deter3)
-
-        B11 =  deter4 * (1._RK/det)
-        B12 = -deter2 * (1._RK/det)
-        B21 = -deter3 * (1._RK/det)
-        B22 =  deter1 * (1._RK/det)
-
-        this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
-        this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
-        this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
-      end if
+!         det = (deter1*deter4)-(deter2*deter3)
+! 
+!         B11 =  deter4 * (1._RK/det)
+!         B12 = -deter2 * (1._RK/det)
+!         B21 = -deter3 * (1._RK/det)
+!         B22 =  deter1 * (1._RK/det)
+! 
+!         this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
+!         this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
+!         this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
+!       end if
 
     end if
 
 
-    helpvar =  this%Density /(3._RK *this%NPart * this%Mmess * this%Temperature)
+    helpvar =  this%Density /(3._RK *this%NPart * this%Temperature)
     this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
+    this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
+    this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-    this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), this%TimeStepCorr, this%NCorr )
-    this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
+
+    if (this%Bulkviscosity) then
+      this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1),this%TimeStepCorr, this%NCorr )
+      this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
+      this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/(3._RK*this%Mmess)
+      this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
+    end if
 
     if (this%Conductivity) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
+      this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
+      this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/(this%Temperature*this%Mmess))
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
     end if
 
+     if ( this%NComponents == 2 ) then
+      if (abs(this%cf_soret(1)) .gt. 1e-7) then
+         this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
+         this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
+         this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*this%Temperature*w1*w2)
+         this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*2._RK)
+      end if
+    end if
+
+
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
+      this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
+      this%average_sinte_ec = this%average_sinte_ec(:)*this%average_cf_ec(1)*(helpvar * BoxLength_dt2/this%Mmess)
       this%econduct = this%sinte_ec( this%NCorr ) * this%cf_ec(1) * (helpvar * BoxLength_dt2)
     end if
 
