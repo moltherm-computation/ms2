@@ -16352,8 +16352,9 @@ contains
 !$OMP  parallel do default(none)                                         &
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
-!$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp)           &
-!$OMP&   private (sx,sy,sz)
+!$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp,           &
+!$OMP&            BoxLength_dt,Sindex,Bulkviscosity)           &
+!$OMP&   private (sx,sy,sz,ss)
 
       
       do nmess= 1, this%NCorr
