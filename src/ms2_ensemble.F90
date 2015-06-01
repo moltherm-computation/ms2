@@ -11661,8 +11661,8 @@ loop2:        do nc = 1, this%NComponents
 
               !obtain matrix [B] so that [B]=[D]-1
 	      B11 =  inv_det* delta_22 !B1
-	      B12 =  inv_det*-delta_12 !B2
-	      B21 =  inv_det*-delta_21 !B3
+	      B12 =  inv_det*(-delta_12) !B2
+	      B21 =  inv_det*(-delta_21) !B3
 	      B22 =  inv_det* delta_11 !B4
 
               !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
