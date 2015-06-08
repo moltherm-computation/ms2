@@ -5427,7 +5427,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
               Term1(2) = Term2(3)*PR2(i,j,1) - Term2(1)*PR2(i,j,3)
               Term1(3) = Term2(1)*PR2(i,j,2) - Term2(2)*PR2(i,j,1)
 
-              EMass1 = EMass1 + Term1(1)*e(i,j,1) + Term1(2)*e(i,j,2) + Term1(3)*e(i,j,3)
+              EMass2 = EMass2 + Term1(1)*e(i,j,1) + Term1(2)*e(i,j,2) + Term1(3)*e(i,j,3)
             endif
             EffM(i,j)=1._RK/(EMass1+EMass2) 
 
