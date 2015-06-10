@@ -11599,6 +11599,8 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteBlank( this%iounit_errors )
           else
             write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
           end if  !this%MolarEnthConduct
 
         end if !this components = 2
@@ -11835,11 +11837,18 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' )  0._RK
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
+          if (this%MolarEnthConduct .eqv. .true.) then
+            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", F20.9)' ) 0._RK 
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if
+          
         end if
 
         
@@ -11884,17 +11893,34 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        if (this%Bulkviscosity ) then
+          write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        else
+          write( IOBuffer, '("Bulk viscosity only defined for the NVE ensemble")' )
+        end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+        if (LongRange .eq. Ewald) then
+          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
+        elseif (this%NComponents==1) then
+           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
+           call FileWrite( this%iounit_errors )
+           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+        elseif (this%NComponents .gt. 1) then
+          if (this%MolarEnthConduct .eqv. .true.) then
+               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+          else
+               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
+          end if
+        end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+      
 
         if (this%EConductivity) then
            write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._RK
@@ -16564,7 +16590,7 @@ contains
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
       if (abs(this%cf_d(i, 1)) .gt. 1e-7) then 
          this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
-         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this% TimeStepCorr, this%NCorr )
+         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
          this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
          this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
       end if
@@ -16575,8 +16601,8 @@ contains
       helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
         if (abs(this%lamda(k, 1)) .gt. 1e-7) then 
-           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this% TimeStepCorr, this%NCorr)
-           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this% TimeStepCorr, this%NCorr)
+           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
+           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
            this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
         end if
       end do
