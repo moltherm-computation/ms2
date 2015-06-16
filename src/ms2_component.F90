@@ -2658,29 +2658,18 @@ contains
     ! Calculate positions of units after global resize
     nu = this%Molecule%NUnit
     np = this%NPart
-    if (nu .eq. 1) then
-      do i=1, np
-        this%P0(i,1,1) = this%Pm0(i,1)
-        this%P0(i,2,1) = this%Pm0(i,2)
-        this%P0(i,3,1) = this%Pm0(i,3)
-      end do
-    else
-      do i=1, np
-        do j=1,nu
-          PXij = this%P0(i,1,j) - this%Pm0(i,1)
-          PYij = this%P0(i,2,j) - this%Pm0(i,2)
-          PZij = this%P0(i,3,j) - this%Pm0(i,3)
 
-          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
-          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
-          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
+    do i=1, np
+      do j=1,nu
+        PXij = this%P0(i,1,j) - this%Pm0(i,1)
+        PYij = this%P0(i,2,j) - this%Pm0(i,2)
+        PZij = this%P0(i,3,j) - this%Pm0(i,3)
 
-        !  this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
-        !  this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
-        !  this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
-        end do
+        this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
+        this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
+        this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
       end do
-    end if
+    end do
 
     end subroutine TComponent_Mol2Resize
 
@@ -5316,9 +5305,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     real(RK)                       :: TMoi1, TMoi2, TMoi3, Moi12, Moi23, Moi31
     real(RK)                       :: Term1(3), Term2(3), Term3(3), MOI(3), q(4)
     real(RK)                       :: tempP0(3,this%Molecule%NUnit), tempF(3,this%Molecule%NUnit), tempT(4,this%Molecule%NUnit)
-#if MPI_VER > 0
-    integer                        :: i0, i1
-#endif
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -5330,14 +5316,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     itmax = 10000
     VirialShake = 0._RK
 
-#if MPI_VER > 0
-    i0 = this%NPart0
-    i1 = this%NPart2
-
-    do i = i0, i1 ! molecule loop
-#else
     do i = 1, np
-#endif
       ! get/save old site and COM (of unit) positions 
       tempP0(:,:) = this%P0(i,:,:) - this%P1(i,:,:)
       need = .true.

@@ -4857,16 +4857,6 @@ loop5:    do nc = 1, this%NComponents
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
 
-#if MPI_VER > 0
-        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-        call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-        BoxLengthOld = this%BoxLength
-        call UpdateBoxLength( this )
-
-        DelBoxL = this%BoxLength / BoxLengthOld
-        call Mol2Resize(this, DelBoxL)
-
 #if ABL
         vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
         fac = TimeStepSquared2*Gear20
@@ -4893,6 +4883,19 @@ loop5:    do nc = 1, this%NComponents
       end select
       
     end if
+
+    if ( IntegratorType .eq. IntegratorTypeGear ) then
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
+      call Mol2Resize(this, DelBoxL)
+    end if
+
 
   end subroutine TEnsemble_CorrectVol
 
@@ -12382,7 +12385,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
-        ! Thermal conductivity
+        ! Thermal conductivity and thermal diffusion
         if (this%Conductivity) then
           write( IOBuffer, '(T5, F10.5)' ) this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance( this%iounit_rescf )
@@ -13663,18 +13666,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
+        elseif (this%NComponents==1 .or. this%MolarEnthConduct .eq. .true.) then
            write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eq. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
-               call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-          else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
-          end if
+        else
+          write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
@@ -13717,6 +13714,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
+          if (this%MolarEnthConduct .eqv. .true.) then
+            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' )  0._RK
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+          end if
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
         end if
 
         ! ternary diffusion coefficient
@@ -13752,18 +13758,24 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        if (this%Bulkviscosity ) then
+          write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        else
+          write( IOBuffer, '("Bulk viscosity only defined for the NVE ensemble")' )
+        end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        else
+        elseif (this%NComponents==1 .or. this%MolarEnthConduct .eqv. .true.) then
           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+        else
+          write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
