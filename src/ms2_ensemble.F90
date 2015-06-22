@@ -2205,16 +2205,16 @@ contains
       call Construct( this%SumEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
-      call Construct( this%SumEPotIntra, .false. )
       if (printIDF) then
+        call Construct( this%SumEPotInter, .false. )
+        call Construct( this%SumEPotIntra, .false. )
         call Construct( this%SumEPotIntra_Bond, .false. )
         call Construct( this%SumEPotIntra_Angle, .false. )
         call Construct( this%SumEPotIntra_Dihedral, .false. )
         call Construct( this%SumEPotIntra_Nonbonded, .false. )
+        call Construct( this%SumVirialIntra, .false. )
+        call Construct( this%SumVirialInter, .false. )
       end if
-      call Construct( this%SumEPotInter, .false. )
-      call Construct( this%SumVirialIntra, .false. )
-      call Construct( this%SumVirialInter, .false. )
       call Construct( this%SumdEpotdV, .false. )
       call Construct( this%Sumd2EpotdV2, .false. )
 
@@ -2354,16 +2354,16 @@ contains
     call Destruct( this%SumEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
-    call Destruct( this%SumEPotIntra )
     if (printIDF) then
+      call Destruct( this%SumEPotInter )
+      call Destruct( this%SumEPotIntra )
       call Destruct( this%SumEPotIntra_Bond )
       call Destruct( this%SumEPotIntra_Angle )
       call Destruct( this%SumEPotIntra_Dihedral )
       call Destruct( this%SumEPotIntra_Nonbonded )
+      call Destruct( this%SumVirialIntra )
+      call Destruct( this%SumVirialInter )
     end if
-    call Destruct( this%SumEPotInter )
-    call Destruct( this%SumVirialIntra )
-    call Destruct( this%SumVirialInter )
     call Destruct( this%SumdEpotdV )
     call Destruct( this%Sumd2EpotdV2 )
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -2569,7 +2569,7 @@ contains
       pc => this%Component(i)
       pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
 
-      if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
+      !if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
       pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
       this%NFluctMax = max( pc%NFluctMax, this%NFluctMax )
@@ -4083,17 +4083,23 @@ loop:do l = 1, NPartInCell
       end if
       
       call Predict( this )
+      if( ConstantPressure .and. .not. NVTEquilibration ) then  ! new
+        call PredictVol( this )
+      end if
     end if
 
     ! Run MD simulation step
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call PredictVol( this )
-    end if
+    !if( ConstantPressure .and. .not. NVTEquilibration ) then  ! rev381
+    !  call PredictVol( this )
+    !end if
     call Unit2Atom( this )
     call Force( this )
     call ChemicalPotential( this )
     call Atom2Unit( this )
     call Correct( this )
+    if( ConstantPressure .and. .not. NVTEquilibration ) then ! new
+      call CorrectVol(this)
+    end if
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -4112,12 +4118,15 @@ loop:do l = 1, NPartInCell
     if( .not. Equilibration .and. this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
 
     call Predict( this )
+    if( ConstantPressure .and. .not. NVTEquilibration ) then  ! new
+      call PredictVol( this )
+    end if
     if ( Shake > 0 ) then
       call QShake(this)
     end if
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call CorrectVol(this)
-    end if
+    !if( ConstantPressure .and. .not. NVTEquilibration ) then ! rev381
+    !  call CorrectVol(this)
+    !end if
 
   end subroutine TEnsemble_RunMDStep
 
@@ -10347,19 +10356,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
-      call Reset( this%SumEPotIntra )
       if (printIDF) then
+        call Reset( this%SumEPotInter )
+        call Reset( this%SumEPotIntra )
         call Reset( this%SumEPotIntra_Bond )
         call Reset( this%SumEPotIntra_Angle )
         call Reset( this%SumEPotIntra_Dihedral )
         call Reset( this%SumEPotIntra_Nonbonded )
+        call Reset( this%SumVirialIntra )
+        call Reset( this%SumVirialInter )
       end if
-      call Reset( this%SumEPotInter )
       call Reset( this%SumEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
-      call Reset( this%SumVirialIntra )
-      call Reset( this%SumVirialInter )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
       if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -10527,12 +10536,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-          ! Intra Potential energy
-          write( IOBuffer, '("     EP_Intra")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
           if (printIDF) then
+            ! Inter Potential energy
+            write( IOBuffer, '("     EP_Inter")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Intra Potential energy
+            write( IOBuffer, '("     EP_Intra")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
             ! Intra Potential energy - Bonds
             write( IOBuffer, '("     EP_Bonds")' )
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -10552,22 +10566,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             write( IOBuffer, '("     EP_14_15")' )
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Intra Virial
+            write( IOBuffer, '("    Vir_Intra")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Inter Virial
+            write( IOBuffer, '("      Vir_Inter")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
           end if
-
-          ! Inter Potential energy
-          write( IOBuffer, '("     EP_Inter")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-          ! Intra Virial
-          write( IOBuffer, '("    Vir_Intra")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-          ! Inter Virial
-          write( IOBuffer, '("      Vir_Inter")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
 
           ! Chemical potential
           do i = 1, this%NRealComponents
@@ -10663,12 +10672,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Intra Potential energy
-        write( IOBuffer, '("     EP_Intra")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
         if (printIDF) then
+          ! Inter Potential energy
+          write( IOBuffer, '("     EP_Inter")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Intra Potential energy
+          write( IOBuffer, '("     EP_Intra")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
           ! Intra Potential energy - Bonds
           write( IOBuffer, '("     EP_Bonds")' )
           call FileWriteNoAdvance( this%iounit_result )
@@ -10688,23 +10702,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '("     EP_14_15")' )
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Intra Virial
+          write( IOBuffer, '("    Vir_Intra")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Inter Virial
+          write( IOBuffer, '("      Vir_Inter")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
         end if
 
-        ! Inter Potential energy
-        write( IOBuffer, '("     EP_Inter")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Intra Virial
-        write( IOBuffer, '("    Vir_Intra")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Inter Virial
-        write( IOBuffer, '("      Vir_Inter")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-      
         ! Chemical potential
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
@@ -10803,12 +10812,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Intra Potential energy
-        write( IOBuffer, '("     EP_Intra")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
         if (printIDF) then
+          ! Inter Potential energy
+          write( IOBuffer, '("     EP_Inter")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Intra Potential energy
+          write( IOBuffer, '("     EP_Intra")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
           ! Intra Potential energy - Bonds
           write( IOBuffer, '("     EP_Bonds")' )
           call FileWriteNoAdvance( this%iounit_result )
@@ -10828,22 +10842,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '("     EP_14_15")' )
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Intra Virial
+          write( IOBuffer, '("    Vir_Intra")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+
+          ! Inter Virial
+          write( IOBuffer, '("      Vir_Inter")' )
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
         end if
-
-        ! Inter Potential energy
-        write( IOBuffer, '("     EP_Inter")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Intra Virial
-        write( IOBuffer, '("    Vir_Intra")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Inter Virial
-        write( IOBuffer, '("      Vir_Inter")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
 
         ! Chemical potential
         do i = 1, this%NRealComponents
@@ -10924,16 +10933,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumDensity, this%Density )
     call Update( this%SumTemperature, this%Temperature )
     call Update( this%SumEPot, this%EPot / real( this%NPart, RK ) )
-    call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
-    call Update( this%SumEPotIntra, this%EPotIntra / real( this%NPart, RK ) )
+    call Update( this%SumVolume, 1._RK / this%Density )
+    call Update( this%SumVirial, -3._RK * this%Virial )
     if (printIDF) then
+      call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
+      call Update( this%SumEPotIntra, this%EPotIntra / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Bond, this%EPotIntra_Bond / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Angle, this%EPotIntra_Angle / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Dihedral, this%EPotIntra_Dihedral / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Nonbonded, this%EPotIntra_Nonbonded / real( this%NPart, RK ) )
+      call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
+      call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     end if
-    call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
-    call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     if( ConstantPressure ) then
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
 &      this%RefTemperature) ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
@@ -10941,11 +10952,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%Pressure / this%Density - &
 &      this%RefTemperature) ! Michael Sch.: correct from: (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     end if
-
-    call Update( this%SumVolume, 1._RK / this%Density )
-    call Update( this%SumVirial, -3._RK * this%Virial )
-    call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
-    call Update( this%SumVirialInter, -3._RK * this%VirialInter )
 
     currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
     currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2
@@ -11370,13 +11376,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! EPotIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
       if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
         ! EPotIntra_Bond
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11400,25 +11412,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance_parallel( this%iounit_result )
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
-
-      ! EPotInter
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialInter
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
  
       ! Chemical potential
       do i = 1, this%NRealComponents
@@ -11553,13 +11559,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! EPotIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
       if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
         ! EPotIntra_Bond
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11583,25 +11595,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance_parallel( this%iounit_result )
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
-
-      ! EPotInter
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialInter
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
  
       ! Chemical potential
       do i = 1, this%NRealComponents
@@ -11741,13 +11747,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! EPotIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
       if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
         ! EPotIntra_Bond
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11771,26 +11783,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance_parallel( this%iounit_result )
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance_parallel( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
 
-      ! EPotInter
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! VirialInter
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
       ! Chemical potential
       do i = 1, this%NRealComponents
         pc => this%Component(i)
@@ -11920,13 +11926,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
-      ! EPotIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
       if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
         ! EPotIntra_Bond
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
@@ -11950,25 +11962,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_result )
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
       end if
-
-      ! EPotInter
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! VirialIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! VirialInter
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-      call FileWriteNoAdvance( this%iounit_runave )
 
       ! Chemical potential
       do i = 1, this%NRealComponents
@@ -12102,13 +12108,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
-      ! EPotIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
       if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
         ! EPotIntra_Bond
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
@@ -12132,25 +12144,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_result )
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
       end if
-
-      ! EPotInter
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! VirialIntra
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! VirialInter
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-      call FileWriteNoAdvance( this%iounit_runave )
 
       ! Chemical potential
       do i = 1, this%NRealComponents
@@ -12594,16 +12600,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumDensity )
     call Error( this%SumTemperature )
     call Error( this%SumEPot )
-    call Error( this%SumEPotIntra )
+    call Error( this%SumEnthalpy )
+    call Error( this%SumVolume )
     if (printIDF) then
+      call Error( this%SumEPotInter )
+      call Error( this%SumEPotIntra )
       call Error( this%SumEPotIntra_Bond )
       call Error( this%SumEPotIntra_Angle )
       call Error( this%SumEPotIntra_Dihedral )
       call Error( this%SumEPotIntra_Nonbonded )
     end if
-    call Error( this%SumEPotInter )
-    call Error( this%SumEnthalpy )
-    call Error( this%SumVolume )
 
     call Error( this%SumdEpotdV )
     call Error( this%Sumd2EpotdV2 )
@@ -12961,18 +12967,28 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
-    !Inramolecular potential energy
-    Average = this%SumEPotIntra%Average
-    Variance = this%SumEPotIntra%Variance
-    write( IOBuffer, '("Intramolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&        Variance * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
-
     if (printIDF) then
-      !Inramolecular potential energy - Bonds
+      !Intermolecular potential energy
+      Average = this%SumEPotInter%Average
+      Variance = this%SumEPotInter%Variance
+      write( IOBuffer, '("Intermolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&         Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      !Intramolecular potential energy
+      Average = this%SumEPotIntra%Average
+      Variance = this%SumEPotIntra%Variance
+      write( IOBuffer, '("Intramolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&          Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      !Intramolecular potential energy - Bonds
       Average = this%SumEPotIntra_Bond%Average
       Variance = this%SumEPotIntra_Bond%Variance
       write( IOBuffer, '("Bond energy", T29, "reduced:", 2F20.9)' ) Average, Variance
@@ -13013,16 +13029,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWriteBlank( this%iounit_errors )
 
     end if ! printIDF
-
-    !Intermolecular potential energy
-    Average = this%SumEPotInter%Average
-    Variance = this%SumEPotInter%Variance
-    write( IOBuffer, '("Intermolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&       Variance * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
 
     ! Potential energy
     Average = this%SumEPot%Average
@@ -14768,6 +14774,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RestartSave( this%SumEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
+    if (printIDF) then
+      call RestartSave( this%SumEPotInter )
+      call RestartSave( this%SumEPotIntra )
+      call RestartSave( this%SumEPotIntra_Bond )
+      call RestartSave( this%SumEPotIntra_Angle )
+      call RestartSave( this%SumEPotIntra_Dihedral )
+      call RestartSave( this%SumEPotIntra_Nonbonded )
+      call RestartSave( this%SumVirialIntra )
+      call RestartSave( this%SumVirialInter )
+    end if
     call RestartSave( this%SumdEpotdV )
     call RestartSave( this%Sumd2EpotdV2 )
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -15079,6 +15095,16 @@ endif
     call RestartRead( this%SumEnthalpy )
     call RestartRead( this%SumVolume )
     call RestartRead( this%SumVirial )
+    if (printIDF) then
+      call RestartRead( this%SumEPotInter )
+      call RestartRead( this%SumEPotIntra )
+      call RestartRead( this%SumEPotIntra_Bond )
+      call RestartRead( this%SumEPotIntra_Angle )
+      call RestartRead( this%SumEPotIntra_Dihedral )
+      call RestartRead( this%SumEPotIntra_Nonbonded )
+      call RestartRead( this%SumVirialIntra )
+      call RestartRead( this%SumVirialInter )
+    end if
     call RestartRead( this%SumdEpotdV )
     call RestartRead( this%Sumd2EpotdV2 )
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
