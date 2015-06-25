@@ -16276,14 +16276,15 @@ contains
 
       do k =1, 3
         ! Calculate sum of terms of the pressure tensor (kinetic and potential)
-        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! part calculated together with force
-
+        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! potential part off-diagonal elements of pressure tensor
+        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! potential part diagonal elements of the pressure tensor
+        this%vbk(Mindex, k)  = this%vbk(Mindex, k) + pc%KinETranTotal(k)!kinetic part diagonal elements of the pressure tensor
+        
         if (Bulkviscosity) then
           this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
-          this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! part calculated together with force
-          this%vbk(Mindex, k) = this%vbk(Mindex, k) + pc%KinETranTotal(k)!bulk diagonal terms and energy tensor kinetic part
         end if
+          
                   
         if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
@@ -16425,7 +16426,7 @@ contains
 
         ! Calculated in general
         do k = 1, 3
-          ! shear viscosity
+          ! shear viscosity (off-diagonal elements)
           this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
 &                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
@@ -16470,6 +16471,17 @@ contains
 &                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
         end do
+
+        ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
+          this%cf_vs(nmess) = this%cf_vs(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                              (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
+&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
+
 
          !Thermal diffusivity
 	if (this%Ncomponents==2) then
@@ -16525,13 +16537,13 @@ contains
 	 this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
       end do
 
-      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs)
-      this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb)
-      this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c)
-      this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec)
+      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb(:))
+      this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
+      this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
 
       if (this%NComponents == 2) then 
-	this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret)
+	this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
       end if
 
       if (this%NComponents .gt. 1) then 
@@ -16681,12 +16693,14 @@ contains
     end if
 
 
-    helpvar =  this%Density /(3._RK *this%NPart * this%Temperature)
+    helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
     this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
     this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
     this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
 
+
+    helpvar =  this%Density /(3._RK *this%NPart * this%Temperature)
     if (this%Bulkviscosity) then
       this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1),this%TimeStepCorr, this%NCorr )
       this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
