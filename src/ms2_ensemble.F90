@@ -11175,7 +11175,7 @@ loop2:        do nc = 1, this%NComponents
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
-            Variance = this%Temperature / pc%SumChemPotV%Variance
+            Variance = this%Temperature * ( pc%SumChemPotV%Variance / (pc%SumChemPotV%Average * pc%SumChemPotV%Average))
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
