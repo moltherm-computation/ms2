@@ -5116,6 +5116,16 @@ end subroutine TInteraction_Energy
         !this%EPot1Bond(bi) = dR*F0
 #endif
 
+        PXi = pbo%Bond%PX1(np)
+        PYi = pbo%Bond%PY1(np)
+        PZi = pbo%Bond%PZ1(np)
+        PXij = PXi - pbo%Bond%PX2(np)
+        PYij = PYi - pbo%Bond%PY2(np)
+        PZij = PZi - pbo%Bond%PZ2(np)
+        PXij = (PXij - anint(PXij)) * BoxLength
+        PYij = (PYij - anint(PYij)) * BoxLength
+        PZij = (PZij - anint(PZij)) * BoxLength
+
         if ( OptPressure ) then
           ! Force (abs. value)
           Fij=-2.0d0*F0/R
@@ -5123,18 +5133,6 @@ end subroutine TInteraction_Energy
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
-          ! For calculation of virial
-          PXi = pbo%Bond%PX1(np)
-          PYi = pbo%Bond%PY1(np)
-          PZi = pbo%Bond%PZ1(np)
-          PXij = PXi - pbo%Bond%PX2(np)
-          PYij = PYi - pbo%Bond%PY2(np)
-          PZij = PZi - pbo%Bond%PZ2(np)
-
-          ! MIC
-          PXij = (PXij - anint(PXij)) * BoxLength
-          PYij = (PYij - anint(PYij)) * BoxLength
-          PZij = (PZij - anint(PZij)) * BoxLength
 
           ! Contribution to virial
 #if MPI_VER > 0

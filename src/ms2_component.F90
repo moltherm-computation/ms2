@@ -388,6 +388,10 @@ module ms2_component
   interface CorrectLeapFrog
     module procedure TComponent_CorrectLeapFrog
   end interface
+  
+  interface ReverseLeapFrog
+    module procedure TComponent_ReverseLeapFrog
+  end interface
 
   interface PredictVerlet
     module procedure TComponent_PredictVerlet
@@ -2416,10 +2420,6 @@ contains
       ! Remove net momentum
       do i = 1, 3
         Pim(k) = P(i, k) / this%Molecule%Unit(k)%Mass
-
-
-
-
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim(k)
         end do
@@ -2430,7 +2430,7 @@ contains
           end do
         end if
       end do
-   end do
+    end do
 
   end subroutine TComponent_RemoveNetMomentum
 
@@ -4998,9 +4998,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
   end if
 
 
-
   end subroutine TComponent_CorrectGear
-
 
 
 !==============================================================!
@@ -5196,6 +5194,92 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
 
 !==============================================================!
+!  Subroutine TComponent_ReverseLeapFrog                       !
+!==============================================================!
+
+  subroutine TComponent_ReverseLeapFrog( this, np, oldF, dLogVolumeThird )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)       :: this
+    integer, intent( in )  :: np
+    real(RK), intent( in ) :: oldF(3,this%Molecule%NUnit)
+    real(RK), intent( in ) :: dLogVolumeThird
+
+    ! Declare local variables
+    integer           :: nu
+    integer           :: i, j, k
+    real(RK)          :: r(3), BoxLengthInv
+
+    BoxLengthInv = 1._RK / this%BoxLength
+    nu = this%Molecule%NUnit
+    i = np
+
+    do k = 1, nu
+      do j = 1, 3
+        this%P0(i, j, k) = this%P0(i, j, k) - this%P1(i, j, k)
+        this%P1(i, j, k) = this%P1(i, j, k) - 2._RK*this%P2(i, j, k)
+        if (abs(dLogVolumeThird) > zero) then
+          this%P2(i, j, k) = (oldF(j, k) * TimeStepSquared2 * BoxLengthInv / this%Molecule%Unit(k)%Mass &
+&                             - this%P2(i, j, k) ) / dLogVolumeThird - this%P1(i, j, k)
+        else
+          this%P2(i, j, k) = - this%P1(i, j, k)
+        endif
+      end do
+    end do
+
+    ! Calculate new positions of COM for molecules from new COM of units
+    r(:) = 0._RK
+    do k= 1, nu
+      r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+    end do
+    this%Pm0(i,:) = r(:)/this%Molecule%Mass
+
+    ! Calculate displacement of molecules
+    do j = 1, 3
+      this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+      ! Check for conservation of particles in primary cell
+#if ARCH == 1
+      if( this%Pm0(i, j) < -.5_RK ) then
+        do k = 1, nu
+          this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+        end do
+      elseif( this%Pm0(i, j) > .5_RK ) then
+        do k = 1, nu
+          this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+        end do
+      end if
+#else
+      do k = 1, nu
+        this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
+      end do
+    end do
+#endif
+
+    ! Calculate new positions of COM for molecules from new COM of units
+    r(:) = 0._RK
+    do k= 1, nu
+      r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+    end do
+    this%Pm0(i,:) = r(:)/this%Molecule%Mass
+    this%Pm0old(i,:) = this%Pm0(i, :)
+
+    if( this%Molecule%IsElongated ) then
+      do k = 1, nu
+        do j = 1, 4
+          this%Q0(i, j, k) = this%Q0(i, j, k) - this%Q1(i, j, k)
+        end do
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          this%W0(i, j, k) = this%W0(i, j, k) - this%W1(i, j, k)
+        end do
+      end do
+    end if
+
+  end subroutine TComponent_ReverseLeapFrog
+
+
+!==============================================================!
 !  Subroutine TComponent_PredictVerlet                         !
 !==============================================================!
 
@@ -5273,7 +5357,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 !  Subroutine TComponent_Constraints                           !
 !==============================================================!
 
- subroutine TComponent_Constraints( this, scale, VirialShake )
+ subroutine TComponent_Constraints( this, VirialShake, dLogVolumeThird )
 
     implicit none
 
@@ -5284,27 +5368,27 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Declare arguments
     type(TComponent)     :: this
-    real(RK),intent(in)  :: scale
     real(RK),intent(out) :: VirialShake
+    real(RK),intent(in)  :: dLogVolumeThird
 
     ! Declare local variables
-    logical                        :: need
-    type(TIdfBond), pointer        :: pBond
-    integer                        :: np, nu, it, itmax
-    integer                        :: i, j, k, Unit1, Unit2
-    real(RK)                       :: BoxLength, BoxLengthInv, Shake2, Shake002
-    real(RK)                       :: RX1, RY1, RZ1, RX2, RY2, RZ2
-    real(RK)                       :: PX1, PY1, PZ1, PX2, PY2, PZ2
-    real(RK)                       :: RXij(this%Molecule%NBond), RYij(this%Molecule%NBond), RZij(this%Molecule%NBond)
-    real(RK)                       :: R0Xij(this%Molecule%NBond), R0Yij(this%Molecule%NBond), R0Zij(this%Molecule%NBond)
-    real(RK)                       :: P0Xij(this%Molecule%NBond), P0Yij(this%Molecule%NBond), P0Zij(this%Molecule%NBond)
-    real(RK)                       :: dRmax, dRmaxold, RSquared, R0Sq, dRSquared(this%Molecule%NBond)
-    real(RK)                       :: PR1(this%Molecule%NBond,3), PR2(this%Molecule%NBond,3)
-    real(RK)                       :: e(this%Molecule%NBond,3), EffM(this%Molecule%NBond)
-    real(RK)                       :: fx, fy, fz, Fijconstr, EMass1, EMass2, Coeff, DotProd
-    real(RK)                       :: TMoi1, TMoi2, TMoi3, Moi12, Moi23, Moi31
-    real(RK)                       :: Term1(3), Term2(3), Term3(3), MOI(3), q(4)
-    real(RK)                       :: tempP0(3,this%Molecule%NUnit), tempF(3,this%Molecule%NUnit), tempT(4,this%Molecule%NUnit)
+    logical                 :: need
+    type(TIdfBond), pointer :: pBond
+    integer                 :: np, nu, it, itmax
+    integer                 :: i, j, k, Unit1, Unit2
+    real(RK)                :: BoxLength, BoxLengthInv, Shake2, Shake002
+    real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
+    real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
+    real(RK)                :: RXij(this%Molecule%NBond), RYij(this%Molecule%NBond), RZij(this%Molecule%NBond)
+    real(RK)                :: R0Xij(this%Molecule%NBond), R0Yij(this%Molecule%NBond), R0Zij(this%Molecule%NBond)
+    real(RK)                :: P0Xij(this%Molecule%NBond), P0Yij(this%Molecule%NBond), P0Zij(this%Molecule%NBond)
+    real(RK)                :: dRmax, dRmaxold, RSquared, R0Sq, dRSquared(this%Molecule%NBond)
+    real(RK)                :: PR1(this%Molecule%NBond,3), PR2(this%Molecule%NBond,3)
+    real(RK)                :: e(this%Molecule%NBond,3), EffM(this%Molecule%NBond)
+    real(RK)                :: fx, fy, fz, Fijconstr, EMass1, EMass2, Coeff, Coeffalt, DotProd
+    real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), q(4), addW(3), addQ1(4)
+    real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit)
+    real(RK)                :: oldF(3,this%Molecule%NUnit), tempF(3,this%Molecule%NUnit), tempT(4,this%Molecule%NUnit)
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -5319,6 +5403,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     do i = 1, np
       ! get/save old site and COM (of unit) positions 
       tempP0(:,:) = this%P0(i,:,:) - this%P1(i,:,:)
+      tempQ0(:,:) = this%Q0(i,:,:)
+      oldF(:,:) = this%F(i,:,:)
       need = .true.
       it = 0
       dRmax = 0._RK
@@ -5469,9 +5555,9 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           Fijconstr = - DotProd / R0Sq
           if ( Coeff > 0._RK ) then
             Coeff = sqrt(Coeff)
-            !Coeffalt  = Fijconstr - Coeff
+            Coeffalt  = Fijconstr - Coeff
             Fijconstr = Fijconstr + Coeff
-            !if ( abs(Coeffalt) < abs(Fijconstr) ) Fijconstr = Coeffalt
+            if ( abs(Coeffalt) < abs(Fijconstr) ) Fijconstr = Coeffalt
           end if
           Fijconstr = Fijconstr * EffM(j)
 
@@ -5493,7 +5579,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             tempT(2,Unit1) = tempT(2,Unit1) + PR1(j,3)*fx - PR1(j,1)*fz
             tempT(3,Unit1) = tempT(3,Unit1) + PR1(j,1)*fy - PR1(j,2)*fx
           end if
-          if (this%Molecule%Unit(Unit1)%IsElongated) then
+          if (this%Molecule%Unit(Unit2)%IsElongated) then
             ! Torque
             tempT(1,Unit2) = tempT(1,Unit2) - PR2(j,2)*fz + PR2(j,3)*fy
             tempT(2,Unit2) = tempT(2,Unit2) - PR2(j,3)*fx + PR2(j,1)*fz
@@ -5508,36 +5594,27 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           this%P0(i, 1, j) = this%P0(i, 1, j) + Coeff*tempF(1,j)
           this%P0(i, 2, j) = this%P0(i, 2, j) + Coeff*tempF(2,j)
           this%P0(i, 3, j) = this%P0(i, 3, j) + Coeff*tempF(3,j)
+          this%F(i,1:3,j) = this%F(i,1:3,j) + tempF(1:3,j)
 
           ! Rotational Correction
           if (this%Molecule%Unit(j)%IsElongated) then
+            addW(:) = 0._RK
             ! Changes to Rotational Matrix due to QShake
-            TMoi1 = TimeStep / this%Molecule%Unit(j)%MOI(1)
-            TMoi2 = TimeStep / this%Molecule%Unit(j)%MOI(2)
+            this%T(i,1:3,j) = this%T(i,1:3,j) + tempT(1:3,j)
+            addW(1) = tempT(1,j) / this%Molecule%Unit(j)%MOI(1)
+            addW(2) = tempT(2,j) / this%Molecule%Unit(j)%MOI(2)
             if( this%Molecule%Unit(j)%is3D ) then
-              TMoi3 = TimeStep / this%Molecule%Unit(j)%MOI(3)
-              Moi23 = this%Molecule%Unit(j)%MOI(2) - this%Molecule%Unit(j)%MOI(3)
-              Moi31 = this%Molecule%Unit(j)%MOI(3) - this%Molecule%Unit(j)%MOI(1)
-              Moi12 = this%Molecule%Unit(j)%MOI(1) - this%Molecule%Unit(j)%MOI(2)
-              this%W1(i, 1, j) = (tempT(1,j) + this%W0(i, 2, j) * this%W0(i, 3, j) * Moi23) * TMoi1
-              this%W1(i, 2, j) = (tempT(2,j) + this%W0(i, 3, j) * this%W0(i, 1, j) * Moi31) * TMoi2
-              this%W1(i, 3, j) = (tempT(3,j) + this%W0(i, 1, j) * this%W0(i, 2, j) * Moi12) * TMoi3
-            else
-              this%W1(i, 1, j) = tempT(1,j) * TMoi1
-              this%W1(i, 2, j) = tempT(2,j) * TMoi2
+              addW(3) = tempT(3,j) / this%Molecule%Unit(j)%MOI(3)
             end if
-            do k = 1, this%Molecule%Unit(j)%NDFRot
-              this%W0(i, k, j) = this%W0(i, k, j) + this%W1(i, k, j)
-            end do
-            this%Q1(i, 1, j) = TimeStep2 * ( - this%Q0(i, 2, j) * this%W0(i, 1, j) &
-&                                - this%Q0(i, 3, j) * this%W0(i, 2, j) - this%Q0(i, 4, j) * this%W0(i, 3, j))
-            this%Q1(i, 2, j) = TimeStep2 * ( + this%Q0(i, 1, j) * this%W0(i, 1, j) &
-&                                - this%Q0(i, 4, j) * this%W0(i, 2, j) + this%Q0(i, 3, j) * this%W0(i, 3, j))
-            this%Q1(i, 3, j) = TimeStep2 * ( + this%Q0(i, 4, j) * this%W0(i, 1, j) &
-&                                + this%Q0(i, 1, j) * this%W0(i, 2, j) - this%Q0(i, 2, j) * this%W0(i, 3, j))
-            this%Q1(i, 4, j) = TimeStep2 * ( - this%Q0(i, 3, j) * this%W0(i, 1, j) &
-&                                + this%Q0(i, 2, j) * this%W0(i, 2, j) + this%Q0(i, 1, j) * this%W0(i, 3, j))
-            this%Q0(i, 1:4, j) = this%Q0(i, 1:4, j) + this%Q1(i, 1:4, j)
+            addQ1(1) = TimeStepSquared2 * ( - this%Q0(i, 2, j) * addW(1) &
+&                                       - this%Q0(i, 3, j) * addW(2) - this%Q0(i, 4, j) * addW(3))
+            addQ1(2) = TimeStepSquared2 * ( + this%Q0(i, 1, j) * addW(1) &
+&                                       - this%Q0(i, 4, j) * addW(2) + this%Q0(i, 3, j) * addW(3))
+            addQ1(3) = TimeStepSquared2 * ( + this%Q0(i, 4, j) * addW(1) &
+&                                       + this%Q0(i, 1, j) * addW(2) - this%Q0(i, 2, j) * addW(3))
+            addQ1(4) = TimeStepSquared2 * ( - this%Q0(i, 3, j) * addW(1) &
+&                                       + this%Q0(i, 2, j) * addW(2) + this%Q0(i, 1, j) * addW(3))
+            this%Q0(i, 1:4, j) = this%Q0(i, 1:4, j) + addQ1(1:4)
           end if
 
         end do ! unit loop
@@ -5584,13 +5661,28 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
       end do ! shake-force calculation for molecule i finished
 
-      do k=1,3 ! P1 & P2 only updated now, note before, for performance reasons
-        do j=1,nu
-          Coeff = this%P0(i,k,j) - ( tempP0(k,j) + this%P1(i,k,j) )
-          this%P1(i,k,j) = this%P1(i,k,j) + Coeff
-          this%P2(i,k,j) = this%P2(i,k,j) + 0.5_RK * Coeff
+      do j=1,nu
+        do k=1,3
+          this%P0(i,k,j) = tempP0(k,j) + this%P1(i,k,j)
         end do
+        if (this%Molecule%Unit(j)%IsElongated) then
+          do k=1,4
+            this%Q0(i,k,j) = tempQ0(k,j)
+          end do
+        endif
       end do
+      call ReverseLeapFrog( this, i, oldF(:,:), dLogVolumeThird )
+!        ! P1, P2 and Q1 only updated now, note before, for performance reasons
+!        do j=1,nu
+!          do k=1,3
+!            Coeff = this%P0(i,k,j) - ( tempP0(k,j) + this%P1(i,k,j) )
+!            this%P1(i,k,j) = this%P1(i,k,j) + Coeff
+!            this%P2(i,k,j) = this%P2(i,k,j) + 0.5_RK * Coeff
+!          end do
+!          if (this%Molecule%Unit(j)%IsElongated) then
+!            this%Q1(i, 1:4, j) = this%Q0(i, 1:4, j) - tempQ0(1:4,j)
+!          endif
+!        end do
 
     end do ! molecule loop
 

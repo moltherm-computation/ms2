@@ -1101,7 +1101,7 @@ contains
     ! Read optional pressure calculation
 !    this%OptPressure = .true.
     if( SimulationType .eq. MonteCarlo ) then
-      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "yes" )
+      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "no" )
       select case( str )
         case( 'YES', 'Yes', 'yes' )
           this%OptPressure = .true.
@@ -1166,7 +1166,7 @@ contains
     end if
 
     ! Read whether to perform the MC equilibration in parallel
-    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "yes" )
+    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "no" )
     select case( str )
       case( 'YES', 'Yes', 'yes' )
         CommonEqui = .true.
@@ -4072,7 +4072,6 @@ loop:do l = 1, NPartInCell
 
     ! Zero displacement
     if( Step == 1 ) then
-
       do i = 1, this%NComponents
         this%Component(i)%Disp(:, :) = 0._RK
       end do
@@ -4081,24 +4080,19 @@ loop:do l = 1, NPartInCell
       if (this%ResidenceTime .and. .not. Equilibration) then 
         call ResidencePartners ( this )
       end if
-      
-      call Predict( this )
-      if( ConstantPressure .and. .not. NVTEquilibration ) then  ! new
-        call PredictVol( this )
-      end if
+      call Unit2Atom( this )
     end if
 
     ! Run MD simulation step
-    !if( ConstantPressure .and. .not. NVTEquilibration ) then  ! rev381
-    !  call PredictVol( this )
-    !end if
+    call Predict( this )
     call Unit2Atom( this )
     call Force( this )
     call ChemicalPotential( this )
     call Atom2Unit( this )
     call Correct( this )
-    if( ConstantPressure .and. .not. NVTEquilibration ) then ! new
-      call CorrectVol(this)
+
+    if ( Shake > 0 ) then
+      call QShake(this)
     end if
 
 #if  TRANS == 1
@@ -4117,16 +4111,6 @@ loop:do l = 1, NPartInCell
     call CalculateEKin( this, .true. )
     if( .not. Equilibration .and. this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
 
-    call Predict( this )
-    if( ConstantPressure .and. .not. NVTEquilibration ) then  ! new
-      call PredictVol( this )
-    end if
-    if ( Shake > 0 ) then
-      call QShake(this)
-    end if
-    !if( ConstantPressure .and. .not. NVTEquilibration ) then ! rev381
-    !  call CorrectVol(this)
-    !end if
 
   end subroutine TEnsemble_RunMDStep
 
@@ -4419,7 +4403,7 @@ loop5:    do nc = 1, this%NComponents
     do i = 2, this%NComponents, 2
       this%Component(i)%Pm0(:, 1) = r / this%BoxLength
       call Mol2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
-      call Unit2Atom( this )
+      call Unit2Atom(this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
     end do
 
     ! Loop over components
@@ -4631,10 +4615,9 @@ loop5:    do nc = 1, this%NComponents
     ! Declare local variables
     integer      :: i
 
-    ! Call Mol2Unit for each component
+    ! Call Unit2Mol for each component
     do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%NUnit )
+      call Unit2Mol( this%Component(i) )
     end do
 
   end subroutine TEnsemble_Unit2Mol
@@ -4932,6 +4915,10 @@ loop5:    do nc = 1, this%NComponents
       call PredictVV( this )
     end select
 
+    if( ConstantPressure .and. .not. NVTEquilibration ) then  ! rev381
+      call PredictVol( this )
+    end if
+
   end subroutine TEnsemble_Predict
 
 
@@ -4957,6 +4944,10 @@ loop5:    do nc = 1, this%NComponents
     case( IntegratorTypeVV )
       call CorrectVV( this )
     end select
+
+    if( ConstantPressure .and. .not. NVTEquilibration ) then ! new
+      call CorrectVol(this)
+    end if
 
   end subroutine TEnsemble_Correct
 
@@ -5203,13 +5194,15 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer         :: i
-    real(RK)        :: dLogVolumeThird
     real(RK)        :: VirialShake
     real(RK)        :: tempVirial
+    real(RK)        :: dLogVolumeThird
 
     select case( IntegratorType )
     case( IntegratorTypeGear )
       call Error( "QShake only valid for Verlet-Algorithms" )
+      ! QShake could be used with Gear, but precision advantage of Gear (o5) is lost when using QShake (o2)
+      ! also Virial-contribution of Shake can't be accounted for in either correction or prediction step
     case( IntegratorTypeVerlet )
       call Error( "QShake only implemented for LeapFrog" )
     case( IntegratorTypeVV )
@@ -5217,18 +5210,28 @@ loop5:    do nc = 1, this%NComponents
     end select
 
     VirialShake = 0._RK
-    !this%EKinTran = 0._RK
-    !this%EKinRot = 0._RK
-    
+    dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
+
     do i =1, this%NComponents
       tempVirial = 0._RK
-      call Constraints ( this%Component(i), this%scale, tempVirial ) ! calculate new forces and positions
+      ! calculate unconstrained and unscaled(T) positions
+      call PredictLeapFrog( this%Component(i), 1._RK )
+      ! calculate new forces and positions due to constraints (bonds)
+      call Constraints ( this%Component(i), tempVirial, dLogVolumeThird )
       VirialShake = VirialShake + tempVirial
+      ! redo half-timestep, reverse of timestep done in Constraints()
+      call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
     end do
 
     this%Virial = this%Virial + VirialShake
     this%VirialIntra = this%VirialIntra + VirialShake
     this%Pressure = this%Pressure + VirialShake/this%Volume0
+    
+    ! correct previous volume-correction
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      this%Volume1 = this%Volume1-this%Volume2
+      call CorrectVol(this)
+    end if
 
   end subroutine TEnsemble_QShake
 
@@ -13069,18 +13072,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         select case( pc%ChemPotMethod )
 
         case( ChemPotMethodGradIns )
+          Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
           if( pc%NPart > 1 ) then
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
 !MERKER
           else
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = -log( 1/pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature*pc%SumInvChemPotRho%Average
+            Variance = this%Temperature*pc%SumInvChemPotRho%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -13092,17 +13096,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
-
           if( pc%Fraction > 0.0_RK ) then
             Average = log( pc%Fraction / pc%SumChemPotV%Average )
             write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-
           else
             Average = -log( pc%SumChemPotV%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
+            Variance = this%Temperature / pc%SumChemPotV%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -14465,26 +14469,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Create header
     num = 0
     do i = 1, this%NComponents
-      do j = 1, this%Component(i)%Molecule%NUnit
-        if (this%Component(i)%Molecule%Unit(j)%NLJ126 > 0) then
-          do k = 1, this%Component(i)%Molecule%Unit(j)%NLJ126
-            psLJ126 => this%Component(i)%Molecule%Unit(j)%SiteLJ126(k)
-            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+j), &
+      do k = 1, this%Component(i)%Molecule%NUnit
+        if (this%Component(i)%Molecule%Unit(k)%NLJ126 > 0) then
+          do j = 1, this%Component(i)%Molecule%Unit(k)%NLJ126
+            psLJ126 => this%Component(i)%Molecule%Unit(k)%SiteLJ126(j)
+            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), &
 &             psLJ126%r(:) * UnitLength / Angstroem, &
 &             psLJ126%sig  * UnitLength / Angstroem
             call FileWrite( this%iounit_visual )
           end do
         else  ! For visualisation of Units with no LJ sites
           ch_sig = UnitLength * 0.2
-          do k = 1, this%Component(i)%Molecule%Unit(j)%NCharge
-            psCharge => this%Component(i)%Molecule%Unit(j)%SiteCharge(k)
-            write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+j), &
+          do j = 1, this%Component(i)%Molecule%Unit(k)%NCharge
+            psCharge => this%Component(i)%Molecule%Unit(k)%SiteCharge(j)
+            write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+k), &
 &              psCharge%r(:) * UnitLength / Angstroem, ch_sig
             call FileWrite( this%iounit_visual )
           end do
         end if
       end do
-      num = num+(i)*this%Component(i)%Molecule%NUnit
+      num = num+this%Component(i)%Molecule%NUnit
     end do
     call FileWriteBlank( this%iounit_visual )
 
@@ -14527,7 +14531,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWrite( this%iounit_visual )
         end do
       end do
-      num = num+(i)*this%Component(i)%Molecule%NUnit
+      num = num+this%Component(i)%Molecule%NUnit
     end do
     call FileWriteBlank( this%iounit_visual )
 
@@ -18067,12 +18071,13 @@ contains
 
       do k =1, 3
         ! Calculate sum of terms of the pressure tensor (kinetic and potential)
-        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! part calculated together with force
+        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k))     ! potential part off-diagonal elements of pressure tensor
+        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k))     ! potential part diagonal elements of the pressure tensor
+        this%vbk(Mindex, k)  = this%vbk(Mindex, k) + pc%KinETranTotal(k) !kinetic part diagonal elements of the pressure tensor
+
         if (Bulkviscosity) then
           this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
-          this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! part calculated together with force
-          this%vbk(Mindex, k) = this%vbk(Mindex, k) + pc%KinETranTotal(k)!bulk diagonal terms and energy tensor kinetic part
         end if
 
         if (Conductivity) then
@@ -18080,7 +18085,9 @@ contains
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
           this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5_RK * BoxLength_dt
           this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1)) 
-          if ( pc%Molecule%IsElongated ) this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt 
+          if ( pc%Molecule%IsElongated ) then
+            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt
+          end if
         end if
 
       end do
@@ -18200,7 +18207,7 @@ contains
 
           ! Calculated in general
           do k = 1, 3
-            ! shear viscosity
+            ! shear viscosity (off-diagonal elements)
             this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
 &                                                   this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                   this%vsk(CFindex, k)*this%vsp(s, k) + &
@@ -18245,6 +18252,16 @@ contains
 &                                                    this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
           end do
+
+          ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
+          this%cf_vs(nmess) = this%cf_vs(nmess)+(1._RK/4._RK)*((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                              (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
+&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
 
           !Thermal diffusivity
           if (this%Ncomponents==2) then
@@ -18299,12 +18316,12 @@ contains
         this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
       end do
 
-      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs)
-      this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb)
-      this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c)
-      this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec)
+      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb(:))
+      this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
+      this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
 
-      if (this%NComponents == 2) this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret)
+      if (this%NComponents == 2) this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
 
       if (this%NComponents .gt. 1) then 
         do k = 1, ncomp2
@@ -18397,12 +18414,13 @@ contains
     end if
 
 
-    helpvar =  this%Density /(3._RK * this%NPart * this%Temperature)
+    helpvar =  this%Density /(5._RK * this%NPart * this%Temperature)
     this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
     this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
     this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
 
+    helpvar = 5._RK / 3._RK * helpvar 
     if (this%Bulkviscosity) then
       this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
