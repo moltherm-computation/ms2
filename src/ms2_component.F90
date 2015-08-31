@@ -5672,21 +5672,16 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         endif
       end do
       call ReverseLeapFrog( this, i, oldF(:,:), dLogVolumeThird )
-!        ! P1, P2 and Q1 only updated now, note before, for performance reasons
-!        do j=1,nu
-!          do k=1,3
-!            Coeff = this%P0(i,k,j) - ( tempP0(k,j) + this%P1(i,k,j) )
-!            this%P1(i,k,j) = this%P1(i,k,j) + Coeff
-!            this%P2(i,k,j) = this%P2(i,k,j) + 0.5_RK * Coeff
-!          end do
-!          if (this%Molecule%Unit(j)%IsElongated) then
-!            this%Q1(i, 1:4, j) = this%Q0(i, 1:4, j) - tempQ0(1:4,j)
-!          endif
-!        end do
-
     end do ! molecule loop
 
     if (.not. need) VirialShake = Third*VirialShake
+
+#if MPI_VER > 0
+    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+#endif
 
     if ( it >= itmax ) then  !Michael Sch.: this case should never happen
       write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
