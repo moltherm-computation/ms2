@@ -4080,7 +4080,7 @@ loop:do l = 1, NPartInCell
       if (this%ResidenceTime .and. .not. Equilibration) then 
         call ResidencePartners ( this )
       end if
-      call Unit2Atom( this )
+!       call Unit2Atom( this )
     end if
 
     ! Run MD simulation step
@@ -5193,10 +5193,11 @@ loop5:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer         :: i
-    real(RK)        :: VirialShake
-    real(RK)        :: tempVirial
-    real(RK)        :: dLogVolumeThird
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    real(RK)                  :: VirialShake, tempVirial
+    real(RK)                  :: dLogVolumeThird
+    real(RK)                  :: oldF(this%NPartmax,3,this%NUnitmax)
 
     select case( IntegratorType )
     case( IntegratorTypeGear )
@@ -5210,26 +5211,37 @@ loop5:    do nc = 1, this%NComponents
     end select
 
     VirialShake = 0._RK
+    tempVirial = 0._RK
     dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
 
     do i =1, this%NComponents
-      tempVirial = 0._RK
+      pc => this%Component(i)
+      oldF(1:pc%NPart,1:3,1:pc%Molecule%Nunit) = pc%F(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
       ! calculate unconstrained and unscaled(T) positions
-      call PredictLeapFrog( this%Component(i), 1._RK )
+      call PredictLeapFrog( pc, 1._RK )
       ! calculate new forces and positions due to constraints (bonds)
-      call Constraints ( this%Component(i), tempVirial, dLogVolumeThird )
-      VirialShake = VirialShake + tempVirial
-      ! redo half-timestep, reverse of timestep done in Constraints()
-      call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
+      call Constraints( pc, tempVirial )
+      ! reverse unconstrained timestep
+      call ReverseLeapFrog( pc, oldF(1:pc%NPart,1:3,1:pc%Molecule%Nunit), dLogVolumeThird)
+      ! redo half-timestep,
+      call CorrectLeapFrog( pc, dLogVolumeThird )
     end do
 
+#if MPI_VER > 0
+    !call MPI_Allreduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    call MPI_Reduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+#else
+    VirialShake = tempVirial
+#endif
+
+    VirialShake = Third * VirialShake
     this%Virial = this%Virial + VirialShake
     this%VirialIntra = this%VirialIntra + VirialShake
     this%Pressure = this%Pressure + VirialShake/this%Volume0
     
     ! correct previous volume-correction
     if( ConstantPressure .and. .not. NVTEquilibration ) then
-      this%Volume1 = this%Volume1-this%Volume2
+      if (RootProc) this%Volume1 = this%Volume1-this%Volume2
       call CorrectVol(this)
     end if
 
@@ -13084,7 +13096,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
             Average = this%Temperature*pc%SumInvChemPotRho%Average
-            Variance = this%Temperature*pc%SumInvChemPotRho%Variance
+            Variance = this%Temperature * pc%SumInvChemPotRho%Average * pc%SumInvChemPotRho%Average / pc%SumInvChemPotRho%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -13106,7 +13118,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
-            Variance = this%Temperature / pc%SumChemPotV%Variance
+            Variance = this%Temperature * ( pc%SumChemPotV%Variance / (pc%SumChemPotV%Average * pc%SumChemPotV%Average))
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
