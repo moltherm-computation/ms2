@@ -1550,6 +1550,7 @@ contains
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
                 Rij =  sqrt(RijSquared)
                 RijInv = 1._RK /  Rij 
@@ -1612,6 +1613,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
 #if ARCH == 3
               RijInv = rsqrt( RijSquared )
@@ -1685,6 +1687,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               RijSquaredInv = 1._RK / RijSquared
               RijInv = sqrt( RijSquaredInv )
@@ -1756,6 +1759,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               RijSquaredInv = 1._RK / RijSquared
               RijInv = sqrt( RijSquaredInv )
@@ -1833,6 +1837,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               RijSquaredInv = 1._RK / RijSquared
               RijInv = sqrt( RijSquaredInv )
@@ -1907,6 +1912,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -1995,6 +2001,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -2089,6 +2096,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               RijSquaredInv = 1._RK / RijSquared
               RijInv = sqrt( RijSquaredInv )
@@ -2167,6 +2175,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -2260,6 +2269,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -2581,6 +2591,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -2676,6 +2687,7 @@ contains
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
               d2EpotdV2Local = 1E33_RK
+              MCOverlapDetected = .TRUE.
             else
               OXj = OX2(j)
               OYj = OY2(j)

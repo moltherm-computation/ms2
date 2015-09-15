@@ -204,6 +204,12 @@ module ms2_component
 !     real(RK), pointer :: BFSumState(:)
 !DEBUG
 
+    ! Variables for Thermodynamic Integration
+    integer           :: NBins, LambdaExponent
+    integer, pointer  :: BinsVisit(:)
+    real(RK)          :: Lambda, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
+    real(RK), pointer :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:)
+
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
 
@@ -221,6 +227,7 @@ module ms2_component
     type(TAccumulator) :: SumVW
     type(TAccumulator) :: SumHM
     type(TAccumulator) :: SumFraction
+    type(TAccumulator) :: SumChemPotThermoIntWidom
 
     ! Potential model for this component
     type(TMolecule) :: Molecule
@@ -234,6 +241,7 @@ module ms2_component
     module procedure TComponent_Construct
     module procedure TComponent_ConstructSVC
     module procedure TComponent_ConstructFluct
+    module procedure TComponent_ConstructThermoInt
   end interface
 
   interface Destruct
@@ -510,6 +518,9 @@ contains
         this%ChemPotMethod = ChemPotMethodGradIns
         this%FluctState = 0
         str = 'gradual insertion'
+      case( 'THERMOINT', 'ThermoInt', 'Thermoint', 'thermoint' )
+        this%ChemPotMethod = ChemPotMethodThermoInt
+        str = 'thermodynamic integration'
       case default
         call Error( trim( str )//  ' method for calculation of chemical potential is not implemented' )
       end select
@@ -560,6 +571,29 @@ contains
         end select
         write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
         call LogWrite
+      end if
+      if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.01_RK )
+        write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
+        call LogWrite
+        call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
+        write( IOBuffer, '("Thermo. Int. LambdaMax: ", T40, F7.5)' ) this%LaMax
+        call LogWrite
+        call FileReadParameter( this%NBins, iounit_params , IdNBins, .false., 100 )
+        write( IOBuffer, '("Thermo. Int. NBins: ", T40, I7)' ) this%NBins
+        call LogWrite
+        call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+        write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
+        call LogWrite
+        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 12)
+        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, I7)' ) this%LambdaExponent
+        call LogWrite
+        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
+          this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
+          write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
+          call LogWrite
+        endif
+        this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
       end if
 
     end if
@@ -650,7 +684,63 @@ contains
 
   end subroutine TComponent_ConstructSVC
 
+!==============================================================!
+!  Subroutine TComponent_ConstructThermoInt                    !
+!==============================================================!
 
+  subroutine TComponent_ConstructThermoInt( this, comp0 )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)             :: this
+    type(TComponent), intent(in) :: comp0
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Allocate number of particles in component
+    allocate( this%NPart, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+
+    ! Allocate number of particles in process
+    allocate( this%NPart0, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NPart1, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NPart2, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+
+    ! Allocate number of particles in component
+    allocate( this%NTest, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+
+    ! Copy file name for potential model
+    this%PotModFileName = comp0%PotModFileName
+
+    ! Set number of particles and mole fraction of this component
+    this%NPart = 0
+    this%NTest = 0
+    this%Fraction = 0._RK
+    this%NBins = 0
+
+    this%Lambda = 1.0_RK - Zero
+
+    ! Set fluctuating state (for GradIns)
+    this%FluctState = 0
+    this%ChemPotMethod = ChemPotMethodNone
+
+    ! Set chemical potential flag
+    this%CalcChemPot = .false.
+
+    ! Create potential model
+    call Construct( this%Molecule, this%PotModFileName, -1 )
+
+    ! Set maximum allowed MC displacements
+    this%DispTran => comp0%DispTran
+    this%DispRot => comp0%DispRot
+
+  end subroutine TComponent_ConstructThermoInt
 
 !==============================================================!
 !  Subroutine TComponent_ConstructFluct                        !
@@ -821,6 +911,11 @@ contains
       call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
+    case( ChemPotMethodThermoInt )
+      call Construct( this%SumChemPotV, .true. )
+      call Construct( this%SumChemPotThermoIntWidom, .false. )
+      call Construct( this%SumVW, .true. )
+      call Construct( this%SumHM, .true. )
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -954,6 +1049,11 @@ contains
     nullify( this%FRC2All )
     nullify( this%FRC3All )
 #endif
+
+    nullify( this%BinsVisit )
+    nullify( this%BinsEn )
+    nullify( this%BinsdEndLa )
+    nullify( this%BinsIntdEndLa )
 
     ! Transport
     allocate( this%KinETran( np, 3 ), STAT = stat )
@@ -1267,6 +1367,18 @@ contains
 !DEBUG
     end if
 
+    if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+      allocate( this%BinsVisit( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'Number of Bins', this%NBins )
+      allocate( this%BinsEn( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'En', this%NBins )
+      allocate( this%BinsdEndLa( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'dEndLa', this%NBins )
+      allocate( this%BinsIntdEndLa( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'IntdEndLa', this%NBins )
+!DEBUG
+    end if
+
     ! Update log file
     write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
@@ -1520,6 +1632,21 @@ contains
         deallocate( this%NFluctDownSuccesses )
       end if
 !DEBUG
+    end if
+
+    if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+      if( associated( this%BinsVisit ) ) then
+        deallocate( this%BinsVisit )
+      end if
+      if( associated( this%BinsEn ) ) then
+        deallocate( this%BinsEn )
+      end if
+      if( associated( this%BinsdEndLa ) ) then
+        deallocate( this%BinsdEndLa )
+      end if
+      if( associated( this%BinsIntdEndLa ) ) then
+        deallocate( this%BinsIntdEndLa )
+      end if
     end if
 
 #if MPI_VER > 0

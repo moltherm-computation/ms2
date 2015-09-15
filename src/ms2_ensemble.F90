@@ -61,7 +61,10 @@ module ms2_ensemble
 
     ! I/O unit for RDF file
     integer :: iounit_rdf
-    
+
+    ! I/O unit for ThermoInt File
+    integer :: iounit_thermoint
+
 #if  TRANS == 1
     ! I/O unit for result ACF
     integer :: iounit_rescf   !TRANSPORT_thisline
@@ -632,6 +635,10 @@ module ms2_ensemble
 
   interface ChangeFluct
     module procedure TEnsemble_ChangeFluct
+  end interface
+
+  interface ChangeLambda
+    module procedure TEnsemble_ChangeLambda
   end interface
 
   interface Insert
@@ -1638,6 +1645,7 @@ contains
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
     this%iounit_rdf = iounit_rdf + i
+    this%iounit_thermoint = iounit_thermoint + i
 
 #if  TRANS == 1
     this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
@@ -2020,6 +2028,33 @@ contains
         end do
         this%Component(i)%NFluctComp(0) = i
       end if
+
+      if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+        
+        if (SimulationType .ne. MonteCarlo) then
+          write( ErrorBuffer, '("Thermodynamic integration is for MC only")' )
+          call Error
+        end if
+        ! LongRange Check
+        do j=1,this%Component(i)%Molecule%NCharge
+          q = q + this%Component(i)%Molecule%SiteCharge(j)%e
+        end do
+
+        if (abs(q) .gt. 1e-7) call Error ('Thermodynamic Integration not possible for charged molecule! No Electroneutrality')
+
+        ncomp = ncomp + 1
+
+        ! Reallocate component array
+        allocate( reallocate(ncomp), STAT = stat )
+        ! reallocate will be stored in this%Component, which thus has to be deallocated
+        call AllocationError( stat, 'components', ncomp )
+        reallocate( 1:size(this%Component) ) = this%Component(:)
+        deallocate( this%Component )
+        this%Component => reallocate
+        call Construct( this%Component(ncomp), this%Component(i))
+        this%Component(i)%Ntest = 100
+      end if
+
     end do
 
     ! Set new number of components (including fluctuating particles)
@@ -2505,7 +2540,7 @@ contains
     ! Declare local variables
     real(RK)                  :: s
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i,t
 
     ! Adjust number of cells to cube of integer
     if( this%NPart < NPartInCell ) this%NPart = NPartInCell
@@ -2540,6 +2575,17 @@ contains
       pc => this%Component(i)
       pc%NPart = nint( this%NPart * pc%Fraction )
       this%Component(this%NRealComponents)%NPart = this%Component(this%NRealComponents)%NPart - pc%NPart
+    end do
+
+    ! Setting Particles for ThermoInt
+    t = this%NRealComponents+1
+    do i = 1, this%NRealComponents
+      pc => this%Component(i)
+      if (pc%ChemPotMethod == ChemPotMethodThermoInt ) then
+        pc%NPart = pc%NPart - 1
+        this%Component(t)%NPart = 1
+        t = t+1
+      end if
     end do
 
     ! Set mole fractions according to real number of particles
@@ -5188,6 +5234,8 @@ loop3:    do nc = 1, this%NComponents
     tempComm = Communicator
 #endif
 
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
+
     ! Outer loop over components
 componentLoop:       do i = 1, this%NRealComponents
       pc => this%Component(i)
@@ -5436,9 +5484,9 @@ loop2:        do nc = 1, this%NComponents
        HW_denom_local = 0
        HW_counter_local = 0
 
-       do t=1, pc%NTest 
-          HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + this%EPotTest(t) ) * exp( - this%EPotTest(t) / this%RefTemperature )
-          HW_denom_local = HW_denom_local + exp( - this%EPotTest(t) / this%RefTemperature )
+       do j=1, pc%NTest 
+          HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + this%EPotTest(j) ) * exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_denom_local = HW_denom_local + exp( - this%EPotTest(j) / this%RefTemperature )
        end do
 
        HW_counter_local = HW_counter_local / pc%NTest
@@ -5463,6 +5511,29 @@ loop2:        do nc = 1, this%NComponents
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
 #endif
+
+      case( ChemPotMethodThermoInt )
+
+          !if (Equilibration) cycle componentLoop
+          if (Step == 1) then
+            pc%BinsVisit(:)=0
+            pc%BinsEn(:)=0.0_RK
+            pc%BinsdEndLa(:)=0.0_RK
+            pc%BinsIntdEndLa(:)=0.0_RK
+            pc%CalcChemPot= .true.
+          end if
+
+          call ChangeLambda( this, t, i )
+          t=t+1
+
+          ! chemPot with LambdaMin by Widom
+          call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+          do j = 1, this%NRealComponents
+            call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
+          end do
+          this%Component(i)%ExpMinusBetaEnLaMin = sum( exp( -( this%Component(i)%LaMin**this%Component(i)%LambdaExponent*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
+        ! end of Widom for ThermoInt with LambdaMin
 
       case default
         pc%CalcChemPot = .false.
@@ -6005,6 +6076,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
+    MCOverlapDetected = .FALSE.
     call Energy( this, nc, np, EPotNew )
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
@@ -6019,7 +6091,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK ) .AND. .NOT. MCOverlapDetected
     if( accepted ) then
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
@@ -6133,6 +6205,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy with trial orientation
+    MCOverlapDetected = .FALSE.
     call Energy( this, nc, np, EPotNew )
 
     ! Apply Metropolis acceptance criterion
@@ -6148,7 +6221,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK ) .AND. .NOT. MCOverlapDetected
     if( accepted ) then
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
@@ -7024,6 +7097,249 @@ loop2:        do nc = 1, this%NComponents
 
   end subroutine TEnsemble_ChangeFluct
 
+!==============================================================!
+!  Subroutine TEnsemble_ChangeLambda                           !
+!==============================================================!
+
+  subroutine TEnsemble_ChangeLambda( this, nt , nc)
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)        :: this
+    integer, intent(in)    :: nt
+    integer, intent(in)    :: nc
+
+    ! Declare local variables
+    type(TComponent), pointer  :: pc, pt
+    type(TMolecule), pointer   :: ptm
+    type(TInteraction), pointer:: plj
+    integer                    :: i, j, k, l, currentbin
+    integer                    :: Shield1, Shield2
+    real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
+    real(RK)                   :: EPotOld, EPotNew
+    real(RK)                   :: EPotDeltaAll, Scale
+    real(RK)                   :: EFourier, EVirial
+
+    ! Assign local variables
+    pt => this%Component(nt)
+    pc => this%Component(nc)
+    ptm => this%Component(nt)%Molecule
+
+    ! Get old energy of fluctuating particle
+    EPotOld = GetEnergy( this, nt, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+    currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
+    ChempotDelta=-pc%BinsIntdEndLa(currentbin)
+
+    ! Save states for the Ewald Summation and/or derivates
+    if (LongRange .eq. Ewald) then     ! Ewald Summation
+       ! Save the initial state
+       EFourier = this%UFourier
+       EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
+
+       if ( this%OptPressure ) then
+         EVirial  = this%EVirial
+       end if
+
+      call EwaldSelfTerm_Energy(this)
+    end if
+
+    ! Change state of lambda
+    LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+
+    if (LambdaNew>=pc%LaMin .and. LambdaNew<pc%LaMax) then 
+      
+      currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
+      ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
+      ! Calculate energy of fluctuating particle
+      Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
+      EPotNew=Factor*EPotOld
+
+      ! Acceptance Criteria
+      EPotDeltaAll = EPotOld - EPotNew
+      if( rnd( 0._RK, 1._RK ) < exp( ( EPotDeltaAll + ChempotDelta) / this%Temperature ) ) then
+        ! Accept
+        ! Apply scaling factors
+        do i = 1, this%NComponents
+          if( associated(this%Interaction(nt, i)%PotLJ126LJ126)) then
+            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
+            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+          endif
+          if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
+            this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Charge
+              Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Charge
+                Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+                this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+                this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
+            this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Charge
+              Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Dipole
+                Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+                this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Charge
+              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Dipole
+                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+                this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then           
+            this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Charge
+              Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Quadrupole
+                Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Charge
+              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Quadrupole
+                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
+            this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Dipole
+              Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Charge
+                Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+                this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Dipole
+              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Charge
+                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+                this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotDipoleDipole)) then
+            this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Dipole
+              Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Dipole
+                Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+                this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+                this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
+            this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Dipole
+              Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Quadrupole
+                Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Dipole
+              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Quadrupole
+                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
+            this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Quadrupole
+              Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Charge
+                Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+                this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Quadrupole
+              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Charge
+                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+                this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
+            this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Quadrupole
+              Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Dipole
+                Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+                this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+              enddo
+            enddo
+            do k=1,this%Interaction(i,nt)%N1Quadrupole
+              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Dipole
+                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+                this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+              enddo
+            enddo
+          endif
+          if( associated(this%Interaction(nt, i)%PotQuadrupoleQuadrupole)) then
+            this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
+            do k=1,this%Interaction(nt,i)%N1Quadrupole
+              Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(nt,i)%N2Quadrupole
+                Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+                this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+              enddo
+            enddo
+          endif
+        end do
+        if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
+          this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
+          !this%Component(nt)%Molecule%MueY(:) = this%Component(nt)%Molecule%MueY(:) * Factor
+          !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
+        endif
+        call Mol2Atom( this )
+        !call Mol2Atom1( this%Component(nt), 1 )
+        call Energy( this, nt, 1, EPotNew )
+        call UpdateEnergy( this, nt, 1 )
+        pt%Lambda=LambdaNew
+      else
+        ! Reject
+        if (LongRange == Ewald) then
+          call EwaldSelfTerm_Energy(this)
+          call Energy( this, nt, 1, EPotNew )
+        end if
+      end if       ! Acceptance Criteria
+
+    end if !Lamba change
+
+  end subroutine TEnsemble_ChangeLambda
 
 
 !==============================================================!
@@ -8600,8 +8916,9 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,err
+    integer                   :: i,j,t,err,currentbin
     real(RK)                  :: value
+    real(RK)                  :: currentBinsEn
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
@@ -8722,6 +9039,9 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumHW_counter )
           call Reset( this%Component(i)%SumHW_denom )
+        case( ChemPotMethodThermoInt )
+          call Reset( this%Component(i)%SumChemPotV )
+          call Reset( this%Component(i)%SumChemPotThermoIntWidom )
         end select
       end do
 
@@ -9454,6 +9774,8 @@ loop2:        do nc = 1, this%NComponents
 !TRANSPORT_END
 #endif
 
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
+
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
       pc => this%Component(i)
@@ -9472,6 +9794,21 @@ loop2:        do nc = 1, this%NComponents
           call Update( pc%SumChemPotVV, pc%ChemPot / this%Density**2 )
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
+        case( ChemPotMethodThermoInt )
+          currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
+          pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
+
+          currentBinsEn = GetEnergy( this, t, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+          pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+          pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+
+          pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
+          do j = 1, pc%NBins-1
+            pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
+          end do
+          call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
+          call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
+          t=t+1
         end select
       end if
     end do
@@ -9584,8 +9921,14 @@ loop2:        do nc = 1, this%NComponents
                         call FileWriteNoAdvance_parallel( this%iounit_result )
                         write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                         call FileWriteNoAdvance_parallel( this%iounit_runave )
-                      end select
       
+                      case( ChemPotMethodThermoInt )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                        call FileWriteNoAdvance_parallel( this%iounit_result )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                      end select
+
                     else
                       select case( pc%ChemPotMethod )
       
@@ -9599,6 +9942,12 @@ loop2:        do nc = 1, this%NComponents
                         write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
                         call FileWriteNoAdvance_parallel( this%iounit_result )
                         write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                        call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+                      case( ChemPotMethodThermoInt )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                        call FileWriteNoAdvance_parallel( this%iounit_result )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                         call FileWriteNoAdvance_parallel( this%iounit_runave )
                       end select
                     end if
@@ -9745,6 +10094,12 @@ loop2:        do nc = 1, this%NComponents
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                      case( ChemPotMethodThermoInt )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                        call FileWriteNoAdvance_parallel( this%iounit_result )
+                        write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                        call FileWriteNoAdvance_parallel( this%iounit_runave ) 
                     end select
     
                   else
@@ -9760,6 +10115,12 @@ loop2:        do nc = 1, this%NComponents
                       write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                    case( ChemPotMethodThermoInt )
+                      write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
                     end select
                   end if
@@ -9918,6 +10279,12 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                  case( ChemPotMethodThermoInt )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
                   end select
   
                 else
@@ -9940,6 +10307,12 @@ loop2:        do nc = 1, this%NComponents
                     write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                  case( ChemPotMethodThermoInt )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                   end select
                 end if
@@ -10097,6 +10470,13 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_result )
                   write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                   call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+
                 end select
 
               else
@@ -10113,6 +10493,13 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_result )
                   write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
                   call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+
                 end select
               end if
             end if
@@ -10269,6 +10656,12 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_result )
                   write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                   call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
                 end select
 
               else
@@ -10284,6 +10677,12 @@ loop2:        do nc = 1, this%NComponents
                   write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
                   call FileWriteNoAdvance( this%iounit_result )
                   write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                   call FileWriteNoAdvance( this%iounit_runave )
                 end select
               end if
@@ -10788,6 +11187,9 @@ loop2:        do nc = 1, this%NComponents
           call Error( pc%SumHW_denom )
           call Error( pc%SumVW )
           call Error( pc%SumHM )
+        case( ChemPotMethodThermoInt )
+          call Error( pc%SumChemPotV )
+          call Error( pc%SumChemPotThermoIntWidom )
         case default
           ! DO NOTHING
         end select
@@ -11183,6 +11585,19 @@ loop2:        do nc = 1, this%NComponents
 &                  Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
           end if
           call FileWrite( this%iounit_errors )
+
+        case( ChemPotMethodThermoInt )
+          Average  = log( pc%Fraction / pc%SumChemPotThermoIntWidom%Average )
+          Variance =  pc%SumChemPotThermoIntWidom%Variance / pc%SumChemPotThermoIntWidom%Average
+          write( IOBuffer, '("Chem. pot. at LambdaMin", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average , Variance
+          call FileWrite( this%iounit_errors )
+          Average  = pc%SumChemPotV%Average
+          Variance = pc%SumChemPotV%Variance
+          write( IOBuffer, '("Chem. pot.             ", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          call FileWrite( this%iounit_errors )
+
         end select
       end do
 
@@ -12429,6 +12844,60 @@ loop2:        do nc = 1, this%NComponents
     ! Close final result file
     call FileClose( this%iounit_errors )
 
+    ! Open ThermoInt result file
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      call FileRewrite( this%iounit_thermoint, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ThermoIntFileExtension)
+
+    ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
+    t = this%NRealComponents+1
+    do i=1,this%NRealComponents
+      pc => this%Component(i)
+      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
+        !first two lines
+        write( IOBuffer, '(" Component:", T15, I3)' ) i
+        call FileWrite( this%iounit_thermoint )
+        write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
+        call FileWrite( this%iounit_thermoint )
+        write( IOBuffer, '(" BINID")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" LAMBDA")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("            EPOT")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("    dEPOTdLAMBDA")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" INTdEPOTdLAMBDA")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("     VISITS")' )
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        call FileWriteBlank( this%iounit_thermoint )
+        ! Rest.
+        do j=0,pc%NBins-1
+          write( IOBuffer, '(I6)' ) j
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          write( IOBuffer, '(" ",E15.6)' ) pc%BinsEn(j)
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLa(j)
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
+          call FileWriteNoAdvance( this%iounit_thermoint )
+          call FileWriteBlank( this%iounit_thermoint )
+        end do
+        t = t+1
+      end if 
+
+    end do
+
+    ! Close final result file
+      call FileClose( this%iounit_thermoint)
+    end if 
+
   end subroutine TEnsemble_ErrorsUpdate
 
 
@@ -12973,6 +13442,9 @@ loop2:        do nc = 1, this%NComponents
         call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumHW_counter )
         call RestartSave( pc%SumHW_denom )
+      case( ChemPotMethodThermoInt )
+        call RestartSave( pc%SumChemPotV )
+        call RestartSave( pc%SumChemPotThermoIntWidom )
       end select
 
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
@@ -13136,7 +13608,8 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,t,stat,counter,k,Mindex,StepCorr
+    real(RK)                  :: dummy
 
     if( RootProc ) then
 
@@ -13300,6 +13773,10 @@ endif
         call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumHW_counter )
         call RestartRead( pc%SumHW_denom )
+
+      case( ChemPotMethodThermoInt )
+        call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotThermoIntWidom )
       end select
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartRead( pc%SumVW )
@@ -13513,6 +13990,30 @@ endif
          end do
        end do
     end if
+
+    ! Reading thi-file for ThermoInt
+    t = this%NRealComponents+1
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+    do i=1,this%NRealComponents
+      pc => this%Component(i)
+      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
+        call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+        pc%CalcChemPot = .true.
+        !read empty line
+        read( this%iounit_thermoint, * )
+
+        ! read thermoint-profile
+        do j = 0,pc%NBins-1
+          read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsIntdEndLa(j), pc%BinsVisit(j)
+        end do
+        t = t+1
+      end if 
+    end do
+    
+    ! FOR MPI a cast will be needed here with BinsVisit/NProcs ? Gabor, Michael
+    call FileClose( this%iounit_thermoint )
 
     if( SimulationType .eq. MolecularDynamics ) then
 

@@ -83,6 +83,9 @@ module ms2_global
   integer :: MPI_RK
 #endif
 
+  ! Identifier for MC overlaps
+   logical :: MCOverlapDetected
+
   ! limits
   real(RK)            :: limits_RK_MAX
   real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
@@ -182,6 +185,8 @@ module ms2_global
   
   character(*), parameter :: RDFFileExtension = '.rdf'
   
+  ! Extension of ThermoInt filename
+  character(*), parameter :: ThermoIntFileExtension = '.thi'
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -220,21 +225,19 @@ module ms2_global
   integer, parameter :: iounit_result  = iounit_start + 6
   integer, parameter :: iounit_runave  = iounit_start + 7
   integer, parameter :: iounit_errors  = iounit_start + 8
-#if  TRANS == 1
-  integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
-  integer, parameter :: iounit_visual  = iounit_start + 10
-  integer, parameter :: iounit_rdf     = iounit_start + 11
-#else
   integer, parameter :: iounit_visual  = iounit_start + 9
   integer, parameter :: iounit_rdf     = iounit_start + 10
-#endif
+  integer, parameter :: iounit_thermoint = iounit_start + 11
+#if  TRANS == 1
+  integer, parameter :: iounit_rescf     = iounit_start + 12
+#endif  
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 2
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -331,6 +334,12 @@ module ms2_global
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+
+  character(*), parameter :: IdLambdaMin                   = 'LambdaMin'
+  character(*), parameter :: IdLambdaMax                   = 'LambdaMax'
+  character(*), parameter :: IdNBins                       = 'NBins'
+  character(*), parameter :: IdLambdaStepMax               = 'LambdaMax'
+  character(*), parameter :: IdLambdaExponent              = 'LambdaExponent'
 
 #if  TRANS == 1
   !TRANSPORT_start
@@ -525,6 +534,7 @@ module ms2_global
   integer, parameter :: ChemPotMethodNone    = 0
   integer, parameter :: ChemPotMethodWidom   = 1
   integer, parameter :: ChemPotMethodGradIns = 2
+  integer, parameter :: ChemPotMethodThermoInt = 3
 
   ! Type of method for weighting factors
   integer, parameter :: WFMethodNone   = 0
