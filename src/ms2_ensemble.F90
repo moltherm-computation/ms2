@@ -7120,7 +7120,7 @@ loop2:        do nc = 1, this%NComponents
     type(TMolecule), pointer   :: ptm
     type(TInteraction), pointer:: plj
     integer                    :: i, j, k, l, currentbin
-    integer                    :: Shield1, Shield2
+    real(RK)                   :: Shield1, Shield2
     real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
     real(RK)                   :: EPotOld, EPotNew
     real(RK)                   :: EPotDeltaAll, Scale
@@ -7188,7 +7188,7 @@ loop2:        do nc = 1, this%NComponents
           endif
           if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
             this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Charge
               Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
               do l=1,this%Interaction(nt,i)%N2Dipole
@@ -7196,17 +7196,17 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Charge
-              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Dipole
-                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-                this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Dipole
+              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Charge
+                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+                this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
           if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then           
             this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Charge
               Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
               do l=1,this%Interaction(nt,i)%N2Quadrupole
@@ -7214,17 +7214,17 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Charge
-              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Quadrupole
-                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-                this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Quadrupole
+              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Charge
+                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+                this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
           if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
             this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Dipole
               Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
               do l=1,this%Interaction(nt,i)%N2Charge
@@ -7232,11 +7232,11 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Dipole
-              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Charge
-                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-                this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Charge
+              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Dipole
+                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+                this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
@@ -7254,7 +7254,7 @@ loop2:        do nc = 1, this%NComponents
           endif
           if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
             this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Dipole
               Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
               do l=1,this%Interaction(nt,i)%N2Quadrupole
@@ -7262,17 +7262,17 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Dipole
-              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Quadrupole
-                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-                this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Quadrupole
+              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Dipole
+                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+                this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
           if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
             this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Quadrupole
               Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
               do l=1,this%Interaction(nt,i)%N2Charge
@@ -7280,17 +7280,17 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Quadrupole
-              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Charge
-                Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-                this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Charge
+              Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Quadrupole
+                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
           if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
             this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
+            this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
             do k=1,this%Interaction(nt,i)%N1Quadrupole
               Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
               do l=1,this%Interaction(nt,i)%N2Dipole
@@ -7298,11 +7298,11 @@ loop2:        do nc = 1, this%NComponents
                 this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
               enddo
             enddo
-            do k=1,this%Interaction(i,nt)%N1Quadrupole
-              Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-              do l=1,this%Interaction(i,nt)%N2Dipole
-                Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-                this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+            do k=1,this%Interaction(i,nt)%N1Dipole
+              Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+              do l=1,this%Interaction(i,nt)%N2Quadrupole
+                Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+                this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
               enddo
             enddo
           endif
