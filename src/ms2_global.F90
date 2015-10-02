@@ -338,7 +338,7 @@ module ms2_global
   character(*), parameter :: IdLambdaMin                   = 'LambdaMin'
   character(*), parameter :: IdLambdaMax                   = 'LambdaMax'
   character(*), parameter :: IdNBins                       = 'NBins'
-  character(*), parameter :: IdLambdaStepMax               = 'LambdaMax'
+  character(*), parameter :: IdLambdaStepMax               = 'LambdaStepMax'
   character(*), parameter :: IdLambdaExponent              = 'LambdaExponent'
 
 #if  TRANS == 1
