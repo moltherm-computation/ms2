@@ -573,7 +573,7 @@ contains
         call LogWrite
       end if
       if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.01_RK )
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -585,7 +585,7 @@ contains
         call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
         call LogWrite
-        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 12)
+        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, I7)' ) this%LambdaExponent
         call LogWrite
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
