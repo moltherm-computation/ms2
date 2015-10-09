@@ -11594,7 +11594,7 @@ loop2:        do nc = 1, this%NComponents
           call FileWrite( this%iounit_errors )
           Average  = pc%SumChemPotV%Average
           Variance = pc%SumChemPotV%Variance
-          write( IOBuffer, '("Chem. pot.             ", A, T33, "r`d:", 2F20.9)' ) &
+          write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
 
