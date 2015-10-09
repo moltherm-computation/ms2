@@ -1376,7 +1376,6 @@ contains
       call AllocationError( stat, 'dEndLa', this%NBins )
       allocate( this%BinsIntdEndLa( 0: this%NBins-1 ), STAT = stat )
       call AllocationError( stat, 'IntdEndLa', this%NBins )
-!DEBUG
     end if
 
     ! Update log file

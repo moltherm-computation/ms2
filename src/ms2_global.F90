@@ -237,7 +237,10 @@ module ms2_global
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 2
+  integer, parameter :: FilesPerEnsemble = iounit_thermoint - iounit_result + 1
+#if  TRANS == 1
+  FilesPerEnsemble = FilesPerEnsemble + 1
+#endif
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
