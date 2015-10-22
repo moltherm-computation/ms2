@@ -637,6 +637,10 @@ module ms2_ensemble
     module procedure TEnsemble_ChangeFluct
   end interface
 
+  interface ScaleInteractionThermoInt
+    module procedure TEnsemble_ScaleInteractionThermoInt
+  end interface
+
   interface ChangeLambda
     module procedure TEnsemble_ChangeLambda
   end interface
@@ -7098,6 +7102,189 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_ChangeFluct
 
 !==============================================================!
+!  Subroutine TEnsemble_ScaleInteractionThermoInt              !
+!==============================================================!
+
+subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
+
+   implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)        :: this
+    integer, intent(in)    :: nt
+    real(RK), intent(in)   :: factor
+
+    ! Declare local variables
+    integer                 :: i
+
+    do i = 1, this%NComponents
+      if( associated(this%Interaction(nt, i)%PotLJ126LJ126)) then
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon      = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4     = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48    = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon      = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4     = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48    = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+      endif
+      if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
+        this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
+        this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Dipole
+        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Charge
+        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then       
+        this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Quadrupole
+        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Charge
+        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
+        this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Charge
+        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Dipole
+        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotDipoleDipole)) then
+        this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
+        this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Quadrupole
+        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Dipole
+        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
+        this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Charge
+        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
+        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
+        this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Dipole
+        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
+        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
+      endif
+      if( associated(this%Interaction(nt, i)%PotQuadrupoleQuadrupole)) then
+        this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
+      endif
+    end do
+    if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
+      this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
+      !this%Component(nt)%Molecule%MueY(:) = this%Component(nt)%Molecule%MueY(:) * Factor
+      !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
+    endif
+
+end subroutine TEnsemble_ScaleInteractionThermoInt
+
+!==============================================================!
 !  Subroutine TEnsemble_ChangeLambda                           !
 !==============================================================!
 
@@ -7165,165 +7352,7 @@ loop2:        do nc = 1, this%NComponents
       if( rnd( 0._RK, 1._RK ) < exp( ( EPotDeltaAll + ChempotDelta) / this%Temperature ) ) then
         ! Accept
         ! Apply scaling factors
-        do i = 1, this%NComponents
-          if( associated(this%Interaction(nt, i)%PotLJ126LJ126)) then
-            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
-            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
-            this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
-            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
-            this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
-          endif
-          if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
-            this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Charge
-            !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Charge
-            !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-            !    this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !    this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
-            this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Charge
-            !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Dipole
-            !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-            !    this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Dipole
-            !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Charge
-            !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-            !    this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then           
-            this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Charge
-            !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-            !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-            !    this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Quadrupole
-            !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Charge
-            !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-            !    this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
-            this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Dipole
-            !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Charge
-            !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-            !    this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Charge
-            !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Dipole
-            !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-            !    this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotDipoleDipole)) then
-            this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Dipole
-            !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Dipole
-            !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-            !    this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !    this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
-            this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Dipole
-            !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-            !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-            !    this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Quadrupole
-            !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Dipole
-            !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-            !    this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
-            this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Quadrupole
-            !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Charge
-            !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-            !    this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Charge
-            !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Quadrupole
-            !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-            !    this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
-            this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Quadrupole
-            !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Dipole
-            !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-            !    this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !  enddo
-            !enddo
-            !do k=1,this%Interaction(i,nt)%N1Dipole
-            !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-            !  do l=1,this%Interaction(i,nt)%N2Quadrupole
-            !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-            !    this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-            !  enddo
-            !enddo
-          endif
-          if( associated(this%Interaction(nt, i)%PotQuadrupoleQuadrupole)) then
-            this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
-            this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
-            !do k=1,this%Interaction(nt,i)%N1Quadrupole
-            !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-            !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-            !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-            !    this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-            !    this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-            !  enddo
-            !enddo
-          endif
-        end do
-        if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
-          this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
-          !this%Component(nt)%Molecule%MueY(:) = this%Component(nt)%Molecule%MueY(:) * Factor
-          !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
-        endif
+        call ScaleInteractionThermoInt(this, nt, Factor)
         call Mol2Atom( this )
         !call Mol2Atom1( this%Component(nt), 1 )
         call Energy( this, nt, 1, EPotNew )
@@ -12845,58 +12874,60 @@ loop2:        do nc = 1, this%NComponents
     call FileClose( this%iounit_errors )
 
     ! Open ThermoInt result file
-    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_thermoint, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ThermoIntFileExtension)
+    if (RootProc) then
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_thermoint, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ThermoIntFileExtension)
 
-    ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
-    t = this%NRealComponents+1
-    do i=1,this%NRealComponents
-      pc => this%Component(i)
-      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+        ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
+        t = this%NRealComponents+1
+        do i=1,this%NRealComponents
+          pc => this%Component(i)
+          if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
 
-        !first two lines
-        write( IOBuffer, '(" Component:", T15, I3)' ) i
-        call FileWrite( this%iounit_thermoint )
-        write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
-        call FileWrite( this%iounit_thermoint )
-        write( IOBuffer, '(" BINID")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        write( IOBuffer, '(" LAMBDA")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        write( IOBuffer, '("            EPOT")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        write( IOBuffer, '("    dEPOTdLAMBDA")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        write( IOBuffer, '(" INTdEPOTdLAMBDA")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        write( IOBuffer, '("     VISITS")' )
-        call FileWriteNoAdvance( this%iounit_thermoint )
-        call FileWriteBlank( this%iounit_thermoint )
-        ! Rest.
-        do j=0,pc%NBins-1
-          write( IOBuffer, '(I6)' ) j
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          write( IOBuffer, '(" ",E15.6)' ) pc%BinsEn(j)
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLa(j)
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
-          call FileWriteNoAdvance( this%iounit_thermoint )
-          call FileWriteBlank( this%iounit_thermoint )
+            !first two lines
+            write( IOBuffer, '(" Component:", T15, I3)' ) i
+            call FileWrite( this%iounit_thermoint )
+            write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
+            call FileWrite( this%iounit_thermoint )
+            write( IOBuffer, '(" BINID")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '(" LAMBDA")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("            EPOT")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("    dEPOTdLAMBDA")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '(" INTdEPOTdLAMBDA")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("     VISITS")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            call FileWriteBlank( this%iounit_thermoint )
+            ! Rest.
+            do j=0,pc%NBins-1
+              write( IOBuffer, '(I6)' ) j
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",E15.6)' ) pc%BinsEn(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLa(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              call FileWriteBlank( this%iounit_thermoint )
+            end do
+            t = t+1
+          end if 
+
         end do
-        t = t+1
+
+        ! Close final result file
+        call FileClose( this%iounit_thermoint)
       end if 
-
-    end do
-
-    ! Close final result file
-      call FileClose( this%iounit_thermoint)
-    end if 
+    end if
 
   end subroutine TEnsemble_ErrorsUpdate
 
@@ -13609,7 +13640,7 @@ endif
     ! Declare local variables
     type(TComponent), pointer :: pc
     integer                   :: i,j,t,stat,counter,k,Mindex,StepCorr
-    real(RK)                  :: dummy
+    real(RK)                  :: dummy, Factor
 
     if( RootProc ) then
 
@@ -13992,28 +14023,52 @@ endif
     end if
 
     ! Reading thi-file for ThermoInt
+    if (RootProc) then
+      t = this%NRealComponents+1
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
+          call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+          pc%CalcChemPot = .true.
+          !read empty line
+          read( this%iounit_thermoint, * )
+
+          ! read thermoint-profile
+          do j = 0,pc%NBins-1
+            read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsIntdEndLa(j), pc%BinsVisit(j)
+          end do
+          t = t+1
+        end if 
+      end do
+      call FileClose( this%iounit_thermoint )
+    end if
+
+#if MPI_VER > 0
     t = this%NRealComponents+1
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
     do i=1,this%NRealComponents
       pc => this%Component(i)
       if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-
-        call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
-        pc%CalcChemPot = .true.
-        !read empty line
-        read( this%iounit_thermoint, * )
-
-        ! read thermoint-profile
-        do j = 0,pc%NBins-1
-          read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsIntdEndLa(j), pc%BinsVisit(j)
-        end do
+        call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsIntdEndLa(0:pc%NBins-1), size( pc%BinsIntdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
         t = t+1
-      end if 
-    end do
-    
-    ! FOR MPI a cast will be needed here with BinsVisit/NProcs ? Gabor, Michael
-    call FileClose( this%iounit_thermoint )
+      endif
+    enddo
+#endif
+    t = this%NRealComponents+1
+    do i=1,this%NRealComponents
+      if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+        Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
+        call ScaleInteractionThermoInt(this, t, Factor)
+        t = t+1
+      endif
+    enddo
+
 
     if( SimulationType .eq. MolecularDynamics ) then
 
