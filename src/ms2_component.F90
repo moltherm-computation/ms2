@@ -952,11 +952,11 @@ contains
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
     case( ChemPotMethodThermoInt )
-	  call Destruct( this%SumChemPotV )
+      call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotThermoIntWidom )
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
-	end select
+    end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
