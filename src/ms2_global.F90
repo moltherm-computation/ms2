@@ -188,12 +188,8 @@ module ms2_global
   ! Extension of ThermoInt filename
   character(*), parameter :: ThermoIntFileExtension = '.thi'
 
-#if  TRANS == 1
-!TRANSPORT_start
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
-!TRANSPORT_END
-#endif
 
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
@@ -228,19 +224,14 @@ module ms2_global
   integer, parameter :: iounit_visual  = iounit_start + 9
   integer, parameter :: iounit_rdf     = iounit_start + 10
   integer, parameter :: iounit_thermoint = iounit_start + 11
-#if  TRANS == 1
   integer, parameter :: iounit_rescf     = iounit_start + 12
-#endif  
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_thermoint - iounit_result + 1
-#if  TRANS == 1
-  FilesPerEnsemble = FilesPerEnsemble + 1
-#endif
+  integer, parameter :: FilesPerEnsemble = iounit_rescf - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -344,16 +335,12 @@ module ms2_global
   character(*), parameter :: IdLambdaStepMax               = 'LambdaStepMax'
   character(*), parameter :: IdLambdaExponent              = 'LambdaExponent'
 
-#if  TRANS == 1
-  !TRANSPORT_start
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
   character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
   character(*), parameter :: IdCorrlength                  = 'Corrlength'
   character(*), parameter :: IdNStepcf                     = 'StepsCorrfun'
   character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
   character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
-!TRANSPORT_END
-#endif
 
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
