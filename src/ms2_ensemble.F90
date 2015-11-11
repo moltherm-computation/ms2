@@ -5210,7 +5210,7 @@ loop3:    do nc = 1, this%NComponents
         this%Component(i)%ChemPot2 = 0._RK
       end do
 
-    if( NVTEquilibration ) return
+    if( Equilibration ) return
 
     else
       ! Throw test particles
@@ -9824,20 +9824,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
         case( ChemPotMethodThermoInt )
-          currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
-          pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
+          if( .not. Equilibration )
+            currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
+            pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
 
-          currentBinsEn = GetEnergy( this, t, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
-          pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
-          pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+            currentBinsEn = GetEnergy( this, t, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+            pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+            pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
 
-          pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
-          do j = 1, pc%NBins-1
-            pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
-          end do
-          call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
-          call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
-          t=t+1
+            pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
+            do j = 1, pc%NBins-1
+              pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
+            end do
+            call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
+            call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
+            t=t+1
+          end if
         end select
       end if
     end do
