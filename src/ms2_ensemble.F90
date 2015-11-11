@@ -65,10 +65,11 @@ module ms2_ensemble
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
 
-#if  TRANS == 1
     ! I/O unit for result ACF
-    integer :: iounit_rescf   !TRANSPORT_thisline
-    logical :: Conductivity
+    integer :: iounit_rescf
+
+#if  TRANS == 1
+    logical :: Conductivity   !TRANSPORT_thisline
     logical :: EConductivity
     logical :: MolarEnthConduct
     logical :: Bulkviscosity
@@ -1644,16 +1645,13 @@ contains
 
     ! Set I/O unit numbers
     i = FilesPerEnsemble * this%EnsembleNumber
-    this%iounit_result = iounit_result + i
-    this%iounit_runave = iounit_runave + i
-    this%iounit_errors = iounit_errors + i
-    this%iounit_visual = iounit_visual + i
-    this%iounit_rdf = iounit_rdf + i
+    this%iounit_result    = iounit_result    + i
+    this%iounit_runave    = iounit_runave    + i
+    this%iounit_errors    = iounit_errors    + i
+    this%iounit_visual    = iounit_visual    + i
+    this%iounit_rdf       = iounit_rdf       + i
     this%iounit_thermoint = iounit_thermoint + i
-
-#if  TRANS == 1
-    this%iounit_rescf  = iounit_rescf  + i   !TRANSPORT_thisline
-#endif
+    this%iounit_rescf     = iounit_rescf     + i
 
     ! Calculate RDF VSchale 
     if (this%RCutoffLJ126LJ126 .eq. -1) then
@@ -2034,11 +2032,7 @@ contains
       end if
 
       if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        
-        if (SimulationType .ne. MonteCarlo) then
-          write( ErrorBuffer, '("Thermodynamic integration is for MC only")' )
-          call Error
-        end if
+
         ! LongRange Check
         do j=1,this%Component(i)%Molecule%NCharge
           q = q + this%Component(i)%Molecule%SiteCharge(j)%e
@@ -5184,7 +5178,7 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK)                  :: ChemPot, qsum
+    real(RK)                  :: ChemPot, qsum, ExpMinusBetaEnLaMin
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
     integer                   :: i, j, t
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
@@ -5209,30 +5203,29 @@ loop3:    do nc = 1, this%NComponents
         this%Component(i)%ChemPot1 = 0._RK
         this%Component(i)%ChemPot2 = 0._RK
       end do
+      return
+    end if
 
     if( Equilibration ) return
-
-    else
-      ! Throw test particles
-      do i = 1, this%NTestMax
-        do j = 1, 3
-          this%P0Test( i, j ) = tprnd( -.5_RK, .5_RK )
-        end do
-        do
-          qsum = 0._RK
-          do j = 1, 4
-            this%Q0Test(i, j) = tprnd( -1._RK, 1._RK )
-          end do
-          qsum = sum( this%Q0Test(i, :)**2 )
-          if( qsum <= 1._RK ) exit
-        end do
-#if ARCH == 3
-        this%Q0Test(i, :) = this%Q0Test(i, :) * rsqrt( qsum )
-#else
-        this%Q0Test(i, :) = this%Q0Test(i, :) / sqrt( qsum )
-#endif
+    ! Throw test particles
+    do i = 1, this%NTestMax
+      do j = 1, 3
+        this%P0Test( i, j ) = tprnd( -.5_RK, .5_RK )
       end do
-    end if
+      do
+        qsum = 0._RK
+        do j = 1, 4
+          this%Q0Test(i, j) = tprnd( -1._RK, 1._RK )
+        end do
+        qsum = sum( this%Q0Test(i, :)**2 )
+        if( qsum <= 1._RK ) exit
+      end do
+#if ARCH == 3
+      this%Q0Test(i, :) = this%Q0Test(i, :) * rsqrt( qsum )
+#else
+      this%Q0Test(i, :) = this%Q0Test(i, :) / sqrt( qsum )
+#endif
+    end do
 
 #if MPI_VER > 0
     tempComm = Communicator
@@ -5248,7 +5241,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
       ! Chemical potential by gradual insertion
       case( ChemPotMethodGradIns )
-        if( Equilibration) cycle componentLoop
         if( (((pc%GradInsInit .eq. 0) .or. (Step .gt. pc%GradInsInit)) .and. GradInsInitialization) .or. (pc%WFMethod .ne. WFMethodGuess)) cycle componentLoop
 
         ! Reset variables
@@ -5518,25 +5510,35 @@ loop2:        do nc = 1, this%NComponents
 
       case( ChemPotMethodThermoInt )
 
-          !if (Equilibration) cycle componentLoop
-          if (Step == 1) then
-            pc%BinsVisit(:)=0
-            pc%BinsEn(:)=0.0_RK
-            pc%BinsdEndLa(:)=0.0_RK
-            pc%BinsIntdEndLa(:)=0.0_RK
-            pc%CalcChemPot= .true.
-          end if
+        if (Step == 1) then
+          pc%BinsVisit(:)=0
+          pc%BinsEn(:)=0.0_RK
+          pc%BinsdEndLa(:)=0.0_RK
+          pc%BinsIntdEndLa(:)=0.0_RK
+          pc%CalcChemPot= .true.
+        end if
 
-          call ChangeLambda( this, t, i )
-          t=t+1
+        call ChangeLambda( this, t, i )
+        t=t+1
 
-          ! chemPot with LambdaMin by Widom
-          call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
-          do j = 1, this%NRealComponents
-            call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
-          end do
-          this%Component(i)%ExpMinusBetaEnLaMin = sum( exp( -( this%Component(i)%LaMin**this%Component(i)%LambdaExponent*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
+        ! chemPot with LambdaMin by Widom
+        call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
+        this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        do j = 1, this%NRealComponents
+          call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
+        end do
+        ExpMinusBetaEnLaMin = sum( exp( -( pc%LaMin**pc%LambdaExponent*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
+#if MPI_VER > 0
+        if ( SimulationType .eq. MolecularDynamics  ) then
+          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+          call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
+        else
+          pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+        endif
+#else
+        pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+#endif
         ! end of Widom for ThermoInt with LambdaMin
 
       case default
@@ -7304,7 +7306,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     type(TComponent), pointer  :: pc, pt
-    type(TMolecule), pointer   :: ptm
     type(TInteraction), pointer:: plj
     integer                    :: i, j, k, l, currentbin
     real(RK)                   :: Shield1, Shield2
@@ -7316,57 +7317,74 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Assign local variables
     pt => this%Component(nt)
     pc => this%Component(nc)
-    ptm => this%Component(nt)%Molecule
 
     ! Get old energy of fluctuating particle
-    EPotOld = GetEnergy( this, nt, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
-    currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
-    ChempotDelta=-pc%BinsIntdEndLa(currentbin)
+    if (SimulationType .ne. MolecularDynamics) then
+      EPotOld = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+      EPotOld = EPotOld + GetEnergy( this, nt, 1 )
+      currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
+      ChempotDelta=-pc%BinsIntdEndLa(currentbin)
 
-    ! Save states for the Ewald Summation and/or derivates
-    if (LongRange .eq. Ewald) then     ! Ewald Summation
-       ! Save the initial state
-       EFourier = this%UFourier
-       EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
+      ! Save states for the Ewald Summation and/or derivates
+      if (LongRange .eq. Ewald) then     ! Ewald Summation
+        ! Save the initial state
+        EFourier = this%UFourier
+        EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
 
-       if ( this%OptPressure ) then
-         EVirial  = this%EVirial
-       end if
-
-      call EwaldSelfTerm_Energy(this)
-    end if
-
-    ! Change state of lambda
-    LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
-
-    if (LambdaNew>=pc%LaMin .and. LambdaNew<pc%LaMax) then 
-      
-      currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
-      ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
-      ! Calculate energy of fluctuating particle
-      Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
-      EPotNew=Factor*EPotOld
-
-      ! Acceptance Criteria
-      EPotDeltaAll = EPotOld - EPotNew
-      if( rnd( 0._RK, 1._RK ) < exp( ( EPotDeltaAll + ChempotDelta) / this%Temperature ) ) then
-        ! Accept
-        ! Apply scaling factors
-        call ScaleInteractionThermoInt(this, nt, Factor)
-        call Mol2Atom( this )
-        !call Mol2Atom1( this%Component(nt), 1 )
-        call Energy( this, nt, 1, EPotNew )
-        call UpdateEnergy( this, nt, 1 )
-        pt%Lambda=LambdaNew
-      else
-        ! Reject
-        if (LongRange == Ewald) then
-          call EwaldSelfTerm_Energy(this)
-          call Energy( this, nt, 1, EPotNew )
+        if ( this%OptPressure ) then
+          EVirial  = this%EVirial
         end if
-      end if       ! Acceptance Criteria
 
-    end if !Lamba change
+        call EwaldSelfTerm_Energy(this)
+      end if
+
+      ! Change state of lambda
+      LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+
+      if (LambdaNew>=pc%LaMin .and. LambdaNew<pc%LaMax) then 
+        
+        currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
+        ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
+        ! Calculate energy of fluctuating particle
+        Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
+        EPotNew=Factor*EPotOld
+
+        ! Acceptance Criteria
+        EPotDeltaAll = EPotOld - EPotNew
+        if( rnd( 0._RK, 1._RK ) < exp( ( EPotDeltaAll + ChempotDelta) / this%Temperature ) ) then
+          ! Accept
+          ! Apply scaling factors
+          call ScaleInteractionThermoInt(this, nt, Factor)
+          call Mol2Atom( this )
+          !call Mol2Atom1( this%Component(nt), 1 )
+          call Energy( this, nt, 1, EPotNew )
+          call UpdateEnergy( this, nt, 1 )
+          pt%Lambda=LambdaNew
+        else
+          ! Reject
+          if (LongRange == Ewald) then
+            call EwaldSelfTerm_Energy(this)
+            call Energy( this, nt, 1, EPotNew )
+          end if
+        end if       ! Acceptance Criteria
+
+      end if !Lamba change
+
+    else ! MolecularDynamics
+
+      LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+      ! should be 1/10 of MC-stepwidth for equl distribution (esimation by Gabor and Michael)
+      if (LambdaNew<pc%LaMin) then
+        LambdaNew = pc%LaMin
+      elseif (LambdaNew>=pc%LaMax) then
+        LambdaNew = pc%LaMax - Zero
+      end if
+      Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
+      pt%Lambda=LambdaNew
+      call ScaleInteractionThermoInt(this, nt, Factor)
+      call Mol2Atom( this )
+
+    end if
 
   end subroutine TEnsemble_ChangeLambda
 
@@ -8957,8 +8975,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
-
     integer                   :: time_limit
+    real(RK)                   :: a1, a2 ! dummy arguments
 #if TRANS ==1
     integer                   :: NStepsCF
 #endif
@@ -9070,6 +9088,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Reset( this%Component(i)%SumHW_denom )
         case( ChemPotMethodThermoInt )
           call Reset( this%Component(i)%SumChemPotV )
+          call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumChemPotThermoIntWidom )
         end select
       end do
@@ -9828,7 +9847,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
 
-            currentBinsEn = GetEnergy( this, t, 1 ) + (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+            currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+            if (SimulationType .ne. MolecularDynamics ) then
+              currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 )
+            else
+              do j = 1, this%NRealComponents
+                call Force( this%Interaction( t, j ), currentBinsEn, a1, a2, this%BoxLength )
+              end do
+              ! Collect sums from all processes
+#if MPI_VER > 0
+              call MPI_Reduce( currentBinsEn, value, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+              currentBinsEn = value
+#endif
+            end if
             pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
             pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
 
@@ -9838,6 +9869,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
             call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
             call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
+            call Update( pc%SumChemPotVV, (pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction)) / this%Density )
             t=t+1
           end if
         end select
@@ -9865,7 +9897,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call Update( pc%SumHM,( pc%SumHW_counter%Average / pc%SumHW_denom%Average )&
 &                      - (this%SumEnthalpy%Average * this%NPart + ( (this%NDF + 2.0 * real( this%NPart, RK )) / 2.0)&
 &                      * this%RefTemperature) + 1.5 * this%RefTemperature  )
-           
+
+          case( ChemPotMethodThermoInt )
+            call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
+&                      - this%SumVolume%Average ) )
+            ! Michael Sch.: Update SumVW and SumHM for ThermoInt? SumVW correct like this?
+
           end select
         end if
       end do
@@ -13477,6 +13514,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RestartSave( pc%SumHW_denom )
       case( ChemPotMethodThermoInt )
         call RestartSave( pc%SumChemPotV )
+        call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
       end select
 
@@ -13809,6 +13847,7 @@ endif
 
       case( ChemPotMethodThermoInt )
         call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
       end select
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
