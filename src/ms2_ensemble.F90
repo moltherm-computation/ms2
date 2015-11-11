@@ -9824,7 +9824,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
         case( ChemPotMethodThermoInt )
-          if( .not. Equilibration )
+          if( .not. Equilibration ) then
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
 
