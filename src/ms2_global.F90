@@ -179,16 +179,13 @@ module ms2_global
   character(*), parameter :: RestartFileExtension = '.rst'
   
   ! Extension of RDF file 
-  
   character(*), parameter :: RDFFileExtension = '.rdf'
   
+  ! Extension of ThermoInt filename
+  character(*), parameter :: ThermoIntFileExtension = '.thi'
 
-#if  TRANS == 1
-!TRANSPORT_start
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
-!TRANSPORT_END
-#endif
 
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
@@ -211,30 +208,26 @@ module ms2_global
 #endif
 
   ! Define i/o unit numbers
-  integer, parameter :: iounit_log     = iounit_start + 0
-  integer, parameter :: iounit_config  = iounit_start + 1
-  integer, parameter :: iounit_params  = iounit_start + 2
-  integer, parameter :: iounit_potmod  = iounit_start + 3
-  integer, parameter :: iounit_normal  = iounit_start + 4
-  integer, parameter :: iounit_restart = iounit_start + 5
-  integer, parameter :: iounit_result  = iounit_start + 6
-  integer, parameter :: iounit_runave  = iounit_start + 7
-  integer, parameter :: iounit_errors  = iounit_start + 8
-#if  TRANS == 1
-  integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
-  integer, parameter :: iounit_visual  = iounit_start + 10
-  integer, parameter :: iounit_rdf     = iounit_start + 11
-#else
-  integer, parameter :: iounit_visual  = iounit_start + 9
-  integer, parameter :: iounit_rdf     = iounit_start + 10
-#endif
+  integer, parameter :: iounit_log       = iounit_start +  0
+  integer, parameter :: iounit_config    = iounit_start +  1
+  integer, parameter :: iounit_params    = iounit_start +  2
+  integer, parameter :: iounit_potmod    = iounit_start +  3
+  integer, parameter :: iounit_normal    = iounit_start +  4
+  integer, parameter :: iounit_restart   = iounit_start +  5
+  integer, parameter :: iounit_result    = iounit_start +  6
+  integer, parameter :: iounit_runave    = iounit_start +  7
+  integer, parameter :: iounit_errors    = iounit_start +  8
+  integer, parameter :: iounit_visual    = iounit_start +  9
+  integer, parameter :: iounit_rdf       = iounit_start + 10
+  integer, parameter :: iounit_thermoint = iounit_start + 11
+  integer, parameter :: iounit_rescf     = iounit_start + 12
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_rescf - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -331,6 +324,12 @@ module ms2_global
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
 
+  character(*), parameter :: IdLambdaMin                   = 'LambdaMin'
+  character(*), parameter :: IdLambdaMax                   = 'LambdaMax'
+  character(*), parameter :: IdNBins                       = 'NBins'
+  character(*), parameter :: IdLambdaStepMax               = 'LambdaStepMax'
+  character(*), parameter :: IdLambdaExponent              = 'LambdaExponent'
+
   character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
   character(*), parameter :: IdPrintIDF                    = 'printIDF'      ! print contributions to inramolecular energy
   character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
@@ -339,17 +338,12 @@ module ms2_global
   character(*), parameter :: IdScaleEl14                   = 'ScaleEl_14'    ! Scale 1-4 electrostatic interactions
   character(*), parameter :: IdScaleLJ14                   = 'ScaleLJ_14'    ! Scale 1-4 LJ interactions
 
-
-#if  TRANS == 1
-  !TRANSPORT_start
   character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
   character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
   character(*), parameter :: IdCorrlength                  = 'Corrlength'
   character(*), parameter :: IdNStepcf                     = 'StepsCorrfun'
   character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
   character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
-!TRANSPORT_END
-#endif
 
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
@@ -560,27 +554,16 @@ module ms2_global
   real(RK) :: ScaleLJ14  ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
 
   ! Type of method for chemical potential
-  integer, parameter :: ChemPotMethodNone    = 0
-  integer, parameter :: ChemPotMethodWidom   = 1
-  integer, parameter :: ChemPotMethodGradIns = 2
+  integer, parameter :: ChemPotMethodNone      = 0
+  integer, parameter :: ChemPotMethodWidom     = 1
+  integer, parameter :: ChemPotMethodGradIns   = 2
+  integer, parameter :: ChemPotMethodThermoInt = 3
 
   ! Type of method for weighting factors
   integer, parameter :: WFMethodNone   = 0
   integer, parameter :: WFMethodAuto   = 1
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
-
-#if  TRANS == 1
-!TRANSPORT_start
-  ! Correlation function status
-  character(80)      :: CorrfunModeString
-  integer, parameter :: inactive               = 0
-  integer, parameter :: active                 = 1
-  integer            :: CorrfunMode
-  real(RK)           :: TimeStepCorr
-  integer            :: NStepCorr
-!TRANSPORT_END
-#endif
 
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
@@ -681,28 +664,6 @@ module ms2_global
   
   !RDF
   real(RK) :: RDFRho, RDFRhoLocal
-
-#if  TRANS == 1
-!TRANSPORT_start
-  ! Maximum number of blocks CF
-  integer :: NBlocksMaxCF
-
-  ! Frequency of updating result file CF
-  integer :: BlockSizeCF
-
-  ! Maximum number of block sizes for error calculation CF
-  integer :: NBlockSizesMaxCF
-
-  ! Number of block sizes for error calculation CF
-  integer :: NBlockSizesCF
-
-  ! Current number of blocks CF
-  integer :: NBlocksCF
-
-  ! Total number of blocks CF; necessary for the restart
-  integer :: NBlocksRestartCF
-!TRANSPORT_END
-#endif
 
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000

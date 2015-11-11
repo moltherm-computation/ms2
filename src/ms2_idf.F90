@@ -289,7 +289,8 @@ end subroutine TIdfAngle_Construct
 
     ! Declare local variables
     integer           :: i
-    integer       :: stat
+    integer           :: stat
+    character(2)      :: integ
 
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
@@ -308,12 +309,17 @@ end subroutine TIdfAngle_Construct
       call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
     end if
 
-    call FileReadParameter( this%ForConst(1), iounit_potmod, IdDihedral_ForConst, .false. )
-    call FileReadParameter(this%gamma0(1), iounit_potmod, IdDihedral_gamma0,.false. )
+    call FileReadParameter( this%ForConst(1), iounit_potmod, IdDihedral_ForConst//'0', .false. )
+    call FileReadParameter(this%gamma0(1), iounit_potmod, IdDihedral_gamma0//'0',.false. )
     if (this%nmax > 0) then
       do i = 1,(this%nmax)
-        call FileReadParameter( this%ForConst(i+1), iounit_potmod, IdDihedral_ForConst, .false. )
-        call FileReadParameter(this%gamma0(i+1), iounit_potmod, IdDihedral_gamma0,.false. )
+        if (i < 10) then
+          write(integ,'(I1)') i
+        else
+          write(integ,'(I2)') i
+        end if
+        call FileReadParameter( this%ForConst(i+1), iounit_potmod, IdDihedral_ForConst//trim(integ), .false. )
+        call FileReadParameter(this%gamma0(i+1), iounit_potmod, IdDihedral_gamma0//trim(integ), .false. )
       end do
     end if
 

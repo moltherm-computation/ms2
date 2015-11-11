@@ -1560,10 +1560,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdLJx
     tdy => this%Site1%tdLJy
     tdz => this%Site1%tdLJz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -2016,14 +2016,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal
-    integer           :: N2
-    integer           :: i, j, k
+    integer           :: N2, nu1, nu2, unit
+    integer           :: i, j, k, jk
 
     ! Assign local variables
     N2 = this%Site2%NPart
     SigmaSquared = this%SigmaSquared
     Epsilon4 = this%Epsilon4
     RCutoffSquared = this%RCutoffSquaredScaled
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -2050,6 +2052,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
       ! Loop over test particles
 !$OMP DO
       do i = 1, this%Site1%NTest
+        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -2058,21 +2061,28 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PZi = PZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = RXij - anint( PXij )
-          RYij = RYij - anint( PYij )
-          RZij = RZij - anint( PZij )
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-          RijSquaredInv = SigmaSquared / RijSquared
-          Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = RXij - anint( PXij )
+            RYij = RYij - anint( PYij )
+            RZij = RZij - anint( PZij )
+            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquaredInv = SigmaSquared / RijSquared
+            Rij6Inv = RijSquaredInv**3
+            EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          end if
         end do loop1
         EPotTest(i) = EPotTest(i) + Epsilon4 * EPotLocal
       end do
@@ -3006,10 +3016,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdCx
     tdy => this%Site1%tdCy
     tdz => this%Site1%tdCz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -3637,7 +3647,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijInv, RijSquared
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, jk, i1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -3647,6 +3658,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -3664,6 +3677,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
    ! Loop over test particles
    do i = 1, i1
+     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -3677,37 +3691,41 @@ loop1:do k = 1, this%NInCutoff(unit)
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
+#endif
+
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            EPotLocal = EPotLocal + Epsilon * RijInv
           end if
-#endif
-
-#if ARCH == 3
-           RijInv = rsqrt( RijSquared )
-#else
-           RijInv = 1._RK / sqrt( RijSquared )
-#endif
-           EPotLocal = EPotLocal + Epsilon * RijInv
         end do loop1
 
 #if ARCH == 3
@@ -4456,10 +4474,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdCx
     tdy => this%Site1%tdCy
     tdz => this%Site1%tdCz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -4782,7 +4800,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, jk, i1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -4792,6 +4811,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -4812,6 +4833,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
    ! Loop over test particles
    do i = 1, i1
+     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -4824,39 +4846,43 @@ loop1:do k = 1, this%NInCutoff(unit)
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-          EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * CosTheta
+            RijSquaredInv = 1._RK / RijSquared
+            RijInv = sqrt( RijSquaredInv )
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+            EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * CosTheta
+          end if
         end do loop1
 
 #if ARCH == 3
@@ -5516,10 +5542,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdCx
     tdy => this%Site1%tdCy
     tdz => this%Site1%tdCz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
  
@@ -5837,7 +5863,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, jk, i1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -5847,6 +5874,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -5867,6 +5896,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
    ! Loop over test particles
    do i = 1, i1
+     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -5879,39 +5909,43 @@ loop1:do k = 1, this%NInCutoff(unit)
         hit = .false.
 #endif
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-          EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
+            RijSquaredInv = 1._RK / RijSquared
+            RijInv = sqrt( RijSquaredInv )
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+            EPotLocal  = EPotLocal + Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
+          end if
         end do loop1
 
 #if ARCH == 3
@@ -6549,10 +6583,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdDx
     tdy => this%Site1%tdDy
     tdz => this%Site1%tdDz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -6870,7 +6904,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, jk, i1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -6880,6 +6915,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -6900,6 +6937,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
     ! Loop over test particles
     do i = 1, i1
+      unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -6915,37 +6953,42 @@ loop1:do k = 1, this%NInCutoff(unit)
         hit = .false.
 #endif
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXi * ex + OYi * eY + OZi * eZ
-          EPotLocal = EPotLocal - Epsilon * RijSquaredInv * CosTheta
+            RijSquaredInv = 1._RK / RijSquared
+            RijInv = sqrt( RijSquaredInv )
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosTheta  = OXi * ex + OYi * eY + OZi * eZ
+            EPotLocal = EPotLocal - Epsilon * RijSquaredInv * CosTheta
+          end if
         end do loop1
 
 #if ARCH == 3
@@ -7822,10 +7865,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdDx
     tdy => this%Site1%tdDy
     tdz => this%Site1%tdDz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -8302,7 +8345,8 @@ loop2:  do j = j0, j1
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1, j1
+    integer           :: i, j, k, jk, i1, j1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -8314,6 +8358,8 @@ loop2:  do j = j0, j1
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
     RFConstant2 = 2._RK * this%RFConstant
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -8348,6 +8394,7 @@ loop2:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = 1, i1
+        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -8363,44 +8410,51 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
 #if ARCH == 3
-          RijInv = rsqrt( RijSquared )
+            RijInv = rsqrt( RijSquared )
 #else
-          RijInv = 1._RK / sqrt( RijSquared )
+            RijInv = 1._RK / sqrt( RijSquared )
 #endif
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          Tmp = CosGammaij - 3._RK * CosThetai * CosThetaj
-          Rij3Inv = Epsilon * RijInv**3
-          EPotLocal = EPotLocal + Rij3Inv * Tmp
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            Tmp = CosGammaij - 3._RK * CosThetai * CosThetaj
+            Rij3Inv = Epsilon * RijInv**3
+            EPotLocal = EPotLocal + Rij3Inv * Tmp
+          end if
         end do loop1
 
 #if ARCH == 3
@@ -9425,10 +9479,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdDx
     tdy => this%Site1%tdDy
     tdz => this%Site1%tdDz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -9920,7 +9974,8 @@ loop2:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1, j1
+    integer           :: i, j, k, jk, i1, j1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -9931,6 +9986,8 @@ loop2:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -9965,6 +10022,7 @@ loop2:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = 1, i1
+        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -9980,44 +10038,51 @@ loop2:  do j = j0, j1
 #endif
 !CDIR NODEP
 
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
+#endif
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
+
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            Rij4Inv = Epsilon / RijSquared**2
+            EPotLocal = EPotLocal + Rij4Inv * (2._RK * CosGammaij * CosThetaj - CosThetai * (5._RK * CosThetaj**2 - 1._RK))
           end if
-#endif
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
-
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
-          RijInv = 1._RK / sqrt( RijSquared )
-#endif
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          Rij4Inv = Epsilon / RijSquared**2
-          EPotLocal = EPotLocal + Rij4Inv * (2._RK * CosGammaij * CosThetaj - CosThetai * (5._RK * CosThetaj**2 - 1._RK))
         end do loop1
 
 #if ARCH == 3
@@ -10835,10 +10900,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdQx
     tdy => this%Site1%tdQy
     tdz => this%Site1%tdQz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
     ! Loop over molecules
@@ -11163,7 +11228,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, jk, i1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -11173,6 +11239,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -11193,6 +11261,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
     ! Loop over test particles
     do i = 1, i1
+      unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -11208,37 +11277,41 @@ loop1:do k = 1, this%NInCutoff(unit)
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          PXij = (PXij - anint( PXij )) * BoxLength
-          PYij = (PYij - anint( PYij )) * BoxLength
-          PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXi * ex + OYi * eY + OZi * eZ
-          EPotLocal = EPotLocal + Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
+            RijSquaredInv = 1._RK / RijSquared
+            RijInv = sqrt( RijSquaredInv )
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosTheta  = OXi * ex + OYi * eY + OZi * eZ
+            EPotLocal = EPotLocal + Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
+          end if
         end do loop1
 
 #if ARCH == 3
@@ -12123,10 +12196,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdQx
     tdy => this%Site1%tdQy
     tdz => this%Site1%tdQz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
     if( CutoffMode .eq. CenterofMass ) then
@@ -12620,7 +12693,8 @@ loop2:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1, j1
+    integer           :: i, j, k, jk, i1, j1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -12631,6 +12705,8 @@ loop2:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -12666,6 +12742,7 @@ loop2:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = 1, i1
+        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -12682,44 +12759,51 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
+#endif
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
+
+#if ARCH == 3
+            RijInv = rsqrt( RijSquared )
+#else
+            RijInv = 1._RK / sqrt( RijSquared )
+#endif
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            Rij4Inv = Epsilon / RijSquared**2
+            EPotLocal = EPotLocal + Rij4Inv * (CosThetaj * (5._RK * CosThetai**2 - 1._RK) - 2._RK * CosGammaij * CosThetai)
           end if
-#endif
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
-
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
-          RijInv = 1._RK / sqrt( RijSquared )
-#endif
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          Rij4Inv = Epsilon / RijSquared**2
-          EPotLocal = EPotLocal + Rij4Inv * (CosThetaj * (5._RK * CosThetai**2 - 1._RK) - 2._RK * CosGammaij * CosThetai)
         end do loop1
 
 #if ARCH == 3
@@ -13806,10 +13890,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdQx
     tdy => this%Site1%tdQy
     tdz => this%Site1%tdQz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -14337,7 +14421,8 @@ loop2:  do j = j0, j1
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, i1, j1
+    integer           :: i, j, k, jk, i1, j1
+    integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -14348,6 +14433,8 @@ loop2:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -14383,6 +14470,7 @@ loop2:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO 
       do i = 1, i1
+        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -14399,55 +14487,62 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
-          RXij = (RXij - anint( PXij )) * BoxLength
-          RYij = (RYij - anint( PYij )) * BoxLength
-          RZij = (RZij - anint( PZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+loop1:  do k = 1, this%NInCutoff(unit)
+          j = this%CutoffPartner(k, unit)
+          if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,nu2)==0) then
+              jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
+            else
+              jk = INT(j/nu2)+1
+            end if
+            RXij = RXi - RX2(jk)
+            RYij = RYi - RY2(jk)
+            RZij = RZi - RZ2(jk)
+            PXij = PXi - PX2(jk)
+            PYij = PYi - PY2(jk)
+            PZij = PZi - PZ2(jk)
+            RXij = (RXij - anint( PXij )) * BoxLength
+            RYij = (RYij - anint( PYij )) * BoxLength
+            RZij = (RZij - anint( PZij )) * BoxLength
+            RijSquared = RXij**2 + RYij**2 + RZij**2
 
 #if ARCH == 3
-          if( RijSquared <= RShieldSquared ) hit = .true.
+            if( RijSquared <= RShieldSquared ) hit = .true.
 #else
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            exit loop1
-          end if
+            if( RijSquared <= RShieldSquared ) then
+              EPotLocal = 1E33_RK
+              exit loop1
+            end if
 #endif
 
-          OXj = OX2(j)
-          OYj = OY2(j)
-          OZj = OZ2(j)
+            OXj = OX2(jk)
+            OYj = OY2(jk)
+            OZj = OZ2(jk)
 
 #if ARCH == 3
-          RijInv = rsqrt( RijSquared )
+            RijInv = rsqrt( RijSquared )
 #else
-          RijInv = 1._RK / sqrt( RijSquared )
+            RijInv = 1._RK / sqrt( RijSquared )
 #endif
 
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          CosThetaiSquared = CosThetai**2
-          CosThetajSquared = CosThetaj**2
-          Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
+            eX = RXij * RijInv
+            eY = RYij * RijInv
+            eZ = RZij * RijInv
+            CosThetai = OXi * eX + OYi * eY + OZi * eZ
+            CosThetaj = OXj * eX + OYj * eY + OZj * eZ
+            CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
+            CosThetaiSquared = CosThetai**2
+            CosThetajSquared = CosThetaj**2
+            Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
 
 #if ARCH == 1
-          Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
+            Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
 #else
-          Rij5Inv = Epsilon * RijInv**5
+            Rij5Inv = Epsilon * RijInv**5
 #endif
-          EPotLocal = EPotLocal + Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&                     - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2)
+            EPotLocal = EPotLocal + Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+  &                     - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2)
+          end if
         end do loop1
 
 #if ARCH == 3

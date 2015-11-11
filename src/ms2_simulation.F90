@@ -394,7 +394,7 @@ contains
       if( SimulationType .eq. MolecularDynamics ) then
 
         ! Type of integrator
-        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "GEAR" )
+        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "LeapFrog" )
         select case( str )
 
         case( 'GEAR', 'Gear', 'gear' )
@@ -1265,11 +1265,9 @@ contains
            pc => this%Ensemble(j)%Component(i)
            pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
         end do
-        
-        ! Recalculate Energies to avoid energy artefacts 
-        call Mol2Unit( this%Ensemble(j) )
-        call Unit2Atom( this%Ensemble(j) )
 
+        ! Recalculate Energies to avoid energy artefacts 
+        call Unit2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
@@ -1625,8 +1623,6 @@ eqloop: do
                  call MPI_Bcast( this%Ensemble(j)%Component(i)%P0(:, :, :), size( this%Ensemble(j)%Component(i)%P0 ), &
 &                     MPI_RK, NRootProc, Communicator, ierror )
                  if( this%Ensemble(j)%Component(i)%Molecule%isElongated ) then
-                    call MPI_Bcast( this%Ensemble(j)%Component(i)%Qm0(:, :), size( this%Ensemble(j)%Component(i)%Qm0 ), &
-&                        MPI_RK, NRootProc, Communicator, ierror )
                     call MPI_Bcast( this%Ensemble(j)%Component(i)%Q0(:, :, :), size( this%Ensemble(j)%Component(i)%Q0 ), &
 &                        MPI_RK, NRootProc, Communicator, ierror )
                  endif 

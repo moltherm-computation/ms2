@@ -849,7 +849,7 @@ contains
         write( IOBuffer, '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
         call LogWrite
-        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
 
@@ -858,7 +858,7 @@ contains
         write( IOBuffer, '(T2,A," wtime   root diff:",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(1)
         call LogWrite
-        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
+        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       end if

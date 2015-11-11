@@ -90,7 +90,7 @@ module ms2_interaction
     real(RK), pointer :: tRFX2(:,:), tRFY2(:,:), tRFZ2(:,:)
 
     ! Center of mass positions of test particles
-    real(RK), pointer :: PmX1Test(:), PmY1Test(:), PmZ1Test(:)
+    real(RK), pointer :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
 
     ! Total dipole moments of test particles for reaction field
     real(RK), pointer :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
@@ -374,18 +374,18 @@ contains
 
     ! Set center of mass positions of test particles
     if( this%NTest1 > 0 ) then
-      this%PmX1Test => Component1%Pm0Test(:, 1)
-      this%PmY1Test => Component1%Pm0Test(:, 2)
-      this%PmZ1Test => Component1%Pm0Test(:, 3)
+      this%PX1Test => Component1%P0Test(:,1,:)
+      this%PY1Test => Component1%P0Test(:,2,:)
+      this%PZ1Test => Component1%P0Test(:,3,:)
 
       ! Total dipole moments of test particles for reaction field
       this%MueX1Test => Component1%MueXTest(:,:)
       this%MueY1Test => Component1%MueYTest(:,:)
       this%MueZ1Test => Component1%MueZTest(:,:)
     else
-      nullify( this%PmX1Test )
-      nullify( this%PmY1Test )
-      nullify( this%PmZ1Test )
+      nullify( this%PX1Test )
+      nullify( this%PY1Test )
+      nullify( this%PZ1Test )
       nullify( this%MueX1Test )
       nullify( this%MueY1Test )
       nullify( this%MueZ1Test )
@@ -1593,7 +1593,6 @@ contains
     real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: EPotLocal
-    real(RK)          :: EPotLocalIntra, EPotLocalInter
     real(RK)          :: muexj, mueyj, muezj
     integer           :: i, j, k
     integer           :: u,u2,nu1,nu2
@@ -1602,6 +1601,7 @@ contains
 
     intra = .false.
     nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
@@ -1665,10 +1665,7 @@ contains
 
       do i = 1, this%NTest1
         do u = 1, this%NUnit1
-          nu2 = 1
           EPotLocal = 0._RK
-          EPotLocalInter = 0._RK
-          EPotLocalIntra = 0._RK
           iu = (i-1)*nu1+u ! unit's number
           mueXi = MueX1(i, u)    ! mue for unit  u of i-th molecule
           mueYi = MueY1(i, u)
@@ -1687,11 +1684,6 @@ contains
             mueYj = MueY2(ju, u2)
             mueZj = MueZ2(ju, u2)
             EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
-            if (intra) then
-              EPotLocalIntra = EPotLocalIntra + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
-            else
-              EPotLocalInter = EPotLocalInter + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
-            end if
           end do
           EPotTest(i) = EPotTest(i) + this%RFConst2 * EPotLocal
          end do
@@ -5795,6 +5787,7 @@ end subroutine TInteraction_Energy
 
     ! Declare arguments
     type(TInteraction)  :: this
+    integer, intent(in) :: np
     integer, intent(in) :: nu
 
     ! Declare local variables
@@ -5802,7 +5795,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff, np, k, NUnit2
+    integer           :: j, NInCutoff, k, NUnit2
     integer           :: nup
 
     ! Set cutoff radius
@@ -5934,19 +5927,22 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
-    real(RK)          :: RCutoff
-    integer           :: i, j, NInCutoff, k
+    real(RK)          :: RCutoffSquaredScaled
+    integer           :: i, j, NInCutoff, k, l, m, n
 
     ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
+    RCutoffSquaredScaled = this%RCutoffSquaredScaled
+
+    ! Assign local variables
+    this%NInCutoff(:) = 0
 
     ! Assign local pointers
-    PX1 => this%PmX1Test
-    PY1 => this%PmY1Test
-    PZ1 => this%PmZ1Test
+    PX1 => this%PX1Test
+    PY1 => this%PY1Test
+    PZ1 => this%PZ1Test
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
@@ -5954,32 +5950,37 @@ end subroutine TInteraction_Energy
 !$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere
 !$OMP DO
-    do i = 1, this%NTest1
-      PXi = PX1(i)
-      PYi = PY1(i)
-      PZi = PZ1(i)
-      NInCutoff = 0
+    do k = 1, this%NUnit1
+      do i = 1, this%NTest1
+        m = (i-1)*this%NUnit1+k
+        PXi = PX1(i,k)
+        PYi = PY1(i,k)
+        PZi = PZ1(i,k)
+        NInCutoff = 0
 
-      do k = 1, this%NUnit2
-        do j = 1, this%NPart2
-          PXij = PXi - PX2(j,k)
-          PYij = PYi - PY2(j,k)
-          PZij = PZi - PZ2(j,k)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+        do l = 1, this%NUnit2
+          do j = 1, this%NPart2
+            n = (j-1)*this%NUnit2+l
+            PXij = PXi - PX2(j,l)
+            PYij = PYi - PY2(j,l)
+            PZij = PZi - PZ2(j,l)
+            PXij = PXij - anint( PXij )
+            PYij = PYij - anint( PYij )
+            PZij = PZij - anint( PZij )
+            RijSquared = PXij**2 + PYij**2 + PZij**2
 
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
+            if( RijSquared < RCutoffSquaredScaled ) then
+              NInCutoff = NInCutoff + 1
+              this%CutoffPartner(NInCutoff, m) = n
+            end if
+          end do
         end do
+        this%NInCutoff(m) = NInCutoff
       end do
-      this%NInCutoff(i) = NInCutoff
     end do
 !$OMP END DO
 !$OMP END PARALLEL
   end subroutine TInteraction_CalcPartnersTest
+
 
 end module ms2_interaction
