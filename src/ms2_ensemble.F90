@@ -5540,42 +5540,39 @@ loop5:    do nc = 1, this%NComponents
         this%Component(i)%ChemPot1 = 0._RK
         this%Component(i)%ChemPot2 = 0._RK
       end do
-      if( NVTEquilibration ) return
-
-    else
-
-      ! Throw test particles
-      do i = 1, this%NComponents
-        if (this%Component(i)%NTest > 0) then
-          pc => this%Component(i)
-          do j = 1, this%NTestMax
-            do t = 1, 3
-              rm(t) = tprnd( -.5_RK, .5_RK )
-            end do
-            selected = rnd( pc%NPart )
-            do r = 1, pc%Molecule%NUnit
-              pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
-            end do
-            rm(:) = 0._RK
-            do r = 1, pc%Molecule%NUnit
-              rm(1:3) = rm(1:3) + pc%Molecule%Unit(r)%Mass*pc%P0(selected,1:3,r)
-            end do
-            rm(:) = rm(:)/pc%Molecule%Mass
-            do r = 1, pc%Molecule%NUnit
-              pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - rm(1:3)
-            end do
-
-            pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
-            do t = 1, 3
-              rm(t) = tprnd( -1._RK, 1._RK )
-            end do
-            call RotateTest( pc, j, rm)
-            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
-          end do
-        end if
-      end do
-
+      return
     end if
+
+    ! Throw test particles
+    do i = 1, this%NComponents
+      if (this%Component(i)%NTest > 0) then
+        pc => this%Component(i)
+        do j = 1, this%NTestMax
+          do t = 1, 3
+            rm(t) = tprnd( -.5_RK, .5_RK )
+          end do
+          selected = rnd( pc%NPart )
+          do r = 1, pc%Molecule%NUnit
+            pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
+          end do
+          rm(:) = 0._RK
+          do r = 1, pc%Molecule%NUnit
+            rm(1:3) = rm(1:3) + pc%Molecule%Unit(r)%Mass*pc%P0(selected,1:3,r)
+          end do
+          rm(:) = rm(:)/pc%Molecule%Mass
+          do r = 1, pc%Molecule%NUnit
+            pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - rm(1:3)
+          end do
+
+          pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
+          do t = 1, 3
+            rm(t) = tprnd( -1._RK, 1._RK )
+          end do
+          call RotateTest( pc, j, rm)
+          call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
+        end do
+      end if
+    end do
 
 #if MPI_VER > 0
     tempComm = Communicator
@@ -5592,7 +5589,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
       ! Chemical potential by gradual insertion
       case( ChemPotMethodGradIns )
-        if( Equilibration) cycle componentLoop
         if( (((pc%GradInsInit .eq. 0) .or. (Step .gt. pc%GradInsInit)) .and. GradInsInitialization) .or. (pc%WFMethod .ne. WFMethodGuess)) cycle componentLoop
 
         ! Reset variables
@@ -5907,7 +5903,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         ExpMinusBetaEnLaMin = sum( exp( -( pc%LaMin**pc%LambdaExponent*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 #if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        if ( SimulationType .eq. MolecularDynamics ) then
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
           call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
@@ -6207,7 +6203,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n, nu
+    integer                     :: n, nu, nup
     integer                     :: i
 
     ! Initialize new energy
@@ -6221,7 +6217,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Energy( pi, np, nu, this%BoxLength )
           if ( (nc .eq. i) .and. UseIntDegFreed ) then
             call IntraEnergy( pi, np, nu, this%BoxLength )
-            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(1:n) ) + sum(pi%EPot1Angle) + sum(pi%EPot1To)
+            nup = (np-1)*this%Component(nc)%Molecule%NUnit
+            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) ) &
+&                             + sum(pi%EPot1Angle) + sum(pi%EPot1To)
           end if
           ! Calculate new energy
           EPotNew = EPotNew + sum( pi%EPot1(1:n) )  !includes Bond energies
@@ -8715,9 +8713,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                   :: EPotOld, EPotNew
     real(RK)                   :: EPotDeltaAll
     real(RK)                   :: EFourier, EVirial
-#if MPI_VER > 0
-    real(RK)                   :: EPotMPI
-#endif
 
     ! Assign local variables
     pt => this%Component(nt)
@@ -8726,19 +8721,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Get old energy of fluctuating particle
     if (SimulationType .ne. MolecularDynamics ) then
       EPotOld = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
-!     if (SimulationType .eq. MonteCarlo ) then
-#if MPI_VER > 0
-      if (Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this, nt, 1 ), EPotMPI, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-        EPotOld = EPotOld + EPotMPI
-        call MPI_Allreduce( GetEnergyIntra( this, nt, 1 ), EPotMPI, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-        EPotOld = EPotOld - EPotMPI
-      else
-        EPotOld = EPotOld + GetEnergy( this, nt, 1 ) - GetEnergyIntra( this, nt, 1 )
-      end if
-#else
       EPotOld = EPotOld + GetEnergy( this, nt, 1 ) - GetEnergyIntra( this, nt, 1 )
-#endif
 
       currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
       ChempotDelta=-pc%BinsIntdEndLa(currentbin)
@@ -8793,8 +8776,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
       if (LambdaNew<pc%LaMin) then
         LambdaNew = pc%LaMin
-      elseif (LambdaNew>pc%LaMax) then
-        LambdaNew = pc%LaMax
+      elseif (LambdaNew>=pc%LaMax) then
+        LambdaNew = pc%LaMax - Zero
       end if
       Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
       pt%Lambda=LambdaNew
@@ -10551,9 +10534,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     integer                   :: time_limit
     real(RK)                   :: a1, a2, a3, b1, b2, b3, c1, c2, c3, d1 ! dummy arguments
-#if MPI_VER > 0
-    real(RK)                   :: EPotMPI
-#endif
 #if TRANS ==1
     integer                   :: NStepsCF
 #endif
@@ -11506,46 +11486,36 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
         case( ChemPotMethodThermoInt )
-          currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
-          if ( currentbin .eq. pc%NBins ) currentbin = currentbin - 1
-          pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
+          if (.not. Equilibration) then
+            currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
+            pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
 
-          currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
-          if (SimulationType .ne. MolecularDynamics ) then
-#if MPI_VER > 0
-            if (Equilibration .and. CommonEqui) then
-              call MPI_Allreduce( GetEnergy( this, t, 1 ), EPotMPI, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-              currentBinsEn = currentBinsEn + EPotMPI
-              call MPI_Allreduce( GetEnergyIntra( this, t, 1 ), EPotMPI, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-              currentBinsEn = currentBinsEn - EPotMPI
-            else
+            currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+            if (SimulationType .ne. MolecularDynamics ) then
               currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 ) - GetEnergyIntra( this, t, 1 )
-            end if
-#else
-            currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 ) - GetEnergyIntra( this, t, 1 )
-#endif
-          else
-            do j = 1, this%NRealComponents
-              call Force( this%Interaction( t, j ),  d1, a1, a2, a3,  &
-&                         b1, b2, b3, currentBinsEn, c1, c2, c3, this%BoxLength )
-            end do
-            ! Collect sums from all processes
+            else
+              do j = 1, this%NRealComponents
+                call Force( this%Interaction( t, j ),  d1, a1, a2, a3,  &
+  &                         b1, b2, b3, currentBinsEn, c1, c2, c3, this%BoxLength )
+              end do
+              ! Collect sums from all processes
 #if MPI_VER > 0
-            call MPI_Reduce( currentBinsEn, EPotMPI, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-            currentBinsEn = EPotMPI
+              call MPI_Reduce( currentBinsEn, value, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+              currentBinsEn = value
 #endif
             end if
-          pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
-          pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+            pc%BinsEn(currentbin)     = (                  currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+            pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
 
-          pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
-          do j = 1, pc%NBins-1
-            pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
-          end do
-          call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
-          call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
-          call Update( pc%SumChemPotVV, (pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction)) / this%Density )
-          t=t+1
+            pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
+            do j = 1, pc%NBins-1
+              pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
+            end do
+            call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
+            call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
+            call Update( pc%SumChemPotVV, (pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction)) / this%Density )
+            t=t+1
+          end if
         end select
       end if
     end do
