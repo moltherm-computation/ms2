@@ -582,7 +582,7 @@ module ms2_global
   real(RK), parameter :: DispMolTranLimit = 0.150_RK
   real(RK), parameter :: DispMolRotStart  = 0.050_RK
   real(RK), parameter :: DispMolRotLimit  = 0.150_RK
-  real(RK), parameter :: DispVolStart  = 0.010_RK !was also 0.01 in rigid trunk version
+  real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
   integer,  parameter :: TransferRateLimit = 50
 

@@ -1632,7 +1632,7 @@ contains
         ! Set initial values of maximum allowed MC displacements
         this%DispVol = DispVolStart
         do i = 1, this%NRealComponents
-          if ( .not. UseIntDegFreed ) then
+          if (this%Component(i)%Molecule%NUnit .eq. 1) then
             this%Component(i)%DispTran = DispMolTranStart
             this%Component(i)%DispRot = DispMolRotStart
           else
@@ -4226,7 +4226,7 @@ loop3:  do nc = 1, this%NComponents
         np = int((s-r)/2+1)
 
         ! Move or Rotate
-        if ( this%Component(nc)%Molecule%isElongated ) then
+        if ( this%Component(nc)%Molecule%NUnit > 1 ) then
           if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
             if( mod( s - r, 2 ) .eq. 0 ) then
               call Move_NVE( this, nc, np )
@@ -4240,12 +4240,6 @@ loop3:  do nc = 1, this%NComponents
               call Rotate( this, nc, np )
             end if
           endif
-        else
-          if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
-            call Move_NVE( this, nc, np )
-          else
-            call Move( this, nc, np )
-          end if
         end if
 
       end do
@@ -7451,7 +7445,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
     pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
 
-    ! Convert molecular coordinates to atom positions
+    ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
 #ifdef SPME
@@ -8040,7 +8034,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       return
     end if
 
-    ! Convert molecular coordinates to atom positions
+    ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
 #ifdef SPME
@@ -10129,34 +10123,49 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       AccRateTran = real(pc%NMoveSuccesses) / real(pc%NMoveAttempts)
       AccRateRot = real(pc%NRotateSuccesses) / real(pc%NRotateAttempts)
 
-      ! Update translational displacement
-      if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranLimit )) then
-        pc%DispTran = pc%DispTran * 1.05_RK
+      if (pc%Molecule%NUnit .eq. 1) then ! only one type of moves - molecular, no unit differentiation
+        ! Update translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispMolTranLimit )) then
+          pc%DispTran = pc%DispTran * 1.05_RK
+        else if( AccRateTran .lt. AccLowerLimit ) then
+          pc%DispTran = pc%DispTran * .95_RK
+        end if
 
-      else if( AccRateTran .lt. AccLowerLimit ) then
-        pc%DispTran = pc%DispTran * .95_RK
-      end if
+        ! Update rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotLimit )) then
+          pc%DispRot = pc%DispRot * 1.05_RK
+        else if( AccRateRot .lt. AccLowerLimit ) then
+          pc%DispRot = pc%DispRot * 0.95_RK
+        end if
 
-      ! Update rotational displacement
-      if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotLimit )) then
-        pc%DispRot = pc%DispRot * 1.05_RK
+      else
+        ! Update translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranLimit )) then
+          pc%DispTran = pc%DispTran * 1.05_RK
+        else if( AccRateTran .lt. AccLowerLimit ) then
+          pc%DispTran = pc%DispTran * .95_RK
+        end if
 
-      else if( AccRateRot .lt. AccLowerLimit ) then
-        pc%DispRot = pc%DispRot * 0.95_RK
-      end if
+        ! Update rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotLimit )) then
+          pc%DispRot = pc%DispRot * 1.05_RK
+        else if( AccRateRot .lt. AccLowerLimit ) then
+          pc%DispRot = pc%DispRot * 0.95_RK
+        end if
 
-      ! Update Displacements for entire molecule
-      if ( UseIntDegFreed ) then
+        ! Update Displacements for entire molecule
         AccRateTran = real(pc%NMoveMolSuccesses) / real(pc%NMoveMolAttempts)
         AccRateRot = real(pc%NRotateMolSuccesses) / real(pc%NRotateMolAttempts)
-        ! Update translational displacement
+
+        ! Update molecular translational displacement
         if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispMolTran .lt. DispMolTranLimit )) then
           pc%DispMolTran = pc%DispMolTran * 1.05_RK
         else if( AccRateTran .lt. AccLowerLimit ) then
           pc%DispMolTran = pc%DispMolTran * .95_RK
         end if
-        ! Update rotational displacement
-        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispRotLimit )) then
+
+        ! Update molecular rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispMolRotLimit )) then
           pc%DispMolRot = pc%DispMolRot * 1.05_RK
         else if( AccRateRot .lt. AccLowerLimit ) then
           pc%DispMolRot = pc%DispMolRot * 0.95_RK
