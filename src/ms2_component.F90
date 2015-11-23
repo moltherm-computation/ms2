@@ -3662,7 +3662,7 @@ contains
     real(RK), intent(in), optional :: q(4)
 
     ! Test boundaries of particle arrays
-    if( this%NPart > this%NPartMax ) then
+    if( this%NPart >= this%NPartMax ) then
       tooManyParticles = .true.
       return
     end if

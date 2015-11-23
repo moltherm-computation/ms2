@@ -91,7 +91,7 @@ module ms2_interaction
     integer :: NPartMax
 
     ! Numbers of particles
-    integer, pointer :: NPart1, NPart2
+    integer, pointer :: NPart1, NPart2, TempMax2
 #if MPI_VER > 0
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
@@ -248,6 +248,7 @@ contains
     ! Set number of particles
     this%NPart1 => Component1%NPart
     this%NPart2 => Component2%NPart
+    this%TempMax2 => Component2%NPartMax
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
 #if MPI_VER > 0
     this%NPart10 => Component1%NPart0
@@ -1359,7 +1360,7 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK) :: EPot(this%NPart2)
+    real(RK) :: EPot(this%TempMax2)
     real(RK), pointer :: Virial(:)
     real(RK), pointer :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
@@ -2948,7 +2949,6 @@ contains
       end do
 
     end if
-
     this%EPot1 = EPot
 end subroutine TInteraction_Energy
 
