@@ -91,7 +91,7 @@ module ms2_interaction
     integer :: NPartMax
 
     ! Numbers of particles
-    integer, pointer :: NPart1, NPart2, TempMax2
+    integer, pointer :: NPart1, NPart2
 #if MPI_VER > 0
     integer, pointer :: NPart10, NPart12
     integer, pointer :: NPart20, NPart22
@@ -248,7 +248,6 @@ contains
     ! Set number of particles
     this%NPart1 => Component1%NPart
     this%NPart2 => Component2%NPart
-    this%TempMax2 => Component2%NPartMax
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
 #if MPI_VER > 0
     this%NPart10 => Component1%NPart0
@@ -1360,7 +1359,7 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK) :: EPot(this%TempMax2)
+    real(RK), pointer :: EPot(:)
     real(RK), pointer :: Virial(:)
     real(RK), pointer :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
@@ -1398,11 +1397,10 @@ contains
     integer           :: s1, s2, j, k
     logical           :: OptPressure
 
-    this%EPot1(:)=0._RK
-
     ! Zero energy
-    EPot(:)= 0._RK
-
+    this%EPot1(:)=0._RK
+    EPot => this%EPot1
+    
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this, np )
