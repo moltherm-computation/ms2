@@ -3662,7 +3662,12 @@ contains
     real(RK), intent(in), optional :: q(4)
 
     ! Test boundaries of particle arrays
-    if( this%NPart >= this%NPartMax ) then
+    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
+      tooManyParticles = .true.
+      return
+    end if
+
+    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeGE) then
       tooManyParticles = .true.
       return
     end if
