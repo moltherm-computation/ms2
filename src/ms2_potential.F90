@@ -1450,11 +1450,14 @@ loop2:  do j = j0, j1
 #ifdef ABL
     real(RK)          :: dr2Abl
 #endif
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
+!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1 ) &
+!$OMP PRIVATE(SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 #if MPI_VER > 0
@@ -1524,9 +1527,6 @@ loop2:  do j = j0, j1
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     
     if (intra14) then
        coeff = this%ScaleLJ14
@@ -2403,7 +2403,7 @@ loop2:do j = 1, N
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE (i0) &
 #endif
-!$OMP FIRSTPRIVATE(i1) &
+!$OMP PRIVATE(i1) &
 !$OMP PRIVATE (Plen2,sitecorr) &
 !$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2649,7 +2649,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE ( i0) &
 #endif
-!$OMP FIRSTPRIVATE (i1, i2) &
+!$OMP PRIVATE (i1, i2) &
 !$OMP PRIVATE ( approx, Fij,KappaRij,Rij2) &
 !$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
 !$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2923,9 +2923,12 @@ loop1:do k = 1, this%NInCutoff(unit)
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE(  FX1, FY1, FZ1 ) &
 !$OMP PRIVATE(Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2983,9 +2986,6 @@ loop1:do k = 1, this%NInCutoff(unit)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -3358,10 +3358,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     !TRANSPORT_END
 #endif
  
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE(  FX1, FY1, FZ1) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -3418,9 +3421,6 @@ loop1:do k = 1, this%NInCutoff(unit)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -5131,9 +5131,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: i0
 #endif
 
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
+!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
 !$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -5194,9 +5197,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
 
     if (intra14) then
       coeff = this%ScaleEl14 !Scale 1,4 El interactions
@@ -5437,9 +5437,12 @@ loop1:do k = 1, this%NInCutoff(unit)
     integer           :: i0
 #endif
 
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2, TX2, TY2, TZ2) &
+!$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
 !$OMP PRIVATE ( Plen2, PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE (   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -5509,9 +5512,6 @@ loop1:do k = 1, this%NInCutoff(unit)
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
 
     if (intra14) then
       coeff = this%ScaleEl14 !Scale 1,4 El interactions
@@ -13228,7 +13228,7 @@ loop2:do j = 1, j1
 #endif
 
 !$OMP PARALLEL &
-!$OMP FIRSTPRIVATE (i, j, k, i1, j0, j1) &
+!$OMP PRIVATE (i, j, k, i1, j0, j1) &
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
 #endif

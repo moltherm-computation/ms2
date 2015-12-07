@@ -5393,7 +5393,7 @@ end subroutine TInteraction_Energy
     N2 = this%NPart2
     NU2 = this%NUnit2
 
-!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, N2, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
     ! Assign local pointers
     PX1 => this%PX1
     PY1 => this%PY1
