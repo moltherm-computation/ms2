@@ -5475,14 +5475,14 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
         ! partial molar enthalpy
-       HW_H_local = this%EPot + ( (this%NDF / (2.0 * real( this%NPart, RK )))  * this%RefTemperature + this%RefPressure / this%Density ) * real( this%NPart, RK )
+       HW_H_local = this%EPot + ( this%RefPressure / this%Density ) * real( this%NPart, RK )
        HW_V_local = (1.0 / this%Density) * this%NPart
        HW_denom_local = 0
        HW_counter_local = 0
 
        do j=1, pc%NTest 
           HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + this%EPotTest(j) ) * exp( - this%EPotTest(j) / this%RefTemperature )
-          HW_denom_local = HW_denom_local + exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_denom_local = HW_denom_local + HW_V_local * exp( - this%EPotTest(j) / this%RefTemperature )
        end do
 
        HW_counter_local = HW_counter_local / pc%NTest
@@ -9896,9 +9896,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                      - this%SumVolume%Average ) )
             
           ! partial molar enthalpy
-            call Update( pc%SumHM,( pc%SumHW_counter%Average / pc%SumHW_denom%Average )&
-&                      - (this%SumEnthalpy%Average * this%NPart + ( (this%NDF + 2.0 * real( this%NPart, RK )) / 2.0)&
-&                      * this%RefTemperature) + 1.5 * this%RefTemperature  )
+            call Update( pc%SumHM, pc%SumHW_counter%Average / pc%SumHW_denom%Average &
+&                      - this%SumEnthalpy%Average*this%NPart  - this%RefTemperature)
 
           case( ChemPotMethodThermoInt )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotThermoIntWidomV%Average / pc%SumChemPotThermoIntWidom%Average &
