@@ -10238,16 +10238,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                       write( IOBuffer, '(" ",A10)' ) '----------'
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
                     else      
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
                       call FileWriteNoAdvance_parallel( this%iounit_result )
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
                     endif
   
                   case( ChemPotMethodWidom )
-                    write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                    write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                    write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                   case( ChemPotMethodThermoInt )
@@ -10395,9 +10395,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodWidom )
-                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
                   call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
@@ -10550,9 +10550,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodWidom )
-                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
                   call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
