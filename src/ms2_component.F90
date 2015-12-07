@@ -208,7 +208,7 @@ module ms2_component
     integer           :: NBins, LambdaExponent
     integer, pointer  :: BinsVisit(:)
     real(RK)          :: Lambda, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
-    real(RK), pointer :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsIntVW(:)
+    real(RK), pointer :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
 
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
@@ -917,6 +917,8 @@ contains
       call Construct( this%SumChemPotVV, .false. )
       call Construct( this%SumChemPotThermoIntWidom, .false. )
       call Construct( this%SumChemPotThermoIntWidomV, .false. )
+      call Construct( this%SumHW_counter, .false. )
+      call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
     end select
@@ -959,6 +961,8 @@ contains
       call Destruct( this%SumChemPotVV )
       call Destruct( this%SumChemPotThermoIntWidom )
       call Destruct( this%SumChemPotThermoIntWidomV )
+      call Destruct( this%SumHW_counter )
+      call Destruct( this%SumHW_denom )
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
     end select
@@ -1065,7 +1069,9 @@ contains
     nullify( this%BinsdEndLa )
     nullify( this%BinsIntdEndLa )
     nullify( this%BinsdEndLaV )
+    nullify( this%BinsdEndLaH )
     nullify( this%BinsIntVW )
+    nullify( this%BinsIntHW )
 
     ! Transport
     allocate( this%KinETran( np, 3 ), STAT = stat )
@@ -1390,8 +1396,12 @@ contains
       call AllocationError( stat, 'IntdEndLa', this%NBins )
       allocate( this%BinsdEndLaV( 0: this%NBins-1 ), STAT = stat )
       call AllocationError( stat, 'dEndLaV', this%NBins )
+      allocate( this%BinsdEndLaH( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'dEndLaH', this%NBins )
       allocate( this%BinsIntVW( 0: this%NBins-1 ), STAT = stat )
       call AllocationError( stat, 'IntVW', this%NBins )
+      allocate( this%BinsIntHW( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'IntHW', this%NBins )
     end if
 
     ! Update log file
@@ -1665,8 +1675,14 @@ contains
       if( associated( this%BinsdEndLaV ) ) then
         deallocate( this%BinsdEndLaV )
       end if
+      if( associated( this%BinsdEndLaH ) ) then
+        deallocate( this%BinsdEndLaH )
+      end if
       if( associated( this%BinsIntVW ) ) then
         deallocate( this%BinsIntVW )
+      end if
+      if( associated( this%BinsIntHW ) ) then
+        deallocate( this%BinsIntHW )
       end if
     end if
 

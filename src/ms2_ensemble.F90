@@ -192,6 +192,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumTemperature
     type(TAccumulator) :: SumEPot
     type(TAccumulator) :: SumEnthalpy
+    type(TAccumulator) :: SumConfEnthalpy
     type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
     type(TAccumulator) :: SumNPart
@@ -2213,6 +2214,7 @@ contains
       call Construct( this%SumTemperature, .false. )
       call Construct( this%SumEPot, .false. )
       call Construct( this%SumEnthalpy, .false. )
+      call Construct( this%SumConfEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
       call Construct( this%SumdEpotdV, .false. )
@@ -2405,6 +2407,7 @@ contains
     call Destruct( this%SumTemperature )
     call Destruct( this%SumEPot )
     call Destruct( this%SumEnthalpy )
+    call Destruct( this%SumConfEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
     call Destruct( this%SumdEpotdV )
@@ -5178,7 +5181,7 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK)                  :: ChemPot, qsum, ExpMinusBetaEnLaMin
+    real(RK)                  :: ChemPot, qsum, ExpMinusBetaEnLaMin, factor
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
     integer                   :: i, j, t
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
@@ -5516,7 +5519,9 @@ loop2:        do nc = 1, this%NComponents
           pc%BinsdEndLa(:)=0.0_RK
           pc%BinsIntdEndLa(:)=0.0_RK
           pc%BinsdEndLaV(:)=0.0_RK
+          pc%BinsdEndLaH(:)=0.0_RK
           pc%BinsIntVW(:)=0.0_RK
+          pc%BinsIntHW(:)=0.0_RK
           pc%CalcChemPot= .true.
         end if
 
@@ -5529,17 +5534,41 @@ loop2:        do nc = 1, this%NComponents
         do j = 1, this%NRealComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
-        ExpMinusBetaEnLaMin = sum( exp( -( pc%LaMin**pc%LambdaExponent*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
+        factor=pc%LaMin**pc%LambdaExponent
+        ExpMinusBetaEnLaMin = sum( exp( -( factor*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
+
+        ! partial molar enthalpy
+       HW_H_local = this%EPot + ( this%RefPressure / this%Density ) * real( this%NPart, RK )
+       HW_V_local = (1.0 / this%Density) * this%NPart
+       HW_denom_local = 0
+       HW_counter_local = 0
+
+       do j=1, pc%NTest 
+          HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + factor*this%EPotTest(j) ) * exp( - factor*this%EPotTest(j) / this%RefTemperature )
+          HW_denom_local = HW_denom_local + HW_V_local * exp( - factor*this%EPotTest(j) / this%RefTemperature )
+       end do
+
+       HW_counter_local = HW_counter_local / pc%NTest
+       HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
+
 #if MPI_VER > 0
         if ( SimulationType .eq. MolecularDynamics  ) then
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
           call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
+          pc%HW_counter = pc%HW_counter/NProcs
+          pc%HW_denom = pc%HW_denom/NProcs
         else
           pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+          pc%HW_counter = HW_counter_local
+          pc%HW_denom = HW_denom_local
         endif
 #else
         pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+        pc%HW_counter = HW_counter_local
+        pc%HW_denom = HW_denom_local
 #endif
         ! end of Widom for ThermoInt with LambdaMin
 
@@ -8971,7 +9000,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
-    real(RK)                  :: currentHmU, currentHmUm1
+    real(RK)                  :: currentHmU, currentHmUm1, currentH
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
@@ -8990,6 +9019,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
       call Reset( this%SumEnthalpy )
+      call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
       call Reset( this%SumdEpotdV )
@@ -9093,6 +9123,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumChemPotThermoIntWidom )
           call Reset( this%Component(i)%SumChemPotThermoIntWidomV )
+          call Reset( this%Component(i)%SumHW_counter )
+          call Reset( this%Component(i)%SumHW_denom )
         end select
       end do
 
@@ -9488,8 +9520,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Update( this%SumEPot, this%EPot / real( this%NPart, RK ) )
     if( ConstantPressure ) then
       call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%RefPressure / this%Density - this%RefTemperature )
+      call Update( this%SumConfEnthalpy, this%EPot / real( this%NPart, RK ) + this%RefPressure / this%Density )
     else
       call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%Pressure / this%Density - this%RefTemperature )
+      call Update( this%SumConfEnthalpy, this%EPot / real( this%NPart, RK ) + this%Pressure / this%Density )
     end if
 
     call Update( this%SumVolume, 1._RK / this%Density )
@@ -9858,20 +9892,25 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               currentBinsEn = value
 #endif
             end if
+            currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
             pc%BinsEn(currentbin)     =  (                  currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
             pc%BinsdEndLa(currentbin) =  (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda              + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
+            pc%BinsdEndLaH(currentbin)=(pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda*currentH     + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa
+            pc%BinsIntHW(0)=(pc%BinsdEndLaH(0)-pc%BinsdEndLa(0)*this%SumConfEnthalpy%Average+pc%BinsdEndLa(0)/this%RefTemperature)*pc%deltaLa
             do j = 1, pc%NBins-1
               pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
               pc%BinsIntVW(j)=pc%BinsIntVW(j-1)+(pc%BinsdEndLaV(j)-pc%BinsdEndLa(j)*this%SumVolume%Average)*pc%deltaLa
+              pc%BinsIntHW(j)=pc%BinsIntHW(j-1)+(pc%BinsdEndLaH(j)-pc%BinsdEndLa(j)*this%SumConfEnthalpy%Average+pc%BinsdEndLa(j)/this%RefTemperature)*pc%deltaLa
             end do
             call Update( pc%SumChemPotThermoIntWidom,  pc%ExpMinusBetaEnLaMin/this%Density)
             call Update( pc%SumChemPotThermoIntWidomV, pc%ExpMinusBetaEnLaMin/this%Density/this%Density)
             call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
-            !call Update( pc%SumChemPotVV, (pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction)) / this%Density )
+            call Update(pc%SumHW_counter, pc%HW_counter)
+            call Update(pc%SumHW_denom, pc%HW_denom)
             t=t+1
           end if
         end select
@@ -9894,14 +9933,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
 &                      - this%SumVolume%Average ) )
-            
           ! partial molar enthalpy
             call Update( pc%SumHM, pc%SumHW_counter%Average / pc%SumHW_denom%Average &
-&                      - this%SumEnthalpy%Average*this%NPart  - this%RefTemperature)
+&                      - this%SumConfEnthalpy%Average*this%NPart  - this%RefTemperature)
 
           case( ChemPotMethodThermoInt )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotThermoIntWidomV%Average / pc%SumChemPotThermoIntWidom%Average &
 &                      - this%SumVolume%Average - pc%BinsIntVW(pc%NBins-1)/this%RefTemperature) )
+          ! partial molar enthalpy
+            call Update( pc%SumHM, pc%BinsIntHW(pc%NBins-1)/this%RefTemperature + pc%SumHW_counter%Average / pc%SumHW_denom%Average &
+&                      - this%SumConfEnthalpy%Average*this%NPart  - this%RefTemperature)
 
           end select
         end if
@@ -10273,7 +10314,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        ! Partial molar enthalphy
           do i = 1, this%NRealComponents
             pc => this%Component(i)
-            if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
                 call FileWriteNoAdvance_parallel( this%iounit_result )     
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
@@ -10424,7 +10465,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
               call FileWriteNoAdvance( this%iounit_result )     
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
@@ -10586,7 +10627,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -10951,6 +10992,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Error( this%SumTemperature )
     call Error( this%SumEPot )
     call Error( this%SumEnthalpy )
+    call Error( this%SumConfEnthalpy )
     call Error( this%SumVolume )
 
     call Error( this%SumdEpotdV )
@@ -11065,6 +11107,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         case( ChemPotMethodThermoInt )
           call Error( pc%SumChemPotV )
           call Error( pc%SumChemPotThermoIntWidom )
+          call Error( pc%SumChemPotThermoIntWidomV )
+          call Error( pc%SumHW_counter )
+          call Error( pc%SumHW_denom )
         case default
           ! DO NOTHING
         end select
@@ -12745,7 +12790,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_thermoint )
             write( IOBuffer, '("    dEPOTdLAMBDA")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("   dEPOTdLAMBDAV")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("   dEPOTdLAMBDAH")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
             write( IOBuffer, '(" INTdEPOTdLAMBDA")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("       INTParVol")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
             write( IOBuffer, '("     VISITS")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
@@ -12762,9 +12813,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance( this%iounit_thermoint )
               write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaV(j)
               call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaH(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
               write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
               call FileWriteNoAdvance( this%iounit_thermoint )
               write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntVW(j)
+              call FileWriteNoAdvance( this%iounit_thermoint )
+              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntHW(j)
               call FileWriteNoAdvance( this%iounit_thermoint )
               write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
               call FileWriteNoAdvance( this%iounit_thermoint )
@@ -13232,6 +13287,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call RestartSave( this%SumTemperature )
     call RestartSave( this%SumEPot )
     call RestartSave( this%SumEnthalpy )
+    call RestartSave( this%SumConfEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
     call RestartSave( this%SumdEpotdV )
@@ -13328,6 +13384,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RestartSave( pc%SumChemPotV )
         call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
+        call RestartSave( pc%SumChemPotThermoIntWidomV )
+        call RestartSave( pc%SumHW_counter )
+        call RestartSave( pc%SumHW_denom )
       end select
 
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
@@ -13554,6 +13613,7 @@ endif
     call RestartRead( this%SumTemperature )
     call RestartRead( this%SumEPot )
     call RestartRead( this%SumEnthalpy )
+    call RestartRead( this%SumConfEnthalpy )
     call RestartRead( this%SumVolume )
     call RestartRead( this%SumVirial )
     call RestartRead( this%SumdEpotdV )
@@ -13661,6 +13721,9 @@ endif
         call RestartRead( pc%SumChemPotV )
         call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
+        call RestartRead( pc%SumChemPotThermoIntWidomV )
+        call RestartRead( pc%SumHW_counter )
+        call RestartRead( pc%SumHW_denom )
       end select
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartRead( pc%SumVW )
@@ -13891,7 +13954,7 @@ endif
 
           ! read thermoint-profile
           do j = 0,pc%NBins-1
-            read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsVisit(j)
+            read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
           end do
           t = t+1
         end if 
@@ -13908,8 +13971,10 @@ endif
         call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
         call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
         call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsdEndLaH(0:pc%NBins-1), size( pc%BinsdEndLaH ), MPI_RK, NRootProc, Communicator, ierror )
         call MPI_Bcast( pc%BinsIntdEndLa(0:pc%NBins-1), size( pc%BinsIntdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
         call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
         call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
         t = t+1
       endif
