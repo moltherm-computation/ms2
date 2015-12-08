@@ -253,6 +253,8 @@ module ms2_global
   ! Define identifiers used in parameters file
   character(*), parameter :: IdOutputNameTag               = 'OutputNameTag'
   character(*), parameter :: IdparVersionNr                = 'ms2Version'
+  character(*), parameter :: IdWallTime                    = 'WallTime'
+  character(*), parameter :: IdTimeLimit                   = 'TimeLimit'
   character(*), parameter :: IdUseReducedUnits             = 'Units'
   character(*), parameter :: IdUnitLength                  = 'LengthUnit'
   character(*), parameter :: IdUnitEnergy                  = 'EnergyUnit'
@@ -438,6 +440,10 @@ module ms2_global
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
+  
+  ! Walltime settings
+  integer :: max_time
+  integer :: time_limit
   
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
@@ -2617,6 +2623,7 @@ contains
 
     real(RK) :: time_remaining
     real(RK) :: cputime,max_cpu_time
+    integer  :: time_limit
     
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
@@ -2632,26 +2639,16 @@ contains
     logical, save :: FirstCAll =.TRUE.
 #endif
 
-    integer  :: max_time
-    integer  :: time_limit
-
-
-
 #ifdef SMUC 
     if (FirstCAll)then
        first_time = MPI_WTIME()
        FirstCall = .FALSE.
     end if
- 
     time_elapsed = MPI_WTIME() - first_time
 
-!Define walltime for the supercomputer in minutes
-    max_time = 1440
 #else 
 ! Get CPU time consumed by each task and compute the maximum value
     call cpu_time(cputime)
-
-    max_time = 1e7
 #endif
 
 #ifdef KARLS
@@ -2671,8 +2668,7 @@ contains
 ! Compute the remaining CPU time
 
 #ifdef SMUC
-   time_remaining = max_time - real(time_elapsed)/60.
-!  write(*,*) time_remaining
+    time_remaining = max_time - real(time_elapsed)/60.
 #else
     time_remaining = max_time - real(cputime)/60.
 #endif
@@ -2693,5 +2689,6 @@ contains
 #endif
 
 end module ms2_global
+
 
 

@@ -275,6 +275,16 @@ contains
     end if
     write( IOBuffer, '("Name tag for output ",A,": ",T44, A)' ) trim( str ), trim( OutputNameTag )
     call LogWrite
+	call LogWriteBlank
+
+    call FileReadParameter( max_time , iounit_params , IdWallTime , .true., 20160  )
+    write( IOBuffer, '("Specified walltime: ",T23, I5, " m")' ) max_time
+    call LogWrite
+
+    call FileReadParameter( time_limit , iounit_params , IdTimeLimit , .true., 60  )
+    write( IOBuffer, '("Specified time limit: ",T23, I5, " m")' ) time_limit
+    call LogWrite
+    call LogWriteBlank
 
     ! Read type of units
     call FileReadParameter( str, iounit_params , IdUseReducedUnits, .true. )

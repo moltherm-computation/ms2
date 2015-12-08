@@ -852,10 +852,6 @@ contains
     integer :: stat
     character( IOBufferLength ) :: str
 
-    !Declare variable for walltime solution in ms2_global 
-    integer :: time_limit
-
-
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
     call AllocationError( stat, 'simulation box length' )
@@ -1670,12 +1666,6 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
-
-#if TRANS == 1
-    time_limit = 60
-#else
-    time_limit = 15
-#endif
 
 #if MPI_VER > 0
 ! Abortion of simulation run due to wall-time Constraints
@@ -9006,7 +8996,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
-    integer                   :: time_limit
     real(RK)                   :: a1, a2 ! dummy arguments
 #if TRANS ==1
     integer                   :: NStepsCF
@@ -9505,13 +9494,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 ! END IF of step ==1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! Set Time limit for Abortion if Simulation runs in Karlsruhe, Germany
-#if TRANS == 1
-    time_limit = 60
-#else
-    time_limit = 15
-#endif
-
     ! Update accumulators
     ! 1.) Basic sums
     call Update( this%SumPressure, this%Pressure )
@@ -10008,9 +9990,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
                 if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-      
-                  ! Update time limit according to consumed time necessary
-                  time_limit = 60
                     write( IOBuffer, '(" ",F10.5)' ) 0._RK
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -10119,10 +10098,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             ! Chemical potential
             do i = 1, this%NRealComponents
               pc => this%Component(i)
-              if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-    
-                ! Update time limit according to consumed time necessary
-                time_limit = 60
+              if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then          
                   write( IOBuffer, '(" ",F10.5)' ) 0._RK
                   call FileWriteNoAdvance_parallel( this%iounit_result )
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -10236,9 +10212,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-  
-              ! Update time limit according to consumed time necessary
-              time_limit = 60
                 if( pc%NPart > 1 ) then
                   select case( pc%ChemPotMethod )
   
@@ -10399,9 +10372,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-
-            ! Update time limit according to consumed time necessary
-            time_limit = 60
               if( pc%NPart > 1 ) then
                 select case( pc%ChemPotMethod )
 
@@ -10550,9 +10520,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-
-            ! Update time limit according to consumed time necessary
-            time_limit = 60
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.5)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
