@@ -1681,7 +1681,7 @@ eqloop: do
     integer, intent(in) :: StepStart, StepEnd
 
     ! Declare local variables
-#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 || ARCH == 3)
     logical :: AnyTerminateProgram
     logical :: AnyTooManyParticles
 #endif
@@ -1749,7 +1749,7 @@ eqloop: do
       if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) call ErrorsUpdate( this )
 
       ! Check for termination request (caused by signal handler)
-#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 || ARCH == 3)
       if (SimulationType .eq. MonteCarlo) then
         if (Step == StepEnd .and. .not. Equilibration) then
           call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
