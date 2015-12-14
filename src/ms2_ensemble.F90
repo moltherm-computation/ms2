@@ -113,8 +113,8 @@ module ms2_ensemble
     ! Interactions
     type(TInteraction), pointer :: Interaction(:, :)
 
-    ! Initial values of temperature, pressure, density, hamiltonian
-    real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian
+    ! Initial values of temperature, pressure, density, hamiltonian and enthalpy
+    real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian, RefEnthalpy
 
     ! Values of density, enthalpy, betaT, dHdp and their uncertainties
     ! in corresponding liquid simulation (for GE ensemble only)
@@ -622,6 +622,14 @@ module ms2_ensemble
   interface Rotate_NVE
     module procedure TEnsemble_Rotate_NVE
   end interface
+  
+  interface Move_NPH
+    module procedure TEnsemble_Move_NPH
+  end interface
+
+  interface Rotate_NPH
+    module procedure TEnsemble_Rotate_NPH
+  end interface
 
   interface MoveBiased
     module procedure TEnsemble_MoveBiased
@@ -896,6 +904,14 @@ contains
       end if
     end if
 
+    ! Read Enthalpy (NPH)
+    if( EnsembleType .eq. EnsembleTypeNPH ) then
+      call FileReadParameter( this%RefEnthalpy, iounit_params , IdRefEnthalpy, .false. )
+      if( .not. UseReducedUnits ) then
+        this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro 
+      end if
+    end if
+	
     if( ConstantPressure ) then
       call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
 
@@ -992,6 +1008,12 @@ contains
 
     write( IOBuffer, '("Density: ", T26, F9.3, " mol/l")' ) this%RefDensity * UnitDensity
     call LogWrite
+		
+	if( EnsembleType .eq. EnsembleTypeNPH ) then
+      write( IOBuffer, '("Enthalpy: ",T26, F9.3, " J/mol")' ) this%RefEnthalpy * UnitEnergy * NAvogadro
+      call LogWrite
+	end if
+	
     write( IOBuffer, '("Reduced temperature: ", T26, F12.6)' ) this%RefTemperature
     call LogWrite
 
@@ -1016,9 +1038,13 @@ contains
 
     write( IOBuffer, '("Reduced density: ",T26, F12.6)' ) this%RefDensity
     call LogWrite
+	
+	if( EnsembleType .eq. EnsembleTypeNPH ) then
+      write( IOBuffer, '("Reduced Enthalpy: ",T26, F12.6)' ) this%RefEnthalpy
+      call LogWrite 
+	end if
 
     ! Read mass of piston
-
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
       if( .not. UseReducedUnits ) then
@@ -3986,8 +4012,10 @@ loop:do l = 1, NPartInCell
 
       if(ConstantTemperature .or. NVTEquilibration) then
         Reference=this%RefTemperature
-      else
-        Reference=2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF, RK)
+      else if (EnsembleType .eq. EnsembleTypeNVE ) then
+        Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF, RK)
+      else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration ) then
+        Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK) 
       end if
 
       ! Rescale velocities
@@ -4194,7 +4222,16 @@ loop1:do nc = 1, this%NComponents
         else
           call Rotate_NVE( this, nc, np )
         end if
-      else
+            
+	  else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
+        ! Move or rotate for NPH ensemble
+        if( mod( s - r, ndf ) < 3 ) then
+          call Move_NPH( this, nc, np )
+        else
+          call Rotate_NPH( this, nc, np )
+        end if
+      
+	  else
         ! Move or rotate for constant temperature ensembles
         if( mod( s - r, ndf ) < 3 ) then
           call Move( this, nc, np )
@@ -6572,6 +6609,285 @@ loop2:        do nc = 1, this%NComponents
     end if
 
   end subroutine TEnsemble_Rotate_NVE
+  
+!==============================================================!
+!  Subroutine TEnsemble_Move_NPH                               !
+!==============================================================!
+
+  subroutine TEnsemble_Move_NPH( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: r(3)
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier, EVirial
+    real(RK)                  :: EPotDelta
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    logical                   :: accepted
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of move attempts
+    pc%NMoveAttempts = pc%NMoveAttempts + 1
+
+    ! Save current particle position and energy
+    r(:) = pc%P0(np, :)
+    EPotOld = GetEnergy( this, nc, np )
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial displacement
+    do i = 1, 3
+      pc%P0(np, i) = pc%P0(np, i) + rnd( -pc%DispTran, pc%DispTran )
+    end do
+
+    ! Apply periodic boundary conditions
+    pc%P0(np, :) = pc%P0(np, :) - anint( pc%P0(np, :) )
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1( pc, np )
+
+#ifdef SPME
+    ! Calculate changes in the SPME grid
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy at trial position
+    call Energy( this, nc, np, EPotNew )
+    ! Apply acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+
+    else
+          EPotDelta = EPotOld - EPotNew
+    endif
+#else
+     EPotDelta = EPotOld - EPotNew
+#endif
+
+     ! Acceptance criterion
+    if( exp(( real (this%NDF, RK) / 2._RK  - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
+&       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
+!print*, 'MOVE', real (this%NDF, RK), this%RefEnthalpy, this%Epot, EpotDelta, this%RefPressure, this%Volume0
+
+     ! Accept move
+      this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+      pc%NMoveSuccesses = pc%NMoveSuccesses + 1
+      call UpdateEnergy( this, nc, np )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration 
+      if (Equilibration .and. CommonEqui) then
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&         MPI_RK, MPI_SUM, Communicator, ierror )
+      else
+        this%EPot = GetEnergy( this )
+      endif  
+#else
+      this%EPot = GetEnergy( this )
+#endif	  
+
+    else
+
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+          this%UFourier = EFourier
+
+          DO i=1,pc%Molecule%NCharge
+            this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+          END DO
+
+          pc%P0(np, :) = r(:)
+          call Mol2Atom1( pc, np )
+          call EwaldFourierEnergy(this,nc,np)
+
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+          this%UFourier = EFourier
+          this%EVirial  = EVirial
+          call chargegrid_min  (this, nc, np)
+          pc%P0(np, :) = r(:)
+          call Mol2Atom1( pc, np )
+          call chargegrid_plus (this, nc, np)
+#endif
+      else
+          pc%P0(np, :) = r(:)
+          call Mol2Atom1( pc, np )
+      end if
+    end if
+
+  end subroutine TEnsemble_Move_NPH
+
+!==============================================================!
+!  Subroutine TEnsemble_Rotate_NPH                             !
+!==============================================================!
+
+  subroutine TEnsemble_Rotate_NPH( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments03
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: q(4), dq(3)
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier, EVirial
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    real(RK)                  :: EPotDelta
+    logical                   :: accepted
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of rotation attempts
+    pc%NRotateAttempts = pc%NRotateAttempts + 1
+
+    ! Save current particle orientation and energy
+    q(:) = pc%Q0(np, :)
+    EPotOld = GetEnergy( this, nc, np )
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial rotation
+    do i = 1, 3
+      dq(i) = rnd( -pc%DispRot, pc%DispRot )
+    end do
+    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1( pc, np )
+
+#ifdef SPME
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy with trial orientation
+    call Energy( this, nc, np, EPotNew )
+
+    ! Apply acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+     ! Acceptance criterion
+    if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
+&       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
+!print*, 'ROTATE', real (this%NDF, RK), this%RefEnthalpy, this%Epot, EpotDelta, this%RefPressure, this%Volume0
+     ! Accept rotation
+      this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
+      call UpdateEnergy( this, nc, np )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration 
+      if (Equilibration .and. CommonEqui) then
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&         MPI_RK, MPI_SUM, Communicator, ierror )
+      else
+        this%EPot = GetEnergy( this )
+      endif  
+#else
+      this%EPot = GetEnergy( this )
+#endif
+
+    else
+
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+        this%UFourier = EFourier
+        DO i=1,pc%Molecule%NCharge
+          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+        END DO
+        pc%Q0(np, :) = q(:)
+        call Mol2Atom1( pc, np )
+        call EwaldFourierEnergy(this,nc,np)
+
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+        this%UFourier = EFourier
+        this%EVirial  = EVirial
+        call chargegrid_min  (this, nc, np)
+        pc%Q0(np, :) = q(:)
+        call Mol2Atom1( pc, np )
+        call chargegrid_plus (this, nc, np)
+#endif
+
+      else
+        pc%Q0(np, :) = q(:)
+        call Mol2Atom1( pc, np )
+      end if
+
+    end if
+
+  end subroutine TEnsemble_Rotate_NPH
 
 !==============================================================!
 !  Subroutine TEnsemble_MoveBiased                             !
@@ -7909,74 +8225,150 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
     ! Find potential change
-    EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
+	
+	! NPH
+    if( EnsembleType .eq. EnsembleTypeNPH ) then
+	  if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
+&       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + this%NPart * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
+
+	    ! Accept volume change
+        this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+        this%NResizeSuccesses = this%NResizeSuccesses + 1
+        call UpdateEnergy( this )
+        if ( this%OptPressure ) then
+#if MPI_VER > 0
+          if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+            ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+            call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+          else
+            this%Virial = GetVirial( this )
+          endif
+#else
+        this%Virial = GetVirial( this )
+#endif
+        end if
+    
+#if MPI_VER > 0
+        ! in MC simulations we only communicate during common equilibration 
+        if (Equilibration .and. CommonEqui) then
+          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&           MPI_RK, MPI_SUM, Communicator, ierror )
+        else
+          this%EPot = GetEnergy( this )
+        endif  
+#else
+        this%EPot = GetEnergy( this )
+#endif	  
+	  else
+        ! Reject volume change
+        this%Volume0 = VolumeOld
+        call UpdateBoxLength( this )
+        call Mol2Atom( this )
+        this%EPot = EPotOld
+        if (LongRange .eq. Ewald) then
+          this%UFourier = UFourier
+          call Energy(this,this%Epot)
+
+#if MPI_VER > 0
+          if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+            call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+             if ( this%OptPressure ) then
+               call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+             end if
+          else
+            this%EPot = GetEnergy(this)
+            if ( this%OptPressure ) then
+               this%Virial = GetVirial( this )
+            end if
+          end if
+
+#else
+          this%EPot = GetEnergy(this)
+          if ( this%OptPressure ) then
+           this%Virial = GetVirial( this )
+          end if
+#endif
+
+#ifdef SPME
+        else if (LongRange .eq. PME) then
+          this%UIntra = UIntra
+          this%EVirialIntra = EVirialIntra
+          this%UFourier = UFourier
+          this%EVirial = EVirial
+          call charge_grid_MCall ( this )
+#endif
+        end if
+      end if
+	
+	else !NPT
+      EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
 
-    accepted = EPotDelta < 0._RK
-    if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+      accepted = EPotDelta < 0._RK
+      if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
 
-    if( accepted ) then
+      if( accepted ) then
 
-      ! Accept volume change
-      this%NResizeSuccesses = this%NResizeSuccesses + 1
+        ! Accept volume change
+        this%NResizeSuccesses = this%NResizeSuccesses + 1
 
-      ! Update energy and virial matrices
-      call UpdateEnergy( this )
-      if ( this%OptPressure ) then
+        ! Update energy and virial matrices
+        call UpdateEnergy( this )
+        if ( this%OptPressure ) then
 #if MPI_VER > 0
-        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-          call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-        else
-          this%Virial = GetVirial( this )
-        endif
+          if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+            ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+            call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+          else
+            this%Virial = GetVirial( this )
+          endif
 
 #else
         this%Virial = GetVirial( this )
 #endif
-      end if
+        end if
 
-    else
+      else
 
-      ! Reject volume change
-      this%Volume0 = VolumeOld
-      call UpdateBoxLength( this )
-      call Mol2Atom( this )
-      this%EPot = EPotOld
-      if (LongRange .eq. Ewald) then
-         this%UFourier = UFourier
-         call Energy(this,this%Epot)
+        ! Reject volume change
+        this%Volume0 = VolumeOld
+        call UpdateBoxLength( this )
+        call Mol2Atom( this )
+        this%EPot = EPotOld
+        if (LongRange .eq. Ewald) then
+          this%UFourier = UFourier
+          call Energy(this,this%Epot)
 
 #if MPI_VER > 0
-         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-           if ( this%OptPressure ) then
-             call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-           end if
-         else
-          this%EPot = GetEnergy(this)
-          if ( this%OptPressure ) then
-             this%Virial = GetVirial( this )
+          if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+            call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+            if ( this%OptPressure ) then
+              call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+            end if
+          else
+            this%EPot = GetEnergy(this)
+            if ( this%OptPressure ) then
+              this%Virial = GetVirial( this )
+            end if
           end if
-         end if
 
 #else
-         this%EPot = GetEnergy(this)
-         if ( this%OptPressure ) then
-           this%Virial = GetVirial( this )
-         end if
+          this%EPot = GetEnergy(this)
+          if ( this%OptPressure ) then
+            this%Virial = GetVirial( this )
+          end if
 #endif
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
-         this%UIntra = UIntra
-         this%EVirialIntra = EVirialIntra
-         this%UFourier = UFourier
-         this%EVirial = EVirial
-         call charge_grid_MCall ( this )
+        else if (LongRange .eq. PME) then
+          this%UIntra = UIntra
+          this%EVirialIntra = EVirialIntra
+          this%UFourier = UFourier
+          this%EVirial = EVirial
+          call charge_grid_MCall ( this )
 #endif
+        end if
       end if
-
     end if
 
   end subroutine TEnsemble_Resize
@@ -11141,6 +11533,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
     call FileWrite( this%iounit_errors )
+	write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
+    call FileWrite( this%iounit_errors )
+
 
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
       ! The RootProc receives data from all processes and therefore the # of 

@@ -269,6 +269,7 @@ module ms2_global
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
+  character(*), parameter :: IdNStepsH                     = 'NPHSteps'  
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
@@ -293,6 +294,7 @@ module ms2_global
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
   character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
+  character(*), parameter :: IdRefEnthalpy                 = 'Enthalpy'
   character(*), parameter :: IdRefPressure                 = 'Pressure'
   character(*), parameter :: IdPressure0                   = 'Pressure0'
   character(*), parameter :: IdLiqDensity                  = 'LiqDensity'
@@ -572,6 +574,9 @@ module ms2_global
 
   ! Number of NPT equilibration time steps
   integer :: NStepsP
+
+  ! Number of NPH equilibration time steps
+  integer :: NStepsH
 
   ! Number of gradual insertion initialization steps
   integer :: GradInsInit

@@ -514,7 +514,7 @@ contains
       call LogWrite
 
       ! Check whether simulation type is applicable to ensemble type
-      if( SimulationType .eq. MonteCarlo .and. .not. ConstantTemperature .and. EnsembleType .ne. EnsembleTypeNVE) &
+      if( SimulationType .eq. MonteCarlo .and. EnsembleType .eq. EnsembleTypeHA) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
@@ -559,11 +559,16 @@ contains
         NStepsE = 0
       end if
 
-      ! Read number of NPT equilibration steps
+      ! Read number of constant pressure equilibration steps
       if( ConstantPressure ) then
         if( EnsembleType .eq. EnsembleTypeHA ) then
           call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ",T40, I7)' ) NStepsP
+          call LogWrite
+		  
+		else if( EnsembleType .eq. EnsembleTypeNPH ) then
+          call FileReadParameter( NStepsH, iounit_params , IdNStepsH, .true., 0 )
+          write( IOBuffer, '("Number of NPH equilibration steps: ",T40, I7)' ) NStepsH
           call LogWrite
 
         else
@@ -604,7 +609,7 @@ contains
 
       ! Calculate number of blocks and block sizes
       if( BlockSize > 0 ) then
-        NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
+        NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NStepsH, NSteps ) / real(BlockSize))
 
         ! Warning, if simulation is extended
         if ( mod(NSteps,BlockSize) .ne. 0._RK) then
@@ -622,7 +627,7 @@ contains
             BlockSize = NSteps
             write( IOBuffer, '("BlockSize is reduced to ",T40, I7, " due to small number of steps")' ) BlockSize
             call LogWrite
-            NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NSteps ) / real(BlockSize))
+            NBlocksMax = ceiling(max( NStepsV, NStepsE, NStepsP, NStepsH, NSteps ) / real(BlockSize))
           endif
         end if
 
@@ -1156,8 +1161,13 @@ contains
 
               if (Equilibration) then
                 if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
-                if( EnsembleType .eq. EnsembleTypeHA ) NStepsP = 1
-                if( ConstantPressure ) NStepsP = 1
+                if( ConstantPressure ) then 
+                  if(EnsembleType .eq. EnsembleTypeNPH ) then
+                    NStepsH = 1
+                  else 
+                    NStepsP =  1
+                  end if
+                end if
                 if( EnsembleType .eq. EnsembleTypeNVE ) NStepsE = 1
               endif
            endif
@@ -1363,8 +1373,8 @@ eqloop: do
           end if
           call LogWriteTime
 
-        else if( ConstantPressure ) then
-          StepEnd = NStepsP		
+        else if( EnsembleType .eq. EnsembleTypeNPT ) then
+          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming NPT equilibration")' )
@@ -1387,6 +1397,32 @@ eqloop: do
             write( IOBuffer, '("NPT equilibration TERMINATED")' )
           end if
           call LogWriteTime
+  
+        else if( EnsembleType .eq. EnsembleTypeNPH ) then
+          StepEnd = NStepsH
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming NPH equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting NPH equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"NPH equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("NPH equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("NPH equilibration TERMINATED")' )
+          end if
+          call LogWriteTime
+
 
         else if( SimulationType .eq. Gibbs ) then
           StepEnd = NStepsV
