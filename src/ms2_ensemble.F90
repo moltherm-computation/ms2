@@ -5419,10 +5419,10 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
           call MPI_Allreduce(pc%NStateWF,tempVec(0:pc%NFluctMax),size(pc%NStateWF),MPI_INTEGER, MPI_SUM, Communicator, ierror)
           pc%NStateWF = tempVec(0:pc%NFluctMax)
-          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
-          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER,  MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
-          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
-          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
+          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER,  MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
           
            do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) / real(pc%NStateWF(j) + 1, RK)
@@ -10734,7 +10734,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
             call FileWriteNoAdvance( this%iounit_runave )
           end if
-        end if
 
         ! Density
         write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage

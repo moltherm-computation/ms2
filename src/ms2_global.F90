@@ -292,6 +292,7 @@ module ms2_global
   character(*), parameter :: IdMinRadius                   = 'RMinRadius'
   character(*), parameter :: IdMaxRadius                   = 'RMaxRadius'
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
+  character(*), parameter :: IdmpiEnsembleGroups           = 'mpiEnsembleGroups'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
   character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
   character(*), parameter :: IdRefEnthalpy                 = 'Enthalpy'
@@ -653,20 +654,29 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
-  integer :: Communicator
-  integer :: NProcs
-  integer :: NProc
-  integer :: NRootProc
-  logical :: RootProc
-  integer :: NProcs_W
-  integer :: NProc_W
-  integer :: NRootProc_W
-  logical :: RootProc_W
+  integer :: Communicator	! actual MPI communicator
+  integer :: Communicator_R	! MPI communicator containing all roots
+  integer :: NProcs	! number of PEs within actual MPI communicator
+  integer :: NProc	! MPI rank of actual MPI communicator
+  integer :: NRootProc	! MPI rank of root of actual MPI communicator
+  logical :: RootProc	! is PE root within actual MPI communicator
+  integer :: NProcs_W	! number of PEs within MPI_COMM_WORLD
+  integer :: NProc_W	! MPI rank within MPI_COMM_WORLD
+  integer :: NRootProc_W	! MPI rank of root PE within MPI_COMM_WORLD
+  logical :: RootProc_W 	! is PE root of MPI_COMM_WORLD?
+  integer :: NCommunicators	! number of Communicators (useful after MPI_Comm_Split)
+  integer :: NCommunicator	! ID of the Communicator
 #else
-  integer, parameter :: NProcs    = 1
-  integer, parameter :: NProc     = 0
-  integer, parameter :: NRootProc = NProc
-  logical, parameter :: RootProc  = .true.
+  integer, parameter :: NProcs       = 1
+  integer, parameter :: NProc        = 0
+  integer, parameter :: NRootProc    = 0
+  logical, parameter :: RootProc     = .true.
+  integer, parameter :: NProcs_W     = 1
+  integer, parameter :: NProc_W      = 0
+  integer, parameter :: NRootProc_W  = 0
+  logical, parameter :: RootProc_W   = .true.
+  integer, parameter :: NCommunicators = 0
+  integer, parameter :: NCommunicator = 0
 #endif
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -692,6 +702,10 @@ module ms2_global
 #if MPI_VER > 0
   interface SetCommunicator
     module procedure Global_SetCommunicator
+  end interface
+
+  interface SplitCommunicator
+    module procedure Global_SplitCommunicator
   end interface
 #endif
 
@@ -724,7 +738,11 @@ module ms2_global
   end interface
 
   interface LogWrite
+!#if MPI_VER > 0
+!    module procedure Global_LogWrite_MPI
+!#else
     module procedure Global_LogWrite
+!#endif
   end interface
 
   interface LogWriteNoAdvance
@@ -892,9 +910,11 @@ module ms2_global
 contains
 
 #if MPI_VER > 0
+
 !==============================================================!
 !  Subroutine Global_SetCommunicator                           !
 !==============================================================!
+! setting Communicator, NProc, NProcs, NRootProc, RootProc
 
   subroutine Global_SetCommunicator(comm)
 
@@ -916,8 +936,59 @@ contains
     end if
     NRootProc = 0
     RootProc = NProc == NRootProc
-
+    
   end subroutine Global_SetCommunicator
+
+!==============================================================!
+!  Subroutine Global_SplitCommunicator                         !
+!==============================================================!
+! setting NCommunicator, NCommunicators (& calling SetCommunicator)
+
+  subroutine Global_SplitCommunicator(ngroups)
+
+    implicit none
+
+    ! Include MPI header
+    include 'mpif.h'
+
+    ! Declare arguments
+    integer, intent(in)         :: ngroups
+    
+    integer :: groupId
+    integer :: oldCommunicator,newCommunicator
+    
+    oldCommunicator=Communicator
+    
+    if( ngroups > NProcs ) then
+      NCommunicators=NProcs
+    else
+      NCommunicators=ngroups
+    endif
+    
+    write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs,NCommunicators
+    call LogWrite
+    write( IOBuffer, '("closing logfile - opening new logfiles...")')
+    call LogWrite
+    call LogClose
+    
+    !NCommunicator=mod(NProc,NCommunicators)
+    NCommunicator=NProc*NCommunicators/NProcs
+    ! NCommunicator -> color, NProc -> key
+    call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
+    ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient (avoiding some internal communication within the MPI library)    
+    call SetCommunicator(newCommunicator)	!   RootProc is now true for the root of the new communicator(s)
+    call LogOpen
+    
+    ! creating a communicator for all the RootProc (resp. non-RootProc) within the old communicator
+    if (RootProc) then
+      groupId=0
+    else
+      groupId=1
+    endif
+    call MPI_Comm_Split(oldCommunicator,groupId,NProc_W,Communicator_R,ierror)
+    
+  end subroutine Global_SplitCommunicator
+
 #endif
 
 
@@ -954,11 +1025,37 @@ contains
     integer                                    :: OMP_GET_MAX_THREADS, OMP_GET_NUM_PROCS
     integer                                    :: ompmaxnumthreads, ompnumprocs
 #endif
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+    character(IOBufferLength) :: hostname = 'unknown host'
+    character(IOBufferLength) :: username = 'unknown user'
+#else
+    character(*), parameter   :: hostname = 'unknown host'
+    character(*), parameter   :: username = 'unknown user'
+#endif
+    integer :: length
+    character :: Version*6
+    integer :: color
 
     ! Initialize MPI
 #if MPI_VER > 0
     call MPI_Init( ierror )
     call SetCommunicator( MPI_COMM_WORLD )
+    NProcs_W = NProcs
+    NProc_W = NProc
+    NRootProc_W = NRootProc
+    RootProc_W = RootProc
+    NCommunicators=1
+    NCommunicator=0
+    
+    ! just do something to initialize the communicator between the (root of the) communicators
+    !Communicator_R=MPI_COMM_NULL
+    if (RootProc) then
+      color=0
+    else
+      color=1
+    endif
+    call MPI_Comm_Split(Communicator,color,NProc,Communicator_R,ierror)
+    
     ! better define and initialize as parameter...
     if ( RK == 8 ) then
       !MPI_RK = MPI_DOUBLE_PRECISION
@@ -1039,6 +1136,7 @@ contains
           RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
+          !  might need access = 'stream',form = 'unformatted' or access = 'sequential', form = 'binary' for some compilers
           open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
           if( stat /= 0 ) then
             print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
@@ -1060,7 +1158,7 @@ contains
       end if
 
       if( narg .ge. 2 ) then
-        ! if present, the third argument should be the input file name
+        ! if present, the third argument should be the output file name
         call getarg( 2, buffer )
         OutputNameTagfromCommandline = .true.
       else
@@ -1083,6 +1181,112 @@ contains
 
     ! Open log file
     call LogOpen
+
+    ! Open log file
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("*                         Publishing with ms2                          *")')
+    call LogWrite
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
+    call LogWrite
+    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
+    call LogWrite
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster,            *")')
+    call LogWrite
+    write( IOBuffer, '("* G. Guevara-Carrion, A. Wafai, M. Horsch, M. Bernreuther,             *")')
+    call LogWrite
+    write( IOBuffer, '("* T. Windmann, H. Hasse, J. Vrabec                                     *")')
+    call LogWrite
+    write( IOBuffer, '("* Computer Physics Communications (2014)                               *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
+    call LogWrite
+    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
+    call LogWrite
+    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '("Program ", A, " version ", A)' ) trim( ProgramFileName ), trim( VersionString )
+    call LogWrite
+    write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
+    call LogWrite
+
+! cmp. http://predef.sourceforge.net/precomp.html
+!           __GFORTRAN__
+#if defined _CRAYFTN
+    call GET_ENVIRONMENT_VARIABLE('CRAY_CC_VERSION',Version,length,stat,.FALSE.)
+    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version 
+#elif defined __GNUC__
+    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
+#elif defined __INTEL_COMPILER
+    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
+#elif defined __PGI
+    write( IOBuffer, '("Compiler version     : PGI pgf")' )
+#elif defined __SUNPRO_F95
+    write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
+#elif defined __SUNPRO_F90
+    write( IOBuffer, '("Compiler version     : SUN studio sunf90 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F90)
+#else
+!                                                         __VERSION__
+    write( IOBuffer, '("Compiler version     : unknown")' )
+#endif
+    call LogWrite
+    write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
+    call LogWrite
+    write( IOBuffer, '("Real Kind            :", I2)' ) RK
+    call LogWrite
+    call LogWriteBlank
+
+    ! Get name of host and user
+#if ARCH == 1  || defined _CRAYFTN
+    call getenv( 'HOSTNAME', hostname )
+#elif ARCH == 2 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
+    i = hostnm( hostname )
+#else
+    i = hostnam( hostname )
+#endif
+    if( i .ne. 0 ) hostname = 'unknown host'
+#endif
+#ifdef _CRAYFTN
+   username = 'Getlog is not supported'
+#elif ARCH == 1 || defined _PGF
+    username = getlog()
+#elif ARCH == 2 || ARCH == 3
+    call getlog( username )
+#endif
+    write( IOBuffer, '("Hostname             : ", A)' ) trim( hostname )
+    call LogWrite
+    write( IOBuffer, '("started by user ", A)' ) trim( username )
+    call LogWriteTime
+    call LogWriteBlank
+    write( IOBuffer, '(72("-"))')
+    call LogWrite
+
     write( IOBuffer, '("Parallelization:")' )
     call LogWrite
 
@@ -1209,6 +1413,14 @@ contains
     include 'mpif.h'
 #endif
 
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("Program terminated")' )
+    call LogWriteTime
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    
     ! Close log file
     call LogClose
 
@@ -1272,6 +1484,15 @@ contains
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
 
+
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("Program terminated with Error")' )
+    call LogWriteTime
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    
     ! Close log file
     call LogClose
 
@@ -1328,7 +1549,6 @@ contains
   end subroutine Global_AllocationError
 
 
-
 !==============================================================!
 !  Subroutine Global_LogOpen                                   !
 !==============================================================!
@@ -1338,127 +1558,29 @@ contains
     implicit none
 
     ! Declare local variables
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-    character(IOBufferLength) :: hostname = 'unknown host'
-    character(IOBufferLength) :: username = 'unknown user'
-#if ARCH == 2 || ARCH == 3
-    integer                   :: i
-#endif
-#else
-    character(*), parameter   :: hostname = 'unknown host'
-    character(*), parameter   :: username = 'unknown user'
-#endif
-    integer :: length,stat
-    character :: Version*6
+    character(FileNameLength) :: filename
+    
     ! Check for root process
     if( .not. RootProc ) return
 
-    ! Get name of host
-#if ARCH == 1  || defined _CRAYFTN
-    call getenv( 'HOSTNAME', hostname )
-#elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
-    i = hostnm( hostname )
-#else
-    i = hostnam( hostname )
-#endif
-    if( i .ne. 0 ) hostname = 'unknown host'
-#endif
-#ifdef _CRAYFTN
-   username = 'Getlog is not supported'
-#elif ARCH == 1 || defined _PGF
-    username = getlog()
-#elif ARCH == 2 || ARCH == 3
-    call getlog( username )
-#endif
+  
+    ! using <OutputNameTag>.log, if only one communicator exists date_and_time
+    ! and   <OutputNameTag>_<CommId>.log for several
+    ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
+    
+    ! generate filename
+    if ( NCommunicators .gt. 1 ) then
+      write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator,LogFileExtension
+    else
+      write( filename, '(A,A)' ) trim( OutputNameTag ),LogFileExtension
+    endif
 
-    ! Open log file
-    call FileRewrite( iounit_log, trim( OutputNameTag )//LogFileExtension )
-    call LogWriteBlank
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
-    call LogWrite
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                         Publishing with ms2                          *")')
-    call LogWrite
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
-    call LogWrite
-    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
-    call LogWrite
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster,            *")')
-    call LogWrite
-    write( IOBuffer, '("* G. Guevara-Carrion, A. Wafai, M. Horsch, M. Bernreuther,             *")')
-    call LogWrite
-    write( IOBuffer, '("* T. Windmann, H. Hasse, J. Vrabec                                     *")')
-    call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2014)                               *")')
-    call LogWrite
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
-    call LogWrite
-    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
-    call LogWrite
-    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
-    call LogWrite
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
-    call LogWrite
-    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
-    call LogWrite
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '("Program ", A, " version ", A)' ) trim( ProgramFileName ), trim( VersionString )
-    call LogWrite
-    write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
-    call LogWrite
+    call FileRewrite( iounit_log, trim(filename) )
 
-! cmp. http://predef.sourceforge.net/precomp.html
-!           __GFORTRAN__
-#if defined _CRAYFTN
-    call GET_ENVIRONMENT_VARIABLE('CRAY_CC_VERSION',Version,length,stat,.FALSE.)
-    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version 
-#elif defined __GNUC__
-    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
-#elif defined __INTEL_COMPILER
-    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
-#elif defined __PGI
-    write( IOBuffer, '("Compiler version     : PGI pgf")' )
-#elif defined __SUNPRO_F95
-    write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
-#elif defined __SUNPRO_F90
-    write( IOBuffer, '("Compiler version     : SUN studio sunf90 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F90)
-#else
-!                                                         __VERSION__
-    write( IOBuffer, '("Compiler version     : unknown")' )
-#endif
-    call LogWrite
-    write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
-    call LogWrite
-    write( IOBuffer, '("Real Kind            :", I2)' ) RK
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '("Hostname             : ", A)' ) trim( hostname )
-    call LogWrite
-    write( IOBuffer, '("started by user ", A)' ) trim( username )
+    write( IOBuffer, '("ms2 logfile ",A," created at")' ) trim(filename)
     call LogWriteTime
-    call LogWriteBlank
-    write( IOBuffer, '(72("-"))')
-    call LogWrite
-
+    !call LogWriteBlank
+      
   end subroutine Global_LogOpen
 
 
@@ -1471,22 +1593,10 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Check for root process
     if( .not. RootProc ) return
 
     ! Close log file
-    call LogWriteBlank
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
-    write( IOBuffer, '("Program terminated")' )
-    call LogWriteTime
-    write( IOBuffer, '(72("*"))')
-    call LogWrite
     call FileClose( iounit_log )
 
   end subroutine Global_LogClose
@@ -1514,6 +1624,34 @@ contains
 
   end subroutine Global_LogWrite
 
+! #if MPI_VER > 0
+! !==============================================================!
+! !  Subroutine Global_LogWrite_MPI                              !
+! !==============================================================!
+! 
+! subroutine Global_LogWrite_MPI(rank)
+! 
+!     implicit none
+!     include 'mpif.h'
+!     
+!     ! Declare local variables
+!     integer, intent(in), optional      :: rank
+!     
+!     integer             :: status(MPI_STATUS_SIZE)
+! 
+!     
+!     if( present( rank ) .and. (rank .ne. NRootProc) ) then
+!       ! transfer IOBuffer to NRootProc
+!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, 0, &
+! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      0, &
+! &                        Communicator, status, ierror)
+!       !call MPI_Barrier( Communicator, ierror )
+!     endif
+!     ! execute LogWrite on NRootProc
+!     if( RootProc ) call Global_LogWrite()
+! 
+!   end subroutine Global_LogWrite_MPI
+! #endif
 
 
 !==============================================================!
@@ -1636,9 +1774,8 @@ contains
 
     ! Declare arguments
     integer, intent(in) :: iounit
-    integer             :: ierr
 
-    call MPI_File_Close(iounit, ierr)
+    call MPI_File_Close(iounit, ierror)
 
     if( RootProc )then 
         write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
@@ -1658,7 +1795,6 @@ contains
     include 'mpif.h'
     ! Declare arguments
     integer                       :: iounit 
-    integer                       :: ierr
     character(*), intent(in)      :: filename
 
     if(RootProc) then
@@ -1670,9 +1806,9 @@ contains
         close(iounit)
       end if
     end if
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierr)
+    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
     if(RootProc) then
-      if( ierr .ne. 0 ) then
+      if( ierror .ne. 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
@@ -1690,7 +1826,6 @@ contains
     include 'mpif.h'
     ! Declare arguments
     integer, intent(in)           :: iounit
-    integer                       :: ierr
     character(*), intent(in)      :: filename
 
     ! Declare local variables
@@ -1715,9 +1850,11 @@ contains
         open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
       end if
     endif
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierr)
+    !!! ERRONEOUS
+    ! don't mix Fortran POSIX IO with mpi IO; Fortran units != MPI units; mpi iounit is intend(out) here...
+    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
     if(RootProc) then
-      if( ierr /= 0 ) then
+      if( ierror /= 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
@@ -1736,10 +1873,9 @@ contains
     ! Declare arguments
     integer             :: status(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
-    integer             :: ierr
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
 
 
   end subroutine Global_FileWriteNoAdvance_parallel

@@ -103,9 +103,9 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
-#ifdef USE_MPI
-  integer :: mpi_defaultCommunicator
-#endif
+!#ifdef USE_MPI
+!  integer :: mpi_defaultCommunicator
+!#endif
 
 !==============================================================!
 !  Type TStopwatch                                             !
@@ -558,7 +558,7 @@ contains
 #ifdef STOPWATCH_USE_MPIWTIME
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       if (IAND(this%options,CStopwatch_doMPIStartBarrier) /= 0) then
-          call MPI_Barrier( Communicator, ierror )
+          call MPI_Barrier( this%mpi_communicator, ierror )
       end if
       this%mpi_diff_reduced=.FALSE.
       this%wtime_start = MPI_WTIME()
@@ -637,7 +637,7 @@ contains
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       !if (BTEST(this%options,2)) then
       if (IAND(this%options,CStopwatch_doMPIStopBarrier) /= 0) then
-         call MPI_Barrier( Communicator, ierror )
+         call MPI_Barrier( this%mpi_communicator, ierror )
       end if
       this%wtime_stop = MPI_WTIME()
       this%wtime_diff(1)=this%wtime_stop-this%wtime_start
@@ -682,7 +682,7 @@ contains
 
     !if (BTEST(this%options,3)) then
     if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
-       call MPI_Reduce( wtime_diff, this%wtime_diff, 2, MPI_DOUBLE_PRECISION, MPI_MAX, NRootProc, Communicator, ierror )
+       call MPI_Reduce( wtime_diff, this%wtime_diff, 2, MPI_DOUBLE_PRECISION, MPI_MAX, NRootProc, this%mpi_communicator, ierror )
        this%wtime_diff(2)=-this%wtime_diff(2)
     else
        this%wtime_diff(1)=wtime_diff(1)
