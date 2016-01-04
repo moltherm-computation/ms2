@@ -7709,6 +7709,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     else ! MolecularDynamics
 
+      if (.not. RootProc) return
       LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
       ! should be 1/10 of MC-stepwidth for equl distribution (esimation by Gabor and Michael)
       if (LambdaNew<pc%LaMin) then
@@ -10260,11 +10261,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               do j = 1, this%NRealComponents
                 call Force( this%Interaction( t, j ), currentBinsEn, a1, a2, this%BoxLength )
               end do
-              ! Collect sums from all processes
-#if MPI_VER > 0
-              call MPI_Reduce( currentBinsEn, value, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-              currentBinsEn = value
-#endif
             end if
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
             pc%BinsEn(currentbin)     =  (                  currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
