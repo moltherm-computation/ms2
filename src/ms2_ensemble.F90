@@ -6426,10 +6426,10 @@ loop2:        do nc = 1, this%NComponents
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &         MPI_RK, MPI_SUM, Communicator, ierror )
       else
-        this%EPot = GetEnergy( this )
+        this%EPot = this%EPot - EPotDelta
       endif  
 #else
-      this%EPot = GetEnergy( this )
+      this%EPot = this%EPot - EPotDelta
 #endif	  
 
     else
@@ -6571,10 +6571,10 @@ loop2:        do nc = 1, this%NComponents
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &         MPI_RK, MPI_SUM, Communicator, ierror )
       else
-        this%EPot = GetEnergy( this )
+        this%EPot = this%EPot - EPotDelta
       endif  
 #else
-      this%EPot = GetEnergy( this )
+      this%EPot = this%EPot - EPotDelta
 #endif
 
     else
@@ -6710,10 +6710,10 @@ loop2:        do nc = 1, this%NComponents
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &         MPI_RK, MPI_SUM, Communicator, ierror )
       else
-        this%EPot = GetEnergy( this )
+        this%EPot = this%EPot - EPotDelta
       endif  
 #else
-      this%EPot = GetEnergy( this )
+      this%EPot = this%EPot - EPotDelta
 #endif	  
 
     else
@@ -6850,10 +6850,10 @@ loop2:        do nc = 1, this%NComponents
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
 &         MPI_RK, MPI_SUM, Communicator, ierror )
       else
-        this%EPot = GetEnergy( this )
+        this%EPot = this%EPot - EPotDelta
       endif  
 #else
-      this%EPot = GetEnergy( this )
+      this%EPot = this%EPot - EPotDelta
 #endif
 
     else
