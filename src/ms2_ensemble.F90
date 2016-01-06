@@ -7623,6 +7623,7 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
 
 end subroutine TEnsemble_ScaleInteractionThermoInt
 
+
 !==============================================================!
 !  Subroutine TEnsemble_ChangeLambda                           !
 !==============================================================!
@@ -7709,18 +7710,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     else ! MolecularDynamics
 
-      if (.not. RootProc) return
-      LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
-      ! should be 1/10 of MC-stepwidth for equl distribution (esimation by Gabor and Michael)
-      if (LambdaNew<pc%LaMin) then
-        LambdaNew = pc%LaMin
-      elseif (LambdaNew>=pc%LaMax) then
-        LambdaNew = pc%LaMax - Zero
+      if (RootProc) then
+        LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+        ! should be 1/10 of MC-stepwidth for equl distribution (esimation by Gabor and Michael)
+        if (LambdaNew<pc%LaMin) then
+          LambdaNew = pc%LaMin
+        elseif (LambdaNew>=pc%LaMax) then
+          LambdaNew = pc%LaMax - Zero
+        end if
+        Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
+        pt%Lambda=LambdaNew
+        call ScaleInteractionThermoInt(this, nt, Factor)
       end if
-      Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
-      pt%Lambda=LambdaNew
-      call ScaleInteractionThermoInt(this, nt, Factor)
-      call Mol2Atom( this )
+      call Mol2Atom( this ) ! only for nt sufficient / call mol2atom( pt, 1 )
 
     end if
 
@@ -10718,18 +10720,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-          if ( this%OptPressure ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
+      ! Pressure
+        if ( this%OptPressure ) then
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        else
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
 
         ! Density
         write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
@@ -10865,19 +10867,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Displacement
-          value = 0._RK
-          do i = 1, this%NComponents
-            value = value + sum( this%Component(i)%Disp(:, :)**2 )
-          end do
-          value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
-          write( IOBuffer, '(" ",F8.3)' ) value
-          call FileWriteNoAdvance( this%iounit_runave )
+        value = 0._RK
+        do i = 1, this%NComponents
+          value = value + sum( this%Component(i)%Disp(:, :)**2 )
+        end do
+        value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
+        write( IOBuffer, '(" ",F8.3)' ) value
+        call FileWriteNoAdvance( this%iounit_runave )
 
         ! Pressure
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
         ! Density
         write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
@@ -14320,31 +14322,35 @@ endif
     end if
 
 #if MPI_VER > 0
-    t = this%NRealComponents+1
-    do i=1,this%NRealComponents
-      pc => this%Component(i)
-      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-        call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsdEndLaH(0:pc%NBins-1), size( pc%BinsdEndLaH ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsIntdEndLa(0:pc%NBins-1), size( pc%BinsIntdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
-        t = t+1
-      endif
-    enddo
+    if (SimulationType .eq. MonteCarlo) then
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLaH(0:pc%NBins-1), size( pc%BinsdEndLaH ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntdEndLa(0:pc%NBins-1), size( pc%BinsIntdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
+          t = t+1
+        endif
+      enddo
+    end if
 #endif
-    t = this%NRealComponents+1
-    do i=1,this%NRealComponents
-      if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-        Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
-        call ScaleInteractionThermoInt(this, t, Factor)
-        t = t+1
-      endif
-    enddo
+    if ( (SimulationType .eq. MonteCarlo) .or. RootProc ) then
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+        if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+          Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
+          call ScaleInteractionThermoInt(this, t, Factor)
+          t = t+1
+        endif
+      enddo
+    end if
 
 
     if( SimulationType .eq. MolecularDynamics ) then
