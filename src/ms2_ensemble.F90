@@ -1071,9 +1071,12 @@ contains
           call Error( 'Select yes/no for calculation of pressure '// ProgramFileName//ConfigFileExtension )
       end select
 
-      if ( .not. ConstantPressure .and. .not. this%OptPressure) &
-&         call Error( 'Pressure Calculation in NVT necessary' )
+      if ( .not. ConstantPressure .and. .not. this%OptPressure) then
+          this%OptPressure = .true.
+          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical OptPressure is set to yes")' )
+          call LogWrite
       end if
+    end if
 
     ! Read calculation of residence time
     this%ResidenceTime = .false.
@@ -1112,13 +1115,6 @@ contains
         case default
           call Error( 'Select yes/no for calculation of residence time'// ProgramFileName//ConfigFileExtension )
       end select
-    end if
-
-
-    if ( EnsembleType .eq. EnsembleTypeGE .and. .not. this%OptPressure ) then
-      write(IOBuffer, '("For GE simulations, please set Logical OptPressure to yes")' )
-      call LogWrite
-      call Error( ' ms2 has to quit' )
     end if
 
     ! Read whether to perform the MC equilibration in parallel
