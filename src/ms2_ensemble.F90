@@ -5507,11 +5507,11 @@ loop2:        do nc = 1, this%NComponents
        HW_counter_local = 0
 
        do j=1, pc%NTest 
-          HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + this%EPotTest(j) ) * exp( - this%EPotTest(j) / this%RefTemperature )
-          HW_denom_local = HW_denom_local + HW_V_local * exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_counter_local= HW_counter_local + ( HW_H_local + this%EPotTest(j) ) * exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_denom_local = HW_denom_local + exp( - this%EPotTest(j) / this%RefTemperature )
        end do
 
-       HW_counter_local = HW_counter_local / pc%NTest
+       HW_counter_local = HW_V_local * HW_counter_local / pc%NTest
        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
 #if MPI_VER > 0
