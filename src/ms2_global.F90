@@ -1730,7 +1730,7 @@ contains
     if( .not. RootProc ) return
 
     ! Update log file
-    write( IOBuffer, '(I7, " steps completed")' ) Step
+    write( IOBuffer, '(I9, " steps completed")' ) Step
     call LogWriteTime
 
   end subroutine Global_LogWriteStep

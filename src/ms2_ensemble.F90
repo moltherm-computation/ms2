@@ -347,8 +347,6 @@ module ms2_ensemble
 
     real(RK),pointer :: selfd_i(:)
     real(RK),pointer :: Onsager(:,:)
-    real(RK)         :: ternary_a, ternary_b, ternary_c
-    real(RK)         :: binary_d
     real(RK)         :: visco_s
     real(RK)         :: visco_b
     real(RK)         :: conduct
@@ -358,8 +356,6 @@ module ms2_ensemble
     ! 4.) Transport properties
 
     type(TAccumulatorCF),pointer :: Sumself_i(:)
-!    type(TAccumulatorCF)         :: SumTer_a, SumTer_b, SumTer_c
-    type(TAccumulatorCF)         :: SumBin_d
     type(TAccumulatorCF),pointer :: SumOnsager(:,:)
     type(TAccumulatorCF)         :: SumVisco_s
     type(TAccumulatorCF)         :: SumVisco_b
@@ -1163,6 +1159,7 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
+    call LogWriteBlank
     if ( parVersionNr .ge. 2.0_RK ) then
       call FileReadParameter( str , iounit_params , IdCorrFun, .false. , 'no' )
       select case( str )
@@ -1199,11 +1196,12 @@ contains
       if(mod(this%NSpanCF, this%NStepCorr) .eq. 0) then
         this%NSpanCF = this%NSpanCF/this%NStepCorr
         this%NCorr = this%NCorr/this%NStepCorr
-        write( IOBuffer, '("CorrFunction is calculated every",I7,"-th time step")') this%NStepCorr
+        write( IOBuffer, '("Correlation Function (CF) is calculated every",I3,"-th time step")') this%NStepCorr
         call LogWrite
-
       else
         this%NStepCorr = 1
+        write( IOBuffer, '("Correlation Function (CF) is calculated every time step")')
+        call LogWrite
         write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
         call LogWrite
       endif
@@ -1211,33 +1209,34 @@ contains
       this%TimeStepCorr = TimeStep * this%NStepCorr
 
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-        write( IOBuffer, '("Length of CorrFunction:",T26, I5)' ) this%NCorr*this%NStepCorr
+        write( IOBuffer, '("Length of CF:",T26, I5)' ) this%NCorr*this%NStepCorr
         call LogWrite
-
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
-        write( IOBuffer, '("Length of CorrFunction is extended to:",T40, I7)') this%NCorr*this%NStepCorr
+        write( IOBuffer, '("Length of CF is extended to:",T40, I7)') this%NCorr*this%NStepCorr
         call LogWrite
       endif
       
       ! Correlation length output
-      write( IOBuffer, '("Time Span between cf:",T26, I5)' ) this%NSpanCF*this%NStepCorr
+      write( IOBuffer, '("Time Span between CF:",T26, I5)' ) this%NSpanCF*this%NStepCorr
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
-      write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf
+      write( IOBuffer, '("Print CF each:",T26, I5)' ) this%Nviewcf
       call LogWrite
 
-      if ( this%Nviewcf*this%NCorr > NSteps ) then
-        write(IOBuffer, '("Warning: Updates of cf not sufficient - Output once at the end of simulation")')
-        this%Nviewcf = int((NSteps-this%NCorr)/this%NSpanCF)
-        write( IOBuffer, '("Print cf each:",T26, I5)' ) this%Nviewcf
+      if ( ((this%Nviewcf*this%NSpanCF*this%NStepCorr+this%NCorr*this%NStepCorr) > NSteps) .or. (this%Nviewcf .eq. 0) ) then
+        write(IOBuffer, '("Warning: Updates of CF not sufficient - Output once at the end of simulation")')
+        call LogWrite
+        this%Nviewcf = int((NSteps-this%NCorr*this%NStepCorr)/(this%NSpanCF*this%NStepCorr))
+        write( IOBuffer, '("Print after", I6," CF")' ) this%Nviewcf
+        call LogWrite
       end if
 
       ! Read frequency of updating result file CF
-      call FileReadParameter( this%BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 0 )
+      call FileReadParameter( this%BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 1 )
       if( BlockSize > 0 ) then
-        write( IOBuffer, '("Result files will be updated each", I7, " Correlation Functions")' ) this%BlockSizeCF
+        write( IOBuffer, '("Result files will be updated each", I3, " CF")' ) this%BlockSizeCF
       else
         write( IOBuffer, '("Result files will not be created")' )
       end if
@@ -2313,13 +2312,6 @@ contains
         this%Sumself_i(i)%VARIANCE    = 0._RK
       end do
 
-      call ConstructCF( this%SumBin_d,  .false., this%NBlocksMaxCF )
-      this%SumBin_d%BLOCKSUM(:) = 0._RK
-      this%SumBin_d%TOTALSUM    = 0._RK
-      this%SumBin_d%AVERAGE     = 0._RK
-      this%SumBin_d%VARIANCE    = 0._RK
-
-      
       do i = 1, this%NComponents
         do j = 1, this%NComponents
            call ConstructCF( this%SumOnsager(i,j), .false., this%NBlocksMaxCF )
@@ -2329,25 +2321,6 @@ contains
            this%SumOnsager(i,j)%VARIANCE    = 0._RK
         end do
      end do
-
-
-!       call ConstructCF( this%SumTer_a,  .true., this%NBlocksMaxCF )
-!       this%SumTer_a%BLOCKSUM(:) = 0._RK
-!       this%SumTer_a%TOTALSUM    = 0._RK
-!       this%SumTer_a%AVERAGE     = 0._RK
-!       this%SumTer_a%VARIANCE    = 0._RK
-! 
-!       call ConstructCF( this%SumTer_b,  .true., this%NBlocksMaxCF )
-!       this%SumTer_b%BLOCKSUM(:) = 0._RK
-!       this%SumTer_b%TOTALSUM    = 0._RK
-!       this%SumTer_b%AVERAGE     = 0._RK
-!       this%SumTer_b%VARIANCE    = 0._RK
-! 
-!       call ConstructCF( this%SumTer_c,  .true., this%NBlocksMaxCF )
-!       this%SumTer_c%BLOCKSUM(:) = 0._RK
-!       this%SumTer_c%TOTALSUM    = 0._RK
-!       this%SumTer_c%AVERAGE     = 0._RK
-!       this%SumTer_c%VARIANCE    = 0._RK
 
       call ConstructCF( this%SumVisco_s, .false., this%NBlocksMaxCF )
       this%SumVisco_s%BLOCKSUM(:) = 0._RK
@@ -2501,11 +2474,6 @@ contains
       do i = 1, this%NComponents
          call DestructCF( this%Sumself_i(i) )
       end do
-
-      call DestructCF( this%SumBin_d   )
-!       call DestructCF( this%SumTer_a   )
-!       call DestructCF( this%Sumter_b   )
-!       call DestructCF( this%Sumter_c   )
 
       do i = 1, this%NComponents
          do j = 1, this%NComponents
@@ -4437,7 +4405,7 @@ loop3:    do nc = 1, this%NComponents
     end if
 
     ! Number of steps
-    write( IOBuffer, '(I7)' ) Step
+    write( IOBuffer, '(I9)' ) Step
     call FileWriteNoAdvance( this%iounit_result )
 
     ! Radius
@@ -10200,23 +10168,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
 
         if(this%NComponents == 2) then
-        call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%SumSoret, this%soret, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+          call UpdateCF( this%SumSoret, this%soret, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
         end if
 
-!      if(this%NComponents == 3 ) then
-!         call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-!         call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-!         call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-!       end if
-
-         if(this%NComponents .gt. 1 ) then
-           do i = 1, this%NComponents
-             do j = 1, this%NComponents
-               call UpdateCF( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-             end do
-           end do
-         end if
+        if(this%NComponents .gt. 1 ) then
+          do i = 1, this%NComponents
+            do j = 1, this%NComponents
+              call UpdateCF( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+            end do
+          end do
+        end if
            
         call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
         call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
@@ -10712,7 +10673,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #else 
 !MPI=0
         ! Number of steps
-        write( IOBuffer, '(I7)' ) Step
+        write( IOBuffer, '(I9)' ) Step
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -10858,7 +10819,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
       else !MD
         ! Number of steps
-        write( IOBuffer, '(I7)' ) Step
+        write( IOBuffer, '(I9)' ) Step
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -11023,9 +10984,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       end if
     end if
+
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
-    if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) ) then
+    if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 )&
+&       .and. (mod((Step + this%NStepCorr -1), (this%NSpanCF*this%NStepCorr)) == 0) ) then
+
       rewind( this%iounit_rescf )
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
@@ -12209,7 +12173,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      write( IOBuffer, '("Number of ACF", T36, ":",T46, I5 )' ) this%Mmess
+      write( IOBuffer, '("Number of ACF", T36, ":",T45, I6 )' ) this%Mmess
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -12258,18 +12222,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
 
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%SumBin_d, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-            Average  = this%SumBin_d%Average
-            Variance = this%SumBin_d%Variance
-          else
-            Average  = this%SumBin_d%Average
-            Variance = this%SumBin_d%Variance
-          end if
+          x1 = this%Component(1)%Fraction
+          x2 = this%Component(2)%Fraction
+
+          L(1,1) = this%SumOnsager(1,1)%Average
+          L(1,2) = this%SumOnsager(1,2)%Average
+          L(2,1) = this%SumOnsager(2,1)%Average
+          L(2,2) = this%SumOnsager(2,2)%Average
+
+          D_12 = L(1,1) * x2 / x1 + L(2,2) * x1 / x2 - L(1,2) - L(2,1)
+          err_D12 = this%SumOnsager(1,1)%Variance * x2 / x1 + &
+&                  this%SumOnsager(2,2)%Variance * x1 / x2 + &
+&                  this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
+
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) Average, Variance
+          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
@@ -13848,16 +13817,6 @@ if( RootProc .and. this%CorrfunMode ) then
       call RestartSaveCF( this%Sumself_i(i), this%NBlocksRestartCF )
     end do
 
-    if(this%NComponents == 2) then
-      call RestartSaveCF( this%SumBin_d, this%NBlocksRestartCF )
-    end if
-
-!     if(this%NComponents == 3) then
-!       call RestartSaveCF( this%SumTer_a, this%NBlocksRestartCF )
-!       call RestartSaveCF( this%SumTer_b, this%NBlocksRestartCF )
-!       call RestartSaveCF( this%SumTer_c, this%NBlocksRestartCF )
-!     end if
-
      if(this%NComponents > 1) then
       do i = 1, this%NComponents
          do j = 1, this%NComponents
@@ -14188,16 +14147,6 @@ endif
       do i = 1, this%NComponents
       call RestartReadCF( this%Sumself_i(i), this%NBlocksRestartCF )
       end do
-
-      if(this%NComponents == 2) then
-        call RestartReadCF( this%SumBin_d, this%NBlocksRestartCF )
-      end if
-
-!       if(this%NComponents == 3) then
-!         call RestartReadCF( this%SumTer_a, this%NBlocksRestartCF )
-!         call RestartReadCF( this%SumTer_b, this%NBlocksRestartCF )
-!         call RestartReadCF( this%SumTer_c, this%NBlocksRestartCF )
-!       end if
 
       if(this%NComponents >= 2) then
         do i = 1, this%NComponents
@@ -17463,67 +17412,6 @@ contains
            end if
          end do
       end do   
-
-
-      if ( this%NComponents == 2 ) then
-        this%binary_d = (((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1)) * &
-&                       (this%Component(2)%Fraction/this%Component(1)%Fraction)) + &
-&                       ((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1)) * &
-&                       (this%Component(1)%Fraction/this%Component(2)%Fraction)) - &
-&                       (this%sinte_lamda(2,this%NCorr)*this%lamda(2,1)) - &
-&                       (this%sinte_lamda(3,this%NCorr)*this%lamda(3,1)))* helpvar
-      end if
-
-!       if( this%NComponents == 3 ) then
-! 
-!         x1 = this%Component(1)%Fraction
-!         x2 = this%Component(2)%Fraction
-!         x3 = this%Component(3)%Fraction
-!         Inv_x1 = 1._RK / x1
-!         Inv_x2 = 1._RK / x2
-!         Inv_x3 = 1._RK / x3
-! 
-!         deter1 = (((1._RK - x1)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
-! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-! &                         ((x1)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
-! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
-! &                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
-! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-! 
-!         deter2 = (((1._RK - x1)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
-! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3)))- &
-! &                         ((x1)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
-! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3) + &
-! &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-! &                             ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-! 
-!         deter3 = (((1._RK - x2)*(((this%sinte_lamda(4,this%NCorr)*this%lamda(4,1))*Inv_x1) - &
-! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
-! &                         ((x2)*(((this%sinte_lamda(1,this%NCorr)*this%lamda(1,1))*Inv_x1) - &
-! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
-! &                               ((this%sinte_lamda(7,this%NCorr)*this%lamda(7,1))*Inv_x1) - &
-! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-! 
-!         deter4 = (((1._RK - x2)*(((this%sinte_lamda(5,this%NCorr)*this%lamda(5,1))*Inv_x2) - &
-! &                               ((this%sinte_lamda(6,this%NCorr)*this%lamda(6,1))*Inv_x3)))- &
-! &                        ((x2)*(((this%sinte_lamda(2,this%NCorr)*this%lamda(2,1))*Inv_x2) - &
-! &                               ((this%sinte_lamda(3,this%NCorr)*this%lamda(3,1))*Inv_x3) + &
-! &                               ((this%sinte_lamda(8,this%NCorr)*this%lamda(8,1))*Inv_x2) - &
-! &                              ((this%sinte_lamda(9,this%NCorr)*this%lamda(9,1))*Inv_x3))))*helpvar
-
-        !obtain matrix [B] so that [B]=[D]-1
-        ! determinat of matrix [B]
-!         det = (deter1*deter4)-(deter2*deter3)
-! 
-!         B11 =  deter4 * (1._RK/det)
-!         B12 = -deter2 * (1._RK/det)
-!         B21 = -deter3 * (1._RK/det)
-!         B22 =  deter1 * (1._RK/det)
-! 
-!         this%ternary_a =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )
-!         this%ternary_b =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))
-!         this%ternary_c =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))
-!       end if
 
     end if
 
