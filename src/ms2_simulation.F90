@@ -2421,6 +2421,9 @@ eqloop: do
 
     write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 
+    write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
+    call LogWrite
+
 #if MPI_VER > 0
     ! Hack to avoid extensive changes within the Ensemble RestartSave... (rewrite using MPI-IO!)
     if ( NCommunicators .le. 1 .or. NCommunicator .eq. 0) then
@@ -2453,6 +2456,8 @@ eqloop: do
           end do
           ! and close the file again
           call FileClose( iounit_restart )
+          write( IOBuffer, '("Subcommunicator ",I3," saved ensemble restart data")' ) j
+          call LogWrite
         endif
         call MPI_Barrier( Communicator_R, ierror )
       end do
@@ -2473,6 +2478,9 @@ eqloop: do
 #if MPI_VER > 0
     endif
 #endif
+
+    write( IOBuffer, '("Finished saving restart file ", A)' ) trim( RestartFileName )
+    call LogWrite
 
   end subroutine TSimulation_RestartSave
 
@@ -2497,7 +2505,11 @@ eqloop: do
     integer :: i,j
 #if MPI_VER > 0
     integer :: filepos
+    integer :: stat
 #endif
+
+    write( IOBuffer, '("Reading restart file ")' )
+    call LogWrite
 
     if( RootProc_W ) then
 
@@ -2505,9 +2517,13 @@ eqloop: do
       read( iounit_restart, '(2I10)' ) Step, StepTotal
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
+#if MPI_VER > 0
       if (NCommunicators .gt. 1) then
+        !inquire(iounit_restart, pos=filepos)
+        filepos=ftell(iounit_restart)
         call FileClose( iounit_restart )
       end if
+#endif
 
     end if
 
@@ -2529,32 +2545,41 @@ eqloop: do
     ! Hack to avoid extensive changes within the Ensemble RestartRead... (rewrite using MPI-IO!)
     if (NCommunicators .gt. 1) then
       ! multiple communicators
-      if( RootProc_W ) then
-        !ftell(iounit_restart)
-        inquire(iounit_restart, pos=filepos)
-      end if
       call MPI_Bcast( filepos, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-      if( RootProc ) then
-        ! each Communicator loads its Ensembles sequentially
-        do j = 0,NCommunicators-1
-          if ( j .eq. NCommunicator) then
+      
+      
+      ! each Communicator loads its Ensembles sequentially
+      do j = 0,NCommunicators-1
+        if ( j .eq. NCommunicator) then
+          if( RootProc ) then
             ! ReOpen restart file for reading
-            call FileReset( iounit_restart, trim(RestartFileName) )
-            !fseek(iounit_restart, filepos, 0)
-            read (iounit_restart,"()", advance='NO', pos=filepos)
-            ! Save ensembles
-            do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-              call RestartRead( this%Ensemble(i) )
-            end do
-            inquire(iounit_restart, pos=filepos)
+            write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
+            !call FileReset( iounit_restart, trim(RestartFileName) )
+            open( iounit_restart, file=trim(RestartFileName), action='READ', status='OLD', form='formatted', access='stream', iostat=stat )
+            !read (iounit_restart,"()", advance='NO', pos=filepos)
+            stat=fseek(iounit_restart, filepos, 0)
+          end if
+          ! Save ensembles
+          do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+            call RestartRead( this%Ensemble(i) )
+          end do
+          if( RootProc ) then
+            !inquire(iounit_restart, pos=filepos)
+            filepos=ftell(iounit_restart)
             ! and close the file again
-            call FileClose( iounit_restart )
-          endif
+            !call FileClose( iounit_restart )
+            close( iounit_restart )
+            write( IOBuffer, '("Subcommunicator ",I3," read ensemble restart data (up to pos.",I7,")")' ) j,filepos
+            call LogWrite
+          end if
+        end if
+        if( RootProc ) then
           ! MPI_Bcast requires each participating PE to know the root
           call MPI_Allreduce( MPI_IN_PLACE, filepos, 1, MPI_INTEGER, MPI_MAX, Communicator_R, ierror )
           !call MPI_Barrier( Communicator_R, ierror )
-        end do
-      end if
+        end if
+        !call MPI_Barrier( MPI_COMM_WORLD, ierror )
+      end do
     else
 #endif
       ! sequential/single communicator version
@@ -2572,6 +2597,9 @@ eqloop: do
     endif
 #endif
 
+    write( IOBuffer, '("Finished reading restart file ")' )
+    call LogWrite
+    
  end subroutine TSimulation_RestartRead
 
 
