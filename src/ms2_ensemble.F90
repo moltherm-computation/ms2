@@ -14084,31 +14084,31 @@ endif
       !Aenderungen Koester
 
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsk(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsp(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vbk(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vbp(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vckt(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vckr(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcpt(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcpr(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcmt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcmt(i,:)
       end do
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
@@ -14246,7 +14246,9 @@ endif
     if (RootProc) then
       t = this%NRealComponents+1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+      end if
       do i=1,this%NRealComponents
         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
@@ -14263,7 +14265,9 @@ endif
           t = t+1
         end if 
       end do
-      call FileClose( this%iounit_thermoint )
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileClose( this%iounit_thermoint )
+      end if
     end if
 
 #if MPI_VER > 0
