@@ -5522,7 +5522,7 @@ loop2:        do nc = 1, this%NComponents
         ! chemPot with LambdaMin by Widom
         call Mol2AtomTest( this%Component(i), this%Component(i)%NTest )
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
-        do j = 1, this%NRealComponents
+        do j = 1, this%NComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
         factor=pc%LaMin**pc%LambdaExponent
