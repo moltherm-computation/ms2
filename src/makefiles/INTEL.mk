@@ -1,6 +1,8 @@
 F90              = ifort
+F90ld            = ifort
+F90mpi           = mpif90
 OMPFLAGS         = -openmp
-CPPFLAGS         = -DARCH=2 -DFORTRAN=90  
+CPPFLAGS         = -DARCH=2 -DFORTRAN=90
 F90FLAGS_RELEASE = -O3 -fpp -r8 -vec_report6
 F90FLAGS_DEBUG   = -O0 -fpp -r8 -vec_report0 -g 
 F90FLAGS_PROF    = -O3 -fpp -r8 -vec_report0 -g 

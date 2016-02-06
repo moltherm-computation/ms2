@@ -1977,8 +1977,10 @@ eqloop: do
 
     NTransfer = 100
     ! Simulations Setup Check for Gibbs
-    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) call Error( 'Gibbs Ensemble only implemented for NVT')
-    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
+    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
+&       call Error( 'Gibbs Ensemble only implemented for NVT')
+    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) &
+&       call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
 
     ! Run MC simulation step
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
@@ -2519,8 +2521,13 @@ eqloop: do
 
 #if MPI_VER > 0
       if (NCommunicators .gt. 1) then
-        !inquire(iounit_restart, pos=filepos)
+#if FORTRAN>=2003
+        inquire(iounit_restart, pos=filepos)
+#else
         filepos=ftell(iounit_restart)
+#endif
+        !write( IOBuffer, '("read restart file up to pos.", I7)' ) filepos
+        !call LogWrite
         call FileClose( iounit_restart )
       end if
 #endif
@@ -2554,22 +2561,35 @@ eqloop: do
           if( RootProc ) then
             ! ReOpen restart file for reading
             write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
-            !call FileReset( iounit_restart, trim(RestartFileName) )
-            open( iounit_restart, file=trim(RestartFileName), action='READ', status='OLD', form='formatted', access='stream', iostat=stat )
-            !read (iounit_restart,"()", advance='NO', pos=filepos)
+#if FORTRAN>=2003
+            open( iounit_restart, file=trim(RestartFileName), action='READ', status='OLD', access='stream', form='formatted', iostat=stat )
+            !read (iounit_restart,*, pos=filepos)
+            read (iounit_restart,'()', pos=filepos, advance='NO')
+#else
+            call FileReset( iounit_restart, trim(RestartFileName) )
+#ifdef __GNUC__
+            call fseek(iounit_restart, filepos, 0, stat)
+#else
             stat=fseek(iounit_restart, filepos, 0)
+#endif
+            write( IOBuffer, '("Subcommunicator",I6,": start reading ensemble restart data    (from  pos.", I8,")")' ) j,filepos
+            call LogWrite
+#endif
           end if
           ! Save ensembles
           do i = this%firstEnsembleIdx, this%lastEnsembleIdx
             call RestartRead( this%Ensemble(i) )
           end do
           if( RootProc ) then
-            !inquire(iounit_restart, pos=filepos)
+#if FORTRAN>=2003
+            inquire(iounit_restart, pos=filepos)
+#else
             filepos=ftell(iounit_restart)
+#endif
             ! and close the file again
             !call FileClose( iounit_restart )
             close( iounit_restart )
-            write( IOBuffer, '("Subcommunicator ",I3," read ensemble restart data (up to pos.",I7,")")' ) j,filepos
+            write( IOBuffer, '("Subcommunicator",I6,": finished reading ensemble restart data (up to pos.",I8,")")' ) j,filepos
             call LogWrite
           end if
         end if

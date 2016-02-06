@@ -831,14 +831,6 @@ module ms2_ensemble
 
 contains
 
-#ifdef NECSX
-  function new_line( c  ) result(newline)
-    implicit none
-    character :: c,newline
-    newline = achar(10) 
-  end function new_line
-#endif
-
 !==============================================================!
 !  Subroutine TEnsemble_Construct                              !
 !==============================================================!

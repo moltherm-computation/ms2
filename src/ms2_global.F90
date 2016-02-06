@@ -877,7 +877,15 @@ module ms2_global
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flush of I/O units
   external flush
-
+  
+  ! get/set file position
+  integer, external :: ftell
+#ifdef __GNUC__
+  external fseek
+#else
+  integer, external :: fseek
+#endif
+  
   ! change current directory
 #if defined _PGF
   integer, external :: chdir
@@ -908,6 +916,18 @@ module ms2_global
 #endif
 
 contains
+
+!==============================================================!
+
+#if ARCH == 3
+  function new_line( c  ) result(newline)
+    implicit none
+    character :: c,newline
+    newline = achar(10) 
+  end function new_line
+#endif
+
+!==============================================================!
 
 #if MPI_VER > 0
 
@@ -967,8 +987,12 @@ contains
     
     write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs,NCommunicators
     call LogWrite
-    write( IOBuffer, '("closing logfile - opening ",I3," new logfiles ",A,"_*",A," ...")') NCommunicators,trim(OutputNameTag),LogFileExtension
+    write( IOBuffer, '("closing logfile - opening ",I3," new logfiles ",A,"_*",A," ...")') NCommunicators-1,trim(OutputNameTag),LogFileExtension
     call LogWrite
+    write( IOBuffer, '(72("#"))')
+    call LogWrite
+    call LogWriteBlank
+    ! close log file to reopen/open new ones
     call LogClose
     
     !NCommunicator=mod(NProc,NCommunicators)
@@ -977,6 +1001,7 @@ contains
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient (avoiding some internal communication within the MPI library)    
     call SetCommunicator(newCommunicator)	!   RootProc is now true for the root of the new communicator(s)
+    ! (re)open log files
     call LogOpen
     
     ! creating a communicator for all the RootProc (resp. non-RootProc) within the old communicator
@@ -1136,8 +1161,14 @@ contains
           RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
-          !  might need access = 'stream',form = 'unformatted' or access = 'sequential', form = 'binary' for some compilers
+          !if(RootProc) then
+#if FORTRAN>=2003
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD' &
+&             , access = 'stream', form = 'formatted', iostat = stat )
+#else
+	  !FileReset(iounit_restart)
           open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
+#endif
           if( stat /= 0 ) then
             print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
 
@@ -1571,13 +1602,17 @@ contains
     ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
     
     ! generate filename
-    if ( NCommunicators .gt. 1 ) then
+    if ( NCommunicators .gt. 1 .and. NCommunicator .gt. 0 ) then
       write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator,LogFileExtension
     else
       write( filename, '(A,A)' ) trim( OutputNameTag ),LogFileExtension
     endif
 
-    call FileRewrite( iounit_log, trim(filename) )
+    if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
+      call FileAppend( iounit_log, trim(filename) )
+    else
+      call FileRewrite( iounit_log, trim(filename) )
+    endif
 
     write( IOBuffer, '("ms2 logfile ",A," created at")' ) trim(filename)
     call LogWriteTime

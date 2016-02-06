@@ -1,4 +1,6 @@
 F90              = pgf90
+F90ld            = pgf90
+F90mpi           = mpif90
 OMPFLAGS         = -mp
 CPPFLAGS         = -DARCH=2 -DFORTRAN=90 -D_PGF 
 F90FLAGS_RELEASE = -C -O3 
