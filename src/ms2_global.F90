@@ -238,8 +238,8 @@ module ms2_global
 
   ! Define comment character
   character, parameter :: CommentSign = '#'
-  ! Define whitespaces                     TAB
-  character(*), parameter :: Whitespaces=' '//char(9)
+  ! Define whitespaces                     TAB       CR
+  character(*), parameter :: Whitespaces=' '//char(9)//char(13)
 
   ! Define identifiers used in configuration file
   character(*), parameter :: IdRestart                     = 'Restart'
@@ -922,6 +922,14 @@ module ms2_global
   ! Flush of I/O units
   external flush
 
+  ! get/set file position
+  integer, external :: ftell
+#ifdef __GNUC__
+  external fseek
+#else
+  integer, external :: fseek
+#endif
+
   ! change current directory
 #if defined _PGF
   integer, external :: chdir
@@ -952,6 +960,18 @@ module ms2_global
 #endif
 
 contains
+
+!==============================================================!
+
+#if ARCH == 3
+  function new_line( c  ) result(newline)
+    implicit none
+    character :: c,newline
+    newline = achar(10) 
+  end function new_line
+#endif
+
+!==============================================================!
 
 #if MPI_VER > 0
 !==============================================================!
@@ -1012,8 +1032,12 @@ contains
     
     write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs,NCommunicators
     call LogWrite
-    write( IOBuffer, '("closing logfile - opening new logfiles...")')
+    write( IOBuffer, '("closing logfile - opening ",I3," new logfiles ",A,"_*",A," ...")') NCommunicators-1,trim(OutputNameTag),LogFileExtension
     call LogWrite
+    write( IOBuffer, '(72("#"))')
+    call LogWrite
+    call LogWriteBlank
+    ! close log file to reopen/open new ones
     call LogClose
     
     !NCommunicator=mod(NProc,NCommunicators)
@@ -1022,6 +1046,7 @@ contains
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient (avoiding some internal communication within the MPI library)    
     call SetCommunicator(newCommunicator)       !   RootProc is now true for the root of the new communicator(s)
+    ! (re)open log files
     call LogOpen
     
     ! creating a communicator for all the RootProc (resp. non-RootProc) within the old communicator
@@ -1181,8 +1206,14 @@ contains
           RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
-          !  might need access = 'stream',form = 'unformatted' or access = 'sequential', form = 'binary' for some compilers
+          !if(RootProc) then
+#if FORTRAN>=2003
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD' &
+&             , access = 'stream', form = 'formatted', iostat = stat )
+#else
+          !FileReset(iounit_restart)
           open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
+#endif
           if( stat /= 0 ) then
             print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
 
@@ -1403,16 +1434,18 @@ contains
 #if ARCH == 1 || ARCH == 2
 #ifdef _CRAYFTN
 #elif defined  __GNUC__
-    call signal( 1, IgnoreSignal )
-    call signal( 2, SetTerminateProgram )
-    call signal( 15, SetTerminateProgram )
+    call signal( 1, IgnoreSignal )             ! Ignore SIGHUP
+    call signal( 2, SetTerminateProgram )      ! Catch SIGINT
+    call signal( 3, SetTerminateProgram )      ! Catch SIGQUIT
+    call signal( 15, SetTerminateProgram )     ! Catch SIGTERM
 #else
-    i = signal( 1, SetTerminateProgram, 1 ) ! Ignore SIGHUP
-    i = signal( 2, SetTerminateProgram, -1 ) ! Catch SIGINT
-    i = signal( 15, SetTerminateProgram, -1 ) ! Catch SIGTERM
+    i = signal( 1, SetTerminateProgram, 1 )    ! Ignore SIGHUP (HangUP)
+    i = signal( 2, SetTerminateProgram, -1 )   ! Catch SIGINT (INTerrupt)
+    i = signal( 3, SetTerminateProgram, -1 )   ! Catch SIGQUIT (QUIT)
+    i = signal( 15, SetTerminateProgram, -1 )  ! Catch SIGTERM (TERMinate)
 #endif
 #elif ARCH == 3
-    i = signal( 15, SetTerminateProgram )
+    i = signal( 15, SetTerminateProgram )      ! Catch SIGTERM
 #endif
     write( IOBuffer, '(72("-"))')
     call LogWrite
@@ -1610,13 +1643,17 @@ contains
     ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
     
     ! generate filename
-    if ( NCommunicators .gt. 1 ) then
+    if ( NCommunicators .gt. 1 .and. NCommunicator .gt. 0 ) then
       write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator,LogFileExtension
     else
       write( filename, '(A,A)' ) trim( OutputNameTag ),LogFileExtension
     endif
 
-    call FileRewrite( iounit_log, trim(filename) )
+    if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
+      call FileAppend( iounit_log, trim(filename) )
+    else
+      call FileRewrite( iounit_log, trim(filename) )
+    endif
 
     write( IOBuffer, '("ms2 logfile ",A," created at")' ) trim(filename)
     call LogWriteTime
@@ -1890,7 +1927,7 @@ contains
     if( .not. RootProc ) return
 
     ! Update log file
-    write( IOBuffer, '(I7, " steps completed")' ) Step
+    write( IOBuffer, '(I9, " steps completed")' ) Step
     call LogWriteTime
 
   end subroutine Global_LogWriteStep
@@ -1915,7 +1952,7 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) trim( filename )
+    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
     call LogWrite
     open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
     if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
@@ -1969,7 +2006,7 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for writing")' ) trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
     open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
@@ -1997,7 +2034,7 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
     inquire( file = filename, exist = ex )
@@ -2040,7 +2077,7 @@ contains
 #endif
     close( iounit )
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
+      write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), iounit
       call LogWrite
     end if
 

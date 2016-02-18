@@ -6370,50 +6370,50 @@ contains
       ! Centers of mass positions
       do i = 1, np
         do k = 1, nu
-          read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P0( i, :, k )
+          read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P0( i, :, k )
         end do
       end do
 
-      ! Calculate positions of COM for molecules from  COM of units
-      do i = 1, np
-        r(:) = 0._RK
-        do k= 1, nu
-           r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-        end do
-        this%Pm0(i,:) = r(:)/this%Molecule%Mass
-        this%Pm0old(i,:) = this%Pm0(i, :)
-      end do
+!       ! Calculate positions of COM for molecules from  COM of units
+!       do i = 1, np
+!         r(:) = 0._RK
+!         do k= 1, nu
+!            r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+!         end do
+!         this%Pm0(i,:) = r(:)/this%Molecule%Mass
+!         this%Pm0old(i,:) = this%Pm0(i, :)
+!       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Centers of mass positions' derivatives
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, : , k )
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P1( i, : , k )
           end do
         end do
 
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, : , k )
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P2( i, : , k )
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P3( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P4( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
             end do
           end do
 
@@ -6434,7 +6434,7 @@ contains
         ! Quaternion parameters
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q0( i, :, k )
+            read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q0( i, :, k )
           end do
         end do
 
@@ -6442,26 +6442,26 @@ contains
           ! Quaternion parameters' derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q1( i, :, k )
+              read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q1( i, :, k )
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q2( i, :, k )
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q3( i, :, k )
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q4( i, :, k )
               end do
             end do
           end if
@@ -6469,32 +6469,32 @@ contains
           ! Angular velocities and their derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W0( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W1( i, :, k )
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W2( i, : , k)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W3( i, : , k)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W4( i, : , k)
               end do
             end do
 

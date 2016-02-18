@@ -1,16 +1,36 @@
 ########################################
 # Makefile for ms2
 ########################################
+#
 COMPILER = GNU
+#
+$(info COMPILER: $(COMPILER))
 CONFIG = makefiles/$(COMPILER).mk
 include $(CONFIG)
+#
 TARGET    = RELEASE
+#TARGET    = DEBUG
+TRANS     = 0
 MPI       = 0
 OMP       = 0
 PROG      = ms2
-TRANS     = 0
+#
+$(info TARGET: $(TARGET))
+ifeq ($(TRANS),1)
+$(info TRANSPORT enabled)
+endif
 ifeq ($(MPI),1)
-  F90 = mpif90
+$(info MPI enabled)
+ endif
+ifeq ($(OMP),1)
+$(info OMP enabled)
+endif
+ifeq ($(SP),1)
+$(info compiling Single Precision)
+endif
+ifeq ($(MPI),1)
+  F90      = $(F90mpi)
+  F90ld    = $(F90mpi)
   CPPFLAGS += -DMPI_VER=1
   PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
@@ -54,12 +74,15 @@ MODS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).mod)
 ########################################
 # Rules to build the target
 #
+.PHONY: clean
+
 default: all
+       @make clean
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(F90) $(LDFLAGS) -o $@ $(OBJS)
+	$(F90ld) $(LDFLAGS) -o $@ $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(MODS)
