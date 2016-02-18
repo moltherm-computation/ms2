@@ -5146,7 +5146,7 @@ end subroutine TInteraction_Energy
 
       ! Angle Interaction
       k = this%AngleCount(nu)
-      !this%EPot1Angle(:) = this%EPotAngle (this%NAngle*(np-1)+1 : this%NAngle*np)
+      this%EPot1Angle(:) = this%EPotAngle(this%NAngle*(np-1)+1 : this%NAngle*np)
       do j = 1, k
         bi = this%AnglePartner(nu,j)
         pan => this%PotAngle(bi)
@@ -5211,7 +5211,7 @@ end subroutine TInteraction_Energy
 
       ! Dihedral/Torsions Interaction
       k = this%DihedralCount(nu)
-      !this%EPot1To(:) = this%EPotTo (this%NDihedral*(np-1)+1 : this%NDihedral*np)
+      this%EPot1To(:) = this%EPotTo(this%NDihedral*(np-1)+1 : this%NDihedral*np)
       do j = 1, k
         bi = this%DihedralPartner(nu,j)
         pto => this%PotDihedral(bi)
@@ -5235,11 +5235,10 @@ end subroutine TInteraction_Energy
         RYl=pto%Dihedral%RY4(np)
         RZl=pto%Dihedral%RZ4(np)
 
-        EPotAdd = 0
-        if (nmax .ge. 0) then
-          EPotAdd = pto%ForConst(1)*2._RK ! Michael Sch.: correct like this
-        end if
-        if (nmax .ne. 0) then
+        if (nmax .eq. 0) then
+          earg = 1._RK + cos(-pto%gamma0(1))
+          EPotAdd = earg * pto%ForConst(1)
+        else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
@@ -5298,6 +5297,8 @@ end subroutine TInteraction_Energy
 
             if (nmax > 0) then
               ! Normal Amber-type torsion angle
+              earg = 1._RK + cos(-pto%gamma0(1))
+              EPotAdd = earg * pto%ForConst(1)
               do i =1, nmax
                 earg= i*arg-pto%gamma0(i+1)
                 ! Energy:

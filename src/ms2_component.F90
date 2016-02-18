@@ -420,9 +420,9 @@ module ms2_component
     module procedure TComponent_ZeroNAttempts
   end interface
 
-  interface UpdateDisplacements
-    module procedure TComponent_UpdateDisplacements
-  end interface
+!   interface UpdateDisplacements
+!     module procedure TComponent_UpdateDisplacements
+!   end interface
 
   interface AddParticle
     module procedure TComponent_AddParticle
@@ -2696,6 +2696,10 @@ contains
         this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
         this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
         this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
+
+        this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
+        this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
+        this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
       end do
     end do
 
@@ -2733,9 +2737,9 @@ subroutine TComponent_RotateMol( this, np, dq )
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%P0(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%Q0(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
       end if
     end if
 #endif
@@ -2783,11 +2787,17 @@ subroutine TComponent_RotateMol( this, np, dq )
       r1 = (PX-this%Pm0(np,1))
       r2 = (PY-this%Pm0(np,2))
       r3 = (PZ-this%Pm0(np,3))
+      r1 = r1 - anint(r1)
+      r2 = r2 - anint(r2)
+      r3 = r3 - anint(r3)
 
       ! Calculating new Positions and quaternions of unit i after rotation
       this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
       this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
       this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
+      this%P0(np,1,i) = this%P0(np,1,i) - anint(this%P0(np,1,i))
+      this%P0(np,2,i) = this%P0(np,2,i) - anint(this%P0(np,2,i))
+      this%P0(np,3,i) = this%P0(np,3,i) - anint(this%P0(np,3,i))
 
       ! this%Q0*dq
       this%Q0(np,1,i) = q1 - dq(1)*q2 - dq(2)*q3 - dq(3)*q4
@@ -4667,15 +4677,16 @@ subroutine TComponent_InitUnit( this, np, dq )
     PZ(1:np)   = 0._RK
 
     do i=1,this%Molecule%NUnit
-      mass = mass + this%Molecule%Unit(i)%Mass
+      mass = this%Molecule%Unit(i)%Mass
       PX(1:np)   = PX(1:np)   + (this%P0(1:np,1,i)-&
-&          anint(this%P0(1:np,1,i)-this%Pm0(1:np,1)) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(1:np,1,i)-this%Pm0(1:np,1)) )*mass
       PY(1:np)   = PY(1:np)   + (this%P0(1:np,2,i)-&
-&          anint(this%P0(1:np,2,i)-this%Pm0(1:np,2)) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(1:np,2,i)-this%Pm0(1:np,2)) )*mass
       PZ(1:np)   = PZ(1:np)   + (this%P0(1:np,3,i)-&
-&          anint(this%P0(1:np,3,i)-this%Pm0(1:np,3)) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(1:np,3,i)-this%Pm0(1:np,3)) )*mass
     end do
 
+    mass = this%Molecule%Mass
     this%Pm0(1:np,1) = PX / mass
     this%Pm0(1:np,2) = PY / mass
     this%Pm0(1:np,3) = PZ / mass
@@ -4707,15 +4718,16 @@ subroutine TComponent_InitUnit( this, np, dq )
     PZ   = 0._RK
 
     do i=1,this%Molecule%NUnit
-      mass = mass + this%Molecule%Unit(i)%Mass
+      mass = this%Molecule%Unit(i)%Mass
       PX   = PX   + (this%P0(np,1,i)-&
-&          anint(this%P0(np,1,i)-this%Pm0(np,1)) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(np,1,i)-this%Pm0(np,1)) )*mass
       PY   = PY   + (this%P0(np,2,i) - &
-&          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*mass
       PZ   = PZ   + ( this%P0(np,3,i) - &
-&          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*this%Molecule%Unit(i)%Mass
+&          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*mass
     end do
 
+    mass = this%Molecule%Mass
     this%Pm0(np,1) = PX / mass
     this%Pm0(np,2) = PY / mass
     this%Pm0(np,3) = PZ / mass
@@ -4820,45 +4832,29 @@ subroutine TComponent_InitUnit( this, np, dq )
       end do
     end do
 
-    ! Calculate new positions of COM for molecules from new COM of units
     do i = 1, np
       r(:) = 0._RK
       do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-    end do
-
-    ! Calculate displacement of molecules
-    do i = 1, np
-      do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-    ! Check for conservation of particles in primary cell
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
 #if ARCH == 1
-        if( this%Pm0(i, j) < -.5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          end do
-        elseif( this%Pm0(i, j) > .5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end do
-        end if
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
 #else
-        do k = 1, nu
-           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
-        end do
-      end do
-    end do
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
-    ! Calculate new positions of COM for molecules from new COM of units
-    do i = 1, np
-      r(:) = 0._RK
-      do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+        end do
+        ! Calculate new positions of COM for molecules from new COM of units
+         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
@@ -4950,45 +4946,29 @@ subroutine TComponent_InitUnit( this, np, dq )
       end do
     end do
 
-    ! Calculate new positions of COM for molecules from new COM of units
     do i = 1, np
       r(:) = 0._RK
       do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-    end do
-
-    ! Calculate displacement of molecules
-    do i = 1, np
-      do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-    ! Check for conservation of particles in primary cell
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
 #if ARCH == 1
-        if( this%Pm0(i, j) < -.5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          end do
-        elseif( this%Pm0(i, j) > .5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end do
-        end if
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
 #else
-        do k = 1, nu
-           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
-        end do
-      end do
-    end do
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
-    ! Calculate new positions of COM for molecules from new COM of units
-    do i = 1, np
-      r(:) = 0._RK
-      do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+        end do
+        ! Calculate new positions of COM for molecules from new COM of units
+         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
@@ -5092,45 +5072,29 @@ subroutine TComponent_InitUnit( this, np, dq )
       end do
     end do
 
-    ! Calculate new positions of COM for molecules from new COM of units
     do i = 1, np
       r(:) = 0._RK
       do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-    end do
-
-    ! Calculate displacement of molecules
-    do i = 1, np
-      do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-        ! Check for conservation of particles in primary cell
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
 #if ARCH == 1
-        if( this%Pm0(i, j) < -.5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          end do
-        elseif( this%Pm0(i, j) > .5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end do
-        end if
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
 #else
-        do k = 1, nu
-           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
-        end do
-      end do
-    end do
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
-    ! Calculate new positions of COM for molecules from new COM of units
-    do i = 1, np
-      r(:) = 0._RK
-      do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+        end do
+        ! Calculate new positions of COM for molecules from new COM of units
+         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
@@ -5297,40 +5261,28 @@ subroutine TComponent_InitUnit( this, np, dq )
         end do
       end do
 
-      ! Calculate new positions of COM for molecules from new COM of units
       r(:) = 0._RK
       do k= 1, nu
-        r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-
-      ! Calculate displacement of molecules
-      do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-        ! Check for conservation of particles in primary cell
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
 #if ARCH == 1
-        if( this%Pm0(i, j) < -.5_RK ) then
-          do k = 1, nu
+          if( this%P0(i, j, k) < -.5_RK ) then
             this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          end do
-        elseif( this%Pm0(i, j) > .5_RK ) then
-          do k = 1, nu
+          elseif( this%P0(i, j, k) > .5_RK ) then
             this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end do
-        end if
+          end if
 #else
-        do k = 1, nu
-          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
-        end do
-      end do
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
-
-      ! Calculate new positions of COM for molecules from new COM of units
-      r(:) = 0._RK
-      do k= 1, nu
-        r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+        end do
+        ! Calculate new positions of COM for molecules from new COM of units
+         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
 
       do k = 1, nu
@@ -5975,47 +5927,47 @@ contains
 
 
 
-!==============================================================!
-!  Subroutine TComponent_UpdateDisplacements                   !
-!==============================================================!
-
-  subroutine TComponent_UpdateDisplacements( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Update translational displacement
-    if( this%NMoveSuccesses < this%NMoveAttempts * Acceptance ) then
-      this%DispTran = this%DispTran * .95_RK
-    else if( this%DispTran < DispTranLimit ) then
-      this%DispTran = this%DispTran * 1.05_RK
-    end if
-
-    ! Update rotational displacement
-    if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
-      this%DispRot = this%DispRot * .95_RK
-    else if( this%DispRot < DispRotLimit ) then
-      this%DispRot = this%DispRot * 1.05_RK
-    end if
-
-    if (UseIntDegFreed) then
-      if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
-        this%DispMolTran = this%DispMolTran * .95_RK
-      else if( this%DispMolTran < DispMolTranLimit ) then
-        this%DispTran = this%DispTran * 1.05_RK
-      end if
-      ! Update rotational displacement
-      if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
-        this%DispMolRot = this%DispMolRot * .95_RK
-      else if( this%DispMolRot < DispMolRotLimit ) then
-        this%DispMolRot = this%DispMolRot * 1.05_RK
-      end if
-    end if
-
-
-  end subroutine TComponent_UpdateDisplacements
+! !==============================================================!
+! !  Subroutine TComponent_UpdateDisplacements                   !
+! !==============================================================!
+! 
+!   subroutine TComponent_UpdateDisplacements( this )
+! 
+!     implicit none
+! 
+!     ! Declare arguments
+!     type(TComponent) :: this
+! 
+!     ! Update translational displacement
+!     if( this%NMoveSuccesses < this%NMoveAttempts * Acceptance ) then
+!       this%DispTran = this%DispTran * .95_RK
+!     else if( this%DispTran < DispTranLimit ) then
+!       this%DispTran = this%DispTran * 1.05_RK
+!     end if
+! 
+!     ! Update rotational displacement
+!     if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
+!       this%DispRot = this%DispRot * .95_RK
+!     else if( this%DispRot < DispRotLimit ) then
+!       this%DispRot = this%DispRot * 1.05_RK
+!     end if
+! 
+!     if (UseIntDegFreed) then
+!       if( this%NMoveMolSuccesses < this%NMoveMolAttempts * Acceptance ) then
+!         this%DispMolTran = this%DispMolTran * .95_RK
+!       else if( this%DispMolTran < DispMolTranLimit ) then
+!         this%DispTran = this%DispTran * 1.05_RK
+!       end if
+!       ! Update rotational displacement
+!       if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
+!         this%DispMolRot = this%DispMolRot * .95_RK
+!       else if( this%DispMolRot < DispMolRotLimit ) then
+!         this%DispMolRot = this%DispMolRot * 1.05_RK
+!       end if
+!     end if
+! 
+! 
+!   end subroutine TComponent_UpdateDisplacements
 
 
 !==============================================================!

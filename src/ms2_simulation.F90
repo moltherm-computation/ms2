@@ -810,10 +810,10 @@ contains
     ! Read type of simulation with/without internal degree of freedom 
     call FileReadParameter( str, iounit_params , IdUseIntDegFreed, .true., "off" )
     select case( str )
-    case( 'ON', 'On', 'on', 'YES', 'yes' )
+    case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' )
        UseIntDegFreed = .true.
        str = 'Flexible molecules'
-    case( 'OFF', 'off', 'no', 'No' )
+    case( 'OFF', 'Off', 'off', 'no', 'NO', 'No' )
        UseIntDegFreed = .false.
        printIDF = .false.
        IntraLJEl = .false.
@@ -830,9 +830,9 @@ contains
     if (UseIntDegFreed) then
       call FileReadParameter( str, iounit_params , IdPrintIDF, .true., "off" )
       select case( str )
-      case( 'ON', 'On', 'on', 'YES', 'yes' )
+      case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' )
          printIDF = .true.
-      case( 'OFF', 'off', 'no', 'No' )
+      case( 'OFF', 'Off', 'off', 'no', 'NO', 'No' )
          printIDF = .false.
       case default
          call Error( trim( str )//'To print contributions to intramolecular energy use on or yes' )
@@ -857,10 +857,10 @@ contains
       ! Read parameters for intramolecular nonbonded interactions
       call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "off" )
       select case( str )
-      case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
+      case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
          IntraLJEl = .true.
          str = 'Include all intramolecular 1-5 nonbonded interactions'
-      case( 'OFF', 'off', 'no', 'No' )
+      case( 'OFF', 'Off', 'off', 'no', 'NO', 'No' )
          IntraLJEl = .false.
          str = 'No intramolecular nonbonded interactions'
       case default
@@ -872,10 +872,10 @@ contains
       if (IntraLJEl) then 
         call FileReadParameter( str, iounit_params , IdLJEl14, .true., "off" )
         select case( str )
-        case( 'ON', 'On', 'on', 'YES', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
+        case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
            LJEl14 = .true.
            str = 'Include all intramolecular 1-4 nonbonded interactions'
-        case( 'OFF', 'off', 'no', 'No' )
+        case( 'OFF', 'Off', 'off', 'no', 'NO', 'No' )
            LJEl14 = .false.
            str = 'No intramolecular 1-4 nonbonded interactions'
         case default
@@ -938,11 +938,10 @@ contains
       call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
       select case( str )
 
-      case( 'yes' , 'ok', 'ja' )
+      case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes', 'ok', 'Ok', 'ja', 'Ja' )
         this%Ensemble(:)%CorrFunMode = .true.
         str = 'Include transport properties for all ensembles'
-
-      case( 'no', 'nein' )
+      case( 'OFF', 'Off', 'off', 'no', 'NO', 'No', 'nein', 'Nein' )
         this%Ensemble(:)%CorrFunMode = .false.
         str = 'No transport properties for any ensemble'
         call Error( 'Use a binary compiled without -DTRANS if you do not &

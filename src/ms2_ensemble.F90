@@ -4427,7 +4427,9 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Update MC displacements
-    if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) call UpdateDisplacements( this )
+    if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) then
+      call UpdateDisplacements( this )
+    end if
 
   end subroutine TEnsemble_RunMCStep
 
@@ -5944,12 +5946,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        HW_counter_local = 0
 
        do j=1, pc%NTest 
-          HW_counter_local = HW_counter_local + HW_V_local * ( HW_H_local + this%EPotTest(j) ) * &
-&                          exp( - this%EPotTest(j) / this%RefTemperature )
-          HW_denom_local = HW_denom_local + HW_V_local * exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_counter_local = HW_counter_local + ( HW_H_local + this%EPotTest(j) ) * &
+&                            exp( - this%EPotTest(j) / this%RefTemperature )
+          HW_denom_local = HW_denom_local + exp( - this%EPotTest(j) / this%RefTemperature )
        end do
 
-       HW_counter_local = HW_counter_local / pc%NTest
+       HW_counter_local = HW_V_local * HW_counter_local / pc%NTest
        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
 #if MPI_VER > 0
@@ -5980,7 +5982,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! chemPot with LambdaMin by Widom
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF ! EpotTest = EpottestInter...no idfenergies!
-        do j = 1, this%NRealComponents
+        do j = 1, this%NComponents ! Michael Sch.: incompatible with GradIns...because fluctuating components accounted as well
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
         factor = pc%LaMin**pc%LambdaExponent
@@ -6309,6 +6311,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Initialize new energy
     EPotNew = 0._RK
+    nup = (np-1)*this%Component(nc)%Molecule%NUnit
 
     ! Loop over components
     do i = 1, this%NComponents
@@ -6318,9 +6321,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Energy( pi, np, nu, this%BoxLength )
           if ( (nc .eq. i) .and. UseIntDegFreed ) then
             call IntraEnergy( pi, np, nu, this%BoxLength )
-            nup = (np-1)*this%Component(nc)%Molecule%NUnit
-            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) ) &
-&                             + sum(pi%EPot1Angle) + sum(pi%EPot1To)
+            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) ) 
           end if
           ! Calculate new energy
           EPotNew = EPotNew + sum( pi%EPot1(1:n) )  !includes Bond energies
@@ -6331,6 +6332,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end if
       end do
     end do
+
+    !Michael Sch.: new form
+    if ( UseIntDegFreed ) then
+      pi => this%Interaction(nc, nc)
+      EPotNew = EPotNew  + ( sum(pi%EPot1Angle) + sum(pi%EPot1To) )
+    end if
 
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np)
@@ -6939,7 +6946,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np, nu
 
     ! Declare local variables
-    real(RK)                  :: r(3), rm(3)
+    real(RK)                  :: r(3)
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
 #ifdef SPME
@@ -6958,7 +6965,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Save current particle position and energy
     r(:)  = pc%P0(np, :, nu)
-    rm(:) = pc%Pm0(np, :)
     EPotOld = GetEnergy( this, nc, np, nu )
 
     ! Save the Energies and Virials for a faster MoveRejction
@@ -6986,16 +6992,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! 1. check for bond partners and if forconst=0
     ! 2. stretch bond to original, calculate scaling factor
     ! 3. move all atoms which are connected to the displaced atom in any number of chains
-    
-    ! Calculate new COM
-    call Unit2Mol( pc, np )
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
-    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
 
     ! Convert unit coordinates to atom positions
-    call Unit2Atom1( pc, np, nu )
+    call Unit2Atom1( pc, np )
 
 #ifdef SPME
     ! Calculate changes in the SPME grid
@@ -7027,6 +7029,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+      ! Calculate new COM
+      call Unit2Mol( pc, np )
+      pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
     else
       ! Reject move
       if (LongRange .eq. Ewald) then
@@ -7037,7 +7042,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
           pc%P0(np, :, nu) = r(:)
-          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
@@ -7047,13 +7051,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
           pc%P0(np, :, nu) = r(:)
-          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
           call chargegrid_plus (this, nc, np)
 #endif
       else
           pc%P0(np, :, nu) = r(:)
-          pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
       end if
     end if
@@ -7080,6 +7082,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: rm(3), trans(3)
+    real(RK)                  :: r(3,this%Component(nc)%Molecule%NUnit)
     real(RK)                  :: TransMove
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
@@ -7088,8 +7091,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
-    integer                   :: i, j
-    integer                   :: NUnit
+    integer                   :: i, j, NUnit
     logical                   :: accepted
 
     ! Assign local variables
@@ -7101,6 +7103,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Save current particle position and energy
     rm(:) = pc%Pm0(np, :)
+    r(:,:) = pc%P0(np,:,:)
     EPotOld = GetEnergy( this, nc, np )   ! IDF
 
     ! Save the Energies and Virials for a faster MoveRejction
@@ -7123,18 +7126,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do i = 1, 3
       trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
       pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
-      pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
       do j=1, NUnit
         pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
         pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
       end do
-      
+      pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
     end do
     
     ! Convert molecular coordinates to atom positions and calculate Energies
-    do j = 1, NUnit
-      call Unit2Atom1( pc, np, j )
-    end do
+    call Unit2Atom1( pc, np )
 
 #ifdef SPME
     ! Calculate changes in the SPME grid
@@ -7175,33 +7175,23 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
           pc%Pm0(np, :) = rm(:)
-          do j=1, NUnit
-            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-            call Unit2Atom1( pc, np, j )
-          end do
+          pc%P0(np, :, :) = r(:,:)
+          call Unit2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
-          !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
 #ifdef SPME
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
           pc%Pm0(np, :) = rm(:)
-          do j=1, NUnit
-            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-            call Unit2Atom1( pc, np, j )
-          end do
+          pc%P0(np, :, :) = r(:,:)
+          call Unit2Atom1( pc, np )
           call chargegrid_plus (this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
-        do j=1, NUnit
-          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-          call Unit2Atom1( pc, np, j )
-        end do
+        pc%P0(np, :, :) = r(:,:)
+        call Unit2Atom1( pc, np )
       end if
 
     end if
@@ -8282,7 +8272,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
      ! Accept move
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
-      pc%NMoveSuccesses = pc%NMoveSuccesses + 1
+      pc%NMoveMolSuccesses = pc%NMoveMolSuccesses + 1
       call UpdateEnergy( this, nc, np )
     else
 
@@ -8553,7 +8543,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
      ! Accept rotation
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
-      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
+      pc%NRotateMolSuccesses = pc%NRotateMolSuccesses + 1
       call UpdateEnergy( this, nc, np )
     else
 
@@ -10145,7 +10135,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else ! potential change for NPT
 
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
-  &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 ) ! changed from this%NUnitTotal, Michael Sch.
+&                 + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 ) ! changed from this%NUnitTotal, Michael Sch.
 
       accepted = EPotDelta < 0._RK
       if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
@@ -10925,31 +10915,31 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       if (pc%Molecule%NUnit .eq. 1) then ! only one type of moves - molecular, no unit differentiation
         ! Update translational displacement
-        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispMolTranLimit )) then
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispMolTranUppLimit )) then
           pc%DispTran = pc%DispTran * 1.05_RK
-        else if( AccRateTran .lt. AccLowerLimit ) then
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispTran .gt. DispMolTranLowLimit )) then
           pc%DispTran = pc%DispTran * .95_RK
         end if
 
         ! Update rotational displacement
-        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotLimit )) then
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotUppLimit )) then
           pc%DispRot = pc%DispRot * 1.05_RK
-        else if( AccRateRot .lt. AccLowerLimit ) then
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispMolRotLowLimit )) then
           pc%DispRot = pc%DispRot * 0.95_RK
         end if
 
       else
         ! Update translational displacement
-        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranLimit )) then
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranUppLimit )) then
           pc%DispTran = pc%DispTran * 1.05_RK
-        else if( AccRateTran .lt. AccLowerLimit ) then
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispTran .gt. DispTranLowLimit )) then
           pc%DispTran = pc%DispTran * .95_RK
         end if
 
         ! Update rotational displacement
-        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotLimit )) then
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotUppLimit )) then
           pc%DispRot = pc%DispRot * 1.05_RK
-        else if( AccRateRot .lt. AccLowerLimit ) then
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispRotLowLimit )) then
           pc%DispRot = pc%DispRot * 0.95_RK
         end if
 
@@ -10958,16 +10948,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         AccRateRot = real(pc%NRotateMolSuccesses) / real(pc%NRotateMolAttempts)
 
         ! Update molecular translational displacement
-        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispMolTran .lt. DispMolTranLimit )) then
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispMolTran .lt. DispMolTranUppLimit )) then
           pc%DispMolTran = pc%DispMolTran * 1.05_RK
-        else if( AccRateTran .lt. AccLowerLimit ) then
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispMolTran .gt. DispMolTranLowLimit )) then
           pc%DispMolTran = pc%DispMolTran * .95_RK
         end if
 
         ! Update molecular rotational displacement
-        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispMolRotLimit )) then
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispMolRotUppLimit )) then
           pc%DispMolRot = pc%DispMolRot * 1.05_RK
-        else if( AccRateRot .lt. AccLowerLimit ) then
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispMolRot .gt. DispMolRotLowLimit )) then
           pc%DispMolRot = pc%DispMolRot * 0.95_RK
         end if
       end if
@@ -10978,10 +10968,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       AccRateVol = real(this%NResizeSuccesses) / real(this%NResizeAttempts)
 
       ! Update volume displacement
-      if(( AccRateVol .gt. AccUpperLimit ) .and. ( this%DispVol .lt. DispVolLimit )) then
+      if(( AccRateVol .gt. AccUpperLimit ) .and. ( this%DispVol .lt. DispVolUppLimit )) then
         this%DispVol = this%DispVol * 1.05_RK
 
-      else if( AccRateVol .lt. AccLowerLimit ) then
+      else if(( AccRateVol .lt. AccLowerLimit ) .and. ( this%DispVol .gt. DispVolLowLimit )) then
         this%DispVol = this%DispVol * 0.95_RK
       end if
     end if
@@ -11466,7 +11456,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Reset( this%Component(i)%SumHW_denom )
         case( ChemPotMethodThermoInt )
           call Reset( this%Component(i)%SumChemPotV )
-          call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumChemPotThermoIntWidom )
           call Reset( this%Component(i)%SumChemPotThermoIntWidomV )
           call Reset( this%Component(i)%SumHW_counter )
@@ -11615,7 +11604,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           ! Partial molar enthalpy
           do i = 1, this%NRealComponents
-            if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT ) then
+            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
               if( i < 10 ) then
                 write( IOBuffer, '("       HM_", I1)' ) i
               else
@@ -11751,7 +11740,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! Partial molar enthalpy
         do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
               write( IOBuffer, '("       HM_", I1)' ) i
             else
@@ -11891,7 +11880,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! Partial molar enthalpy
         do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
               write( IOBuffer, '("        HM_", I1)' ) i
             else
@@ -12354,6 +12343,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
             call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
+            call Update( pc%SumHM, 0._RK )
 
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
@@ -12850,7 +12840,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Partial molar enthalphy
       do i = 1, this%NRealComponents
         pc => this%Component(i)
-        if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
           write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )     
           write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
@@ -13044,7 +13034,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Partial molar enthalphy
       do i = 1, this%NRealComponents
         pc => this%Component(i)
-        if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
           if( Equilibration ) then
             write( IOBuffer, '(" ",F10.4)' ) 0._RK
             call FileWriteNoAdvance( this%iounit_result )
@@ -13249,7 +13239,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Partial molar enthalphy
       do i = 1, this%NRealComponents
         pc => this%Component(i)
-        if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
           if( Equilibration ) then
             write( IOBuffer, '(" ",F10.4)' ) 0._RK
             call FileWriteNoAdvance( this%iounit_result )
@@ -13730,7 +13720,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           
           call ErrorGI( pc%SumInvChemPotRho )
           call ErrorGI( pc%SumVW )
-            
+          call ErrorGI( pc%SumHM )
+
 #if MPI_VER > 0          
           call SetCommunicator(MPI_COMM_WORLD)
           RootProc = Rootproc_W                          

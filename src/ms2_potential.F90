@@ -1214,7 +1214,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (SameComponent .and. (intra15 .or. intra14)) then ! Michael Sch.: intra15/14 enough, .and. redundant
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -15457,10 +15457,10 @@ loop2:do j = 1, j1
 !CDIR NODEP
 
         deri = 0._RK
-        if (this%nmax .ge. 0) then
-           EPotLocal = EPotLocal+this%ForConst(1)*2._RK
-        end if
-        if (this%nmax .ne. 0) then
+        if (this%nmax .eq. 0) then
+           earg = 1._RK + cos(-this%gamma0(1))
+           EPotLocal = earg * this%ForConst(1)
+        else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
@@ -15519,12 +15519,14 @@ loop2:do j = 1, j1
 
             if (this%nmax > 0) then
               ! Normal Amber-type torsion angle
+              earg = 1._RK + cos(-this%gamma0(1))
+              EPotLocal = earg * this%ForConst(1)
               do j = 1,this%nmax
                 earg= j*arg-this%gamma0(j+1)
                 ! Energy and forces:
                 ! formulae  E = ForConst*( 1 + cos(earg) )
                 !           F = ForConst*n*sin(earg)
-                EPotLocal  = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
+                EPotLocal = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
                 deri = deri - this%ForConst(j+1)*j*sin(earg)
               end do
 

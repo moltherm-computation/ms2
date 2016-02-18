@@ -554,13 +554,13 @@ module ms2_global
   integer            :: LongRange
   
   ! Use integral degrees of freedom
-  logical :: UseIntDegFreed
-  logical :: printIDF    ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
-  real(RK) :: Shake      ! Shake tolerance for constraint bonds in the case of IDF
-  logical :: IntraLJEl   ! Include intramolecular 1-5 nonbonded interactions
-  logical :: LJEl14      ! Include intramolecular 1-4 nonbonded interactions
-  real(RK) :: ScaleEl14  ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
-  real(RK) :: ScaleLJ14  ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
+  logical  :: UseIntDegFreed
+  logical  :: printIDF    ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
+  real(RK) :: Shake       ! Shake tolerance for constraint bonds in the case of IDF
+  logical  :: IntraLJEl   ! Include intramolecular 1-5 nonbonded interactions
+  logical  :: LJEl14      ! Include intramolecular 1-4 nonbonded interactions
+  real(RK) :: ScaleEl14   ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
+  real(RK) :: ScaleLJ14   ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
 
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone      = 0
@@ -584,15 +584,20 @@ module ms2_global
 
   ! MC acceptance rate auto-adjustment parameters
   real(RK), parameter :: DispTranStart = 0.0020_RK ! unit moves
-  real(RK), parameter :: DispTranLimit = 0.0150_RK
+  real(RK), parameter :: DispTranLowLimit = 0.0002_RK
+  real(RK), parameter :: DispTranUppLimit = 0.0150_RK
   real(RK), parameter :: DispRotStart  = 0.0050_RK
-  real(RK), parameter :: DispRotLimit  = 0.0150_RK
+  real(RK), parameter :: DispRotLowLimit  = 0.0005_RK
+  real(RK), parameter :: DispRotUppLimit  = 0.0150_RK
   real(RK), parameter :: DispMolTranStart = 0.020_RK ! molecule moves
-  real(RK), parameter :: DispMolTranLimit = 0.150_RK
+  real(RK), parameter :: DispMolTranLowLimit = 0.002_RK
+  real(RK), parameter :: DispMolTranUppLimit = 0.150_RK
   real(RK), parameter :: DispMolRotStart  = 0.050_RK
-  real(RK), parameter :: DispMolRotLimit  = 0.150_RK
+  real(RK), parameter :: DispMolRotLowLimit = 0.005_RK
+  real(RK), parameter :: DispMolRotUppLimit  = 0.150_RK
   real(RK), parameter :: DispVolStart  = 0.010_RK
-  real(RK), parameter :: DispVolLimit  = 0.100_RK
+  real(RK), parameter :: DispVolLowLimit  = 0.001_RK
+  real(RK), parameter :: DispVolUppLimit  = 0.100_RK
   integer,  parameter :: TransferRateLimit = 50
 
   ! Frequency of updating MC displacements
