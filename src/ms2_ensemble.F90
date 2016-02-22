@@ -9486,7 +9486,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
              fields = fields + 1
              if( EnsembleType .eq. EnsembleTypeNPT) then 
                fields = fields + 1
-               if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) fields = fields + 1
+               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
              end if
            end if
          enddo
@@ -9568,7 +9568,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
            ! Partial molar enthalpy
            do i = 1, this%NRealComponents
-             if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT ) then
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
                if( i < 10 ) then
                  write( IOBuffer, '("       HM_", I1)' ) i
                else
@@ -9681,7 +9681,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
          ! Partial molar enthalpy
          do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
              if( i < 10 ) then
                write( IOBuffer, '("       HM_", I1)' ) i
              else
@@ -9793,7 +9793,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         ! Partial molar enthalpy
         do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
               write( IOBuffer, '("       HM_", I1)' ) i
             else
@@ -10349,7 +10349,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            ! Partial molar enthalphy 
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
-                if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+                if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
                     write( IOBuffer, '(" ",F10.4)' ) 0._RK
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -10457,7 +10457,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          ! Partial molar enthalphy
             do i = 1, this%NRealComponents
               pc => this%Component(i)
-              if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+              if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
                   write( IOBuffer, '(" ",F10.4)' ) 0._RK
                   call FileWriteNoAdvance_parallel( this%iounit_result )
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -10626,7 +10626,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        ! Partial molar enthalphy
           do i = 1, this%NRealComponents
             pc => this%Component(i)
-            if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
                 call FileWriteNoAdvance_parallel( this%iounit_result )     
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
@@ -10773,7 +10773,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
               call FileWriteNoAdvance( this%iounit_result )     
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
@@ -10932,7 +10932,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
      ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
-          if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( Equilibration ) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
@@ -11848,7 +11848,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 
           ! Partial molar enthalpy
-        if( pc%ChemPotMethod .eq. ChemPotMethodWidom .and. EnsembleType .eq. EnsembleTypeNPT) then
+        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
           Average = pc%SumHM%Average
           Variance = pc%SumHM%Variance
           write( IOBuffer, '("Partial molar enthalpy of ", A, T33, "r`d:", 2F20.9)' ) &
