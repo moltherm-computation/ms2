@@ -11418,6 +11418,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Error( pc%SumChemPotThermoIntWidomV )
           call Error( pc%SumHW_counter )
           call Error( pc%SumHW_denom )
+          call Error( pc%SumVW )
+          call Error( pc%SumHM )
         case default
           ! DO NOTHING
         end select
