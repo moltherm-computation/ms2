@@ -7676,8 +7676,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
         Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
         pt%Lambda=LambdaNew
-        call ScaleInteractionThermoInt(this, nt, Factor)
       end if
+      ! Apply scaling factors
+#if MPI_VER > 0
+      call MPI_Bcast( Factor, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( pt%Lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      call ScaleInteractionThermoInt(this, nt, Factor)
+
       call Mol2Atom( this ) ! only for nt sufficient / call mol2atom( pt, 1 )
 
     end if
