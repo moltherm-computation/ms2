@@ -741,6 +741,10 @@ module ms2_ensemble
     module procedure TEnsemble_ErrorsUpdate
   end interface
 
+  interface ErrorsUpdateThermoInt
+    module procedure TEnsemble_ErrorsUpdateThermoInt
+  end interface
+
   interface SVCOutput
     module procedure TEnsemble_SVCOutput
   end interface
@@ -13090,18 +13094,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileClose( this%iounit_errors )
 
     ! Open ThermoInt result file
-    if (RootProc) then
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      if (RootProc) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_thermoint, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ThermoIntFileExtension)
+      end if
 
-        ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
-        t = this%NRealComponents+1
-        do i=1,this%NRealComponents
-          pc => this%Component(i)
-          if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+         pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
 
-            !first two lines
+          !first two lines
+          if (RootProc) then
             write( IOBuffer, '(" Component:", T15, I3)' ) i
             call FileWrite( this%iounit_thermoint )
             write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
@@ -13127,42 +13132,117 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '("     VISITS")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
             call FileWriteBlank( this%iounit_thermoint )
-            ! Rest.
-            do j=0,pc%NBins-1
-              write( IOBuffer, '(I6)' ) j
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsEn(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLa(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaV(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaH(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntVW(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntHW(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              call FileWriteBlank( this%iounit_thermoint )
-            end do
-            t = t+1
-          end if 
+          end if
 
-        end do
+          call ErrorsUpdateThermoInt( this, i, pc%NBins )
+          t = t+1
+        end if
 
-        ! Close final result file
-        call FileClose( this%iounit_thermoint)
-      end if 
+      end do
+
+      ! Close final result file
+      call FileClose( this%iounit_thermoint)
     end if
 
   end subroutine TEnsemble_ErrorsUpdate
 
+!==============================================================!
+!  Subroutine TEnsemble_ErrorsUpdateThermoInt                  !
+!==============================================================!
+
+  subroutine TEnsemble_ErrorsUpdateThermoInt( this, i, NBins )
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: i
+    integer, intent(in) :: NBins
+
+    ! Declare local variables
+    type(TComponent), pointer  :: pc
+    integer                    :: j, LocalVisit
+    real(RK)                   :: BinsEn(0:NBins-1), BinsdEndLa(0:NBins-1), BinsIntdEndLa(0:NBins-1)
+    real(RK)                   :: BinsdEndLaV(0:NBins-1), BinsdEndLaH(0:NBins-1), BinsIntVW(0:NBins-1), BinsIntHW(0:NBins-1)
+    integer                    :: BinsVisit(0:NBins-1)
+
+    pc => this%Component(i)
+    ! Avearge of each MPI process's histogram is saved in the thi file 
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then
+      call MPI_Reduce( pc%BinsEn(0: NBins-1)       *pc%BinsVisit(0: NBins-1), BinsEn(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLa(0: NBins-1)   *pc%BinsVisit(0: NBins-1), BinsdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaV(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaV(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaH(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaH(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntdEndLa(0: NBins-1)                         , BinsIntdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntVW(0: NBins-1)                             , BinsIntVW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntHW(0: NBins-1)                             , BinsIntHW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsVisit(0: NBins-1)                             , BinsVisit(0: NBins-1), NBins, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+      do j=0,pc%NBins-1
+        if (BinsVisit(j) .eq. 0) then 
+          LocalVisit=1
+        else
+          LocalVisit=BinsVisit(j)
+        end if
+        BinsEn(j)        = BinsEn(j)/LocalVisit
+        BinsdEndLa(j)    = BinsdEndLa(j)/LocalVisit
+        BinsdEndLaV(j)   = BinsdEndLaV(j)/LocalVisit
+        BinsdEndLaH(j)   = BinsdEndLaH(j)/LocalVisit
+        BinsIntdEndLa(j) = BinsIntdEndLa(j)/NProcs
+        BinsIntVW(j)     = BinsIntVW(j)/NProcs
+        BinsIntHW(j)     = BinsIntHW(j)/NProcs
+      end do
+    else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+    endif
+#else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+#endif
+
+    ! Rest.
+    if (RootProc) then
+      do j=0,pc%NBins-1
+        write( IOBuffer, '(I6)' ) j
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsEn(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaV(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaH(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntVW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntHW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",I10)' ) BinsVisit(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        call FileWriteBlank( this%iounit_thermoint )
+      end do
+    end if
+
+  end subroutine TEnsemble_ErrorsUpdateThermoInt
 
 
 !==============================================================!
@@ -14244,8 +14324,7 @@ endif
        end do
     end if
 
-    ! Reading thi-file for ThermoInt
-    if (RootProc) then
+    ! Reading and broadcasting thi-file for ThermoInt
       t = this%NRealComponents+1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
@@ -14257,6 +14336,7 @@ endif
 
           call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
           pc%CalcChemPot = .true.
+          if (RootProc) then
           !read empty line
           read( this%iounit_thermoint, * )
 
@@ -14264,21 +14344,22 @@ endif
           do j = 0,pc%NBins-1
             read( this%iounit_thermoint, '(I6,"  ", F5.3,7(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
           end do
+          end if
           t = t+1
         end if 
       end do
       if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
         call FileClose( this%iounit_thermoint )
       end if
-    end if
 
 #if MPI_VER > 0
-    if (SimulationType .eq. MonteCarlo) then
+    !if (SimulationType .eq. MonteCarlo) then
       t = this%NRealComponents+1
       do i=1,this%NRealComponents
         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+          !call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) //done during the preceding call FileReadParameter 
+          !The Broadcast of the following properties would not have been necessary for MD runs during the implementation of ThermoInt (they may be however important for future use)
           call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
@@ -14287,22 +14368,21 @@ endif
           call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
+          write(*,*) this%Component(t)%lambda, pc%BinsEn(99), pc%BinsIntdEndLa(99), pc%BinsVisit(99)
           t = t+1
         endif
       enddo
-    end if
+    !end if
 #endif
-    if ( (SimulationType .eq. MonteCarlo) .or. RootProc ) then
-      t = this%NRealComponents+1
-      do i=1,this%NRealComponents
-        if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-          Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
-          call ScaleInteractionThermoInt(this, t, Factor)
-          t = t+1
-        endif
-      enddo
-    end if
-
+    t = this%NRealComponents+1
+    do i=1,this%NRealComponents
+      if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+        Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
+        call ScaleInteractionThermoInt(this, t, Factor)
+        t = t+1
+      endif
+    enddo
+    ! End of reading and broadcasting thi-file for ThermoInt
 
     if( SimulationType .eq. MolecularDynamics ) then
 
