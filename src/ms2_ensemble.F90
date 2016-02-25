@@ -14368,7 +14368,6 @@ endif
           call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
-          write(*,*) this%Component(t)%lambda, pc%BinsEn(99), pc%BinsIntdEndLa(99), pc%BinsVisit(99)
           t = t+1
         endif
       enddo
