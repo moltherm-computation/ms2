@@ -210,7 +210,8 @@ contains
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
-      write( IOBuffer, '("Restarting from file: ", A)' ) trim( RestartFileName )
+      write( IOBuffer, '("Restarting ",A," using ",A,"_*.",A," files")' ) &
+&            trim( ParameterFileName ),trim(OutputNameTag),RestartFileExtension
       call LogWrite
 
     else
@@ -817,13 +818,14 @@ contains
 &       call Error( trim( SimulationTypeString )//" simulation of " &
 &       //trim( SimulationTypeString )//" needs 2 Ensembles" )
 
-#if MPI_VER > 0
     ! Read number of MPI ensemble groups
     call FileReadParameter( this%mpiEnsembleGroups, iounit_params , IdmpiEnsembleGroups, .true., 0 )
+#if MPI_VER > 0
     write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
     call LogWrite
     if ( this%mpiEnsembleGroups .eq. 1 ) this%mpiEnsembleGroups=this%NEnsembles
-    if ( this%mpiEnsembleGroups .gt. this%NEnsembles .or. this%mpiEnsembleGroups .gt. NProcs_W ) this%mpiEnsembleGroups=min(this%NEnsembles,NProcs_W)
+    if ( this%mpiEnsembleGroups .gt. this%NEnsembles .or. this%mpiEnsembleGroups .gt. NProcs_W ) &
+&      this%mpiEnsembleGroups=min(this%NEnsembles,NProcs_W)
     if ( this%mpiEnsembleGroups .le. 1 ) this%mpiEnsembleGroups=0
     
     if (this%mpiEnsembleGroups .gt. 1) then
@@ -835,7 +837,8 @@ contains
       ! 1-index based
       this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
       this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
-      write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) NCommunicator,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
+      write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
+&            NCommunicator,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
       ! be aware that e.g. the random number generator calls might be different
       call LogWrite
       ! Reopen the ParameterFile (dirty hack) for each communicator
@@ -843,7 +846,13 @@ contains
       !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
     endif
 #else
-    this%mpiEnsembleGroups=0
+    if ( this%mpiEnsembleGroups /= 0 ) then
+      write( IOBuffer, '("Warning: mpiEnsembleGroups only supported in MPI version")')
+      call LogWrite
+      write( IOBuffer, '("         neglecting mpiEnsembleGroups =",I6)') this%mpiEnsembleGroups
+      call LogWrite
+      this%mpiEnsembleGroups=0
+    end if
 #endif
 
     ! Create ensembles
@@ -2422,67 +2431,37 @@ eqloop: do
     if( SimulationType .eq. SecondVirialCoeff ) return
 
     write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
+#if MPI_VER > 0
+    if ( NCommunicators .gt. 1 ) then
+      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
+    endif
+#endif
 
     write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
     call LogWrite
 
-#if MPI_VER > 0
-    ! Hack to avoid extensive changes within the Ensemble RestartSave... (rewrite using MPI-IO!)
-    if ( NCommunicators .le. 1 .or. NCommunicator .eq. 0) then
-      ! the multiple communicator version opens the file on the first RootProc just to write the header information...
-#endif
+    ! Open restart file for writing
+    call FileRewrite( iounit_restart, trim(RestartFileName) )
 
-      ! Open restart file for writing
-      call FileRewrite( iounit_restart, trim(RestartFileName) )
+    ! Save contents to restart file
+    write( iounit_restart, '(A)' ) trim( ParameterFileName )
+    write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
-      ! Save contents to restart file
-      write( iounit_restart, '(A)' ) trim( ParameterFileName )
-      write( iounit_restart, '(2I10)' ) Step, StepTotal
-      write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
-#if MPI_VER > 0
-    endif
-    if (NCommunicators .gt. 1) then
-      ! multiple communicators
-      if (NCommunicator .eq. 0) then
-        ! ...and (temporary) closes restart file
-        call FileClose( iounit_restart )
-      endif
-      ! each Communicator saves its Ensembles sequentially
-      do j = 0,NCommunicators-1
-        if ( j .eq. NCommunicator) then
-          ! ReOpen restart file for writing header
-          call FileAppend( iounit_restart, trim(RestartFileName) )
-          ! Save ensembles
-          do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-            call RestartSave( this%Ensemble(i) )
-          end do
-          ! and close the file again
-          call FileClose( iounit_restart )
-          write( IOBuffer, '("Subcommunicator ",I3," saved ensemble restart data")' ) j
-          call LogWrite
-        endif
-        call MPI_Barrier( Communicator_R, ierror )
-      end do
-      
-    else
-#endif
-      ! sequential/single communicator version
-
-      ! Save ensembles
-      do i = 1, this%NEnsembles
-      !do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-        call RestartSave( this%Ensemble(i) )
-      end do
+    ! Save ensembles
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      write( IOBuffer, '("writing ensemble",I7)' ) i
+      call LogWriteTime
+      write( iounit_restart, '(A,":",I0)' ) RstEnsembleMarker,i
+      ! saving ensemble data
+      call RestartSave( this%Ensemble(i) )
+    end do
     
-      ! Close restart file
-      call FileClose( iounit_restart )
-
-#if MPI_VER > 0
-    endif
-#endif
+    ! Close restart file
+    call FileClose( iounit_restart )
 
     write( IOBuffer, '("Finished saving restart file ", A)' ) trim( RestartFileName )
-    call LogWrite
+    call LogWriteTime
 
   end subroutine TSimulation_RestartSave
 
@@ -2504,7 +2483,10 @@ eqloop: do
     type(TSimulation)   :: this
 
     ! Declare local variables
-    integer :: i,j
+    integer :: i
+    character(FileNameLength) :: parfilename
+    character(IOBufferLength) :: ensemblemarker
+    integer :: pos
 #if MPI_VER > 0
     integer :: filepos
     integer :: stat
@@ -2513,24 +2495,27 @@ eqloop: do
     write( IOBuffer, '("Reading restart file ")' )
     call LogWrite
 
-    if( RootProc_W ) then
+    if( RootProc ) then
 
-      ! Read contents from restart file
+      write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
+#if MPI_VER > 0
+      if ( NCommunicators .gt. 1 ) then
+        write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
+      endif
+#endif
+      call FileReset( iounit_restart, trim(RestartFileName) )
+
+      ! Read non-ensemble specifif contents from restart file first
+      read( iounit_restart, '(A128)' ) parfilename
+      if (trim(parfilename) /= trim(ParameterFileName)) then
+        call LogWriteBlank
+        write( IOBuffer, '("WARNING: ",A," was created with par-file ",A," and NOT ",A)' ) &
+&                        trim(RestartFileName), trim(parfilename), trim(ParameterFileName)
+        call LogWrite
+        call LogWriteBlank
+      endif
       read( iounit_restart, '(2I10)' ) Step, StepTotal
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
-
-#if MPI_VER > 0
-      if (NCommunicators .gt. 1) then
-#if FORTRAN>=2003
-        inquire(iounit_restart, pos=filepos)
-#else
-        filepos=ftell(iounit_restart)
-#endif
-        !write( IOBuffer, '("read restart file up to pos.", I7)' ) filepos
-        !call LogWrite
-        call FileClose( iounit_restart )
-      end if
-#endif
 
     end if
 
@@ -2547,78 +2532,29 @@ eqloop: do
       NBlockSizes = int( sqrt( real( Step / BlockSize, RK ) ) )
     end if
 
-
-#if MPI_VER > 0
-    ! Hack to avoid extensive changes within the Ensemble RestartRead... (rewrite using MPI-IO!)
-    if (NCommunicators .gt. 1) then
-      ! multiple communicators
-      call MPI_Bcast( filepos, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-      
-      
-      ! each Communicator loads its Ensembles sequentially
-      do j = 0,NCommunicators-1
-        if ( j .eq. NCommunicator) then
-          if( RootProc ) then
-            ! ReOpen restart file for reading
-            write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
-#if FORTRAN>=2003
-            open( iounit_restart, file=trim(RestartFileName), action='READ', status='OLD', access='stream', form='formatted', iostat=stat )
-            !read (iounit_restart,*, pos=filepos)
-            read (iounit_restart,'()', pos=filepos, advance='NO')
-#else
-            call FileReset( iounit_restart, trim(RestartFileName) )
-#ifdef __GNUC__
-            call fseek(iounit_restart, filepos, 0, stat)
-#else
-            stat=fseek(iounit_restart, filepos, 0)
-#endif
-            write( IOBuffer, '("Subcommunicator",I6,": start reading ensemble restart data    (from  pos.", I8,")")' ) j,filepos
-            call LogWrite
-#endif
-          end if
-          ! Save ensembles
-          do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-            call RestartRead( this%Ensemble(i) )
-          end do
-          if( RootProc ) then
-#if FORTRAN>=2003
-            inquire(iounit_restart, pos=filepos)
-#else
-            filepos=ftell(iounit_restart)
-#endif
-            ! and close the file again
-            !call FileClose( iounit_restart )
-            close( iounit_restart )
-            write( IOBuffer, '("Subcommunicator",I6,": finished reading ensemble restart data (up to pos.",I8,")")' ) j,filepos
-            call LogWrite
-          end if
-        end if
-        if( RootProc ) then
-          ! MPI_Bcast requires each participating PE to know the root
-          call MPI_Allreduce( MPI_IN_PLACE, filepos, 1, MPI_INTEGER, MPI_MAX, Communicator_R, ierror )
-          !call MPI_Barrier( Communicator_R, ierror )
-        end if
-        !call MPI_Barrier( MPI_COMM_WORLD, ierror )
-      end do
-    else
-#endif
-      ! sequential/single communicator version
-
       ! Read ensembles
-      do i = 1, this%NEnsembles
-      !do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+        if( RootProc ) then
+          read( iounit_restart, '(A)' ) ensemblemarker
+          pos = index( ensemblemarker,':')
+          if( pos<=1 .or. trim(ensemblemarker(1:pos-1))/=trim(RstEnsembleMarker) ) then
+            call LogWriteBlank
+            write( IOBuffer, '("WARNING: expected marker ",A," but read ",A)' ) trim(RstEnsembleMarker), trim(ensemblemarker)
+            call LogWrite
+            call LogWriteBlank
+          end if
+          write( IOBuffer, '("reading ensemble",I6," (marker ",A,")")' ) i, trim(ensemblemarker)
+          call LogWriteTime
+	end if
+        ! reading ensemble data
         call RestartRead( this%Ensemble(i) )
       end do
       
       ! Close restart file
       call FileClose( iounit_restart )
 
-#if MPI_VER > 0
-    endif
-#endif
-
-    write( IOBuffer, '("Finished reading restart file ")' )
-    call LogWrite
+    write( IOBuffer, '("Finished reading restart file", A)' ) trim( RestartFileName )
+    call LogWriteTime
     
  end subroutine TSimulation_RestartRead
 

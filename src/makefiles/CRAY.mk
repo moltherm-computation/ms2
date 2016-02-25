@@ -1,3 +1,7 @@
+# for CRAY XE6,XC40,... systems
+# using Cray compiler
+# prerequisite: module load PrgEnv-cray
+#
 F90              = ftn
 F90ld            = ftn
 F90mpi           = ftn

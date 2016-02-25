@@ -1,3 +1,7 @@
+# for CRAY XE6,XC40,... systems
+# using Intel compiler
+# prerequisite: module load PrgEnv-intel
+#
 F90              = ftn
 F90ld            = ftn
 F90mpi           = ftn

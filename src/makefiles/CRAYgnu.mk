@@ -1,3 +1,7 @@
+# for CRAY XE6,XC40,... systems
+# using GNU gcc compiler
+# prerequisite: module load PrgEnv-gnu
+#
 F90              = ftn
 F90ld            = ftn
 F90mpi           = ftn
