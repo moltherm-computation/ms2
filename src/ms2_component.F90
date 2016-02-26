@@ -3553,11 +3553,6 @@ subroutine TComponent_InitUnit( this, np, dq )
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)     :: this
     integer, intent(in)  :: np
@@ -3578,17 +3573,6 @@ subroutine TComponent_InitUnit( this, np, dq )
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j, k
     integer                        :: nu
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4846,9 +4830,9 @@ subroutine TComponent_InitUnit( this, np, dq )
 #else
           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
         end do
-        ! Calculate new positions of COM for molecules from new COM of units
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
 
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
@@ -4960,9 +4944,9 @@ subroutine TComponent_InitUnit( this, np, dq )
 #else
           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
         end do
-        ! Calculate new positions of COM for molecules from new COM of units
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
 
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
@@ -5086,9 +5070,9 @@ subroutine TComponent_InitUnit( this, np, dq )
 #else
           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
         end do
-        ! Calculate new positions of COM for molecules from new COM of units
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
 
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
@@ -5228,11 +5212,6 @@ subroutine TComponent_InitUnit( this, np, dq )
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)       :: this
     real(RK), intent( in ) :: oldF(this%NPart,3,this%Molecule%NUnit)
@@ -5274,9 +5253,9 @@ subroutine TComponent_InitUnit( this, np, dq )
 #else
           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
 #endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
         end do
-        ! Calculate new positions of COM for molecules from new COM of units
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*(this%P0(i,:,k)-anint(this%P0(i,:,k)-this%Pm0(i,:)))
       end do
 
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
@@ -5465,12 +5444,18 @@ subroutine TComponent_InitUnit( this, np, dq )
         PZ2 = tempP0(3,Unit2)
 
         ! Calculate unit-unit and site-site distance vector at begin of this timestep
-        R0Xij(j) = (RX1 - RX2) * BoxLength
-        R0Yij(j) = (RY1 - RY2) * BoxLength
-        R0Zij(j) = (RZ1 - RZ2) * BoxLength
-        P0Xij(j) = (PX1 - PX2) * BoxLength
-        P0Yij(j) = (PY1 - PY2) * BoxLength
-        P0Zij(j) = (PZ1 - PZ2) * BoxLength
+        R0Xij(j) = RX1 - RX2
+        R0Yij(j) = RY1 - RY2
+        R0Zij(j) = RZ1 - RZ2
+        P0Xij(j) = PX1 - PX2
+        P0Yij(j) = PY1 - PY2
+        P0Zij(j) = PZ1 - PZ2
+        R0Xij(j) = (R0Xij(j) - anint( R0Xij(j) )) * BoxLength
+        R0Yij(j) = (R0Yij(j) - anint( R0Yij(j) )) * BoxLength
+        R0Zij(j) = (R0Zij(j) - anint( R0Zij(j) )) * BoxLength
+        P0Xij(j) = (P0Xij(j) - anint( P0Xij(j) )) * BoxLength
+        P0Yij(j) = (P0Yij(j) - anint( P0Yij(j) )) * BoxLength
+        P0Zij(j) = (P0Zij(j) - anint( P0Zij(j) )) * BoxLength
 
         e(j,1) = R0Xij(j)/pBond%R0
         e(j,2) = R0Yij(j)/pBond%R0
@@ -5759,9 +5744,12 @@ subroutine TComponent_InitUnit( this, np, dq )
           RZ2 = pBond%RZ2(i)
 
           ! Calculate temporary bond vector
-          RXij(j) = (RX1 - RX2) * BoxLength
-          RYij(j) = (RY1 - RY2) * BoxLength
-          RZij(j) = (RZ1 - RZ2) * BoxLength
+          RXij(j) = RX1 - RX2
+          RYij(j) = RY1 - RY2
+          RZij(j) = RZ1 - RZ2
+          RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
+          RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
+          RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
 
           RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
 

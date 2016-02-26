@@ -15459,7 +15459,7 @@ loop2:do j = 1, j1
         deri = 0._RK
         if (this%nmax .eq. 0) then
            earg = 1._RK + cos(-this%gamma0(1))
-           EPotLocal = earg * this%ForConst(1)
+           EPotLocal = EPotLocal + earg * this%ForConst(1)
         else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
@@ -15520,7 +15520,7 @@ loop2:do j = 1, j1
             if (this%nmax > 0) then
               ! Normal Amber-type torsion angle
               earg = 1._RK + cos(-this%gamma0(1))
-              EPotLocal = earg * this%ForConst(1)
+              EPotLocal = EPotLocal + earg * this%ForConst(1)
               do j = 1,this%nmax
                 earg= j*arg-this%gamma0(j+1)
                 ! Energy and forces:
@@ -15536,7 +15536,7 @@ loop2:do j = 1, j1
                ! Energy and forces:
                ! formulae  E = ForConst*earg**2
                !           F = -2*ForConst*earg
-                EPotLocal = this%ForConst(1)*earg**2
+                EPotLocal = EPotLocal + this%ForConst(1)*earg**2
                 deri = 2._RK*this%ForConst(1)*earg
              end if
 

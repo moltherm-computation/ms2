@@ -5138,15 +5138,23 @@ loop5:    do nc = 1, this%NComponents
 
     do i =1, this%NComponents
       pc => this%Component(i)
-      oldF(1:pc%NPart,1:3,1:pc%Molecule%Nunit) = pc%F(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
-      ! calculate unconstrained and unscaled(T) positions
-      call PredictLeapFrog( pc, 1._RK )
+      if (RootProc) then
+#if MPI_VER > 0
+        oldF(:,:,:) = pc%FAll(:,:,:)
+#else
+        oldF(:,:,:) = pc%F(:,:,:)
+#endif
+        ! calculate unconstrained and unscaled(T) positions
+        call PredictLeapFrog( pc, 1._RK )
+      end if
       ! calculate new forces and positions due to constraints (bonds)
       call Constraints( pc, tempVirial )
       ! reverse unconstrained timestep
-      call ReverseLeapFrog( pc, oldF(1:pc%NPart,1:3,1:pc%Molecule%Nunit), dLogVolumeThird)
-      ! redo half-timestep,
-      call CorrectLeapFrog( pc, dLogVolumeThird )
+      if (RootProc) then
+        call ReverseLeapFrog( pc, oldF(:,:,:), dLogVolumeThird)
+        ! redo half-timestep,
+        call CorrectLeapFrog( pc, dLogVolumeThird )
+      end if
     end do
 
 #if MPI_VER > 0
@@ -9131,12 +9139,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
   subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
 
-  implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
+    implicit none
 
     ! Declare arguments
     type(TEnsemble)        :: this
@@ -9404,11 +9407,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end if
         Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
         pt%Lambda=LambdaNew
-        ! Apply scaling factors
-        call ScaleInteractionThermoInt(this, nt, Factor)
-        !call Unit2Atom( this )
       end if
+      ! Apply scaling factors
+#if MPI_VER > 0
+      call MPI_Bcast( Factor, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      call ScaleInteractionThermoInt(this, nt, Factor)
       call Unit2Atom1( pt, 1 )
+      !call Unit2Atom( this )
 
     end if
 
