@@ -71,13 +71,14 @@ OBJS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).o)
 
 MODS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).mod)
 
+
 ########################################
 # Rules to build the target
 #
 .PHONY: clean
 
 default: all
-       @make clean
+	@make clean
 
 all: $(PROG)
 
@@ -88,7 +89,10 @@ clean:
 	rm -f $(OBJS) $(MODS)
 
 .SUFFIXES: .F90 .mod .o
-
+ifeq ($(COMPILER),$(filter $(COMPILER), INTEL CRAYintel))
+ms2_component.mod ms2_component.o:ms2_component.F90
+	$(F90) $(CPPFLAGS) $(F90FLAGS) -O2 -c ms2_component.F90
+endif
 %.mod %.o: %.F90
 	$(F90) $(CPPFLAGS) $(F90FLAGS) -c $<
 
