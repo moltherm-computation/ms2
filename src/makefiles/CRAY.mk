@@ -1,18 +1,28 @@
+# CRAY.mk
 # for CRAY XE6,XC40,... systems
 # using Cray compiler
 # prerequisite: module load PrgEnv-cray
+# (should be named CRAYcray.mk)
 #
-F90              = ftn
-F90ld            = ftn
-F90mpi           = ftn
-OMPFLAGS         = -h omp
-CPPFLAGS         = -DARCH=2 -DFORTRAN=2003 
-F90FLAGS_RELEASE = -O3 -e m -h noomp -rm -hvector3
-F90FLAGS_DEBUG   = -O0 -e m -h noomp -g
-F90FLAGS_PROF    = -O3 -e m -h noomp -g -rm
-PROG             = ms2_CRAY
+F90              := ftn
+F90ld            := $(F90)
+F90mpi           := $(F90)
+#OMPFLAGS         := 	# OpenMP is processed as default - no option required
+OMPFLAGS          = -h omp
+CPPFLAGS          = -DARCH=2 -DFORTRAN=2003
+ifeq ($(OMP),1)
+F90FLAGS_RELEASE  = -O3 -e m -rm -hvector3
+F90FLAGS_DEBUG    = -O0 -e m -g
+F90FLAGS_PROF     = -O3 -e m -g -rm
+else
+# noomp flag to disable OpenMP
+F90FLAGS_RELEASE  = -O3 -e m -h noomp -rm -hvector3
+F90FLAGS_DEBUG    = -O0 -e m -h noomp -g
+F90FLAGS_PROF     = -O3 -e m -h noomp -g -rm
+endif
+PROG              = ms2_CRAY
 
-LDFLAGS_RELEASE  = -O3 -rm
-LDFLAGS_DEBUG    = -g 
-LDFLAGS_PROF     = -O3 -g -rm
+LDFLAGS_RELEASE   = -O3 -rm
+LDFLAGS_DEBUG     = -g 
+LDFLAGS_PROF      = -O3 -g -rm
 

@@ -2,20 +2,24 @@
 # Makefile for ms2
 ########################################
 #
-COMPILER = GNU
+COMPILER ?= GNU
 #
-$(info COMPILER: $(COMPILER))
-CONFIG = makefiles/$(COMPILER).mk
+TARGET   ?= RELEASE
+#TARGET   ?= DEBUG
+TRANS    ?= 0
+MPI      ?= 0
+OMP      ?= 0
+SP       ?= 0
+#
+PROG     = ms2
+PROG     :=  $(PROG)_$(COMPILER)
+#
+# including architecture specific definitions
+CONFIG := makefiles/$(COMPILER).mk
 include $(CONFIG)
 #
-TARGET    = RELEASE
-#TARGET    = DEBUG
-TRANS     = 0
-MPI       = 0
-OMP       = 0
-SP        = 0
-PROG      = ms2
-#
+# print some info
+$(info COMPILER: $(COMPILER))
 $(info TARGET: $(TARGET))
 ifeq ($(TRANS),1)
 $(info TRANSPORT enabled)
@@ -29,35 +33,35 @@ endif
 ifeq ($(SP),1)
 $(info compiling Single Precision)
 endif
+#
 ifeq ($(MPI),1)
   F90      = $(F90mpi)
   F90ld    = $(F90mpi)
   CPPFLAGS += -DMPI_VER=1
-  PROG     :=  $(PROG)_$(COMPILER)_mpi
+  PROG     :=  $(PROG)_mpi
 else
   CPPFLAGS += -DMPI_VER=0
-  PROG     :=  $(PROG)_$(COMPILER)
 endif
 
 F90FLAGS = $(F90FLAGS_$(TARGET))
 LDFLAGS  = $(LDFLAGS_$(TARGET))
 
 ifeq ($(OMP),1)
-CPPFLAGS += -DENABLE_OMP
-F90FLAGS += $(OMPFLAGS)
-LDFLAGS  += $(OMPFLAGS)
-PROG     := $(PROG)_omp
+  CPPFLAGS += -DENABLE_OMP
+  F90FLAGS += $(OMPFLAGS)
+  LDFLAGS  += $(OMPFLAGS)
+  PROG     := $(PROG)_omp
 endif
 
 ifeq ($(SP),1)
-CPPFLAGS += -DSINGLEPRECISION
-LDFLAGS  += -DSINGLEPRECISION
-PROG     := $(PROG)_SP
+  CPPFLAGS += -DSINGLEPRECISION
+  LDFLAGS  += -DSINGLEPRECISION
+  PROG     := $(PROG)_SP
 endif
 
 ifeq ($(TRANS),1)
-CPPFLAGS += -DTRANS
-PROG     := $(PROG)_trans
+  CPPFLAGS += -DTRANS
+  PROG     := $(PROG)_trans
 endif
 
 SRCS =  ms2.F90 \
