@@ -658,6 +658,7 @@ module ms2_global
 #if MPI_VER > 0
   integer :: ierror
   integer :: Communicator	! actual MPI communicator
+  !integer :: Communicator_W	! =MPI_COMM_WORLD
   integer :: Communicator_R	! MPI communicator containing all roots
   integer :: NProcs	! number of PEs within actual MPI communicator
   integer :: NProc	! MPI rank of actual MPI communicator
@@ -667,8 +668,15 @@ module ms2_global
   integer :: NProc_W	! MPI rank within MPI_COMM_WORLD
   integer :: NRootProc_W	! MPI rank of root PE within MPI_COMM_WORLD
   logical :: RootProc_W 	! is PE root of MPI_COMM_WORLD?
+  integer :: NProcs_R	! number of PEs within actual Communicator_R
+  integer :: NProc_R	! MPI rank within actual Communicator_R
+  integer :: NRootProc_R	! MPI rank of root PE within actual Communicator_R
+  logical :: RootProc_R 	! is PE root of actual Communicator_R?
   integer :: NCommunicators	! number of Communicators (useful after MPI_Comm_Split)
   integer :: NCommunicator	! ID of the Communicator
+  !
+  !integer, parameter :: mpimsgtag_log    = 0
+  integer, parameter :: mpimsgtag_simTerm = 1
 #else
   integer, parameter :: NProcs       = 1
   integer, parameter :: NProc        = 0
@@ -1009,7 +1017,7 @@ contains
     
     write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs, NCommunicators
     call LogWrite
-    write( IOBuffer, '("closing logfile - opening ",I3," new logfiles ",A,"_*",A," ...")') &
+    write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
 &          NCommunicators-1,trim(OutputNameTag), LogFileExtension
     call LogWrite
     write( IOBuffer, '(72("#"))')
@@ -1020,7 +1028,7 @@ contains
     
     !NCommunicator=mod(NProc,NCommunicators)
     NCommunicator=NProc*NCommunicators/NProcs
-    ! NCommunicator -> color, NProc -> key
+    ! NCommunicator -> color, NProc -> key (NProc_W also could be used)
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
     ! (avoiding some internal communication within the MPI library)    
@@ -1035,7 +1043,11 @@ contains
       groupId=1
     endif
     call MPI_Comm_Split(oldCommunicator,groupId,NProc_W,Communicator_R,ierror)
-    
+    call MPI_Comm_size( Communicator_R, NProcs_R, ierror )
+    call MPI_Comm_rank( Communicator_R, NProc_R, ierror )
+    NRootProc_R = 0
+    RootProc_R = NProc_R == NRootProc_R
+
   end subroutine Global_SplitCommunicator
 
 #endif
@@ -1650,6 +1662,9 @@ contains
       call FileRewrite( iounit_log, trim(filename) )
       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
+#if MPI_VER > 0
+    write( IOBuffer(len_trim(IOBuffer)+1:), '(" by PE",I0)' ) NProc_W
+#endif
 
     call LogWriteTime
     !call LogWriteBlank
@@ -1715,8 +1730,8 @@ contains
 !     
 !     if( present( rank ) .and. (rank .ne. NRootProc) ) then
 !       ! transfer IOBuffer to NRootProc
-!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, 0, &
-! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      0, &
+!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
+! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
 ! &                        Communicator, status, ierror)
 !       !call MPI_Barrier( Communicator, ierror )
 !     endif
