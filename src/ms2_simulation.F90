@@ -1960,7 +1960,7 @@ eqloop: do
 
 #if MPI_VER > 0
     if (NCommunicators > 1 ) then
-      ! clean up
+      ! clean up (but don't use MPI_Cancel)
       if ( RootProc ) then
         if ( RootProc_R ) then
           call MPI_Reduce( MPI_IN_PLACE, numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
@@ -1981,9 +1981,10 @@ eqloop: do
             if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
-        else
-          if ( .not. doneMsgTerm ) then
-            ! at least one terminate message should be sent to serve the RootProc_R irecv
+        else ! .not.RootProc_R
+          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then	! only works if NRootProc_R.ne.1 (NRootProc_R==0)
+          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then	! should work for NProcs_R.gt.1
+            ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
               call LogWriteTime
