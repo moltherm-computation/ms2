@@ -23,14 +23,6 @@
 #define TRANS 0
 #endif
 
-#ifndef OSMOP
-#define OSMOP 0
-#endif
-
-#ifndef HBOND
-#define HBOND 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
@@ -75,12 +67,6 @@ module ms2_ensemble
 
     ! I/O unit for result ACF
     integer :: iounit_rescf
-
-    ! I/O unit for visualization H-bonding file
-    integer :: iounit_visualHB
-
-    ! I/O unit for Profile file
-    integer :: iounit_dcp
 
 #if  TRANS == 1
     logical :: Conductivity   !TRANSPORT_thisline
@@ -141,14 +127,6 @@ module ms2_ensemble
     ! Velocity scaling factor for temperature control
     real(RK) :: scale
 
-#if OSMOP > 0
-    real(RK) :: OsmoticPressure
-#if OSMOP == 2
-    real(RK), pointer :: VirialProfile(:)
-    real(RK), pointer :: PressureProfile(:)
-#endif
-#endif
-
     ! Virial
     real(RK) :: Virial
 
@@ -161,11 +139,12 @@ module ms2_ensemble
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
 
+ 
     !RDF Hilfsvariable
-    real(RK) :: RDFdr
+    real(RK) :: RDFdr, RDFdr3
     real(RK), pointer :: RDFVSchale(:)
-    real(RK), pointer :: RDFValue(:)
-
+    real(RK), pointer :: RDF(:) 
+    
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
 
@@ -216,12 +195,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumConfEnthalpy
     type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
-#if OSMOP > 0
-    type(TAccumulator) :: SumOsmoticPressure
-#if OSMOP == 2
-    type(TAccumulator),pointer :: SumPressureProfile(:)
-#endif
-#endif
     type(TAccumulator) :: SumNPart
     type(TAccumulator) :: SumdEpotdV
     type(TAccumulator) :: Sumd2EpotdV2
@@ -391,7 +364,7 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
 #endif
-
+!RDF
 #if CONSTR > 0
    integer         :: NCons
    integer,pointer :: Cons1Comp(:)
@@ -409,19 +382,6 @@ module ms2_ensemble
    real(RK),pointer:: AblPE(:,:)
    real(RK),pointer:: AblRhoS(:,:)
    real(RK),pointer:: AblRhoE(:,:)
-#endif
-
-#if HBOND > 0
-   integer          :: NHBondCrit
-   integer,pointer  :: AccComp(:), AccAccSite(:), AccDonSite(:)
-   integer,pointer  :: DonComp(:), DonAccSite(:), DonDonSite(:)
-   real(RK),pointer :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
-   integer,pointer  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
-   type(TAccumulator),pointer :: SumHBond0(:)
-   type(TAccumulator),pointer :: SumHBond1(:,:)
-   type(TAccumulator),pointer :: SumHBond2(:,:,:)
-   type(TAccumulator),pointer :: SumHBond3(:,:,:,:)
-   type(TAccumulator),pointer :: SumHBondN(:)
 #endif
 
   end type TEnsemble
@@ -764,7 +724,7 @@ module ms2_ensemble
   interface ResultClose
     module procedure TEnsemble_ResultClose
   end interface
-
+  
   interface RDFOpen
     module procedure TEnsemble_RDFOpen
   end interface
@@ -776,7 +736,7 @@ module ms2_ensemble
   interface RDFClose
     module procedure TEnsemble_RDFClose
   end interface
-
+  
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
@@ -795,28 +755,11 @@ module ms2_ensemble
 
   interface VisualUpdate
     module procedure TEnsemble_VisualUpdate
-#if HBOND > 0
-    module procedure TEnsemble_VisualUpdateHB
-#endif
   end interface
 
   interface VisualClose
     module procedure TEnsemble_VisualClose
   end interface
-
-#if OSMOP > 0
-  interface ProfileOpen
-    module procedure TEnsemble_ProfileOpen
-  end interface
-
-  interface ProfileUpdate
-    module procedure TEnsemble_ProfileUpdate
-  end interface
-
-  interface ProfileClose
-    module procedure TEnsemble_ProfileClose
-  end interface
-#endif
 
   interface RestartSave
     module procedure TEnsemble_RestartSave
@@ -889,12 +832,7 @@ module ms2_ensemble
   end interface
 #endif
 
-#if HBOND > 0
-  interface HBonding
-    module procedure TEnsemble_HBonding
-  end interface
-#endif
-  
+
 contains
 
 !==============================================================!
@@ -904,13 +842,6 @@ contains
   subroutine TEnsemble_Construct( this, ne )
 
     implicit none
-
-    ! Include MPI header
-#if HBOND > 0
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -1069,10 +1000,12 @@ contains
 
     write( IOBuffer, '("Density: ", T26, F9.3, " mol/l")' ) this%RefDensity * UnitDensity
     call LogWrite
-    if( EnsembleType .eq. EnsembleTypeNPH ) then
+		
+	if( EnsembleType .eq. EnsembleTypeNPH ) then
       write( IOBuffer, '("Enthalpy: ",T26, F9.3, " J/mol")' ) this%RefEnthalpy * UnitEnergy * NAvogadro
       call LogWrite
-    end if
+	end if
+	
     write( IOBuffer, '("Reduced temperature: ", T26, F12.6)' ) this%RefTemperature
     call LogWrite
 
@@ -1097,10 +1030,11 @@ contains
 
     write( IOBuffer, '("Reduced density: ",T26, F12.6)' ) this%RefDensity
     call LogWrite
-    if( EnsembleType .eq. EnsembleTypeNPH ) then
+	
+	if( EnsembleType .eq. EnsembleTypeNPH ) then
       write( IOBuffer, '("Reduced Enthalpy: ",T26, F12.6)' ) this%RefEnthalpy
       call LogWrite 
-    end if
+	end if
 
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
@@ -1369,66 +1303,6 @@ contains
         call LogWrite
       end do
     end do
-
-#if HBOND > 0
-    call FileReadParameter( this%NHBondCrit, iounit_params , IdNHBonds, .false. )
-    call LogWriteBlank
-    write( IOBuffer, '("Reading ", I2, " H-Bonding criteria:")' ) this%NHBondCrit
-    call LogWrite
-    write( IOBuffer, '("CritNo.  AccComp  AccAccSite AccDonSite  DonComp  DonAccSite  DonDonSite  DistCrit1  DistCrit2  AngleCrit")' )
-    call LogWrite
-
-    !Allocate H-Bond Arrays
-    allocate( this%AccComp( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%AccAccSite( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%AccDonSite( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%DonComp( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%DonAccSite( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%DonDonSite( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%DistCrit1( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%DistCrit2( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-    allocate( this%AngleCrit( this%NHBondCrit ), STAT = stat )
-    call AllocationError( stat, 'components', this%NHBondCrit )
-
-    if (RootProc) then
-      do i = 1, this%NHBondCrit
-        read( iounit_params, * ) this%AccComp(i), this%AccAccSite(i), this%AccDonSite(i), this%DonComp(i), &
-  &           this%DonAccSite(i), this%DonDonSite(i), this%DistCrit1(i), this%DistCrit2(i), this%AngleCrit(i)
-        if ( (this%AngleCrit(i) .le. 0._RK) .or. (this%AngleCrit(i) .gt. 180._RK) ) then
-          call Error('Angle of the H-Bonding criteria(s) should be between 0 and 180.')
-        else
-          this%AngleCrit(i) = cos(this%AngleCrit(i)*PI/180._RK)
-        end if
-        write( IOBuffer, '("  ", I3, "      ", I2, "         ", I2, "         ", I2, "       ", I2, "         ", I2, "         ", I2, "     ", F9.4, "   ", F9.4, "   ", F9.4)' ) i, &
-  &              this%AccComp(i), this%AccAccSite(i), this%AccDonSite(i), this%DonComp(i), this%DonAccSite(i), this%DonDonSite(i), &
-  &              this%DistCrit1(i), this%DistCrit2(i), this%AngleCrit(i)
-        call LogWrite
-        if (.not. UseReducedUnits ) then
-          this%DistCrit1(i) = this%DistCrit1(i)*Angstroem/UnitLength
-          this%DistCrit2(i) = this%DistCrit2(i)*Angstroem/UnitLength
-        end if
-      end do
-    end if
-#if MPI_VER > 0
-    call MPI_Bcast( this%AccComp,    this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%AccAccSite, this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%AccDonSite, this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%DonComp,    this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%DonAccSite, this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%DonDonSite, this%NHBondCrit, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%DistCrit1,  this%NHBondCrit, MPI_RK, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%DistCrit2,  this%NHBondCrit, MPI_RK, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%AngleCrit,  this%NHBondCrit, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-#endif
 
     ! Read cutoff radii
     this%RCutoffLJ126LJ126 = 0._RK
@@ -1792,13 +1666,17 @@ contains
     this%iounit_rdf       = iounit_rdf       + i
     this%iounit_thermoint = iounit_thermoint + i
     this%iounit_rescf     = iounit_rescf     + i
-    this%iounit_visualHB  = iounit_visualHB  + i
-    this%iounit_dcp       = iounit_dcp       + i
 
     ! Calculate RDF VSchale 
-    this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
+    if (this%RCutoffLJ126LJ126 .eq. -1) then
+    this%RDFdr = this%BoxLength * 0.5 / RDFNumberShells
+
+    else
+        this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
+    endif
+
     do i = 1, RDFNumberShells
-      this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
+        this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
@@ -1979,7 +1857,6 @@ contains
     this%iounit_runave = iounit_runave + i
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
-    this%iounit_visualHB = iounit_visualHB + i
 
   end subroutine TEnsemble_ConstructSVC
 
@@ -2186,29 +2063,6 @@ contains
 
     end do
 
-#if OSMOP > 0
-    if (SimulationType .eq. MolecularDynamics ) then
-      j = 0._RK
-      do i = 1, this%NRealComponents
-        if (this%Component(i)%permeable) then
-          j = 1._RK
-        end if
-      end do
-      if (j == 0._RK ) call Error ('At least one component has to be permeable.')
-    end if
-#endif
-#if OSMOP == 2
-    do i = 1, this%NRealComponents
-      if ( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) then
-        call LogWriteBlank
-        write( IOBuffer, '("Chem. Pot.-Profile for", A, " cannot be calculated if Widom is not used!")' ) trim(this%Component(i)%PotModFileName)
-        call LogWrite
-        call LogWriteBlank
-        this%Component(i)%ChemPotProfile(:) = 0._RK
-      end if
-    end do
-#endif
-
     ! Set new number of components (including fluctuating particles)
     this%NComponents = ncomp
 
@@ -2260,9 +2114,6 @@ contains
     ! Declare local variables
     integer :: i, j
     integer :: stat
-#if OSMOP == 2
-    integer :: j1, j2
-#endif
 
     ! Create interactions
     allocate( this%Interaction(this%NComponents, this%NComponents ), STAT = stat )
@@ -2305,86 +2156,6 @@ contains
         end do
       end do
     end if
-
-#if OSMOP == 2
-    ! set pointers for virial profile
-    do i = 1, this%NComponents
-      do j = 1, this%NComponents
-      
-        if( this%Interaction(i,j)%N1LJ126 > 0 .and. this%Interaction(i,j)%N2LJ126 > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1LJ126
-            do j2 = 1, this%Interaction(i,j)%N2LJ126
-              this%Interaction(i,j)%PotLJ126LJ126(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Charge > 0 .and. this%Interaction(i,j)%N2Charge > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Charge
-            do j2 = 1, this%Interaction(i,j)%N2Charge
-              this%Interaction(i,j)%PotChargeCharge(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Charge > 0 .and. this%Interaction(i,j)%N2Dipole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Charge
-            do j2 = 1, this%Interaction(i,j)%N2Dipole
-              this%Interaction(i,j)%PotChargeDipole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Charge > 0 .and. this%Interaction(i,j)%N2Quadrupole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Charge
-            do j2 = 1, this%Interaction(i,j)%N2Quadrupole
-              this%Interaction(i,j)%PotChargeQuadrupole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Dipole > 0 .and. this%Interaction(i,j)%N2Charge > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Dipole
-            do j2 = 1, this%Interaction(i,j)%N2Charge
-              this%Interaction(i,j)%PotDipoleCharge(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Dipole > 0 .and. this%Interaction(i,j)%N2Dipole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Dipole
-            do j2 = 1, this%Interaction(i,j)%N2Dipole
-              this%Interaction(i,j)%PotDipoleDipole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Dipole > 0 .and. this%Interaction(i,j)%N2Quadrupole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Dipole
-            do j2 = 1, this%Interaction(i,j)%N2Quadrupole
-              this%Interaction(i,j)%PotDipoleQuadrupole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Quadrupole > 0 .and. this%Interaction(i,j)%N2Charge > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Quadrupole
-            do j2 = 1, this%Interaction(i,j)%N2Charge
-              this%Interaction(i,j)%PotQuadrupoleCharge(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Quadrupole > 0 .and. this%Interaction(i,j)%N2Dipole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Quadrupole
-            do j2 = 1, this%Interaction(i,j)%N2Dipole
-              this%Interaction(i,j)%PotQuadrupoleDipole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-        if( this%Interaction(i,j)%N1Quadrupole > 0 .and. this%Interaction(i,j)%N2Quadrupole > 0 ) then
-          do j1 = 1, this%Interaction(i,j)%N1Quadrupole
-            do j2 = 1, this%Interaction(i,j)%N2Quadrupole
-              this%Interaction(i,j)%PotQuadrupoleQuadrupole(j1, j2)%VirialProfile => this%VirialProfile
-            end do
-          end do
-        end if
-
-      end do
-    end do
-#endif
 
   end subroutine TEnsemble_CreatePotentials
 
@@ -2439,29 +2210,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer   :: i, j
-#if HBOND > 0
-    integer   :: k, l,stat
-
-    allocate( this%SumHBond0(this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents )
-    allocate( this%SumHBond1(this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents**2 )
-    allocate( this%SumHBond2(this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', (this%NComponents**2)*this%NComponents )
-    allocate( this%SumHBond3(this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2) )
-    allocate( this%SumHBondN(this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents )
-#endif
-#if OSMOP == 2
-#if HBOND == 0
-    integer   :: stat
-#endif
-
-    allocate( this%SumPressureProfile(NBinsDen ), STAT = stat )
-    call AllocationError( stat, 'NBinsDen', NBinsDen )
-#endif
+    integer :: i, j
 
     ! Construct accumulators
     if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -2477,30 +2226,6 @@ contains
       call Construct( this%SumVirial, .false. )
       call Construct( this%SumdEpotdV, .false. )
       call Construct( this%Sumd2EpotdV2, .false. )
-#if OSMOP > 0
-      call Construct( this%SumOsmoticPressure, .false. )
-#if OSMOP == 2
-      do i = 1, NBinsDen
-         call Construct( this%SumPressureProfile(i), .false. )
-      end do
-#endif
-#endif
-
-#if HBOND > 0
-      do i = 1, this%NComponents
-        call Construct( this%SumHBond0(i), .false. )
-        do j = 1, this%NComponents
-          call Construct( this%SumHBond1(i,j), .false. )
-          do k = j, this%NComponents
-            call Construct( this%SumHBond2(i,j,k), .false. )
-            do l = k, this%NComponents
-              call Construct( this%SumHBond3(i,j,k,l), .false. )
-            end do
-          end do
-        end do
-        call Construct( this%SumHBondN(i), .false. )
-      end do
-#endif
 
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Construct( this%SumNPart, .false. )
@@ -2655,9 +2380,6 @@ contains
 
     ! Declare local variables
     integer :: i, j
-#if HBOND > 0
-    integer :: k, l
-#endif
 
     ! Destruct accumulators
     ! 1.) Basic sums
@@ -2671,30 +2393,6 @@ contains
     call Destruct( this%SumVirial )
     call Destruct( this%SumdEpotdV )
     call Destruct( this%Sumd2EpotdV2 )
-#if OSMOP > 0
-      call Destruct( this%SumOsmoticPressure )
-#if OSMOP == 2
-      do i = 1, NBinsDen
-         call Destruct( this%SumPressureProfile(i) )
-      end do
-#endif
-#endif
-
-#if HBOND > 0
-      do i = 1, this%NComponents
-        call Destruct( this%SumHBond0(i) )
-        do j = 1, this%NComponents
-          call Destruct( this%SumHBond1(i,j) )
-          do k = j, this%NComponents
-            call Destruct( this%SumHBond2(i,j,k) )
-            do l = k, this%NComponents
-              call Destruct( this%SumHBond3(i,j,k,l) )
-            end do
-          end do
-        end do
-        call Destruct( this%SumHBondN(i) )
-      end do
-#endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumNPart )
@@ -2800,11 +2498,6 @@ contains
       call DestroyAccumulators( this%Component(i) )
     end do
 
-#if OSMOP == 2
-    if( associated( this%SumPressureProfile ) ) then
-      deallocate( this%SumPressureProfile )
-    end if
-#endif
 
   end subroutine TEnsemble_DestroyAccumulators
 
@@ -3110,7 +2803,7 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
-    nullify( this%RDFValue )
+    nullify( this%RDF )
     nullify( this%RDFVSchale )
 
     ! Allocate scale coefficients for sigma and epsilon
@@ -3125,7 +2818,7 @@ contains
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFVSchale(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )
-      allocate( this%RDFValue(RDFNumberShells), STAT = stat )
+      allocate( this%RDF(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )    
     endif
 
@@ -3194,30 +2887,6 @@ contains
      allocate(this%AblRhoE(this%NComponents,10),STAT=stat)
      nullify(this%AblRhoS);
      nullify(this%AblRhoE);
-#endif
-
-#if HBOND > 0
-    !Allocate H-Bond counters
-    allocate( this%NHBond0( this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents )
-    allocate( this%NHBond1( this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents**2 )
-    allocate( this%NHBond2( this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents**2*this%NComponents )
-    allocate( this%NHBond3( this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2 )
-    allocate( this%NHBondN( this%NComponents ), STAT = stat )
-    call AllocationError( stat, 'components', this%NComponents )
-#endif
-
-#if OSMOP == 2
-    !Allocate pressure in the bins of the pressureprofile
-    allocate( this%VirialProfile( NBinsDen ), STAT = stat )
-    call AllocationError( stat, 'viral profile', NBinsDen )
-    this%VirialProfile(:) = 0._RK
-    allocate( this%PressureProfile( NBinsDen ), STAT = stat )
-    call AllocationError( stat, 'pressure profile', NBinsDen )
-    this%PressureProfile(:) = 0._RK
 #endif
 
 #if  TRANS == 1
@@ -3526,9 +3195,10 @@ contains
       deallocate( this%RDFVSchale )
     end if
 
-    if( associated( this%RDFValue ) ) then
-      deallocate( this%RDFValue )
+    if( associated( this%RDF ) ) then
+      deallocate( this%RDF )
     end if    
+    
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -3912,29 +3582,10 @@ contains
     type(TComponent), pointer :: pc
     real(RK)                  :: NCells                    ! Number of unit cells
     integer, dimension(3)     :: NCells1dim                ! Number of unit cells in one dimension of lattice
-#if OSMOP > 0
-    integer                   :: Npermeable, nc1, nm1
-#endif
+
 
     NCells = ceiling( real( this%NPart, RK ) / real( NPartInCell, RK ) )
     NCells1dim = ceiling( NCells**Third )
-
-#if OSMOP > 0
-    ! Count permeable Particles and check NCells
-    if (SimulationType .eq. MolecularDynamics) then
-      Npermeable = 0
-      do i = 1, this%NComponents
-        if (this%Component(i)%permeable) then
-          Npermeable = Npermeable + this%Component(i)%NPart
-        end if
-      end do
-
-      if ( (this%NPart-Npermeable) .gt. 0.5_RK*NCells*NPartInCell ) then
-        NCells = 2._RK * ( ceiling( real( this%NPart-Npermeable, RK ) / real( NPartInCell, RK ) ) )
-        NCells1dim = ceiling( NCells**Third )
-      end if
-    end if
-#endif
 
     if( (NCells1dim(1)-1)*NCells1dim(2)*NCells1dim(3)>=NCells ) NCells1dim(1)=NCells1dim(1)-1
     if( NCells1dim(1)*(NCells1dim(2)-1)*NCells1dim(3)>=NCells ) NCells1dim(2)=NCells1dim(2)-1
@@ -3957,7 +3608,6 @@ contains
     write( IOBuffer, '(T10, "with",I3," molecules/cell")' ) NPartInCell
     call LogWrite
 
-    ! Set all positions
 loop:do l = 1, NPartInCell
       do i = 1, NCells1dim(1)
         do j = 1, NCells1dim(2)
@@ -3965,52 +3615,10 @@ loop:do l = 1, NPartInCell
             nc = select_component( comp )
             nm = comp(nc) + 1
             pc => this%Component(nc)
-#if OSMOP > 0
-            if (SimulationType .eq. MolecularDynamics) then
-              if ( ((xl(1) * (CellX(l) + i - 1)) .lt. 0.25_RK) .or. ((xl(1) * (CellX(l) + i - 1)) .gt. 0.75_RK) ) then
-                if ( Npermeable > 0 ) then ! set positions randomly as long as permeable particles are still to be set
-                  do while (.not. this%Component(nc)%permeable )
-                    comp(nc)=comp(nc)+1
-                    nc = select_component( comp )
-                  end do
-                else ! if all permeable particles are set, but not all non permeable ones, exchange positions
-                  if (pc%permeable) then
-                    nc1 = nc
-                    nm1 = rnd(pc%NPart)
-                    do while ( (this%Component(nc1)%P0(nm1,1) .lt. 0.25_RK) .or. (this%Component(nc1)%P0(nm1,1) .gt. 0.75_RK) )
-                      nm1 = rnd(this%Component(nc1)%NPart)
-                    end do
-                    do while (this%Component(nc)%permeable )
-                      nc = select_component( comp )
-                    end do
-                    nm = comp(nc) + 1
-                    this%Component(nc)%P0(nm,:) = this%Component(nc1)%P0(nm1,:)
-                    nc = nc1
-                    nm = nm1
-                    pc => this%Component(nc)
-                  else
-                    nc1 = nc
-                    do while (.not. this%Component(nc1)%permeable )
-                      nc1 = rnd(this%NComponents)
-                    end do
-                    nm1 = rnd(this%Component(nc1)%NPart)
-                    do while ( (this%Component(nc1)%P0(nm1,1) .lt. 0.25_RK) .or. (this%Component(nc1)%P0(nm1,1) .gt. 0.75_RK) )
-                      nm1 = rnd(this%Component(nc1)%NPart)
-                    end do
-                    this%Component(nc)%P0(nm,:) = this%Component(nc1)%P0(nm1,:)
-                    pc => this%Component(nc1)
-                  end if
-                end if
-              end if
-            end if
-#endif
             pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1)
             pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1)
             pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1)
             n = n + 1
-#if OSMOP > 0
-            if (this%Component(nc)%permeable .and. SimulationType .eq. MolecularDynamics) Npermeable= Npermeable-1
-#endif
             if( n == this%NPart ) exit loop
           end do
         end do
@@ -4519,10 +4127,6 @@ loop:do l = 1, NPartInCell
     call CalculateEKin( this, .true. )
     if( .not. Equilibration .and. this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
 
-#if HBOND > 0
-    call HBonding(this)
-#endif
-
   end subroutine TEnsemble_RunMDStep
 
 
@@ -4549,11 +4153,13 @@ loop:do l = 1, NPartInCell
     integer  :: i
     real(RK) :: rx, sx
     real(RK) :: diffpressure
+    real(RK) :: NDFsystem
 
     ! Zero number of MC attempts and successes
     if( Step == 1 ) call ZeroNAttempts( this )
 
     ! Outer loop
+    !Debug: NDFsystem = this%NDF
     do i = 1, this%NDF / 3
 
       ! Choose particle randomly
@@ -4693,10 +4299,6 @@ loop3:    do nc = 1, this%NComponents
 
     end if
 
-#if HBOND > 0
-    call HBonding(this)
-#endif
-
     ! Update MC displacements
     if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) call UpdateDisplacements( this )
 
@@ -4740,7 +4342,6 @@ loop3:    do nc = 1, this%NComponents
     ! Set distance
     do i = 2, this%NComponents, 2
       this%Component(i)%P0(:, 1) = r / this%BoxLength
-!       call Mol2Atom( this%Component(i), 1, this%Component(i)%NPart )
       call Mol2Atom( this%Component(i), this%Component(i)%NPart )
     end do
 
@@ -4780,7 +4381,7 @@ loop3:    do nc = 1, this%NComponents
       call FileWriteBlank( this%iounit_result )
 
       ! Number of steps
-      write( IOBuffer, '("       NR")' )
+      write( IOBuffer, '("     NR")' )
       call FileWriteNoAdvance( this%iounit_result )
 
       ! Radius
@@ -4868,18 +4469,10 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer      :: i!, i0, i1
+    integer      :: i
 
     ! Call Mol2Atom for each component
     do i = 1, this%NComponents
-! #if MPI_VER > 0
-!       i0 = this%Component(i)%NPart0
-!       i1 = this%Component(i)%NPart2
-! #else
-!       i0 = 1
-!       i1 = this%Component(i)%NPart1
-! #endif
-!       call Mol2Atom( this%Component(i), i0, i1-i0+1 )
       call Mol2Atom( this%Component(i), this%Component(i)%NPart )
     end do
 
@@ -4898,34 +4491,10 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer   :: i!, i0, i1
-#if OSMOP > 0
-    integer   :: m
-    real(RK)  :: TotalDenProfile(NBinsDen)
-
-    ! Osmotic pressure
-    this%OsmoticPressure = 0._RK
-    TotalDenProfile(:) = 0._RK
-#endif
+    integer :: i
 
     ! Call Atom2Mol for each component
     do i = 1, this%NComponents
-! #if MPI_VER > 0
-!       i0 = this%Component(i)%NPart0
-!       i1 = this%Component(i)%NPart2
-! #else
-!       i0 = 1
-!       i1 = this%Component(i)%NPart1
-! #endif
-! #if  TRANS == 1
-!       if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-!          call Atom2Mol_Trans( this%Component(i), i0, i1-i0+1 )
-!       else
-!          call Atom2Mol( this%Component(i), i0, i1-i0+1 )
-!       end if
-! #else
-!       call Atom2Mol( this%Component(i), i0, i1-i0+1 )
-! #endif
 #if  TRANS == 1
       if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
          call Atom2Mol_Trans( this%Component(i), this%Component(i)%NPart )
@@ -4935,42 +4504,7 @@ loop3:    do nc = 1, this%NComponents
 #else
       call Atom2Mol( this%Component(i), this%Component(i)%NPart )
 #endif
-
-#if OSMOP == 0
     end do
-#else
-      ! Dichteprofil für die Bestimmung des chemischen Potentials
-      call DensityProfile( this%Component(i) )
-
-      !if(this%Component(i)%Molecule%Charge .ne. 0)then 
-      if ( .not. this%Component(i)%permeable ) then   
-        this%OsmoticPressure = this%OsmoticPressure + sum(this%Component(i)%FOsmoticPressure(:))
-      end if
-      do m = 1, NBinsDen
-        TotalDenProfile(m) = TotalDenProfile(m) + this%Component(i)%SumDenProfile(m)%Average
-      end do
-
-    end do
-
-#if OSMOP == 2
-    !Correct virial profile
-    do m = 1, NBinsDen
-       this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrLJ * NProcs)/NBinsDen
-    end do
-
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
-        this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
-    end if
- 
-    !Calculation of the pressure profile (real and ideal part)
-    do m = 1, NBinsDen
-      this%PressureProfile(m) = this%VirialProfile(m)*NBinsDen/this%Volume0 + TotalDenProfile(m) * this%Temperature
-    end do
-    this%VirialProfile(:) = 0._RK
-#endif
-
-    this%OsmoticPressure = 0.5_RK * this%OsmoticPressure / (this%BoxLength*this%BoxLength)
-#endif
 
   end subroutine TEnsemble_Atom2Mol
 
@@ -5359,23 +4893,12 @@ loop3:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
+    real(RK)                  :: EPot, Virial, d2EpotdV2
+    integer                   :: i, j
     type(TComponent), pointer :: pc
-    real(RK)            :: EPot, Virial, d2EpotdV2
-    integer             :: i, j
 #ifdef ABL
-    integer             :: k,l
-    integer             :: numbi, numbj, numb
-#endif
-! #if MPI_VER > 0
-!     integer             :: i0, i1, np, np1, n
-! #endif
-#if OSMOP == 2
-#if MPI_VER > 0
-    real(RK),allocatable :: VirialProfile(:)
-
-    allocate( VirialProfile(NBinsDen) )
-    VirialProfile(:) = 0._RK
-#endif
+    integer                   :: k,l
+    integer                   :: numbi, numbj, numb
 #endif
 
 ! Zero forces
@@ -5561,37 +5084,6 @@ loop3:    do nc = 1, this%NComponents
     ! Zero d2Epot/dV2
     d2EpotdV2 = this%Density * this%d2EpotdV2CorrLJ 
 
-!     ! Calculate interactions partners within cutoff sphere
-!     if( CutoffMode .eq. CenterofMass ) then
-!       do i = 1, this%NComponents
-!         do j = i, this%NComponents
-!           call CalcCutoffPartners( this%Interaction( i, j ) )
-!         end do
-!       end do
-!     end if
-! 
-! #if MPI_VER > 0
-!     do i = 1, this%NComponents
-!       this%Component(i)%NAdd(:) = .false.
-!     end do
-!     do i = 1, this%NComponents
-!       i0 = this%Component(i)%NPart0
-!       i1 = this%Component(i)%NPart2
-!       do j = i, this%NComponents
-!         ! Calculate SitePositions by demand
-!         do np1 = i0, i1
-!           do n = 1, this%Interaction( i, j )%NInCutoff(np1)
-!             np = this%Interaction( i, j )%CutoffPartner(n, np1)
-!             if ( np < this%Component(j)%NPart0 .or. np > this%Component(j)%NPart2 ) then
-!               this%Component(j)%NAdd(np) = .true.
-!               call Mol2Atom1( this%Component(j), np)
-!             end if
-!           end do
-!         end do
-!       end do
-!     end do
-! #endif
-
     ! Loop over components
     do i = 1, this%NComponents
       do j = i, this%NComponents
@@ -5620,7 +5112,6 @@ loop3:    do nc = 1, this%NComponents
         call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, i, j)
 #endif
 #endif
-
       end do
     end do
 
@@ -5639,10 +5130,7 @@ loop3:    do nc = 1, this%NComponents
     call MPI_Reduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( d2EpotdV2, this%d2EpotdV2, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#if OSMOP == 2
-    call MPI_Reduce( this%VirialProfile(:), VirialProfile(:), NBinsDen, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if (RootProc) this%VirialProfile(:) = VirialProfile(:)
-#endif
+
 #else
     this%EPot = EPot
     this%Virial = Virial
@@ -5695,13 +5183,6 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: tempVal, tempVal2
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
-#endif
-#if OSMOP == 2
-    real(RK)                  :: ChemPotProfile(NBinsDen)
-    integer                   :: NTestBinDen, m
-#if MPI_VER > 0
-    integer                   :: NTestBinDenAll
-#endif
 #endif
 
     ! No calculation of chemical potential in equilibration
@@ -6015,42 +5496,6 @@ loop2:        do nc = 1, this%NComponents
         pc%ChemPot = ChemPot
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
-#endif
-
-#if OSMOP == 2
-        ! Profile of  the chemical potential 
-        ! Initialize local arrays
-        if (SimulationType .eq. MolecularDynamics ) then
-          ChemPotProfile(:) = 0._RK
-
-          do j=1, NBinsDen
-
-            NTestBinDen = 0
-  
-            do m=1, pc%NTest
-              if (this%P0Test(m,1) .ge. real(j-1)/NBinsDen) then
-                if (this%P0Test(m,1) < real(j)/NBinsDen) then
-                  ChemPotProfile(j) = ChemPotProfile(j) + (exp( -( this%EPotTest(m)) /  this%Temperature))
-                  NTestBinDen = NTestBinDen + 1
-                end if
-              end if
-            end do
-
-#if MPI_VER > 0
-            call MPI_Allreduce(NTestBinDen,NTestBinDenAll,1,MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror)
-            if ( NTestBinDenAll > 1) then
-              ChemPotProfile(j)= ChemPotProfile(j) / NTestBinDenAll
-            end if
-            call MPI_Reduce( ChemPotProfile(j), pc%ChemPotProfile(j), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#else
-            if ( NTestBinDen > 1) then
-              ChemPotProfile(j)= ChemPotProfile(j) / NTestBinDen
-            end if 
-            pc%ChemPotProfile(j) = ChemPotProfile(j)
-#endif
-
-          end do !NBinsDen
-        end if
 #endif
 
       case( ChemPotMethodThermoInt )
@@ -9916,10 +9361,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #if TRANS ==1
     integer                   :: NStepsCF
 #endif
-#if HBOND > 0
-    integer                   :: k, l
-#endif
-
     if( Step == 1 ) then
       ! Reset accumulators
       ! 1.) Basic sums
@@ -9933,40 +9374,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Reset( this%SumVirial )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
-#if OSMOP > 0
-      call Reset( this%SumOsmoticPressure )
-      do i = 1, this%NComponents
-        do j = 1, NBinsDen
-          call Reset( this%Component(i)%SumDenProfile(j) )
-#if OSMOP == 2
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            call Reset( this%Component(i)%SumChemPotProfile(j) )
-          end if
-#endif
-        end do
-      end do
-#if OSMOP == 2
-      do j = 1, NBinsDen
-        call Reset( this%SumPressureProfile(j) )
-      end do
-#endif
-#endif
-
-#if HBOND > 0
-      do i = 1, this%NComponents
-        call Reset( this%SumHBond0(i) )
-        do j = 1, this%NComponents
-          call Reset( this%SumHBond1(i,j) )
-          do k = j, this%NComponents
-            call Reset( this%SumHBond2(i,j,k) )
-            do l = k, this%NComponents
-              call Reset( this%SumHBond3(i,j,k,l) )
-            end do
-          end do
-        end do
-        call Reset( this%SumHBondN(i) )
-      end do
-#endif
 
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Reset( this%SumNPart )
@@ -10115,7 +9522,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
            ! Number of steps
-           write( IOBuffer, '("           NR")' )
+           write( IOBuffer, '("         NR")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
@@ -10227,7 +9634,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          call FileWriteBlank( this%iounit_result )
          call FileWriteBlank( this%iounit_runave )
          ! Number of steps
-         write( IOBuffer, '("       NR")' )
+         write( IOBuffer, '("     NR")' )
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
 
@@ -10335,7 +9742,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
         ! Number of steps
-        write( IOBuffer, '("       NR")' )
+        write( IOBuffer, '("     NR")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -10357,13 +9764,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         write( IOBuffer, '("       TEMP")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
-
-#if OSMOP > 0
-           ! OsmoticPressure
-           write( IOBuffer, '("      OSPR")' )
-           call FileWriteNoAdvance( this%iounit_result )
-           call FileWriteNoAdvance( this%iounit_runave )
-#endif
 
         ! Potential energy
         write( IOBuffer, '("       EPOT")' )
@@ -10413,95 +9813,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end if
         end do
-
-#if HBOND > 0
-        do i = 1, this%NComponents
-          write( IOBuffer, '("   HB0_(", I2, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            write( IOBuffer, '("  HB1_(", I2, ",", I2, ")")' ) i, j
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              write( IOBuffer, '("  HB2_(", I2, ",", I2, ",", I2, ")")' ) i, j, k
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do  l = k, this%NComponents
-                write( IOBuffer, '("  HB3_(", I2, ",", I2, ",", I2, ",", I2, ")")' ) i, j, k, l
-                call FileWriteNoAdvance( this%iounit_result )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          write( IOBuffer, '("  HB4+_(", I2, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-#endif
-
-#if OSMOP > 0
-        !Density Profile
-        do i = 1, this%NComponents
-          do j = 1, NBinsDen
-            if (j .le. 9) then 
-              write( IOBuffer, '("   DP", I1, "B  ", I1)' ) i, j
-            elseif (j .le. 99) then 
-              write( IOBuffer, '("    DP", I1, "B ", I2)' ) i, j
-            else
-              write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
-            endif
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-#if OSMOP == 2
-        !Pressure Profile
-        do j = 1, NBinsDen
-          if (j .le. 9) then 
-            write( IOBuffer, '(" PPB  ", I1)' ) j
-          elseif (j .le. 99) then 
-            write( IOBuffer, '(" PPB ", I2)' ) j
-          else
-            write( IOBuffer, '(" PPB", I3)' ) j
-          endif
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        !Chemical Potential Profile
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            do j = 1, NBinsDen
-              if (j .le. 9) then 
-                write( IOBuffer, '("     CP", I1, "B  ", I1)' ) i, j
-              elseif (j .le. 99) then 
-                write( IOBuffer, '("     CP", I1, "B ", I2)' ) i, j
-              else
-                write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
-              endif
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end if
-        end do
-#endif
-#endif
 
         ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -10560,40 +9871,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
-#if OSMOP > 0
-    call Update( this%SumOsmoticPressure, this%OsmoticPressure )
-    do i = 1, this%NComponents
-      do j = 1, NBinsDen
-        call Update( this%Component(i)%SumDenProfile(j), real(this%Component(i)%DensityProfileN(j),RK)*NBinsDen/this%Volume0)
-#if OSMOP == 2
-        if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-          call Update( this%Component(i)%SumChemPotProfile(j), this%Component(i)%ChemPotProfile(j))
-        end if
-#endif
-      end do
-    end do
-#if OSMOP == 2
-    do j = 1, NBinsDen
-      call Update( this%SumPressureProfile(j), this%PressureProfile(j))
-    end do
-#endif
-#endif
-
-#if HBOND > 0
-    do i = 1, this%NComponents
-      call Update( this%SumHBond0(i), real(this%NHBond0(i),RK) )
-      do j = 1, this%NComponents
-        call Update( this%SumHBond1(i,j), real(this%NHBond1(i,j),RK) )
-        do k = j, this%NComponents
-          call Update( this%SumHBond2(i,j,k), real(this%NHBond2(i,j,k),RK) )
-          do l = k, this%NComponents
-            call Update( this%SumHBond3(i,j,k,l), real(this%NHBond3(i,j,k,l),RK) )
-          end do
-        end do
-      end do
-      call Update( this%SumHBondN(i), real(this%NHBondN(i),RK) )
-    end do
-#endif
 
     currentdEpotdV   = -this%Density*this%Virial/real( this%NPart, RK )
     currentd2EpotdV2 =  this%Density**2*(2._RK*this%Virial/3._RK + this%d2EpotdV2) / (real( this%NPart, RK ))**2
@@ -11045,7 +10322,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               ! Potential energy
               write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11079,7 +10356,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 end if
               end do
       
-             ! Partial molar enthalphy 
+           ! Partial molar enthalphy 
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
                 if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -11088,7 +10365,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                 end if
               end do
-
+      
             ! Number of particles in ensemble
               if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
                 write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
@@ -11154,7 +10431,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             ! Potential energy
             write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11187,7 +10464,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               end if
             end do
     
-            ! Partial molar enthalphy
+         ! Partial molar enthalphy
             do i = 1, this%NRealComponents
               pc => this%Component(i)
               if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -11196,7 +10473,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
               end if
             end do
-
+    
           ! Number of particles in ensemble
             if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
               write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
@@ -11267,7 +10544,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance_parallel( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+  
           ! Potential energy
           write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11356,7 +10633,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end if
           end do
   
-          ! Partial molar enthalphy
+       ! Partial molar enthalphy
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -11366,7 +10643,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
             end if
           end do
-
+  
         ! Number of particles in ensemble
           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
             write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
@@ -11503,7 +10780,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           end if
         end do
 
-        ! Partial molar enthalphy
+     ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -11574,14 +10851,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_result )
         write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
         call FileWriteNoAdvance( this%iounit_runave )
-
-#if OSMOP > 0
-        ! OsmoticPressure
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-#endif
 
         ! Potential energy
         write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
@@ -11670,7 +10939,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           end if
         end do
 
-        ! Partial molar enthalphy
+     ! Partial molar enthalphy
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -11686,97 +10955,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end if
           end if
         end do
-
-#if HBOND > 0
-        do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%Average
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do  l = k, this%NComponents
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-#endif
-
-#if OSMOP > 0
-        !Density Profile
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-#if OSMOP == 2
-        !Pressure Profile
-        do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average 
-            call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        !Chemical Potential Profile
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          if( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            if( Equilibration ) then
-              do j = 1, NBinsDen
-                write( IOBuffer, '(F10.5)' ) 0._RK
-                call FileWriteNoAdvance( this%iounit_result )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            else
-              do j = 1, NBinsDen
-                write( IOBuffer, '(F10.5)' ) &
-&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(F10.5)' ) &
-&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end if
-          end if
-        end do
-#endif
-#endif
 
       ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -12084,7 +11262,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     real(RK)                  :: Average, Variance
     type(TComponent), pointer :: pc
-    integer                   :: i, j, t!, s, o
+    integer                   :: i, j, s, t, o
 #if  TRANS == 1
     real(RK)                  :: value
     real(RK)                  :: x1, x2, x3
@@ -12098,9 +11276,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: err_D13, err_D12, err_D23
     real(RK)                  :: L(3,3)
 #endif
-#if HBOND > 0
-    integer                   :: k, l
-#endif
+
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
 
@@ -12136,40 +11312,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Error( this%SumEnthalpy )
     call Error( this%SumConfEnthalpy )
     call Error( this%SumVolume )
-#if OSMOP > 0
-    call Error( this%SumOsmoticPressure )
-    do i = 1, this%NComponents
-      do j = 1, NBinsDen
-        call Error( this%Component(i)%SumDenProfile(j) )
-#if OSMOP == 2
-        if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-          call Error( this%Component(i)%SumChemPotProfile(j) )
-        end if
-#endif
-      end do
-    end do
-#if OSMOP == 2
-    do j = 1, NBinsDen
-       call Error( this%SumPressureProfile(j) )
-    end do
-#endif
-#endif
-
-#if HBOND > 0
-    do i = 1, this%NComponents
-      call Error( this%SumHBond0(i) )
-      do j = 1, this%NComponents
-        call Error( this%SumHBond1(i,j) )
-        do k = j, this%NComponents
-          call Error( this%SumHBond2(i,j,k) )
-          do l = k, this%NComponents
-            call Error( this%SumHBond3(i,j,k,l) )
-          end do
-        end do
-      end do
-      call Error( this%SumHBondN(i) )
-    end do
-#endif
 
     call Error( this%SumdEpotdV )
     call Error( this%Sumd2EpotdV2 )
@@ -12539,21 +11681,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     write( IOBuffer, '(T32, "in K:", 2F20.9)' ) Average * UnitTemperature, Variance * UnitTemperature
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
-
-#if OSMOP > 0
-    if (SimulationType .eq. MolecularDynamics) then
-      ! OsmoticPressure
-      Average = this%SumOsmoticPressure%Average
-      Variance = this%SumOsmoticPressure%Variance
-      write( IOBuffer, '("OsmoticPressure", T29, "reduced:", 2F20.9)' ) &
-  &     Average, Variance
-      call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
-  &     Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-    end if
-#endif
 
     ! Potential energy
     Average = this%SumEPot%Average
@@ -13034,57 +12161,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
-
-#if HBOND > 0
-    do i = 1, this%NComponents
-      Average = this%SumHBond0(i)%Average
-      Variance = this%SumHBond0(i)%Variance
-      write( IOBuffer, '("HBond0 of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
-      call FileWrite( this%iounit_errors )
-    end do
-    do i = 1, this%NComponents
-      do  j = 1, this%NComponents
-        Average = this%SumHBond1(i,j)%Average
-        Variance = this%SumHBond1(i,j)%Variance
-        write( IOBuffer, '("HBond1 of [", I2, "] with (", I2, ")", T36, ":", 2F20.9)' ) i, j, Average, Variance
-        call FileWrite( this%iounit_errors )
-      end do
-    end do
-    do i = 1, this%NComponents
-      do  j = 1, this%NComponents
-        do k = j, this%NComponents
-          Average = this%SumHBond2(i,j,k)%Average
-          Variance = this%SumHBond2(i,j,k)%Variance
-          write( IOBuffer, '("HBond2 of [", I2, "] with (", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, Average, Variance
-          call FileWrite( this%iounit_errors )
-        end do
-      end do
-    end do
-    do i = 1, this%NComponents
-      do  j = 1, this%NComponents
-        do k = j, this%NComponents
-          do  l = k, this%NComponents
-            Average = this%SumHBond3(i,j,k,l)%Average
-            Variance = this%SumHBond3(i,j,k,l)%Variance
-            write( IOBuffer, '("HBond3 of [", I2, "] with (", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, l, Average, Variance
-            call FileWrite( this%iounit_errors )
-          end do
-        end do
-      end do
-    end do
-    do i = 1, this%NComponents
-      Average = this%SumHBondN(i)%Average
-      Variance = this%SumHBondN(i)%Variance
-      write( IOBuffer, '("HBond4+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
-      call FileWrite( this%iounit_errors )
-    end do
-    call FileWriteBlank( this%iounit_errors )
-
-    ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
-#endif
 
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
@@ -14334,17 +13410,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end do
     call FileWriteBlank( this%iounit_visual )
 
-#if HBOND > 0
-    !Open visualization file for H-bondings
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_visualHB, &
-&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//VisualHBFileExtension )
-    write( IOBuffer, '("!"," Nr", " MH", " MO_1", " MO_2")' ) 
-    call FileWrite( this%iounit_visualHB )
-    call FileWriteBlank( this%iounit_visualHB )
-#endif
-
   end subroutine TEnsemble_VisualOpen
+
 
 
 !==============================================================!
@@ -14388,36 +13455,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
   end subroutine TEnsemble_VisualUpdate
 
 
-#if HBOND > 0
-!==============================================================!
-!  Subroutine TEnsemble_VisualUpdateHB                         !
-!==============================================================!
-
-  subroutine TEnsemble_VisualUpdateHB( this, np, MH, MO )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: MH(np)
-    integer, intent(in) :: MO(2,np)
-
-    ! Declare local variables
-    integer  :: i
-
-    ! Update visualization file
-    write( IOBuffer, '("#", F10.4, "  new Frame")' ) this%BoxLength * UnitLength / Angstroem
-    call FileWrite( this%iounit_visualHB )                                                       
-    do i= 1, np
-      write( IOBuffer, '("!", I5, I5, I5, I5)' ) i, MH(i), MO(1,i), MO(2,i) 
-      call FileWrite( this%iounit_visualHB ) 
-    end do 
-    call FileWriteBlank( this%iounit_visualHB )
-
-  end subroutine TEnsemble_VisualUpdateHB
-#endif
-
 
 !==============================================================!
 !  Subroutine TEnsemble_VisualClose                            !
@@ -14435,124 +13472,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_visual )
     call FileClose( this%iounit_visual )
 
-#if HBOND > 0
-    ! Close visualization H-bonding file
-    write( IOBuffer, '("##")' )
-    call FileWrite( this%iounit_visualHB )
-    call FileClose( this%iounit_visualHB )
-#endif
-
   end subroutine TEnsemble_VisualClose
 
-
-#if OSMOP > 0
-!==============================================================!
-!  Subroutine TEnsemble_ProfileOpen                            !
-!==============================================================!
-
-  subroutine TEnsemble_ProfileOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Open profile file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_dcp, &
-&     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//DCPFileExtension )
-
-    call FileWriteBlank( this%iounit_dcp )
-    call FileClose( this%iounit_dcp )
-
-  end subroutine TEnsemble_ProfileOpen
-
-
-!==============================================================!
-!  Subroutine TEnsemble_ProfileUpdate                          !
-!==============================================================!
-
-  subroutine TEnsemble_ProfileUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j
-    real(RK) :: Variance, Average
-    type(TComponent), pointer :: pc
-
-    ! Open profile file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_dcp, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//DCPFileExtension )
-
-    ! Create header
-    write( IOBuffer, '("#", F10.4, "  BoxLength / A")' ) this%BoxLength * UnitLength / Angstroem
-    call FileWrite( this%iounit_dcp )
-    call FileWriteBlank( this%iounit_dcp )
-    write( IOBuffer, '(" Bin")')
-    call FileWriteNoAdvance ( this%iounit_dcp )
-    write( IOBuffer, '(" Position")')
-    call FileWriteNoAdvance ( this%iounit_dcp )
-    do i=1,this%NComponents
-       write( IOBuffer, '(" ", A)') trim( this%Component(i)%PotModFileName )
-       call FileWriteNoAdvance( this%iounit_dcp )
-    end do
-    call FileWriteBlank( this%iounit_dcp ) 
-
-    ! Update profile file
-    do i = 1, NBinsDen
-      write( IOBuffer, '( I3, F8.4)') i, real(i)/NBinsDen
-      call FileWriteNoAdvance ( this%iounit_dcp )
-      do j = 1, this%NComponents
-        pc => this%Component(j)
-        write( IOBuffer, '(F10.4)') pc%SumDenProfile(i)%Average * UnitDensity
-        call FileWriteNoAdvance( this%iounit_dcp )
-#if OSMOP == 2
-        if ( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
-          Variance = pc%SumChemPotProfile(i)%Variance / pc%SumChemPotProfile(i)%Average
-          Average = log( pc%SumDenProfile(i)%Average / pc%SumChemPotProfile(i)%Average )
-          write( IOBuffer, '(F10.4, F10.4)') Average, Variance
-          call FileWriteNoAdvance ( this%iounit_dcp )
-        end if    
-      end do
-      Average = this%SumPressureProfile(i)%Average * UnitPressure * 1E-6_RK
-      Variance = this%SumPressureProfile(i)%Variance * UnitPressure * 1E-6_RK
-      write( IOBuffer, '(F11.4, F10.4)') Average, Variance 
-      call FileWriteNoAdvance( this%iounit_dcp )
-#else
-      end do  
-#endif
-      call FileWriteBlank( this%iounit_dcp )
-    end do
-    call FileWriteBlank( this%iounit_dcp )
-
-    call FileClose( this%iounit_dcp )
-
-  end subroutine TEnsemble_ProfileUpdate
-
-
-!==============================================================!
-!  Subroutine TEnsemble_ProfileClose                           !
-!==============================================================!
-
-  subroutine TEnsemble_ProfileClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    write( IOBuffer, '("##")' )
-    call FileWrite( this%iounit_dcp )
-    call FileClose( this%iounit_dcp )
-
-  end subroutine TEnsemble_ProfileClose
-#endif
-
-  
 !==============================================================!
 !  Subroutine TEnsemble_RDFOpen                                !
 !==============================================================!
@@ -14567,24 +13488,30 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     integer                   :: i, j, s, t
 
-    ! initialize RDFSum
-    do i=1, this%NComponents
-      do j=i, this%NComponents
-        do s=1, this%component(i)%molecule%NLJ126
-          do t=1, this%component(j)%molecule%NLJ126
-            this%Interaction(i,j)%PotLJ126LJ126(s, t)%RDFSum(:) = 0
-          end do
+
+
+    ! RDF, Sum nullen
+    ! DEBUG_COL nullen auf Ensemble Ebene
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       do s=1, this%component(i)%molecule%NLJ126
+        do t=1, this%component(j)%molecule%NLJ126
+         this%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
         end do
+       end do
       end do
-    end do
+     end do
+
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
     call FileWriteBlank( this%iounit_rdf )
     call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFOpen
+
 
 
 !==============================================================!
@@ -14599,71 +13526,97 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, s, t, o
-    real(RK) :: RDFRho, RDFRhoLocal
+    integer  :: i, j, s, t, o, LocalErrFreq=0
 
-    ! Calculate RDF
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
-        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
-      end do
-    end do
+    ! Update visualization file
 
-    ! Open RDF file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    !RDF
+    CallsToRDF  = CallsToRDF + 1
+    LocalErrFreq = LocalErrFreq + 1
+   
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+      ! Open RDF file
+     write( IOBuffer, '(I16)' ) this%EnsembleNumber
+     call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+     write(IOBuffer, '(T5," r [A]")')
+     call FileWriteNoAdvance( this%iounit_rdf )
+    end if
 
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
+    do i=1, this%NComponents
+     do j=1, this%NComponents
+      if (i .LE. j) then
+       call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+       if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
         do s=1, this%Component(i)%molecule%NLJ126
-          do t=1, this%Component(j)%molecule%NLJ126
-            write(IOBuffer, '(I5,I5)') i, j
-            call FileWriteNoAdvance( this%iounit_rdf )
-          end do
-        end do            
-      end do
-    end do
-    call FileWriteBlank( this%iounit_rdf )
+         do t=1, this%Component(j)%molecule%NLJ126
+          write(IOBuffer, '(I5,I5)') i, j
+          call FileWriteNoAdvance( this%iounit_rdf )
+         enddo
+        enddo            
+       endif
+      endif
+     enddo
+    enddo
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+     call FileWriteBlank( this%iounit_rdf )
+     write(IOBuffer, '(T5,"______")')
+     call FileWriteNoAdvance( this%iounit_rdf )
+    end if
  
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
+   if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       if (i .LE. j) then
         do s=1, this%Component(i)%molecule%NLJ126
-          do t=1, this%Component(j)%molecule%NLJ126 
-            write(IOBuffer, '(I5,I5)') s, t
-            call FileWriteNoAdvance( this%iounit_rdf )
-          end do
-        end do
-      end do
-    end do
-    call FileWriteBlank( this%iounit_rdf )
+         do t=1, this%Component(j)%molecule%NLJ126 
+          write(IOBuffer, '(I5,I5)') s, t
+          call FileWriteNoAdvance( this%iounit_rdf )
+         enddo
+        enddo
+       endif
+      enddo
+     enddo
+     call FileWriteBlank( this%iounit_rdf )
+    endif
 
     do o = 1, RDFNumberShells
-      do i= 1, this%NComponents
-        do j= i, this%NComponents
-          do s=1, this%Component(i)%molecule%NLJ126
-            do t=1, this%Component(j)%molecule%NLJ126
-              RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-              if (i == j) then
-                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
-&                                       / (this%RDFVSchale(o) * Step * this%Component(i)%NPart)
-              else
-               RDFRhoLocal = real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
-&                                 / (this%RDFVSchale(o) * Step * this%Component(i)%NPart)
-              end if
-              this%RDFValue(o) = RDFRhoLocal / RDFRho  
-              write(IOBuffer, '(F10.4)') this%RDFValue(o)
-              call FileWriteNoAdvance( this%iounit_rdf )
-            end do
-          end do
+     write(IOBuffer, '(F10.4)') (o * this%RDFdr * UnitLength / Angstroem)
+     call FileWriteNoAdvance( this%iounit_rdf )
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       if (i .LE. j) then
+        do s=1, this%Component(i)%molecule%NLJ126
+         do t=1, this%Component(j)%molecule%NLJ126
+          RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+          if (i .EQ. j) then
+           RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+          else
+           RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+          end if
+          this%RDF(o) = RDFRhoLocal / RDFRho  
+          if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+            write(IOBuffer, '(F10.4)') this%RDF(o)
+            call FileWriteNoAdvance( this%iounit_rdf )
+          endif
+         end do
         end do
+       end if
       end do
-      call FileWriteBlank( this%iounit_rdf )
+     end do
+     if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+        call FileWriteBlank( this%iounit_rdf )
+     end if
     enddo
 
-    ! Close RDF file
-    call FileClose( this%iounit_rdf )
-
+    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
+      ! Close RDF file
+      call FileClose( this%iounit_rdf )
+      LocalErrFreq = 0
+    end if
   end subroutine TEnsemble_RDFUpdate
+
 
 
 !==============================================================!
@@ -14683,6 +13636,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFClose
+
 
 
 !==============================================================!
@@ -18655,251 +17609,5 @@ contains
   end subroutine TEnsemble_IntCorrFun
 #endif
 
-
-#if HBOND > 0
-!==============================================================!
-!  Subroutine TEnsemble_HBonding                               !
-!==============================================================!
-
-  subroutine TEnsemble_HBonding( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    type(TComponent), pointer :: pacc, pdon
-    type(TSiteCharge), pointer :: paccacc, pdonacc, pmixdon
-    logical             :: MixTerm
-    integer             :: h, i, i0, i1, j, k ,l, m
-    real(RK)            :: BoxLengthInv
-    real(RK)            :: LAA, LAD, LintraAD, CosAngle
-    real(RK)            :: AngleCrit, DistCrit1, DistCrit2
-    real(RK)            :: PXij, PYij, PZij
-    real(RK)            :: drAA(3), drAD(3), drintraAD(3)
-    integer,allocatable :: Counter(:,:), NHBAll(:)
-
-    ! Initialize arrays
-    this%NHBond0(:)       = 0
-    this%NHBond1(:,:)     = 0
-    this%NHBond2(:,:,:)   = 0
-    this%NHBond3(:,:,:,:) = 0
-    this%NHBondN(:)       = 0
-
-    allocate( Counter(this%NComponents,this%NPart) )
-    Counter(:,:) = 0
-    allocate( NHBAll(this%NComponents) )
-    NHBAll(:) = 0
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    do h = 1, this%NHBondCrit
-
-      !HBonding criteria
-      DistCrit1 = this%DistCrit1(h)*BoxLengthInv
-      DistCrit2 = this%DistCrit2(h)*BoxLengthInv
-      AngleCrit = this%AngleCrit(h)
-
-      !Definition of the H-Bonding components and sites
-      pacc => this%Component(this%AccComp(h))
-      pdon => this%Component(this%DonComp(h))
-
-      paccacc => this%Component(this%AccComp(h))%Molecule%SiteCharge(this%AccAccSite(h))
-      pdonacc => this%Component(this%DonComp(h))%Molecule%SiteCharge(this%DonAccSite(h))
-      if ( this%AccDonSite(h) > 0 ) then
-        pmixdon => this%Component(this%AccComp(h))%Molecule%SiteCharge(this%AccDonSite(h))
-        MixTerm =.true.
-      else
-        pmixdon => this%Component(this%DonComp(h))%Molecule%SiteCharge(this%DonDonSite(h))
-        MixTerm = .false.
-      end if
- 
-
-      i0 = 1
-      i1 = pacc%NPart
-#if MPI_VER > 0
-      if (SimulationType .eq. MolecularDynamics) then
-        i0 = pacc%NPart0
-        i1 = pacc%NPart2
-      end if
-#endif
-      !Loop over all particles
-      do i = i0, i1
-
-        do j = 1,pdon%NPart
-
-          !Minimum Image Convention
-          PXij = pacc%P0(i, 1) - pdon%P0(j, 1)
-          PYij = pacc%P0(i, 2) - pdon%P0(j, 2)
-          PZij = pacc%P0(i, 3) - pdon%P0(j, 3)
-
-          !Calculation of the distance vector Acc of AccComp and Acc of DonComp 
-          drAA(1)=(paccacc%RX(i)-pdonacc%RX(j)) - anint( PXij )
-          drAA(2)=(paccacc%RY(i)-pdonacc%RY(j)) - anint( PYij )
-          drAA(3)=(paccacc%RZ(i)-pdonacc%RZ(j)) - anint( PZij )
-          LAA = SQRT( DOT_PRODUCT(drAA,drAA) )
-  
-          if (LAA .le. DistCrit1)then
-            !Calculation of the distance vector Don of one Comp and  Acc of the other Comp
-            if (MixTerm) then
-              drAD(1)=(pmixdon%RX(i)-pdonacc%RX(j)) - anint( PXij )
-              drAD(2)=(pmixdon%RY(i)-pdonacc%RY(j)) - anint( PYij )
-              drAD(3)=(pmixdon%RZ(i)-pdonacc%RZ(j)) - anint( PZij )
-            else
-              drAD(1)=(paccacc%RX(i)-pmixdon%RX(j)) - anint( PXij )
-              drAD(2)=(paccacc%RY(i)-pmixdon%RY(j)) - anint( PYij )
-              drAD(3)=(paccacc%RZ(i)-pmixdon%RZ(j)) - anint( PZij )
-            end if
-            !Hier die Minimum Image-Convention
-            LAD = SQRT( DOT_PRODUCT(drAD,drAD) )
-
-            if (LAD .le. DistCrit2) then
-              !Calculation of the angle between dono and acceptors
-              if (MixTerm) then
-                drintraAD(1)=pmixdon%RX(i)-paccacc%RX(i)
-                drintraAD(2)=pmixdon%RY(i)-paccacc%RY(i)
-                drintraAD(3)=pmixdon%RZ(i)-paccacc%RZ(i)
-              else
-                drintraAD(1)=pmixdon%RX(j)-pdonacc%RX(j)
-                drintraAD(2)=pmixdon%RY(j)-pdonacc%RY(j)
-                drintraAD(3)=pmixdon%RZ(j)-pdonacc%RZ(j)
-              end if
-              LintraAD = SQRT( DOT_PRODUCT(drintraAD,drintraAD) )
-              CosAngle=abs( DOT_PRODUCT(drAA,drintraAD) / LAA / LintraAD )
-
-              if (CosAngle .ge. AngleCrit) then
-                ! not working for more than 99 species
-                if ( Counter(this%AccComp(h),i) == 0 ) then
-                  Counter(this%AccComp(h),i) = this%DonComp(h)
-                elseif ( Counter(this%AccComp(h),i) < 100 ) then
-                  Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*100
-                elseif ( Counter(this%AccComp(h),i) < 10000 ) then
-                  Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*10000
-                else
-                  Counter(this%AccComp(h),i) = 1000000
-                end if
-              end if
-
-            end if
-
-          end if
-
-        end do !do j=1,npDon
-      end do !do i=1,npAcc
-    end do ! NHBondCrit
-
-    !HBonding statistics
-    do h = 1, this%NComponents
-      i0 = 1
-      i1 = this%Component(h)%NPart
-#if MPI_VER > 0
-      if (SimulationType .eq. MolecularDynamics) then
-        i0 = this%Component(h)%NPart0
-        i1 = this%Component(h)%NPart2
-      end if
-#endif
-      do i = i0, i1
-        m = 0
-        if ( Counter(h,i) == 0 ) then
-          this%NHBond0(h)=this%NHBond0(h) + 1
-        elseif ( Counter(h,i) == 1000000 ) then
-          this%NHBondN(h)=this%NHBondN(h) + 1
-        elseif ( Counter(h,i) < 100 ) then
-          do while (Counter(h,i) > 0 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 1
-          end do
-          j = m
-          this%NHBond1(h,j)=this%NHBond1(h,j) + 1
-        elseif ( Counter(h,i) < 10000 ) then
-          do while (Counter(h,i) > 100 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 100
-          end do
-          j = m
-          m = 0
-          do while (Counter(h,i) > 0 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 1
-          end do
-          if (j .le. m) then
-            k = m
-          else
-            k = j
-            j = m
-          end if
-          this%NHBond2(h,j,k)=this%NHBond2(h,j,k) + 1
-        else
-          do while (Counter(h,i) > 10000 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 10000
-          end do
-          j = m
-          m = 0
-          do while (Counter(h,i) > 100 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 100
-          end do
-          if (j .le. m) then
-            k = m
-          else
-            k = j
-            j = m
-          end if
-          m = 0
-          do while (Counter(h,i) > 0 )
-            m = m + 1
-            Counter(h,i) = Counter(h,i) - 1
-          end do
-          if (k .le. m) then
-            l = m
-          else
-            l = k
-            if (j .le. m) then
-              k = m
-            else
-              k = j
-              j = m
-            end if
-          end if
-          this%NHBond3(h,j,k,l)=this%NHBond3(h,j,k,l) + 1
-        end if
-
-      end do
-    end do
-
-#if MPI_VER > 0
-    if (SimulationType .eq. MolecularDynamics) then
-      call MPI_Reduce( this%NHBond0(:), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-      if (RootProc) this%NHBond0(:) = NHBAll(:)
-      do j = 1, this%NComponents
-        call MPI_Reduce( this%NHBond1(:,j), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-        if (RootProc) this%NHBond1(:,j) = NHBAll(:)
-        do k = j, this%NComponents
-          call MPI_Reduce( this%NHBond2(:,j,k), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-          if (RootProc) this%NHBond2(:,j,k) = NHBAll(:)
-          do l = k, this%NComponents
-            call MPI_Reduce( this%NHBond3(:,j,k,l), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-            if (RootProc) this%NHBond3(:,j,k,l) = NHBAll(:)
-          end do
-        end do
-      end do
-      call MPI_Reduce( this%NHBondN(:), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-      if (RootProc) this%NHBondN(:) = NHBAll(:)
-    end if
-#endif
-    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)
-
-!      !Output of the H-bonded Molecules
-!      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then  
-!        call VisualUpdate( this, np, MH(:), MO(:,:) )
-!      endif
-
-  end subroutine TEnsemble_HBonding
-#endif
 
 end module ms2_ensemble
