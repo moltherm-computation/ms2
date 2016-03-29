@@ -1,3 +1,0 @@
-Manifest-Version: 1.0
-Main-Class: inputfilegen/FileGenGUI
-Class-Path: lib/swing-layout-1.0.jar

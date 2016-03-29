@@ -1,1 +1,0 @@
-Main-Class: ms2package/Ms2chart
