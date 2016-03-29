@@ -2645,7 +2645,7 @@ eqloop: do
     if( Equilibration ) return
 
     ! Update ensemble visualisation files
-    if( mod( StepTotal - 1, RDFUpdateFrequency ) == 0 ) then
+    if( mod( Step - 1, RDFUpdateFrequency ) == 0 ) then
       do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         call RDFUpdate( this%Ensemble(i) )
       end do

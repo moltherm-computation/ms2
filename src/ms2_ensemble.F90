@@ -14612,7 +14612,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Open RDF file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_rdf )
     do i= 1, this%NComponents
       do j= i, this%NComponents
         do s=1, this%Component(i)%molecule%NLJ126
@@ -14624,6 +14625,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end do
     end do
     call FileWriteBlank( this%iounit_rdf )
+    write(IOBuffer, '(T5,"______")')
+    call FileWriteNoAdvance( this%iounit_rdf )
  
     do i= 1, this%NComponents
       do j= i, this%NComponents
@@ -14638,6 +14641,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWriteBlank( this%iounit_rdf )
 
     do o = 1, RDFNumberShells
+      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+      call FileWriteNoAdvance( this%iounit_rdf )
       do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NLJ126
@@ -14645,10 +14650,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
               if (i == j) then
                 RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
-&                                       / (this%RDFVSchale(o) * Step * this%Component(i)%NPart)
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
               else
                RDFRhoLocal = real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
-&                                 / (this%RDFVSchale(o) * Step * this%Component(i)%NPart)
+&                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
               end if
               this%RDFValue(o) = RDFRhoLocal / RDFRho  
               write(IOBuffer, '(F10.4)') this%RDFValue(o)
