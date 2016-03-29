@@ -68,7 +68,7 @@ module ms2_interaction
     real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :)
 
     ! Arrays for center of mass cutoff
-    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)!, RDFSum (:)
+    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -163,7 +163,7 @@ module ms2_interaction
     module procedure TInteraction_Force_Trans
   end interface
 
-  interface GET_RDF
+  interface Get_RDF
    module procedure TInteraction_RDF
   end interface
 
@@ -183,15 +183,14 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners
     module procedure TInteraction_CalcPartners1
   end interface
-  
-  interface CalcCutoffPartnersRDF
-    module procedure TInteraction_CalcPartnersRDF
-  end interface  
 
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
   end interface
 
+  interface CalcCutoffPartnersRDF
+    module procedure TInteraction_CalcPartnersRDF
+  end interface 
 
 contains
 
@@ -366,9 +365,9 @@ contains
           this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
 
-          if( RDFUpdateFrequency>0 ) then
-            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells+10), STAT = stat )
-            call AllocationError( stat, 'RDFSum', RDFNumberShells+10)
+          if( RDFUpdateFrequency > 0 ) then
+            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
+            call AllocationError( stat, 'RDFSum', RDFNumberShells)
           end if
         end do
       end do
@@ -856,23 +855,21 @@ contains
 
   end subroutine TInteraction_Deallocate
 
+  
 !==============================================================!
-!  Subroutine TInteraction_RDF                               !
+!  Subroutine TInteraction_RDF                                 !
 !==============================================================!
 
-  subroutine TInteraction_RDF( this, BoxLength,RDFdr )
+  subroutine TInteraction_RDF( this, RDFdr )
 
     implicit none
 
     ! Declare arguments
     type(TInteraction)       :: this
     real(RK), intent(in)     :: RDFdr
-    real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-
     integer           :: i, j
-
 
     ! Calculate interactions partners within cutoff sphere
       call CalcCutoffPartnersRDF( this )
@@ -880,10 +877,10 @@ contains
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-        call GET_RDF( this%PotLJ126LJ126( i, j ), BoxLength,RDFdr )
+        call Get_RDF( this%PotLJ126LJ126( i, j ), RDFdr )
       end do
     end do
-    
+
  end subroutine TInteraction_RDF
 
 
@@ -3013,13 +3010,6 @@ end subroutine TInteraction_Energy
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-!    write(*,*) "-- after PX1 ",LOC(this%PX1)
-!    write(*,*) "-- after PY1 ",LOC(this%PY1)
-!    write(*,*) "-- after PZ1 ",LOC(this%PZ1)
-!    write(*,*) "-- after PX2 ",LOC(this%PX2)
-!    write(*,*) "-- after PY2 ",LOC(this%PY2)
-!    write(*,*) "-- after PZ2 ",LOC(this%PZ2)
-    
     ! Calculate partners within cutoff sphere
     if( this%SameComponent ) then
 #if MPI_VER > 0
@@ -3198,7 +3188,123 @@ end subroutine TInteraction_Energy
 
 
 !==============================================================!
-!  Subroutine TInteraction_CalcPartners                        !
+!  Subroutine TInteraction_CalcPartners1                       !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartners1( this, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)  :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK), pointer :: PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoffSquaredScaled
+    integer           :: j, NInCutoff
+
+    ! Set cutoff radius
+    RCutoffSquaredScaled = this%RCutoffSquaredScaled
+
+    ! Assign local pointers
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+
+    ! Calculate partners within cutoff sphere
+    PXi = this%PX1(np)
+    PYi = this%PY1(np)
+    PZi = this%PZ1(np)
+    NInCutoff = 0
+#if MPI_VER > 0
+    do j = this%NPart20, this%NPart22
+#else
+    do j = 1, this%NPart2
+#endif
+      if( this%SameComponent .and. j == np ) cycle
+      PXij = PXi - PX2(j)
+      PYij = PYi - PY2(j)
+      PZij = PZi - PZ2(j)
+      PXij = PXij - anint( PXij )
+      PYij = PYij - anint( PYij )
+      PZij = PZij - anint( PZij )
+      RijSquared = PXij**2 + PYij**2 + PZij**2
+
+      if( RijSquared < RCutoffSquaredScaled ) then
+        NInCutoff = NInCutoff + 1
+        this%CutoffPartner(NInCutoff, np) = j
+      end if
+    end do
+    this%NInCutoff(np) = NInCutoff
+
+  end subroutine TInteraction_CalcPartners1
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersTest                    !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersTest( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, NInCutoff
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+
+    ! Assign local pointers
+    PX1 => this%PX1Test
+    PY1 => this%PY1Test
+    PZ1 => this%PZ1Test
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
+    ! Calculate partners within cutoff sphere
+!$OMP DO
+    do i = 1, this%NTest1
+      PXi = PX1(i)
+      PYi = PY1(i)
+      PZi = PZ1(i)
+      NInCutoff = 0
+
+      do j = 1, this%NPart2
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        PXij = PXij - anint( PXij )
+        PYij = PYij - anint( PYij )
+        PZij = PZij - anint( PZij )
+        RijSquared = PXij**2 + PYij**2 + PZij**2
+
+        if( RijSquared < RCutoff ) then
+          NInCutoff = NInCutoff + 1
+          this%CutoffPartner(NInCutoff, i) = j
+        end if
+      end do
+      this%NInCutoff(i) = NInCutoff
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+  end subroutine TInteraction_CalcPartnersTest
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersRDF                     !
 !==============================================================!
 
   subroutine TInteraction_CalcPartnersRDF( this )
@@ -3320,121 +3426,5 @@ end subroutine TInteraction_Energy
 
   end subroutine TInteraction_CalcPartnersRDF
 
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartners1                       !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartners1( this, np )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)  :: this
-    integer, intent(in) :: np
-
-    ! Declare local variables
-    real(RK), pointer :: PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff
-
-    ! Set cutoff radius
-    RCutoffSquaredScaled = this%RCutoffSquaredScaled
-
-    ! Assign local pointers
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-
-    ! Calculate partners within cutoff sphere
-    PXi = this%PX1(np)
-    PYi = this%PY1(np)
-    PZi = this%PZ1(np)
-    NInCutoff = 0
-#if MPI_VER > 0
-    do j = this%NPart20, this%NPart22
-#else
-    do j = 1, this%NPart2
-#endif
-      if( this%SameComponent .and. j == np ) cycle
-      PXij = PXi - PX2(j)
-      PYij = PYi - PY2(j)
-      PZij = PZi - PZ2(j)
-      PXij = PXij - anint( PXij )
-      PYij = PYij - anint( PYij )
-      PZij = PZij - anint( PZij )
-      RijSquared = PXij**2 + PYij**2 + PZij**2
-
-      if( RijSquared < RCutoffSquaredScaled ) then
-        NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, np) = j
-      end if
-    end do
-    this%NInCutoff(np) = NInCutoff
-
-  end subroutine TInteraction_CalcPartners1
-
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartnersTest                    !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersTest( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Declare local variables
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoff
-    integer           :: i, j, NInCutoff
-
-    ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
-
-    ! Assign local pointers
-    PX1 => this%PX1Test
-    PY1 => this%PY1Test
-    PZ1 => this%PZ1Test
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
-    ! Calculate partners within cutoff sphere
-!$OMP DO
-    do i = 1, this%NTest1
-      PXi = PX1(i)
-      PYi = PY1(i)
-      PZi = PZ1(i)
-      NInCutoff = 0
-
-      do j = 1, this%NPart2
-        PXij = PXi - PX2(j)
-        PYij = PYi - PY2(j)
-        PZij = PZi - PZ2(j)
-        PXij = PXij - anint( PXij )
-        PYij = PYij - anint( PYij )
-        PZij = PZij - anint( PZij )
-        RijSquared = PXij**2 + PYij**2 + PZij**2
-
-        if( RijSquared < RCutoff ) then
-          NInCutoff = NInCutoff + 1
-          this%CutoffPartner(NInCutoff, i) = j
-        end if
-      end do
-      this%NInCutoff(i) = NInCutoff
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-  end subroutine TInteraction_CalcPartnersTest
 
 end module ms2_interaction

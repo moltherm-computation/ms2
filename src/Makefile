@@ -7,6 +7,8 @@ COMPILER ?= GNU
 TARGET   ?= RELEASE
 #TARGET   ?= DEBUG
 TRANS    ?= 0
+OSMOP    ?= 0
+HBOND    ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
@@ -24,6 +26,15 @@ $(info TARGET: $(TARGET))
 ifeq ($(TRANS),1)
 $(info TRANSPORT enabled)
 endif
+ifeq ($(OSMOP),1)
+$(info osmoticPressure enabled)
+endif
+ifeq ($(OSMOP),2)
+$(info osmoticPressure with profiling enabled)
+endif
+ifeq ($(HBOND),1)
+$(info H-Bonding statistics enabled)
+endif
 ifeq ($(MPI),1)
 $(info MPI enabled)
 endif
@@ -34,6 +45,14 @@ ifeq ($(SP),1)
 $(info compiling Single Precision)
 endif
 #
+
+F90FLAGS = $(F90FLAGS_$(TARGET))
+LDFLAGS  = $(LDFLAGS_$(TARGET))
+
+ifeq ($(TARGET),DEBUG)
+  PROG     := $(PROG)_dbg
+endif
+
 ifeq ($(MPI),1)
   F90      = $(F90mpi)
   F90ld    = $(F90mpi)
@@ -42,9 +61,6 @@ ifeq ($(MPI),1)
 else
   CPPFLAGS += -DMPI_VER=0
 endif
-
-F90FLAGS = $(F90FLAGS_$(TARGET))
-LDFLAGS  = $(LDFLAGS_$(TARGET))
 
 ifeq ($(OMP),1)
   CPPFLAGS += -DENABLE_OMP
@@ -62,6 +78,21 @@ endif
 ifeq ($(TRANS),1)
   CPPFLAGS += -DTRANS
   PROG     := $(PROG)_trans
+endif
+
+ifeq ($(OSMOP),1)
+  CPPFLAGS += -DOSMOP=1
+  PROG     := $(PROG)_osmop1
+endif
+
+ifeq ($(OSMOP),2)
+  CPPFLAGS += -DOSMOP=2
+  PROG     := $(PROG)_osmop2
+endif
+
+ifeq ($(HBOND),1)
+  CPPFLAGS += -DHBOND=1
+  PROG     := $(PROG)_hbond
 endif
 
 SRCS =  ms2.F90 \

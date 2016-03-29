@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
@@ -54,17 +50,6 @@ module ms2_global
 #ifdef __INTEL_COMPILER
   use IFPORT
 #endif
-
-
-!#if MPI_VER
-!  use mpi
-!#endif
-
-!#ifdef ENABLE_OMP
-!  use omp_lib
-!#endif
-
-
 
 !==============================================================!
 !  Global constants and variables                              !
@@ -175,6 +160,9 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
+  ! Extension of visualisation of h-bonding file.
+  character(*), parameter :: VisualHBFileExtension = '.hbvim'
+
   ! Extension of normalized potential model file
   character(*), parameter :: NormalizedPotModExtension = '.nrm'
 
@@ -182,7 +170,6 @@ module ms2_global
   character(*), parameter :: RestartFileExtension = '.rst'
   
   ! Extension of RDF file 
-  
   character(*), parameter :: RDFFileExtension = '.rdf'
   
   ! Extension of ThermoInt filename
@@ -191,6 +178,9 @@ module ms2_global
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
 
+  ! Extension of DCP file 
+  character(*), parameter :: DCPFileExtension = '.dcp'
+  
   ! Marker within a result file for each ensemble data
   character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
 
@@ -215,26 +205,29 @@ module ms2_global
 #endif
 
   ! Define i/o unit numbers
-  integer, parameter :: iounit_log     = iounit_start + 0
-  integer, parameter :: iounit_config  = iounit_start + 1
-  integer, parameter :: iounit_params  = iounit_start + 2
-  integer, parameter :: iounit_potmod  = iounit_start + 3
-  integer, parameter :: iounit_normal  = iounit_start + 4
-  integer, parameter :: iounit_restart = iounit_start + 5
-  integer, parameter :: iounit_result  = iounit_start + 6
-  integer, parameter :: iounit_runave  = iounit_start + 7
-  integer, parameter :: iounit_errors  = iounit_start + 8
-  integer, parameter :: iounit_visual  = iounit_start + 9
-  integer, parameter :: iounit_rdf     = iounit_start + 10
+  integer, parameter :: iounit_log       = iounit_start +  0
+  integer, parameter :: iounit_config    = iounit_start +  1
+  integer, parameter :: iounit_params    = iounit_start +  2
+  integer, parameter :: iounit_potmod    = iounit_start +  3
+  integer, parameter :: iounit_normal    = iounit_start +  4
+  integer, parameter :: iounit_restart   = iounit_start +  5
+  integer, parameter :: iounit_result    = iounit_start +  6
+  integer, parameter :: iounit_runave    = iounit_start +  7
+  integer, parameter :: iounit_errors    = iounit_start +  8
+  integer, parameter :: iounit_visual    = iounit_start +  9
+  integer, parameter :: iounit_rdf       = iounit_start + 10
   integer, parameter :: iounit_thermoint = iounit_start + 11
   integer, parameter :: iounit_rescf     = iounit_start + 12
+  integer, parameter :: iounit_visualHB  = iounit_start + 13
+  integer, parameter :: iounit_dcp       = iounit_start + 14
+
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rescf - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -281,6 +274,8 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
+  character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdLongRange                   = 'LongRange'
   character(*), parameter :: IdKappa                       = 'Kappa'
@@ -315,6 +310,8 @@ module ms2_global
   character(*), parameter :: IdPotModFileName              = 'PotModel'
   character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
+  character(*), parameter :: IdPermeability                = 'Permeability'
+  character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
@@ -441,9 +438,10 @@ module ms2_global
   ! Some physical units
   real(RK), parameter :: Angstroem = 1E-10_RK
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
-  real(8)            :: DebyesInSI
-  real(8)            :: BuckinghamsInSI
-
+  real(8)             :: DebyesInSI
+  real(8)             :: BuckinghamsInSI
+  real(RK)            :: kForceOsmoticPressure 
+  
   ! Version of the parameter file
   real(RK) :: parVersionNr
   
@@ -632,16 +630,13 @@ module ms2_global
   
   ! Number of RDF shells
   integer :: RDFNumberShells
-  
+
+  ! Number of density profile bins
+  integer :: NBinsDen
+
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
-
-  ! Calculate the radial distribution function
-  integer :: CallsToRDF = 0
-  
-  !RDF
-  real(RK) :: RDFRho, RDFRhoLocal
 
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000

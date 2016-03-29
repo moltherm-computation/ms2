@@ -23,6 +23,10 @@
 #define TRANS 0
 #endif
 
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_potential.F90...'
 #endif
@@ -48,7 +52,11 @@ module ms2_potential
     real(RK)                  :: SigmaSquared
     real(RK)                  :: Epsilon4, Epsilon48
     real(RK)                  :: BoxlengthInv, BoxLengthThird
-    integer, pointer          :: NInCutoff(:), CutoffPartner(:, :), RDFSum(:)
+    integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer          :: RDFSum(:)
+#if OSMOP == 2
+    real(RK), pointer         :: VirialProfile(:)
+#endif
 #ifdef ABL
     real(RK),pointer          :: AblEpsCorr(:,:)
     real(RK),pointer          :: AblSigCorr(:,:)
@@ -68,7 +76,7 @@ module ms2_potential
     module procedure TPotLJLJ_Force
   end interface
 
-  interface GET_RDF
+  interface Get_RDF
     module procedure TPotLJLJ_RDF
   end interface
 
@@ -103,6 +111,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer         :: VirialProfile(:)
+#endif
 
   end type TPotChargeCharge
 
@@ -152,6 +163,9 @@ module ms2_potential
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer          :: VirialProfile(:)
+#endif
 
   end type TPotChargeDipole
 
@@ -194,6 +208,9 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer              :: VirialProfile(:)
+#endif
 
   end type TPotChargeQuadrupole
 
@@ -235,6 +252,9 @@ module ms2_potential
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer          :: VirialProfile(:)
+#endif
 
   end type TPotDipoleCharge
 
@@ -276,6 +296,9 @@ module ms2_potential
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
     integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer          :: VirialProfile(:)
+#endif
 
   end type TPotDipoleDipole
 
@@ -317,6 +340,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer              :: VirialProfile(:)
+#endif
 
   end type TPotDipoleQuadrupole
 
@@ -357,6 +383,9 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer              :: VirialProfile(:)
+#endif
 
   end type TPotQuadrupoleCharge
 
@@ -398,7 +427,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
-
+#if OSMOP == 2
+    real(RK), pointer              :: VirialProfile(:)
+#endif
 
   end type TPotQuadrupoleDipole
 
@@ -439,6 +470,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
     integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+#if OSMOP == 2
+    real(RK), pointer              :: VirialProfile(:)
+#endif
 
   end type TPotQuadrupoleQuadrupole
 
@@ -882,7 +916,6 @@ contains
     real(RK), intent(in out) :: eps1,eps2
 #endif
 
-
     ! Declare local variables
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -907,6 +940,12 @@ contains
 #if MPI_VER > 0
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
 #ifdef ABL
@@ -995,6 +1034,16 @@ contains
         PYi = PY1(i)
         PZi = PZ1(i)
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -1019,6 +1068,32 @@ loop1:  do k = 1, this%NInCutoff(i)
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+             VirialPart = (PXij * FXij + PYij * FYij + PZij * FZij)/(tempMax-tempMin+1._RK) 
+             do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+          else
+             VirialPart = (PXij * FXij + PYij * FYij + PZij * FZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+             do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+             do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
@@ -1071,11 +1146,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -1090,7 +1165,7 @@ loop2:  do j = j0, j1
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
@@ -1109,7 +1184,7 @@ loop2:  do j = j0, j1
           forceTempX(j) = forceTempX(j) - FXij
           forceTempY(j) = forceTempY(j) - FYij
           forceTempZ(j) = forceTempZ(j) - FZij
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -1125,6 +1200,9 @@ loop2:  do j = j0, j1
    FZ2 = FZ2 + forceTempZ
    EPot = EPot + this%Epsilon4 * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:) * BoxLength
+#endif
    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
@@ -1135,7 +1213,7 @@ loop2:  do j = j0, j1
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Force_Trans                                  !
+!  Subroutine TPotLJLJ_Force_Trans                             !
 !==============================================================!
 
 #ifdef ABL
@@ -1153,12 +1231,12 @@ loop2:  do j = j0, j1
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
+
 #ifdef ABL
     real(RK), intent(in out) :: VirAblSig
     real(RK), intent(in out) :: VirAblEps
     real(RK), intent(in out) :: eps1,eps2
 #endif
-
 
     ! Declare local variables
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
@@ -1181,6 +1259,12 @@ loop2:  do j = j0, j1
 #if MPI_VER > 0
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
     real(RK)          :: forceTempX(1:this%Site2%NPart)
@@ -1381,6 +1465,16 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -1405,6 +1499,32 @@ loop1:  do k = 1, this%NInCutoff(i)
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+             VirialPart = (PXij * FXij + PYij * FYij + PZij * FZij)/(tempMax-tempMin+1._RK) 
+             do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+          else
+             VirialPart = (PXij * FXij + PYij * FYij + PZij * FZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+             do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+             do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+             end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
           d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
@@ -1516,12 +1636,12 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 
 #else
           j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -1536,7 +1656,7 @@ loop2:  do j = j0, j1
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
@@ -1556,7 +1676,7 @@ loop2:  do j = j0, j1
           forceTempY(j) = forceTempY(j) - FYij
           forceTempZ(j) = forceTempZ(j) - FZij
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -1572,7 +1692,10 @@ loop2:  do j = j0, j1
    FZ2 = FZ2 + forceTempZ
    EPot = EPot + this%Epsilon4 * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
-   d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:) * BoxLength
+#endif
+    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
     VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
@@ -1582,32 +1705,26 @@ loop2:  do j = j0, j1
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_RDF                                   !
+!  Subroutine TPotLJLJ_RDF                                     !
 !==============================================================!
 
-  subroutine TPotLJLJ_RDF( this,BoxLength,RDFdr )
+  subroutine TPotLJLJ_RDF( this, RDFdr )
 
     implicit none
 
     ! Declare arguments
     type(TPotLJ126LJ126)     :: this
     real(RK), intent(in)     :: RDFdr
-    real(RK), intent(in)     :: BoxLength
 
     !RDF RDFdr und RDFSchalenIndex
-    real(RK)          :: hilf
+    real(RK)          :: distance
     integer           :: RDFSchalenIndex
 
     ! Declare local variables
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXi, RYi, RZi
-    integer           :: i, j, k, i1, j1
-
-
-    ! Assign local variables
-    i1 = this%Site1%NPart
-    j1 = this%Site2%NPart
+    integer           :: i, j, k
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -1616,35 +1733,31 @@ loop2:  do j = j0, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
- 
-    ! Loop over molecules
 
-      do i = 1, i1
-        RXi = RX1(i)
-        RYi = RY1(i)
-        RZi = RZ1(i)
+    ! Loop over molecules
+    do i = 1, this%Site1%NPart
+      RXi = RX1(i)
+      RYi = RY1(i)
+      RZi = RZ1(i)
 
 !CDIR NODEP
-loop1:  do k = 1, this%NInCutoff(i)
-          j = this%CutoffPartner(k, i)
-          RXij = RXi - RX2(j)
-          RYij = RYi - RY2(j)
-          RZij = RZi - RZ2(j)
-          
-          RXij = RXij - anint( RXij )
-          RYij = RYij - anint( RYij )
-          RZij = RZij - anint( RZij )
+loop1:do k = 1, this%NInCutoff(i)
+        j = this%CutoffPartner(k, i)
+        RXij = RXi - RX2(j)
+        RYij = RYi - RY2(j)
+        RZij = RZi - RZ2(j)
+        RXij = RXij - anint( RXij )
+        RYij = RYij - anint( RYij )
+        RZij = RZij - anint( RZij )
 
 !RDF in Schalen sortieren
-          hilf = sqrt(RXij**2 + RYij**2 + RZij**2) * BoxLength
-          RDFSchalenIndex = INT(hilf/RDFdr) + 1
-
-          if (RDFSchalenIndex .LT. RDFNumberShells+1) then
-             this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
-          endif
-        end do loop1
-      end do
-
+        distance = sqrt(RXij**2 + RYij**2 + RZij**2)
+        RDFSchalenIndex = INT(distance/RDFdr) + 1
+        if (RDFSchalenIndex .le. RDFNumberShells) then
+          this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
+        endif
+      end do loop1
+    end do
 
   end subroutine TPotLJLJ_RDF
 
@@ -2004,12 +2117,16 @@ loop2:do j = 1, N
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
-
     real(RK)          :: Rij2
-
     integer           :: i, j, k, i1
 #if MPI_VER > 0
     integer           :: i0
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
     ! Assign pointers
@@ -2075,6 +2192,16 @@ loop2:do j = 1, N
       PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -2102,6 +2229,32 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
         VirialLocal = VirialLocal + (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !XXXX CC
@@ -2131,6 +2284,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCC_Force
@@ -2171,11 +2327,16 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
-
     real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
 #if MPI_VER > 0
     integer           :: i0
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
     ! Assign pointers
@@ -2245,6 +2406,16 @@ loop1:do k = 1, this%NInCutoff(i)
       PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
  loop1:do k = 1, this%NInCutoff(i),1
          j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -2277,7 +2448,33 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv * approx
         EPotLocal  = EPotLocal + EPotLocal1
         Fij  = (EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
-        VirialLocal = VirialLocal +( Fij * (eX * PXij + eY * PYij + eZ * PZij))
+        VirialLocal = VirialLocal + ( Fij * (eX * PXij + eY * PYij + eZ * PZij))
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = ( Fij * (eX * PXij + eY * PYij + eZ * PZij))/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = ( Fij * (eX * PXij + eY * PYij + eZ * PZij))/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         FXij = Fij * eX
         FYij = Fij * eY
         FZij = Fij * eZ
@@ -2304,6 +2501,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
 
   end subroutine TPotCC_Force_Ewald
 
@@ -2340,10 +2540,15 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     real(RK)          :: Rij2
     integer           :: i, j, k, i1
-
 #if MPI_VER > 0
     integer           :: i0
 #endif    
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -2515,6 +2720,16 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -2541,6 +2756,32 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal1 = Epsilon * RijInv
         EPotLocal  = EPotLocal + EPotLocal1
         VirialLocal = VirialLocal + (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !xxxx CC T
@@ -2627,6 +2868,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCC_Force_Trans
@@ -2667,10 +2911,15 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: Fij,KappaRij
     real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
-
 #if MPI_VER > 0
     integer           :: i0
 #endif    
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -2793,6 +3042,16 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
  loop1:do k = 1, this%NInCutoff(i),1
          j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -2826,6 +3085,32 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal  = EPotLocal + EPotLocal1
         Fij  = (EPotLocal1 + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
         VirialLocal = VirialLocal + (Fij * (eX * PXij + eY * PYij + eZ * PZij))
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (Fij * (eX * PXij + eY * PYij + eZ * PZij))/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (Fij * (eX * PXij + eY * PYij + eZ * PZij))/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         FXij = Fij * eX
         FYij = Fij * eY
         FZij = Fij * eZ
@@ -2873,6 +3158,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
 
   end subroutine TPotCC_Force_Ewald_Trans
 
@@ -3275,9 +3563,14 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: momTempX(1:this%Site2%NPart)
     real(RK)          :: momTempY(1:this%Site2%NPart)
     real(RK)          :: momTempZ(1:this%Site2%NPart)
-    
 #if MPI_VER > 0
     integer           :: i0
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
     FX2 => this%Site2%FX
@@ -3359,6 +3652,16 @@ loop1:  do k = 1, this%NInCutoff(i)
       PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -3390,6 +3693,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F2*R_COM_Price; stimmt so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD
@@ -3422,6 +3751,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCD_Force
@@ -3496,7 +3828,12 @@ loop1:do k = 1, this%NInCutoff(i)
 #if MPI_VER > 0
     integer           :: i0
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -3653,6 +3990,16 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -3685,6 +4032,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
         FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F2*R_COM_Price; stimmt so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotlocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD T
@@ -3777,6 +4150,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
  end subroutine TPotCD_Force_Trans
@@ -4087,7 +4463,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
-
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
@@ -4098,7 +4473,12 @@ loop1:  do k = 1, this%NInCutoff(i)
 #if MPI_VER > 0
     integer           :: i0
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -4178,6 +4558,16 @@ loop1:  do k = 1, this%NInCutoff(i)
       PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -4210,6 +4600,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ
@@ -4243,6 +4659,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCQ_Force
@@ -4283,7 +4702,6 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
 
-
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
@@ -4318,6 +4736,12 @@ loop1:do k = 1, this%NInCutoff(i)
  
 #if MPI_VER > 0
     integer           :: i0
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
     FX2 => this%Site2%FX
@@ -4475,6 +4899,16 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -4508,6 +4942,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ T
@@ -4601,6 +5061,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotCQ_Force_Trans
@@ -4618,7 +5081,6 @@ loop1:do k = 1, this%NInCutoff(i)
     type(TPotChargeQuadrupole) :: this
     real(RK), pointer          :: EPotTest(:)
     real(RK), intent(in)       :: BoxLength
-
 
     ! Declare local variables
     real(RK)          :: Epsilon
@@ -4919,7 +5381,12 @@ loop1:  do k = 1, this%NInCutoff(i)
 #if MPI_VER > 0
     integer           :: i0
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -5002,6 +5469,16 @@ loop1:  do k = 1, this%NInCutoff(i)
       TZi = TZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -5030,6 +5507,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F1*(-R_COM_Price); stimmt so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local - Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC
@@ -5059,6 +5562,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDC_Force
@@ -5108,6 +5614,13 @@ loop1:do k = 1, this%NInCutoff(i)
 #if MPI_VER > 0
     integer           :: i0
 #endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -5277,6 +5790,16 @@ loop1:do k = 1, this%NInCutoff(i)
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -5306,6 +5829,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( OYi - CosTheta3 * eY )
         FZij = Epsilon2 * ( OZi - CosTheta3 * eZ )
         VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F1*(-R_COM_Price); stimmt so
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC T
@@ -5400,6 +5949,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDC_Force_Trans
@@ -5734,7 +6286,12 @@ loop1:  do k = 1, this%NInCutoff(i)
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -5841,6 +6398,16 @@ loop1:  do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -5885,7 +6452,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD
@@ -5949,12 +6541,12 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
 
           RXij = RXi - RX2(j)
@@ -5970,7 +6562,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -6026,7 +6618,7 @@ loop2:  do j = j0, j1
           momTempZ(j) = momTempZ(j) + Rij3Inv * (eZ * CosThetai3 - OZi) &
 &                         + RFConstant2 * OZi   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -6049,6 +6641,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDD_Force
@@ -6108,6 +6703,12 @@ loop2:  do j = j0, j1
 #if MPI_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
 #if  TRANS == 1
@@ -6312,6 +6913,16 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -6354,7 +6965,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                     - (eZ * CosThetaj - OZj) * CosThetai)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD T
@@ -6480,11 +7116,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -6499,7 +7135,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -6554,7 +7190,7 @@ loop2:  do j = j0, j1
           momTempZ(j) = momTempZ(j) + Rij3Inv * (eZ * CosThetai3 - OZi) &
 &                         + RFConstant2 * OZi   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -6577,6 +7213,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDD_Force_Trans
@@ -7075,7 +7714,12 @@ loop2:do j = 1, j1
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -7183,6 +7827,16 @@ loop2:do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -7230,7 +7884,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ
@@ -7295,11 +7974,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
 
           RXij = RXi - RX2(j)
@@ -7315,7 +7994,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -7366,7 +8045,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -7389,10 +8068,12 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDQ_Force
-
 
 
 
@@ -7448,6 +8129,12 @@ loop2:  do j = j0, j1
 #if MPI_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
 #if  TRANS == 1
@@ -7655,6 +8342,16 @@ loop2:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -7702,7 +8399,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ T
@@ -7830,11 +8552,11 @@ loop1:  do k = 1, this%NInCutoff(i)
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
 
           RXij = RXi - RX2(j)
@@ -7850,7 +8572,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -7902,7 +8624,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -7925,6 +8647,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotDQ_Force_Trans
@@ -8403,7 +9128,6 @@ loop2:do j = 1, j1
     real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
 
-
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
@@ -8433,7 +9157,12 @@ loop2:do j = 1, j1
 #if MPI_VER > 0
     integer           :: i0
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -8517,6 +9246,16 @@ loop2:do j = 1, j1
       TYi = TY1(i)
       TZi = TZ1(i)
 !CDIR NODEP
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -8547,6 +9286,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
         VirialLocal = VirialLocal - (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = -(FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = -(FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC
@@ -8582,6 +9347,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQC_Force
@@ -8600,7 +9368,6 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK), intent(in out)   :: Virial
     real(RK), intent(in out)   :: d2EpotdV2
     real(RK), intent(in)       :: BoxLength
-
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
@@ -8630,6 +9397,12 @@ loop1:do k = 1, this%NInCutoff(i)
     
 #if MPI_VER > 0
     integer           :: i0
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
 #if  TRANS == 1
@@ -8813,6 +9586,16 @@ loop1:do k = 1, this%NInCutoff(i)
         !TRANSPORT_END
 #endif
 
+#if OSMOP == 2
+loop0:do m=1,NBinsDen
+        if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+          if (PXi < real(m)/NBinsDen-0.5_RK) then
+            Bin1=m
+            exit loop0
+          end if
+        end if
+      end do loop0
+#endif
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -8844,6 +9627,32 @@ loop1:do k = 1, this%NInCutoff(i)
         FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYi )
         FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZi )
         VirialLocal = VirialLocal - (FXij * PXij + FYij * PYij + FZij * PZij)     ! Vorzeichen richtig
+#if OSMOP == 2
+loop2:  do m=1,NBinsDen
+          if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+              Bin2=m 
+              exit loop2
+            end if
+          end if
+        end do loop2
+        tempMin = min(Bin1, Bin2)
+        tempMax = max(Bin1, Bin2)
+        if(abs(PXij) .le. 0.5_RK) then
+            VirialPart = -(FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+            do m = tempMin, tempMax
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        else
+            VirialPart = -(FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+            do m = 1, tempMin
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+            do m = tempMax, NBinsDen
+              this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+            end do
+        end if
+#endif
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC T
@@ -8941,6 +9750,9 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQC_Force_Trans
@@ -9278,7 +10090,12 @@ loop1:  do k = 1, this%NInCutoff(i)
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
-
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -9385,6 +10202,16 @@ loop1:  do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -9431,7 +10258,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD
@@ -9497,13 +10349,13 @@ loop1:  do k = 1, this%NInCutoff(i)
         end if
 
 !CDIR NODEP
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 
 !CDIR NODEP
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -9518,7 +10370,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -9570,7 +10422,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -9593,6 +10445,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQD_Force
@@ -9650,6 +10505,13 @@ loop2:  do j = j0, j1
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer :: VSx(:), VSy(:), VSz(:)
@@ -9854,6 +10716,16 @@ loop2:  do j = j0, j1
         !TRANSPORT_END
 #endif
 
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -9901,7 +10773,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD T
@@ -10032,12 +10929,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         end if
 
 !CDIR NODEP
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -10052,7 +10949,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -10105,7 +11002,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -10128,6 +11025,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQD_Force_Trans
@@ -10650,6 +11550,12 @@ loop2:do j = 1, j1
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
 #endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -10754,6 +11660,16 @@ loop2:do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -10814,7 +11730,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ
@@ -10881,12 +11822,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         end if
 
 !CDIR NODEP
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
 
           RXij = RXi - RX2(j)
@@ -10902,7 +11843,7 @@ loop2:  do j = j0, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -10970,7 +11911,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
 
         FX1(i) = FXi
         FY1(i) = FYi
@@ -10995,6 +11936,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQQ_Force
@@ -11053,6 +11997,12 @@ loop2:  do j = j0, j1
 #if MPI_VER > 0
     integer           :: N1, N2, i0, ji
     logical           :: EvenN
+#endif
+#if OSMOP == 2
+    integer           :: m
+    real(RK)          :: VirialPart
+    integer           :: Bin1, Bin2
+    integer           :: tempMin, tempMax
 #endif
 
 #if  TRANS == 1
@@ -11258,6 +12208,16 @@ loop2:  do j = j0, j1
         !TRANSPORT_END
 #endif
 
+#if OSMOP == 2
+loop0:  do m=1,NBinsDen
+          if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
+            if (PXi < real(m)/NBinsDen-0.5_RK) then
+              Bin1=m
+              exit loop0
+            end if
+          end if
+        end do loop0
+#endif
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -11318,7 +12278,32 @@ loop1:  do k = 1, this%NInCutoff(i)
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
 
           VirialLocal = VirialLocal + (FXij * PXij + FYij * PYij + FZij * PZij)
-
+#if OSMOP == 2
+loop2:    do m=1,NBinsDen
+            if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
+              if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+                Bin2=m 
+                exit loop2
+              end if
+            end if
+          end do loop2
+          tempMin = min(Bin1, Bin2)
+          tempMax = max(Bin1, Bin2)
+          if(abs(PXij) .le. 0.5_RK) then
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(tempMax-tempMin+1._RK) 
+              do m = tempMin, tempMax
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          else
+              VirialPart = (FXij * PXij + FYij * PYij + FZij * PZij)/(NBinsDen-tempMax+tempMin+1._RK) 
+              do m = 1, tempMin
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+              do m = tempMax, NBinsDen
+                this%VirialProfile(m) = this%VirialProfile(m) + VirialPart
+              end do
+          end if
+#endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ T
@@ -11450,12 +12435,12 @@ loop1:  do k = 1, this%NInCutoff(i)
         end if
 
 !CDIR NODEP
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -11471,7 +12456,7 @@ loop2:  do j = j0, j1
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
 
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
@@ -11537,7 +12522,7 @@ loop2:  do j = j0, j1
           momTempY(j) = momTempY(j) - eY * dCosThetaj - OYi * dCosGammaij  
           momTempZ(j) = momTempZ(j) - eZ * dCosThetaj - OZi * dCosGammaij   
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -11560,6 +12545,9 @@ loop2:  do j = j0, j1
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
+#if OSMOP == 2
+    this%VirialProfile(:) = Third * this%VirialProfile(:)
+#endif
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
   end subroutine TPotQQ_Force_Trans

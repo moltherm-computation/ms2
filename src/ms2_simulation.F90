@@ -23,6 +23,10 @@
 #define TRANS 0
 #endif
 
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
@@ -149,7 +153,21 @@ end type TSimulation
   interface VisualClose
     module procedure TSimulation_VisualClose
   end interface
-  
+
+#if OSMOP > 0
+  interface ProfileOpen
+    module procedure TSimulation_ProfileOpen
+  end interface
+
+  interface ProfileUpdate
+    module procedure TSimulation_ProfileUpdate
+  end interface
+
+  interface ProfileClose
+    module procedure TSimulation_ProfileClose
+  end interface
+#endif
+
   interface RDFOpen
     module procedure TSimulation_RDFOpen
   end interface
@@ -161,7 +179,7 @@ end type TSimulation
   interface RDFClose
     module procedure TSimulation_RDFClose
   end interface
-  
+
   interface RestartSave
     module procedure TSimulation_RestartSave
   end interface
@@ -696,7 +714,7 @@ contains
       end if
       call LogWrite
       call LogWriteBlank
-      
+
       ! Read frequency of updating visualisation file
       call FileReadParameter( RDFUpdateFrequency, iounit_params , IdRDFUpdateFrequency, .true., 0 )
       if( RDFUpdateFrequency > 0 ) then
@@ -713,6 +731,26 @@ contains
       call LogWrite
       call LogWriteBlank
       end if
+
+#if OSMOP > 0
+      if ( SimulationType .eq. MonteCarlo ) then
+        write( IOBuffer, '("Osmotic Pressure calculation with in Monte-Carlo not possible. Continuing without")' )
+        call LogWrite
+        call LogWriteBlank
+      else
+        !Number of Bins for the Density, Chem. Potential and Pressure 
+        call FileReadParameter( NBinsDen, iounit_params , IdNBinsDen, .true., 500 )
+        write( IOBuffer, '("Osmotic Pressure calculation with ", I7, " Bins")' ) NBinsDen
+        call LogWrite
+        call FileReadParameter( kForceOsmoticPressure, iounit_params , IdWallForce, .true., 41868._RK )
+        if( .not. UseReducedUnits ) then
+          kForceOsmoticPressure = kForceOsmoticPressure/(NAvogadro*Angstroem**2)*(UnitLength**2)/UnitEnergy
+        end if
+        write( IOBuffer, '("Forceconstant of the wall: ",T26, F10.5, " ?")' ) kForceOsmoticPressure
+        call LogWrite
+        call LogWriteBlank
+      end if
+#endif
 
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
@@ -981,11 +1019,12 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
-    !if(RootProc) then
     call ResultOpen( this )
     call VisualOpen( this )
     call RDFOpen( this )
-    !end if
+#if OSMOP > 0
+    if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
+#endif
 
   end subroutine TSimulation_Construct
 
@@ -1007,12 +1046,12 @@ contains
 
     ! Close result and visualisation files
     call LogWriteBlank
-    !if(RootProc) then
     call ResultClose( this )
     call VisualClose( this )
     call RDFClose( this )
-    !end if
-
+#if OSMOP > 0
+    if ( SimulationType .ne. MonteCarlo ) call ProfileClose(this )
+#endif
     ! Destroy accumulators
     call DestroyAccumulators( this )
 
@@ -1878,7 +1917,12 @@ eqloop: do
 
       ! Update log and result files
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) call LogWriteStep
-      if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) call ErrorsUpdate( this )
+      if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) then
+        call ErrorsUpdate( this )
+#if OSMOP > 0
+        if ( SimulationType .ne. MonteCarlo ) call ProfileUpdate(this )
+#endif
+      endif
 
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0
@@ -2467,8 +2511,91 @@ eqloop: do
   end subroutine TSimulation_VisualClose
 
 
+#if OSMOP > 0
 !==============================================================!
-!  Subroutine TSimulation_RDFOpen                           !
+!  Subroutine TSimulation_ProfileOpen                          !
+!==============================================================!
+
+  subroutine TSimulation_ProfileOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ProfileOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileOpen
+
+
+!==============================================================!
+!  Subroutine TSimulation_ProfileUpdate                        !
+!==============================================================!
+
+  subroutine TSimulation_ProfileUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( BlockSize < 1 ) return
+
+    ! No output for MCOverlapReduction
+    if( MCOverlapReduction ) return
+
+    ! Update ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+       call ProfileUpdate( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_ProfileClose                         !
+!==============================================================!
+
+  subroutine TSimulation_ProfileClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Close ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ProfileClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileClose
+#endif
+
+
+!==============================================================!
+!  Subroutine TSimulation_RDFOpen                              !
 !==============================================================!
 
   subroutine TSimulation_RDFOpen( this )
@@ -2495,7 +2622,7 @@ eqloop: do
   end subroutine TSimulation_RDFOpen
 
 !==============================================================!
-!  Subroutine TSimulation_RDFUpdate                         !
+!  Subroutine TSimulation_RDFUpdate                            !
 !==============================================================!
 
   subroutine TSimulation_RDFUpdate( this )
@@ -2528,7 +2655,7 @@ eqloop: do
 
 
 !==============================================================!
-!  Subroutine TSimulation_RDFClose                          !
+!  Subroutine TSimulation_RDFClose                             !
 !==============================================================!
 
   subroutine TSimulation_RDFClose( this )
@@ -2547,8 +2674,13 @@ eqloop: do
     ! Return if no output
     if( RDFUpdateFrequency < 1 ) return
 
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call RDFClose( this%Ensemble(i) )
+    end do
+
   end subroutine TSimulation_RDFClose
-  
+
+
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !
 !==============================================================!
