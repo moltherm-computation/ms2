@@ -1,0 +1,83 @@
+{ % Tabellendefinitionen gelten nur in diesem Dokument
+
+% Longtable auf Spaltebreite ausdehnen
+\setlength\LTleft{0pt}
+\setlength\LTright{0pt}
+% Definition neuer Spaltentypen
+\newcolumntype{Z}{>{$}p{0.15\linewidth}<{$}} % Symbol (mit Matheumgebung)
+\newcolumntype{A}{>{\bfseries} p{0.15\linewidth}} % Abkürzung (fett)
+\newcolumntype{B}{l @{\extracolsep{\fill}}} % Beschreibung
+
+
+\chapter{Symbolverzeichnis}
+
+\section*{Formelzeichen}
+
+\begin{longtable}{Z B r}
+\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
+\addlinespace
+\endhead
+% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%************************************************************************
+a               & Länge                      & \SI{}{m}         \\
+b               & Breite                     & \SI{}{m}         \\
+c               & spezifische Wärmekapazität & \SI{}{kJ/(kg.K)} \\
+\ell            & charakteritische Länge     & \SI{}{m}         \\
+Re              & Reynoldszahl               &                  \\ 
+w               & Strömungsgeschwindigkeit   & \SI{}{m/s}       \\ 
+%************************************************************************
+\end{longtable}
+
+
+\section*{Griechische Symbole}
+
+\begin{longtable}{Z B r}
+\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
+\addlinespace
+\endhead
+% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%************************************************************************
+\lambda         & Wärmeleitfähigkeit         & \SI{}{W/(m~K)}   \\ 
+\nu             & kinematische viskosität    & \SI{}{m^2/s}     \\
+\varrho         & Dichte                     & \SI{}{kg/m^3}     \\
+%************************************************************************
+\end{longtable}
+
+
+\section*{Indizes}
+
+\begin{longtable}{Z l} 
+\textbf{Symbol} & \textbf{Bedeutung} \\
+\addlinespace
+\endhead
+% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%************************************************************************
+\mathrm{L}      & Luft               \\
+\mathrm{p}      & isobar             \\
+%************************************************************************
+\end{longtable}
+
+
+
+\chapter{Abkürzungsverzeichnis}
+
+\begin{longtable}{@{} A l @{}}
+%************************************************************************
+eps & Encapsulated PostScript  \\
+pdf & Portable Document Format \\
+svg & Scalable Vector Format   \\
+%************************************************************************
+\end{longtable}
+}
+
+
+\setcounter{table}{0}
+% setzt den Tabellenzähler zurück, damit das Symbolverzeichnis
+% nicht mitgezählt wird
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "master"
+%%% coding: utf-8
+%%% End: 

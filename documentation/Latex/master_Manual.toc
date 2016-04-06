@@ -1,0 +1,79 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\defcounter {refsection}{0}\relax 
+\select@language {ngerman}
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Program Summary}{1}{section.1.1}
+\contentsline {section}{\numberline {1.2}Citation information}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Support, Development \& maintenance}{2}{section.1.3}
+\contentsline {chapter}{\numberline {2}Installation}{3}{chapter.2}
+\contentsline {section}{\numberline {2.1}Downloading the source Code}{3}{section.2.1}
+\contentsline {section}{\numberline {2.2}Compiling \textit {ms}2}{3}{section.2.2}
+\contentsline {section}{\numberline {2.3}Options for Making \textit {ms}2}{3}{section.2.3}
+\contentsline {chapter}{\numberline {3}Running \textit {ms}2}{4}{chapter.3}
+\contentsline {section}{\numberline {3.1}Running \textit {ms}2 on Windows or Linux}{4}{section.3.1}
+\contentsline {section}{\numberline {3.2}Running \textit {ms}2 in serial or parallel mode}{4}{section.3.2}
+\contentsline {section}{\numberline {3.3}Flowchart}{4}{section.3.3}
+\contentsline {section}{\numberline {3.4}Input structure}{4}{section.3.4}
+\contentsline {subsection}{\numberline {3.4.1}par - file}{5}{subsection.3.4.1}
+\contentsline {subsection}{\numberline {3.4.2}pm - file}{5}{subsection.3.4.2}
+\contentsline {section}{\numberline {3.5}Initial Conditions}{5}{section.3.5}
+\contentsline {section}{\numberline {3.6}Output structure}{5}{section.3.6}
+\contentsline {section}{\numberline {3.7}Command line options}{6}{section.3.7}
+\contentsline {chapter}{\numberline {4}Keywords}{7}{chapter.4}
+\contentsline {section}{\numberline {4.1}Keywords listed by category}{7}{section.4.1}
+\contentsline {section}{\numberline {4.2}Keywords listed alphabetical}{7}{section.4.2}
+\contentsline {section}{\numberline {4.3}parsing rules}{7}{section.4.3}
+\contentsline {chapter}{\numberline {5}Methods}{8}{chapter.5}
+\contentsline {section}{\numberline {5.1}Basic simulation techniques}{8}{section.5.1}
+\contentsline {section}{\numberline {5.2}Molecular Dynamics}{9}{section.5.2}
+\contentsline {subsection}{\numberline {5.2.1}Implemented Thermostat and Barostat}{9}{subsection.5.2.1}
+\contentsline {subsection}{\numberline {5.2.2}Integrators}{10}{subsection.5.2.2}
+\contentsline {section}{\numberline {5.3}Monte Carlo}{10}{section.5.3}
+\contentsline {subsection}{\numberline {5.3.1}Moves}{10}{subsection.5.3.1}
+\contentsline {subsection}{\numberline {5.3.2}Resize}{10}{subsection.5.3.2}
+\contentsline {section}{\numberline {5.4}Simulation Setup}{10}{section.5.4}
+\contentsline {section}{\numberline {5.5}Ensembles}{10}{section.5.5}
+\contentsline {subsection}{\numberline {5.5.1}multiple Ensembles for multiple state points}{11}{subsection.5.5.1}
+\contentsline {subsection}{\numberline {5.5.2}Micro-Canonical Ensemble (NVE)}{11}{subsection.5.5.2}
+\contentsline {subsection}{\numberline {5.5.3}Canonical Ensemble (NVT)}{11}{subsection.5.5.3}
+\contentsline {subsection}{\numberline {5.5.4}Isobaric-Isothermal Ensemble (NpT)}{11}{subsection.5.5.4}
+\contentsline {subsection}{\numberline {5.5.5}Grand-Canonical Ensemble ($\mathbf {\mu }$VT)}{11}{subsection.5.5.5}
+\contentsline {section}{\numberline {5.6}Interaction types}{11}{section.5.6}
+\contentsline {subsection}{\numberline {5.6.1}Dispersive and Repulsive Interactions}{11}{subsection.5.6.1}
+\contentsline {subsection}{\numberline {5.6.2}Electrostatic Interactions}{12}{subsection.5.6.2}
+\contentsline {subsection}{\numberline {5.6.3}Intramolecular Interactions}{15}{subsection.5.6.3}
+\contentsline {subsection}{\numberline {5.6.4}Mixing rules}{15}{subsection.5.6.4}
+\contentsline {section}{\numberline {5.7}Cutoff \& long range correction}{15}{section.5.7}
+\contentsline {subsection}{\numberline {5.7.1}Reaction Field}{15}{subsection.5.7.1}
+\contentsline {subsection}{\numberline {5.7.2}Ewald summation}{15}{subsection.5.7.2}
+\contentsline {section}{\numberline {5.8}Computing physical properties}{15}{section.5.8}
+\contentsline {subsection}{\numberline {5.8.1}Thermal properties}{16}{subsection.5.8.1}
+\contentsline {subsection}{\numberline {5.8.2}Caloric properties}{16}{subsection.5.8.2}
+\contentsline {subsection}{\numberline {5.8.3}second derivatives}{18}{subsection.5.8.3}
+\contentsline {subsection}{\numberline {5.8.4}Transport properties}{19}{subsection.5.8.4}
+\contentsline {subsection}{\numberline {5.8.5}configurational properties}{21}{subsection.5.8.5}
+\contentsline {subsection}{\numberline {5.8.6}Henry' s law constant}{22}{subsection.5.8.6}
+\contentsline {subsection}{\numberline {5.8.7}second virial coefficient}{22}{subsection.5.8.7}
+\contentsline {section}{\numberline {5.9}statistical Errors}{22}{section.5.9}
+\contentsline {section}{\numberline {5.10}special features}{22}{section.5.10}
+\contentsline {subsection}{\numberline {5.10.1}Vapour-liquid equilibrium}{22}{subsection.5.10.1}
+\contentsline {subsection}{\numberline {5.10.2}osmotic pressure}{22}{subsection.5.10.2}
+\contentsline {subsection}{\numberline {5.10.3}Hydrogen bonding}{22}{subsection.5.10.3}
+\contentsline {subsection}{\numberline {5.10.4}humid air Ensemble}{22}{subsection.5.10.4}
+\contentsline {chapter}{\numberline {6}Potential Models in the ms2-distribution}{23}{chapter.6}
+\contentsline {chapter}{\numberline {7}Computational Aspects}{24}{chapter.7}
+\contentsline {section}{\numberline {7.1}Sequential Version}{24}{section.7.1}
+\contentsline {section}{\numberline {7.2}Parallelization}{24}{section.7.2}
+\contentsline {section}{\numberline {7.3}Vectorization \& Memory}{25}{section.7.3}
+\contentsline {section}{\numberline {7.4}Benchmarks/ Test case}{25}{section.7.4}
+\contentsline {section}{\numberline {7.5}Structure of program code}{25}{section.7.5}
+\contentsline {chapter}{\numberline {8}Tools}{29}{chapter.8}
+\contentsline {section}{\numberline {8.1}\textit {ms}2par}{29}{section.8.1}
+\contentsline {section}{\numberline {8.2}\textit {ms}2potmod}{29}{section.8.2}
+\contentsline {section}{\numberline {8.3}\textit {ms}2chart}{29}{section.8.3}
+\contentsline {section}{\numberline {8.4}\textit {ms}2molecules}{29}{section.8.4}
+\contentsline {section}{\numberline {8.5}res2gepar}{30}{section.8.5}
+\contentsline {chapter}{\numberline {9}Examples \& Tutorials}{31}{chapter.9}
+\contentsline {chapter}{\numberline {10}Error Messages}{32}{chapter.10}
+\contentsline {chapter}{Symbolverzeichnis}{33}{appendix*.8}
+\contentsline {chapter}{Abk\IeC {\"u}rzungsverzeichnis}{34}{appendix*.12}

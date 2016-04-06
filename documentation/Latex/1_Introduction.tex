@@ -1,0 +1,83 @@
+
+
+
+\chapter{Introduction}
+\label{sec:Introduction}
+
+
+
+\section{Program Summary}
+\label{sec:Program Summary}
+
+\textit{Ms}2 has already been succesfully used in the Industrial Fluid Properties Simulation Challenge \cite{fluidproperties} organized by mainly US companies. It is a molecular simulation program that aimes the calculation of thermodynamic properties that are needed for applications in the chemical industry, without requiring expert knowledge by the user. It was developed for rigid molecular models with a focus on condensed
+phases, covering mixtures containing an arbitrary number of small molecular species.
+
+The simulation program \textit{ms}2 is optimized for a fast execution on a broad range of computer architectures, spanning from single processor PCs over PC-clusters and vector computers to high end parallel machines. It is a
+standalone Fortran90 code that does not require any libraries or have any other software prerequisites. \textit{ms}2 is
+provided as a source code. It only needs to be compiled. The structure of \textit{ms}2 is modular and object-oriented, except at the very core of energy and force calculations, where some structural compromises were made to achieve
+a better performance.
+
+
+\textit{ms}2 is aimed at homogeneous bulk systems in equilibrium. For VLE calculations, the coexisting phases are
+simulated independently and subsequently. Thus, it is usually sufficient to sample molecular systems containing in the order of $10^{3}$  molecules to obtain statistically reliable results \cite{lyubartsev}. Applying standard cut-off radii,
+the intermolecular interactions are evaluated roughly up to the maximal distance, which is given by the edge
+length of the cubic simulation volume. Therefore, spatial decomposition schemes for parallelization are not rewarding. Instead, Plimpton's method \cite{plimpton} was implemented for parallel execution of molecular dynamics (MD),
+which scales reasonably well up to 16 or 32 processors, depending on the particular architecture. For Monte-Carlo (MC), a optimal parallelization scheme was introduced, taking advantage of the stochastic nature of such
+simulations. The computing resources are splitted into single runs each on one node, sampling the phase space
+independently. Both parallelization methods allow for short response times\footnote{Under "response time" we understand the real time difference between submission and termination of a simulation run.}. A typical molecular simulation
+of a vapor liquid equilibrium state point takes roughly six hours on a current workstation. The main expenses
+for determining thermodynamic data in silico are installation and maintenance of computing equipment and/or
+computing time, which is presently below US$\$$ 0.35/CPU-hour \cite{economist}.
+
+The simulation program \textit{ms}2 presented here was developed in a long-time cooperation of engineers and computer
+scientists. With the release of \textit{ms}2, it is intended to facilitate the transfer of a state of the art and user-friendly
+molecular modeling and simulation package to academic institutions and the chemical industry. The release
+package consists of the simulation program \textit{ms}2 itself and auxiliary feature tools for setup and analysis, including a simple 3D visualization tool to monitor the molecular trajectories. Furthermore, accurate molecular models
+for more than 100 small molecules are provided.
+
+In section 2 of this manual, the installation of \textit{ms}2 is described on different platforms. Section 3 introduces the implemented molecular simulation techniques. In sections 4 and 5, \textit{ms}2 and the implemented thermodynamic properties are outlined. Section 6 gives details on executing \textit{ms}2, while section 7 provides some examples to demonstrate the use of the simulation program. Section 8 presents runtime tests and section 9 describes the auxiliary feature tools. Section 10 of this manual comments on adaptations of the software. In section 11 the error messages are addressed.
+
+
+
+
+
+
+\section{Citation information}
+\label{sec:Citation information}
+
+\textit{ms}2 is a noncommercial software, which was published in Computer Physics Communications. The paper along with its Supplementary Material can be downloaded from the \textit{ms}2 home page (http://www.ms-2.de). It is free of charge for scientific research after registration.
+If you use \textit{ms}2 for generating scientific results that you want to publish you need to acknowledge the use of \textit{ms}2 by citing the following paper:
+\begin{itemize}
+	\item[ ] S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion, C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec
+	\item[ ] Computer Physics Communication \textbf{182} (2011) 2350
+	\item[ ] doi:10.1016/j.cpc.2011.04.026
+\end{itemize}
+The paper along with its Supplementary Material can be downloaded from the \textit{ms}2 home page.
+
+
+
+
+
+
+\section{Support, Development \& maintenance}
+\label{sec:Support, Development maintenance}
+
+
+The newest version of the \textit{ms}2 molecular simulation package is
+available through the Internet from the \textit{ms}2 home page at:
+\begin{itemize}
+	\item[ ] \textit{http://www.ms-2.de}
+\end{itemize}
+The source code of \textit{ms}2 can be downloaded as tarball. Other mirrors of \textit{ms}2 are not authorized for distribution of \textit{ms}2 and should therefore be avoided. 
+
+\textit{ms}2 users are obliged to report bugs. Please use the following email address for reporting:
+\begin{itemize}
+	\item[ ] \textit{bugs@ms-2.de} 
+\end{itemize}
+You may try using the following email address for general contact:
+\begin{itemize}
+	\item[ ] \textit{contact@ms-2.de}
+\end{itemize}
+
+
+

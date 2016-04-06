@@ -1,0 +1,107 @@
+%************************************************************************
+% ms2 Manual (Simon Stephan 2016)
+% 
+%
+%************************************************************************
+
+% Dokumenteinstellungen laden
+\input{preamble.tex}
+
+
+% Layout des Dokumentes festlegen
+% Style [report/thesis] und Farbschema [white/blue/bluewhite]  
+\setlayout{report}{white}
+
+
+%************************************************************************
+% Dokumenteninformationen 
+%
+%************************************************************************
+
+\faculty{Fakultät Maschinenbau und Verfahrenstechnik}
+\chair{Professur für Thermodynamik -- Technische Universität Kaiserslautern}
+
+
+\title{Manual \textit{ms}2}
+\subtitle{A Molecular Simulation Tool for Thermodynamic Properties}
+\date{Kaiserslautern, März 2016}
+
+
+
+% Dokumentinfos ins pdf übernehmen
+\makepdfinfos
+
+
+\begin{document}
+
+
+%************************************************************************
+% Vorspann
+%
+%************************************************************************
+
+% Zeilenabstand einzeilig
+\singlespacing
+\frontmatter
+
+% Titelseite erzeugen
+\maketitle
+
+% Einfügen des Inhaltsverzeichnisses
+\tableofcontents
+
+%************************************************************************
+% Hauptteil
+%
+%************************************************************************
+
+\singlespacing
+\mainmatter
+
+% Einfügen der einzelnen Kapitel
+\input{1_Introduction.tex}
+\input{2_Installation.tex}
+\input{3_Running_ms2.tex}
+\input{4_Keywords.tex}
+\input{5_Methods.tex}
+\input{6_Potential_Models.tex}
+\input{7_ComputationalAspects.tex}
+\input{8_Tools.tex}
+\input{9_ExamplesTutorials.tex}
+\input{10_ErrorMessages.tex}
+\input{Literature.tex}
+
+
+
+
+%************************************************************************
+% Nachspann
+%
+%************************************************************************
+
+% Einfügen des Literaturverzeichnis
+\printbibliography
+
+\appendix
+
+% Einfügen der Anhänge
+%\input{anhang.tex}
+
+
+% keine Nummerierung der nachfolgenden Kapitel
+\backmatter
+
+% Einfügen des Symbolverzeichnis
+\input{symbolverzeichnis.tex}
+
+% erzeugt den Index aus den Einträgen \index{Eintrag}
+\renewcommand{\indexname}{Stichwortverzeichnis}
+\printindex
+
+\end{document}
+
+
+%%% Local Variables:
+%%% coding: utf-8
+%%% End:
+

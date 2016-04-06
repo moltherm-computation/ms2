@@ -1,0 +1,351 @@
+% !TeX root = master_Manual.tex
+
+%************************************************************************
+% LaTeX Einstellungen (Simon Stephan 2016)
+%
+%
+%************************************************************************
+
+
+%************************************************************************
+% Dokumenteinstellungen / Laden von Paketen
+%
+%************************************************************************
+
+\documentclass[%
+paper=A4,               % Papierformat
+twoside=false,          % beidseitiger Druck (Koma-Script)
+fontsize=11pt,          % Zeichensatzgroesse (Koma-Script)
+headings=normal,        % Ueberschriftengroesse (alternativ big oder small, Koma-Script)
+parskip=half+,          % Absatzkennzeichnung durch Zeilenabstand (Koma-Script)
+numbers=noenddot,       % letzte Ziffer der Nummerierung ohne nachfolgenden Punkt (Koma-Script)
+captions=tableheading,  % caption von Tabellen als Tabellenueberschrift formatieren (Koma-Script)
+bibliography=totoc,     % Literaturverzeichnis in Inhaltsverzeichnis (Koma-Script)
+listof=totoc,           % Tabellen- und Abbildungsverzeichnis in Inhaltsverzeichnis (Koma-Script)
+index=totoc             % Index in Inhaltsverzeichnis (Koma-Script)
+]
+{scrbook}               % Dokumentklasse (alternativ scrartcl oder scrreprt, Koma-Script) 
+
+%Serifenlose Überschriften in KOMA-Script
+\setkomafont{disposition}{\normalcolor\bfseries}
+
+% Paket zur manuellen Randeinstellung
+\usepackage{geometry}
+\geometry{bindingoffset=10mm, left=20mm, right=20mm, top=20mm, bottom=25mm}
+
+% Paket stellt die textblock-Umgebung zur Verfuegung, die frei auf der Seite
+% platziert werden kann. Dabei koennen absolute Koordinaten (Papier) verwendet
+% werden.
+\usepackage[absolute]{textpos}
+
+
+\usepackage{listings}
+\usepackage{epsfig}
+\usepackage{epstopdf}
+
+
+% The bm pack­age de­fines a com­mand \bm which makes its ar­gu­ment bold
+\usepackage{bm}
+
+
+% Paket zur Gestaltung der Kolumnentitel
+\usepackage{scrpage2}
+
+% deutsche Trennungsregeln, deutsche Zusatzbefehle
+\usepackage[ngerman]{babel}
+
+% Zeichenkodierung
+\usepackage[utf8]{inputenc}
+
+% deutsches Fontencoding, T1 Schriften
+\usepackage[T1]{fontenc}
+
+% Formatierung von Anführungszeichen --> \enquote Makro
+% Option [german=guillemets] für französische Anführungszeichen
+\usepackage{csquotes}
+
+% Schriftfamilie ComputerModern Bright (serifenlos)
+%\usepackage{cmbright}
+
+% AMS-LaTeX Pakete fuer mathematischen Formelsatz. Die Option fleqn sorgt fuer
+% linksbuendige Formeln, welche mit mathindent eingerueckt werden.
+\usepackage[fleqn]{amsmath}
+\usepackage{amssymb,amsthm}
+\mathindent0.9cm
+
+% stellt diverse Sonderzeichen zur Verfuegung z.B. \texteuro
+\usepackage{textcomp}
+
+% optischer Randausgleich (verschiedene Buchstaben, Satzzeichen, Bindestriche
+% etc. werden leicht in den Seitenrand verschoben); automatische Skalierung von
+% Buchstaben zur Verbesserung des Blocksatzes
+\usepackage[tracking=true,spacing=true,kerning=true,final]{microtype}
+
+% Silbentrennung wird auch bei linksbuendigem Text angewendet,
+% z.B. im Index
+\usepackage{ragged2e}
+
+% das setspace package bietet die Moeglichkeit zur Aenderung des Durchschusses
+% (Zeilenabstand im Blocksatz)
+\usepackage{setspace}
+
+% zusaetzliche Hinweise zur Seite auf der sich ein Verweis befindet
+% z.B. mit dem Befehl \vref{label}
+\usepackage[german]{varioref}
+
+% laedt die Bibliographie-Erweiterung biblatex
+\usepackage[ %
+backend=biber,         % Backend für biblatex [biber oder bibtex]
+style=authoryear-comp, % authoryear oder numeric (-comp --> compress-Option)
+maxbibnames=10,        % max. Anzahl Namen im Literaturverzeichnis 
+maxcitenames=1,        % max. Anzahl Namen bei authoryear Zitaten
+backref=true,          % Literaturverzeichnis mit Verweis Zitat-Seiten 
+%sorting=none,         % Verzeichnis nach Reihenfolge der Zitierung
+%dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung 
+]
+{biblatex}
+% Anpassung Einzug und Absatzabstand an Dokumentlayout
+\setlength{\bibhang}{0em} 
+\setlength{\bibitemsep}{\parskip}
+% Einbindung der bib-Datei
+\addbibresource{bibliographie/literatur.bib}
+
+% Grafikunterstuetzung fuer LaTeX (Einfuegen von Bildern)
+\usepackage{graphicx}
+
+% Anordnung mehrerer Grafiken
+\usepackage{subfig}
+
+% Paket zum Drehen von Text, Tabellen, Grafiken etc.; das Paket stellt dafür
+% die landscape-Umgebung zur Verfuegung
+\usepackage{lscape}
+
+% float-Objekte werden nur innerhalb der aktuellen section verschoben, ohne
+% dieses Paket koennen floats auch in die naechste section uebernommen werden
+\usepackage[section]{placeins}
+
+% laedt das Grafikpaket tikz sowie einige Bibliotheken dazu
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes}
+
+% Paket zum Setzen von Einheiten und zur Formatierung von Zahlen
+% Einheiten werden immer "gerade" gesetzt. Zahlenformate, Trennzeichen etc.
+% werden anhand der Spracheinstellungen (babel) ausgewaehlt (Manuelle
+% Vorgaben sind ebenfalls moeglich --> siehe Paketdoku siunitx). 
+% Befehle: \SI{Zahl}{Einheit}, \num{Zahl}
+\usepackage[ngerman]{translator}
+\usepackage[locale=DE, separate-uncertainty=true]{siunitx}
+
+% Paket zum Erstellen neuer Spaltentypen
+% --> Übergabe des Zelleninhaltes an Makros
+\usepackage{collcell}
+
+% mhchem Paket zum Setzen chemischer Formeln mit dem \ce Makro. Bei
+% Verwendung im Text (ohne Mathe-Umgebung) wird die Schriftart automatisch
+% an den umgebenden Text angepasst (Überschriften etc.).
+\usepackage[version=3,arrows=pgf]{mhchem}
+% Umbiegen des \ce Makros --> Für hyperref-Links wird der Quellcode der
+% Formel als Linktext verwendet. Bei Nutzung des Makros in Überschriften 
+% erscheinen sonst kryptische Linknamen, da im PDF dafür Sonderzeichen
+% nicht erlaubt sind.
+\let\oldce\ce
+\renewcommand{\ce}[1]{\texorpdfstring{\oldce{#1}}{#1}}
+% Neuer Spaltentyp für Tabellen mit \ce Makro
+\newcolumntype{C}{>{\collectcell\ce}{l}<{\endcollectcell}}
+
+% fuegt longtable-Umgebung ein (Tabellen mit moeglichem Seitenumbruch)
+\usepackage{longtable}
+
+% tabularx-Umgebung ermoeglicht Tabellen mit fester Breitenvorgabe,
+% zusaetzlicher Spaltentyp X fuellt Tabelle auf Breitenvorgabe auf
+\usepackage{tabularx}
+
+% erweiterte Tabellenbefehle (zur Erstellung wirklich schoener Tabellen
+% fuer den Buchdruck)
+\usepackage{booktabs}
+
+% erweiterte Moeglichkeiten zur Schriftformatierung in Tabellenspalten
+\usepackage{array}
+
+% Paket zum Zusammenfuegen von Tabellenzeilen
+\usepackage{multirow}
+
+% Paket zur Indexerstellung,  Indexeintraege mit \index{Name des Eintrages}
+\usepackage{makeidx}
+\makeindex
+
+% erstellt Anweisungen, die nur fuer pdftex gelten
+\usepackage{ifpdf}
+
+% implementiert if Schleifen
+\usepackage{ifthen}
+
+% Paket zur automatischen Linkerstellung fuer Inhaltsverzeichnis, Literaturverweise etc.
+% [plainpages=false] setzt getrennte Links fuer gleiche Seitenzahlen (z.B. fuer i und 1)
+% [pdfpagelabels] geaendertes Anzeigeformat der Seitennummern im AcrobatReader (roemische
+% Seitennummern werden angezeigt)
+\usepackage[plainpages=false, pdfpagelabels]{hyperref}
+
+% setzt Strafpunkte fuer Schusterjungen und Hurenkinder hoch 
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+
+
+%************************************************************************
+% Anpassungen Kolumnentitel und Schriftarten
+%
+%************************************************************************
+
+% Anpassung der Kolumnentitel, Seitennummerierung oben, Schriftgroessen
+\clearscrheadfoot
+\ohead{\headmark}
+\ofoot[\pagemark]{\pagemark}
+\pagestyle{scrheadings}
+\addtokomafont{pageheadfoot}{\footnotesize}
+
+% kleinere Schriftgroesse fuer Bildunterschriften/Tabellenueberschriften
+\addtokomafont{caption}{\footnotesize}
+
+% Anpassungen fuer das cmbright-package
+% demibold (anstatt bold) als Fettschrift verwenden
+%\renewcommand{\bfseries}{\fontseries{sb}\selectfont}
+%% Befehl \textbx fuer Fette zur Verfuegung stellen 
+%\newcommand{\textbx}[1]{{\fontseries{b}\selectfont#1}}
+%\newcommand{\bxseries}{\fontseries{b}\selectfont}
+% Ueberschriften in LatinModernSans-demicondensed
+\newcommand{\headFont}{\fontfamily{lmss}\fontseries{sbc}\selectfont}
+\addtokomafont{disposition}{\headFont}
+% \mathsf fuer cmbright richtig definieren
+% (sonst wird bei \mathsf CM-SansSerif verwendet)
+\renewcommand{\mathsf}[1]{\mathrm{#1}}
+
+\def\dcoeff{{\ooalign{\raisebox{.5mm}{\text{--}}\hspace{-1.9mm}}\hbox{\textit{\textbf{D}}}}}
+
+
+%************************************************************************
+% Definition Styles und Farbschemen
+%
+%************************************************************************
+
+\makeatletter
+
+% Voreinstellungen
+\def\@docstyle{report}
+\def\@color{white}
+
+% Makro zur Auswahl von Style und Farbschema
+\newcommand{\setlayout}[2]{%
+  \def\@docstyle{#1}
+  \def\@color{#2}
+  \@setlayout
+}
+
+
+% Makro zur Umsetzung von Style und Farbschema
+\newcommand{\@setlayout}{%
+  % Farbschema weiss
+  \ifthenelse{\equal{\@color}{white}}{% 
+  }
+}
+
+
+%************************************************************************
+% Titelseite
+%
+%************************************************************************
+
+% Variablen fuer Benutzereinstellungen
+\def\@faculty{}
+\def\@chair{}
+\def\@subTitle{}
+\def\@titleFoot{}
+
+\newcommand{\faculty}[1]{\def\@faculty{#1}}
+\newcommand{\chair}[1]{\def\@chair{, #1}}
+\newcommand{\subTitle}[1]{\def\@subTitle{#1}}
+\newcommand{\titleFoot}[1]{\def\@titleFoot{#1}}
+
+\renewcommand{\maketitle}{%
+  \begin{titlepage}
+    \null%
+    \begin{textblock*}{297mm}(0mm,0mm)%
+    {\setlength{\unitlength}{1mm}%
+    \noindent%
+    \begin{picture}(0,0)%     
+
+      \ifthenelse{\equal{\@color}{white}}{%  
+
+        \def\@headfontcolor{\color{black}}
+        \def\@textfontcolor{\color{black}}
+        \def\@logofile{grafiken/logos/Logo_LTD_Text}
+      }
+
+      
+      % Minipage als Bereich fuer den Seiteninhalt     
+      \put(30,-44){\@textfontcolor
+        \begin{minipage}[t][140mm][l]{160mm}
+
+            \vfill
+            \vfill
+            \vfill
+            \vskip 2em
+            \begin{center}
+              {\headFont\Huge\@title}
+              \vskip 1em
+              \textbf{\Large\@subtitle}
+            
+            \vskip 1.5em
+              \Large\@subTitle
+            
+            \vskip 3em
+            {\large\@date}      
+            \vfill
+            \phantom{x}
+            \end{center}
+
+       \end{minipage} 
+      }
+
+      % Infoblock Fusszeile (in fester Schriftgroesse)
+      \put(30,-280){\@headfontcolor\fontsize{8pt}{10pt}\selectfont
+        \begin{minipage}[t][21mm][l]{160mm}
+          {\setlength{\tabcolsep}{1.5em} %groesserer Spaltenabstand
+          \@titleFoot
+          }
+        \end{minipage}
+      } 
+    \end{picture}
+  }
+  \end{textblock*}
+\end{titlepage}
+}
+
+
+%************************************************************************
+% pdf Dokumenteninformationen (Datenübernahme aus Titelangaben)
+%
+%************************************************************************
+
+\newcommand{\makepdfinfos}{%
+  \hypersetup{  
+    pdfauthor = {\@author},
+    pdftitle = {\@title},
+    pdfsubject = {\@subTitle},   
+    pdfkeywords = {},
+    bookmarksnumbered = {true}, % Lesezeichen im pdf mit Nummerierung
+    pdfpagemode = {UseOutlines}, % UseOutlines, UseThumbs, None
+    pdfstartview = {FitH}, % FitH, FitV oder XYZ null null 0.9
+    pdffitwindow = {true}, % Fenstergröße anpassen
+  }
+}
+
+
+
+\makeatother
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "master"
+%%% coding: utf-8
+%%% End:
