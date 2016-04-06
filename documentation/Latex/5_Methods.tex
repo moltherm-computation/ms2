@@ -190,16 +190,6 @@ u^{\text{LJ}}_{ij}=4 \epsilon \left(\left(\frac{\sigma}{r_{ij}}\right)^{12}-\lef
 \end{equation}
 Here, the site-site distance between two interacting LJ sites $i$ and $j$ is denoted by $r_{ij}$, while $\sigma$ and $\epsilon$ are the LJ size and energy parameters, respectively. The LJ potential is widely used and allows for a fast computation of these basic interactions. It has only two parameters, which facilitates the parameterization of molecular models.
 
-For pure components, the interactions between two different LJ sites are described by the Lorentz-Berthelot
-combination rules \cite{berthelot, lorentz}. For mixtures, the combination rules are extended to the modified Lorentz-Berthelot
-rules, which include two additional parameters $\eta$ and $\xi$ to describe the interactions between LJ sites of unlike
-molecules \cite{fischer}
-\begin{eqnarray}
-\sigma_{ij} &=& \eta\frac{\sigma_{i}+\sigma_{j}}{2} \;, \\
-\epsilon_{ij} &=& \xi\sqrt{\epsilon_{i}\epsilon_{j}} \;.
-\end{eqnarray}
-The two parameters scale all LJ interactions between molecules of different components equally. Arbitrary
-modifications of the combination rules are possible. \textit{ms}2 allows the specification of $\eta$ and $\xi$ for every molecule pair independently and thus the free parameterization of the combination rules.
 
 
 \subsection{Electrostatic Interactions}
@@ -276,6 +266,40 @@ u^{Q\mu}_{ij}\left(r_{ij},\theta_{i},\theta_{j},\phi_{ij},Q_{i},\mu_{j}\right) &
 \end{eqnarray}
 where the angles $\theta_{i}$, $\theta_{j}$ and $\phi_{ij}$ indicate the relative angular orientation of the point dipole $j$ and the point quadrupole $i$, as shown in Figure~\ref{fig:Schematic-of-the-angles}.
 \newline \newline
+
+
+
+\subsection{Intramolecular Interactions}
+\label{sec:Intramolecular Interactions}
+% Michael
+
+
+\subsection{Mixing rules}
+\label{sec:Mixing rules}
+% Simon
+
+
+For pure components, the interactions between two different LJ sites are described by the Lorentz-Berthelot
+combination rules \cite{berthelot, lorentz}. For mixtures, the combination rules are extended to the modified Lorentz-Berthelot
+rules, which include two additional parameters $\eta$ and $\xi$ to describe the interactions between LJ sites of unlike
+molecules \cite{fischer}
+\begin{eqnarray}
+\sigma_{ij} &=& \eta\frac{\sigma_{i}+\sigma_{j}}{2} \;, \\
+\epsilon_{ij} &=& \xi\sqrt{\epsilon_{i}\epsilon_{j}} \;.
+\end{eqnarray}
+The two parameters scale all LJ interactions between molecules of different components equally. Arbitrary
+modifications of the combination rules are possible. \textit{ms}2 allows the specification of $\eta$ and $\xi$ for every molecule pair independently and thus the free parameterization of the combination rules.
+
+
+\section{Cutoff \& long range correction}
+\label{sec:Cutoff long range correction}
+% 
+
+
+\subsection{Reaction Field}
+\label{sec:Reaction Field}
+% 
+
 \textbf{Reaction field method.} The truncation of interactions between first and second order electrostatic sites leads to
 errors that need to be corrected. The reaction field method \cite{frenkel, nymand} is implemented in \textit{ms}2 for this task, being widely used and well accepted \cite{steinhauser, vanderSpoel}. Its advantages are accuracy and stability, while requiring little computational effort compared to other techniques like Ewald summation \cite{ewald}. However, it is limited to electro-neutral
 systems, thus \textit{ms}2 is currently restricted to electro-neutral molecules. The basic assumption of the reaction field
@@ -304,26 +328,6 @@ charge of zero. Therefore, a point charge distribution is reduced to a dipole ve
 \label{eq:ReactionFieldMethodPointCharges}
 \end{equation}
 where $n$ denotes the total number of point charges and $\boldsymbol r_{i}$ the position vector of charge $q_{i}$. The resulting dipole $\boldsymbol \mu^{q}$ is transferred into the correction term according to Eqs.~\eqref{eq:ReactionFieldMethod} and~\eqref{eq:ReactionFieldMethodContribution}.
-
-
-\subsection{Intramolecular Interactions}
-\label{sec:Intramolecular Interactions}
-% Michael
-
-
-\subsection{Mixing rules}
-\label{sec:Mixing rules}
-% Simon
-
-\section{Cutoff \& long range correction}
-\label{sec:Cutoff long range correction}
-% 
-
-
-\subsection{Reaction Field}
-\label{sec:Reaction Field}
-% 
-
 
 
 \subsection{Ewald summation}
