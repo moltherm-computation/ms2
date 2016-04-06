@@ -4,18 +4,18 @@
 
 \chapter{Computational Aspects}
 \label{sec:Computational Aspects}
-
+% 
 
 
 \section{Sequential Version}
 \label{sec:Sequential Version}
-
+% 
 
 
 
 \section{Parallelization}
 \label{sec:Parallelization}
-
+% 
 
 The source code is implemented for an efficient parallelism with distributed memory, using the MPI~\cite{Forum2009}
 standard for communication. The program uses the following MPI calls:
@@ -42,6 +42,7 @@ The MC code is parallelized exploiting the stochastic nature of the simulation m
 
 \section{Vectorization \& Memory}
 \label{sec:Vectorization Memory}
+% 
 
 The program $ms2$ specifically accounts for vector-parallel machines. All the main information needed in the computationally costly 
 inner loops of the calculation, like the positions of the molecules and their sites, are stored in vectors that are accessed sequentially. 
@@ -76,14 +77,14 @@ Therefore, the calculations can be vectorized, increasing the efficiency.
 
 \section{Benchmarks/ Test case}
 \label{sec:Benchmarks/ Test case}
-
+% 
 
 % siehe erstes release paper Section 5
 
 
 \section{Structure of program code}
 \label{sec:Structure of program code}
-
+% Michael ?
 
 This section discusses the code design and implementation issues of $ms2$ in detail. These explanations of the source code are 
 intended to help understanding the program and to encourage the reader to further develop and improve the code.

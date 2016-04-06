@@ -59,6 +59,7 @@ reduction scheme is the chemical potential, which is normalized in \textit{ms}2 
 
 \section{Molecular Dynamics}
 \label{sec:Molecular Dynamics}
+% Simon 
 
 Molecular dynamics (MD) meant to simulate the physical movements of particles (atoms, molecules, colloidal particles) of a given system. The path of the particles they follow through space as a function of time is determined from the forces acting between particles by numerically solving the Newton's equations of motion. These forces are described by atomistic force fields. Besides offering insight into molecular motion and providing direct structural information on an atomic scale MD allows to calculate macroscopic thermodynamic properties directly derived from the acting forces. In other words: we are able to obtain macroscopic properties from microscopic information. As MD follows the time evolution of the system, the outcome of a simulation is practically the time dependency of the calculated properties.
 
@@ -67,6 +68,7 @@ Molecular dynamics (MD) meant to simulate the physical movements of particles (a
 
 \subsection{Implemented Thermostat and Barostat}
 \label{sec:Implemented Thermostat and Barostat}
+% Simon 
 
 In \textit{ms}2, two integrators are implemented to solve Newton's equations of motion during MD simulation: Leapfrog
 and Gear predictor-corrector. These integrators are well known and described in literature \cite{allen}. The leapfrog
@@ -81,7 +83,7 @@ having three rotational degrees of freedom.
 
 \subsection{Integrators}
 \label{sec:Integrators}
-
+% Simon 
 
 
 
@@ -109,12 +111,12 @@ according to Metropolis acceptance criterion in MC, respectively.
 
 \section{Simulation Setup}
 \label{sec:Simulation Setup}
-
+% Simon 
 
 
 \section{Ensembles}
 \label{sec:Ensembles}
-
+% Andreas & Gabor
 
 Following ensembles are currently supported by \textit{ms}2:
 \begin{itemize}
@@ -149,25 +151,25 @@ liquid equilibrium simulations.
 
 \subsection{multiple Ensembles for multiple state points}
 \label{sec:multiple Ensembles for multiple state points}
-
+% Andreas & Gabor
 
 
 \subsection{Micro-Canonical Ensemble (NVE)}
 \label{sec:Micro-Canonical Ensemble (NVE)}
-
+% Andreas & Gabor
 
 \subsection{Canonical Ensemble (NVT)}
 \label{sec:Canonical Ensemble (NVT)}
-
+% Andreas & Gabor
 
 \subsection{Isobaric-Isothermal Ensemble (NpT)}
 \label{sec:Isobaric-Isothermal Ensemble (NpT)}
-
+% Andreas & Gabor
 
 
 \subsection{Grand-Canonical Ensemble ($\mathbf{\mu}$VT)}
 \label{sec:Grand-Canonical Ensemble}
-
+% Andreas & Gabor
 
 
 
@@ -179,6 +181,7 @@ liquid equilibrium simulations.
 
 \subsection{Dispersive and Repulsive Interactions}
 \label{sec:Dispersive and Repulsive Interaction}
+% Minh 
 
 In \textit{ms}2, the dispersive and repulsive interactions between molecules are reduced to pairwise interactions $u^{\text{LJ}}_{ij}$ of the different molecule sites $i$ and $j$, which are modeled by the 12-6-LJ potential \cite{lennard}
 \begin{equation}
@@ -201,6 +204,7 @@ modifications of the combination rules are possible. \textit{ms}2 allows the spe
 
 \subsection{Electrostatic Interactions}
 \label{sec:Electrostatic Interaction}
+% Minh
 
 \textit{ms}2 considers electrostatic interactions between electro-neutral molecules. Three different electrostatic site type
 models are available: point charge, point dipole and linear point quadrupole. The two higher order electrostatic
@@ -304,26 +308,27 @@ where $n$ denotes the total number of point charges and $\boldsymbol r_{i}$ the 
 
 \subsection{Intramolecular Interactions}
 \label{sec:Intramolecular Interactions}
-
+% Michael
 
 
 \subsection{Mixing rules}
 \label{sec:Mixing rules}
-
+% Simon
 
 \section{Cutoff \& long range correction}
 \label{sec:Cutoff long range correction}
-
+% 
 
 
 \subsection{Reaction Field}
 \label{sec:Reaction Field}
-
+% 
 
 
 
 \subsection{Ewald summation}
 \label{sec:Ewald summation}
+% 
 
 Ewald summation~\cite{allen1987, frenkel2003} was implemented for the calculation of electrostatic interactions between point charges. It extends the applicability of $ms$2 to thermodynamic properties of e.g. ions in solutions. In Ewald summation, the electrostatic interactions according to Coulomb's law are divided into two contributions: short-range and long-range. The short-range term includes all charge-charge interactions at distances smaller than the cut-off radius. The remaining contribution is calculated in Fourier space and only the final value is transformed back into real space. This allows for an efficient calculation of the long-range interactions between the charges. The algorithm is well described in literature. Currently, some of the new features, the calculation of Massieu potential derivatives and Hybrid MPI \& OpenMP Parallelization for MD, are not available together with Ewald summation.
 
@@ -357,6 +362,7 @@ The transport properties can be calculated on the fly during a MD simulation wit
 
 \subsection{Thermal properties}
 \label{sec:Thermal properties}
+% Michael
 
 The static thermodynamic properties accessible via \textit{ms}2 depend on the chosen ensemble. At constant temperature and volume ($NVT$ ensemble), e.g. the pressure is determined by the virial expression $W$. Other important
 thermodynamic properties are accessible at constant temperature and pressure. In the $NpT$ ensemble, the volume is a fluctuating parameter that on average yields the volume corresponding to the specified temperature and
@@ -398,6 +404,7 @@ energy $U_{old}$ for the volume $V_{old}$ and the new state with energy $U_{new}
 
 \subsection{Caloric properties}
 \label{sec:Caloric properties}
+% 
 
 The residual enthalpy $H^{\text{res}}$ is directly linked to the residual internal energy, pressure and volume of the system
 \begin{equation}
@@ -425,6 +432,7 @@ As molecular simulation is currently limited to operate with considerably fewer 
 
 \subsection{second derivatives}
 \label{sec:second derivatives}
+% 
 
 The accessible second derivatives vary with the employed ensemble. In the $NVT$ ensemble, the residual
 isochoric heat capacity $c^{res}_{v}$ is determined by fluctuations of the residual potential energy $U^{\text{res}}$
@@ -474,6 +482,7 @@ where $M$ is the molar mass. In \textit{ms}2, the speed of sound is calculated b
 
 \subsection{Transport properties}
 \label{sec:Transport properties}
+% Tatjana
 
 In \textit{ms}2, transport properties are calculated using equilibrium MD. Here, the fluctuations of a system around
 its equilibrium state are evaluated as a function of time. The Green-Kubo formalism relates these microscopic
@@ -561,6 +570,7 @@ In the previous version of $ms2$ the determination of the thermal conductivity b
 
 \subsection{configurational properties}
 \label{sec:configurational properties}
+% Tatjana / Simon
 
 The \textbf{radial distribution} function (RDF) $g(r)$ is a measure for the microscopic structure of matter. It is defined by the local number density around a given position within a molecule $\rho^L(r)$ in relation to the overall number density $\rho = N/V$
 
@@ -586,6 +596,7 @@ where $\rho_{j}$ is the number density of component $j$ and $r_{\mathrm{min}}$ i
 
 \subsection{Henry' s law constant}
 \label{sec:Henry' s law constant}
+% 
 
 The solubility of solutes in solvents is characterized by the Henry's law constant. In solvents of a given composition, it is solely a function of temperature. The Henry's law constant $H_{i}$ is related to the residual chemical
 potential of the solute $i$ at infinite dilution $\mu^{res,\infty}_{i}$ as defined in e.g. \cite{shing} by
@@ -606,6 +617,7 @@ of solute molecules in the simulation is reduced to one, representing the infini
 
 \subsection{second virial coefficient}
 \label{sec:second virial coefficient}
+% 
 
 The second virial coefficient is related to the intermolecular potential by \cite{gray}
 \begin{equation}
@@ -617,7 +629,7 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 
 \section{statistical Errors}
 \label{sec:statistical Errors}
-
+% ??
 
 
 
@@ -628,21 +640,21 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 
 \subsection{Vapour-liquid equilibrium}
 \label{sec:Vapour-liquid equilibrium}
-
+% Andreas
 
 \subsection{osmotic pressure}
 \label{sec:osmotic pressure}
-
+% Max
 
 
 \subsection{Hydrogen bonding}
 \label{sec:Hydrogen bonding}
-
+% Simon
 
 
 \subsection{humid air Ensemble}
 \label{sec:humid air Ensemble}
-
+% Jadran / Simon
 
 
 
