@@ -302,7 +302,7 @@ contains
     if ((this%N1Charge .gt. 0) .and. (.not. Component1%Molecule%isElongated) )then
        this%lad1 = Component1%Molecule%SiteCharge(1)%e
     end if
-    if ((this%N1Charge .gt. 0) .and. (.not. Component2%Molecule%isElongated)) then
+    if ((this%N2Charge .gt. 0) .and. (.not. Component2%Molecule%isElongated)) then
        this%lad2 = Component2%Molecule%SiteCharge(1)%e
     end if
 
