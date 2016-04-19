@@ -18224,7 +18224,7 @@ contains
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
           this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k)*sum( pc%KinETran(:,1:3),2 ) )*0.5_RK*BoxLength_dt
-          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k)) 
+          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k))* BoxLength_dt 
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k) * KinERot(:) ) *BoxLength_dt
           end if
@@ -18518,23 +18518,22 @@ contains
     integer  :: i, j, k
     integer  :: ncomp2
     real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3, w1, w2
+    real(RK) :: x1, x2, x3, w1, w2, MM
 !    real(RK) :: Inv_x1, Inv_x2, Inv_x3
 !    real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
-    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/&
-&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
-    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/&
-&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
+    MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
+    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
     
 
     do i  = 1, this%NComponents
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-7) then 
+      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then 
          this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
          this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
          this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
@@ -18546,7 +18545,7 @@ contains
     if ( this%NComponents .gt. 1) then
       helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-7) then 
+        if (abs(this%lamda(k, 1)) .gt. 1e-15) then 
            this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
            this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
            this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
@@ -18556,10 +18555,8 @@ contains
       k = 1
        do i = 1, this%NComponents
          do j = 1, this%NComponents
-           if (abs(this%lamda(k, 1)) .gt. 1e-7) then
              this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
              k = k +1
-           end if
          end do
       end do   
 
@@ -18589,7 +18586,7 @@ contains
     end if
 
      if ( this%NComponents == 2 ) then
-      if (abs(this%cf_soret(1)) .gt. 1e-7) then
+      if (abs(this%cf_soret(1)) .gt. 1e-15) then
          this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
          this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
          this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*this%Temperature*w1*w2)
@@ -18626,6 +18623,7 @@ contains
       ! Initialize result
       integral = 0._RK
 
+      
       ! Calculate integral via trapezoid method
       do i = 2, n
         integral(i) = integral(i-1) + values(i) + values(i-1)
@@ -18659,9 +18657,10 @@ contains
         integral(i) = integral(i-2) + values(i) + 4._RK * values(i-1) + values(i-2)
         integral(i-1) = .5_RK * (integral(i) + integral(i-2))
       end do
+      
+      if( mod(n, 2) == 0 .and. n > 2 ) integral(n) = integral(n-1) + .5_RK * values(n) + 2._RK * values(n-1) + .5_RK * values(n-2)
       integral = integral * step / 3._RK
-
-      if( mod(n, 2) == 0 ) integral(n) = integral(n-1)
+      
 
     end function
 
