@@ -133,13 +133,13 @@ Following type of simulations are currently supported by \textit{ms}2:
 
 For the micro-canonical ensemble, the MC acceptance criterion for molecular translation and rotation is 
 \begin{equation}
- \text{min}\left(1, \frac{(E-U_j)^{(F-2)/2} \text{\theta(E-U_j)}}{(E-U_i)^{(F-2)/2} \text{\theta(E-U_i)}} \right) ,
+\mathrm{min}\left(1, \frac{(E-U_j)^{(F-2)/2} \mathrm{\theta(E-U_j)}}{(E-U_i)^{(F-2)/2} \mathrm{\theta(E-U_i)}} \right) ,
 \label{eq:acccritNVE}
 \end{equation}
-where $E$ is the total \textit{hamiltonian} of the system that is a sum of the total kinetic $K$ and potential energy $U$ of the system, $F$ is the sum of the individual molecular degrees of freedom in the system, and \theta is the unit step function \cite{Lus98}.
+where $E$ is the total \textit{hamiltonian} of the system that is a sum of the total kinetic $K$ and potential energy $U$ of the system, $F$ is the sum of the individual molecular degrees of freedom in the system, and $\theta$ is the unit step function \cite{Lus98}.
 The MC acceptance criterion for the canonical ensemble for molecular translation and rotation is 
 \begin{equation}
-\text{min}\left(1, \text{exp}(-\beta(U_j-U_i)) \right),
+\mathrm{min}\left(1, \mathrm{exp}(-\beta(U_j-U_i)) \right),
 \label{eq:acccritNVT}
 \end{equation}
 where $\beta$ is the inverse temperature.\\
@@ -147,7 +147,7 @@ where $\beta$ is the inverse temperature.\\
 In \textit{ms}2, these two ensembles has special role because they yield a huge set of static thermodynamic properties (in
 equilibrium) in form of residual Helmholtz energy derivatives \cite{Lus11, Lus12} 
 \begin{align} 
-A^\text{r}_{nm}=(1/T)^n \rho^m \frac{\partial^{n+m}f^\text{r}(T,\rho)/(RT)}{\partial(1/T)^n \partial \rho^m},
+A^\mathrm{r}_{nm}=(1/T)^n \rho^m \frac{\partial^{n+m}f^\text{r}(T,\rho)/(RT)}{\partial(1/T)^n \partial \rho^m},
 \label{eq:helmholtzderiv}
 \end{align}
 for $n>0$ or $m>0$, with the molar residual Helmholtz energy $f$, the temperature $T$, the density $\rho$, the molar gas constant $R$It can be shown that the total $f/(RT)$ can be additively separated into an ideal $f^\text{o}/(RT)$ and a residual part$f^\text{r}/(RT)$. The ideal part by definition corresponds to the value of $f/(RT)$ when no intermolecular interactions are at work \cite{SpanBook}. $f^\text{o}/(RT)$ consist of an exclusively temperature and an exclusively density dependent part. The former has a trivial density dependence $\ln(\rho/\rho_\text{ref})$, whereas the latter has a non-trivial temperature dependence.
