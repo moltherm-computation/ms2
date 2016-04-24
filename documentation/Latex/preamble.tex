@@ -12,19 +12,19 @@
 %
 %************************************************************************
 
-\documentclass[%
-paper=A4,               % Papierformat
-twoside=false,          % beidseitiger Druck (Koma-Script)
-fontsize=11pt,          % Zeichensatzgroesse (Koma-Script)
-headings=normal,        % Ueberschriftengroesse (alternativ big oder small, Koma-Script)
-parskip=half+,          % Absatzkennzeichnung durch Zeilenabstand (Koma-Script)
-numbers=noenddot,       % letzte Ziffer der Nummerierung ohne nachfolgenden Punkt (Koma-Script)
-captions=tableheading,  % caption von Tabellen als Tabellenueberschrift formatieren (Koma-Script)
-bibliography=totoc,     % Literaturverzeichnis in Inhaltsverzeichnis (Koma-Script)
-listof=totoc,           % Tabellen- und Abbildungsverzeichnis in Inhaltsverzeichnis (Koma-Script)
-index=totoc             % Index in Inhaltsverzeichnis (Koma-Script)
-]
-{scrbook}               % Dokumentklasse (alternativ scrartcl oder scrreprt, Koma-Script) 
+%\documentclass[%
+%paper=A4,               % Papierformat
+%twoside=false,          % beidseitiger Druck (Koma-Script)
+%fontsize=11pt,          % Zeichensatzgroesse (Koma-Script)
+%headings=normal,        % Ueberschriftengroesse (alternativ big oder small, Koma-Script)
+%parskip=half+,          % Absatzkennzeichnung durch Zeilenabstand (Koma-Script)
+%numbers=noenddot,       % letzte Ziffer der Nummerierung ohne nachfolgenden Punkt (Koma-Script)
+%captions=tableheading,  % caption von Tabellen als Tabellenueberschrift formatieren (Koma-Script)
+%bibliography=totoc,     % Literaturverzeichnis in Inhaltsverzeichnis (Koma-Script)
+%listof=totoc,           % Tabellen- und Abbildungsverzeichnis in Inhaltsverzeichnis (Koma-Script)
+%index=totoc             % Index in Inhaltsverzeichnis (Koma-Script)
+%]
+%{scrbook}               % Dokumentklasse (alternativ scrartcl oder scrreprt, Koma-Script) 
 
 %Serifenlose Überschriften in KOMA-Script
 \setkomafont{disposition}{\normalcolor\bfseries}
@@ -93,22 +93,22 @@ index=totoc             % Index in Inhaltsverzeichnis (Koma-Script)
 % z.B. mit dem Befehl \vref{label}
 \usepackage[german]{varioref}
 
-% laedt die Bibliographie-Erweiterung biblatex
-\usepackage[ %
-backend=biber,         % Backend für biblatex [biber oder bibtex]
-style=authoryear-comp, % authoryear oder numeric (-comp --> compress-Option)
-maxbibnames=10,        % max. Anzahl Namen im Literaturverzeichnis 
-maxcitenames=1,        % max. Anzahl Namen bei authoryear Zitaten
-backref=true,          % Literaturverzeichnis mit Verweis Zitat-Seiten 
-%sorting=none,         % Verzeichnis nach Reihenfolge der Zitierung
-%dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung 
-]
-{biblatex}
-% Anpassung Einzug und Absatzabstand an Dokumentlayout
-\setlength{\bibhang}{0em} 
-\setlength{\bibitemsep}{\parskip}
-% Einbindung der bib-Datei
-\addbibresource{bibliographie/literatur.bib}
+%% laedt die Bibliographie-Erweiterung biblatex
+%\usepackage[ %
+%backend=biber,         % Backend für biblatex [biber oder bibtex]
+%style=authoryear-comp, % authoryear oder numeric (-comp --> compress-Option)
+%maxbibnames=10,        % max. Anzahl Namen im Literaturverzeichnis 
+%maxcitenames=1,        % max. Anzahl Namen bei authoryear Zitaten
+%backref=true,          % Literaturverzeichnis mit Verweis Zitat-Seiten 
+%%sorting=none,         % Verzeichnis nach Reihenfolge der Zitierung
+%%dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung 
+%]
+%{biblatex}
+%% Anpassung Einzug und Absatzabstand an Dokumentlayout
+%\setlength{\bibhang}{0em} 
+%\setlength{\bibitemsep}{\parskip}
+%% Einbindung der bib-Datei
+%\addbibresource{literatur.bib}
 
 % Grafikunterstuetzung fuer LaTeX (Einfuegen von Bildern)
 \usepackage{graphicx}

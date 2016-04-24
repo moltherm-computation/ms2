@@ -4,6 +4,61 @@
 %
 %************************************************************************
 
+
+\documentclass[%
+paper=A4,               % Papierformat
+twoside=false,          % beidseitiger Druck (Koma-Script)
+fontsize=11pt,          % Zeichensatzgroesse (Koma-Script)
+headings=normal,        % Ueberschriftengroesse (alternativ big oder small, Koma-Script)
+parskip=half+,          % Absatzkennzeichnung durch Zeilenabstand (Koma-Script)
+numbers=noenddot,       % letzte Ziffer der Nummerierung ohne nachfolgenden Punkt (Koma-Script)
+captions=tableheading,  % caption von Tabellen als Tabellenueberschrift formatieren (Koma-Script)
+bibliography=totoc,     % Literaturverzeichnis in Inhaltsverzeichnis (Koma-Script)
+listof=totoc,           % Tabellen- und Abbildungsverzeichnis in Inhaltsverzeichnis (Koma-Script)
+index=totoc             % Index in Inhaltsverzeichnis (Koma-Script)
+]
+{scrbook}               % Dokumentklasse (alternativ scrartcl oder scrreprt, Koma-Script) 
+
+% laedt die Bibliographie-Erweiterung biblatex
+\usepackage[ %
+backend=bibtex,         % Backend für biblatex [biber oder bibtex oder bibtex8]
+style=authoryear, % authoryear oder numeric (-comp --> compress-Option)
+bibstyle=authoryear,	% beeinflusst das Aussehen des Literaturverzeichnisses/ (reading oder authoryear etc.)
+maxbibnames=10,        % max. Anzahl Namen im Literaturverzeichnis 
+maxcitenames=1,        % max. Anzahl Namen bei authoryear Zitaten
+backref=true,          % Literaturverzeichnis mit Verweis Zitat-Seiten 
+%sorting=none,         % Verzeichnis nach Reihenfolge der Zitierung
+dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung
+%entryhead=true,		% für bibstyle "reading"
+%entrykey=false			% für bibstyle "reading"
+]
+{biblatex}
+% Anpassung Einzug und Absatzabstand an Dokumentlayout
+\setlength{\bibhang}{0em} 
+%\setlength{\bibitemsep}{\parskip}
+\setlength{\bibitemsep}{0.5cm}
+\setlength{\biblabelsep}{1cm}
+% Einbindung der bib-Datei
+
+\addbibresource{literatur.bib}		%fuegt .bib - Datei ein.
+
+
+\newrobustcmd*{\parentexttrack}[1]{%
+	\begingroup
+	\blx@blxinit
+	\blx@setsfcodes
+	\blx@bibopenparen#1\blx@bibcloseparen
+	\endgroup}
+
+\AtEveryCite{%
+	\let\parentext=\parentexttrack%
+	\let\bibopenparen=\bibopenbracket%
+	\let\bibcloseparen=\bibclosebracket}
+
+
+
+
+
 % Dokumenteinstellungen laden
 \input{preamble.tex}
 
