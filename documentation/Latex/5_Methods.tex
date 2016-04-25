@@ -107,134 +107,8 @@ In an MC simulation, where the volume of the system does not remain constant, th
 \label{sec:Simulation Setup}
 % Simon 
 
-
-\section{Ensembles}
-\label{sec:Ensembles}
-
-An ensembles is the set of all theoretically possible configurations (states) under some specific macroscopic conditions. For example, the canonical ensemble ($NVT$) is the set of all configurations that fulfills the condition of having the same temperature $T$, volume $V$ and number of particles $N$, whereas the isobaric-isothermal ensemble ($NpT$) represents a system at constant temperature $T$, pressure $p$, and number of particles $N$. Independent on the specific macroscopic conditions, an MC simulation always involve the creation of a trial configuration according to some probability $\alpha_{ij}$, where $i$ refers to the previous state of the system, while $j$ refers to the new one generated with $\alpha_{ij}$ probability from $i$. Another probability, $a_{ij}$, determines that the newly generated state $j$ is actually accepted as a proper configuration of the specific ensemble or not. Thus, the transition probability between state $i$ and $j$ is $\pi_{ij}=\alpha_{ij} a_{ij}$. The transition probability for state $i$ depends only on the previous state $j$. This property is called the Markov chain property; the sequence of configurations created by this way is defined as the Markov chain. It can be shown that if a Markov chain satisfies the condition $P_i \pi_{ij}=P_j \pi_{ji}$ (for every state $i$ and $j$) of \textit{microscopic reversibility} then the probability of every configuration in the Markov chain will converge to the arbitrarily chosen set of probabilities $\textbf{P}=[P_1,P_2,...,P_i,...]$ as the length of the chain increases. Once \textbf{P} is specified, the microscopic reversibility condition $P_i \pi_{ij}=P_j \pi_{ji}$ can be solved and has potentially more than one solution for $a_{ij}$. A solution for $a_{ij}$ is called the acceptance criterion of the ensemble. The generation of the next potential configuration is done such a way that $\alpha$ is symmetric, i.e. $\alpha_{ij}=\alpha_{ji}$. This way $\alpha_{ij}$ and $\alpha_{ji}$ cancel each other in the equation. It is sensible to specify $\textbf{P}=[P_1,P_2,...,P_i,...]$ as the set of actual probability of occurrence of the configurations $1,2,...,i,...$ in the ensemble.\\
-With the exception of the $NVE$ ensemble, not every theoretically possible configuration of an ensemble has the same probability of occurrence. In fact, only a small subset of configurations is truly relevant even though the set of all theoretically possible configurations of an ensemble is extremely large. Although, the analytical form of $P_i$ is known for an ensemble, its numerical value is not. Therefore, the way of calculating a macroscopic property $A$ as an \textit{ensemble average} using the standard statistical formula for the expected value $<A>=\sum A_i P_i$ (for every possible $i$), where $A_i$ is the value of property $A$ for configuration $i$, is not feasible. However, it can be shown that if configurations are selected randomly (\textit{Monte Carlo sampling}) and selected according to their actual probability of occurrence $P_i$ at the same time (\textit{importance sampling}) then the expected value can be calculated as $<A>=\sum A_i/n$ (assuming the number of sampled configurations $n$ is large enough). A Markov chain satisfying the microscopic reversibility criterion $P_i \pi_{ij}=P_j \pi_{ji}$ fulfills exactly this condition, because it selects $n$ configurations according to their actual probability of occurrence $P_i$.
- 
-Following type of simulations are currently supported by \textit{ms}2:
-\begin{itemize}
-	\item canonical ensemble ($NVT$) MC (corresponds to MD with thermostat)
-	\item micro-canonical ensemble ($NVE$) MC (corresponds to MD)
-	\item isobaric-isothermal ensemble ($NpT$) MC (corresponds to MD with thermostat and barostat)
-	\item grand equilibrium method (pseudo-$\mu VT$) MC (MC only)
-\end{itemize}
-
-
-\subsection{multiple Ensembles for multiple state points}
-\label{sec:multiple Ensembles for multiple state points}
-% Andreas & Gabor
-
-
-\subsection{Canonical (NVT) and Micro-Canonical Ensemble (NVE)}
-\label{sec:Micro-Canonical Ensemble (NVE)}
-
-For the micro-canonical ensemble, the MC acceptance criterion for molecular translation and rotation is 
-\begin{equation}
-\mathrm{min}\left(1, \frac{(E-U_j)^{(F-2)/2} \mathrm{\theta(E-U_j)}}{(E-U_i)^{(F-2)/2} \mathrm{\theta(E-U_i)}} \right) ,
-\label{eq:acccritNVE}
-\end{equation}
-where $E$ is the total \textit{hamiltonian} of the system that is a sum of the total kinetic $K$ and potential energy $U$ of the system, $F$ is the sum of the individual molecular degrees of freedom in the system, and $\theta$ is the unit step function \cite{Lus98}.
-The MC acceptance criterion for the canonical ensemble for molecular translation and rotation is 
-\begin{equation}
-\mathrm{min}\left(1, \mathrm{exp}(-\beta(U_j-U_i)) \right),
-\label{eq:acccritNVT}
-\end{equation}
-where $\beta$ is the inverse temperature.\\
-
-In \textit{ms}2, these two ensembles has special role because they yield a huge set of static thermodynamic properties (in
-equilibrium) in form of residual Helmholtz energy derivatives \cite{Lus11, Lus12} 
-\begin{align} 
-A^\mathrm{r}_{nm}=(1/T)^n \rho^m \frac{\partial^{n+m}f^\text{r}(T,\rho)/(RT)}{\partial(1/T)^n \partial \rho^m},
-\label{eq:helmholtzderiv}
-\end{align}
-for $n>0$ or $m>0$, with the molar residual Helmholtz energy $f$, the temperature $T$, the density $\rho$, the molar gas constant $R$It can be shown that the total $f/(RT)$ can be additively separated into an ideal $f^\text{o}/(RT)$ and a residual part$f^\text{r}/(RT)$. The ideal part by definition corresponds to the value of $f/(RT)$ when no intermolecular interactions are at work \cite{SpanBook}. $f^\text{o}/(RT)$ consist of an exclusively temperature and an exclusively density dependent part. The former has a trivial density dependence $\ln(\rho/\rho_\text{ref})$, whereas the latter has a non-trivial temperature dependence.
-Since $f$ is a thermodynamic potential, any other static thermodynamic property is a combination of its partial derivatives. The molar internal energy $u$, pressure $p$, molar enthalpy $h$, molar Gibbs energy $g$, and molar isochoric heat capacity $c_v$ are simple functions
-\begin{align}
-\frac{u}{RT}=A^\text{o}_{10}(T)+A^\text{r}_{10},
-\label{eq:internalen}
-\end{align}
-\begin{align}
-\frac{p}{\rho RT}=1+A^\text{r}_{01},
-\label{eq:pressure}
-\end{align}
-\begin{align}
-\frac{1}{RT}\left(\frac{\partial p}{\partial \rho}\right)_T=1+2A^\text{r}_{01}+A^\text{r}_{02},
-\label{eq:dpdrho}
-\end{align}
-\begin{align}
-\frac{1}{\rho{R}}\left(\frac{\partial p}{\partial T}\right)_\rho=1+A^\text{r}_{01}-A^\text{r}_{11},
-\label{eq:dpdt}
-\end{align}
-\begin{align}
-\frac{h}{RT}=1+A^\text{r}_{01}+A^\text{o}_{10}(T)+A^\text{r}_{10},
-\label{eq:enthalpy}
-\end{align}
-\begin{align}
-\frac{g}{RT}=1+A^\text{r}_{01}+A^\text{o}_{00}+A^\text{r}_{00},
-\label{eq:gibbs}
-\end{align}
-\begin{align}
-\frac{c_v}{R}=-A^\text{o}_{20}(T)-A^\text{r}_{20},
-\label{eq:cv}
-\end{align}
-while molar isobaric heat capacity $c_p$, and speed of sound $w$ are non-linear combinations of derivatives
-\begin{align}
-\frac{c_p}{R}=-A^\text{o}_{20}(T)-A^\text{r}_{20}+\frac{(1+A^\text{r}_{01}-A^\text{r}_{11})^2}{1+2A^\text{r}_{01}+A^\text{r}_{02}},
-\label{eq:cp}
-\end{align}
-\begin{align}
-\frac{Mw^2}{RT}=1+2A^\text{r}_{01}+A^\text{r}_{02}-\frac{(1+A^\text{r}_{01}-A^\text{r}_{11})^2}{A^\text{o}_{20}(T)+A^\text{r}_{20}},
-\label{eq:sos}
-\end{align}
-where $M$ is the molar mass, $A^\text{r}_{nm}=A^\text{r}_{nm}(T, \rho)$, and $A^\text{o}_{nm}=A^\text{o}_{nm}(T, \rho)=(1/T)^n \rho^m \cdot \partial^{n+m}[\alpha^\text{o}(T)+\alpha^\text{o}(\rho)]/\partial(1/T)^n / \partial \rho^m =A^\text{o}_{nm}(T)+A^\text{o}_{nm}(\rho)$. Note that the ideal part
-\begin{itemize}
-	\item $A^\text{o}_{nm}(T, \rho)=0$, for $n>0$ and $m>0$,
-	\item $A^\text{o}_{nm}(T, \rho)=A^\text{o}_{nm}(T)+0$, for $n>0$ and $m=0$,
-	\item $A^\text{o}_{nm}(T, \rho)=0+(-1)^{1+m}$, for $n=0$ and $m>0$.
-\end{itemize}
-A more complete list of thermodynamic properties can be found in Ref. \cite{SpanBook}. For the $NVE$ ensemble, there are two sets of $A^\text{r}_{nm}$ output values. Each set corresponds to two different statistical mechanical entropy definitions \cite{Lus12}. The numerical values for these two definitions should converge to the same number as the system size increases and they should be identical in the thermodynamic limit $(N \rightarrow \infty)$.
-
-\subsection{Isobaric-Isothermal Ensemble (NpT)}
-\label{sec:Isobaric-Isothermal Ensemble (NpT)}
-
-For the $NpT$ ensemble, the MC acceptance criterion for molecular translation and rotation as well as volume change is
-\begin{equation}
-\text{min}\left(1, \text{exp}( -\beta(U_j-U_i+p(V_j-V_i))+N\text{ln}(V_j/V_i) )  \right).
-\label{eq:acccritNVT}
-\end{equation}
-
-\subsection{Grand-Canonical Ensemble ($\mathbf{\mu}$VT)}
-\label{sec:Grand-Canonical Ensemble}
-% Andreas & Gabor
-
-The grand equilibrium method is a technique to determine the VLE of pure substances or mixtures. It is a
-two-step procedure, where the coexisting phases are simulated independently and subsequently. The specified
-thermodynamic variables for the VLE are the temperature $T$ and the composition $\textbf{x}$ of the liquid. In the first step,
-one $NpT$ simulation of the liquid phase is performed at $T$ , $\textbf{x}$ and some pressure $p_{0}$ to determine the chemical potentials $\mu^{l}_{i}$ and the partial molar volumes $v^{l}_{i}$ of all components, which corresponds to the molar volume in case of a pure substance. If the entropic properties are determined by Widom's test molecule method \cite{widom}, both MD or MC can be used to sample the phase space. A more advanced technique for these properties is implemented in combination with MC, i.e. gradual insertion \cite{lyubartsev1, nezbeda} (see below). On the basis of the chemical potentials and partial molar volumes at $p_{0}$, first order Taylor expansions can be made for the pressure dependence
-\begin{equation}
-\mu^{l}_{i}(T,\textbf{x},p)\approx \mu^{l}_{i}(T,\textbf{x},p_{0})+v^{l}_{i}(T,\textbf{x},p_{0})\cdot (p-p_{0}) \;.
-\label{eq:grandequilibriummethod}
-\end{equation}
-Note that \textit{ms}2 yields $\mu_{i}(T,\textbf{x},p)-\mu^{id}_{i}(T)$, where $\mu^{id}_{i}(T)$ is the temperature dependent part of the ideal gas contribution to the chemical potential of the pure component. $\mu^{l,id}_{i}(T)$ does not need to be determined for VLE calculations, because it cancels out when Eq.~\eqref{eq:grandequilibriummethod} is equated to the corresponding expression for the vapor.
-
-In the second step, one pseudo-$\mu VT$ simulation \cite{vrabec1} is performed for the vapor phase on the basis of Eq.~\eqref{eq:grandequilibriummethod} that yields the saturated vapor state point of the VLE. This simulation takes place in a pseudo ensemble in the sense that the specified chemical potentials are not constant, but dependent on the actual pressure of the vapor phase. However, experience based on hundreds of systems \cite{huang, vrabec} shows that the vapor phase simulation rapidly
-converges to the saturated vapor state point during equilibration so that effectively the equilibrium chemical
-potentials are specified via the attained vapor pressure. The number of molecules varies during the vapor phase
-simulation of the grand equilibrium method. Starting from a specified number of molecules in an arbitrarily
-chosen gaseous state, \textit{ms}2 adjusts the extensive volume $V$ after an equilibration period so that the vapor density
-does not have to be known in advance.
-
-The grand equilibrium method has been widely used and compares favorably to other methods used for vapor
-liquid equilibrium simulations.
-
 \section{Interaction types}
 \label{sec:Interaction types}
-
-
-
 
 \subsection{Dispersive and Repulsive Interactions}
 \label{sec:Dispersive and Repulsive Interaction}
@@ -393,118 +267,172 @@ where $n$ denotes the total number of point charges and $\boldsymbol r_{i}$ the 
 
 Ewald summation~\cite{allen1987, frenkel2003} was implemented for the calculation of electrostatic interactions between point charges. It extends the applicability of $ms$2 to thermodynamic properties of e.g. ions in solutions. In Ewald summation, the electrostatic interactions according to Coulomb's law are divided into two contributions: short-range and long-range. The short-range term includes all charge-charge interactions at distances smaller than the cut-off radius. The remaining contribution is calculated in Fourier space and only the final value is transformed back into real space. This allows for an efficient calculation of the long-range interactions between the charges. The algorithm is well described in literature. Currently, some of the new features, the calculation of Massieu potential derivatives and Hybrid MPI \& OpenMP Parallelization for MD, are not available together with Ewald summation.
 
-
 % in ms2par ist auch "Rodgers" auswählbar!?!?
 
-
 \section{Computing physical properties}
-\label{sec:Computing physical properties}
+\label{sec:PhysProps}
+
+\subsection{Ensembles Overview}
+\label{sec:Ensembles}
+
+An ensembles is the set of all theoretically possible configurations (states) under some specific macroscopic conditions. For example, the canonical ensemble ($NVT$) is the set of all configurations that fulfills the condition of having the same temperature $T$, volume $V$ and number of particles $N$, whereas the isobaric-isothermal ensemble ($NpT$) represents a system at constant temperature $T$, pressure $p$, and number of particles $N$. Independent on the specific macroscopic conditions, an MC simulation always involve the creation of a trial configuration according to some probability $\alpha_{ij}$, where $i$ refers to the previous state of the system, while $j$ refers to the new one generated with $\alpha_{ij}$ probability from $i$. Another probability, $a_{ij}$, determines that the newly generated state $j$ is actually accepted as a proper configuration of the specific ensemble or not. Thus, the transition probability between state $i$ and $j$ is $\pi_{ij}=\alpha_{ij} a_{ij}$. The transition probability for state $i$ depends only on the previous state $j$. This property is called the Markov chain property; the sequence of configurations created by this way is defined as the Markov chain. It can be shown that if a Markov chain satisfies the condition $P_i \pi_{ij}=P_j \pi_{ji}$ (for every state $i$ and $j$) of \textit{microscopic reversibility} then the probability of every configuration in the Markov chain will converge to the arbitrarily chosen set of probabilities $\textbf{P}=[P_1,P_2,...,P_i,...]$ as the length of the chain increases. Once \textbf{P} is specified, the microscopic reversibility condition $P_i \pi_{ij}=P_j \pi_{ji}$ can be solved and has potentially more than one solution for $a_{ij}$. A solution for $a_{ij}$ is called the acceptance criterion of the ensemble. The generation of the next potential configuration is done such a way that $\alpha$ is symmetric, i.e. $\alpha_{ij}=\alpha_{ji}$. This way $\alpha_{ij}$ and $\alpha_{ji}$ cancel each other in the equation. It is sensible to specify $\textbf{P}=[P_1,P_2,...,P_i,...]$ as the set of actual probability of occurrence of the configurations $1,2,...,i,...$ in the ensemble.\\
+With the exception of the $NVE$ ensemble, not every theoretically possible configuration of an ensemble has the same probability of occurrence. In fact, only a small subset of configurations is truly relevant even though the set of all theoretically possible configurations of an ensemble is extremely large. Although, the analytical form of $P_i$ is known for an ensemble, its numerical value is not. Therefore, the way of calculating a macroscopic property $A$ as an \textit{ensemble average} using the standard statistical formula for the expected value $<A>=\sum A_i P_i$ (for every possible $i$), where $A_i$ is the value of property $A$ for configuration $i$, is not feasible. However, it can be shown that if configurations are selected randomly (\textit{Monte Carlo sampling}) and selected according to their actual probability of occurrence $P_i$ at the same time (\textit{importance sampling}) then the expected value can be calculated as $<A>=\sum A_i/n$ (assuming the number of sampled configurations $n$ is large enough). A Markov chain satisfying the microscopic reversibility criterion $P_i \pi_{ij}=P_j \pi_{ji}$ fulfills exactly this condition, because it selects $n$ configurations according to their actual probability of occurrence $P_i$.
+ 
+Following type of simulations are currently supported by \textit{ms}2:
+\begin{itemize}
+	\item canonical ensemble ($NVT$) MC (corresponds to MD with thermostat)
+	\item micro-canonical ensemble ($NVE$) MC (corresponds to MD)
+	\item isobaric-isothermal ensemble ($NpT$) MC (corresponds to MD with thermostat and barostat)
+	\item grand equilibrium method (pseudo-$\mu VT$) MC (MC only)
+\end{itemize}
+
+For the micro-canonical ensemble, the MC acceptance criterion for molecular translation and rotation is 
+\begin{equation}
+\mathrm{min}\left(1, \frac{(E-U_j)^{(F-2)/2} \mathrm{\theta(E-U_j)}}{(E-U_i)^{(F-2)/2} \mathrm{\theta(E-U_i)}} \right) ,
+\label{eq:acccritNVE}
+\end{equation}
+where $E$ is the total \textit{hamiltonian} of the system that is a sum of the total kinetic $K$ and potential energy $U$ of the system, $F$ is the sum of the individual molecular degrees of freedom in the system, and $\theta$ is the unit step function \cite{Lus98}.
+The MC acceptance criterion for the canonical ensemble for molecular translation and rotation is 
+\begin{equation}
+\mathrm{min}\left(1, \mathrm{exp}(-\beta(U_j-U_i)) \right),
+\label{eq:acccritNVT}
+\end{equation}
+where $\beta$ is the inverse temperature.\\
+
+For the $NpT$ ensemble, the MC acceptance criterion for molecular translation and rotation as well as volume change is
+\begin{equation}
+\text{min}\left(1, \text{exp}( -\beta(U_j-U_i+p(V_j-V_i))+N\text{ln}(V_j/V_i) )  \right).
+\label{eq:acccritNVT}
+\end{equation}
+
+\subsection{Statistical uncertainties}
+\label{sec:Statun}
 
 The simulation program \textit{ms}2 calculates the thermodynamic properties from the trajectories (MD) or Markov Chains (MC) on the fly. The results are written to file with a specified frequency during the course of the simulation. The statistical uncertainties of all results are estimated using the block averaging method according to Flyvbjerg and Petersen \cite{flyvberg} and the error propagation law.
 
-The simulation program \textit{ms}2 allows for the determination of static and dynamic thermodynamic properties in
-equilibrium. The implemented static properties are:
-\begin{itemize}
-	\item Thermal and caloric properties
-	\item Chemical potential
-	\item Vapor-liquid equilibria
-	\item Henry's law constant
-	\item Second virial coefficient
-\end{itemize}
-The transport properties can be calculated on the fly during a MD simulation with a reasonable additional computational effort using the Green-Kubo formalism \cite{green, kubo}. The implemented dynamic properties are:
-\begin{itemize}
-	\item Self-diffusion coefficient
-	\item Maxwell-Stefan diffusion coefficient
-	\item Shear viscosity
-	\item Bulk viscosity
-\end{itemize}
+\subsection{Static properties from Helmholtz free energy derivatives (NVT, NVE)}
+\label{sec:PropHelm}
 
-
-\subsection{Thermal properties}
-\label{sec:Thermal properties}
-% Michael
-
-The static thermodynamic properties accessible via \textit{ms}2 depend on the chosen ensemble. At constant temperature and volume ($NVT$ ensemble), e.g. the pressure is determined by the virial expression $W$. Other important
-thermodynamic properties are accessible at constant temperature and pressure. In the $NpT$ ensemble, the volume is a fluctuating parameter that on average yields the volume corresponding to the specified temperature and
-pressure. In both ensembles, the residual internal energy is the sum of all pairwise interaction energies $u_{ij}$ and
-the appropriate long range correction. The residual enthalpy is linked to the residual internal energy, pressure
-and volume of the system using the thermodynamic definition.
-
-At constant temperature $T$ and volume $V$, the pressure $p$ is determined by \cite{allen}
-\begin{equation}
-p=\frac{k_{\text{B}}T}{V}+\frac{\left\langle W\right\rangle}{V}+\Delta p^{L}=\frac{k_{\text{B}}T}{V}+\frac{1}{3V}\left\langle \sum^{N-1}_{i=1}\sum_{j=i+1\atop r_{ij}<r_{\text{c}}}^{N} \textbf{\textit{r}}_{ij}\textbf{\textit{f}}_{ij}\right\rangle +\Delta p^{L} \;,
+Standard textbook approaches in the molecular simulation literature indicate specific statistical mechanical ensembles for particular thermodynamic properties. E.g., properties originating from differentiation with respect to temperature at constant pressure, such as the isothermal compressibility, are most likely considered to be candidates for the $NpT$ ensemble, while for a property such as the isochoric heat capacity, the $NVT$ ensemble is considered to be a natural choice. It is true that certain properties have simpler statistical analogs in certain ensembles and may be difficult to derive in other ensembles. Fundamentally, however, the above mentioned philosophy misleading. In principle, any thermodynamic property is accessible in any ensembles. The formalism proposed by Lustig ~\cite{Lus11, Lus12} allows for the calculation of an arbitrary number of derivatives
+\begin{align} 
+A^\mathrm{r}_{nm}=(1/T)^n \rho^m \frac{\partial^{n+m}f^\text{r}(T,\rho)/(RT)}{\partial(1/T)^n \partial \rho^m}
+\label{eq:helmholtzderiv}
+\end{align}
+for $n>0$ or $m>0$ in the $NVT$ and $NVE$ ensembles, with the molar residual Helmholtz energy $f$, the temperature $T$, the density $\rho$, the molar gas constant $R$. It can be shown that the total $f/(RT)$ can be additively separated into an ideal $f^\text{o}/(RT)$ and a residual part$f^\text{r}/(RT)$. The ideal part by definition corresponds to the value of $f/(RT)$ when no intermolecular interactions are at work \cite{SpanBook}. $f^\text{o}/(RT)$ consist of an exclusively temperature and an exclusively density dependent part. The former has a trivial density dependence $\ln(\rho/\rho_\text{ref})$, whereas the latter has a non-trivial temperature dependence.\\
+The approach is based on the fact that the fundamental equation of state contains the complete thermodynamic information about a system, which can be expressed in terms of various thermodynamic potentials~\cite{MunsterBook}, e.g. internal energy $E(N,V,S)$, enthalpy $H(N,p,S)$, Helmholtz free energy $F(N,V,T)$ or Gibbs free energy $G(N,p,T)$, with number of particles $N$, volume $V$, pressure $p$, temperature $T$ and entropy $S$. These representations are equivalent in the sense that any other thermodynamic property is essentially a combination of derivatives of the chosen form with respect to its independent variables. The form $f/(RT)(N,V,1/T)$, known as the Massieu potential, is preferable due to practical reasons. Namely, neither its independent variables nor its derivatives with respect these variables involve entropic properties. Moreover, some of its derivatives are directly related to measurable properties.\\
+Since $f$ is a thermodynamic potential, any other static thermodynamic property is a combination of its partial derivatives. The molar internal energy $u$, pressure $p$, molar enthalpy $h$, molar Gibbs energy $g$, and molar isochoric heat capacity $c_v$ are simple functions
+\begin{align}
+\frac{u}{RT}=A^\text{o}_{10}(T)+A^\text{r}_{10},
+\label{eq:internalen}
+\end{align}
+\begin{align}
+\frac{p}{\rho RT}=1+A^\text{r}_{01},
 \label{eq:pressure}
-\end{equation}
-where $k_{\text{B}}$ is the Boltzmann constant and the brackets $\left\langle \ldots \right\rangle$ indicate the ensemble average. $W$ denotes the virial,
-which is defined by the force vector $\textbf{\textit{f}}_{ij}$ acting between two molecules at a separation vector $\textbf{\textit{r}}_{ij}$ between their centers of mass. The contribution $\Delta p^{L}$ considers the long-range interactions with molecules beyond the cut-off radius $r_{\text{c}}$.
-
-In the isothermal-isobaric ensemble, the volume is a fluctuating parameter that on average yields the volume
-corresponding to the specified pair of temperature $T$ and pressure $p_{0}$. In MD simulations with Andersen's
-barostat \cite{andersen}, which is implemented in \textit{ms}2, the fluctuations of the volume are damped by a fictive piston mass $Q_{\text{p}}$ according to the equation of motion
-\begin{equation}
-\ddot{V}=\frac{p-p_{0}}{Q_{\text{p}}} \;.
-\label{eq:fictivepistonmass}
-\end{equation}
-In MC simulations, the volume is changed randomly and the new volume accepted by applying the Metropolis
-acceptance criterion
-\begin{equation}
-P_{acc}=\text{min} \left(1, \exp \left(\frac{\Delta E}{k_{\text{B}}T}\right)\right) \;,
-\label{eq:metropolisacceptancecriterion}
-\end{equation}
-where $P_{acc}$ is the probability of accepting the volume change and $\Delta E$ is the difference between the old state with
-energy $U_{old}$ for the volume $V_{old}$ and the new state with energy $U_{new}$ for the volume $V_{new}$ according to
-\begin{equation}
-\Delta E=p_{0}\left(V_{new}-V_{old}\right)+\left(U_{new}-U_{old}\right)+Nk_{\text{B}}T \ln \frac{V_{old}}{V_{new}} \;.
-\label{eq:differencestate}
-\end{equation}
-
-
-
-
-
-\subsection{Caloric properties}
-\label{sec:Caloric properties}
-% 
-
-The residual enthalpy $H^{\text{res}}$ is directly linked to the residual internal energy, pressure and volume of the system
-\begin{equation}
-H^{\text{res}}=U^{\text{res}}+pV-Nk_{\text{B}}T \;,
+\end{align}
+\begin{align}
+\frac{1}{RT}\left(\frac{\partial p}{\partial \rho}\right)_T=1+2A^\text{r}_{01}+A^\text{r}_{02},
+\label{eq:dpdrho}
+\end{align}
+\begin{align}
+\frac{1}{\rho{R}}\left(\frac{\partial p}{\partial T}\right)_\rho=1+A^\text{r}_{01}-A^\text{r}_{11},
+\label{eq:dpdt}
+\end{align}
+\begin{align}
+\frac{h}{RT}=1+A^\text{r}_{01}+A^\text{o}_{10}(T)+A^\text{r}_{10},
 \label{eq:enthalpy}
-\end{equation}
-where $U^{\text{res}}$ is the residual potential energy. It is defined as the sum of all pairwise interaction energies $u_{ij}$ and
-the appropriate long range correction $\Delta U^{L}$, cf. section 5.5
-\begin{equation}
-U^{\text{res}}=\sum^{N-1}_{i=1} \sum_{j=i+1\atop r_{ij}<r_{\text{c}}}^{N} u_{ij} + \Delta U^{L} \;.
-\label{eq:internalenergy}
-\end{equation}
+\end{align}
+\begin{align}
+\frac{g}{RT}=1+A^\text{r}_{01}+A^\text{o}_{00}+A^\text{r}_{00},
+\label{eq:gibbs}
+\end{align}
+\begin{align}
+\frac{c_v}{R}=-A^\text{o}_{20}(T)-A^\text{r}_{20},
+\label{eq:cv}
+\end{align}
+while molar isobaric heat capacity $c_p$, and speed of sound $w$ are non-linear combinations of derivatives
+\begin{align}
+\frac{c_p}{R}=-A^\text{o}_{20}(T)-A^\text{r}_{20}+\frac{(1+A^\text{r}_{01}-A^\text{r}_{11})^2}{1+2A^\text{r}_{01}+A^\text{r}_{02}},
+\label{eq:cp}
+\end{align}
+\begin{align}
+\frac{Mw^2}{RT}=1+2A^\text{r}_{01}+A^\text{r}_{02}-\frac{(1+A^\text{r}_{01}-A^\text{r}_{11})^2}{A^\text{o}_{20}(T)+A^\text{r}_{20}},
+\label{eq:sos}
+\end{align}
+where $M$ is the molar mass, $A^\text{r}_{nm}=A^\text{r}_{nm}(T, \rho)$, and $A^\text{o}_{nm}=A^\text{o}_{nm}(T, \rho)=(1/T)^n \rho^m \cdot \partial^{n+m}[\alpha^\text{o}(T)+\alpha^\text{o}(\rho)]/\partial(1/T)^n / \partial \rho^m =A^\text{o}_{nm}(T)+A^\text{o}_{nm}(\rho)$. Note that the ideal part
+\begin{itemize}
+	\item $A^\text{o}_{nm}(T, \rho)=0$, for $n>0$ and $m>0$,
+	\item $A^\text{o}_{nm}(T, \rho)=A^\text{o}_{nm}(T)+0$, for $n>0$ and $m=0$,
+	\item $A^\text{o}_{nm}(T, \rho)=0+(-1)^{1+m}$, for $n=0$ and $m>0$.
+\end{itemize}
+A more complete list of thermodynamic properties can be found in Ref. \cite{SpanBook}. For the $NVE$ ensemble, there are two sets of $A^\text{r}_{nm}$ output values in $ms$2. Each set corresponds to a different statistical mechanical entropy definition \cite{Lus12}. The numerical values for these definitions should converge to the same number as the system size increases and they should be identical in the thermodynamic limit $(N \rightarrow \infty)$.\\
+
+The $A^\text{r}_{nm}$ derivatives are determined from fluctuation formulas. These fluctuation formulas require the ensemble average of $U^n$ and ${\partial^m U}/{\partial V^m}$ with respect to the applied molecular interaction pair potential. Thus the explicit analytical expressions for $U^n$ and ${\partial^m U}/{\partial V^m}$ have to be determined analytically beforehand ~\cite{Lus11, Lus12}. The general formula for ${\partial^m U}/{\partial V^m}$ can be found in Ref. ~\cite{Lus94b}. For common molecular interaction pair potentials, like the Lennard-Jones potential~\cite{allen}, describing repulsive and dispersive interactions, or Coulomb's law, describing electrostatic interactions between point charges, the explicit analytical formulas can be obtained straightforwardly. The mathematical form of the long range correction (LRC) for $U$ and ${\partial^m U}/{\partial V^m}$ depends on the molecular interaction potential and the cut-off method (site-site or center-of-mass cut-off mode) applied. For the Lennard-Jones potential, the LRC scheme was well described in the literature for both the site-site~\cite{Lus11, Mei06} and the center of mass cut-off mode~\cite{Lus94b, Lus88}. For the usual implementation of the reaction field method ~\cite{RFmethod, siteRFmethod}, the LRC for ${\partial^m U}/{\partial V^m}$ can be obtained straightforwardly. However, practical applications show that the electrostatic LRC of ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$ can be neglected in case of systems for which the reaction field method is an appropriate choice. E.g., the contribution of the electrostatic LRC for a liquid system ($T=298$ K and $\rho= 45.86$ mol/l) consisting of only 200 water and 50 methanol molecules with a very short cut-off radius of $20\%$ of the edge length of the simulation volume is still $<<1\%$ for both ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$.\\
+
+The supplementary material of Ref. ~\cite{ms2release2.0} contains the explicit fluctuation formulas as well as the LRC contributions with respect to the implemented molecular interaction pair potentials in $ms$2 for the $A^\text{r}_{nm}$ derivatives up to the order of $n=3$ and $m=2$.
+
+\subsection{Static properties from conventional fluctuation formulas (NpT, NpH)}
+\label{sec:PropConv}
+
+Several static thermodynamic properties have simple statistical analogs in certain ensembles.\\
+
+%At constant temperature and volume ($NVT$ ensemble), e.g. the pressure is determined by the virial expression $W$. Other important
+%thermodynamic properties are accessible at constant temperature and pressure. In the $NpT$ ensemble, the volume is a fluctuating %parameter that on average yields the volume corresponding to the specified temperature and
+%pressure. In both ensembles, the residual internal energy is the sum of all pairwise interaction energies $u_{ij}$ and
+%the appropriate long range correction. The residual enthalpy is linked to the residual internal energy, pressure
+%and volume of the system using the thermodynamic definition.
+
+%At constant temperature $T$ and volume $V$, the pressure $p$ is determined by \cite{allen}
+%\begin{equation}
+%p=\frac{k_{\text{B}}T}{V}+\frac{\left\langle W\right\rangle}{V}+\Delta p^{L}=\frac{k_{\text{B}}T}{V}+\frac{1}{3V}\left\langle %\sum^{N-1}_{i=1}\sum_{j=i+1\atop r_{ij}<r_{\text{c}}}^{N} \textbf{\textit{r}}_{ij}\textbf{\textit{f}}_{ij}\right\rangle +\Delta %p^{L} \;,
+%\label{eq:pressure}
+%\end{equation}
+%where $k_{\text{B}}$ is the Boltzmann constant and the brackets $\left\langle \ldots \right\rangle$ indicate the ensemble average. $W$ denotes the virial,
+%which is defined by the force vector $\textbf{\textit{f}}_{ij}$ acting between two molecules at a separation vector %$\textbf{\textit{r}}_{ij}$ between their centers of mass. The contribution $\Delta p^{L}$ considers the long-range interactions with %molecules beyond the cut-off radius $r_{\text{c}}$.
+
+%In the $NpT$ ensemble, the volume is a fluctuating parameter that on average yields the volume
+%corresponding to the specified pair of temperature $T$ and pressure $p_{0}$. In MD simulations with Andersen's
+%barostat \cite{andersen}, which is implemented in \textit{ms}2, the fluctuations of the volume are damped by a fictive piston mass %$Q_{\text{p}}$ according to the equation of motion
+%\begin{equation}
+%\ddot{V}=\frac{p-p_{0}}{Q_{\text{p}}} \;.
+%\label{eq:fictivepistonmass}
+%\end{equation}
+%In MC simulations, the volume is changed randomly and the new volume accepted by applying the Metropolis
+%acceptance criterion
+%\begin{equation}
+%P_{acc}=\text{min} \left(1, \exp \left(\frac{\Delta E}{k_{\text{B}}T}\right)\right) \;,
+%\label{eq:metropolisacceptancecriterion}
+%\end{equation}
+%where $P_{acc}$ is the probability of accepting the volume change and $\Delta E$ is the difference between the old state with
+%energy $U_{old}$ for the volume $V_{old}$ and the new state with energy $U_{new}$ for the volume $V_{new}$ according to
+%\begin{equation}
+%\Delta E=p_{0}\left(V_{new}-V_{old}\right)+\left(U_{new}-U_{old}\right)+Nk_{\text{B}}T \ln \frac{V_{old}}{V_{new}} \;.
+%\label{eq:differencestate}
+%\end{equation}
+
+%The residual enthalpy $H^{\text{res}}$ is directly linked to the residual internal energy, pressure and volume of the system
+%\begin{equation}
+%H^{\text{res}}=U^{\text{res}}+pV-Nk_{\text{B}}T \;,
+%\label{eq:enthalpy}
+%\end{equation}
+%where $U^{\text{res}}$ is the residual potential energy. It is defined as the sum of all pairwise interaction energies $u_{ij}$ and
+%the appropriate long range correction $\Delta U^{L}$, cf. section 5.5
+%\begin{equation}
+%U^{\text{res}}=\sum^{N-1}_{i=1} \sum_{j=i+1\atop r_{ij}<r_{\text{c}}}^{N} u_{ij} + \Delta U^{L} \;.
+%\label{eq:internalenergy}
+%\end{equation}
 
 
-\textbf{Massieu potential derivatives}
-$ms$2 version 2.0 features evaluating free energy derivatives in a systematic manner, thus greatly extending the thermodynamic property types that can be sampled in single simulation runs. The approach is based on the fact that the fundamental equation of state contains the complete thermodynamic information about a system, which can be expressed in terms of various thermodynamic potentials~\cite{MunsterBook}, e.g. internal energy $E(N,V,S)$, enthalpy $H(N,p,S)$, Helmholtz free energy $F(N,V,T)$ or Gibbs free energy $G(N,p,T)$, with number of particles $N$, volume $V$, pressure $p$, temperature $T$ and entropy $S$. These representations are equivalent in the sense that any other thermodynamic property is essentially a combination of derivatives of the chosen form with respect to its independent variables. The form $F/T(N,V,1/T)$, known as the Massieu potential, is preferred in molecular simulations due to practical reasons ~\cite{Lus11, Lus12}. The statistical mechanical formalism of Lustig allows for the simultaneous sampling of any $A^r_{mn}$ in a single $NVT$ ensemble simulation for a given state point ~\cite{Lus11, Lus12, Lus94a, Lus94b}
-\begin{eqnarray} 
-\frac{\partial^{m+n}(F/(RT))}{\partial\beta^{m} \partial \rho^{n}} \beta^m \rho^n  \equiv A_{mn} = A^i_{mn} + A^r_{mn}\mbox{   ,}
-\label{eq:deriv}
-\end{eqnarray}
-where $R$ is the gas constant, $\beta \equiv 1/T$ and $\rho \equiv N/V$. $A_{mn}$ can be separated into an ideal part $A^i_{mn}$ and a residual part $A^r_{mn}$ ~\cite{RowBook}. The calculation of the residual part is the target of molecular simulation and the derivatives $A^r_{10}$, $A^r_{01}$, $A^r_{20}$, $A^r_{11}$, $A^r_{02}$, $A^r_{30}$, $A^r_{21}$ and $A^r_{12}$ were implemented in $ms$2 for $NVT$ ensemble simulations. The ideal part can be obtained by independent methods, e.g. from spectroscopic data or ab initio calculations. However, it can be shown that for any $A_{mn}=A^i_{mn}+A^r_{mn}$, where $n>0$, the ideal part is either zero or depends exclusively on the density, thus it is known by default ~\cite{Lus12}. Note that the calculation of $A^r_{00}$ still requires additional concepts such as thermodynamic integration or particle insertion methods. From the first five derivatives $A_{10}$, $A_{01}$, $A_{20}$, $A_{11}$, $A_{02}$ every measurable thermodynamic property can be expressed (see the supplementary material for a list of properties) with the exception of phase equilibria. A detailed description of the implementation is in the supplementary material, here, only an overview is provided.\\  
-The calculation of the derivatives up to the order of $n=2$ requires the explicit mathematical expression of ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$ with respect to the applied molecular interaction pair potential and has to be determined analytically beforehand ~\cite{Lus11, Lus12}. The general formula for ${\partial^n U}/{\partial V^n}$ can be found in Ref. ~\cite{Lus94b}. For common molecular interaction pair potentials, like the Lennard-Jones potential~\cite{allen1987, frenkel2003}, describing repulsive and dispersive interactions, or Coulomb's law, describing electrostatic interactions between point charges, the analytical formulas for ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$ can be obtained straightforwardly.\\
-As molecular simulation is currently limited to operate with considerably fewer particles than real systems, the effect of the small system size thus has to be counter-balanced with a contribution to $U$ and ${\partial^n U}/{\partial V^n}$ called long range correction (LRC) ~\cite{allen1987, frenkel2003}. The mathematical form of the LRC depends on the molecular interaction potential and the cut-off method (site-site or center-of-mass cut-off mode) applied. For the Lennard-Jones potential, the LRC scheme was well described in the literature for both the site-site~\cite{Lus11, Mei06} and the center of mass cut-off mode~\cite{Lus94b, Lus88}. The reaction field method~\cite{RFmethod} was the default choice in the preceding version of $ms$2 for the LRC of electrostatic interactions modelled by considering charge distributions on molecules. The usual implementation of the reaction field method combines the explicit and the LRC part in a single pair potential~\cite{RFmethod, siteRFmethod} from which ${\partial^n U}/{\partial V^n}$ (including the LRC contribution) is directly obtainable. However, practical applications show that the electrostatic LRC of ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$ can be neglected in case of systems for which the reaction field method is an appropriate choice. E.g., the contribution of the electrostatic LRC for a liquid system ($T=298$ K and $\rho= 45.86$ mol/l) consisting of only 200 water and 50 methanol molecules with a very short cut-off radius of $20\%$ of the edge length of the simulation volume is still $<<1\%$ for both ${\partial U}/{\partial V}$ and ${\partial^2 U}/{\partial V^2}$. The supplementary material contains detailed elaborations on the LRC for the Lennard-Jones potential.
-
-
-\subsection{second derivatives}
-\label{sec:second derivatives}
-% 
-
-The accessible second derivatives vary with the employed ensemble. In the $NVT$ ensemble, the residual
-isochoric heat capacity $c^{res}_{v}$ is determined by fluctuations of the residual potential energy $U^{\text{res}}$
-\begin{equation}
-c^{\text{res}}_{v}=\frac{1}{N} \left(\frac{\partial U^{\text{res}}}{\partial T}\right)_{v}=\frac{1}{k_{\text{B}}\left(NT\right)^{2}}\left(\left\langle \left(U^{\text{res}}\right)^{2}\right\rangle - \left\langle U^{\text{res}}\right\rangle ^{2}\right) \;.
-\label{eq:isochoricheatcapacity}
-\end{equation}
-The partial derivative of the potential energy with respect to the volume at constant temperature $(\partial U^{\text{res}}/ \partial V)_{T}$ is determined by fluctuations of the residual potential energy $U^{\text{res}}$ and the virial $W$
-\begin{equation}
-\left(\frac{\partial U^{\text{res}}}{\partial V}\right)_{T}=\frac{N}{3V} \left(\frac{1}{k_{\text{B}}T}\left(\left\langle W\right\rangle \left\langle U^{\text{res}}\right\rangle - \frac{1}{N} \left\langle WU^{\text{res}}\right\rangle\right)+\left\langle W\right\rangle \right) \;.
-\label{eq:partialderivativeofthepotentialenergy}
-\end{equation}
+%The accessible second derivatives vary with the employed ensemble. In the $NVT$ ensemble, the residual
+%isochoric heat capacity $c^{res}_{v}$ is determined by fluctuations of the residual potential energy $U^{\text{res}}$
+%\begin{equation}
+%c^{\text{res}}_{v}=\frac{1}{N} \left(\frac{\partial U^{\text{res}}}{\partial %T}\right)_{v}=\frac{1}{k_{\text{B}}\left(NT\right)^{2}}\left(\left\langle \left(U^{\text{res}}\right)^{2}\right\rangle - %\left\langle U^{\text{res}}\right\rangle ^{2}\right) \;.
+%\label{eq:isochoricheatcapacity}
+%\end{equation}
+%The partial derivative of the potential energy with respect to the volume at constant temperature $(\partial U^{\text{res}}/ %\partial V)_{T}$ is determined by fluctuations of the residual potential energy $U^{\text{res}}$ and the virial $W$
+%\begin{equation}
+%\left(\frac{\partial U^{\text{res}}}{\partial V}\right)_{T}=\frac{N}{3V} \left(\frac{1}{k_{\text{B}}T}\left(\left\langle %W\right\rangle \left\langle U^{\text{res}}\right\rangle - \frac{1}{N} \left\langle WU^{\text{res}}\right\rangle\right)+\left\langle %W\right\rangle \right) \;.
+%\label{eq:partialderivativeofthepotentialenergy}
+%\end{equation}
 
 In the $NpT$ ensemble, the second derivatives of the Gibbs energy, namely the residual isobaric heat capacity $c^{\text{res}}_{p}$, the isothermal compressibility $\beta_{T}$ and the volume expansivity $\alpha_{p}$ are functions of ensemble fluctuations \cite{allen}. The residual isobaric heat capacity $c^{\text{res}}_{p}$ is related to fluctuations of the residual enthalpy $H^{\text{res}}$
 \begin{equation}
@@ -528,17 +456,14 @@ and the volume expansivity $\alpha_{p}$ again to volume and residual enthalpy fl
 \alpha_{p}=\frac{1}{V}\left(\frac{\partial V}{\partial T}\right)_{p}=\frac{N}{T^{2}\left\langle V\right\rangle}\left(\left\langle H^{\text{res}}V\right\rangle-\left\langle H^{\text{res}}\right\rangle\left\langle V\right\rangle\right) \;.
 \label{eq:volumeexpansivity}
 \end{equation}
-Note that Eqs.~\eqref{eq:isochoricheatcapacity} to~\eqref{eq:volumeexpansivity} are valid for mixtures as well.
 
-The speed of sound $c$ is the velocity of a sound wave traveling through an elastic medium. It is defined by the
+The speed of sound $w$ is the velocity of a sound wave traveling through an elastic medium. It can be given by the
 isothermal compressibility $\beta_{T}$, the volume expansivity $\alpha_{p}$, the isobaric heat capacity $c_{p}$ and the temperature $T$ by
 \begin{equation}
-c=\left(\frac{1}{M\left(\beta_{T}\rho-T\alpha^{2}_{p}/c_{p}\right)}\right)^{0.5} \;,
+w=\left(\frac{1}{M\left(\beta_{T}\rho-T\alpha^{2}_{p}/c_{p}\right)}\right)^{0.5} \;,
 \label{eq:speedofsound}
 \end{equation}
 where $M$ is the molar mass. In \textit{ms}2, the speed of sound is calculated both for pure components and mixtures in the $NpT$ ensemble.
-
-
 
 \subsection{Transport properties}
 \label{sec:Transport properties}
@@ -628,8 +553,8 @@ In the previous version of $ms2$ the determination of the thermal conductivity b
 
 
 
-\subsection{configurational properties}
-\label{sec:configurational properties}
+\subsection{radial distribution function}
+\label{sec:radial distribution function}
 % Tatjana / Simon
 
 The \textbf{radial distribution} function (RDF) $g(r)$ is a measure for the microscopic structure of matter. It is defined by the local number density around a given position within a molecule $\rho^L(r)$ in relation to the overall number density $\rho = N/V$
@@ -672,12 +597,9 @@ to determine its chemical potential at infinite dilution. For dense phases, the 
 Henry's law constant can be calculated with the gradual insertion method, if Widom's method fails. The number
 of solute molecules in the simulation is reduced to one, representing the infinitely diluted molecule.
 
-
-
-
 \subsection{second virial coefficient}
 \label{sec:second virial coefficient}
-% 
+ 
 
 The second virial coefficient is related to the intermolecular potential by \cite{gray}
 \begin{equation}
@@ -686,12 +608,10 @@ B = -2\pi \int^{\infty}_{0} \mathrm dr_{ij} \left\langle \exp \left(-\frac{u_{ij
 \end{equation}
 where the $\left\langle \ldots \right\rangle$ brackets indicate the average over the orientations $\omega_{i}$ and $\omega_{j}$ of two molecules $i$ and $j$ separated by a center of mass distance $r_{ij}$. The integrand, called Mayer's $f$-function, is evaluated at numerous distances in an appropriate range. \textit{ms}2 evaluates Mayer's $f$-function by averaging over numerous random orientations at each radius.
 
+\subsection{Chemical potential and partial molar properties }
+\label{sec:Chemical potential and partial molar properties }
 
-\section{statistical Errors}
-\label{sec:statistical Errors}
-% ??
-
-
+%Gabor+Andreas
 
 \section{special features}
 \label{sec:special features}
@@ -700,7 +620,27 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 
 \subsection{Vapour-liquid equilibrium}
 \label{sec:Vapour-liquid equilibrium}
-% Andreas
+
+The grand equilibrium method is a technique to determine the VLE of pure substances or mixtures. It is a
+two-step procedure, where the coexisting phases are simulated independently and subsequently. The specified
+thermodynamic variables for the VLE are the temperature $T$ and the composition $\textbf{x}$ of the liquid. In the first step,
+one $NpT$ simulation of the liquid phase is performed at $T$ , $\textbf{x}$ and some pressure $p_{0}$ to determine the chemical potentials $\mu^{l}_{i}$ and the partial molar volumes $v^{l}_{i}$ of all components, which corresponds to the molar volume in case of a pure substance. If the entropic properties are determined by Widom's test molecule method \cite{widom}, both MD or MC can be used to sample the phase space. A more advanced technique for these properties is implemented in combination with MC, i.e. gradual insertion \cite{lyubartsev1, nezbeda} (see below). On the basis of the chemical potentials and partial molar volumes at $p_{0}$, first order Taylor expansions can be made for the pressure dependence
+\begin{equation}
+\mu^{l}_{i}(T,\textbf{x},p)\approx \mu^{l}_{i}(T,\textbf{x},p_{0})+v^{l}_{i}(T,\textbf{x},p_{0})\cdot (p-p_{0}) \;.
+\label{eq:grandequilibriummethod}
+\end{equation}
+Note that \textit{ms}2 yields $\mu_{i}(T,\textbf{x},p)-\mu^{id}_{i}(T)$, where $\mu^{id}_{i}(T)$ is the temperature dependent part of the ideal gas contribution to the chemical potential of the pure component. $\mu^{l,id}_{i}(T)$ does not need to be determined for VLE calculations, because it cancels out when Eq.~\eqref{eq:grandequilibriummethod} is equated to the corresponding expression for the vapor.
+
+In the second step, one pseudo-$\mu VT$ simulation \cite{vrabec1} is performed for the vapor phase on the basis of Eq.~\eqref{eq:grandequilibriummethod} that yields the saturated vapor state point of the VLE. This simulation takes place in a pseudo ensemble in the sense that the specified chemical potentials are not constant, but dependent on the actual pressure of the vapor phase. However, experience based on hundreds of systems \cite{huang, vrabec} shows that the vapor phase simulation rapidly
+converges to the saturated vapor state point during equilibration so that effectively the equilibrium chemical
+potentials are specified via the attained vapor pressure. The number of molecules varies during the vapor phase
+simulation of the grand equilibrium method. Starting from a specified number of molecules in an arbitrarily
+chosen gaseous state, \textit{ms}2 adjusts the extensive volume $V$ after an equilibration period so that the vapor density
+does not have to be known in advance.
+
+The grand equilibrium method has been widely used and compares favorably to other methods used for vapor
+liquid equilibrium simulations.
+
 
 \subsection{osmotic pressure}
 \label{sec:osmotic pressure}
@@ -718,6 +658,9 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 \label{sec:humid air Ensemble}
 % Jadran / Simon
 
+\subsection{multiple Ensembles for multiple state points}
+\label{sec:multiple Ensembles for multiple state points}
+% Andreas & Gabor
 
 \parencite{Eckl2009}
 
