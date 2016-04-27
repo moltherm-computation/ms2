@@ -1369,6 +1369,17 @@ contains
         call LogWrite
       end do
     end do
+    ! Setting scale coefficients for ThermoInt-Components
+    j = this%NRealComponents+1
+    do i = 1, this%NRealComponents
+      if (this%Component(i)%ChemPotMethod == ChemPotMethodThermoInt ) then
+        this%ScaleSigma(j, :) = this%ScaleSigma(i, :)
+        this%ScaleSigma(:, j) = this%ScaleSigma(:, i)
+        this%ScaleEpsilon(j, :) = this%ScaleEpsilon(i, :)
+        this%ScaleEpsilon(:, j) = this%ScaleEpsilon(:, i)
+        j = j+1
+      end if
+    end do
 
 #if HBOND > 0
     call FileReadParameter( this%NHBondCrit, iounit_params , IdNHBonds, .false. )
