@@ -2,55 +2,97 @@
 # Makefile for ms2
 ########################################
 #
-COMPILER = GNU
+COMPILER ?= GNU
 #
-$(info COMPILER: $(COMPILER))
-CONFIG = makefiles/$(COMPILER).mk
+TARGET   ?= RELEASE
+#TARGET   ?= DEBUG
+TRANS    ?= 0
+OSMOP    ?= 0
+HBOND    ?= 0
+MPI      ?= 0
+OMP      ?= 0
+SP       ?= 0
+#
+PROG     = ms2
+PROG     :=  $(PROG)_$(COMPILER)
+#
+# including architecture specific definitions
+CONFIG := makefiles/$(COMPILER).mk
 include $(CONFIG)
 #
-TARGET    = RELEASE
-#TARGET    = DEBUG
-TRANS     = 0
-MPI       = 0
-OMP       = 0
-PROG      = ms2
-#
+# print some info
+$(info COMPILER: $(COMPILER))
 $(info TARGET: $(TARGET))
 ifeq ($(TRANS),1)
 $(info TRANSPORT enabled)
 endif
+ifeq ($(OSMOP),1)
+$(info osmoticPressure enabled)
+endif
+ifeq ($(OSMOP),2)
+$(info osmoticPressure with profiling enabled)
+endif
+ifeq ($(HBOND),1)
+$(info H-Bonding statistics enabled)
+endif
 ifeq ($(MPI),1)
 $(info MPI enabled)
- endif
+endif
 ifeq ($(OMP),1)
 $(info OMP enabled)
 endif
 ifeq ($(SP),1)
 $(info compiling Single Precision)
 endif
-ifeq ($(MPI),1)
-  F90      = $(F90mpi)
-  F90ld    = $(F90mpi)
-  CPPFLAGS += -DMPI_VER=1
-  PROG     :=  $(PROG)_$(COMPILER)_mpi
-else
-  CPPFLAGS += -DMPI_VER=0
-  PROG     :=  $(PROG)_$(COMPILER)
-endif
+#
 
 F90FLAGS = $(F90FLAGS_$(TARGET))
 LDFLAGS  = $(LDFLAGS_$(TARGET))
 
+ifeq ($(TARGET),DEBUG)
+  PROG     := $(PROG)_dbg
+endif
+
+ifeq ($(MPI),1)
+  F90      = $(F90mpi)
+  F90ld    = $(F90mpi)
+  CPPFLAGS += -DMPI_VER=1
+  PROG     :=  $(PROG)_mpi
+else
+  CPPFLAGS += -DMPI_VER=0
+endif
+
 ifeq ($(OMP),1)
-CPPFLAGS += -DENABLE_OMP
-F90FLAGS += $(OMPFLAGS)
-LDFLAGS  += $(OMPFLAGS)
-PROG     := $(PROG)_omp
+  CPPFLAGS += -DENABLE_OMP
+  F90FLAGS += $(OMPFLAGS)
+  LDFLAGS  += $(OMPFLAGS)
+  PROG     := $(PROG)_omp
+endif
+
+ifeq ($(SP),1)
+  CPPFLAGS += -DSINGLEPRECISION
+  LDFLAGS  += -DSINGLEPRECISION
+  PROG     := $(PROG)_SP
 endif
 
 ifeq ($(TRANS),1)
-CPPFLAGS += -DTRANS
-PROG     := $(PROG)_trans
+  CPPFLAGS += -DTRANS
+  PROG     := $(PROG)_trans
+endif
+
+ifeq ($(OSMOP),1)
+  CPPFLAGS += -DOSMOP=1
+  PROG     := $(PROG)_osmop1
+endif
+
+ifeq ($(OSMOP),2)
+  CPPFLAGS += -DOSMOP=2
+  PROG     := $(PROG)_osmop2
+endif
+
+ifeq ($(HBOND),1)
+  CPPFLAGS += -DHBOND=1
+  PROG     := $(PROG)_hbond
 endif
 
 SRCS =  ms2.F90 \
@@ -90,9 +132,12 @@ clean:
 
 .SUFFIXES: .F90 .mod .o
 ifeq ($(COMPILER),$(filter $(COMPILER), INTEL CRAYintel))
+ifeq ($(TARGET),RELEASE)
 ms2_component.mod ms2_component.o:ms2_component.F90
 	$(F90) $(CPPFLAGS) $(F90FLAGS) -O2 -c ms2_component.F90
 endif
+endif
+
 %.mod %.o: %.F90
 	$(F90) $(CPPFLAGS) $(F90FLAGS) -c $<
 

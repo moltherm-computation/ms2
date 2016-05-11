@@ -815,6 +815,10 @@ module ms2_ensemble
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
+  
+  interface ErrorsUpdateThermoInt
+    module procedure TEnsemble_ErrorsUpdateThermoInt
+  end interface
 
   interface SVCOutput
     module procedure TEnsemble_SVCOutput
@@ -1374,6 +1378,17 @@ contains
 &         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
         call LogWrite
       end do
+    end do
+    ! Setting scale coefficients for ThermoInt-Components
+    j = this%NRealComponents+1
+    do i = 1, this%NRealComponents
+      if (this%Component(i)%ChemPotMethod == ChemPotMethodThermoInt ) then
+        this%ScaleSigma(j, :) = this%ScaleSigma(i, :)
+        this%ScaleSigma(:, j) = this%ScaleSigma(:, i)
+        this%ScaleEpsilon(j, :) = this%ScaleEpsilon(i, :)
+        this%ScaleEpsilon(:, j) = this%ScaleEpsilon(:, i)
+        j = j+1
+      end if
     end do
 
     ! Read cutoff radii
@@ -4127,11 +4142,10 @@ loop:do l = 1, NPartInCell
     call Force( this )
     call ChemicalPotential( this )
     call Atom2Unit( this )
-    call Correct( this )
-
     if ( Shake > 0 ) then
       call QShake(this)
     end if
+    call Correct( this )
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -4906,11 +4920,6 @@ loop5:    do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -5136,24 +5145,25 @@ loop5:    do nc = 1, this%NComponents
     tempVirial = 0._RK
     dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
 
+    ! calculate unconstrained and unscaled(T) positions
+    this%scale = 1._RK ! shutoff Thermostat for unconstrained timestep
+    call CorrectLeapFrog( this )
+    call PredictLeapFrog( this )
     do i =1, this%NComponents
       pc => this%Component(i)
       if (RootProc) then
+        oldF(:,:,:) = 0._RK
 #if MPI_VER > 0
-        oldF(:,:,:) = pc%FAll(:,:,:)
+        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%FAll(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
 #else
-        oldF(:,:,:) = pc%F(:,:,:)
+        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%F(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
 #endif
-        ! calculate unconstrained and unscaled(T) positions
-        call PredictLeapFrog( pc, 1._RK )
       end if
       ! calculate new forces and positions due to constraints (bonds)
       call Constraints( pc, tempVirial )
       ! reverse unconstrained timestep
       if (RootProc) then
-        call ReverseLeapFrog( pc, oldF(:,:,:), dLogVolumeThird)
-        ! redo half-timestep,
-        call CorrectLeapFrog( pc, dLogVolumeThird )
+        call ReverseLeapFrog( pc, oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit), dLogVolumeThird )
       end if
     end do
 
@@ -5168,12 +5178,6 @@ loop5:    do nc = 1, this%NComponents
     this%Virial = this%Virial + VirialShake
     this%VirialIntra = this%VirialIntra + VirialShake
     this%Pressure = this%Pressure + VirialShake/this%Volume0
-    
-    ! correct previous volume-correction
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      if (RootProc) this%Volume1 = this%Volume1-this%Volume2
-      call CorrectVol(this)
-    end if
 
   end subroutine TEnsemble_QShake
 
@@ -9411,6 +9415,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Apply scaling factors
 #if MPI_VER > 0
       call MPI_Bcast( Factor, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( pt%Lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) ! Michael Sch.: unneeded !
 #endif
       call ScaleInteractionThermoInt(this, nt, Factor)
       call Unit2Atom1( pt, 1 )
@@ -10770,11 +10775,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)       :: this
     integer, intent(in)   :: nc,np
@@ -11465,7 +11465,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             fields = fields + 1
             if ( EnsembleType .eq. EnsembleTypeNPT) then
               fields = fields + 1
-              if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) fields = fields + 1
+              if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) fields = fields + 1
             endif
           endif
         enddo
@@ -13725,6 +13725,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Error( pc%SumHW_counter )
           call Error( pc%SumHW_denom )
           call Error( pc%SumVW )
+          call Error( pc%SumHM )
         case default
           ! DO NOTHING
         end select
@@ -15336,18 +15337,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileClose( this%iounit_errors )
 
     ! Open ThermoInt result file
-    if (RootProc) then
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      if (RootProc) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_thermoint, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ThermoIntFileExtension)
+      end if
 
-        ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
-        t = this%NRealComponents+1
-        do i=1,this%NRealComponents
-          pc => this%Component(i)
+      ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
 
-          if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-            !first two lines
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+          !first two lines
+          if (RootProc) then
             write( IOBuffer, '(" Component:", T15, I3)' ) i
             call FileWrite( this%iounit_thermoint )
             write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
@@ -15368,44 +15371,124 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             call FileWriteNoAdvance( this%iounit_thermoint )
             write( IOBuffer, '("       INTParVol")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
+            write( IOBuffer, '("       INTParEnt")' )
+            call FileWriteNoAdvance( this%iounit_thermoint )
             write( IOBuffer, '("     VISITS")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
             call FileWriteBlank( this%iounit_thermoint )
-            ! Rest.
-            do j=0,pc%NBins-1
-              write( IOBuffer, '(I6)' ) j
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsEn(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLa(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaV(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsdEndLaH(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntdEndLa(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntVW(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",E15.6)' ) pc%BinsIntHW(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              write( IOBuffer, '(" ",I10)' ) pc%BinsVisit(j)
-              call FileWriteNoAdvance( this%iounit_thermoint )
-              call FileWriteBlank( this%iounit_thermoint )
-            end do
-            t = t+1
-          end if 
+          end if
 
-        end do
+          ! Remainder
+          call ErrorsUpdateThermoInt( this, i, pc%NBins)
+          t = t+1
+        end if 
 
-        ! Close final result file
-        call FileClose( this%iounit_thermoint)
-      end if
+      end do
+
+      ! Close final result file
+      call FileClose( this%iounit_thermoint)
     end if
 
   end subroutine TEnsemble_ErrorsUpdate
+
+
+!==============================================================!
+!  Subroutine TEnsemble_ErrorsUpdateThermoInt                  !
+!==============================================================!
+
+  subroutine TEnsemble_ErrorsUpdateThermoInt( this, i, NBins )
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: i
+    integer, intent(in) :: NBins
+
+    ! Declare local variables
+    type(TComponent), pointer  :: pc
+    integer                    :: j, LocalVisit
+    real(RK)                   :: BinsEn(0:NBins-1), BinsdEndLa(0:NBins-1), BinsIntdEndLa(0:NBins-1)
+    real(RK)                   :: BinsdEndLaV(0:NBins-1), BinsdEndLaH(0:NBins-1), BinsIntVW(0:NBins-1), BinsIntHW(0:NBins-1)
+    integer                    :: BinsVisit(0:NBins-1)
+
+    pc => this%Component(i)
+    ! Avearge of each MPI process's histogram is saved in the thi file 
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then
+      call MPI_Reduce( pc%BinsEn(0: NBins-1)       *pc%BinsVisit(0: NBins-1), BinsEn(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLa(0: NBins-1)   *pc%BinsVisit(0: NBins-1), BinsdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaV(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaV(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaH(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaH(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntdEndLa(0: NBins-1)                         , BinsIntdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntVW(0: NBins-1)                             , BinsIntVW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntHW(0: NBins-1)                             , BinsIntHW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsVisit(0: NBins-1)                             , BinsVisit(0: NBins-1), NBins, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+      do j=0,pc%NBins-1
+        if (BinsVisit(j) .eq. 0) then 
+          LocalVisit=1
+        else
+          LocalVisit=BinsVisit(j)
+        end if
+        BinsEn(j)        = BinsEn(j)/LocalVisit
+        BinsdEndLa(j)    = BinsdEndLa(j)/LocalVisit
+        BinsdEndLaV(j)   = BinsdEndLaV(j)/LocalVisit
+        BinsdEndLaH(j)   = BinsdEndLaH(j)/LocalVisit
+        BinsIntdEndLa(j) = BinsIntdEndLa(j)/NProcs
+        BinsIntVW(j)     = BinsIntVW(j)/NProcs
+        BinsIntHW(j)     = BinsIntHW(j)/NProcs
+      end do
+    else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+    endif
+#else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+#endif
+
+    ! Rest.
+    if (RootProc) then
+      do j=0,pc%NBins-1
+        write( IOBuffer, '(I6)' ) j
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsEn(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaV(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaH(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntVW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntHW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",I10)' ) BinsVisit(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        call FileWriteBlank( this%iounit_thermoint )
+      end do
+    end if
+
+  end subroutine TEnsemble_ErrorsUpdateThermoInt
 
 
 !==============================================================!
@@ -16521,33 +16604,34 @@ endif
        end do
     end if
 
-    ! Reading thi-file for ThermoInt
-    if (RootProc) then
-      t = this%NRealComponents+1
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-        call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
-      end if
-      do i=1,this%NRealComponents
-        pc => this%Component(i)
-        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+    ! Reading and broadcasting thi-file for ThermoInt
+    t = this%NRealComponents+1
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+    end if
 
-          call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
-          pc%CalcChemPot = .true.
+    do i=1,this%NRealComponents
+      pc => this%Component(i)
+      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
+        call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+        pc%CalcChemPot = .true.
+        if (RootProc) then
           !read empty line
           read( this%iounit_thermoint, * )
 
           ! read thermoint-profile
           do j = 0,pc%NBins-1
-            read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), &
-&                      pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
+            read( this%iounit_thermoint, '(I6,"  ", F5.3,7(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
           end do
-          t = t+1
-        end if 
-      end do
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-        call FileClose( this%iounit_thermoint )
-      end if
+        end if
+        t = t+1
+      end if 
+    end do
+
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      call FileClose( this%iounit_thermoint )
     end if
 
 #if MPI_VER > 0
@@ -16556,7 +16640,8 @@ endif
       do i=1,this%NRealComponents
         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+          !call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) //done during the preceding call FileReadParameter 
+          !The Broadcast of the following properties is not necessary for MD runs
           call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
@@ -16570,16 +16655,16 @@ endif
       end do
     end if
 #endif
-    if ( (SimulationType .eq. MonteCarlo) .or. RootProc ) then
-      t = this%NRealComponents+1
-      do i=1,this%NRealComponents
-        if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-          Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
-          call ScaleInteractionThermoInt(this, t, Factor)
-          t = t+1
-        end if
-      end do
-    end if
+
+    t = this%NRealComponents+1
+    do i=1,this%NRealComponents
+      if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+        Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
+        call ScaleInteractionThermoInt(this, t, Factor)
+        t = t+1
+      end if
+    end do
+    ! End of reading and broadcasting thi-file for ThermoInt
 
     if( SimulationType .eq. MolecularDynamics ) then
 
@@ -16609,11 +16694,6 @@ endif
   subroutine TEnsemble_DbgWrite( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -18390,10 +18470,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TEnsemble)         :: this
 
@@ -18466,9 +18542,6 @@ contains
    implicit none
 
     include 'fftw3.f'
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
    ! Declare arguments
 
@@ -19148,11 +19221,6 @@ contains
     subroutine TEnsemble_CalCorrFun( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this

@@ -5226,20 +5226,21 @@ subroutine TComponent_InitUnit( this, np, dq )
     np = this%NPart
     nu = this%Molecule%NUnit
 
-    do i = 1, np
-      do k = 1, nu
-        do j = 1, 3
+    do k = 1, nu
+      do j = 1, 3
+        do i = 1, np
           this%P0(i, j, k) = this%P0(i, j, k) - this%P1(i, j, k)
           this%P1(i, j, k) = this%P1(i, j, k) - 2._RK*this%P2(i, j, k)
-          if (abs(dLogVolumeThird) > zero) then
+          if (abs(dLogVolumeThird) > 0._RK) then
             this%P2(i, j, k) = (oldF(i, j, k) * TimeStepSquared2 * BoxLengthInv / this%Molecule%Unit(k)%Mass &
 &                               - this%P2(i, j, k) ) / dLogVolumeThird - this%P1(i, j, k)
-          else
-            this%P2(i, j, k) = - this%P1(i, j, k)
+          ! else oldP2 is not needed and new value can correctly be calculated without previous one
           endif
         end do
       end do
+    end do
 
+    do i = 1, np
       r(:) = 0._RK
       do k= 1, nu
         do j = 1, 3
@@ -5263,19 +5264,18 @@ subroutine TComponent_InitUnit( this, np, dq )
       this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
       this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
+    end do
 
-      do k = 1, nu
-        if( this%Molecule%Unit(k)%IsElongated ) then
-          do j = 1, 4
-            this%Q0(i, j, k) = this%Q0(i, j, k) - this%Q1(i, j, k)
-          end do
-          do j = 1, this%Molecule%Unit(k)%NDFRot
-            this%W0(i, j, k) = this%W0(i, j, k) - this%W1(i, j, k)
-          end do
-        end if
-      end do
-
-    end do ! molecule loop
+    do k = 1, nu
+      if( this%Molecule%Unit(k)%IsElongated ) then
+        do j = 1, 4
+          this%Q0(1:np, j, k) = this%Q0(1:np, j, k) - this%Q1(1:np, j, k)
+        end do
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          this%W0(1:np, j, k) = this%W0(1:np, j, k) - this%W1(1:np, j, k)
+        end do
+      end if
+    end do
 
   end subroutine TComponent_ReverseLeapFrog
 
@@ -6337,7 +6337,7 @@ contains
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: i, np, nu, k
+    integer :: i, np, nu, k, j
     real(RK):: r(3)
 
 
@@ -6362,15 +6362,20 @@ contains
         end do
       end do
 
-!       ! Calculate positions of COM for molecules from  COM of units
-!       do i = 1, np
-!         r(:) = 0._RK
-!         do k= 1, nu
-!            r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-!         end do
-!         this%Pm0(i,:) = r(:)/this%Molecule%Mass
-!         this%Pm0old(i,:) = this%Pm0(i, :)
-!       end do
+      ! Calculate positions of COM for molecules from  COM of units...needed for intialization
+      this%Pm0(:,:) = 0._RK
+      do j = 1, 3 ! 3 iterations to find close to real COM...3 is randomly chosen to account for high impulses (without 1 should sufficie)
+        do i = 1, np
+          r(:) = 0._RK
+          do k= 1, nu
+            ! Calculate new positions of COM for molecules from new COM of units
+            r(1:3) = r(1:3) + this%Molecule%Unit(k)%Mass*this%P0(i,j,1:3)
+          end do
+          this%Pm0(i,:) = r(:)/this%Molecule%Mass
+          ! Calculate displacement of molecules
+          this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
+        end do
+      end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Centers of mass positions' derivatives
@@ -6568,11 +6573,6 @@ contains
 subroutine TComponent_ForceTransport( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)  :: this
