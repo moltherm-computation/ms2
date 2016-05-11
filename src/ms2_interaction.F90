@@ -368,7 +368,7 @@ contains
     if ((this%N1Charge .gt. 0) .and. (.not. Component1%Molecule%isElongated) )then
        this%lad1 = Component1%Molecule%SiteCharge(1)%e
     end if
-    if ((this%N1Charge .gt. 0) .and. (.not. Component2%Molecule%isElongated)) then
+    if ((this%N2Charge .gt. 0) .and. (.not. Component2%Molecule%isElongated)) then
        this%lad2 = Component2%Molecule%SiteCharge(1)%e
     end if
 
@@ -1044,19 +1044,16 @@ contains
 !  Subroutine TInteraction_RDF                               !
 !==============================================================!
 
-  subroutine TInteraction_RDF( this, BoxLength,RDFdr )
+  subroutine TInteraction_RDF( this, RDFdr )
 
     implicit none
 
     ! Declare arguments
     type(TInteraction)       :: this
     real(RK), intent(in)     :: RDFdr
-    real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-
     integer           :: i, j
-
 
     ! Calculate interactions partners within cutoff sphere
       call CalcCutoffPartnersRDF( this )
@@ -1064,12 +1061,11 @@ contains
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-        call GET_RDF( this%PotLJ126LJ126( i, j ), BoxLength,RDFdr )
+        call GET_RDF( this%PotLJ126LJ126( i, j ), RDFdr )
       end do
     end do
     
  end subroutine TInteraction_RDF
-
 
 
 !==============================================================!

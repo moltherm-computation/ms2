@@ -154,9 +154,9 @@ module ms2_ensemble
 
  
     !RDF Hilfsvariable
-    real(RK) :: RDFdr, RDFdr3
+    real(RK) :: RDFdr
     real(RK), pointer :: RDFVSchale(:)
-    real(RK), pointer :: RDF(:) 
+    real(RK), pointer :: RDFValue(:) 
     
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -392,7 +392,6 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
 #endif
-!RDF
 
 #ifdef ABL
    real(RK),pointer:: AblPS(:,:)
@@ -1688,15 +1687,9 @@ contains
     this%iounit_rescf     = iounit_rescf     + i
 
     ! Calculate RDF VSchale 
-    if (this%RCutoffLJ126LJ126 .eq. -1) then
-    this%RDFdr = this%BoxLength * 0.5 / RDFNumberShells
-
-    else
-        this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
-    endif
-
+    this%RDFdr = this%RCutoffLJ126LJ126 / RDFNumberShells
     do i = 1, RDFNumberShells
-        this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
+      this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
@@ -2851,7 +2844,7 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
-    nullify( this%RDF )
+    nullify( this%RDFValue )
     nullify( this%RDFVSchale )
 
     ! Allocate scale coefficients for sigma and epsilon
@@ -2866,7 +2859,7 @@ contains
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFVSchale(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )
-      allocate( this%RDF(RDFNumberShells), STAT = stat )
+      allocate( this%RDFValue(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )    
     endif
 
@@ -3241,8 +3234,8 @@ contains
       deallocate( this%RDFVSchale )
     end if
 
-    if( associated( this%RDF ) ) then
-      deallocate( this%RDF )
+    if( associated( this%RDFValue ) ) then
+      deallocate( this%RDFValue )
     end if    
     
 
@@ -12305,7 +12298,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
             call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
             call Update( pc%SumChemPotThermoIntWidomV, pc%ExpMinusBetaEnLaMin/this%Density/this%Density)
-            call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/pc%Fraction))
+            call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/(pc%Fraction+1._RK/real( this%NPart, RK ))))
             call Update(pc%SumHW_counter, pc%HW_counter)
             call Update(pc%SumHW_denom, pc%HW_denom)
             t=t+1
@@ -14109,10 +14102,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           else
-            Average = -log( pc%SumChemPotV%Average )
-            write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
             Variance = this%Temperature * ( pc%SumChemPotV%Variance / (pc%SumChemPotV%Average * pc%SumChemPotV%Average))
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
@@ -14129,11 +14118,23 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
-          Average  = log( pc%Fraction / pc%SumChemPotThermoIntWidom%Average )
+          Average  = log( (pc%Fraction+1._RK/real( this%NPart, RK )) / pc%SumChemPotThermoIntWidom%Average )
           Variance =  pc%SumChemPotThermoIntWidom%Variance / pc%SumChemPotThermoIntWidom%Average
           write( IOBuffer, '("Chem. pot. at LambdaMin ", A, T33, "r`d:", 2F20.9)' ) &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average , Variance
           call FileWrite( this%iounit_errors )
+
+          if( pc%Npart .eq. 0 ) then
+            ! Actually: Average  = this%Temperature * exp(pc%SumChemPotV%Average)/(pc%Fraction+1._RK/real( this%NPart, RK )), but pc%Fraction=0.0
+            Average  = this%Temperature * exp(pc%SumChemPotV%Average)*this%NPart
+            Variance = Average * pc%SumChemPotV%Variance
+            write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
+&                  trim( pc%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
+&                  Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+            call FileWrite( this%iounit_errors )
+          end if
 
         end select
       end do
@@ -15752,8 +15753,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Declare local variables
     integer                   :: i, j, s, t
 
-
-
     ! RDF, Sum nullen
     ! DEBUG_COL nullen auf Ensemble Ebene
      do i=1, this%NComponents
@@ -15766,11 +15765,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       end do
      end do
 
-
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-
     call FileWriteBlank( this%iounit_rdf )
     call FileClose( this%iounit_rdf )
 
@@ -15789,89 +15786,74 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, s, t, o, LocalErrFreq=0
+    integer  :: i, j, s, t, o
+    real(RK) :: RDFRho, RDFRhoLocal
 
-    ! Update visualization file
+    ! Calculate RDF
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
+      end do
+    end do
 
-    !RDF
-    CallsToRDF  = CallsToRDF + 1
-    LocalErrFreq = LocalErrFreq + 1
-
-      ! Open RDF file
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-    endif
-
-    do i=1, this%NComponents
-     do j=1, this%NComponents
-      if (i .LE. j) then
-       call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
-       if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-         do s=1, this%Component(i)%molecule%NLJ126
-           do t=1, this%Component(j)%molecule%NLJ126
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        do s=1, this%Component(i)%molecule%NLJ126
+          do t=1, this%Component(j)%molecule%NLJ126
             write(IOBuffer, '(I5,I5)') i, j
             call FileWriteNoAdvance( this%iounit_rdf )
-           enddo
-         enddo
-       endif
-      endif
-     enddo
-    enddo
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      call FileWriteBlank( this%iounit_rdf )
-    end if
-
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-     do i=1, this%NComponents
-      do j=1, this%NComponents
-       if (i .LE. j) then
+          end do
+        end do            
+      end do
+    end do
+    call FileWriteBlank( this%iounit_rdf )
+    write(IOBuffer, '(T5,"______")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+ 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
         do s=1, this%Component(i)%molecule%NLJ126
-         do t=1, this%Component(j)%molecule%NLJ126 
-          write(IOBuffer, '(I5,I5)') s, t
-          call FileWriteNoAdvance( this%iounit_rdf )
-         enddo
-        enddo
-       endif
-      enddo
-     enddo
-     call FileWriteBlank( this%iounit_rdf )
-    endif
+          do t=1, this%Component(j)%molecule%NLJ126 
+            write(IOBuffer, '(I5,I5)') s, t
+            call FileWriteNoAdvance( this%iounit_rdf )
+          end do
+        end do
+      end do
+    end do
+    call FileWriteBlank( this%iounit_rdf )
 
     do o = 1, RDFNumberShells
-     do i=1, this%NComponents
-      do j=1, this%NComponents
-       if (i .LE. j) then
-        do s=1, this%Component(i)%molecule%NLJ126
-         do t=1, this%Component(j)%molecule%NLJ126
-          RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-          if (i .EQ. j) then
-           RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-          else
-           RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-          end if
-          this%RDF(o) = RDFRhoLocal / RDFRho
-          if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-            write(IOBuffer, '(F10.4)') this%RDF(o)
-            call FileWriteNoAdvance( this%iounit_rdf )
-          endif
-
-         end do
+      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+      call FileWriteNoAdvance( this%iounit_rdf )
+      do i= 1, this%NComponents
+        do j= i, this%NComponents
+          do s=1, this%Component(i)%molecule%NLJ126
+            do t=1, this%Component(j)%molecule%NLJ126
+              RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+              if (i == j) then
+                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+              else
+               RDFRhoLocal = real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
+&                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+              end if
+              this%RDFValue(o) = RDFRhoLocal / RDFRho  
+              write(IOBuffer, '(F10.4)') this%RDFValue(o)
+              call FileWriteNoAdvance( this%iounit_rdf )
+            end do
+          end do
         end do
-       end if
       end do
-     end do
-     call FileWriteBlank( this%iounit_rdf )
+      call FileWriteBlank( this%iounit_rdf )
     enddo
 
     ! Close RDF file
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      call FileClose( this%iounit_rdf )
-      CallsToRDF = 0
-      LocalErrFreq = 0
-    endif
+    call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFUpdate
 
@@ -15894,7 +15876,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFClose
-
 
 
 !==============================================================!
@@ -19319,7 +19300,7 @@ contains
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
           this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5_RK * BoxLength_dt
-          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1)) 
+          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1)) * BoxLength_dt
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt
           end if
@@ -19595,21 +19576,20 @@ contains
     integer  :: i, j, k
     integer  :: ncomp2
     real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3, w1, w2
+    real(RK) :: x1, x2, x3, w1, w2, MM
     !real(RK) :: Inv_x1, Inv_x2, Inv_x3
     !real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
-    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/&
-&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
-    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/&
-&       (this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction)
+    MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
+    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
     do i  = 1, this%NComponents
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-7) then
+      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
         this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
         this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
@@ -19620,7 +19600,7 @@ contains
     if ( this%NComponents .gt. 1) then
       helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-7) then
+        if (abs(this%lamda(k, 1)) .gt. 1e-15) then
           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), this%TimeStepCorr, this%NCorr)
           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
           this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
@@ -19628,13 +19608,11 @@ contains
       end do
 
       k = 1
-       do i = 1, this%NComponents
-         do j = 1, this%NComponents
-           if (abs(this%lamda(k, 1)) .gt. 1e-7) then
-             this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
-             k = k +1
-           end if
-         end do
+      do i = 1, this%NComponents
+        do j = 1, this%NComponents
+          this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
+          k = k +1
+        end do
       end do
 
     end if
@@ -19661,11 +19639,11 @@ contains
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
     end if
 
-    if ( this%NComponents == 2 ) .and. (abs(this%cf_soret(1)) .gt. 1e-7) then
+    if ( this%NComponents == 2 ) .and. (abs(this%cf_soret(1)) .gt. 1e-15) then
       this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
-      this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*this%Temperature*w1*w2)
-      this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*2._RK)
+      this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*MM*this%Temperature*w1*w2)
+      this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*MM*2._RK)
     end if
 
     if (this%EConductivity) then
@@ -19729,9 +19707,8 @@ contains
         integral(i) = integral(i-2) + values(i) + 4._RK * values(i-1) + values(i-2)
         integral(i-1) = .5_RK * (integral(i) + integral(i-2))
       end do
+      if( mod(n, 2) == 0 .and. n > 2 ) integral(n) = integral(n-1) + .5_RK * values(n) + 2._RK * values(n-1) + .5_RK * values(n-2)
       integral = integral * step / 3._RK
-
-      if( mod(n, 2) == 0 ) integral(n) = integral(n-1)
 
     end function
 
