@@ -649,9 +649,29 @@ liquid equilibrium simulations.
 
 \subsection{Hydrogen bonding}
 \label{sec:Hydrogen bonding}
-% Simon
+% Simon, Kai, Michael
 
-\parencite{Langenbach2015}
+A geometric criterion is implemented in \textit{ms}2, to investigate H-bonding networks in Fluids. Although there is no unambiguous definition of what an H-bond between two interacting molecules is, an H-bond is commonly characterised by the following criteria \parencite{Langenbach2015,Arunan2011}:
+\begin{itemize}
+	\item The interaction between two sites of an H-bond is highly directional and short ranged
+	\item One donor interacts always with one acceptor
+\end{itemize}
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=\textwidth]{fig_HBonding.pdf}
+	\caption{Scheme of geometric hydrogen bonding criteria}
+	\label{fig_HBonding}
+\end{figure}
+
+The implemented geometric criterion of \parencite{Haughney1987} chooses, if an interaction between two sites is accounted as an H-bond and plots these results.\\
+\begin{itemize}
+	\item[ ]A molecule is the H-donor to another molecule, if:\\
+	The reduced distance between the donor and the acceptor is below 0,867 and the reduced distance between acceptors is below 1,167 and the angle between the acceptor-donor axis and the acceptor-acceptor axis is smaller 30$^\circ$.
+\end{itemize}
+Following this criterion \textit{ms}2 calculates and plots (in which file?) the fractions $f_i$ of molecules with $i=0,1,2$ and 3 hydrogen bonds per molecule. 
+
+
+
 
 
 \subsection{humid air Ensemble}
