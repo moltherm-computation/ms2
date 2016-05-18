@@ -43,6 +43,7 @@ dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung
 \addbibresource{literatur.bib}		%fuegt .bib - Datei ein.
 
 
+
 \newrobustcmd*{\parentexttrack}[1]{%
 	\begingroup
 	\blx@blxinit
@@ -55,7 +56,10 @@ dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung
 	\let\bibopenparen=\bibopenbracket%
 	\let\bibcloseparen=\bibclosebracket}
 
-
+% et al anstatt u.a. in einem Zitat
+%\DefineBibliographyStrings{english}{ 
+%	andothers = {{et\,al\adddot}},             
+%} 
 
 
 
@@ -80,6 +84,7 @@ dashed=false          % kein Strich im Verzeichnis bei Autor-Mehrfachnennung
 \title{Manual \textit{ms}2}
 \subtitle{A Molecular Simulation Tool for Thermodynamic Properties}
 \date{Kaiserslautern, März 2016}
+
 
 
 

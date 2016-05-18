@@ -121,7 +121,7 @@ u^{\text{LJ}}_{ij}=4 \epsilon \left(\left(\frac{\sigma}{r_{ij}}\right)^{12}-\lef
 \end{equation}
 Here, the site-site distance between two interacting LJ sites $i$ and $j$ is denoted by $r_{ij}$, while $\sigma$ and $\epsilon$ are the LJ size and energy parameters, respectively. The LJ potential is widely used and allows for a fast computation of these basic interactions. It has only two parameters, which facilitates the parameterization of molecular models.
 
-
+\subsection{Tote Hosen}
 
 \subsection{Electrostatic Interactions}
 \label{sec:Electrostatic Interaction}
@@ -137,6 +137,7 @@ model, which reduces the number of molecular model parameters. In the following,
 \newline \newline
 \textbf{Point charge.} Point charges are first order electrostatic interaction sites. The electrostatic interaction between
 two point charges $q_{i}$ and $q_{j}$ is given by Coulomb's law \cite{allen}
+In Section \ref{sec:Electrostatic Interaction} werden elektrostatische Wechselwirkungen erläutert.
 \begin{equation}
 u^{qq}_{ij}\left(r_{ij}, q_{i}, q_{j}\right)=\frac{1}{4 \pi \epsilon_{0}}\frac{q_{i}q_{j}}{r_{ij}} \;.
 \label{eq:PointCharge}
@@ -653,23 +654,51 @@ liquid equilibrium simulations.
 \label{sec:Hydrogen bonding}
 % Simon, Kai, Michael
 
-A geometric criterion is implemented in \textit{ms}2 to investigate H-bonding networks in Fluids. Although there is no unambiguous definition of what an H-bond between two interacting molecules is, an H-bond is commonly characterised by the following criteria \parencite{Langenbach2015,Arunan2011}:
+A geometric criterion is implemented in \textit{ms}2 to identify H-bonding networks in fluids. Although there is no unambiguous definition of what an H-bond between two interacting molecules is, it is commonly characterized by the following two criteria \parencite{Langenbach2015,Arunan2011}:
 \begin{itemize}
-	\item The interaction between two sites of an H-bond is highly directional and short ranged
-	\item One donor interacts always with one acceptor
+	\item The interaction between two sites of an H-bond is highly directional and short ranged.
+	\item One donor always interacts with one acceptor.
 \end{itemize}
 \begin{figure}[htb]
 	\centering
-	\includegraphics[width=\textwidth]{fig_HBonding.pdf}
-	\caption{Scheme of geometric hydrogen bonding criteria}
-	\label{fig_HBonding}
+	\def\svgwidth{\textwidth}
+	\input{fig_HBonding.tex} 
+	\caption{Schematic of geometric H-bond criteria.}
+	\label{fig:Hbonding}
 \end{figure}
-The implemented geometric criterion of \parencite{Haughney1987} chooses, if an interaction between two sites is accounted as an H-bond and plots these results.
+% Formulas in fig_HBonding.tex .. Simon's fault
+The implemented geometric criterion of \parencite{Haughney1987} identifies, whether an interaction between two sites is accounted for a H-bond. 
 \begin{itemize}
 	\item[ ]A molecule is the H-donor to another molecule, if:\\
-	The reduced distance between the donor and the acceptor is below 0,867 and the reduced distance between acceptors is below 1,167 and the angle between the acceptor-donor axis and the acceptor-acceptor axis is smaller 30$^\circ$.
+	The distance between the donor and the acceptor is smaller than $\ell_\mathrm{DA}$ or $\ell_\mathrm{AD}$, the distance between two acceptors is smaller than $\ell_\mathrm{AA}$ and the angle between the acceptor-donor axis and the acceptor-acceptor axis is smaller than $\varphi_\mathrm{DAA}$ or $\varphi_\mathrm{AAD}$. The original numeric values suggested by \textit{\citeauthor{Haughney1987}} are $\ell_\mathrm{AA}=$3.5\,\AA, $\ell_\mathrm{DA}=$2.6\,\AA \ or $\ell_\mathrm{DA}=$2.6\,\AA \ and $\varphi_\mathrm{DAA}=$30$^\circ$ or $\varphi_\mathrm{AAD}=$30$^\circ$. They have to be specified by the user as described in the following.
 \end{itemize}
-Following this criterion \textit{ms}2 calculates and itemizes the number $N_i$ of molecules with $i=0,1,2,3$ or more hydrogen bonds per molecule. In the rav-file these numbers are listed according to the component combination, e.g. in the HB3\_( 1, 2, 2, 3) column the number of molecules are listed which correspond to component 1 and are bonded two times with component 2 and once more with component 3. As typical for the rav-file these values are the running averages of the simulation run. 
+As the H-bonding analysis is implemented in \textit{ms}2, charge-charge-charge configurations relating to two components (which can be one and the same) can be sampled. Not necessarily Oxygen and Hydrogen atoms have to be part of these structures. The implemented geometric criterion evaluates the triangle between three charge sites of two molecules -- either two sites in the acceptor molecule or two sites in the donor molecule -- and compares these with the criterion thresholds. \\
+The user has to specify the geometric relations in the \texttt{*.par} file according to the simulated components as follows: First, the keyword \texttt{NHBondCriteria = '\#h-bonds'} has to be set to the integer value \texttt{\#h-bonds} according to the number of different H-bonds that shall be investigated during the simulation. This keyword has to appear under the components section in the \texttt{*.par} file. \texttt{\#h-bonds} also sets the number of lines that \textit{ms}2 expects in the \texttt{*.par} file, each to have a complete set of nine parameters that declare a certain H-bond. These nine parameters are:\\
+AccComp, AccAccSite, AccDonSite, DonComp, DonAccSite, DonDonSite, DistCrit1, DistCrit2 and AngleCrit. 
+Fig. \ref{fig:Hbonding} visualises these parameters. The first six parameters declare which charge -- charge interactions of which component are to be considered by \textit{ms}2. The acceptor and donor sites listed in the \texttt{*.par} file have to be point charges listed in the \texttt{*.pm} file. AccComp and DonComp are the component numbers of the components that are supposed to be the acceptor and donor of the H-bond, respectively. Both have to be integer values according to the order of the components listed in the \texttt{*.par} file. The four charge sites that participate in the H-bond have to be set by the user as AccAccSite, AccDonSite, DonAccSite and DonDonSite. They have to be integer values according to the order of the charge sites listed in the \texttt{.*pm} file. AccAccSite and AccDonSite are the acceptor and donor charge sites in the component that is acting as the acceptor molecule in the H-bond while DonAccSite and DonDonSite are the acceptor and donor charge-sites in the donor molecule. As mentioned, only three charge sites are needed for the criterion, thus either the AccDonSite or the DonDonSite has to be set to \texttt{0} by the user as can be seen in table \ref{tab:Hbonding}. This is equivalent of defining either $\ell_\mathrm{DA}$ and $\varphi_\mathrm{DAA}$ or $\ell_\mathrm{AD}$ and $\varphi_\mathrm{AAD}$.\\
+The last three numeric parameters in table \ref{tab:Hbonding} are the actual geometric length $\ell_\mathrm{AA}$, $\ell_\mathrm{AD}$ or $\ell_\mathrm{DA}$ and angles $\varphi_\mathrm{DAA}$ or $\varphi_\mathrm{AAD}$ as described in \parencite{Haughney1987}. \textit{ms}2 always expects these values to be specified in \AA ngstrom and degree, respectively, independent of the settings of the \texttt{Units} keyword in the \texttt{*.par} file before.
+
+Table \ref{tab:Hbonding} gives two examples for a complete parameter set to be specified in a \texttt{*.par} file.
+\begin{table}[h!]
+	\centering
+	\caption{Example of Parameter sets for H-bonding criterion.}
+	\begin{tabular}{rrrrrrrrr}
+		\toprule
+		\footnotesize AccComp & \footnotesize AccAccSite & \footnotesize AccDonSite & \footnotesize DonComp & \footnotesize DonAccSite & \footnotesize DonDonSite & \footnotesize DistCrit1 & \footnotesize DistCrit2 & \footnotesize AngleCrit \\ 
+		\midrule
+		\texttt{1}     & \texttt{2}     & \texttt{0}     & \texttt{1}     & \texttt{2}     & \texttt{3}     & \texttt{3.5}   & \texttt{2.6}   & \texttt{30} \\
+		\texttt{1}     & \texttt{2}     & \texttt{3}     & \texttt{1}     & \texttt{2}     & \texttt{0}     & \texttt{3.5}   & \texttt{2.6}   & \texttt{30} \\
+		\bottomrule
+	\end{tabular}%
+	\label{tab:Hbonding}%
+\end{table}%
+During simulation, \textit{ms}2 lists the analysis of the H-bonding in the \texttt{*.rav} file. 
+Following the \textit{Haughney}-criterion, \textit{ms}2 calculates and itemizes the number $N_i$ of molecules with $i=0,1,2,3$ or more hydrogen bonds. In the \texttt{*.rav} file these numbers are listed according to the component combination. E.g. the \texttt{N3\_( 1, 2, 2, 3)} column lists the number of molecules which correspond to component 1 and are bonded twice with component 2 and once with component 3. As usual for the \texttt{*.rav} file, these values are running averages. 
+
+
+\newpage
+
+
 
 
 
