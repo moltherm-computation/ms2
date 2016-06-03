@@ -1386,25 +1386,25 @@ contains
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
       SimulationType = MonteCarlo
-      
-      if ( UseIntDegFreed ) then
-        do i=1,this%NEnsembles
-          call Flex2Rigid( this%Ensemble(i) )
-        end do
-      end if
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Flex2Rigid( this%Ensemble(i) )
+!         end do
+!       end if
 
       call Timer_setTag(RunStepsTimer,"MC overlap reduction")
       call start_Timer(RunStepsTimer)
       call logwritestart_Timer(RunStepsTimer)
 
       call RunSteps( this, StepStart, StepEnd )
-      
-      if ( UseIntDegFreed ) then
-        do i=1,this%NEnsembles
-          call Rigid2Flex( this%Ensemble(i) )
-        end do
-      end if
-      
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Rigid2Flex( this%Ensemble(i) )
+!         end do
+!       end if
+
       call stop_Timer(RunStepsTimer)
       call logwritestop_Timer(RunStepsTimer)
 

@@ -4731,10 +4731,7 @@ subroutine TComponent_InitUnit( this, np, dq )
     type(TComponent)     :: this
 
     ! Declare local variables
-!     type(TMolecule), pointer :: pm
     integer :: i
-
-!     pm => this%Molecule
 
     do i=1, this%Molecule%NBond
       this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
@@ -4761,10 +4758,7 @@ subroutine TComponent_InitUnit( this, np, dq )
     type(TComponent)     :: this
 
     ! Declare local variables
-!     type(TMolecule), pointer :: pm
     integer :: i
-
-!     pm => this%Molecule
 
     do i=1, this%Molecule%NBond
       this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
