@@ -621,7 +621,7 @@ contains
     this%Epsilon4 = 4._RK * this%Epsilon
     
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL ) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
       ende = size (Molecule1%IntLJ15(:,1))
       do k=1, ende
         if (Molecule1%IntLJ15(k,1)==this%Site1%SiteId .and. Molecule1%IntLJ15(k,2)==this%Site2%SiteId) then
@@ -1214,7 +1214,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then ! Michael Sch.: intra15/14 enough, .and. redundant
+        if (intra15 .or. intra14) then ! Michael Sch.: intra15/14 enough, .and. redundant (changed for all pot-classes)
+        ! previous: if (SameComponent .and. (intra15 .or. intra14)) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -1713,7 +1714,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -2303,7 +2304,7 @@ loop2:do j = 1, N
     this%RFConstant = this%Epsilon / RCutoff**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntCC15(:,1))
       do k=1, ende
         if (Molecule1%IntCC15(k,1)==this%Site1%SiteId .and. Molecule1%IntCC15(k,2)==this%Site2%SiteId) then
@@ -2526,7 +2527,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -2777,7 +2778,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -3159,7 +3160,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -3528,7 +3529,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -3970,7 +3971,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntCD15(:,1))
       do k=1, ende
         if (Molecule1%IntCD15(k,1)==this%Site1%SiteId .and. Molecule1%IntCD15(k,2)==this%Site2%SiteId) then
@@ -4217,7 +4218,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 
       end do loop1
       ! Include intramolecular interactions if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -4633,7 +4634,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interactions if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -5032,7 +5033,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntCQ15(:,1))
       do k=1, ende
         if (Molecule1%IntCQ15(k,1)==this%Site1%SiteId .and. Molecule1%IntCQ15(k,2)==this%Site2%SiteId) then
@@ -6095,7 +6096,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntDC15(:,1))
       do k=1, ende
         if (Molecule1%IntDC15(k,1)==this%Site1%SiteId .and. Molecule1%IntDC15(k,2)==this%Site2%SiteId) then
@@ -6338,7 +6339,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -6738,7 +6739,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         end if
       end do loop1
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -7141,7 +7142,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     this%RFConstant = this%Epsilon / RCutoff**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntDD15(:,1))
       do k=1, ende
         if (Molecule1%IntDD15(k,1)==this%Site1%SiteId .and. Molecule1%IntDD15(k,2)==this%Site2%SiteId) then
@@ -7437,7 +7438,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
         end do loop1
         ! Include intramolecular interactions if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -8038,7 +8039,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
           end if
         end do loop1
         ! Include intramolecular interactions if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -8748,7 +8749,7 @@ loop2:do j = 1, j1
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntDQ15(:,1))
       do k=1, ende
         if (Molecule1%IntDQ15(k,1)==this%Site1%SiteId .and. Molecule1%IntDQ15(k,2)==this%Site2%SiteId) then
@@ -9047,7 +9048,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -9662,7 +9663,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
         end do loop1
 
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -10394,7 +10395,7 @@ loop2:do j = 1, j1
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntQC15(:,1))
       do k=1, ende
         if (Molecule1%IntQC15(k,1)==this%Site1%SiteId .and. Molecule1%IntQC15(k,2)==this%Site2%SiteId) then
@@ -10643,7 +10644,7 @@ loop1:do k = 1, this%NInCutoff(unit)
       end do loop1
 
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -11061,7 +11062,7 @@ loop1:do k = 1, this%NInCutoff(unit)
       end do loop1
 
       ! Include intramolecular interaction if need
-      if (SameComponent .and. (intra15 .or. intra14)) then
+      if (intra15 .or. intra14) then
         RXij = RXi - RX2(i)
         RYij = RYi - RY2(i)
         RZij = RZi - RZ2(i)
@@ -11467,7 +11468,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-   if (this%SameComponent .and. IntraLJEL ) then
+   if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
       ende = size(Molecule1%IntQD15(:,1))
       do k=1, ende
         if (Molecule1%IntQD15(k,1)==this%Site1%SiteId .and. Molecule1%IntQD15(k,2)==this%Site2%SiteId) then
@@ -13118,7 +13119,7 @@ loop2:do j = 1, j1
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl) then
       ende = size(Molecule1%IntQQ15(:,1))
       do k=1, ende
         if (Molecule1%IntQQ15(k,1)==this%Site1%SiteId .and. Molecule1%IntQQ15(k,2)==this%Site2%SiteId) then

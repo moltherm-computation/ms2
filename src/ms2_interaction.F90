@@ -137,8 +137,9 @@ module ms2_interaction
     ! (2*eps-1)/(2*eps+1)
     real(RK) :: RFConst2, RFConst3
 
-    ! Same component
+    ! Same component + w/o intramolecular nonbonded interactions
     logical :: SameComponent
+    logical :: includeIntraLJEl
 
     ! IDF
     integer,pointer :: BoPartner(:,:), BondCount(:)
@@ -283,6 +284,9 @@ contains
 
     ! Set SameComponent flag
     this%SameComponent = i1 == i2
+    if ( this%SameComponent .and. Component1%Molecule%hasIntraLJEl) then
+      this%includeIntraLJEl = .true.
+    end if
 
     ! Set number of particles
     this%NPart1 => Component1%NPart
@@ -3515,8 +3519,8 @@ end subroutine TInteraction_Energy
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-  !!! Michael Sch.: if clause to skip nonbonded interactions if intraLJEL=off here
-  if (IntraLJEL) then
+  !!! Michael Sch.: if clause to skip nonbonded interactions if component has none
+  if (this%includeIntraLJEl) then
 
     ! Initialization Ewald Summation
     if ( .not. this%ReactionField ) then
@@ -5056,7 +5060,7 @@ end subroutine TInteraction_Energy
 
     end if ! SiteSite - Cutoff
 
-  endif !!! not IntraLJEL  
+  endif !!! no includeIntraLJEl
 
 ! -------------------------------------------- !
 ! --- Bond / Angle / Dihedral interactions --- !

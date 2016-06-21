@@ -42,7 +42,7 @@ module ms2_molecule
   type TMolecule
 
     ! Geometry of molecule
-    logical :: isElongated
+    logical :: isElongated, hasIntraLJEl
 
     ! Number of degrees of freedom
     integer :: NDF
@@ -462,7 +462,6 @@ contains
       end if
       this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
       this%NUnit   = this%NNotConstraint+this%NConstraint ! total number of units
-      if (this%NUnit==1) IntraLJEl=.false.
 
     else !  No IDF,  rigid molecule
         this%NUnit = 1
@@ -720,15 +719,8 @@ contains
     this%isElongated = this%NUnit > 1
     if ( this%Unit(1)%NDFRot > 0 ) this%isElongated = .true.
 
-    !Consider Intramolecular interactions
-    if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
-       call Error('Check *.par file, molecule too small, &
-&                  no intramolecular interactions can be used' )
-    end if
-    if (UseIntDegFreed .and. IntraLJEl) then
-!      do k = 1, this%NUnit
-!        call sort_array(this%Unit(k)%SiteIds)
-!      end do
+    ! sort SiteIds
+    if (IntraLJEl) then
       do k = 1, this%NLJ126
         call sort_array(this%LJSiteIds)
       end do
@@ -743,9 +735,23 @@ contains
       end do
     end if
 
-   ! create list of 1-4, 1-5 interactions
+    !Consider Intramolecular interactions
+    this%hasIntraLJEl = .true.
+    if (IntraLJEl ) then
+      if (.not. this%isElongated) then
+        this%hasIntraLJEl = .false.
+      elseif (LJEl14 .and. (this%NSite < 4)) then
+        this%hasIntraLJEl = .false.
+      elseif (this%NSite < 5) then
+        this%hasIntraLJEl = .false.
+      endif
+!        call Error('Check *.par file, molecule too small, &
+! &                  no intramolecular interactions can be used' )
+    end if
 
-   if (IntraLJEl) then
+   ! create list of 1-4, 1-5 interactions
+   ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
+   if (this%hasIntraLJEl) then
      allocate (AllSites(this%NSite, this%NSite))
      call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
      allocate (SameCoord(this%NLJ126, 3))

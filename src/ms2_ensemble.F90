@@ -4473,7 +4473,7 @@ loop5:    do nc = 1, this%NComponents
         do np = 1, this%Component(i)%NPart
           do nu = 1, this%Component(i)%Molecule%NUnit
             call Energy( pi, np, nu, this%BoxLength )
-            if ( (j .eq. i) .and. UseIntDegFreed ) then
+            if ( pi%SameComponent .and. UseIntDegFreed ) then
               call IntraEnergy( pi, np, nu, this%BoxLength )
             end if
           end do
@@ -6232,7 +6232,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             nu1=(np-1)*pi%NUnit1+nu ! global number of unit
 
             call Energy(pi, np, nu, this%BoxLength)
-            if ( (nc .eq. i) .and. UseIntDegFreed ) then
+            if ( pi%SameComponent .and. UseIntDegFreed ) then
               call IntraEnergy(pi, np, nu, this%BoxLength)
               pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
               pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
@@ -6302,7 +6302,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2*pi%NUnit2
       do nu=1, this%Component(nc)%Molecule%NUnit
           call Energy( pi, np, nu, this%BoxLength )
-          if ( (nc .eq. i) .and. UseIntDegFreed ) then
+          if ( pi%SameComponent .and. UseIntDegFreed ) then
             call IntraEnergy( pi, np, nu, this%BoxLength )
             EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) ) 
           end if
@@ -6362,7 +6362,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2 * pi%NUnit2
 
       call Energy( pi, np, nu, this%BoxLength )
-      if ( (nc .eq. i) .and. UseIntDegFreed ) then
+      if ( pi%SameComponent .and. UseIntDegFreed ) then
         call IntraEnergy( pi, np,  nu, this%BoxLength )
         EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
       end if
@@ -6410,7 +6410,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         pi => this%Interaction(nc, i)
         n = pi%NPart2*pi%NUnit2
         call Energy( pi, np, nu, this%BoxLength )
-        if ( (nc .eq. i) .and. UseIntDegFreed ) then
+        if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
@@ -6463,7 +6463,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2*pi%NUnit2
       do nu = 1,pi%NUnit1
         call Energy( pi, np, nu, this%BoxLength )
-        if ( (nc .eq. i) .and. UseIntDegFreed ) then
+        if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
