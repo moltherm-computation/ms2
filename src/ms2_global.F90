@@ -699,6 +699,9 @@ module ms2_global
   logical, parameter :: TerminateProgram = .false.
 #endif
 
+  integer, parameter :: IdErrorCodeBase = b'1000000000000000'	!=32768
+  ! e.g. 10000 would be better to read for pure addition, but
+  ! bits might code error type, origin (module&function),...
 
 
 !==============================================================!
@@ -1537,7 +1540,7 @@ contains
 !  Subroutine Global_Error                                     !
 !==============================================================!
 
-  subroutine Global_Error( ErrorString )
+  subroutine Global_Error( ErrorString, ErrorCode )
 
     implicit none
 
@@ -1548,8 +1551,10 @@ contains
 
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
-
-    ! Output error message
+    integer, intent(in), optional :: ErrorCode
+    integer :: GlobalErrorCode = IdErrorCodeBase
+    
+    ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
     call LogWriteBlank
     if( present( ErrorString ) ) then
       IOBuffer = 'ERROR: '// trim( ErrorString )
@@ -1559,11 +1564,15 @@ contains
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
 
+    if( present( ErrorCode ) ) then
+      GlobalErrorCode=IdErrorCodeBase+ErrorCode
+      !GlobalErrorCode=ior(IdErrorCodeBase,ErrorCode)
+    end if
 
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
-    write( IOBuffer, '("Program terminated with Error")' )
+    write( IOBuffer, '("Program terminated with Error (",I5,")")' ) GlobalErrorCode
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1573,9 +1582,14 @@ contains
 
     ! Abort program
 #if MPI_VER > 0
-    call MPI_Abort( MPI_COMM_WORLD, 4, ierror )
+    ! ErrorCode will be used (at least) by MPI...
+    call MPI_Abort( MPI_COMM_WORLD, GlobalErrorCode, ierror )
 #endif
-    stop
+    !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
+    stop IdErrorCodeBase
+    !error stop IdErrorCodeBase	! this is an error, so error stop might be favorable
+    !stop 4	! very old Fortran versions only support char (0-255)
+    ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error
 
