@@ -5786,18 +5786,24 @@ subroutine TComponent_InitUnit( this, np, dq )
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #endif
 
-    if ( .not. stable) then
-      write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
-      call LogWrite
-      write( IOBuffer, '("Stop at iteration: ", I4)' ) it
-      call LogWrite
-      call Error( 'Initial density to high for QShake' )
-    end if
+    if( RootProc ) then
+      if ( .not. stable) then
+        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
+        call LogWrite
+        write( IOBuffer, '("Stop at iteration: ", I4)' ) it
+        call LogWrite
+        call Error( 'Initial density to high for QShake' )
+      end if
 
-    if ( it >= itmax ) then  !Michael Sch.: this case should never happen
-      write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
-      call LogWrite
-      call Error( 'This should not have happened. Please contact the ms2-support.' )
+      if ( it >= itmax ) then  !Michael Sch.: this case should never happen
+        write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
+        call LogWrite
+        write( IOBuffer, '("This can happen if the given configuration has to many overlaps.")' )
+        call LogWrite
+        write( IOBuffer, '("Try a lower initial density or use MCOR-Steps to avoid this.")' )
+        call LogWrite
+        call Error( 'Initial density to high for QShake' )
+      end if
     end if
 
 
