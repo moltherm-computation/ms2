@@ -5385,6 +5385,9 @@ subroutine TComponent_InitUnit( this, np, dq )
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
 
 #if MPI_VER > 0
+    integer                 :: itmaxRoot
+    logical                 :: stableRoot
+
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
     call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) then
@@ -5784,6 +5787,10 @@ subroutine TComponent_InitUnit( this, np, dq )
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( itmaxRoot, itmax, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
+    call MPI_Reduce( stableRoot, stable, 1, MPI_LOGICAL, MPI_MAX, NRootProc, Communicator, ierror )
+    itmax = itmaxRoot
+    stable = stableRoot
 #endif
 
     if( RootProc ) then
