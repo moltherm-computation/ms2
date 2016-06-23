@@ -5788,7 +5788,7 @@ subroutine TComponent_InitUnit( this, np, dq )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( itmaxRoot, itmax, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( stableRoot, stable, 1, MPI_LOGICAL, MPI_MAX, NRootProc, Communicator, ierror )
+    call MPI_Reduce( stableRoot, stable, 1, MPI_LOGICAL, MPI_AND, NRootProc, Communicator, ierror )
     itmax = itmaxRoot
     stable = stableRoot
 #endif
