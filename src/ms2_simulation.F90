@@ -2713,7 +2713,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
-    call LogWrite
+    call LogWriteTime
 
     ! Open restart file for writing
     call FileRewrite( iounit_restart, trim(RestartFileName) )
@@ -2721,6 +2721,8 @@ eqloop: do
     ! Save contents to restart file
     write( iounit_restart, '(A)' ) trim( ParameterFileName )
     write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
+    call LogWrite
     write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     ! Save ensembles
@@ -2768,7 +2770,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Reading restart file ")' )
-    call LogWrite
+    call LogWriteTime
 
     if( RootProc ) then
 
@@ -2790,15 +2792,17 @@ eqloop: do
         call LogWriteBlank
       endif
       read( iounit_restart, '(2I10)' ) Step, StepTotal
+      write( IOBuffer, '("restarting at step",I10," (of",I10,")")' ) Step, StepTotal
+      call LogWrite
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number
