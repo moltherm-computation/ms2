@@ -95,6 +95,8 @@ and \textit{InertMomZ} are read if the moments of inertia are to be specified ma
 \label{sec:Output structure}
 % Simon
 
+% Aufteilung in Standard und Optional (rtr, vim, rdf, thi) 
+
 \textit{ms}2 yields eight output files:
 \begin{itemize}
 	\item *.log file - stores a complete summary of all execution steps taken by \textit{ms}2.
@@ -107,8 +109,6 @@ and \textit{InertMomZ} are read if the moments of inertia are to be specified ma
 	\item *.rav file - contains the block averages of the calculated properties. The file is in tabular form, where the
 	data is given in reduced units. The file is subsequently updated according to the user specification, which
 	is set in the *.par file.
-	\item *.rtr file - stores the final values of the autocorrelation functions and their integrals. The number of output
-	lines has to be defined in the *.par file.
 	\item *.rst file - is the restart file of the simulation. It contains all molecular positions, velocities, orientations,
 	forces, torques and block averages for the thermodynamic properties. It is written once at the end of a
 	simulation or immediately after having received a termination signal of the operating system. The *.rst file
@@ -119,7 +119,9 @@ and \textit{InertMomZ} are read if the moments of inertia are to be specified ma
 	steps or loops. The *.vim file is readable by the visualization tool \textit{ms}2\textit{molecules}, which is also part of
 	the simulation package.
 	\item *.nrm file - stores the normalized coordinates of a potential model after a principal axes transformation.
-	\item *.rtr file - stores the final value of the autocorrelation functions and their integrals. The number of output lines is equal to Corrlength divided by StepsCorrfun.
+	\item *.rtr file - stores the final value of the autocorrelation functions and their integrals. The number of output lines is equal to Corrlength divided by StepsCorrfun. The number of output lines has to be defined in the *.par file.
+	\item *.rdf file 
+	\item *.thi file
 \end{itemize}
 The next section provides some output files to illustrate the structure of them.
 
