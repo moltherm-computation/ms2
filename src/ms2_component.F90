@@ -5385,7 +5385,7 @@ subroutine TComponent_InitUnit( this, np, dq )
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
 
 #if MPI_VER > 0
-    integer                 :: itmaxRoot
+    integer                 :: itRoot
     logical                 :: stableRoot
 
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
@@ -5402,6 +5402,7 @@ subroutine TComponent_InitUnit( this, np, dq )
     Shake002 = Shake2/100
     np = this%NPart
     nu = this%Molecule%NUnit
+    it = 0
     itmax = 9999
     stable = .true.
 
@@ -5787,9 +5788,9 @@ subroutine TComponent_InitUnit( this, np, dq )
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( itmaxRoot, itmax, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
+    call MPI_Reduce( itRoot, it, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
     call MPI_Reduce( stableRoot, stable, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
-    itmax = itmaxRoot
+    it = itRoot
     stable = stableRoot
 #endif
 
