@@ -388,7 +388,7 @@ contains
 
       ! Read number of steps
       call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
-      write( IOBuffer, '("Number of radial steps: ",T24, I7)' ) NSteps
+      write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
@@ -607,7 +607,7 @@ contains
 
       ! Read number of production steps
       call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
-      write( IOBuffer, '("Number of production steps: ",T40, I7)' ) NSteps
+      write( IOBuffer, '("Number of production steps: ",T39, I8)' ) NSteps
       call LogWrite
       call LogWriteBlank
 
@@ -679,7 +679,7 @@ contains
         end if
 
         if( ErrorsUpdateFrequency < NSteps ) then
-          write( IOBuffer, '("Final result files will be updated each", I7, " time steps")' ) ErrorsUpdateFrequency
+          write( IOBuffer, '("Final result files will be updated each", I8, " time steps")' ) ErrorsUpdateFrequency
         else
           write( IOBuffer, '("Final result files will be created at the end")' )
         end if

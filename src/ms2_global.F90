@@ -1379,6 +1379,34 @@ contains
     write( IOBuffer, '("Compiler version     : unknown")' )
 #endif
     call LogWrite
+
+    write( IOBuffer, '("Compiler flags       :")' )
+    call LogWriteNoAdvance
+#if MPI_VER > 0
+    write( IOBuffer, '(" MPI=1")' )
+    call LogWriteNoAdvance
+#endif
+#if TRANS == 1
+    write( IOBuffer, '(" TRANS=1")' )
+    call LogWriteNoAdvance
+#endif
+#if HBOND == 1
+    write( IOBuffer, '(" HBOND=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 1
+    write( IOBuffer, '(" OSMOP=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 2
+    write( IOBuffer, '(" OSMOP=2")' )
+    call LogWriteNoAdvance
+#endif
+    ! new compiler flags should be added
+    ! include target, omp and precision???
+    write( IOBuffer, '(" ")' )
+    call LogWrite
+
     write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
     call LogWrite
     write( IOBuffer, '("Real Kind            :", I2)' ) RK

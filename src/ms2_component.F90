@@ -5788,13 +5788,13 @@ subroutine TComponent_InitUnit( this, np, dq )
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( itRoot, it, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( stableRoot, stable, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
-    it = itRoot
-    stable = stableRoot
+    call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
+    call MPI_Reduce( stable, stableRoot, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
+    if (RootProc) then
+      it = itRoot
+      stable = stableRoot
 #endif
 
-    if( RootProc ) then
       if ( .not. stable) then
         write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
         call LogWrite
@@ -5812,7 +5812,10 @@ subroutine TComponent_InitUnit( this, np, dq )
         call LogWrite
         call Error( 'Initial density to high for QShake' )
       end if
+
+#if MPI_VER > 0
     end if
+#endif
 
 
 contains

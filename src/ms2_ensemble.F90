@@ -9148,6 +9148,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     !real(RK)                   :: Shield1, Shield2
 
     do i = 1, this%NComponents
+      if (nt == i) cycle
+
       if( associated(this%Interaction(nt, i)%PotLJ126LJ126)) then
         this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
         this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
@@ -11946,7 +11948,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! 2.) Combined sums
     call Update( this%SumEPotSquared,      ( this%EPotInter / real( this%NPart, RK ) )**2 ) ! diff to trunk all 7 lines
     call Update( this%SumEPotCubic,          this%EPotInter**3 )
-    call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
+    call Update( this%SumdEpotdVSquared,                         currentdEpotdV**2 )
     call Update( this%SumEPotdEpotdV,        this%EPotInter    * currentdEpotdV    )             
     call Update( this%SumEPotSquareddEpotdV, this%EPotInter**2 * currentdEpotdV    )
     call Update( this%SumEPotdEpotdVSquared, this%EPotInter    * currentdEpotdV**2 )
@@ -13789,7 +13791,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
       ! The RootProc receives data from all processes and therefore the # of 
       ! Step is increased accordingly
-      write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) Step*NProcs
+      write( IOBuffer, '("Number of production steps", T34, ":", I12)' ) Step*NProcs
 
     else 
       write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) Step
