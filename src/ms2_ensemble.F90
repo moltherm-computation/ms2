@@ -10427,13 +10427,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 #if HBOND > 0
         do i = 1, this%NComponents
-          write( IOBuffer, '("   HB0_(", I2, ")")' ) i
+          write( IOBuffer, '("  HB0_(", I1, ")")' ) i
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
-            write( IOBuffer, '("  HB1_(", I2, ",", I2, ")")' ) i, j
+            write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
           end do
@@ -10441,7 +10441,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
-              write( IOBuffer, '("  HB2_(", I2, ",", I2, ",", I2, ")")' ) i, j, k
+              write( IOBuffer, '("  HB2_(", I1, ",", I1, ",", I1, ")")' ) i, j, k
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             end do
@@ -10451,7 +10451,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           do  j = 1, this%NComponents
             do k = j, this%NComponents
               do  l = k, this%NComponents
-                write( IOBuffer, '("  HB3_(", I2, ",", I2, ",", I2, ",", I2, ")")' ) i, j, k, l
+                write( IOBuffer, '("  HB3_(", I1, ",", I1, ",", I1, ",", I1, ")")' ) i, j, k, l
                 call FileWriteNoAdvance( this%iounit_result )
                 call FileWriteNoAdvance( this%iounit_runave )
               end do
@@ -10459,7 +10459,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           end do
         end do
         do i = 1, this%NComponents
-          write( IOBuffer, '("  HB4+_(", I2, ")")' ) i
+          write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
@@ -10470,9 +10470,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NComponents
           do j = 1, NBinsDen
             if (j .le. 9) then 
-              write( IOBuffer, '("   DP", I1, "B  ", I1)' ) i, j
+              write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
             elseif (j .le. 99) then 
-              write( IOBuffer, '("    DP", I1, "B ", I2)' ) i, j
+              write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
             else
               write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
             endif
@@ -10485,9 +10485,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         !Pressure Profile
         do j = 1, NBinsDen
           if (j .le. 9) then 
-            write( IOBuffer, '(" PPB  ", I1)' ) j
+            write( IOBuffer, '(" PPB00", I1)' ) j
           elseif (j .le. 99) then 
-            write( IOBuffer, '(" PPB ", I2)' ) j
+            write( IOBuffer, '(" PPB0", I2)' ) j
           else
             write( IOBuffer, '(" PPB", I3)' ) j
           endif
@@ -10500,9 +10500,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
             do j = 1, NBinsDen
               if (j .le. 9) then 
-                write( IOBuffer, '("     CP", I1, "B  ", I1)' ) i, j
+                write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
               elseif (j .le. 99) then 
-                write( IOBuffer, '("     CP", I1, "B ", I2)' ) i, j
+                write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
               else
                 write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
               endif
@@ -12370,7 +12370,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
       ! The RootProc receives data from all processes and therefore the # of 
       ! Step is increased accordingly
-      write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) Step*NProcs
+      write( IOBuffer, '("Number of production steps", T34, ":", I12)' ) Step*NProcs
 
     else 
       write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) Step
@@ -14515,10 +14515,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWriteNoAdvance ( this%iounit_dcp )
     write( IOBuffer, '(" Position")')
     call FileWriteNoAdvance ( this%iounit_dcp )
-    do i=1,this%NComponents
-       write( IOBuffer, '(" ", A)') trim( this%Component(i)%PotModFileName )
-       call FileWriteNoAdvance( this%iounit_dcp )
+    do j=1,this%NComponents
+      pc => this%Component(j)
+      write( IOBuffer, '(" rho_", A)') trim( pc%PotModFileName )
+      call FileWriteNoAdvance( this%iounit_dcp )
+#if OSMOP == 2
+      if ( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
+        write( IOBuffer, '(" mueAvg_", A, " mueVar_", A)') trim( pc%PotModFileName ), trim( pc%PotModFileName )
+        call FileWriteNoAdvance ( this%iounit_dcp )
+      end if    
     end do
+    write( IOBuffer, '(" PressureAvg PressureVar")')
+    call FileWriteNoAdvance ( this%iounit_dcp )
+#else
+    end do  
+#endif
     call FileWriteBlank( this%iounit_dcp ) 
 
     ! Update profile file
