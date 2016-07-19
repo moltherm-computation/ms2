@@ -17,16 +17,86 @@
 
 
 
-\section{Compiling \textit{ms}2}
+\section{Building \textit{ms}2}
 \label{sec:Compiling ms2}
 
 
-\textbf{Compiling on Linux}
+\subsection{Building on Linux}
 % HLRS
 
+The compiling and linking process can be simplified using the provided ``Makefile''
+found in the ``src'' directory (e.g.\ with \href{http://www.gnu.org/software/make/}{GNU make}).
+This file should be adopted to the local system requirements. Alternatively (or additionally)
+variables can be set through the make command line options.
+An overview of all options used can be found in table \ref{tab:makefiledef} on page \pageref{tab:makefiledef}.
+
+There's also an obsolete ``Makefile.mult'' containing compiler options
+that have been used in the past (for systems, which might be already out of service today).
+
+\paragraph{Presets}
+First of all a compiler (\& linker) has to be chosen.
+Through the definition of ``COMPILER'' in line 5 the corresponding file with suffix ``.mk''
+in the ``makefiles'' subdirectory will be included in line 20. This file contains specific
+settings for a compiler and/or system.
+The entry ``GNU'' found in the given Makefile e.g.\ corresponds to ``makefiles/GNU.mk'', which
+contains settings for the widely used \href{http://www.gnu.org/software/gcc/}{GNU compiler}.
+%There are other predefined settings available, like e.g.\  ``INTEL'' for the \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler}.
+
+\paragraph{Developer options}
+The ``TARGET'', which defaults to ``RELEASE'' is typically used by developers.
+(``DEBUG'' will produce unoptimized slower code suitable for debugging here.)
+
+%\paragraph{Makefile definitions table}\mbox{}\\[0ex]
+\begin{table}[h!]
+\centering
+\begin{tabular}{llll}
+\hline
+Variable & Description & Values & Description \\
+\hline
+\rowcolor{lightgray}\multicolumn{4}{l}{Compiler}\\
+\hline
+COMPILER & Compiler presets          & GNU   & \href{http://www.gnu.org/software/gcc/}{GNU compiler} \\
+         &                           & INTEL & \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler} \\
+         &                           & {\tiny see makefiles subdirectory} \\
+\hline
+TARGET   & see above                 & RELEASE\\
+         &                           & DEBUG \\
+\hline
+\rowcolor{lightgray}\multicolumn{4}{l}{Parallelization}\\
+\hline
+MPI      & \href{http://mpi-forum.org/}{MPI} & 0 & off \\
+         &                                   & 1 & on \\
+\hline
+OMP      & \href{http://openmp.org/}{OpenMP} & 0 & off \\
+         &                                   & 1 & on \\
+\hline
+\rowcolor{lightgray}\multicolumn{4}{l}{Features}\\
+\hline
+SP       & Single Precision          & 0 & off \\
+         &                           & 1 & on \\
+\hline
+TRANS    &        Transport          & 0 & off \\
+         &                           & 1 & on \\
+\hline
+OSMOP    &                           & 0 & off \\
+         &                           & 1 & on \\
+\hline
+HBOND    &                           & 0 & on \\
+         &                           & 1 & on \\
+\hline
+\end{tabular}
+\caption{Makefile definitions}
+\label{tab:makefiledef}
+\end{table}
 
 
-
+\paragraph{make command line options}
+Instead of changing the Makefile, the definitions can also be set
+directly on the commandline, like
+\begin{lstlisting}
+make TARGET=RELEASE COMPILER=GNU
+\end{lstlisting}
+%These settings will overwrite the ones in the Makefile.
 
 
 \textbf{Compiling on Windows}
