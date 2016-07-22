@@ -18343,7 +18343,7 @@ contains
       do nmess= 1, this%NCorr
          ! Loop over particles      
         s=CFtmp+nmess-1
-        if (s >= this%NCorr) s = s-this%NCorr+1
+        if (s > this%NCorr) s = s-this%NCorr
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
