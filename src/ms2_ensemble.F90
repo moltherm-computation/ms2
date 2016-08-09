@@ -5617,7 +5617,7 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Throw test particles
-    this%EPotTestIntra = 0._RK
+    this%EPotTestIntra(:) = 0._RK
     do i = 1, this%NComponents
       if (this%Component(i)%NTest > 0) then
         pc => this%Component(i)
