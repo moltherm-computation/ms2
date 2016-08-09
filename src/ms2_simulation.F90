@@ -853,6 +853,8 @@ contains
           write( IOBuffer, '("Shake tolerance: ", F9.6)' ) Shake
           call LogWrite
         end if
+      else
+        Shake = 0.0_RK
       end if
 
       ! Read parameters for intramolecular nonbonded interactions

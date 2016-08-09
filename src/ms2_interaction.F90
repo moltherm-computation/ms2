@@ -221,9 +221,9 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners1
   end interface
   
-  interface CalcCutoffPartnersIntra
-    module procedure TInteraction_CalcPartnersIntra
-  end interface
+!   interface CalcCutoffPartnersIntra
+!     module procedure TInteraction_CalcPartnersIntra
+!   end interface
 
   interface CalcCutoffPartnersRDF
     module procedure TInteraction_CalcPartnersRDF
@@ -3530,12 +3530,13 @@ end subroutine TInteraction_Energy
     if( CutoffMode .eq. CenterofMass ) then
 
     ! Calculate interactions partners of unit within cutoff sphere
-      call CalcCutoffPartnersIntra( this,  np, nu)
+!       call CalcCutoffPartnersIntra( this,  np, nu)
 
       ! Calculate Lennard-Jones energy
       do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
 
             ! Set site specific variables
@@ -3613,8 +3614,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate point charge energy
       do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pcc => this%PotChargeCharge(s1, s2)
 
@@ -3921,8 +3923,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pdc => this%PotDipoleCharge(s1, s2)
 
@@ -4213,8 +4216,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pqc => this%PotQuadrupoleCharge(s1, s2)
 
@@ -5783,62 +5787,62 @@ end subroutine TInteraction_Energy
   end subroutine TInteraction_CalcPartnersRDF
 
 
-!==============================================================!
-!  Subroutine TInteraction_CalcPartnersIntra                   !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersIntra( this, np, nu )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)  :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff, k, NUnit2
-    integer           :: nup
-
-    ! Set cutoff radius
-    RCutoffSquaredScaled = this%RCutoffSquaredScaled
-    NUnit2 = this%NUnit2
-    nup = (np-1)*NUnit2
-
-    do k=1, NUnit2
-      PX2d(k)=this%PX2(np,k)
-      PY2d(k)=this%PY2(np,k)
-      PZ2d(k)=this%PZ2(np,k)
-    end do
-
-    ! No difference between component1 and component2
-    PXi = PX2d(nu)
-    PYi = PY2d(nu)
-    PZi = PZ2d(nu)
-
-    ! Calculate partners within cutoff sphere
-    NInCutoff = 0
-    do j = 1, NUnit2
-      if( nu .eq. j ) cycle
-      PXij = PXi - PX2d(j)
-      PYij = PYi - PY2d(j)
-      PZij = PZi - PZ2d(j)
-      PXij = PXij - anint( PXij )
-      PYij = PYij - anint( PYij )
-      PZij = PZij - anint( PZij )
-      RijSquared = PXij**2 + PYij**2 + PZij**2
-      if( RijSquared < RCutoffSquaredScaled ) then
-        NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, nu) = j
-      end if
-    end do
-    this%NInCutoff(nu) = NInCutoff
-
-  end subroutine TInteraction_CalcPartnersIntra
+! !==============================================================!
+! !  Subroutine TInteraction_CalcPartnersIntra                   !
+! !==============================================================!
+! 
+!   subroutine TInteraction_CalcPartnersIntra( this, np, nu )
+! 
+!     implicit none
+! 
+!     ! Declare arguments
+!     type(TInteraction)  :: this
+!     integer, intent(in) :: np
+!     integer, intent(in) :: nu
+! 
+!     ! Declare local variables
+!     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+!     real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
+!     real(RK)          :: RijSquared
+!     real(RK)          :: RCutoffSquaredScaled
+!     integer           :: j, NInCutoff, k, NUnit2
+!     integer           :: nup
+! 
+!     ! Set cutoff radius
+!     RCutoffSquaredScaled = this%RCutoffSquaredScaled
+!     NUnit2 = this%NUnit2
+!     nup = (np-1)*NUnit2
+! 
+!     do k=1, NUnit2
+!       PX2d(k)=this%PX2(np,k)
+!       PY2d(k)=this%PY2(np,k)
+!       PZ2d(k)=this%PZ2(np,k)
+!     end do
+! 
+!     ! No difference between component1 and component2
+!     PXi = PX2d(nu)
+!     PYi = PY2d(nu)
+!     PZi = PZ2d(nu)
+! 
+!     ! Calculate partners within cutoff sphere
+!     NInCutoff = 0
+!     do j = 1, NUnit2
+!       if( nu .eq. j ) cycle
+!       PXij = PXi - PX2d(j)
+!       PYij = PYi - PY2d(j)
+!       PZij = PZi - PZ2d(j)
+!       PXij = PXij - anint( PXij )
+!       PYij = PYij - anint( PYij )
+!       PZij = PZij - anint( PZij )
+!       RijSquared = PXij**2 + PYij**2 + PZij**2
+!       if( RijSquared < RCutoffSquaredScaled ) then
+!         NInCutoff = NInCutoff + 1
+!         this%CutoffPartner(NInCutoff, nu) = j
+!       end if
+!     end do
+!     this%NInCutoff(nu) = NInCutoff
+! 
+!   end subroutine TInteraction_CalcPartnersIntra
 
 
 !==============================================================!

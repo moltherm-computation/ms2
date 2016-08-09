@@ -747,6 +747,8 @@ contains
       endif
 !        call Error('Check *.par file, molecule too small, &
 ! &                  no intramolecular interactions can be used' )
+    else
+      this%hasIntraLJEl = .false.
     end if
 
    ! create list of 1-4, 1-5 interactions

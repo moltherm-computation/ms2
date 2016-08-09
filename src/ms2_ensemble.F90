@@ -200,7 +200,7 @@ module ms2_ensemble
     real(RK) :: EPotIntra_Nonbonded
 
     ! Potential energy of test particles
-    real(RK), pointer :: EPotTest(:)
+    real(RK), pointer :: EPotTest(:), EPotTestIntra(:)
 
     ! Long-range corrections
     real(RK) :: EPotCorrLJ, VirialCorrLJ, d2EpotdV2CorrLJ
@@ -2843,6 +2843,7 @@ contains
     nullify( this%P0Test )
     nullify( this%Q0Test )
     nullify( this%EPotTest )
+    nullify( this%EPotTestIntra )
     nullify( this%BiasedPartners )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
@@ -2870,6 +2871,8 @@ contains
       allocate( this%Q0Test( this%NTestMax, 4, this%NUnitMax ), STAT = stat )
       call AllocationError( stat, 'test particles', this%NTestMax )
       allocate( this%EPotTest( this%NTestMax ), STAT = stat )
+      call AllocationError( stat, 'test particles', this%NTestMax )
+      allocate( this%EPotTestIntra( this%NTestMax ), STAT = stat )
       call AllocationError( stat, 'test particles', this%NTestMax )
       call LogWriteBlank
       write( IOBuffer, '("Memory for test particles allocated successfully")' )
@@ -3216,6 +3219,10 @@ contains
 
     if( associated( this%EPotTest ) ) then
       deallocate( this%EPotTest )
+    end if
+
+    if( associated( this%EPotTestIntra ) ) then
+      deallocate( this%EPotTestIntra )
     end if
 
     if( associated( this%ScaleEpsilon ) ) then
@@ -5550,8 +5557,9 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    real(RK)                  :: ChemPot, rm(3), ExpMinusBetaEnLaMin, factor
+    real(RK)                  :: ChemPot, rm(3), ExpMinusBetaEnLaMin, factor, Cutoff
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
+    real(RK)                  :: a, b, c, d, e, f, g, h, x, y, z
     integer                   :: i, j, t, selected
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
     integer                   :: r, s, nc, np, ncf, npf
@@ -5609,11 +5617,12 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Throw test particles
+    this%EPotTestIntra = 0._RK
     do i = 1, this%NComponents
       if (this%Component(i)%NTest > 0) then
         pc => this%Component(i)
         if (pc%NPart == 0) then ! for Henry NPart==0
-        
+
           do j = 1, this%NTestMax
             do t = 1, 3
               rm(t) = tprnd( -.5_RK, .5_RK )
@@ -5655,7 +5664,19 @@ loop5:    do nc = 1, this%NComponents
                 rm(t) = tprnd( -1._RK, 1._RK )
               end do
               call RotateTest( pc, j, rm)
-            end if 
+            end if
+            if (SimulationType .eq. MonteCarlo) then
+              this%EPotTestIntra(j) = this%EPotTestIntra(j) + GetEnergyIntra(this, i, selected)
+            else
+              Cutoff = this%Interaction( i, i )%RCutoffSquaredScaled
+              this%Interaction( i, i )%RCutoffSquaredScaled = 0._RK! to get only intramolecular interactions
+              c = 0._RK ! saves/gets the EPotIntra of the TestParticles
+              a = 0._RK; b = 0._RK; d = 0._RK; e = 0._RK; f = 0._RK
+              g = 0._RK; h = 0._RK; x = 0._RK; y = 0._RK; z = 0._RK
+              call Force( this%Interaction( i, i ), a, b, c, d, e, f, g, h, x, y, z, this%BoxLength )
+              this%EPotTestIntra(j) = this%EPotTestIntra(j) + c
+              this%Interaction( i, i )%RCutoffSquaredScaled = Cutoff
+            end if
 
             call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
           end do
@@ -5908,6 +5929,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
 
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        this%EPotTest(:) = this%EPotTest(:) + this%EPotTestIntra(:)
         do j = 1, this%NRealComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
@@ -5964,7 +5986,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! chemPot with LambdaMin by Widom
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
-        this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF ! EpotTest = EpottestInter...no idfenergies!
+        this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        this%EPotTest(:) = this%EPotTest(:) + this%EPotTestIntra(:)
         do j = 1, this%NComponents ! Michael Sch.: incompatible with GradIns...because fluctuating components accounted as well
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
@@ -11930,9 +11953,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Update( this%SumConfEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density )
     end if
 
-    resmolVirial = this%Virial+(this%NUnitTotal-this%Npart-this%constrNDF/3._RK)*this%RefTemperature
-    currentdEpotdV   = -(resmolVirial)/this%Volume0 ! diff to trunk, correct
-    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
+!     resmolVirial = this%Virial+(this%NUnitTotal-this%Npart-this%constrNDF/3._RK)*this%RefTemperature
+!     currentdEpotdV   = -(resmolVirial)/this%Volume0 ! diff to trunk, correct
+!     currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
+    currentdEpotdV   = -this%Virial/this%Volume0
+    currentd2EpotdV2 =  (2._RK*this%Virial/3._RK + this%d2EpotdV2) / this%Volume0**2
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
 
@@ -11946,13 +11971,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
     ! 2.) Combined sums
-    call Update( this%SumEPotSquared,      ( this%EPotInter / real( this%NPart, RK ) )**2 ) ! diff to trunk all 7 lines
-    call Update( this%SumEPotCubic,          this%EPotInter**3 )
-    call Update( this%SumdEpotdVSquared,                         currentdEpotdV**2 )
-    call Update( this%SumEPotdEpotdV,        this%EPotInter    * currentdEpotdV    )             
-    call Update( this%SumEPotSquareddEpotdV, this%EPotInter**2 * currentdEpotdV    )
-    call Update( this%SumEPotdEpotdVSquared, this%EPotInter    * currentdEpotdV**2 )
-    call Update( this%SumEPotd2EpotdV2,      this%EPotInter    * currentd2EpotdV2  )
+    call Update( this%SumEPotSquared,      ( this%EPot / real( this%NPart, RK ) )**2 ) ! diff to trunk all 7 lines
+    call Update( this%SumEPotCubic,          this%EPot**3 )
+    call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
+    call Update( this%SumEPotdEpotdV,        this%EPot    * currentdEpotdV    )             
+    call Update( this%SumEPotSquareddEpotdV, this%EPot**2 * currentdEpotdV    )
+    call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
+    call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
       !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because the results are identical with and without it.
@@ -12036,10 +12061,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       Beta    = 1._RK/this%RefTemperature
       Beta2   = Beta*Beta
       Beta3   = Beta*Beta2
-      Numb    = real( this%NPart, RK )
-      specv   = 1._RK/this%Density
+      Numb    = real( this%NUnitTotal, RK )
+      specv   = this%Volume0/this%NUnitTotal !1._RK/this%Density
       specv2  = specv*specv
-      U       = this%SumEpotInter%Average*real( this%NPart, RK ) ! diff to trunk
+      U       = this%SumEpot%Average*real( this%NPart, RK ) ! diff to trunk
       U2      = this%SumEpotSquared%Average*real( this%NPart, RK )**2
       U3      = this%SumEpotCubic%Average
       dUdV    = this%SumdEpotdV%Average
@@ -12051,10 +12076,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       Ud2UdV2 = this%SumEPotd2EpotdV2%Average
 
       A10res =  Beta*U/Numb
-      A01res = -Beta*specv*dUdV
+      A01res = 1._RK-Beta*specv*dUdV !(Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV
       A20res =  Beta2*(U*U-U2)/Numb
       A11res =  specv*(-Beta*dUdV + Beta2*UdUdV - Beta2*U*dUdV)
-      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV
+      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - 1._RK ! Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb
       A30res =  Beta3*(U3 -3._RK*U*U2 + 2._RK*U**3)/Numb
       A21res =  specv*( Beta2*( 2._RK*UdUdV - 2._RK*U*dUdV) + Beta3*(U2*dUdV - U2dUdV + 2._RK*U*UdUdV - 2._RK*U**2*dUdV) )
       A12res =  Numb*specv2*Beta3*( UdUdV2 + 2._RK*U*dUdV**2 - U*dUdV2 - 2._RK*UdUdV*dUdV)+&

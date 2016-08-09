@@ -5812,7 +5812,6 @@ subroutine TComponent_InitUnit( this, np, dq )
         call LogWrite
         call Error( 'Initial density to high for QShake' )
       end if
-
 #if MPI_VER > 0
     end if
 #endif
