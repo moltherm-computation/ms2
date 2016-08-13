@@ -62,7 +62,7 @@ module ms2_site
     real(RK), pointer :: tuLJx(:),  tuLJy(:),  tuLJz(:)
     real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
     real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -118,7 +118,7 @@ module ms2_site
     real(RK), pointer :: tuCx(:),  tuCy(:),  tuCz(:)
     real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
     real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -178,7 +178,7 @@ module ms2_site
     real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
     real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
     real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -238,7 +238,7 @@ module ms2_site
     real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
     real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
     real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 

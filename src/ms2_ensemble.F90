@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
@@ -337,21 +333,9 @@ module ms2_ensemble
 !TRANSPORT_start
     ! Correlation functions
     logical  :: CorrFunMode
-    ! Frequency of updating result file CF
-    integer :: BlockSizeCF
-    ! Maximum number of blocks CF
-    integer :: NBlocksMaxCF
-    ! Maximum number of block sizes for error calculation CF
-    integer :: NBlockSizesMaxCF
-    ! Number of block sizes for error calculation CF
-    integer :: NBlockSizesCF
-    ! Current number of blocks CF
-    integer :: NBlocksCF
-    ! Total number of blocks CF; necessary for the restart
-    integer :: NBlocksRestartCF
     integer  :: NStepCorr
     real(RK) :: TimeStepCorr
-    integer  :: NCorr,Mmess,MmessMax
+    integer  :: NCorr,Mmess
     integer  :: NSpanCF,Nviewcf
     real(RK), pointer :: cf_db(:), cf_soret(:)
     real(RK), pointer :: average_cf_db(:), average_cf_soret(:)
@@ -369,7 +353,7 @@ module ms2_ensemble
     real(RK), pointer :: average_sinte_c(:), average_sinte_ec(:)
     real(RK), pointer :: a(:, :), A_SpanCF(:,:)
     real(RK), pointer :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
-    real(RK),pointer  :: vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK), pointer :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
@@ -383,13 +367,13 @@ module ms2_ensemble
 
     ! 4.) Transport properties
 
-    type(TAccumulatorCF),pointer :: Sumself_i(:)
-    type(TAccumulatorCF),pointer :: SumOnsager(:,:)
-    type(TAccumulatorCF)         :: SumVisco_s
-    type(TAccumulatorCF)         :: SumVisco_b
-    type(TAccumulatorCF)         :: SumSoret
-    type(TAccumulatorCF)         :: SumConduct
-    type(TAccumulatorCF)         :: SumEConduct
+    type(TAccumulator),pointer :: Sumself_i(:)
+    type(TAccumulator),pointer :: SumOnsager(:,:)
+    type(TAccumulator)         :: SumVisco_s
+    type(TAccumulator)         :: SumVisco_b
+    type(TAccumulator)         :: SumSoret
+    type(TAccumulator)         :: SumConduct
+    type(TAccumulator)         :: SumEConduct
 !TRANSPORT_END
 #endif
 
@@ -1305,28 +1289,27 @@ contains
       end if
 
       ! Read frequency of updating result file CF
-      call FileReadParameter( this%BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 1 )
-      if( BlockSize > 0 ) then
-        write( IOBuffer, '("Result files will be updated each", I3, " CF")' ) this%BlockSizeCF
+      call FileReadParameter( BlockSizeCF , iounit_params , IdBlockSizeCF, .false., 1 )
+      if( BlockSizeCF > 0 ) then
+        write( IOBuffer, '("Result files will be updated each", I3, " CF")' ) BlockSizeCF
       else
         write( IOBuffer, '("Result files will not be created")' )
       end if
       call LogWrite
 
-      ! Calculate MmessMax
-      this%MmessMax = int((((NSteps+this%NStepCorr-1)/this%NStepCorr)-this%NCorr)/this%NSpanCF)
+      ! Calculate max of Mmess for BlockSize determination
+      this%Mmess = int((((NSteps+this%NStepCorr-1)/this%NStepCorr)-this%NCorr)/this%NSpanCF)
+
+      if( BlockSizeCF > 0 ) then
+        NBlocksMaxCF = int(this%Mmess / BlockSizeCF)
+        NBlockSizesMaxCF = int( sqrt( real( NBlocksMaxCF, RK ) ) )
+      else
+        NBlocksMaxCF = 0
+        NBlockSizesMaxCF = 0
+      end if
 
       ! Initialization
       this%Mmess = 0
-
-      if( this%BlockSizeCF > 0 ) then
-        this%NBlocksMaxCF = int(this%MmessMax / this%BlockSizeCF)
-        this%NBlockSizesMaxCF = int( sqrt( real( this%NBlocksMaxCF, RK ) ) )
-
-      else
-        this%NBlocksMaxCF = 0
-        this%NBlockSizesMaxCF = 0
-      end if
 
     end if
 !TRANSPORT_END
@@ -2343,17 +2326,17 @@ contains
     ! 4.) Transport properties
     if ( this%CorrfunMode ) then 
       do i = 1, this%NComponents
-        call ConstructCF( this%Sumself_i(i), .false., this%NBlocksMaxCF )
+        call Construct( this%Sumself_i(i), .false., .true. )
         do j = 1, this%NComponents
-          call ConstructCF( this%SumOnsager(i,j), .false., this%NBlocksMaxCF )
+          call Construct( this%SumOnsager(i,j), .false., .true. )
         end do
       end do
 
-      call ConstructCF( this%SumVisco_s, .false., this%NBlocksMaxCF )
-      call ConstructCF( this%SumVisco_b, .false., this%NBlocksMaxCF )
-      call ConstructCF( this%SumConduct, .false., this%NBlocksMaxCF )
-      call ConstructCF( this%SumSoret, .false., this%NBlocksMaxCF )
-      call ConstructCF( this%SumEConduct, .false., this%NBlocksMaxCF )
+      call Construct( this%SumVisco_s, .false., .true. )
+      call Construct( this%SumVisco_b, .false., .true. )
+      call Construct( this%SumConduct, .false., .true. )
+      call Construct( this%SumSoret,   .false., .true. )
+      call Construct( this%SumEConduct,.false., .true. )
     end if
 !TRANSPORT_END
 #endif
@@ -2484,16 +2467,17 @@ contains
     if ( this%CorrfunMode ) then
 
       do i = 1, this%NComponents
-        call DestructCF( this%Sumself_i(i) )
+        call Destruct( this%Sumself_i(i) )
         do j = 1, this%NComponents
-          call DestructCF( this%SumOnsager(i,j) )
+          call Destruct( this%SumOnsager(i,j) )
+        end do
       end do
 
-      call DestructCF( this%SumVisco_s )
-      call DestructCF( this%SumVisco_b )
-      call DestructCF( this%SumConduct )
-      call DestructCF( this%SumSoret )
-      call DestructCF( this%SumEConduct )
+      call Destruct( this%SumVisco_s )
+      call Destruct( this%SumVisco_b )
+      call Destruct( this%SumConduct )
+      call Destruct( this%SumSoret   )
+      call Destruct( this%SumEConduct)
 
     end if
 
@@ -4788,7 +4772,7 @@ loop5:    do nc = 1, this%NComponents
 #if ABL
         vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
         fac = TimeStepSquared2*Gear20
-        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20
+        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20 ! Michael Sch.: per def = 0, also obsolet...
         denom2 = denom**2
         nen = this%PistonMass*fac / (vol * denom2)
         do i=1,this%NComponents
@@ -11335,9 +11319,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     integer                   :: time_limit
     real(RK)                   :: a1, a2, a3, b1, b2, b3, c1, c2, c3, d1 ! dummy arguments
-#if TRANS ==1
-    integer                   :: NStepsCF
-#endif
 
     if( Step == 1 ) then
       ! Reset accumulators
@@ -12245,29 +12226,29 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
-      NStepsCF = (Step + this%NStepCorr -1) / this%NStepCorr
-      if( mod( NStepsCF - this%NCorr, this%BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
+    if(mod((Step-1),this%NStepCorr) .eq. 0) then ! Michael Sch.: this if needed?
+
+      if( mod( (Step+-1)/this%NStepCorr-this%NCorr+1, BlockSizeCF*this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
 
         do i = 1, this%NComponents
-          call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+          call Update( this%Sumself_i(i), this%selfd_i(i), this%Mmess )
         end do
 
         if(this%NComponents .gt. 1) then
           if(this%NComponents == 2) then
-            call UpdateCF( this%SumSoret, this%soret, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+            call Update( this%SumSoret, this%soret, this%Mmess )
           end if
           do i = 1, this%NComponents
             do j = 1, this%NComponents
-              call UpdateCF( this%SumOnsager(i,j), this%Onsager(i,j), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+              call Update( this%SumOnsager(i,j), this%Onsager(i,j), this%Mmess )
             end do
           end do
         end if
 
-        call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%SumConduct, this%conduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
-        call UpdateCF( this%SumEConduct, this%econduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call Update( this%SumVisco_s, this%visco_s, this%Mmess )
+        call Update( this%SumVisco_b, this%visco_b, this%Mmess )
+        call Update( this%SumConduct, this%conduct, this%Mmess )
+        call Update( this%SumEConduct,this%econduct,this%Mmess )
       end if
     end if
 !TRANSPORT_END
@@ -13286,9 +13267,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
-    if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) ) then
     if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) &
-&       .and. (mod((Step + this%NStepCorr -1), (this%NSpanCF*this%NStepCorr)) == 0) ) then
+&       .and. (mod(Step+this%NStepCorr-1, this%NSpanCF*this%NStepCorr) == 0) ) then
       rewind( this%iounit_rescf )
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
@@ -14520,13 +14500,35 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       if ( this%Mmess > 0 ) then
 
+        ! Error update for transport properties
+        if( mod( ((Step-1)/this%NStepCorr) - this%NCorr + 1, BlockSizeCF * this%NSpanCF ) == 0 .and. NBlockSizesCF >= 2) then
+
+          if ( this%NComponents > 1 ) then
+            do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                call Error(this%SumOnsager(i,j), .true.)
+              end do
+            end do 
+          end if
+          if( this%NComponents == 2  ) then
+            if (this%MolarEnthConduct .eq. .true.) then
+              call Error(this%SumSoret, .true.)
+            end if
+          end if
+          do i = 1, this%NComponents
+            call Error(this%Sumself_i(i), .true.)
+          end do
+          call Error(this%SumVisco_s, .true.)
+          call Error(this%SumVisco_b, .true.)
+          call Error(this%SumConduct, .true.)
+          call Error(this%SumEConduct,.true.)
+
+        end if
+
         ! Onsager coefficients
         if ( this%NComponents > 1 ) then
           do i = 1, this%NComponents
             do j = 1, this%NComponents
-              if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-                call ErrorCF(this%SumOnsager(i,j),this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-              end if
               Average  = this%SumOnsager(i,j)%Average
               Variance = this%SumOnsager(i,j)%Variance
               value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
@@ -14562,12 +14564,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          if (this%MolarEnthConduct .eqv. .true.) then
-            if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-              call ErrorCF(this%SumSoret, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-            end if
-            Average  = this%SumBin_d%Average
-            Variance = this%SumBin_d%Variance
+          if (this%MolarEnthConduct .eq. .true.) then
+            Average  = this%SumSoret%Average
+            Variance = this%SumSoret%Variance
             value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
             write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -14583,84 +14582,82 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then !calculate from Onsager
-            x1 = this%Component(1)%Fraction 
-            x2 = this%Component(2)%Fraction
-            x3 = this%Component(3)%Fraction
-            Inv_x1 = 1._RK / x1
-            Inv_x2 = 1._RK / x2
-            Inv_x3 = 1._RK / x3
+          x1 = this%Component(1)%Fraction 
+          x2 = this%Component(2)%Fraction
+          x3 = this%Component(3)%Fraction
+          Inv_x1 = 1._RK / x1
+          Inv_x2 = 1._RK / x2
+          Inv_x3 = 1._RK / x3
 
-            !simplify by averaging Lij and Lji
-            L(1,1) = this%SumOnsager(1,1)%Average
-            L(1,2) = (this%SumOnsager(1,2)%Average + this%SumOnsager(2,1)%Average)/2._RK
-            L(1,3) = (this%SumOnsager(1,3)%Average + this%SumOnsager(3,1)%Average)/2._RK
-            L(2,1) = L(1,2)
-            L(2,2) = this%SumOnsager(2,2)%Average
-            L(2,3) = (this%SumOnsager(2,3)%Average + this%SumOnsager(3,2)%Average)/2._RK
-            L(3,1) = L(1,3)
-            L(3,2) = L(2,3)
-            L(3,3) = this%SumOnsager(3,3)%Average
+          !simplify by averaging Lij and Lji
+          L(1,1) = this%SumOnsager(1,1)%Average
+          L(1,2) = (this%SumOnsager(1,2)%Average + this%SumOnsager(2,1)%Average)/2._RK
+          L(1,3) = (this%SumOnsager(1,3)%Average + this%SumOnsager(3,1)%Average)/2._RK
+          L(2,1) = L(1,2)
+          L(2,2) = this%SumOnsager(2,2)%Average
+          L(2,3) = (this%SumOnsager(2,3)%Average + this%SumOnsager(3,2)%Average)/2._RK
+          L(3,1) = L(1,3)
+          L(3,2) = L(2,3)
+          L(3,3) = this%SumOnsager(3,3)%Average
 
-            !obtain matrix [delta] Equations 28 to 31 from Supplementary material 
-            !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
-            delta_11 = (((1._RK - x1)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)))-((x1)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)+ &
+          !obtain matrix [delta] Equations 28 to 31 from Supplementary material 
+          !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
+          delta_11 = (((1._RK - x1)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)))-((x1)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)+ &
 &                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
-            delta_12 = (((1._RK - x1)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)))-((x1)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)+ &
+          delta_12 = (((1._RK - x1)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)))-((x1)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)+ &
 &                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
-            delta_21 = (((1._RK - x2)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)))-((x2)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)+ &
+          delta_21 = (((1._RK - x2)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)))-((x2)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)+ &
 &                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
-            delta_22 = (((1._RK - x2)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)))-((x2)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)+ &
+          delta_22 = (((1._RK - x2)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)))-((x2)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)+ &
 &                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
 
-            !calculate variance by error propagation
-            err_delta_11 = (1._RK-x1)*Inv_x1*this%SumOnsager(1,1)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
-&	                       this%SumOnsager(2,1)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
-&                              this%SumOnsager(3,1)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
-             
-            err_delta_12 = (1._RK-x1)*Inv_x2*this%SumOnsager(1,2)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
-&	                       x1*Inv_x2*this%SumOnsager(2,2)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
-&                              x1*Inv_x2*this%SumOnsager(3,2)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
+          !calculate variance by error propagation
+          err_delta_11 = (1._RK-x1)*Inv_x1*this%SumOnsager(1,1)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
+&                                          this%SumOnsager(2,1)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
+&                                          this%SumOnsager(3,1)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
+          
+          err_delta_12 = (1._RK-x1)*Inv_x2*this%SumOnsager(1,2)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
+&                                x1*Inv_x2*this%SumOnsager(2,2)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
+&                                x1*Inv_x2*this%SumOnsager(3,2)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
 
-            err_delta_21 = (1._RK-x2)*Inv_x1*this%SumOnsager(2,1)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
-&	                       x2*Inv_x1*this%SumOnsager(1,1)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
-&                              x2*Inv_x1*this%SumOnsager(3,1)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
+          err_delta_21 = (1._RK-x2)*Inv_x1*this%SumOnsager(2,1)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
+&                                x2*Inv_x1*this%SumOnsager(1,1)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
+&                                x2*Inv_x1*this%SumOnsager(3,1)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
 
-            err_delta_22 = (1._RK-x2)*Inv_x2*this%SumOnsager(2,2)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
-&	                       this%SumOnsager(1,2)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
-&                              this%SumOnsager(3,2)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
+          err_delta_22 = (1._RK-x2)*Inv_x2*this%SumOnsager(2,2)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
+&	                                   this%SumOnsager(1,2)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
+&                                          this%SumOnsager(3,2)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
 
-            ! determinat of matrix [delta]
-            det = (delta_11*delta_22)-(delta_12*delta_21)
-            inv_det = 1._RK/det
+          ! determinat of matrix [delta]
+          det = (delta_11*delta_22)-(delta_12*delta_21)
+          inv_det = 1._RK/det
 
-            !obtain matrix [B] so that [B]=[D]-1
-            B11 =  inv_det*  delta_22  !B1
-            B12 =  inv_det*(-delta_12) !B2
-            B21 =  inv_det*(-delta_21) !B3
-            B22 =  inv_det*  delta_11  !B4
+          !obtain matrix [B] so that [B]=[D]-1
+          B11 =  inv_det*  delta_22  !B1
+          B12 =  inv_det*(-delta_12) !B2
+          B21 =  inv_det*(-delta_21) !B3
+          B22 =  inv_det*  delta_11  !B4
 
-            !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
-            !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-            err_B11 = ABS(B11*B11) * err_delta_11 + ABS(B11*B21)* err_delta_12 + &
-&                     ABS(B11*B12)* err_delta_21 + ABS(B12*B21)* err_delta_22
-            err_B12 = ABS(B11*B12) * err_delta_11 + ABS(B11*B22)* err_delta_12 + &
-&                     ABS(B12*B12)* err_delta_21 + ABS(B22*B12)* err_delta_22
-            err_B21 = ABS(B11*B21) * err_delta_11 + ABS(B21*B21)* err_delta_12 + &
-&                     ABS(B22*B11)* err_delta_21 + ABS(B22*B21)* err_delta_22
-            err_B22 = ABS(B12*B21) * err_delta_11 + ABS(B22*B21)* err_delta_12 + &
-&                     ABS(B22*B12)* err_delta_21 + ABS(B22*B22)* err_delta_22
+          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
+          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+          err_B11 = ABS(B11*B11) * err_delta_11 + ABS(B11*B21)* err_delta_12 + &
+&                   ABS(B11*B12)* err_delta_21 + ABS(B12*B21)* err_delta_22
+          err_B12 = ABS(B11*B12) * err_delta_11 + ABS(B11*B22)* err_delta_12 + &
+&                   ABS(B12*B12)* err_delta_21 + ABS(B22*B12)* err_delta_22
+          err_B21 = ABS(B11*B21) * err_delta_11 + ABS(B21*B21)* err_delta_12 + &
+&                   ABS(B22*B11)* err_delta_21 + ABS(B22*B21)* err_delta_22
+          err_B22 = ABS(B12*B21) * err_delta_11 + ABS(B22*B21)* err_delta_12 + &
+&                   ABS(B22*B12)* err_delta_21 + ABS(B22*B22)* err_delta_22
 
-            !Calculate diffusion coefficients
-            D_13 =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )         ! D_13    
-            D_12 =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))   ! D_12
-            D_23 =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))          ! D_23
+          !Calculate diffusion coefficients
+          D_13 =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )         ! D_13    
+          D_12 =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))   ! D_12
+          D_23 =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))          ! D_23
 
-            !Obtain error of Diffusion coefficients
-            err_D13 = ABS(1._RK/((x2*Inv_x1*B12+B11)**2))*err_B11 + ABS(x2*Inv_x1/((B11+x2*Inv_x1*B12)**2))*err_B12
-            err_D12 = ABS(1._RK/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B11 + ABS(((x1+x3)*Inv_x1)/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B12              
-            err_D23 = ABS(1._RK/((x1*Inv_x2*B21+B22)**2))*err_B22 + ABS(x1*Inv_x2/((B22+x1*Inv_x2*B21)**2))*err_B21 
-          end if
+          !Obtain error of Diffusion coefficients
+          err_D13 = ABS(1._RK/((x2*Inv_x1*B12+B11)**2))*err_B11 + ABS(x2*Inv_x1/((B11+x2*Inv_x1*B12)**2))*err_B12
+          err_D12 = ABS(1._RK/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B11 + ABS(((x1+x3)*Inv_x1)/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B12              
+          err_D23 = ABS(1._RK/((x1*Inv_x2*B21+B22)**2))*err_B22 + ABS(x1*Inv_x2/((B22+x1*Inv_x2*B21)**2))*err_B21 
 
           write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
           call FileWrite( this%iounit_errors )
@@ -14683,9 +14680,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! self-diffusion coefficient
         do i = 1, this%NComponents
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%Sumself_i(i), this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-          end if
           Average  = this%Sumself_i(i)%Average
           Variance = this%Sumself_i(i)%Variance
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
@@ -14697,9 +14691,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteBlank( this%iounit_errors )
 
         ! shear viscosity
-        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-          call ErrorCF(this%SumVisco_s, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-        end if
         Average  = this%SumVisco_s%Average
         Variance = this%SumVisco_s%Variance
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
@@ -14711,9 +14702,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! bulk viscosity
         if (this%Bulkviscosity) then
-          if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-            call ErrorCF(this%SumVisco_b, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-          end if
           Average  = this%SumVisco_b%Average
           Variance = this%SumVisco_b%Variance
           write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
@@ -14726,9 +14714,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteBlank( this%iounit_errors )
 
         ! Thermal conductivity
-        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-          call ErrorCF(this%SumConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-        end if
         Average  = this%SumConduct%Average
         Variance = this%SumConduct%Variance
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
@@ -14745,9 +14730,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteBlank( this%iounit_errors )
 
         ! Electric conductivity
-        if((this%NBlockSizesCF >= 2 ).and.(this%NBlocksCF.le.this%NBlocksMaxCF))then
-          call ErrorCF(this%SumEConduct, this%Mmess, this%NBlockSizesCF, this%NBlocksCF, this%BlockSizeCF)
-        end if
         Average  = this%SumEConduct%Average
         Variance = this%SumEConduct%Variance
         value = ElementaryCharge**2 / (dsqrt(UnitEnergy*UnitMass) * UnitLength**2)
@@ -14782,7 +14764,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-          if (this%MolarEnthConduct .eqv. .true.) then
+          if (this%MolarEnthConduct .eq. .true.) then
             write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' )  0._RK
@@ -14838,7 +14820,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1 .or. this%MolarEnthConduct .eqv. .true.) then
+        elseif (this%NComponents==1 .or. this%MolarEnthConduct .eq. .true.) then
           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
@@ -16167,31 +16149,25 @@ if( RootProc .and. this%CorrfunMode ) then
       end do
     end if
 
-    if(this%NBlocksCF .le. this%NBlocksMaxCF) then
-          this%NBlocksRestartCF = this%NBlocksCF
-    else
-          this%NBlocksRestartCF = this%NBlocksMaxCF
-    end if
-
-    write( iounit_restart, '(I10)' ) this%NBlocksRestartCF
+    write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
     do i = 1, this%NComponents
-      call RestartSaveCF( this%Sumself_i(i), this%NBlocksRestartCF )
+      call RestartSave( this%Sumself_i(i), .true. )
     end do
 
     if (this%NComponents > 1) then
       do i = 1, this%NComponents
          do j = 1, this%NComponents
-           call RestartSaveCF( this%SumOnsager(i,j), this%NBlocksRestartCF )
+           call RestartSave( this%SumOnsager(i,j), .true. )
          end do
       end do
     end if
 
-    call RestartSaveCF( this%SumVisco_s, this%NBlocksRestartCF )
-    call RestartSaveCF( this%SumVisco_b, this%NBlocksRestartCF )
-    call RestartSaveCF( this%SumConduct, this%NBlocksRestartCF )
-    call RestartSaveCF( this%SumSoret,   this%NBlocksRestartCF )
-    call RestartSaveCF( this%SumEConduct,this%NBlocksRestartCF )
+    call RestartSave( this%SumVisco_s, .true. )
+    call RestartSave( this%SumVisco_b, .true. )
+    call RestartSave( this%SumConduct, .true. )
+    call RestartSave( this%SumSoret,   .true. )
+    call RestartSave( this%SumEConduct,.true. )
 
     do i = 1,3
       write( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -16510,25 +16486,25 @@ endif
         end do
       end if
 
-      read( iounit_restart, '(I10)' ) this%NBlocksRestartCF
+      read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
       do i = 1, this%NComponents
-        call RestartReadCF( this%Sumself_i(i), this%NBlocksRestartCF )
+        call RestartRead( this%Sumself_i(i) )
       end do
 
       if (this%NComponents > 1) then
         do i = 1, this%NComponents
            do j = 1, this%NComponents
-             call RestartReadCF( this%SumOnsager(i,j), this%NBlocksRestartCF )
+             call RestartRead( this%SumOnsager(i,j) )
            end do
         end do
       end if
 
-      call RestartReadCF( this%SumVisco_s, this%NBlocksRestartCF )
-      call RestartReadCF( this%SumVisco_b, this%NBlocksRestartCF )
-      call RestartReadCF( this%SumConduct, this%NBlocksRestartCF )
-      call RestartReadCF( this%SumSoret,   this%NBlocksRestartCF )
-      call RestartReadCF( this%SumEConduct,this%NBlocksRestartCF )
+      call RestartRead( this%SumVisco_s )
+      call RestartRead( this%SumVisco_b )
+      call RestartRead( this%SumConduct )
+      call RestartRead( this%SumSoret   )
+      call RestartRead( this%SumEConduct)
 
       do i = 1,3
         read( iounit_restart, '(ES20.12E3)' )  this%sp(i)
@@ -19308,7 +19284,7 @@ contains
       !Michael Sch.: works only for 1unit per molecule, see also interaction.F90
       do j = 1, np
         if ( pc%Molecule%IsElongated ) then
-          KinERot(j)= sum( pc%W0(j,1:3, 1) * pc%W0(j,1:3, 1) * pc%Molecule%MOI(1:3))*0.5_RK
+          KinERot(j)= sum( pc%W0(j,1:3, 1) * pc%W0(j,1:3, 1) * pc%Molecule%Unit(1)%MOI(1:3))*0.5_RK
         end if
       end do
 
@@ -19417,7 +19393,7 @@ contains
         do nmess= 1, this%NCorr
           ! Loop over particles         
           s=CFtmp+nmess-1
-          if (s >= this%NCorr) s = s-this%NCorr+1
+          if (s > this%NCorr) s = s-this%NCorr
           j0 = 0
           do i = 1, this%NComponents
             np = this%Component(i)%NPart
@@ -19666,7 +19642,7 @@ contains
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
     end if
 
-    if ( this%NComponents == 2 ) .and. (abs(this%cf_soret(1)) .gt. 1e-15) then
+    if ( this%NComponents == 2 .and. (abs(this%cf_soret(1)) .gt. 1e-15) ) then
       this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
       this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*MM*this%Temperature*w1*w2)

@@ -6631,7 +6631,7 @@ subroutine TComponent_ForceTransport( this )
           end do
         end do
 
-        nra = this%Molecule%NDFRot
+        nra = this%Molecule%Unit(1)%NDFRot
         do k= 1, nra
           do i= 1, this%Npart
             this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k, 1)

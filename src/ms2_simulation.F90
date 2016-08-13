@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
@@ -1954,11 +1950,11 @@ eqloop: do
               if(mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
                 StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
                 if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                  this%Ensemble(i)%NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf )
-                  this%Ensemble(i)%NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                  NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                  NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
                 else
-                  this%Ensemble(i)%NBlocksCF     = 0
-                  this%Ensemble(i)%NBlockSizesCF = 0
+                  NBlocksCF     = 0
+                  NBlockSizesCF = 0
                 end if
               end if
             end if
@@ -2697,7 +2693,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
-    call LogWrite
+    call LogWriteTime
 
     ! Open restart file for writing
     call FileRewrite( iounit_restart, trim(RestartFileName) )
@@ -2705,6 +2701,8 @@ eqloop: do
     ! Save contents to restart file
     write( iounit_restart, '(A)' ) trim( ParameterFileName )
     write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
+    call LogWrite
     write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     ! Save ensembles
@@ -2751,7 +2749,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Reading restart file ")' )
-    call LogWrite
+    call LogWriteTime
 
     if( RootProc ) then
       write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
@@ -2772,14 +2770,16 @@ eqloop: do
         call LogWriteBlank
       endif
       read( iounit_restart, '(2I10)' ) Step, StepTotal
+      write( IOBuffer, '("restarting at step",I10," (of",I10,")")' ) Step, StepTotal
+      call LogWrite
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number
