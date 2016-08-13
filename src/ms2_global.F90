@@ -40,6 +40,17 @@
 # endif
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
+#ifndef HBOND
+#define HBOND 0
+#endif
 
 module ms2_global
 
@@ -618,6 +629,23 @@ module ms2_global
 
   ! Current number of blocks
   integer :: NBlocks
+
+#if TRANS == 1
+  ! Maximum number of blocks CF
+  integer :: NBlocksMaxCF
+
+  ! Frequency of updating result file CF
+  integer :: BlockSizeCF
+
+  ! Maximum number of block sizes for error calculation CF
+  integer :: NBlockSizesMaxCF
+
+  ! Number of block sizes for error calculation CF
+  integer :: NBlockSizesCF
+
+  ! Current number of blocks CF
+  integer :: NBlocksCF
+#endif
 
   ! Frequency of updating final result file
   integer :: ErrorsUpdateFrequency
@@ -1331,6 +1359,34 @@ contains
     write( IOBuffer, '("Compiler version     : unknown")' )
 #endif
     call LogWrite
+
+    write( IOBuffer, '("Compiler flags       :")' )
+    call LogWriteNoAdvance
+#if MPI_VER > 0
+    write( IOBuffer, '(" MPI=1")' )
+    call LogWriteNoAdvance
+#endif
+#if TRANS == 1
+    write( IOBuffer, '(" TRANS=1")' )
+    call LogWriteNoAdvance
+#endif
+#if HBOND == 1
+    write( IOBuffer, '(" HBOND=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 1
+    write( IOBuffer, '(" OSMOP=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 2
+    write( IOBuffer, '(" OSMOP=2")' )
+    call LogWriteNoAdvance
+#endif
+    ! new compiler flags should be added
+    ! include target, omp and precision???
+    write( IOBuffer, '(" ")' )
+    call LogWrite
+
     write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
     call LogWrite
     write( IOBuffer, '("Real Kind            :", I2)' ) RK

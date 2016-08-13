@@ -403,7 +403,7 @@ contains
 
       ! Read number of steps
       call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
-      write( IOBuffer, '("Number of radial steps: ",T24, I7)' ) NSteps
+      write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
@@ -622,7 +622,7 @@ contains
 
       ! Read number of production steps
       call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
-      write( IOBuffer, '("Number of production steps: ",T40, I7)' ) NSteps
+      write( IOBuffer, '("Number of production steps: ",T39, I8)' ) NSteps
       call LogWrite
       call LogWriteBlank
 
@@ -694,7 +694,7 @@ contains
         end if
 
         if( ErrorsUpdateFrequency < NSteps ) then
-          write( IOBuffer, '("Final result files will be updated each", I7, " time steps")' ) ErrorsUpdateFrequency
+          write( IOBuffer, '("Final result files will be updated each ", I8, " time steps")' ) ErrorsUpdateFrequency
         else
           ErrorsUpdateFrequency = NSteps
           write( IOBuffer, '("Final result files will be created at the end")' )
@@ -1882,13 +1882,13 @@ eqloop: do
               if (mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
                 StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
                 if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                  this%Ensemble(i)%NBlocksCF = 1 + int(( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
-&                                            ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ))
-                  this%Ensemble(i)%NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
-&                                                ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                  NBlocksCF = 1 + int(( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
+&                                            ( BlockSizeCF * this%Ensemble(i)%NSpancf ))
+                  NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
+&                                                ( BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
                 else
-                  this%Ensemble(i)%NBlocksCF     = 0
-                  this%Ensemble(i)%NBlockSizesCF = 0
+                  NBlocksCF     = 0
+                  NBlockSizesCF = 0
                 end if
               end if
 
