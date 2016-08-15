@@ -115,15 +115,17 @@ module ms2_interaction
     ! Flag for reaction field
     logical :: ReactionField
 
+    ! Extended reaction field
+     real(RK) :: DebyeLen
+
     ! (2*eps-1)/(2*eps+1)
-    real(RK) :: RFConst2, RFConst3
+    real(RK) :: RFConst2
 
     ! Same component
     logical :: SameComponent
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: DebyeLen, RFConstant
     real(RK) :: lad1,lad2
 
 #ifdef ABL
@@ -226,19 +228,14 @@ contains
     integer :: stat
     real    :: fac
 
-    ! RFConstant2
-    if (LongRange .eq. RField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
-
-    else
+    ! RFConst2
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*RCutoffDipoleDipole
       this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
 &                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
 &                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
-
-      this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
-&                     / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
-      this%RFConstant=RCutoffDipoleDipole
+    else
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
     end if
 
     ! Set SameComponent flag
@@ -2324,7 +2321,7 @@ contains
       end do
 
       ! Explicit reaction field contribution
-      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+      if ( this%ReactionField  ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
           MueX2 => this%MueX2
           MueY2 => this%MueY2

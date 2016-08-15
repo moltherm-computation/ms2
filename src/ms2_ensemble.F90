@@ -1685,7 +1685,6 @@ contains
          do i=1,this%NComponents
            do j=1,this%NComponents
              this%Interaction(i,j)%Kappa = this%Kappa
-             this%Interaction(i,j)%DebyeLen = this%DebyeLen
            end do
          end do
 
@@ -2288,9 +2287,7 @@ contains
       do i = 1, this%NComponents
         do j = 1, this%NComponents
 
-          if (LongRange .ne. RField .and. LongRange .ne. Rodgers) then
-            this%Interaction(i,j)%DebyeLen = this%DebyeLen
-          end if
+          if (LongRange .eq. ExtRField) this%Interaction(i,j)%DebyeLen = this%DebyeLen
           this%Interaction(i,j)%OptPressure = this%OptPressure
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
@@ -3735,12 +3732,13 @@ contains
 
     ! Assign local variables
     NPartInv = 1._RK / this%NPart
-    if (LongRange .eq. RField) then
-      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
-    else 
+
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*this%RCutoffDipoleDipole
       RFConst = -1._RK / this%RCutoffDipoleDipole**3 * ((this%RFEpsilon - 1._RK)*(1._RK+fac) + 0.5*this%RFEpsilon*(fac)**2) &
-&       / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
+&               / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
+    else
+      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
     endif
 
     ! Set maximum cutoff radius
