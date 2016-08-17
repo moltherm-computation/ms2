@@ -121,7 +121,7 @@ u^{\text{LJ}}_{ij}=4 \epsilon \left(\left(\frac{\sigma}{r_{ij}}\right)^{12}-\lef
 \end{equation}
 Here, the site-site distance between two interacting LJ sites $i$ and $j$ is denoted by $r_{ij}$, while $\sigma$ and $\epsilon$ are the LJ size and energy parameters, respectively. The LJ potential is widely used and allows for a fast computation of these basic interactions. It has only two parameters, which facilitates the parameterization of molecular models.
 
-\subsection{Tote Hosen}
+
 
 \subsection{Electrostatic Interactions}
 \label{sec:Electrostatic Interaction}
@@ -470,39 +470,50 @@ where $M$ is the molar mass. In \textit{ms}2, the speed of sound is calculated b
 \label{sec:Transport properties}
 % Tatjana
 
-In \textit{ms}2, transport properties are calculated using equilibrium MD. Here, the fluctuations of a system around
-its equilibrium state are evaluated as a function of time. The Green-Kubo formalism relates these microscopic
-fluctuations to the respective transport properties.
+
+In \textit{ms}2, transport properties are determined via equilibrium MD simulations
+by means of the Green-Kubo formalism. This formalism offers a direct relationship between transport coefficients
+and the time integral of the autocorrelation function of the corresponding fluxes.\\
+An extended time step is defined in \textit{ms}2 for the calculation of the fluxes, the autocorrelation functions and their integrals, 
+which may be significantly times longer than the MD time step. As a consequence, the memory demand for the autocorrelation
+functions was reduced and the restart files, which contain the current state of the autocorrelation functions and
+time integrals, become accordingly smaller.
 \newline \newline
-\textbf{Diffusion coefficients.} The self-diffusion coefficient $D_{i}$ is related to the mass flux of single molecules within a fluid. Therefore, the relevant Green-Kubo expression is based on the individual molecule velocity autocorrelation
-function \cite{gubbins1}
+\textbf{Diffusion coefficients. }
+The self-diffusion coefficient $D_{i}$ is related to the mass flux of single molecules of component $i$ within a fluid. Therefore, the relevant Green-Kubo expression is based on the individual molecule velocity autocorrelation function \cite{gubbins1}
 \begin{equation}
 D_{i}=\frac{1}{3N_{i}}\int^{\infty}_{0} \mathrm dt \left\langle \textbf{v}_{k}\left(t\right) \cdot \textbf{v}_{k}\left(0\right)\right\rangle \;,
 \label{eq:selfdiffusioncoefficient}
 \end{equation}
-where $\textbf{v}_{k}\left(t\right)$ is the center of mass velocity vector of molecule $k$ at some time $t$. Eq.~\eqref{eq:selfdiffusioncoefficient} is an average over all $N_{i}$ molecules of component $i$ in the ensemble, since all contribute to the self-diffusion coefficient. In binary mixtures, the Maxwell-Stefan diffusion coefficient $\dcoeff_{ij}$ is defined by \cite{krishna}
+where $\textbf{v}_{k}\left(t\right)$ is the center of mass velocity vector of molecule $k$ at some time $t$. 
+Eq.~\eqref{eq:selfdiffusioncoefficient} is an average over all $N_{i}$ molecules of component $i$ in the ensemble, 
+since all contribute to the self-diffusion coefficient.\\
+The transport diffusion in a mixture is related to the phenomenological coefficients $L_{ij}$ which can be calculated from the Green-Kubo
+expression based on the net velocity autocorrelation function
 \begin{equation}
-\dcoeff_{ij}=\frac{x_{j}}{x_{i}}\Lambda_{ii}+\frac{x_{i}}{x_{j}}\Lambda_{jj}-\Lambda_{ij}-\Lambda_{ji} \;,
-\label{eq:diffusioncoefficient}
-\end{equation}
-where $x_{i}=N_{i}/N$ and $\Lambda_{ij}$ can be written in terms of the center of mass velocity
-\begin{equation}
-\Lambda_{ij}=\frac{1}{3N} \int^{\infty}_{0} \mathrm dt \left\langle \sum^{N_{i}}_{k=1} \textbf{v}_{i,k}\left(0\right) \cdot \sum^{N_{j}}_{l=1} \textbf{v}_{j,l} \left(t\right)\right\rangle \;.
+L_{ij}=\frac{1}{3N} \int^{\infty}_{0} \mathrm dt \left\langle \sum^{N_{i}}_{k=1} \textbf{v}_{i,k}\left(0\right) \cdot \sum^{N_{j}}_{l=1} \textbf{v}_{j,l} \left(t\right)\right\rangle \;.
 \label{eq:difcoef}
+\end{equation}
+where N is the total number of molecules. Because of Onsager's reciprocity theorem, $L_{ij}=L_{ji}$ for $i\neq j$. 
+In this context, the Maxwell Stefan diffusion coefficient for binary mixtures is given by \cite{krishna}
+\begin{equation}
+\dcoeff_{ij}=\frac{x_{j}}{x_{i}}\Lambda_{ii}+\frac{x_{i}}{x_{j}}\Lambda_{jj}-\Lambda_{ij}-\Lambda_{ji} \; .
+\label{eq:diffusioncoefficient}
 \end{equation}
 From the expressions above, the collective character of the Maxwell-Stefan diffusion coefficient is evident. This
 leads to significantly less data for a given system size and time step and therefore to larger statistical uncertainties
 than in case of the self-diffusion coefficient. Note that equations for the Maxwell-Stefan diffusion coefficient are
 implemented in \textit{ms}2 both for binary and ternary mixtures \cite{krishna}.
 \newline \newline
-\textbf{Shear viscosity.} The shear viscosity $\eta$, as defined by Newton's "law" of viscosity, is a measure of the resistance of a fluid to a shearing force \cite{hoheisel}. It is associated with the momentum transport under the influence of velocity
+\textbf{Shear viscosity. }
+The shear viscosity $\eta$, as defined by Newton's "law" of viscosity, is a measure of the resistance of a fluid to a shearing force \cite{hoheisel}. It is associated with the momentum transport under the influence of velocity
 gradients. Hence, the shear viscosity can be related to the time autocorrelation function of the off-diagonal
 elements of the stress tensor $\textbf{J}_{p}$ \cite{gubbins1}
 \begin{equation}
 \eta=\frac{1}{Vk_{\text{B}}T} \int^{\infty}_{0} \mathrm dt \left\langle J^{xy}_{p}\left(t\right) \cdot J^{xy}_{p}\left(0\right)\right\rangle \;.
 \label{eq:shearviscosity}
 \end{equation}
-Averaging over all three independent elements of the stress tensor, i.e. $J^{xy}_{p}$, $J^{xz}_{p}$ and $J^{yz}_{p}$, improves the statistics.
+Five independent terms of the stress tensor $J_p^{xy}$, $J_p^{xz}$, $J_p^{yz}$, $(J_p^{xx}-J_p^{yy})/2$ and $(J_p^{yy}-J_p^{zz})/2$ were considered to improve statistics~\cite{Alfe1998}. 
 The component $J^{xy}_{p}$ of the microscopic stress tensor $\textbf{J}_{p}$ is given in terms of the molecular positions and velocities by \cite{hoheisel}
 \begin{equation}
 J^{xy}_{p}=\sum^{N-1}_{i=1} mv^{x}_{i}v^{y}_{i}-\sum^{N-1}_{i=1}\sum^{N}_{j=i+1}\sum^{n}_{k=1}\sum^{n}_{l=1} r^{x}_{ij} \frac{\partial u_{ij}}{\partial r^{y}_{kl}} \;.
@@ -511,7 +522,8 @@ J^{xy}_{p}=\sum^{N-1}_{i=1} mv^{x}_{i}v^{y}_{i}-\sum^{N-1}_{i=1}\sum^{N}_{j=i+1}
 Here, the lower indices $l$ and $k$ indicate the $n$ interaction sites of a molecule and the upper indices $x$ and $y$ denote
 the spatial vector components, e.g. for velocity $v^{x}_{i}$ or site-site distance $r^{x}_{ij}$. The first term of Eq.~\eqref{eq:componentofstresstensor} is the kinetic energy contribution and the second term is the potential energy contribution to the shear viscosity. Consequently, the Green-Kubo integral~\eqref{eq:shearviscosity} can be decomposed into three parts, i.e. the solely kinetic energy contribution, the solely potential energy contribution and the mixed kinetic-potential energy contribution \cite{hoheisel}.
 \newline \newline
-\textbf{Bulk viscosity.} The bulk viscosity $\eta_{v}$ refers to the resistance to dilatation of an infinitesimal volume element at constant shape \cite{barton}. The bulk viscosity can be calculated by integration of the time-autocorrelation function
+\textbf{Bulk viscosity. }
+The bulk viscosity $\eta_{v}$ refers to the resistance to dilatation of an infinitesimal volume element at constant shape \cite{barton}. The bulk viscosity can be calculated by integration of the time-autocorrelation function
 of the diagonal elements of the stress tensor and an additional term that involves the product of pressure $p$ and
 volume $V$, which does not appear in the shear viscosity, cf. Eq.~\eqref{eq:shearviscosity}. In the $NVE$ ensemble, the bulk viscosity
 is given by \cite{gubbins1, steele}
@@ -521,14 +533,29 @@ is given by \cite{gubbins1, steele}
 \end{equation}
 The diagonal component $J^{xx}_{p}$ of the microscopic stress tensor $\textbf{J}_{p}$ is defined analogous to Eq.~\eqref{eq:componentofstresstensor}. The statistics of the ensemble average in Eq.~\eqref{eq:bulkviscosity} can be improved using all three independent diagonal elements of the stress
 tensor $J^{xx}_{p}$, $J^{yy}_{p}$ and $J^{zz}_{p}$. Eqs.~\eqref{eq:componentofstresstensor} and~\eqref{eq:bulkviscosity} can directly be applied for mixtures.
+\newline \newline
+\textbf{Thermal conductivity. }
+The thermal conductivity $\lambda$ is given by the autocorrelation function of the elements of the microscopic heat flow ${J}^{x}_{q}$
+\begin{equation}\label{themalcond}
+\lambda=\frac{1}{Vk_BT^{2}}\int_{0}^{\infty} dt~\big\langle {J}^x_q(t)\cdot {J}^x_q(0)\big\rangle.
+\end{equation}
+\noindent In mixtures, energy transport and diffusion occur in a coupled manner, thus, the heat flow for a mixture of $n$ components is given by~\cite{evans1}
 
-\textbf{electric conductivity}
+\begin{eqnarray}
+\mathbf{J}_q &=& \frac{1}{2} \sum_{i=1}^{n} \sum_{k=1}^{N_i}\left[ m_{i}^{k}\left({v}_{i}^{k}\right)^2+ \nonumber
+\mathbf{w}_i^k \mathbf{I}_i^k \mathbf{w}_i^k+\sum_{j=1}^{n}\sum_{l \neq k}^{N_j} u\left(r_{ij}^{kl}\right)\right]\cdot \mathbf{v}_i^k \\
+& -&\frac{1}{2}\sum_{i=1}^{n} \sum_{j=1}^{n} \sum_{k=1}^{N_i} \sum_{l \neq k}^{N_j} \bm{r}_{ij}^{kl}\cdot
+\big( \mathbf{v}_i^k \cdot \frac{\partial u\left(r_{ij}^{kl}\right)}{\partial \bm{r}_{ij}^{kl}}+\mathbf{w}_i^k \mathbf{\Gamma}_{ij}^{kl}\big)- \sum_{i=1}^{n} h_{i}\sum_{k=1}^{N_i} \mathbf{v}_{i}^{k}\mbox{   ,}\label{heatflow} 
+\end{eqnarray}
+\noindent where $\mathbf{w}^k_i$ is the angular velocity vector of molecule $k$ of component $i$ and $\mathbf{I}^k_i$ its matrix of angular momentum of inertia. $u\left(r_{ij}^{kl}\right)$ is the intermolecular potential energy and $\mathbf{\Gamma}_{ij}^{kl}$ is the torque due to the interaction of molecules $k$ and $l$. The indices $i$ and $j$ denote the components of the mixture. $h_{i}$ is the partial molar enthalpy. For the calculation of the thermal conductivity of mixtures it has to be specified as an input in the $ms2$ parameter file for each component and can be calculated from $NpT$ simulations.
+\newline \newline
+\textbf{Electric conductivity. }
 The evaluation of the electric conductivity $\sigma$ was implemented in $ms$2 version 2.0, being a measure for the flow of ions in solution. The Green-Kubo formalism~\cite{gubbins1972} offers a direct relationship between $\sigma$ and the time-autocorrelation function of the electric current flux $\bm{j_e}(t)$ ~\cite{HansenBook}
 \begin{equation}
 \sigma=\frac{1}{3Vk_{\mathrm{B}}T}\int_0^{\infty}~\big\langle \bm{j_e}(t)\cdot \bm{j_e}(0) \big\rangle  \mathrm{d} t \mbox{   ,}
 \label{Erdalkali_elcond}
 \end{equation}
-where $k_\texttt{B}$ is Boltzmann’s constant. The electric current flux is defined by the charge $q_k$ of ion $k$ and its velocity vector $\bm{v}_k$ according to
+where $k_\texttt{B}$ is Boltzmann's constant. The electric current flux is defined by the charge $q_k$ of ion $k$ and its velocity vector $\bm{v}_k$ according to
 \begin{equation}
 \bm{j_e}(t)=\sum_{k=1}^{N_{j}} q_k \cdot \bm{v}_{k}(t) \mbox{   ,}
 \label{elflux}
@@ -537,20 +564,87 @@ where $N_{j}$ is the number of molecules of component $j$ in solution. Note that
 For better statistics, $\sigma$ is sampled over all independent spatial elements of $\bm{j_e}(t)$.
 
 
-
-\textbf{thermal conductivity}
-In the previous version of $ms2$ the determination of the thermal conductivity by means of the Green-Kubo formalism was implemented for pure substances only. In the present release, the calculation of the thermal conductivity was extended to multi-component mixtures. The thermal conductivity $\lambda$ is given by the autocorrelation function of the elements of the microscopic heat flow ${J}^{x}_{q}$
-\begin{equation}\label{themalcond}
-\lambda=\frac{1}{Vk_BT^{2}}\int_{0}^{\infty} dt~\big\langle {J}^x_q(t)\cdot {J}^x_q(0)\big\rangle.
-\end{equation}
-\noindent In mixtures, energy transport and diffusion occur in a coupled manner, thus, the heat flow for a mixture of $n$ components is given by~\cite{evans1}
-\begin{eqnarray}
-\mathbf{J}_q &=& \frac{1}{2} \sum_{i=1}^{n} \sum_{k=1}^{N_i}\left[ m_{i}^{k}\left({v}_{i}^{k}\right)^2+ \nonumber
-\mathbf{w}_i^k \mathbf{I}_i^k \mathbf{w}_i^k+\sum_{j=1}^{n}\sum_{l \neq k}^{N_j} u\left(r_{ij}^{kl}\right)\right]\cdot \mathbf{v}_i^k \\
-& -&\frac{1}{2}\sum_{i=1}^{n} \sum_{j=1}^{n} \sum_{k=1}^{N_i} \sum_{l \neq k}^{N_j} \bm{r}_{ij}^{kl}\cdot
-\big( \mathbf{v}_i^k \cdot \frac{\partial u\left(r_{ij}^{kl}\right)}{\partial \bm{r}_{ij}^{kl}}+\mathbf{w}_i^k \mathbf{\Gamma}_{ij}^{kl}\big)- \sum_{i=1}^{n} h_{i}\sum_{k=1}^{N_i} \mathbf{v}_{i}^{k}\mbox{   ,}\label{heatflow} 
-\end{eqnarray}
-\noindent where $\mathbf{w}^k_i$ is the angular velocity vector of molecule $k$ of component $i$ and $\mathbf{I}^k_i$ its matrix of angular momentum of inertia. $u\left(r_{ij}^{kl}\right)$ is the intermolecular potential energy and $\mathbf{\Gamma}_{ij}^{kl}$ is the torque due to the interaction of molecules $k$ and $l$. The indices $i$ and $j$ denote the components of the mixture. $h_{i}$ is the partial molar enthalpy. It has to be specified as an input in the $ms2$ parameter file and can be calculated from $NpT$ simulations.
+%In \textit{ms}2, transport properties are calculated using equilibrium MD. Here, the fluctuations of a system around
+%its equilibrium state are evaluated as a function of time. The Green-Kubo formalism relates these microscopic
+%fluctuations to the respective transport properties.
+%\newline \newline
+%\textbf{Diffusion coefficients.} The self-diffusion coefficient $D_{i}$ is related to the mass flux of single molecules within a fluid. Therefore, the relevant Green-Kubo expression is based on the individual molecule velocity autocorrelation
+%function \cite{gubbins1}
+%\begin{equation}
+%D_{i}=\frac{1}{3N_{i}}\int^{\infty}_{0} \mathrm dt \left\langle \textbf{v}_{k}\left(t\right) \cdot \textbf{v}_{k}\left(0\right)\right\rangle \;,
+%\label{eq:selfdiffusioncoefficient}
+%\end{equation}
+%where $\textbf{v}_{k}\left(t\right)$ is the center of mass velocity vector of molecule $k$ at some time $t$. Eq.~\eqref{eq:selfdiffusioncoefficient} is an average over all $N_{i}$ molecules of component $i$ in the ensemble, since all contribute to the self-diffusion coefficient. In binary mixtures, the Maxwell-Stefan diffusion coefficient $\dcoeff_{ij}$ is defined by \cite{krishna}
+%\begin{equation}
+%\dcoeff_{ij}=\frac{x_{j}}{x_{i}}\Lambda_{ii}+\frac{x_{i}}{x_{j}}\Lambda_{jj}-\Lambda_{ij}-\Lambda_{ji} \;,
+%\label{eq:diffusioncoefficient}
+%\end{equation}
+%where $x_{i}=N_{i}/N$ and $\Lambda_{ij}$ can be written in terms of the center of mass velocity
+%\begin{equation}
+%\Lambda_{ij}=\frac{1}{3N} \int^{\infty}_{0} \mathrm dt \left\langle \sum^{N_{i}}_{k=1} \textbf{v}_{i,k}\left(0\right) \cdot \sum^{N_{j}}_{l=1} \textbf{v}_{j,l} \left(t\right)\right\rangle \;.
+%\label{eq:difcoef}
+%\end{equation}
+%From the expressions above, the collective character of the Maxwell-Stefan diffusion coefficient is evident. This
+%leads to significantly less data for a given system size and time step and therefore to larger statistical uncertainties
+%than in case of the self-diffusion coefficient. Note that equations for the Maxwell-Stefan diffusion coefficient are
+%implemented in \textit{ms}2 both for binary and ternary mixtures \cite{krishna}.
+%\newline \newline
+%\textbf{Shear viscosity.} The shear viscosity $\eta$, as defined by Newton's "law" of viscosity, is a measure of the resistance of a fluid to a shearing force \cite{hoheisel}. It is associated with the momentum transport under the influence of velocity
+%gradients. Hence, the shear viscosity can be related to the time autocorrelation function of the off-diagonal
+%elements of the stress tensor $\textbf{J}_{p}$ \cite{gubbins1}
+%\begin{equation}
+%\eta=\frac{1}{Vk_{\text{B}}T} \int^{\infty}_{0} \mathrm dt \left\langle J^{xy}_{p}\left(t\right) \cdot J^{xy}_{p}\left(0\right)\right\rangle \;.
+%\label{eq:shearviscosity}
+%\end{equation}
+%Averaging over all three independent elements of the stress tensor, i.e. $J^{xy}_{p}$, $J^{xz}_{p}$ and $J^{yz}_{p}$, improves the statistics.
+%The component $J^{xy}_{p}$ of the microscopic stress tensor $\textbf{J}_{p}$ is given in terms of the molecular positions and velocities by \cite{hoheisel}
+%\begin{equation}
+%J^{xy}_{p}=\sum^{N-1}_{i=1} mv^{x}_{i}v^{y}_{i}-\sum^{N-1}_{i=1}\sum^{N}_{j=i+1}\sum^{n}_{k=1}\sum^{n}_{l=1} r^{x}_{ij} \frac{\partial u_{ij}}{\partial r^{y}_{kl}} \;.
+%\label{eq:componentofstresstensor}
+%\end{equation}
+%Here, the lower indices $l$ and $k$ indicate the $n$ interaction sites of a molecule and the upper indices $x$ and $y$ denote
+%the spatial vector components, e.g. for velocity $v^{x}_{i}$ or site-site distance $r^{x}_{ij}$. The first term of Eq.~\eqref{eq:componentofstresstensor} is the kinetic energy contribution and the second term is the potential energy contribution to the shear viscosity. Consequently, the Green-Kubo integral~\eqref{eq:shearviscosity} can be decomposed into three parts, i.e. the solely kinetic energy contribution, the solely potential energy contribution and the mixed kinetic-potential energy contribution \cite{hoheisel}.
+%\newline \newline
+%\textbf{Bulk viscosity.} The bulk viscosity $\eta_{v}$ refers to the resistance to dilatation of an infinitesimal volume element at constant shape \cite{barton}. The bulk viscosity can be calculated by integration of the time-autocorrelation function
+%of the diagonal elements of the stress tensor and an additional term that involves the product of pressure $p$ and
+%volume $V$, which does not appear in the shear viscosity, cf. Eq.~\eqref{eq:shearviscosity}. In the $NVE$ ensemble, the bulk viscosity
+%is given by \cite{gubbins1, steele}
+%\begin{equation}
+%\eta_{v}=\frac{1}{Vk_{\text{B}}T} \int^{\infty}_{0} \mathrm dt \left\langle \left(J^{xx}_{p}\left(t\right)-pV\left(t\right)\right) \cdot \left(J^{xx}_{p}\left(0\right)-pV\left(0\right)\right)\right\rangle \;.
+%\label{eq:bulkviscosity}
+%\end{equation}
+%The diagonal component $J^{xx}_{p}$ of the microscopic stress tensor $\textbf{J}_{p}$ is defined analogous to Eq.~\eqref{eq:componentofstresstensor}. The statistics of the ensemble average in Eq.~\eqref{eq:bulkviscosity} can be improved using all three independent diagonal elements of the stress
+%tensor $J^{xx}_{p}$, $J^{yy}_{p}$ and $J^{zz}_{p}$. Eqs.~\eqref{eq:componentofstresstensor} and~\eqref{eq:bulkviscosity} can directly be applied for mixtures.
+%
+%\textbf{electric conductivity}
+%The evaluation of the electric conductivity $\sigma$ was implemented in $ms$2 version 2.0, being a measure for the flow of ions in solution. The Green-Kubo formalism~\cite{gubbins1972} offers a direct relationship between $\sigma$ and the time-autocorrelation function of the electric current flux $\bm{j_e}(t)$ ~\cite{HansenBook}
+%\begin{equation}
+%\sigma=\frac{1}{3Vk_{\mathrm{B}}T}\int_0^{\infty}~\big\langle \bm{j_e}(t)\cdot \bm{j_e}(0) \big\rangle  \mathrm{d} t \mbox{   ,}
+%\label{Erdalkali_elcond}
+%\end{equation}
+%where $k_\texttt{B}$ is Boltzmann’s constant. The electric current flux is defined by the charge $q_k$ of ion $k$ and its velocity vector $\bm{v}_k$ according to
+%\begin{equation}
+%\bm{j_e}(t)=\sum_{k=1}^{N_{j}} q_k \cdot \bm{v}_{k}(t) \mbox{   ,}
+%\label{elflux}
+%\end{equation}
+%where $N_{j}$ is the number of molecules of component $j$ in solution. Note that only the ions in the solution have to be considered, not the electro-neutral molecules.
+%For better statistics, $\sigma$ is sampled over all independent spatial elements of $\bm{j_e}(t)$.
+%
+%
+%
+%\textbf{thermal conductivity}
+%In the previous version of $ms2$ the determination of the thermal conductivity by means of the Green-Kubo formalism was implemented for pure substances only. In the present release, the calculation of the thermal conductivity was extended to multi-component mixtures. The thermal conductivity $\lambda$ is given by the autocorrelation function of the elements of the microscopic heat flow ${J}^{x}_{q}$
+%\begin{equation}\label{themalcond}
+%\lambda=\frac{1}{Vk_BT^{2}}\int_{0}^{\infty} dt~\big\langle {J}^x_q(t)\cdot {J}^x_q(0)\big\rangle.
+%\end{equation}
+%\noindent In mixtures, energy transport and diffusion occur in a coupled manner, thus, the heat flow for a mixture of $n$ components is given by~\cite{evans1}
+%\begin{eqnarray}
+%\mathbf{J}_q &=& \frac{1}{2} \sum_{i=1}^{n} \sum_{k=1}^{N_i}\left[ m_{i}^{k}\left({v}_{i}^{k}\right)^2+ \nonumber
+%\mathbf{w}_i^k \mathbf{I}_i^k \mathbf{w}_i^k+\sum_{j=1}^{n}\sum_{l \neq k}^{N_j} u\left(r_{ij}^{kl}\right)\right]\cdot \mathbf{v}_i^k \\
+%& -&\frac{1}{2}\sum_{i=1}^{n} \sum_{j=1}^{n} \sum_{k=1}^{N_i} \sum_{l \neq k}^{N_j} \bm{r}_{ij}^{kl}\cdot
+%\big( \mathbf{v}_i^k \cdot \frac{\partial u\left(r_{ij}^{kl}\right)}{\partial \bm{r}_{ij}^{kl}}+\mathbf{w}_i^k \mathbf{\Gamma}_{ij}^{kl}\big)- \sum_{i=1}^{n} h_{i}\sum_{k=1}^{N_i} \mathbf{v}_{i}^{k}\mbox{   ,}\label{heatflow} 
+%\end{eqnarray}
+%\noindent where $\mathbf{w}^k_i$ is the angular velocity vector of molecule $k$ of component $i$ and $\mathbf{I}^k_i$ its matrix of angular momentum of inertia. $u\left(r_{ij}^{kl}\right)$ is the intermolecular potential energy and $\mathbf{\Gamma}_{ij}^{kl}$ is the torque due to the interaction of molecules $k$ and $l$. The indices $i$ and $j$ denote the components of the mixture. $h_{i}$ is the partial molar enthalpy. It has to be specified as an input in the $ms2$ parameter file and can be calculated from $NpT$ simulations.
 
 
 \subsection{configurational properties}
@@ -710,6 +804,15 @@ liquid equilibrium simulations.
 \subsection{multiple Ensembles for multiple state points}
 \label{sec:multiple Ensembles for multiple state points}
 % Tatjana
+
+In \textit{ms}2, multiple ensembles can be simulated within one MD simulation run. 
+This can be very convenient, for example when different state points of temperature and pressure have to be simulated with the same simulation setup. Another use case are mixtures, where several considered concentration can be defined in several ensembles of one single simulation run. 
+
+To use this feature the number of ensembles has to be defined in the par file. The simulation specific parameters in the par file have to be specified once at the beginning followed by the ensemble specific parameters for each ensemble. To create a reasonable simulation run the individual ensembles should be similar to each other regarding system size, cutoff radius, etc. to prevent strongly different simulation times among the ensembles. Moreover the user should choose an appropriate number of cores that is divisible by the number of ensembles to ensure a technically unproblematic simulation.
+
+All simulation output files will be written per ensemble indicated by the ensemble number in the file name.
+
+
 
 \parencite{Eckl2009}
 
