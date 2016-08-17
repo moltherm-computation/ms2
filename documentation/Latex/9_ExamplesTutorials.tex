@@ -1,9 +1,192 @@
 
+%\begin{Verbatim}[frame=single,framesep=6.5mm,label=\fbox{Example file 1 },numbers=left,numbersep=-10pt,xrightmargin=5cm]
+%\end{Verbatim}
 
 \chapter{Examples \& Tutorials}
 \label{sec:Examples Tutorials}
 % Andreas / Simon
 
+% Input und Output kurz erläutern.
+
+This part of the manual deals with example applications, where the use of the provided software will be demonstrated. The examples presented in this section were chosen such that a wide class of applications is covered. Each problem is briefly described and the appropriate input files are given. also includes some output files. 
 
 
-% - H-Bonding: Input/ Output
+\section{Lennard-Jones fluid}
+\label{sec:Lennard-Jones Fluid}
+
+An example for a complete *.par file is given below for a MD simulation of the Lennard-Jones fluid in the \textit{NVT} ensemble, where the chemical potential is calculated by the Widoms's test molecule method. In addition, the calculation of the transport properties is enabled.
+
+
+
+Parameters and options specified in the *.pm file for the Lennard-Jones fluid:\\\\
+
+\begin{Verbatim}[frame=single,framesep=6.5mm,label=\fbox{Lennard-Jones fluid},numbers=left,numbersep=-10pt,xrightmargin=5cm]
+# MS2 Parameterfile created with ms2par
+# General simulation parameters
+Units         =       Reduced
+LengthUnit    =       1.0
+EnergyUnit    =       1.0
+MassUnit      =       1.0 
+Simulation    =       MD
+Integrator    =       Gear
+TimeStep      =       0.0010
+Ensemble      =       NVT
+MCORSteps     =       0
+NVTSteps      =  300000
+RunSteps      = 1000000
+ResultFreq    =    1000
+ErrorsFreq    =    5000
+VisualFreq    =       0
+CutoffMode    =       COM
+NEnsembles    =       1
+CorrfunMode   =       yes
+#
+# Ensemble 1
+#
+Temperature   =       1.10
+Density       =       0.66
+OptPressure   =       Yes
+NParticles    =    1372
+NComponents   =       1
+Corrlength    =    6000
+SpanCorrfun   =     300
+ViewCorrfun   =     100
+ResultFreqCF  =       1
+
+PotModel      =       lj.pm
+MoleFract     =       1.0
+ChemPotMethod =       Widom
+NTest         =    3000
+
+Cutoff        =       6.3
+Epsilon       =       1.0E10
+\end{Verbatim}
+
+\vspace{1cm}
+
+
+
+
+
+
+\section{Vapour-Liquid Equilibrium of a \ce{O2} -- Aceton mixture}
+\label{sec:Vapour-Liquid Equilibrium of a O2 - Aceton mixture}
+
+\begin{Verbatim}[frame=single,framesep=6.5mm,label=\fbox{VLE \ce{O2} -- Aceton mixture},numbers=left,numbersep=-10pt,xrightmargin=5cm]
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation    =      MC
+Acceptance    =      0.5
+Ensemble      =      GE
+NVTSteps      =   10000
+mueVTSteps    =   25000
+RunSteps      =  200000
+ResultFreq    =     100
+ErrorsFreq    =    1000
+VisualFreq    =       0
+CutoffMode  =       COM
+NEnsembles    =       1
+
+#results from liquid run
+Temperature = 400.00   
+Pressure0     =       9.000
+LiqDensity    =      11.5790
+VarDensity    =       0.0051
+LiqEnthalpy   =  -23452.3
+VarEnthalpy   =       8.4
+LiqBetaT      =       0.004760
+VarBetaT      =       0.000252
+LiqdHdP       =      -0.001457
+VardHdP       =       0.004658
+
+#parameters for vapor run
+Density       =       1.000
+OptPressure   =     Yes
+NParticles    =     500
+NComponents   =       2
+
+PotModel      =      O2.pm
+MolarFract    =       0.5000
+LiqMolarFract =       0.0799
+ChemPot       =      -2.849
+VarChemPot    =       0.003
+PartMolVol    =       3.4185
+VarPartMolVol =       0.1899
+
+
+PotModel      =  aceton.pm
+MolarFract    =       0.5000
+LiqMolarFract =       0.9201
+ChemPot       =      -5.246
+VarChemPot    =       0.011
+PartMolVol    =       3.5289
+VarPartMolVol =       0.3598
+
+eta         = 1.0
+xi          = 0.905
+Cutoff      = 4.0
+Epsilon     = 1.0E10
+\end{Verbatim}
+
+
+
+\section{calculating configurational properties}
+\label{sec:calculating configurational properties}
+
+
+
+
+
+\section{calculating transport properties}
+\label{sec:calculating transport properties}
+
+
+
+
+
+
+\section{chemical potential by ThermoInt}
+\label{sec:chemical potential by ThermoInt}
+
+
+
+
+\section{\ce{NaCl}-Water Solution \& osmotic pressure}
+\label{sec:NaCl-Water Solution osmotic pressure}
+
+
+
+
+
+\section{multi-Ensemble method}
+\label{sec:multi-Ensemble method}
+
+
+
+
+\section{humid air ensemble}
+\label{sec:humid air ensemble}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

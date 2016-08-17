@@ -754,8 +754,51 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 
 \subsection{Chemical potential and partial molar properties }
 \label{sec:Chemical potential and partial molar properties }
-
 %Gabor+Andreas
+
+The chemical potential of a given component can be separated into the temperature dependent part $\mu^{id}_{i}(T)$ of the ideal gas contribution to the chemical potential of the pure component and the remaining contribution $\mu_{i}(T,\textbf{x},p)-\mu^{id}_{i}(T)$. The solely temperature dependent ideal gas contribution cancels out in the calculation of phase equilibria and is therefore not implemented in \textit{ms}2. The chemical potential depends on the real substance behavior due to the molecular interactions and can be determined with \textit{ms}2 using two different techniques:
+Widom's test molecule method and gradual insertion. 
+\newline \newline 
+\textbf{Widom.} A conceptually straightforward approach to calculate the chemical potential of a component $i$ was presented by Widom \cite{widom}. It allows for a determination of the chemical potential with low computational cost, both
+for pure substances and mixtures. For a three-center LJ fluid, the computational demand is shown in Table~\ref{tab:ComputationalDemand}.
+The execution time for the determination of the chemical potential increases roughly linearly with the specified
+number of test molecules that are sampled.
+\begin{table}[h!]
+	\centering
+	\caption{Computational demand for the calculation of the chemical potential for a three-center LJ fluid using
+		Widom's test molecule insertion in MD or MC simulation. The calculations were performed on a single processor. The simulation time per time step (MD) was 0.043 s and 0.300 s per loop (MC), respectively. The simulations
+		were performed with 500 molecules at a density of 0.23 mol/l. A cut-off radius of 60 \AA was employed.}
+	\begin{tabular} {c|c} 
+		\hline \hline
+		\# test molecules & Additional CPU time per MD time step or MC loop / s \\
+		\hline
+		1 & 0.0015 \\
+		500 & 0.1925 \\
+		1000 & 0.3865\\
+		1500 & 0.5810\\
+		2000 & 0.7750\\                          
+		\hline \hline
+	\end{tabular}   
+	\label{tab:ComputationalDemand}
+\end{table}
+
+For the calculation of the chemical potential of component $i$ according to Widom \cite{widom}, a so-called "test" molecule
+$l$ of component $i$ is inserted into the simulation volume at a random position with a random orientation. At
+constant temperature and pressure its potential energy $\psi_{l}$, due to its interactions with all other "real" molecules,
+is related to the chemical potential according to
+\begin{equation}
+\mu_{i}-\mu^{\text{id}}_{i}\left(T\right)=-k_{\text{B}}T \ln \frac{\left\langle V \exp \left(-\psi_{l}/k_{\text{B}}T\right)\right\rangle}{\left\langle N_{i}\right\rangle} \;.
+\label{eq:TestMoleculeInsertion}
+\end{equation}
+The test molecule is removed immediately after the calculation of its potential energy, thus it does not influence
+the time evolution of the system or the Markov chain, respectively.
+
+The value of $\psi_{l}$ is highly dependent on the random position of the test molecule. In addition, the density of the
+system has a significant influence on the accuracy of the calculation. For very dense fluids, test molecules almost
+always overlap with some real molecules, which leads to a potential energy $\psi_{l}\rightarrow \infty$ and thus to no contribution to Eq.~\eqref{eq:TestMoleculeInsertion} resulting in poor statistics for the chemical potential or even complete failure of the sampling. Within limits, lower statistical uncertainties of the chemical potential can be achieved by inserting a large number of test
+molecules into the simulation volume, which leads to an increasing computational demand.
+\newline \newline
+
 
 \section{special features}
 \label{sec:special features}
