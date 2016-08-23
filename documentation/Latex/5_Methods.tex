@@ -756,11 +756,9 @@ where the $\left\langle \ldots \right\rangle$ brackets indicate the average over
 \label{sec:Chemical potential and partial molar properties }
 %Gabor+Andreas
 
-The chemical potential of a given component can be separated into the temperature dependent part $\mu^{id}_{i}(T)$ of the ideal gas contribution to the chemical potential of the pure component and the remaining contribution $\mu_{i}(T,\textbf{x},p)-\mu^{id}_{i}(T)$. The solely temperature dependent ideal gas contribution cancels out in the calculation of phase equilibria and is therefore not implemented in \textit{ms}2. The chemical potential depends on the real substance behavior due to the molecular interactions and can be determined with \textit{ms}2 using two different techniques:
-Widom's test molecule method and gradual insertion. 
+The chemical potential of component $i$ can be separated into the temperature $T$ dependent part $\mu^{id}_{i}(T)$ of the ideal gas contribution to the chemical potential of the pure component and the remaining contribution $\mu_{i}(T,\textbf{x},v)-\mu^{id}_{i}(T)$which is often referred to as the configurational chemical potential. The solely temperature dependent ideal gas contribution $\mu^{id}_{i}(T)$ cancels out in the calculation of phase equilibria and is therefore not implemented in \textit{ms}2. The chemical potential depends on the real substance behavior due to the molecular interactions and can be determined with \textit{ms}2 using two different techniques: Widom's particle insertion method and thermodynamic integration. 
 \newline \newline 
-\textbf{Widom.} A conceptually straightforward approach to calculate the chemical potential of a component $i$ was presented by Widom \cite{widom}. It allows for a determination of the chemical potential with low computational cost, both
-for pure substances and mixtures. For a three-center LJ fluid, the computational demand is shown in Table~\ref{tab:ComputationalDemand}.
+\textbf{Widom's particle insertion method} is a conceptually straightforward approach to calculate the chemical potential of a component $i$ and was presented by Widom \cite{widom}. It allows for a determination of the chemical potential with low computational cost, both for pure substances and mixtures. For a three-center LJ fluid, the computational demand is shown in Table~\ref{tab:ComputationalDemand}.
 The execution time for the determination of the chemical potential increases roughly linearly with the specified
 number of test molecules that are sampled.
 \begin{table}[h!]
@@ -782,23 +780,37 @@ number of test molecules that are sampled.
 	\label{tab:ComputationalDemand}
 \end{table}
 
-For the calculation of the chemical potential of component $i$ according to Widom \cite{widom}, a so-called "test" molecule
-$l$ of component $i$ is inserted into the simulation volume at a random position with a random orientation. At
-constant temperature and pressure its potential energy $\psi_{l}$, due to its interactions with all other "real" molecules,
-is related to the chemical potential according to
+For the calculation of the chemical potential of component $i$ according to Widom \cite{widom}, an additional so-called "test" molecule
+$N+1$ of component $i$ is inserted into the simulation volume at a random position with a random orientation. At
+constant temperature and constant pressure or volume its potential energy $U_{N+1}$, the interaction energy with all other "real" $N$ molecules yields the configurational chemical potential according to
 \begin{equation}
-\mu_{i}-\mu^{\text{id}}_{i}\left(T\right)=-k_{\text{B}}T \ln \frac{\left\langle V \exp \left(-\psi_{l}/k_{\text{B}}T\right)\right\rangle}{\left\langle N_{i}\right\rangle} \;.
+\mu_{i}-\mu^{\text{id}}_{i}\left(T\right)=-k_{\text{B}}T \ln \frac{\left\langle V \exp \left(-U_{N+1}/k_{\text{B}}T\right)\right\rangle}{\left\langle N_{i}\right\rangle},
 \label{eq:TestMoleculeInsertion}
 \end{equation}
-The test molecule is removed immediately after the calculation of its potential energy, thus it does not influence
-the time evolution of the system or the Markov chain, respectively.
+where $N$ is the number of particles of the system, $N_i$ is the number of particles for component $i$, $V$ is the volume and $k_\text{B}$ is Boltzmann's constant. The test molecule is removed immediately after the calculation of its potential energy, thus it does not influence
+the time evolution of the system or the Markov chain, respectively. In contrast to the usual convention, the brackets $<>$ here have a dual meaning. Namely, they stand for either $NVT$ or $NpT$ ensemble average as well as an integral over all the possible position and orientation of the test molecule in the system.
 
-The value of $\psi_{l}$ is highly dependent on the random position of the test molecule. In addition, the density of the
+The value of $U_{N+1}$ is highly dependent on the random position or orientation of the test molecule. In addition, the density of the
 system has a significant influence on the accuracy of the calculation. For very dense fluids, test molecules almost
-always overlap with some real molecules, which leads to a potential energy $\psi_{l}\rightarrow \infty$ and thus to no contribution to Eq.~\eqref{eq:TestMoleculeInsertion} resulting in poor statistics for the chemical potential or even complete failure of the sampling. Within limits, lower statistical uncertainties of the chemical potential can be achieved by inserting a large number of test
-molecules into the simulation volume, which leads to an increasing computational demand.
+always overlap with some real molecules, which leads to a potential energy $U_{N+1}\rightarrow \infty$ and thus to no contribution to Eq.~\eqref{eq:TestMoleculeInsertion} resulting in poor statistics for the chemical potential or even complete failure of the sampling. Within limits, lower statistical uncertainties of the chemical potential can be achieved by inserting a large number of test
+molecules into the simulation volume, which leads to an increasing computational demand. Nonetheless, the Widom's particle insertion method certainly fail above some density or test molecule size.
 \newline \newline
 
+\textbf{Thermodynamic integration} is one solution to overcome the limitations of Widom's particle insertion method. The idea behind calculating the chemical potential using thermodynamic integration is to avoid insertion of the test particle in system $A$ and perform it in system $B$ for which it is not problematic or practically not required at all. Since the chemical potential is a state variable, its change $\mu_A-\mu_B$ can be calculated using any arbitrary path between state $A$ and $B$. This path is represented by the parameter $\lambda$. It can be shown \cite{frenkel} that the relation between $\lambda$ and $\mu_A-\mu_B$ is 
+\begin{equation}
+\mu_{A,j}-\mu_{B,j}=\int_{B(\lambda_\text{min})}^{A(\lambda_\text{max})} \left\langle \frac{\partial U_j(\lambda)}{\partial \lambda} \right\rangle d \lambda 
+\label{eq:thermoint}
+\end{equation}
+for particle $j$ of component $i$. The bracket in this equation denotes $NVT$ or $NpT$ ensemble average and $U_j$ is the potential energy of particle $j$ that must be a part of the system the same way any other particle is. The only difference between $j$ and regular particles is that the interaction energy $U_j(\lambda)$ is scaled between states $A(\lambda_\text{max})$ and $B(\lambda_\text{min})$ with $\lambda$. As long as $\partial U_j(\lambda)/\partial \lambda$ can be calculated analytically and sampled during simulation, the actual way of scaling $U_j(\lambda)$ with $\lambda$ is completely arbitrary since $\mu$ is a state variable. The integration with respect to $\lambda$ is evaluated by numerically. Assuming that $\mu_{B,j}$ is practically zero or at least can be successfully calculated by Widom’s particle insertion method at the end point $B$ using Eq.~\eqref{eq:TestMoleculeInsertion}, $\mu_{B,j}$ yields the configurational part of the total chemical potential (everything except the temperature dependent part $\mu^{id}_{i}(T)$ of the ideal gas contribution $\mu^{id}_{i}(T) + k_\text{B}T ln(N_i/<V>)$ of component $i$). The non-linear scaling $U_j(\lambda)=\lambda^x U_j$ $(\lambda_\text{min} \leq \lambda \leq 1)$ with an adaptive sampling technique \cite{PhysRevE_69_056704_2004} was implemented for MC with $x$ and $\lambda_\text{min}$ being input parameters. This adaptive technique allows for the sampling of the entire range of $\lambda_\text{min} \leq \lambda \leq 1$ in a single MC simulation run with arbitrary resolution for the numerical integration. Besides the standard $NVT$ and $NpT$ ensemble MC moves, the simulation includes changes of $\lambda$ controlled by a proper MC acceptance criterion ensuring visits at each discrete $\lambda$ value in the range $\lambda_\text{min} \leq \lambda \leq 1$. For MD simulations, changes of $\lambda$ are carried out also on the fly in a single simulation but without any acceptance criterion.
+
+\textbf{Partial molar properties}, namely the volume $v_i$ and enthalpy $h_i$
+\begin{equation}
+v_i=\frac{<V^2 \exp(-U_{N+1}/(k_\text{B}T))>}{<V \exp(-U_{N+1}/(k_\text{B}T)) >}-<V>
+\end{equation}
+\begin{equation}
+h_i=\frac{<(U_{N+1}+U_N+pV) V \exp(-U_{N+1}/(k_\text{B}T))>}{<V \exp(-U_{N+1}/(k_\text{B}T)) >}-<U_N+pV>
+\end{equation}
+, can be straightforwardly obtained by Widom's particle insertion method \cite{ChemPhysLett_136_35_1987} and their calculation is a feature of \textit{ms}2. $U_N$ is the potential energy of the $N$ particle system, while $U_{N+1}$ is that of the test particle. The brackets <> denote $NpT$ ensemble averages. For thermodynamic integration, the calculation of these properties is currently not implemented.
 
 \section{special features}
 \label{sec:special features}
