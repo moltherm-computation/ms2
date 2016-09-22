@@ -12047,17 +12047,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     type(TComponent), pointer :: pc
     integer                   :: i, j, t!, s, o
 #if  TRANS == 1
+    integer                   :: k, m
     real(RK)                  :: value
-    real(RK)                  :: x1, x2, x3
-    real(RK)                  :: Inv_x1, Inv_x2, Inv_x3
-    real(RK)                  :: delta_11, delta_12, delta_21, delta_22
-    real(RK)                  :: err_delta_11, err_delta_12, err_delta_21, err_delta_22
     real(RK)                  :: det, inv_det
-    real(RK)                  :: B11, B12, B21, B22
-    real(RK)                  :: err_B11, err_B12, err_B21, err_B22
-    real(RK)                  :: D_13, D_12, D_23
-    real(RK)                  :: err_D13, err_D12, err_D23
-    real(RK)                  :: L(3,3)
+    real(RK)                  :: x(this%NComponents)
+    real(RK)                  :: Inv_x(this%NComponents)
+    real(RK)                  :: L(this%NComponents, this%NComponents)
+    real(RK)                  :: delta(this%NComponents-1, this%NComponents-1) 
+    real(RK)                  :: err_delta(this%NComponents-1, this%NComponents-1) 
+    real(RK)                  :: B(this%NComponents-1, this%NComponents-1)
+    real(RK)                  :: err_B(this%NComponents-1, this%NComponents-1)
+    real(RK)                  :: D_12, D_13, D_14, D_23, D_24, D_34 
+    real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
+    
 #endif
 #if HBOND > 0
     integer                   :: k, l
@@ -13134,23 +13136,39 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteBlank( this%iounit_errors )
         end if !this%NComponents
 
+        !for multicomponent mixtures
+
+        if( this%NComponents >= 2  ) then
+ 
+           do i = 1, this%NComponents
+              x(i) = this%Component(i)%Fraction
+              Inv_x(i) = 1._RK/x(i)
+           end do
+
+           do i = 1, this%NComponents
+              do  j = 1, this%NComponents
+                 if (i ==j) then
+                  L(i,j) = this%SumOnsager(i,j)%Average
+                 else
+                  L(i,j) = (this%SumOnsager(i,j)%Average + this%SumOnsager(j,i)%Average)/2._RK
+                 end if
+              end do
+           end do
+            
+        end if          
+
+        
+        
+        
         !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
-
-          x1 = this%Component(1)%Fraction
-          x2 = this%Component(2)%Fraction
-
-          L(1,1) = this%SumOnsager(1,1)%Average
-          L(1,2) = this%SumOnsager(1,2)%Average
-          L(2,1) = this%SumOnsager(2,1)%Average
-          L(2,2) = this%SumOnsager(2,2)%Average
-
-          D_12 = L(1,1) * x2 / x1 + L(2,2) * x1 / x2 - L(1,2) - L(2,1)
-          err_D12 = this%SumOnsager(1,1)%Variance * x2 / x1 + &
-&                  this%SumOnsager(2,2)%Variance * x1 / x2 + &
-&                  this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
-
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+          
+          D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
+          err_D12 = this%SumOnsager(1,1)%Variance * x(2)*Inv_x(1) + &
+&                   this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
+&                   this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
+          
           write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
@@ -13174,106 +13192,207 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         end if !this components = 2
      
+     
+        ! Ternary and Quaternary diffusion
+        if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
+
+          !obtain matrix [delta] Equations 48 to 55 from Supplementary material 
+          !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
+
+          delta(:,:) = 0._RK
+          do i=1, (this%NComponents-1)
+             do j =1, (this%NComponents-1)
+                delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
+                do k = 1, this%NComponents
+                   if (k /= i) then
+                    delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
+                   end if
+                end do
+             end do
+          end do
+
+         !calculate variance by error propagation
+          err_delta(:,:) = 0._RK
+           do i=1, (this%NComponents-1)
+             do j =1, (this%NComponents-1)
+                err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%SumOnsager(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%SumOnsager(i,this%NComponents)%Variance
+                do k = 1, this%NComponents
+                   if (k /= i) then
+                    err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%SumOnsager(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%SumOnsager(k,this%NComponents)%Variance
+                   end if
+                end do
+             end do
+          end do
+
+        end if 
+
+
+     
         !Ternary diffusion
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
-          x1 = this%Component(1)%Fraction 
-          x2 = this%Component(2)%Fraction
-          x3 = this%Component(3)%Fraction
-          Inv_x1 = 1._RK / x1
-          Inv_x2 = 1._RK / x2
-          Inv_x3 = 1._RK / x3
-
-          !simplify by averaging Lij and Lji
-          L(1,1) = this%SumOnsager(1,1)%Average
-          L(1,2) = (this%SumOnsager(1,2)%Average + this%SumOnsager(2,1)%Average)/2._RK
-          L(1,3) = (this%SumOnsager(1,3)%Average + this%SumOnsager(3,1)%Average)/2._RK
-          L(2,1) = L(1,2)
-          L(2,2) = this%SumOnsager(2,2)%Average
-          L(2,3) = (this%SumOnsager(2,3)%Average + this%SumOnsager(3,2)%Average)/2._RK
-          L(3,1) = L(1,3)
-          L(3,2) = L(2,3)
-          L(3,3) = this%SumOnsager(3,3)%Average
-
-          !obtain matrix [delta] Equations 28 to 31 from Supplementary material 
-          !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
-          delta_11 = (((1._RK - x1)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)))-((x1)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)+ &
-&                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
-          delta_12 = (((1._RK - x1)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)))-((x1)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)+ &
-&                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
-          delta_21 = (((1._RK - x2)*((L(2,1)*Inv_x1)-(L(2,3)*Inv_x3)))-((x2)*((L(1,1)*Inv_x1)-(L(1,3)*Inv_x3)+ &
-&                          (L(3,1)*Inv_x1)-(L(3,3)*Inv_x3))))
-          delta_22 = (((1._RK - x2)*((L(2,2)*Inv_x2)-(L(2,3)*Inv_x3)))-((x2)*((L(1,2)*Inv_x2)-(L(1,3)*Inv_x3)+ &
-&                          (L(3,2)*Inv_x2)-(L(3,3)*Inv_x3))))
-
-          !calculate variance by error propagation
-          err_delta_11 = (1._RK-x1)*Inv_x1*this%SumOnsager(1,1)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
-&                                          this%SumOnsager(2,1)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
-&                                          this%SumOnsager(3,1)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
-          
-          err_delta_12 = (1._RK-x1)*Inv_x2*this%SumOnsager(1,2)%Variance + (1._RK-x1)*Inv_x3*this%SumOnsager(1,3)%Variance + &
-&                                x1*Inv_x2*this%SumOnsager(2,2)%Variance + x1*Inv_x3*this%SumOnsager(2,3)%Variance + & 
-&                                x1*Inv_x2*this%SumOnsager(3,2)%Variance + x1*Inv_x3*this%SumOnsager(3,3)%Variance
-
-          err_delta_21 = (1._RK-x2)*Inv_x1*this%SumOnsager(2,1)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
-&                                x2*Inv_x1*this%SumOnsager(1,1)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
-&                                x2*Inv_x1*this%SumOnsager(3,1)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
-
-          err_delta_22 = (1._RK-x2)*Inv_x2*this%SumOnsager(2,2)%Variance + (1._RK-x2)*Inv_x3*this%SumOnsager(2,3)%Variance + &
-&                                          this%SumOnsager(1,2)%Variance + x2*Inv_x3*this%SumOnsager(1,3)%Variance + & 
-&                                          this%SumOnsager(3,2)%Variance + x2*Inv_x3*this%SumOnsager(3,3)%Variance
-
+  
           ! determinat of matrix [delta]
-          det = (delta_11*delta_22)-(delta_12*delta_21)
+          det = (delta(1,1)*delta(2,2))-(delta(1,2)*delta(2,1))
           inv_det = 1._RK/det
 
           !obtain matrix [B] so that [B]=[D]-1
-          B11 =  inv_det* delta_22 !B1
-          B12 =  inv_det*(-delta_12) !B2
-          B21 =  inv_det*(-delta_21) !B3
-          B22 =  inv_det* delta_11 !B4
+          B(1,1) =  inv_det* delta(2,2) !B1
+          B(1,2) =  inv_det*(-delta(1,2)) !B2
+          B(2,1) =  inv_det*(-delta(2,1)) !B3
+          B(2,2) =  inv_det* delta(1,1) !B4
 
           !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
           !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-          err_B11 = ABS(B11*B11) * err_delta_11 + ABS(B11*B21)* err_delta_12 + &
-&                       ABS(B11*B12)* err_delta_21 + ABS(B12*B21)* err_delta_22
+          
+           err_B(:,:) = 0._RK
 
-          err_B12 = ABS(B11*B12) * err_delta_11 + ABS(B11*B22)* err_delta_12 + &
-&                       ABS(B12*B12)* err_delta_21 + ABS(B22*B12)* err_delta_22
-
-          err_B21 = ABS(B11*B21) * err_delta_11 + ABS(B21*B21)* err_delta_12 + &
-&                       ABS(B22*B11)* err_delta_21 + ABS(B22*B21)* err_delta_22
-
-          err_B22 = ABS(B12*B21) * err_delta_11 + ABS(B22*B21)* err_delta_12 + &
-&                       ABS(B22*B12)* err_delta_21 + ABS(B22*B22)* err_delta_22
-
+           do k = 1, (this%NComponents-1)
+              do m = 1, (this%NComponents-1)
+                 do i = 1, (this%NComponents-1)
+                    do  j = 1, (this%NComponents-1)
+                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
+                    end do
+                 end do
+               end do
+           end do
+ 
           !Calculate diffusion coefficients
-          D_13 =  1._RK  / ( (B11) + ( x2* B12 * Inv_x1) )         ! D_13    
-          D_12 =  1._RK  / ( (B11) - ( (x1 + x3) * B12 *Inv_x1))   ! D_12
-          D_23 =  1._RK  / ( (B22) + ( x1* B21 * Inv_x2))          ! D_23
-
+          D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )            
+          D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))  
+          D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))         
+ 
           !Obtain error of Diffusion coefficients
-          err_D13 = ABS(1._RK/((x2*Inv_x1*B12+B11)**2))*err_B11 + ABS(x2*Inv_x1/((B11+x2*Inv_x1*B12)**2))*err_B12
-          err_D12 = ABS(1._RK/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B11 + ABS(((x1+x3)*Inv_x1)/((B11-((x1+x3)*Inv_x1*B12))**2))*err_B12              
-          err_D23 = ABS(1._RK/((x1*Inv_x2*B21+B22)**2))*err_B22 + ABS(x1*Inv_x2/((B22+x1*Inv_x2*B21)**2))*err_B21 
+          err_D13 = ABS(1._RK/((x(2)*Inv_x(1)*B(1,2)+B(1,1))**2))*err_B(1,1) + &
+&                   ABS(x(2)*Inv_x(1)/((B(1,1)+x(2)*Inv_x(1)*B(1,2))**2))*err_B(1,2)
+          err_D12 = ABS(1._RK/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,1) + &
+&                   ABS(((x(1)+x(3))*Inv_x(1))/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,2)
+          err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
+&                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12 
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )      
           write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if
+        end if !this%NComponents == 3 
+
+        
+        if ( this%NComponents == 4 ) then
+
+          value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+
+          ! determinat of matrix [delta]
+          det = (delta(1,1)*delta(2,2)*delta(3,3))+(delta(2,1)*delta(3,2)*delta(1,3))+(delta(3,1)*delta(1,2)*delta(2,3))-&
+&               (delta(1,1)*delta(3,2)*delta(2,3))-(delta(3,1)*delta(2,2)*delta(1,3))-(delta(2,1)*delta(1,2)*delta(3,3))
+
+          inv_det = 1._RK/det
+
+          !obtain matrix [B] so that [B]=[D]-1
+          B(1,1) =  inv_det* (delta(2,2)*delta(3,3)-delta(2,3)*delta(3,2)) !B1
+          B(1,2) =  inv_det* (delta(1,3)*delta(3,2)-delta(1,2)*delta(3,3)) !B2
+          B(1,3) =  inv_det* (delta(1,2)*delta(2,3)-delta(1,3)*delta(2,2))
+          B(2,1) =  inv_det* (delta(2,3)*delta(3,1)-delta(2,1)*delta(3,3))
+          B(2,2) =  inv_det* (delta(1,1)*delta(3,3)-delta(1,3)*delta(3,1))
+          B(2,3) =  inv_det* (delta(1,3)*delta(2,1)-delta(1,1)*delta(2,3))
+          B(3,1) =  inv_det* (delta(2,1)*delta(3,2)-delta(2,2)*delta(3,1))
+          B(3,2) =  inv_det* (delta(1,2)*delta(3,1)-delta(1,1)*delta(3,2))
+          B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1)) 
+
+          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
+          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+          
+          err_B(:,:) = 0._RK
+
+           do k = 1, (this%NComponents-1)  
+              do m = 1, (this%NComponents-1)  
+                 do i = 1, (this%NComponents-1)
+                    do  j = 1, (this%NComponents-1)
+                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
+                    end do
+                 end do
+               end do
+           end do
+
+
+          !Calculate diffusion coefficients
+          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )         
+          D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )        
+          D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )       
+          D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
+          D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
+          D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
+
+
+          !Obtain error of Diffusion coefficients
+          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
+                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
+                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
+
+          err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+
+          err_D34 = ABS(1._RK/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,3) + &
+                    ABS(x(1)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,1) + &
+                    ABS(x(2)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,2)
+
+          err_D12 = ABS(1._RK/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                    ABS((x(1)-1._RK)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+
+          err_D13 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
+                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
+                    ABS((x(3)-1._RK)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
+
+          err_D23 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                    ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+
+
+          write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+          write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+
+        end if !this%NComponents == 4
+
 
         !self-diffusion coefficient
         do i = 1, this%NComponents
