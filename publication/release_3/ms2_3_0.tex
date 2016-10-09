@@ -384,6 +384,80 @@ Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\m
 
 
 
+\section{Parallel ensemble calculations}
+\label{sec:ParallelEnsembleCalculations}
+
+$ms2$ is already parallelized for distributed memory architectures using MPI \cite{ms2, ms2_2.0}.
+This version adds a new level of parallelization. The calculation of different ensembles is independent of each other.
+Therefore this can easily be done concurrently. To achieve this, the processing elements (PEs) are split in $c$ disjunct
+groups and each group will consecutively %successively?
+compute the assigned ensembles.
+To enable this feature the \textit{mpiEnsembleGroups} option was introduced for the input file.
+The default (if not set or set to 0) is the old behaviour not to split the PEs and to use a single MPI group.
+A value of 1 will enable the feature and automatically set the number of MPI groups to a minimum of the number of
+ensembles and the number of PEs. Otherwise this option will set the number of MPI groups to the value given.
+Another change induced applies to the restart capability of $ms2$. A checkpoint now consist of multiple rst-files
+and can be restarted using the -r (os --restart) option of $ms2$.
+%usage: <ms2cmd> -r <parfile> [<outputprefix>]
+
+\begin{figure}[htb]
+	\centering
+	\def\svgwidth{\textwidth}
+	\includegraphics[width=0.5\textwidth]{ms2_MPIranks.eps}
+	\caption{$ms2$ MPI ranks}
+	\label{fig:MPIranks}
+\end{figure}
+
+$ms2$ will create a MPI communicator for each of the aforementioned MPI groups with MPI\_Comm\_Split (see \ref{fig:ms2_MPIranks}).
+The ``coloring'' respectively assignment of the PEs to the MPI communicators is done in continguous blocks.
+%CommunicatorID=ProcID*NCommunicators/NProcs
+This is advantageous compared to e.g.\ a round robin fashion %(calculated using the process rank and modulo operator)
+%CommunicatorID=mod(ProcID,NCommunicators)
+if the processes have to be pinned to NUMA domains.
+Another communicator contains the root processes (subcommunicator rank 0 processes) of all the groups
+to ease the communication on a higher level among the groups
+(and there's still MPI\_COMM\_WORLD).
+
+Even if the computation of different ensembles is embarrassingly parallel,
+there's still an interaction between the different communicators if e.g.\ 
+the program gets a signal to terminate well-regulated
+(to write e.g.\ a checkpoint before terminating).
+This signal is received from an arbitrary single PE
+(or non-isochronic from multiple PEs).
+The previous version, where ensembles were calculated sequentially
+with a single global communicator, a MPI\_Allreduce call took care
+to spread this information among the processes after each iteration and
+is still acceptable within the subcommunicators.
+A collective communication of all the PEs beyond subcommunicator boundaries
+for each iteration in the computation implicitly would also synchronize
+all of the ensemble computations at this point.
+This is not a satisfactory solution, since less computational intensive ensembles
+will be forced to wait for the slower ones.
+The implementation uses non-blocking communication between the subcommunicator roots to avoid this.
+
+\begin{figure}[htb]
+	\centering
+	\def\svgwidth{\textwidth}
+	\includegraphics[width=0.5\textwidth]{ms2_Terminatestatus.eps}
+	\caption{$ms2$ communication to pass termination status to all PEs}
+	\label{fig:Terminatestatus}
+\end{figure}
+
+Before the iterations start, the root process will execute a MPI\_Irecv,
+%to receive a terminate message within the iteration loop,
+whereas all the other processes start a MPI\_Ibcast (see \ref{fig:Terminatestatus}).
+%to get the get the information from the root
+During the iteration any process might trigger a termination by sending a message
+to the root, which will broadcast the information to notify all the other processes.
+If no termination happened during the iterations, the root will send a message to itself
+and broadcast a non-termination message to all other processes to finish %satisfy
+the outstanding receive and broadcast. To take care of several processes sending
+a termination message at once, a summation reduction will determine the sum of all
+these messages for the root to receive them all.
+The technique can also be used hierarchically, replacing the MPI\_Allreduce within each subcommunicator.
+
+After a termination every subcommunicator will write its own Restart (rst) file.
+
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
 %% \appendix
