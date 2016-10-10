@@ -382,6 +382,26 @@ Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\m
 \end{figure}
 
 
+\section{Ewald summation}
+\label{sec:ewald}
+
+The applicability of $ms$2 was extended to electrically charged molecules or ions. The long ranged intermolecular interactions between those molecules and the surrounding solvents are considered using two well established approaches, the Ewald-Summation and the smooth-particle mesh Ewald summation. Both these approaches are well known \cite{fre02} and are introduced only briefly here. 
+
+Ewald-summation:
+In the Ewald summation, the overall coulombic potential acting in the simulation volume is determined by a sum of two terms, the short range coulombic contribution $u^{\mathrm{coul, short}}$ and the long range coulombic contribution $u^{\mathrm{coul, long}}$ according to
+\begin{equation}
+ u^{\mathrm{coul}} = u^{\mathrm{coul, short}} + u^{\mathrm{coul, long}}  \mbox{   .}
+\label{MolSim_Ewald_Allgemein}
+\end{equation}
+
+The separation into the two terms is achieved by the introduction of a fictive charge density function $\rho^{\mathrm{screen}}(\bm{r})$, which acts in the entire simulation volume. 
+
+Following the Ewald approach, for any configuration of molecules in the simulation volume, each point charge of magnitude $q_l$ in the simulation volume is now superimposed by one countercharge of magnitude $-q_l$. By the presence of this superimposed charge, the interaction potential decays to zero within a distance  reasonably low for molecular simulation and can, hence, be explicitly considered, cf. short term contribution of the Ewald summation. 
+
+The second term $u^{\mathrm{coul,long}}$ of Eq.~\eqref{MolSim_Ewald_Allgemein} determines the contributions that were subtracted due to the introduction of the fictive charge density function. This term can not be determined explicitly by the evaluation of pairwise interactions, since the coulombic potential at $r_{lm}=L/2$, the longest distance accessible in molecular simulation, still shows significant contributions to the potential energy in the system. In the Ewald summation, these contributions are determined in Fourier space from the negative charge distribution function $-           \rho^{\mathrm{screen}}(\bm{r})$. Since $\rho^{\mathrm{screen}}(\bm{r})$ changes upon molecular motion and hence molecular positions, a Fourier transformation is performed for any change in the simulation volume. 
+
+SPME:
+The smooth-particle mesh Ewald summation is widely considered as an improved Ewald summation. In this approach, the concepts of Ewald of splitting the long range charge-charge interactions are fully employed. The difference between both methods is only in the calculation of the long-range contributions. In the SPME approach, the electrostatic field of ions in the simulation volume is described by a spline-function of given form. For this given spline equation, the Fourier transformation is known and has, hence, not to be determined in each simulation step. This accelerates the calculation of the long range contribution and reduces simulation time and effort. The accuracy of the SPME results is equivalent to the Ewald approach.
 
 
 \section{Parallel ensemble calculations}
@@ -457,6 +477,7 @@ these messages for the root to receive them all.
 The technique can also be used hierarchically, replacing the MPI\_Allreduce within each subcommunicator.
 
 After a termination every subcommunicator will write its own Restart (rst) file.
+
 
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
