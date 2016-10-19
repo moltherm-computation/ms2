@@ -106,6 +106,9 @@ module ms2_interaction
 
     ! Numbers of test particles in component 1
     integer :: NTest1
+#if MPI_VER > 0
+    integer, pointer :: NTest10, NTest12
+#endif
     
     ! Number of units
     integer, pointer :: NUnit1, NUnit2
@@ -127,11 +130,14 @@ module ms2_interaction
     ! Cutoff correction to LJ-interaction
     real(RK) :: EPotCorrLJ
 
-    ! Flag for reaction field
+    ! Flag for reaction field(s)
     logical :: ReactionField
 
+    ! Extended reaction field
+    real(RK) :: DebyeLen
+
     ! (2*eps-1)/(2*eps+1)
-    real(RK) :: RFConst2, RFConst3
+    real(RK) :: RFConst2
 
     ! Same component + w/o intramolecular nonbonded interactions
     logical :: SameComponent
@@ -144,7 +150,6 @@ module ms2_interaction
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: DebyeLen, RFConstant
     real(RK) :: lad1,lad2
     
     ! IDF
@@ -263,19 +268,14 @@ contains
     integer :: stat
     real    :: fac
 
-    ! RFConstant2
-    if (LongRange .eq. RField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
-
-    else
+    ! RFConst2
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*RCutoffDipoleDipole
       this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
 &                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
 &                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
-
-      this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
-&                     / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
-      this%RFConstant=RCutoffDipoleDipole
+    else
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
     end if
 
     ! Set SameComponent flag
@@ -299,6 +299,10 @@ contains
     this%NPart22 => Component2%NPart2
 #endif
     this%NTest1 = Component1%NTest
+#if MPI_VER > 0
+    this%NTest10 => Component1%NTest0
+    this%NTest12 => Component1%NTest2
+#endif
 
     ! Set number of sites
     this%N1LJ126 = Component1%Molecule%NLJ126
@@ -1659,7 +1663,11 @@ contains
       MueY2 => this%MueY2
       MueZ2 => this%MueZ2
 
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
       do i = 1, this%NTest1
+#endif
         do u = 1, this%NUnit1
           EPotLocal = 0._RK
           iu = (i-1)*nu1+u ! unit's number
@@ -2732,7 +2740,7 @@ contains
 
 
       ! Explicit reaction field contribution
-      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+      if ( this%ReactionField ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
           MueX2 => this%MueX2
           MueY2 => this%MueY2
@@ -4524,7 +4532,7 @@ end subroutine TInteraction_Energy
       end do! s1-cycle
 
       ! Explicit reaction field contribution
-      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+      if ( this%ReactionField ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
           RFConst2 = this%RFConst2
           MueX2 => this%MueX2
@@ -5957,7 +5965,11 @@ end subroutine TInteraction_Energy
     ! Calculate partners within cutoff sphere
 !$OMP DO
     do k = 1, this%NUnit1
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
       do i = 1, this%NTest1
+#endif
         m = (i-1)*this%NUnit1+k
         PXi = PX1(i,k)
         PYi = PY1(i,k)

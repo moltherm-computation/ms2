@@ -46,6 +46,7 @@ module ms2_site
     real(RK)          :: mass
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
+    integer, pointer  :: NTest0, NTest1, NTest2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
     real(RK), pointer :: PX(:), PY(:), PZ(:)
@@ -103,6 +104,7 @@ module ms2_site
     real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
+    integer, pointer  :: NTest0, NTest1, NTest2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
     real(RK), pointer :: PX(:), PY(:), PZ(:)
@@ -160,6 +162,7 @@ module ms2_site
     real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
+    integer, pointer  :: NTest0, NTest1, NTest2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: OX(:), OY(:), OZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)
@@ -220,6 +223,7 @@ module ms2_site
     real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
+    integer, pointer  :: NTest0, NTest1, NTest2
     real(RK), pointer :: RX(:), RY(:), RZ(:)
     real(RK), pointer :: OX(:), OY(:), OZ(:)
     real(RK), pointer :: FX(:), FY(:), FZ(:)

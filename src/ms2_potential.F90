@@ -2016,7 +2016,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal
     integer           :: N2, nu1, nu2, unit
-    integer           :: i, j, k, jk
+    integer           :: i, i0, i1, j, k, jk
 
     ! Assign local variables
     N2 = this%Site2%NPart
@@ -2025,6 +2025,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RCutoffSquared = this%RCutoffSquaredScaled
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -2044,13 +2051,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
 !$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
 !$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
 !$OMP PRIVATE (RijSquared,RijSquaredInv,Rij6Inv) &
-!$OMP PRIVATE (EpotLocal,i,j,k) 
+!$OMP PRIVATE (EpotLocal,i,i0,i1,j,k) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, this%Site1%NTest
+      do i = i0, i1
         unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
@@ -2090,7 +2097,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, this%Site1%NTest
+      do i = i0, i1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -3646,7 +3653,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijInv, RijSquared
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1
+    integer           :: i, i0, i1, j, k, jk
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -3659,6 +3666,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -3675,7 +3689,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     PZ2 => this%Site2%PZ
 
    ! Loop over test particles
-   do i = 1, i1
+   do i = i0, i1
      unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
@@ -4799,7 +4813,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1
+    integer           :: i, i0, i1, j, k, jk
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -4812,6 +4826,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -4831,7 +4852,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     OZ2 => this%Site2%OZ
 
    ! Loop over test particles
-   do i = 1, i1
+   do i = i0, i1
      unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
@@ -5862,7 +5883,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1
+    integer           :: i, i0, i1, j, k, jk
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -5875,6 +5896,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -5894,7 +5922,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     OZ2 => this%Site2%OZ
 
    ! Loop over test particles
-   do i = 1, i1
+   do i = i0, i1
      unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
@@ -6903,7 +6931,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1
+    integer           :: i, i0, i1, j, k, jk
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -6916,6 +6944,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -6935,7 +6970,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     OZ1 => this%Site1%OZTest
 
     ! Loop over test particles
-    do i = 1, i1
+    do i = i0, i1
       unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
@@ -8344,7 +8379,7 @@ loop2:  do j = j0, j1
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1, j1
+    integer           :: i, i0, i1, j, k, jk, j1
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -8359,6 +8394,13 @@ loop2:  do j = j0, j1
     RFConstant2 = 2._RK * this%RFConstant
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -8387,12 +8429,12 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
 !$OMP PRIVATE (Tmp,RijSquared,RijInv, Rij3Inv) &
 !$OMP PRIVATE (eX,eY,eZ) &
-!$OMP PRIVATE (EPotLocal,i,j,k) 
+!$OMP PRIVATE (EPotLocal,i,i0,i1,j,k) 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
@@ -8471,7 +8513,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -9973,7 +10015,7 @@ loop2:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1, j1
+    integer           :: i, i0, i1, j, k, jk, j1
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -9987,6 +10029,13 @@ loop2:  do j = j0, j1
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -10015,12 +10064,12 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
 !$OMP PRIVATE (RijSquared,RijInv, Rij4Inv) &
 !$OMP PRIVATE (eX,eY,eZ) &
-!$OMP PRIVATE (EPotLocal,i,j,k) 
+!$OMP PRIVATE (EPotLocal,i,i0,i1,j,k) 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
@@ -10099,7 +10148,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -11227,7 +11276,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1
+    integer           :: i, i0, i1, j, k, jk
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -11240,6 +11289,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -11259,7 +11315,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     OZ1 => this%Site1%OZTest
 
     ! Loop over test particles
-    do i = 1, i1
+    do i = i0, i1
       unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
@@ -11325,7 +11381,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     end do
 
   end subroutine TPotQC_ChemicalPotential
-
 
 
 !==============================================================!
@@ -12692,7 +12747,7 @@ loop2:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1, j1
+    integer           :: i, i0, i1, j, k, jk, j1
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -12706,6 +12761,13 @@ loop2:  do j = j0, j1
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -12734,13 +12796,13 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
 !$OMP PRIVATE (RijSquared,RijInv, Rij4Inv) &
 !$OMP PRIVATE (eX,eY,eZ) &
-!$OMP PRIVATE (EPotLocal,i,j,k) 
+!$OMP PRIVATE (EPotLocal,i,i0,i1,j,k) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
@@ -12820,7 +12882,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -14420,7 +14482,7 @@ loop2:  do j = j0, j1
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, j, k, jk, i1, j1
+    integer           :: i, i0, i1, j, k, jk, j1
     integer           :: nu1, nu2, unit
 #if ARCH == 3
     logical           :: hit
@@ -14434,6 +14496,13 @@ loop2:  do j = j0, j1
     RShieldSquared = this%RShieldSquared
     nu1 = this%NUnit1
     nu2 = this%NUnit2
+#if MPI_VER > 0
+    i0 = this%Site1%NTest0
+    i1 = this%Site1%NTest2
+#else
+    i0 = 1
+    i1 = this%Site1%NTest
+#endif
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -14462,13 +14531,13 @@ loop2:  do j = j0, j1
 !$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
 !$OMP PRIVATE (CosThetaiSquared, CosThetajSquared,RijSquared,RijInv, Rij5Inv) &
 !$OMP PRIVATE (Tmp,eX,eY,eZ) &
-!$OMP PRIVATE (EPotLocal,i,j,k) 
+!$OMP PRIVATE (EPotLocal,i,i0,i1,j,k) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
       ! Loop over test particles
 !$OMP DO 
-      do i = 1, i1
+      do i = i0, i1
         unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
@@ -14559,7 +14628,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
       ! Loop over test particles
 !$OMP DO
-      do i = 1, i1
+      do i = i0, i1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)

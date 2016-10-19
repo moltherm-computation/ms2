@@ -1552,7 +1552,6 @@ contains
          do i=1,this%NComponents
            do j=1,this%NComponents
              this%Interaction(i,j)%Kappa = this%Kappa
-             this%Interaction(i,j)%DebyeLen = this%DebyeLen
            end do
          end do
 
@@ -2147,9 +2146,7 @@ contains
       do i = 1, this%NComponents
         do j = 1, this%NComponents
 
-          if (LongRange .ne. RField .and. LongRange .ne. Rodgers) then
-            this%Interaction(i,j)%DebyeLen = this%DebyeLen
-          end if
+          if (LongRange .eq. ExtRField) this%Interaction(i,j)%DebyeLen = this%DebyeLen
           this%Interaction(i,j)%OptPressure = this%OptPressure
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
@@ -3462,12 +3459,12 @@ contains
 
     ! Assign local variables
     NPartInv = 1._RK / this%NPart
-    if (LongRange .eq. RField) then
-      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
-    else 
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*this%RCutoffDipoleDipole
       RFConst = -1._RK / this%RCutoffDipoleDipole**3 * ((this%RFEpsilon - 1._RK)*(1._RK+fac) + 0.5*this%RFEpsilon*(fac)**2) &
 &       / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
+    else 
+      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
     endif
 
     ! Set maximum cutoff radius
@@ -5544,7 +5541,8 @@ loop5:    do nc = 1, this%NComponents
     real(RK)                  :: ChemPot, rm(3), ExpMinusBetaEnLaMin, factor, Cutoff
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
     real(RK)                  :: a, b, c, d, e, f, g, h, x, y, z
-    integer                   :: i, j, t, selected
+    real(RK)                  :: EPotTest(this%NTestMax)
+    integer                   :: i, j0, j1, j, t, selected
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
     integer                   :: r, s, nc, np, ncf, npf
     integer                   :: ratio, sndf
@@ -5571,6 +5569,7 @@ loop5:    do nc = 1, this%NComponents
     if (Step == 1) then
       do i = 1, this%NComponents
         pc => this%Component(i)
+        pc%NTest1 = ProcRange( pc%NTest, pc%NTest0, pc%NTest2 )
         select case( pc%ChemPotMethod )
         case (ChemPotMethodWidom)
           pc%CalcChemPot = .true.
@@ -5601,73 +5600,85 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Throw test particles
-    this%EPotTestIntra(:) = 0._RK
-    do i = 1, this%NComponents
-      if (this%Component(i)%NTest > 0) then
-        pc => this%Component(i)
-        if (pc%NPart == 0) then ! for Henry NPart==0
-
-          do j = 1, this%NTestMax
-            do t = 1, 3
-              rm(t) = tprnd( -.5_RK, .5_RK )
-            end do
-            do r = 1, pc%Molecule%NUnit
-              pc%P0Test(j,:,r) = pc%Molecule%Unit(r)%P0(:) + rm(:)
-            end do
-            if (pc%Molecule%isElongated) then
-              do r = 1, pc%Molecule%NUnit
-                pc%Q0Test(j,:,r) = pc%Molecule%Unit(r)%Q0(:)
-              end do
-              do t = 1, 3
-                rm(t) = tprnd( -1._RK, 1._RK )
-              end do
-              call RotateTest( pc, j, rm)
-            end if 
-          end do
-          call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
-
-        else ! not Henry or Fraction > 0
-
-          call Unit2Mol(pc) ! needed? Michael Sch.
-          do j = 1, this%NTestMax
-
-            do t = 1, 3
-              rm(t) = tprnd( -.5_RK, .5_RK )
-            end do
-            selected = rnd( pc%NPart )
-            do r = 1, pc%Molecule%NUnit
-              pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
-            end do
-            do r = 1, pc%Molecule%NUnit
-              pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - pc%Pm0(selected,1:3)
-            end do
-
-            if (pc%Molecule%isElongated) then
-              pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
-              do t = 1, 3
-                rm(t) = tprnd( -1._RK, 1._RK )
-              end do
-              call RotateTest( pc, j, rm)
-            end if
-            if (SimulationType .eq. MonteCarlo) then
-              this%EPotTestIntra(j) = this%EPotTestIntra(j) + GetEnergyIntra(this, i, selected)
-            else
-              Cutoff = this%Interaction( i, i )%RCutoffSquaredScaled
-              this%Interaction( i, i )%RCutoffSquaredScaled = 0._RK! to get only intramolecular interactions
-              c = 0._RK ! saves/gets the EPotIntra of the TestParticles
-              a = 0._RK; b = 0._RK; d = 0._RK; e = 0._RK; f = 0._RK
-              g = 0._RK; h = 0._RK; x = 0._RK; y = 0._RK; z = 0._RK
-              call Force( this%Interaction( i, i ), a, b, c, d, e, f, g, h, x, y, z, this%BoxLength )
-              this%EPotTestIntra(j) = this%EPotTestIntra(j) + c
-              this%Interaction( i, i )%RCutoffSquaredScaled = Cutoff
-            end if
-
-            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
-          end do
-
-        end if
+    if( mod( Step, BlockSize ) == 0 ) then
+      this%EPotTestIntra(:) = 0._RK
+#if MPI_VER > 0
+      if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        j0 = pc%NTest0
+        j1 = pc%NTest2
+      else
+        j0 = 1
+        j1 = pc%NTest
       end if
-    end do
+#else
+        j0 = 1
+        j1 = pc%NTest
+#endif
+      do i = 1, this%NComponents
+        if (this%Component(i)%NTest > 0) then
+          pc => this%Component(i)
+          if (pc%NPart == 0) then ! for Henry NPart==0
+            do j = j0, j1
+              do t = 1, 3
+                rm(t) = tprnd( -.5_RK, .5_RK )
+              end do
+              do r = 1, pc%Molecule%NUnit
+                pc%P0Test(j,:,r) = pc%Molecule%Unit(r)%P0(:) + rm(:)
+              end do
+              if (pc%Molecule%isElongated) then
+                do r = 1, pc%Molecule%NUnit
+                  pc%Q0Test(j,:,r) = pc%Molecule%Unit(r)%Q0(:)
+                end do
+                do t = 1, 3
+                  rm(t) = tprnd( -1._RK, 1._RK )
+                end do
+                call RotateTest( pc, j, rm)
+              end if 
+            end do
+            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
+
+          else ! not Henry or Fraction > 0
+
+            call Unit2Mol(pc) ! needed? Michael Sch.
+            do j = j0, j1
+              do t = 1, 3
+                rm(t) = tprnd( -.5_RK, .5_RK )
+              end do
+              selected = rnd( pc%NPart )
+              do r = 1, pc%Molecule%NUnit
+                pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
+              end do
+              do r = 1, pc%Molecule%NUnit
+                pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - pc%Pm0(selected,1:3)
+              end do
+
+              if (pc%Molecule%isElongated) then
+                pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
+                do t = 1, 3
+                  rm(t) = tprnd( -1._RK, 1._RK )
+                end do
+                call RotateTest( pc, j, rm)
+              end if
+              if (SimulationType .eq. MonteCarlo) then
+                this%EPotTestIntra(j) = this%EPotTestIntra(j) + GetEnergyIntra(this, i, selected)
+              else
+                Cutoff = this%Interaction( i, i )%RCutoffSquaredScaled
+                this%Interaction( i, i )%RCutoffSquaredScaled = 0._RK! to get only intramolecular interactions
+                c = 0._RK ! saves/gets the EPotIntra of the TestParticles
+                a = 0._RK; b = 0._RK; d = 0._RK; e = 0._RK; f = 0._RK
+                g = 0._RK; h = 0._RK; x = 0._RK; y = 0._RK; z = 0._RK
+                call Force( this%Interaction( i, i ), a, b, c, d, e, f, g, h, x, y, z, this%BoxLength )
+                this%EPotTestIntra(j) = this%EPotTestIntra(j) + c
+                this%Interaction( i, i )%RCutoffSquaredScaled = Cutoff
+              end if
+
+            end do
+            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
+
+          end if
+        end if
+      end do
+    end if
 
 #if MPI_VER > 0
     tempComm = Communicator
@@ -5912,21 +5923,36 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
 
+#if MPI_VER > 0
+        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+          this%EPotTest(:) = 0._RK
+          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        else
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        end if
+#else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+#endif
         this%EPotTest(:) = this%EPotTest(:) + this%EPotTestIntra(:)
         do j = 1, this%NRealComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
+#if MPI_VER > 0
+        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+          call MPI_Reduce( this%EPotTest, EPotTest, this%NTestMax, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          this%EPotTest = EPotTest
+        end if
+#endif
 
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 
 
-#if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
-          call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
-          call MPI_Bcast( this%EPot, 1, MPI_RK,  NRootProc, Communicator, ierror )
-        endif
-#endif
+! #if MPI_VER > 0
+!         if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+!           call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
+!           call MPI_Bcast( this%EPot, 1, MPI_RK,  NRootProc, Communicator, ierror )
+!         endif
+! #endif
 
         ! partial molar enthalpy
        HW_H_local = this%EPot + this%RefPressure / this%Density * real( this%NPart, RK )
@@ -5943,25 +5969,25 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        HW_counter_local = HW_V_local * HW_counter_local / pc%NTest
        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
-#if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
-          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-          call MPI_Reduce( ChemPot, pc%ChemPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-            pc%ChemPot = pc%ChemPot/NProcs
-            pc%HW_counter = pc%HW_counter/NProcs
-            pc%HW_denom = pc%HW_denom/NProcs 
-        else
-            pc%ChemPot = ChemPot
-            pc%HW_counter = HW_counter_local
-            pc%HW_denom = HW_denom_local
-        endif
-#else
+! #if MPI_VER > 0
+!         if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+!           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+!           call MPI_Reduce( ChemPot, pc%ChemPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!           call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!             pc%ChemPot = pc%ChemPot/NProcs
+!             pc%HW_counter = pc%HW_counter/NProcs
+!             pc%HW_denom = pc%HW_denom/NProcs 
+!         else
+!             pc%ChemPot = ChemPot
+!             pc%HW_counter = HW_counter_local
+!             pc%HW_denom = HW_denom_local
+!         endif
+! #else
         pc%ChemPot = ChemPot
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
-#endif
+! #endif
 
       case( ChemPotMethodThermoInt )
 
@@ -5970,11 +5996,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! chemPot with LambdaMin by Widom
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
+#if MPI_VER > 0
+        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+          this%EPotTest(:) = 0._RK
+          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        else
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        end if
+#else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+#endif
         this%EPotTest(:) = this%EPotTest(:) + this%EPotTestIntra(:)
         do j = 1, this%NComponents ! Michael Sch.: incompatible with GradIns...because fluctuating components accounted as well
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
+#if MPI_VER > 0
+        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+          call MPI_Reduce( this%EPotTest, EPotTest, this%NTestMax, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          this%EPotTest = EPotTest
+        end if
+#endif
         factor = pc%LaMin**pc%LambdaExponent
         ExpMinusBetaEnLaMin = sum( exp( -( factor*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 
@@ -5990,25 +6031,25 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         HW_counter_local = HW_counter_local / pc%NTest
         HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
-#if MPI_VER > 0
-        if ( SimulationType .eq. MolecularDynamics ) then
-          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-          call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-          pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
-          pc%HW_counter = pc%HW_counter/NProcs
-          pc%HW_denom = pc%HW_denom/NProcs
-        else
-          pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
-          pc%HW_counter = HW_counter_local
-          pc%HW_denom = HW_denom_local
-        endif
-#else
+! #if MPI_VER > 0
+!         if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+!           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+!           call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!           call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+!           pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
+!           pc%HW_counter = pc%HW_counter/NProcs
+!           pc%HW_denom = pc%HW_denom/NProcs
+!         else
+!           pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+!           pc%HW_counter = HW_counter_local
+!           pc%HW_denom = HW_denom_local
+!         endif
+! #else
         pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
-#endif
+! #endif
         ! end of Widom for ThermoInt with LambdaMin
 
       case default
@@ -12057,10 +12098,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       Ud2UdV2 = this%SumEPotd2EpotdV2%Average
 
       A10res =  Beta*U/Numb
-      A01res = 1._RK-Beta*specv*dUdV !(Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV
+      A01res =  (Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV ! 1._RK-Beta*specv*dUdV
       A20res =  Beta2*(U*U-U2)/Numb
       A11res =  specv*(-Beta*dUdV + Beta2*UdUdV - Beta2*U*dUdV)
-      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - 1._RK ! Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb
+      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb !Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - 1._RK
       A30res =  Beta3*(U3 -3._RK*U*U2 + 2._RK*U**3)/Numb
       A21res =  specv*( Beta2*( 2._RK*UdUdV - 2._RK*U*dUdV) + Beta3*(U2*dUdV - U2dUdV + 2._RK*U*UdUdV - 2._RK*U**2*dUdV) )
       A12res =  Numb*specv2*Beta3*( UdUdV2 + 2._RK*U*dUdV**2 - U*dUdV2 - 2._RK*UdUdV*dUdV)+&

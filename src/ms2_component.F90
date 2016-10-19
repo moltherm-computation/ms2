@@ -151,13 +151,13 @@ module ms2_component
 
     ! Number of particles in component
     integer, pointer :: NPart
-
     ! Number of particles in process
     ! Starting position, Number of Particles, Endposition
     integer, pointer :: NPart0, NPart1, NPart2
 
     ! Number of test particles
     integer, pointer :: NTest
+    integer, pointer :: NTest0, NTest1, NTest2
     integer          :: NTestAll
 
     ! Number of degrees of freedom
@@ -507,6 +507,12 @@ contains
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
     call AllocationError( stat, 'number of test particles' )
+    allocate( this%NTest0, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest1, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest2, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
 
 
     ! Read mole fraction of this component
@@ -744,6 +750,12 @@ contains
     ! Allocate number of test particles
     allocate( this%NTest, STAT = stat )
     call AllocationError( stat, 'number of test particles' )
+    allocate( this%NTest0, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest1, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest2, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
     this%NTest = 0
 
     ! Set file name for potential model
@@ -793,6 +805,12 @@ contains
 
     ! Allocate number of particles in component
     allocate( this%NTest, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest0, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest1, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
     ! Copy file name for potential model
@@ -865,6 +883,12 @@ contains
     ! Allocate number of particles in component
     allocate( this%NTest, STAT = stat )
     call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest0, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest1, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
+    allocate( this%NTest2, STAT = stat )
+    call AllocationError( stat, 'number of particles' )
 
     ! Copy file name for potential model
     this%PotModFileName = comp0%PotModFileName
@@ -918,6 +942,15 @@ contains
     call Destruct( this%Molecule )
 
     ! Deallocate number of test particles
+    if( associated( this%NTest0 ) ) then
+      deallocate( this%NTest0 )
+    end if
+    if( associated( this%NTest1 ) ) then
+      deallocate( this%NTest1 )
+    end if
+    if( associated( this%NTest2 ) ) then
+      deallocate( this%NTest2 )
+    end if
     if( associated( this%NTest ) ) then
       deallocate( this%NTest )
     end if
@@ -972,6 +1005,15 @@ contains
     call Destruct( this%Molecule )
 
     ! Deallocate number of test particles
+    if( associated( this%NTest0 ) ) then
+      deallocate( this%NTest0 )
+    end if
+    if( associated( this%NTest1 ) ) then
+      deallocate( this%NTest1 )
+    end if
+    if( associated( this%NTest2 ) ) then
+      deallocate( this%NTest2 )
+    end if
     if( associated( this%NTest ) ) then
       deallocate( this%NTest )
     end if
@@ -1380,10 +1422,13 @@ contains
     do i = 1, this%Molecule%NLJ126
       this%Molecule%SiteLJ126(i)%NPartMax => this%NPartMax
       this%Molecule%SiteLJ126(i)%NPart => this%NPart
-      this%Molecule%SiteLJ126(i)%NTest => this%NTest
       this%Molecule%SiteLJ126(i)%NPart0 => this%NPart0
       this%Molecule%SiteLJ126(i)%NPart1 => this%NPart1
       this%Molecule%SiteLJ126(i)%NPart2 => this%NPart2
+      this%Molecule%SiteLJ126(i)%NTest => this%NTest
+      this%Molecule%SiteLJ126(i)%NTest0 => this%NTest0
+      this%Molecule%SiteLJ126(i)%NTest1 => this%NTest1
+      this%Molecule%SiteLJ126(i)%NTest2 => this%NTest2
 
       call Allocate( this%Molecule%SiteLJ126(i) )
       this%Molecule%SiteLJ126(i)%PX => this%Pm0(:, 1)
@@ -1398,10 +1443,13 @@ contains
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
-      this%Molecule%SiteCharge(i)%NTest => this%NTest
       this%Molecule%SiteCharge(i)%NPart0 => this%NPart0
       this%Molecule%SiteCharge(i)%NPart1 => this%NPart1
       this%Molecule%SiteCharge(i)%NPart2 => this%NPart2
+      this%Molecule%SiteCharge(i)%NTest => this%NTest
+      this%Molecule%SiteCharge(i)%NTest0 => this%NTest0
+      this%Molecule%SiteCharge(i)%NTest1 => this%NTest1
+      this%Molecule%SiteCharge(i)%NTest2 => this%NTest2
 
       call Allocate( this%Molecule%SiteCharge(i) )
       this%Molecule%SiteCharge(i)%PX => this%Pm0(:, 1)
@@ -1416,10 +1464,13 @@ contains
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteDipole(i)%NPart => this%NPart
-      this%Molecule%SiteDipole(i)%NTest => this%NTest
       this%Molecule%SiteDipole(i)%NPart0 => this%NPart0
       this%Molecule%SiteDipole(i)%NPart1 => this%NPart1
       this%Molecule%SiteDipole(i)%NPart2 => this%NPart2
+      this%Molecule%SiteDipole(i)%NTest => this%NTest
+      this%Molecule%SiteDipole(i)%NTest0 => this%NTest0
+      this%Molecule%SiteDipole(i)%NTest1 => this%NTest1
+      this%Molecule%SiteDipole(i)%NTest2 => this%NTest2
 
       call Allocate( this%Molecule%SiteDipole(i) )
       this%Molecule%SiteDipole(i)%PX => this%Pm0(:, 1)
@@ -1434,10 +1485,13 @@ contains
     do i = 1, this%Molecule%NQuadrupole
       this%Molecule%SiteQuadrupole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteQuadrupole(i)%NPart => this%NPart
-      this%Molecule%SiteQuadrupole(i)%NTest => this%NTest
       this%Molecule%SiteQuadrupole(i)%NPart0 => this%NPart0
       this%Molecule%SiteQuadrupole(i)%NPart1 => this%NPart1
       this%Molecule%SiteQuadrupole(i)%NPart2 => this%NPart2
+      this%Molecule%SiteQuadrupole(i)%NTest => this%NTest
+      this%Molecule%SiteQuadrupole(i)%NTest0 => this%NTest0
+      this%Molecule%SiteQuadrupole(i)%NTest1 => this%NTest1
+      this%Molecule%SiteQuadrupole(i)%NTest2 => this%NTest2
 
       call Allocate( this%Molecule%SiteQuadrupole(i) )
       this%Molecule%SiteQuadrupole(i)%PX => this%Pm0(:, 1)
@@ -2838,16 +2892,16 @@ subroutine TComponent_RotateTest( this, np, dq )
     real(RK)         :: q1, q2, q3, q4, qinv
     integer          :: i
 
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0Test(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0Test(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
+!     ! Broadcast positions and orientations to all processes
+! #if MPI_VER > 0
+!     ! in MC simulations, we only communicate during common equilibration
+!     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+!       call MPI_Bcast( this%P0Test(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
+!       if( this%Molecule%isElongated ) then
+!         call MPI_Bcast( this%Q0Test(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
+!       end if
+!     end if
+! #endif
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -3733,19 +3787,23 @@ subroutine TComponent_InitUnit( this, np, dq )
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k, ik
+    integer                        :: i, i0, i1, j, k, ik
 
-    ! Broadcast positions and orientations to all processes
+!     ! Broadcast positions and orientations to all processes
+! #if MPI_VER > 0
+!     ! in MC simulations, we only communicate during common equilibration
+!     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+!       call MPI_Bcast( this%P0Test(:, :, :), size( this%P0Test ), MPI_RK, NRootProc, Communicator, ierror )
+!       if( this%Molecule%isElongated ) then
+!         call MPI_Bcast( this%Q0Test(:, :, :), size( this%Q0Test ), MPI_RK, NRootProc, Communicator, ierror )
+!       end if
+!     end if
+! #endif
+
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0Test(:, :, :), size( this%P0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0Test(:, :, :), size( this%Q0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    i0 = this%NTest0
+    i1 = this%NTest2
 #endif
-
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -3755,8 +3813,8 @@ subroutine TComponent_InitUnit( this, np, dq )
       ! Check number of rotation axes
       if( this%Molecule%Unit(k)%isElongated ) then
         ! Loop over molecules
-        do i = 1, np
-          ik = (i-1)*nu+k
+        do i = i0, i1
+          ik = (i-i0)*nu+k
           PX(ik) = this%P0Test(i, 1, k)
           PY(ik) = this%P0Test(i, 2, k)
           PZ(ik) = this%P0Test(i, 3, k)
@@ -3798,8 +3856,8 @@ subroutine TComponent_InitUnit( this, np, dq )
           r1 = pLJ126%r(1) * BoxLengthInv
           r2 = pLJ126%r(2) * BoxLengthInv
           r3 = pLJ126%r(3) * BoxLengthInv
-          do i = 1, np
-            ik = (i-1)*nu+k
+          do i = i0, i1
+            ik = (i-i0)*nu+k
             pLJ126%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
             pLJ126%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
             pLJ126%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
@@ -3812,8 +3870,8 @@ subroutine TComponent_InitUnit( this, np, dq )
           r1 = pCharge%r(1) * BoxLengthInv
           r2 = pCharge%r(2) * BoxLengthInv
           r3 = pCharge%r(3) * BoxLengthInv
-          do i = 1, np
-            ik = (i-1)*nu+k
+          do i = i0, i1
+            ik = (i-i0)*nu+k
             pCharge%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
             pCharge%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
             pCharge%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
@@ -3829,8 +3887,8 @@ subroutine TComponent_InitUnit( this, np, dq )
           or1 = pDipole%or(1)
           or2 = pDipole%or(2)
           or3 = pDipole%or(3)
-          do i = 1, np
-            ik = (i-1)*nu+k
+          do i = i0, i1
+            ik = (i-i0)*nu+k
             pDipole%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
             pDipole%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
             pDipole%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
@@ -3849,8 +3907,8 @@ subroutine TComponent_InitUnit( this, np, dq )
           or1 = pQuadrupole%or(1)
           or2 = pQuadrupole%or(2)
           or3 = pQuadrupole%or(3)
-          do i = 1, np
-            ik = (i-1)*nu+k
+          do i = i0, i1
+            ik = (i-i0)*nu+k
             pQuadrupole%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
             pQuadrupole%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
             pQuadrupole%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
@@ -3864,8 +3922,8 @@ subroutine TComponent_InitUnit( this, np, dq )
           mue1 = this%Molecule%Unit(k)%Mue(1)
           mue2 = this%Molecule%Unit(k)%Mue(2)
           mue3 = this%Molecule%Unit(k)%Mue(3)
-          do i = 1, np
-            ik = (i-1)*nu+k
+          do i = i0, i1
+            ik = (i-i0)*nu+k
             this%MueXTest(i, k) = mue1 * A11(ik) + mue2 * A21(ik) + mue3 * A31(ik)
             this%MueYTest(i, k) = mue1 * A12(ik) + mue2 * A22(ik) + mue3 * A32(ik)
             this%MueZTest(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
@@ -3876,7 +3934,7 @@ subroutine TComponent_InitUnit( this, np, dq )
         ! Loop over LJ126 sites in molecule
         do i = 1, this%Molecule%Unit(k)%NLJ126
           pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-          do j = 1, np
+          do j = i0, i1
             pLJ126%RXTest(j) = this%P0Test(j, 1, k)
             pLJ126%RYTest(j) = this%P0Test(j, 2, k)
             pLJ126%RZTest(j) = this%P0Test(j, 3, k)
@@ -3886,7 +3944,7 @@ subroutine TComponent_InitUnit( this, np, dq )
         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          do j = 1, np
+          do j = i0, i1
             pCharge%RXTest(j) = this%P0Test(j, 1, k)
             pCharge%RYTest(j) = this%P0Test(j, 2, k)
             pCharge%RZTest(j) = this%P0Test(j, 3, k)
