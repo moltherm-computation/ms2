@@ -348,7 +348,7 @@ Accordingly, a class of geometric criteria for the evaluation of hydrogen bondin
         \item{} The distance between the acceptor sites of the acceptor and donor molecules is smaller than $\ell_\mathrm{AA}$.
         \item{} The angle between the acceptor-donor axis and the acceptor-acceptor axis is smaller than a threshold angle, i.e.\ $\varphi_\mathrm{DAA}$ or $\varphi_\mathrm{AAD}$. 
 \end{itemize}
-Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\mathrm{DAA}$ and $\varphi_\mathrm{AAD}$ are the parameters of the implemented class of hydrogen bonding criteria. For methanol, e.g., Haughney \textit{et al.}\ \cite{Haughney1987} proposed $\ell_\mathrm{AD} = \ell_\mathrm{DA} = 2.6$ \AA{}, $\ell_\mathrm{AA} = 3.5$ \AA and $\varphi_\mathrm{AAD}= \varphi_\mathrm{DAA} = 30^\circ$. Such geometric criteria have been applied to a variety of fluids, in particular to water \cite{LC93, CC06, LC96}, methanol-water mixtures \cite{CC14} and ethanol \cite{RMHH12, SPG97, XYH09}. Hydrogen bonds in sorbate-sorbent interactions can be treated analogously \cite{BKS14}. E.g., for hydrogen fluoride, a simpler distance-based criterion can be used \cite{KBMP03}, which is also covered by the present implementation. A detailed description of the parameter setup is given in the supplementary material. 
+Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\mathrm{DAA}$ and $\varphi_\mathrm{AAD}$ are the parameters of the implemented class of hydrogen bonding criteria. For methanol, e.g., Haughney \textit{et al.}\ \cite{Haughney1987} proposed $\ell_\mathrm{AD} = \ell_\mathrm{DA} = 2.6$ \AA{}, $\ell_\mathrm{AA} = 3.5$ \AA and $\varphi_\mathrm{AAD}= \varphi_\mathrm{DAA} = 30^\circ$. Such geometric criteria have been applied to a variety of fluids, in particular to water \cite{LC93, CC06, LC96}, methanol-water mixtures \cite{CC14, gue08} and ethanol \cite{RMHH12, SPG97, XYH09}. Hydrogen bonds in sorbate-sorbent interactions can be treated analogously \cite{BKS14}. E.g., for hydrogen fluoride, a simpler distance-based criterion can be used \cite{KBMP03}, which is also covered by the present implementation. A detailed description of the parameter setup is given in the supplementary material. 
 
 \begin{figure}[htb]
 	\centering
@@ -454,6 +454,25 @@ This technique can also be used hierarchically, replacing the MPI\_Allreduce wit
 
 After a termination, every subcommunicator writes its own restart (*.rst) file.
 
+\section{OPAS Method}
+\label{sec:opas}
+
+The OPAS method (osmotic pressure for the activity of the solvent) was implemented in \textit{ms}2. This method is an alternative to standard methods, e.g.\ the Widom test particle method \cite{wid63} or thermodynamic integration \cite{moucka2013, mester2015, moucka2015}, for calculating chemical potentials in the liquid phase in MD simulations. It is particularly well-suited for studying the solvent activity in electrolyte solutions, but can in principle also be used for studying mixtures of molecular species. Details and a thorough assessment of the method are presented in ref.\ \cite{kohns2016}, the method is only briefly introduced in the following.
+
+The basic idea is a direct simulation of the osmotic equilibrium between a pure solvent phase and a solution phase by introducing semipermeable membranes in the simulation box. These are realized by an external force field that acts only on the solute molecules to keep them in the solution phase. By sampling the total net membrane force per membrane area, the pressure difference between the two phases, called the osmotic pressure $\Pi$, is monitored. Assuming an incompressible solvent, the solvent activity is related to this osmotic pressure by
+\begin{equation}
+\ln{a_{\rm solv}}=-\frac{\Pi v_{\rm solv}}{RT},
+\end{equation}
+where $v_{\rm solv}$ is the molar volume of the pure solvent at the temperature $T$, which is easily available from separate, standard molecular simulations. If an electrolyte solution is considered, the activity coefficient of the salt can be obtained by performing OPAS simulations at various salt molalities and applying the Gibbs-Duhem equation to the results for the solvent activity.
+
+Fig.\ \ref{Fig:JCComparison} shows molecular simulation results for the mean ionic activity coefficient of NaCl in aqueous solution at $T$ = 298.15 K. There, results obtained by different groups employing different computational approaches are presented. All groups studied the molecular models by Joung and Cheatham \cite{joung2008} for Na$^{+}$ and Cl$^{-}$ ions for use together with SPC/E water, and all simulation results are in mutual agreement.
+
+\begin{figure}[htb]
+\centering
+ \includegraphics[width=8.0cm]{JCComparison.eps}
+\caption{Mean ionic activity coefficient of NaCl over the salt molality for aqueous NaCl solutions at $T$ = 298.15 K using the SPC/E + Joung-Cheatham \cite{joung2008} model combination. The colored lines represent simulation results by different groups for that model combination (from top to bottom): OPAS simulations by Kohns \textit{et al.}\ \cite{kohns2016} (red dashed line), free energy calculations by Benavides \textit{et al.}\ \cite{benavides2016} (violet densely-dotted line), gradual insertion of ion pairs by Mester and Panagiotopoulos \cite{mester2015} (blue dashed-dotted line), and osmotic ensemble Monte Carlo simulations by Mou\v{c}ka \textit{et al.}\ \cite{moucka2015} (green dotted line). The black solid line shows the correlation to experimental data by Hamer and Wu \cite{hamer1972}.}
+\label{Fig:JCComparison}
+\end{figure}
 
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
