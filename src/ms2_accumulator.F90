@@ -35,17 +35,17 @@ module ms2_accumulator
   type TAccumulator
 
     ! Block sum
-    real(RK), pointer :: BlockSum(:) => NULL()
+    real(RK), pointer, contiguous :: BlockSum(:) => NULL()
 
     ! Number of summed values in block
-    integer , pointer :: NBlockSum(:) => NULL()
+    integer , pointer, contiguous :: NBlockSum(:) => NULL()
 
 #if MPI_VER > 0        
     ! MC communication COL_DEBUG
-    real(RK), pointer :: BlockSumGathered(:) => NULL()
+    real(RK), pointer, contiguous :: BlockSumGathered(:) => NULL()
 
     ! MC communication COL_DEBUG
-    integer , pointer :: NBlockSumGathered(:) => NULL()
+    integer , pointer, contiguous :: NBlockSumGathered(:) => NULL()
 #endif  
 
     ! Total sum and average

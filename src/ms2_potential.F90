@@ -52,14 +52,14 @@ module ms2_potential
     real(RK)                  :: SigmaSquared
     real(RK)                  :: Epsilon4, Epsilon48
     real(RK)                  :: BoxlengthInv, BoxLengthThird
-    integer, pointer          :: NInCutoff(:), CutoffPartner(:, :)
-    integer, pointer          :: RDFSum(:)
+    integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
-    real(RK), pointer         :: VirialProfile(:)
+    real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
 #ifdef ABL
-    real(RK),pointer          :: AblEpsCorr(:,:)
-    real(RK),pointer          :: AblSigCorr(:,:)
+    real(RK),pointer, contiguous          :: AblEpsCorr(:,:)
+    real(RK),pointer, contiguous          :: AblSigCorr(:,:)
 #endif
 
   end type TPotLJ126LJ126
@@ -110,9 +110,9 @@ module ms2_potential
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
-    integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous           :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer         :: VirialProfile(:)
+    real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
 
   end type TPotChargeCharge
@@ -162,9 +162,9 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
-    integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous           :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer          :: VirialProfile(:)
+    real(RK), pointer, contiguous          :: VirialProfile(:)
 #endif
 
   end type TPotChargeDipole
@@ -207,9 +207,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
-    integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous               :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer              :: VirialProfile(:)
+    real(RK), pointer, contiguous              :: VirialProfile(:)
 #endif
 
   end type TPotChargeQuadrupole
@@ -251,9 +251,9 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
     logical                    :: SameComponent
-    integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous           :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer          :: VirialProfile(:)
+    real(RK), pointer, contiguous          :: VirialProfile(:)
 #endif
 
   end type TPotDipoleCharge
@@ -295,9 +295,9 @@ module ms2_potential
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RFConstant
     logical                    :: SameComponent
-    integer, pointer           :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous           :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer          :: VirialProfile(:)
+    real(RK), pointer, contiguous          :: VirialProfile(:)
 #endif
 
   end type TPotDipoleDipole
@@ -339,9 +339,9 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
-    integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous               :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer              :: VirialProfile(:)
+    real(RK), pointer, contiguous              :: VirialProfile(:)
 #endif
 
   end type TPotDipoleQuadrupole
@@ -382,9 +382,9 @@ module ms2_potential
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
     logical                        :: SameComponent
-    integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous               :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer              :: VirialProfile(:)
+    real(RK), pointer, contiguous              :: VirialProfile(:)
 #endif
 
   end type TPotQuadrupoleCharge
@@ -426,9 +426,9 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
-    integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous               :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer              :: VirialProfile(:)
+    real(RK), pointer, contiguous              :: VirialProfile(:)
 #endif
 
   end type TPotQuadrupoleDipole
@@ -469,9 +469,9 @@ module ms2_potential
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
     logical                        :: SameComponent
-    integer, pointer               :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous               :: NInCutoff(:), CutoffPartner(:, :)
 #if OSMOP == 2
-    real(RK), pointer              :: VirialProfile(:)
+    real(RK), pointer, contiguous              :: VirialProfile(:)
 #endif
 
   end type TPotQuadrupoleQuadrupole
@@ -917,9 +917,9 @@ contains
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared
@@ -1239,9 +1239,9 @@ loop3:  do j = j0, j1
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared
@@ -1273,14 +1273,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:) 
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:) 
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: SigmaInvEps4
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
@@ -1721,7 +1721,7 @@ loop3:  do j = j0, j1
     integer           :: RDFSchalenIndex
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXi, RYi, RZi
     integer           :: i, j, k
@@ -1772,15 +1772,15 @@ loop1:do k = 1, this%NInCutoff(i)
 
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
-    real(RK), pointer    :: EPotTest(:)
+    real(RK), pointer, contiguous    :: EPotTest(:)
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon4
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -1892,8 +1892,8 @@ loop2:  do j = 1, N2
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
     integer, intent(in)  :: np
-    real(RK), pointer    :: EPot(:)
-    real(RK), pointer    :: Virial(:)
+    real(RK), pointer, contiguous    :: EPot(:)
+    real(RK), pointer, contiguous    :: Virial(:)
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
@@ -1901,8 +1901,8 @@ loop2:  do j = 1, N2
     real(RK)          :: Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared
     real(RK)          :: BoxLengthThird
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -2100,9 +2100,9 @@ loop2:do j = 1, N
 
     ! Declare local variables
     real(RK)          :: Epsilon
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
 
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
@@ -2310,9 +2310,9 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -2525,9 +2525,9 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -2556,14 +2556,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -2895,9 +2895,9 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -2927,13 +2927,13 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
 
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
@@ -3175,15 +3175,15 @@ loop2:  do m=1,NBinsDen
 
     ! Declare arguments
     type(TPotChargeCharge) :: this
-    real(RK), pointer      :: EPotTest(:)
+    real(RK), pointer, contiguous      :: EPotTest(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -3288,16 +3288,16 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeCharge) :: this
     integer, intent(in)    :: np
-    real(RK), pointer      :: EPot(:)
-    real(RK), pointer      :: Virial(:)
+    real(RK), pointer, contiguous      :: EPot(:)
+    real(RK), pointer, contiguous      :: Virial(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -3384,8 +3384,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeCharge) :: this
     integer, intent(in)    :: np
-    real(RK), pointer      :: EPot(:)
-    real(RK), pointer      :: Virial(:)
+    real(RK), pointer, contiguous      :: EPot(:)
+    real(RK), pointer, contiguous      :: Virial(:)
     real(RK), intent(in)   :: BoxLength
     real(RK), intent(in)   :: Kappa
 
@@ -3393,8 +3393,8 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -3539,11 +3539,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: TX2(:), TY2(:), TZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -3775,11 +3775,11 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: TX2(:), TY2(:), TZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -3802,14 +3802,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -4168,16 +4168,16 @@ loop2:  do m=1,NBinsDen
 
     ! Declare arguments
     type(TPotChargeDipole) :: this
-    real(RK), pointer      :: EPotTest(:)
+    real(RK), pointer, contiguous      :: EPotTest(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -4290,17 +4290,17 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeDipole) :: this
     integer, intent(in)    :: np
-    real(RK), pointer      :: EPot(:)
-    real(RK), pointer      :: Virial(:)
+    real(RK), pointer, contiguous      :: EPot(:)
+    real(RK), pointer, contiguous      :: Virial(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -4444,11 +4444,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: TX2(:), TY2(:), TZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -4683,11 +4683,11 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: TX2(:), TY2(:), TZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -4711,14 +4711,14 @@ loop2:  do m=1,NBinsDen
  
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:), VSuy(:), VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -5079,16 +5079,16 @@ loop2:  do m=1,NBinsDen
 
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
-    real(RK), pointer          :: EPotTest(:)
+    real(RK), pointer, contiguous          :: EPotTest(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -5200,17 +5200,17 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotChargeQuadrupole) :: this
     integer, intent(in)        :: np
-    real(RK), pointer          :: EPot(:)
-    real(RK), pointer          :: Virial(:)
+    real(RK), pointer, contiguous          :: EPot(:)
+    real(RK), pointer, contiguous          :: Virial(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -5356,11 +5356,11 @@ loop1:  do k = 1, this%NInCutoff(i)
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -5589,11 +5589,11 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -5623,14 +5623,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -5967,16 +5967,16 @@ loop2:  do m=1,NBinsDen
 
     ! Declare arguments
     type(TPotDipoleCharge) :: this
-    real(RK), pointer      :: EPotTest(:)
+    real(RK), pointer, contiguous      :: EPotTest(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -6090,17 +6090,17 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotDipoleCharge) :: this
     integer, intent(in)    :: np
-    real(RK), pointer      :: EPot(:)
-    real(RK), pointer      :: Virial(:)
+    real(RK), pointer, contiguous      :: EPot(:)
+    real(RK), pointer, contiguous      :: Virial(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -6250,11 +6250,11 @@ loop1:  do k = 1, this%NInCutoff(i)
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RFConstant2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
 
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
@@ -6669,11 +6669,11 @@ loop3:  do j = j0, j1
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RFConstant2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -6713,14 +6713,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -7230,7 +7230,7 @@ loop3:  do j = j0, j1
 
     ! Declare arguments
     type(TPotDipoleDipole) :: this
-    real(RK), pointer      :: EPotTest(:)
+    real(RK), pointer, contiguous      :: EPotTest(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
@@ -7238,9 +7238,9 @@ loop3:  do j = j0, j1
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
     real(RK)          :: RFConstant2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -7444,8 +7444,8 @@ loop2:  do j = 1, j1
     ! Declare arguments
     type(TPotDipoleDipole) :: this
     integer, intent(in)    :: np
-    real(RK), pointer      :: EPot(:)
-    real(RK), pointer      :: Virial(:)
+    real(RK), pointer, contiguous      :: EPot(:)
+    real(RK), pointer, contiguous      :: Virial(:)
     real(RK), intent(in)   :: BoxLength
 
     ! Declare local variables
@@ -7453,9 +7453,9 @@ loop2:  do j = 1, j1
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
     real(RK)          :: RFConstant2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -7679,11 +7679,11 @@ loop2:do j = 1, j1
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -8095,11 +8095,11 @@ loop3:  do j = j0, j1
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -8139,14 +8139,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -8666,16 +8666,16 @@ loop3:  do j = j0, j1
 
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
-    real(RK), pointer          :: EPotTest(:)
+    real(RK), pointer, contiguous          :: EPotTest(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -8878,17 +8878,17 @@ loop2:  do j = 1, j1
     ! Declare arguments
     type(TPotDipoleQuadrupole) :: this
     integer, intent(in)        :: np
-    real(RK), pointer          :: EPot(:)
-    real(RK), pointer          :: Virial(:)
+    real(RK), pointer, contiguous          :: EPot(:)
+    real(RK), pointer, contiguous          :: Virial(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -9130,11 +9130,11 @@ loop2:do j = 1, j1
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -9371,11 +9371,11 @@ loop2:  do m=1,NBinsDen
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon1, Epsilon2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: PXi, PYi, PZi
@@ -9407,14 +9407,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -9769,16 +9769,16 @@ loop2:  do m=1,NBinsDen
 
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
-    real(RK), pointer          :: EPotTest(:)
+    real(RK), pointer, contiguous          :: EPotTest(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -9892,17 +9892,17 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare arguments
     type(TPotQuadrupoleCharge) :: this
     integer, intent(in)        :: np
-    real(RK), pointer          :: EPot(:)
-    real(RK), pointer          :: Virial(:)
+    real(RK), pointer, contiguous          :: EPot(:)
+    real(RK), pointer, contiguous          :: Virial(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon, Epsilon2
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -10055,11 +10055,11 @@ loop1:  do k = 1, this%NInCutoff(i)
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -10470,11 +10470,11 @@ loop3:  do j = j0, j1
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -10514,14 +10514,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -11044,16 +11044,16 @@ loop3:  do j = j0, j1
 
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
-    real(RK), pointer          :: EPotTest(:)
+    real(RK), pointer, contiguous          :: EPotTest(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -11257,17 +11257,17 @@ loop2:  do j = 1, j1
     ! Declare arguments
     type(TPotQuadrupoleDipole) :: this
     integer, intent(in)        :: np
-    real(RK), pointer          :: EPot(:)
-    real(RK), pointer          :: Virial(:)
+    real(RK), pointer, contiguous          :: EPot(:)
+    real(RK), pointer, contiguous          :: Virial(:)
     real(RK), intent(in)       :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -11514,11 +11514,11 @@ loop2:do j = 1, j1
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -11962,11 +11962,11 @@ loop3:  do j = j0, j1
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: FXi, FYi, FZi
@@ -12007,14 +12007,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: VSx(:), VSy(:), VSz(:)
-    real(RK), pointer :: VSux(:),VSuy(:),VSuz(:)
-    real(RK), pointer :: VBx(:), VBy(:), VBz(:)
-    real(RK), pointer :: Cx(:) , Cy(:) , Cz(:)
-    real(RK), pointer :: tux(:) , tuy(:) , tuz(:)
-    real(RK), pointer :: tlx(:) , tly(:) , tlz(:)
-    real(RK), pointer :: tdx(:) , tdy(:) , tdz(:)
-    real(RK), pointer :: q1(:), q2(:), q3(:), q4(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+    real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -12564,16 +12564,16 @@ loop3:  do j = j0, j1
 
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
-    real(RK), pointer              :: EPotTest(:)
+    real(RK), pointer, contiguous              :: EPotTest(:)
     real(RK), intent(in)           :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -12801,17 +12801,17 @@ loop2:  do j = 1, j1
     ! Declare arguments
     type(TPotQuadrupoleQuadrupole) :: this
     integer, intent(in)            :: np
-    real(RK), pointer              :: EPot(:)
-    real(RK), pointer              :: Virial(:)
+    real(RK), pointer, contiguous              :: EPot(:)
+    real(RK), pointer, contiguous              :: Virial(:)
     real(RK), intent(in)           :: BoxLength
 
     ! Declare local variables
     real(RK)          :: Epsilon
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi

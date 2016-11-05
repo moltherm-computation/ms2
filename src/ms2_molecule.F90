@@ -54,19 +54,19 @@ module ms2_molecule
 
     ! 12-6 Lennard-Jones sites
     integer :: NLJ126
-    type(TSiteLJ126), pointer :: SiteLJ126(:)
+    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
-    type(TSiteCharge), pointer :: SiteCharge(:)
+    type(TSiteCharge), pointer, contiguous :: SiteCharge(:)
 
     ! Dipole sites
     integer :: NDipole
-    type(TSiteDipole), pointer :: SiteDipole(:)
+    type(TSiteDipole), pointer, contiguous :: SiteDipole(:)
 
     ! Quadrupole sites
     integer :: NQuadrupole
-    type(TSiteQuadrupole), pointer :: SiteQuadrupole(:)
+    type(TSiteQuadrupole), pointer, contiguous :: SiteQuadrupole(:)
 
     ! File name for potential model
     character(FileNameLength) :: PotModFileName

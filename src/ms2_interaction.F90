@@ -42,50 +42,50 @@ module ms2_interaction
   type TInteraction
 
     ! Site-site potentials
-    type(TPotLJ126LJ126), pointer           :: PotLJ126LJ126(:, :)
-    type(TPotChargeCharge), pointer         :: PotChargeCharge(:, :)
-    type(TPotChargeDipole), pointer         :: PotChargeDipole(:, :)
-    type(TPotChargeQuadrupole), pointer     :: PotChargeQuadrupole(:, :)
-    type(TPotDipoleCharge), pointer         :: PotDipoleCharge(:, :)
-    type(TPotDipoleDipole), pointer         :: PotDipoleDipole(:, :)
-    type(TPotDipoleQuadrupole), pointer     :: PotDipoleQuadrupole(:, :)
-    type(TPotQuadrupoleCharge), pointer     :: PotQuadrupoleCharge(:, :)
-    type(TPotQuadrupoleDipole), pointer     :: PotQuadrupoleDipole(:, :)
-    type(TPotQuadrupoleQuadrupole), pointer :: PotQuadrupoleQuadrupole(:, :)
+    type(TPotLJ126LJ126), pointer, contiguous           :: PotLJ126LJ126(:, :)
+    type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
+    type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
+    type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
+    type(TPotDipoleCharge), pointer, contiguous         :: PotDipoleCharge(:, :)
+    type(TPotDipoleDipole), pointer, contiguous         :: PotDipoleDipole(:, :)
+    type(TPotDipoleQuadrupole), pointer, contiguous     :: PotDipoleQuadrupole(:, :)
+    type(TPotQuadrupoleCharge), pointer, contiguous     :: PotQuadrupoleCharge(:, :)
+    type(TPotQuadrupoleDipole), pointer, contiguous     :: PotQuadrupoleDipole(:, :)
+    type(TPotQuadrupoleQuadrupole), pointer, contiguous :: PotQuadrupoleQuadrupole(:, :)
 
     ! Potential energy
-    real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :)
+    real(RK), pointer, contiguous :: EPot(:, :), EPot1(:), EPotNew(:, :)
 
     ! Mayer f-function for second virial coefficient
-    real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
-    real(RK), pointer :: MayerFFunction1(:), IntFFunction1(:)
-    real(RK), pointer :: MayerFFunction2(:), IntFFunction2(:)
+    real(RK), pointer, contiguous :: MayerFFunction(:), IntFFunction(:)
+    real(RK), pointer, contiguous :: MayerFFunction1(:), IntFFunction1(:)
+    real(RK), pointer, contiguous :: MayerFFunction2(:), IntFFunction2(:)
 
     ! Virial
-    real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
+    real(RK), pointer, contiguous :: Virial(:, :), Virial1(:), VirialNew(:, :)
     logical           :: OptPressure
 
-    real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :)
+    real(RK), pointer, contiguous :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :)
 
     ! Arrays for center of mass cutoff
-    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
 
     ! Total dipole moments of molecules for reaction field
-    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
-    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
 
     ! Torques from reaction field
-    real(RK), pointer :: tRFX1(:), tRFY1(:), tRFZ1(:)
-    real(RK), pointer :: tRFX2(:), tRFY2(:), tRFZ2(:)
+    real(RK), pointer, contiguous :: tRFX1(:), tRFY1(:), tRFZ1(:)
+    real(RK), pointer, contiguous :: tRFX2(:), tRFY2(:), tRFZ2(:)
 
     ! Center of mass positions of test particles
-    real(RK), pointer :: PX1Test(:), PY1Test(:), PZ1Test(:)
+    real(RK), pointer, contiguous :: PX1Test(:), PY1Test(:), PZ1Test(:)
 
     ! Total dipole moments of test particles for reaction field
-    real(RK), pointer :: MueX1Test(:), MueY1Test(:), MueZ1Test(:)
+    real(RK), pointer, contiguous :: MueX1Test(:), MueY1Test(:), MueZ1Test(:)
 
     ! Maximum number of particles per component
     integer :: NPartMax
@@ -129,10 +129,10 @@ module ms2_interaction
     real(RK) :: lad1,lad2
 
 #ifdef ABL
-    real(RK),pointer :: AblS(:)
-    real(RK),pointer :: AblE(:)
-    real(RK),pointer :: AblPS(:,:)
-    real(RK),pointer :: AblPE(:,:)
+    real(RK),pointer, contiguous :: AblS(:)
+    real(RK),pointer, contiguous :: AblE(:)
+    real(RK),pointer, contiguous :: AblPS(:,:)
+    real(RK),pointer, contiguous :: AblPE(:,:)
 #endif
 
   end type TInteraction
@@ -903,9 +903,9 @@ contains
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
-    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
@@ -1079,9 +1079,9 @@ contains
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
-    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
-    real(RK), pointer :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
+    real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer, contiguous :: TX1(:), TY1(:), TZ1(:), TX2(:), TY2(:), TZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
@@ -1242,12 +1242,12 @@ contains
 
     ! Declare arguments
     type(TInteraction)   :: this
-    real(RK), pointer    :: EPotTest(:)
+    real(RK), pointer, contiguous    :: EPotTest(:)
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:), MueY1(:), MueZ1(:)
-    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
+    real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: EPotLocal
     integer           :: i, j, k
@@ -1353,9 +1353,9 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer :: EPot(:)
-    real(RK), pointer :: Virial(:)
-    real(RK), pointer :: d2EpotdV2(:)
+    real(RK), pointer, contiguous :: EPot(:)
+    real(RK), pointer, contiguous :: Virial(:)
+    real(RK), pointer, contiguous :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
@@ -1364,9 +1364,9 @@ contains
     real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -1383,7 +1383,7 @@ contains
     real(RK)          :: CosAux, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp, RFConst2
-    real(RK), pointer :: MueX2(:), MueY2(:), MueZ2(:)
+    real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, Rij, approx, Faktor, q
@@ -2987,7 +2987,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
@@ -3197,7 +3197,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: np
 
     ! Declare local variables
-    real(RK), pointer :: PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
@@ -3253,7 +3253,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
@@ -3312,7 +3312,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff

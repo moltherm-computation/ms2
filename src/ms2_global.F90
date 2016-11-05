@@ -1103,10 +1103,10 @@ contains
     integer                                    :: mpiversion, mpisubversion
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
-    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
     integer                                    :: hostrank = MPI_PROC_NULL
     integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer                            :: ioranks(:)
+    integer,pointer, contiguous                            :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP

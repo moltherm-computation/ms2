@@ -55,113 +55,113 @@ module ms2_component
 #endif
 
     ! Positions and orientations of test particles
-    real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
+    real(RK), pointer, contiguous :: P0Test(:, :), Q0Test(:, :)
 
     ! Centers of mass positions and their derivatives
-    real(RK), pointer :: P0(:, :)
-    real(RK), pointer :: P0Save(:, :)
-    real(RK), pointer :: P0old(:, :)
-    real(RK), pointer :: P1(:, :)
-    real(RK), pointer :: P2(:, :)
-    real(RK), pointer :: P3(:, :)
-    real(RK), pointer :: P4(:, :)
-    real(RK), pointer :: P5(:, :)
+    real(RK), pointer, contiguous :: P0(:, :)
+    real(RK), pointer, contiguous :: P0Save(:, :)
+    real(RK), pointer, contiguous :: P0old(:, :)
+    real(RK), pointer, contiguous :: P1(:, :)
+    real(RK), pointer, contiguous :: P2(:, :)
+    real(RK), pointer, contiguous :: P3(:, :)
+    real(RK), pointer, contiguous :: P4(:, :)
+    real(RK), pointer, contiguous :: P5(:, :)
 
     ! Quaternion parameters and their derivatives
-    real(RK), pointer :: Q0(:, :)
-    real(RK), pointer :: Q0Save(:, :)
-    real(RK), pointer :: Q0tmp(:, :)
-    real(RK), pointer :: Q1(:, :)
-    real(RK), pointer :: Q2(:, :)
-    real(RK), pointer :: Q3(:, :)
-    real(RK), pointer :: Q4(:, :)
+    real(RK), pointer, contiguous :: Q0(:, :)
+    real(RK), pointer, contiguous :: Q0Save(:, :)
+    real(RK), pointer, contiguous :: Q0tmp(:, :)
+    real(RK), pointer, contiguous :: Q1(:, :)
+    real(RK), pointer, contiguous :: Q2(:, :)
+    real(RK), pointer, contiguous :: Q3(:, :)
+    real(RK), pointer, contiguous :: Q4(:, :)
 
     ! Angular velocities and their derivatives
-    real(RK), pointer :: W0(:, :)
-    real(RK), pointer :: W1(:, :)
-    real(RK), pointer :: W2(:, :)
-    real(RK), pointer :: W3(:, :)
-    real(RK), pointer :: W4(:, :)
+    real(RK), pointer, contiguous :: W0(:, :)
+    real(RK), pointer, contiguous :: W1(:, :)
+    real(RK), pointer, contiguous :: W2(:, :)
+    real(RK), pointer, contiguous :: W3(:, :)
+    real(RK), pointer, contiguous :: W4(:, :)
 
     ! Displacement
-    real(RK), pointer :: Disp(:, :)
+    real(RK), pointer, contiguous :: Disp(:, :)
 
     ! Total forces
-    real(RK), pointer :: F(:, :)
+    real(RK), pointer, contiguous :: F(:, :)
 #if MPI_VER > 0
-    real(RK), pointer :: FAll(:, :)
+    real(RK), pointer, contiguous :: FAll(:, :)
 #endif
 
     ! Total torques
-    real(RK), pointer :: T(:, :)
+    real(RK), pointer, contiguous :: T(:, :)
 #if MPI_VER > 0
-    real(RK), pointer :: TAll(:, :)
+    real(RK), pointer, contiguous :: TAll(:, :)
 #endif
 
 #if OSMOP > 0
     ! Force for osmotic pressure
-    real(RK), pointer :: FOsmoticPressure(:)
+    real(RK), pointer, contiguous :: FOsmoticPressure(:)
 
     ! Density profile
-    integer, pointer  :: DensityProfileN(:)
+    integer, pointer, contiguous  :: DensityProfileN(:)
 #if OSMOP == 2
-    real(RK), pointer :: ChemPotProfile(:)
+    real(RK), pointer, contiguous :: ChemPotProfile(:)
 #endif
 #endif
 
     ! NPart additional
 #if MPI_VER > 0
-    logical, pointer :: NAdd(:)
+    logical, pointer, contiguous :: NAdd(:)
 #endif
 
 #if  TRANS == 1
 !TRANSPORT_start
-    real(RK), pointer :: KinETran(:,:)
+    real(RK), pointer, contiguous :: KinETran(:,:)
     real(RK) :: KinETranTotal(3)
     real(RK) :: PartialMolarEnthalpy
 
-    real(RK), pointer :: FS(:,:)
-    real(RK), pointer :: FB(:,:)
-    real(RK), pointer :: FTC(:,:)
-    real(RK), pointer :: FRC(:,:)
+    real(RK), pointer, contiguous :: FS(:,:)
+    real(RK), pointer, contiguous :: FB(:,:)
+    real(RK), pointer, contiguous :: FTC(:,:)
+    real(RK), pointer, contiguous :: FRC(:,:)
 
-    real(RK), pointer :: FTC1(:,:)
-    real(RK), pointer :: FTC2(:,:)
-    real(RK), pointer :: FTC3(:,:)
+    real(RK), pointer, contiguous :: FTC1(:,:)
+    real(RK), pointer, contiguous :: FTC2(:,:)
+    real(RK), pointer, contiguous :: FTC3(:,:)
 
-    real(RK), pointer :: FRC1(:,:)
-    real(RK), pointer :: FRC2(:,:)
-    real(RK), pointer :: FRC3(:,:)
+    real(RK), pointer, contiguous :: FRC1(:,:)
+    real(RK), pointer, contiguous :: FRC2(:,:)
+    real(RK), pointer, contiguous :: FRC3(:,:)
 #if MPI_VER > 0
-    real(RK), pointer :: FSAll(:,:)
-    real(RK), pointer :: FBAll(:,:)
-    real(RK), pointer :: FRCAll(:,:)
+    real(RK), pointer, contiguous :: FSAll(:,:)
+    real(RK), pointer, contiguous :: FBAll(:,:)
+    real(RK), pointer, contiguous :: FRCAll(:,:)
 
 ! Components of the FTC Tensor(3)
-    real(RK), pointer :: FTC1All(:,:)
-    real(RK), pointer :: FTC2All(:,:)
-    real(RK), pointer :: FTC3All(:,:)
+    real(RK), pointer, contiguous :: FTC1All(:,:)
+    real(RK), pointer, contiguous :: FTC2All(:,:)
+    real(RK), pointer, contiguous :: FTC3All(:,:)
 
 ! Components of the FRC Tensor(3)
-    real(RK), pointer :: FRC1All(:,:)
-    real(RK), pointer :: FRC2All(:,:)
-    real(RK), pointer :: FRC3All(:,:)
+    real(RK), pointer, contiguous :: FRC1All(:,:)
+    real(RK), pointer, contiguous :: FRC2All(:,:)
+    real(RK), pointer, contiguous :: FRC3All(:,:)
 #endif
 
 #endif
 
     ! Total dipole moment of molecule for reaction field
-    real(RK), pointer :: MueX(:), MueY(:), MueZ(:)
+    real(RK), pointer, contiguous :: MueX(:), MueY(:), MueZ(:)
 
     ! Torques from reaction field, space fixed
-    real(RK), pointer :: tRFX(:), tRFY(:), tRFZ(:)
+    real(RK), pointer, contiguous :: tRFX(:), tRFY(:), tRFZ(:)
 
     ! Total dipole moment of test particles for reaction field
-    real(RK), pointer :: MueXTest(:), MueYTest(:), MueZTest(:)
+    real(RK), pointer, contiguous :: MueXTest(:), MueYTest(:), MueZTest(:)
 
     ! Gear corrector local arrays
-    real(RK), pointer :: Corr0(:, :)
-    real(RK), pointer :: Corr1(:, :)
+    real(RK), pointer, contiguous :: Corr0(:, :)
+    real(RK), pointer, contiguous :: Corr1(:, :)
 
     ! Length of simulation box
     real(RK), pointer :: BoxLength
@@ -219,21 +219,21 @@ module ms2_component
 
     ! Fluctuating components and weighting factors
     integer           :: NFluctState, NFluctMax
-    integer, pointer  :: NState(:), NStateWF(:), NFluctComp(:)
-    real(RK), pointer :: WF(:)
+    integer, pointer, contiguous  :: NState(:), NStateWF(:), NFluctComp(:)
+    real(RK), pointer, contiguous :: WF(:)
     real(RK)          :: ProbW0, ProbW1, ProbW0V, ProbW1Rho
 !DEBUG
-    integer, pointer  :: NFluctUpAttempts(:), NFluctUpSuccesses(:)
-    integer, pointer  :: NFluctDownAttempts(:), NFluctDownSuccesses(:)
+    integer, pointer, contiguous  :: NFluctUpAttempts(:), NFluctUpSuccesses(:)
+    integer, pointer, contiguous  :: NFluctDownAttempts(:), NFluctDownSuccesses(:)
 !     integer, pointer  :: NStateBF(:)
 !     real(RK), pointer :: BFSumState(:)
 !DEBUG
 
     ! Variables for Thermodynamic Integration
     integer           :: NBins, LambdaExponent
-    integer, pointer  :: BinsVisit(:)
+    integer, pointer, contiguous  :: BinsVisit(:)
     real(RK)          :: Lambda, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
-    real(RK), pointer :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
+    real(RK), pointer, contiguous :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
 
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
@@ -255,9 +255,9 @@ module ms2_component
     type(TAccumulator) :: SumChemPotThermoIntWidom
     type(TAccumulator) :: SumChemPotThermoIntWidomV
 #if OSMOP > 0
-    type(TAccumulator),pointer :: SumDenProfile(:)
+    type(TAccumulator),pointer, contiguous :: SumDenProfile(:)
 #if OSMOP == 2
-    type(TAccumulator),pointer :: SumChemPotProfile(:)
+    type(TAccumulator),pointer, contiguous :: SumChemPotProfile(:)
 #endif
 #endif
 
@@ -3658,7 +3658,7 @@ loop1:do i = 1, this%NPart
     real(RK)          :: MassInv
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
-    real(RK), pointer :: pF(:, :), pT(:, :)
+    real(RK), pointer, contiguous :: pF(:, :), pT(:, :)
     integer           :: np, nra
     integer           :: i, j
 
@@ -3869,7 +3869,7 @@ loop1:do i = 1, this%NPart
     real(RK)          :: dLogVolumeThird
 
     ! Declare local variables
-    real(RK), pointer :: pF(:, :), pT(:, :)
+    real(RK), pointer, contiguous :: pF(:, :), pT(:, :)
     real(RK)          :: BoxLengthInv, MassInv
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
@@ -4538,8 +4538,8 @@ subroutine TComponent_ForceTransport( this )
     type(TComponent)  :: this
 #if TRANS==1
     integer           :: i, j, k, nra
-    real(RK), pointer :: pFTC1(:,:), pFTC2(:,:), pFTC3(:,:)
-    real(RK), pointer :: pFRC1(:,:), pFRC2(:,:), pFRC3(:,:)
+    real(RK), pointer, contiguous :: pFTC1(:,:), pFTC2(:,:), pFTC3(:,:)
+    real(RK), pointer, contiguous :: pFRC1(:,:), pFRC2(:,:), pFRC3(:,:)
     real(RK)          :: BoxLength_dt
     real(RK)          :: BoxLength_dt2
 

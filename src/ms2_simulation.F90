@@ -53,7 +53,7 @@ module ms2_simulation
     integer :: mpiEnsembleGroups
 
     ! Ensembles
-    type(TEnsemble), pointer :: Ensemble(:)
+    type(TEnsemble), pointer, contiguous :: Ensemble(:)
 
     ! I/O unit for result file
     integer :: iounit_result

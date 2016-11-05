@@ -113,7 +113,7 @@ module ms2_ensemble
     logical :: OptPressure
 
     ! Positions and orientations of test particles
-    real(RK), pointer :: P0Test(:, :), Q0Test(:, :)
+    real(RK), pointer, contiguous :: P0Test(:, :), Q0Test(:, :)
 
     ! Number of components in ensemble
     integer :: NComponents, NRealComponents, NGradInsComp
@@ -122,10 +122,10 @@ module ms2_ensemble
     integer :: NLJ126Max, NChargeMax, NDipoleMax, NQuadrupoleMax
 
     ! Components
-    type(TComponent), pointer :: Component(:)
+    type(TComponent), pointer, contiguous :: Component(:)
 
     ! Interactions
-    type(TInteraction), pointer :: Interaction(:, :)
+    type(TInteraction), pointer, contiguous :: Interaction(:, :)
 
     ! Initial values of temperature, pressure, density, hamiltonian and enthalpy
     real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian, RefEnthalpy
@@ -144,8 +144,8 @@ module ms2_ensemble
 #if OSMOP > 0
     real(RK) :: OsmoticPressure
 #if OSMOP == 2
-    real(RK), pointer :: VirialProfile(:)
-    real(RK), pointer :: PressureProfile(:)
+    real(RK), pointer, contiguous :: VirialProfile(:)
+    real(RK), pointer, contiguous :: PressureProfile(:)
 #endif
 #endif
 
@@ -153,7 +153,7 @@ module ms2_ensemble
     real(RK) :: Virial
 
     ! Scale coefficients for LJ126 epsilon and sigma
-    real(RK), pointer :: ScaleEpsilon(:, :), ScaleSigma(:, :)
+    real(RK), pointer, contiguous :: ScaleEpsilon(:, :), ScaleSigma(:, :)
 
     ! Cutoff radii
     real(RK) :: RCutoffLJ126LJ126
@@ -163,8 +163,8 @@ module ms2_ensemble
 
     !RDF Hilfsvariable
     real(RK) :: RDFdr
-    real(RK), pointer :: RDFVSchale(:)
-    real(RK), pointer :: RDFValue(:)
+    real(RK), pointer, contiguous :: RDFVSchale(:)
+    real(RK), pointer, contiguous :: RDFValue(:)
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -198,7 +198,7 @@ module ms2_ensemble
     real(RK) :: d2EpotdV2
 
     ! Potential energy of test particles
-    real(RK), pointer :: EPotTest(:)
+    real(RK), pointer, contiguous :: EPotTest(:)
 
     ! Long-range corrections
     real(RK) :: EPotCorrLJ, VirialCorrLJ, d2EpotdV2CorrLJ
@@ -219,7 +219,7 @@ module ms2_ensemble
 #if OSMOP > 0
     type(TAccumulator) :: SumOsmoticPressure
 #if OSMOP == 2
-    type(TAccumulator),pointer :: SumPressureProfile(:)
+    type(TAccumulator),pointer, contiguous :: SumPressureProfile(:)
 #endif
 #endif
     type(TAccumulator) :: SumNPart
@@ -283,11 +283,11 @@ module ms2_ensemble
 
     ! BiasedPartners
     integer            :: NGradIns
-    integer,pointer    :: BiasedPartners(:)
+    integer,pointer, contiguous    :: BiasedPartners(:)
 
     ! Ewald Parameters
-    real(RK),pointer :: Ewald_Prefac(:)
-    real(RK),pointer :: Ewald_Vec(:,:)
+    real(RK),pointer, contiguous :: Ewald_Prefac(:)
+    real(RK),pointer, contiguous :: Ewald_Vec(:,:)
     integer          :: NVecMax, NSQMAX, NMAX
     integer          :: BoxenAnzahlMax
     real(RK)         :: Kappa, KappaL
@@ -295,10 +295,10 @@ module ms2_ensemble
     real(RK)         :: UIntra
     real(RK)         :: UFourier, EVirial
     integer,pointer ::  NBox0,NBox1,NBox2
-    real(RK),pointer :: U_fourierLocal(:)
-    real(RK),pointer :: SSin(:),SCos(:)
-    real(RK),pointer :: rold(:,:)
-    real(RK),pointer :: Vec2(:)
+    real(RK),pointer, contiguous :: U_fourierLocal(:)
+    real(RK),pointer, contiguous :: SSin(:),SCos(:)
+    real(RK),pointer, contiguous :: rold(:,:)
+    real(RK),pointer, contiguous :: Vec2(:)
 
 #ifdef SPME
     ! SPME parameters
@@ -306,12 +306,12 @@ module ms2_ensemble
     integer         :: gridx
     integer         :: gridy
     integer         :: gridz
-    real(RK),pointer::   qgrida(:,:), qgrida_old(:,:), qgridb(:,:)
+    real(RK),pointer, contiguous::   qgrida(:,:), qgrida_old(:,:), qgridb(:,:)
     integer*8       :: qgrid_forward, qgrid_backward
-    real(RK),pointer:: bbtot(:)
-    real(RK),pointer:: bsp_arr(:), bsp_modx(:), bsp_mody(:), bsp_modz(:)
+    real(RK),pointer, contiguous:: bbtot(:)
+    real(RK),pointer, contiguous:: bsp_arr(:), bsp_modx(:), bsp_mody(:), bsp_modz(:)
     real(RK)        :: EVirialIntra
-    real(RK),pointer:: EPotPME(:), VirialPME(:), mm2(:)
+    real(RK),pointer, contiguous:: EPotPME(:), VirialPME(:), mm2(:)
 #endif
 
     ! Extended ReactionField Method
@@ -322,8 +322,8 @@ module ms2_ensemble
     integer         :: ResidComp1, ResidSite1
     integer         :: ResidComp2, ResidSite2
     integer         :: ResidCem
-    integer,pointer :: CompPair(:,:), CompPair_Old(:,:)
-    integer,pointer :: ResidTimesStart(:), ResidTimesStart_Old(:), ResidPairsCem(:,:)
+    integer,pointer, contiguous :: CompPair(:,:), CompPair_Old(:,:)
+    integer,pointer, contiguous :: ResidTimesStart(:), ResidTimesStart_Old(:), ResidPairsCem(:,:)
     integer         :: ResidPeriod
     integer         :: ResidBreak
     real(RK)        :: ResidLength
@@ -341,28 +341,28 @@ module ms2_ensemble
     real(RK) :: TimeStepCorr
     integer  :: NCorr,Mmess
     integer  :: NSpanCF,Nviewcf
-    real(RK), pointer :: cf_db(:), cf_soret(:)
-    real(RK), pointer :: average_cf_db(:), average_cf_soret(:)
-    real(RK), pointer :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
-    real(RK), pointer :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
-    real(RK), pointer :: lamda(:, :)
-    real(RK), pointer :: average_lamda(:, :)
-    real(RK), pointer :: sinte_i(:, :), sinte_lamda(:,:)
-    real(RK), pointer :: average_sinte_i(:, :), average_sinte_lamda(:,:)
-    real(RK), pointer :: sinte_db(:), sinte_soret(:)
-    real(RK), pointer :: average_sinte_soret(:), average_sinte_db(:)
-    real(RK), pointer :: sinte_vs(:), sinte_vb(:)
-    real(RK), pointer :: average_sinte_vs(:), average_sinte_vb(:)
-    real(RK), pointer :: sinte_c(:), sinte_ec(:)
-    real(RK), pointer :: average_sinte_c(:), average_sinte_ec(:)
-    real(RK), pointer :: a(:, :), A_SpanCF(:,:)
-    real(RK), pointer :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
-    real(RK),pointer  :: vsp(:, :), vbk(:, :), vbp(:, :)
-    real(RK), pointer :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
+    real(RK), pointer, contiguous :: cf_db(:), cf_soret(:)
+    real(RK), pointer, contiguous :: average_cf_db(:), average_cf_soret(:)
+    real(RK), pointer, contiguous :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
+    real(RK), pointer, contiguous :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
+    real(RK), pointer, contiguous :: lamda(:, :)
+    real(RK), pointer, contiguous :: average_lamda(:, :)
+    real(RK), pointer, contiguous :: sinte_i(:, :), sinte_lamda(:,:)
+    real(RK), pointer, contiguous :: average_sinte_i(:, :), average_sinte_lamda(:,:)
+    real(RK), pointer, contiguous :: sinte_db(:), sinte_soret(:)
+    real(RK), pointer, contiguous :: average_sinte_soret(:), average_sinte_db(:)
+    real(RK), pointer, contiguous :: sinte_vs(:), sinte_vb(:)
+    real(RK), pointer, contiguous :: average_sinte_vs(:), average_sinte_vb(:)
+    real(RK), pointer, contiguous :: sinte_c(:), sinte_ec(:)
+    real(RK), pointer, contiguous :: average_sinte_c(:), average_sinte_ec(:)
+    real(RK), pointer, contiguous :: a(:, :), A_SpanCF(:,:)
+    real(RK), pointer, contiguous :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
+    real(RK),pointer, contiguous  :: vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK), pointer, contiguous :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
-    real(RK),pointer :: selfd_i(:)
-    real(RK),pointer :: Onsager(:,:)
+    real(RK),pointer, contiguous :: selfd_i(:)
+    real(RK),pointer, contiguous :: Onsager(:,:)
     real(RK)         :: visco_s
     real(RK)         :: visco_b
     real(RK)         :: conduct
@@ -371,8 +371,8 @@ module ms2_ensemble
 
     ! 4.) Transport properties
 
-    type(TAccumulator),pointer :: Sumself_i(:)
-    type(TAccumulator),pointer :: SumOnsager(:,:)
+    type(TAccumulator),pointer, contiguous :: Sumself_i(:)
+    type(TAccumulator),pointer, contiguous :: SumOnsager(:,:)
     type(TAccumulator)         :: SumVisco_s
     type(TAccumulator)         :: SumVisco_b
     type(TAccumulator)         :: SumSoret
@@ -383,34 +383,34 @@ module ms2_ensemble
 
 #if CONSTR > 0
    integer         :: NCons
-   integer,pointer :: Cons1Comp(:)
-   integer,pointer :: Cons2Comp(:)
-   integer,pointer :: Cons1(:)
-   integer,pointer :: Cons2(:)
-   real(RK),pointer:: ConsR(:)
-   real(RK),pointer:: FCons(:)
-   real(RK),pointer:: UCons(:)
+   integer,pointer, contiguous :: Cons1Comp(:)
+   integer,pointer, contiguous :: Cons2Comp(:)
+   integer,pointer, contiguous :: Cons1(:)
+   integer,pointer, contiguous :: Cons2(:)
+   real(RK),pointer, contiguous:: ConsR(:)
+   real(RK),pointer, contiguous:: FCons(:)
+   real(RK),pointer, contiguous:: UCons(:)
    logical         :: consup
 #endif
 
 #ifdef ABL
-   real(RK),pointer:: AblPS(:,:)
-   real(RK),pointer:: AblPE(:,:)
-   real(RK),pointer:: AblRhoS(:,:)
-   real(RK),pointer:: AblRhoE(:,:)
+   real(RK),pointer, contiguous:: AblPS(:,:)
+   real(RK),pointer, contiguous:: AblPE(:,:)
+   real(RK),pointer, contiguous:: AblRhoS(:,:)
+   real(RK),pointer, contiguous:: AblRhoE(:,:)
 #endif
 
 #if HBOND > 0
    integer          :: NHBondCrit
-   integer,pointer  :: AccComp(:), AccAccSite(:), AccDonSite(:)
-   integer,pointer  :: DonComp(:), DonAccSite(:), DonDonSite(:)
-   real(RK),pointer :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
-   integer,pointer  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
-   type(TAccumulator),pointer :: SumHBond0(:)
-   type(TAccumulator),pointer :: SumHBond1(:,:)
-   type(TAccumulator),pointer :: SumHBond2(:,:,:)
-   type(TAccumulator),pointer :: SumHBond3(:,:,:,:)
-   type(TAccumulator),pointer :: SumHBondN(:)
+   integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
+   integer,pointer, contiguous  :: DonComp(:), DonAccSite(:), DonDonSite(:)
+   real(RK),pointer, contiguous :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
+   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
+   type(TAccumulator),pointer, contiguous :: SumHBond0(:)
+   type(TAccumulator),pointer, contiguous :: SumHBond1(:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBond2(:,:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBond3(:,:,:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
 
   end type TEnsemble
@@ -2116,7 +2116,7 @@ contains
     integer :: i, j, nfluct, ncomp
     integer :: stat
     real(RK):: q
-    type(TComponent), pointer :: reallocate(:)
+    type(TComponent), pointer, contiguous :: reallocate(:)
 
     ! Create components
     ncomp = this%NComponents
@@ -15711,9 +15711,9 @@ endif
    integer :: i,j,l,m
    integer :: molec
 
-   real(RK),pointer:: RX(:),RY(:),RZ(:)
-   real(RK),pointer:: PX(:),PY(:),PZ(:)
-   real(RK),pointer:: FX(:),FY(:),FZ(:)
+   real(RK),pointer, contiguous:: RX(:),RY(:),RZ(:)
+   real(RK),pointer, contiguous:: PX(:),PY(:),PZ(:)
+   real(RK),pointer, contiguous:: FX(:),FY(:),FZ(:)
    real(RK),pointer:: q(:)
    real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
    real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
@@ -15738,9 +15738,9 @@ endif
    integer, pointer:: i0,i1
 #endif
 #if  TRANS == 1
-   real(RK),pointer:: VSx(:),VSy(:),VSz(:)
-   real(RK),pointer:: VSux(:),VSuy(:),VSuz(:)
-   real(RK),pointer:: VBx(:),VBy(:),VBz(:)
+   real(RK),pointer, contiguous:: VSx(:),VSy(:),VSz(:)
+   real(RK),pointer, contiguous:: VSux(:),VSuy(:),VSuz(:)
+   real(RK),pointer, contiguous:: VBx(:),VBy(:),VBz(:)
    real(RK)        :: multiplicator
    real(RK)        :: Contrib
   
@@ -16033,8 +16033,8 @@ endif
    integer,pointer :: i1
 #endif
 
-   real(RK),pointer:: RX(:),RY(:),RZ(:)
-   real(RK),pointer:: PX(:),PY(:),PZ(:)
+   real(RK),pointer, contiguous:: RX(:),RY(:),RZ(:)
+   real(RK),pointer, contiguous:: PX(:),PY(:),PZ(:)
    real(RK),pointer:: q(:)
    real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
    real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
@@ -16723,7 +16723,7 @@ endif
 
 #if MPI_VER > 0
    integer:: i0,i1
-   real(RK),pointer :: qgrid(:,:)
+   real(RK),pointer, contiguous :: qgrid(:,:)
    real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult
    real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult2
 #endif
@@ -17323,7 +17323,7 @@ contains
     implicit none
 
     real(RK),dimension(this%gridx) :: bmod
-    real(RK),pointer :: barr(:)
+    real(RK),pointer, contiguous :: barr(:)
     integer  :: grid
 
     real(RK) :: twopi
@@ -17509,7 +17509,7 @@ contains
    real(RK):: struc
    real(RK):: energ
 !Pointers
-   real(RK),pointer::lad(:,:)
+   real(RK),pointer, contiguous::lad(:,:)
    real(RK):: qr,qi
 !Positioning
    integer :: order
@@ -18195,7 +18195,7 @@ contains
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
     real(RK) :: Mass
-    real(RK), pointer :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
+    real(RK), pointer, contiguous :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
     logical  :: Conductivity, EConductivity, Bulkviscosity
 
