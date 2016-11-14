@@ -339,13 +339,17 @@ for particle $i$. The bracket $<>$ in this equation denotes $NVT$ or $NpT$ ensem
 \section{Quaternary Maxwell-Stefan diffusion coefficients}
 \label{sec:quat}
 
-$ms2$ employs the Green-Kubo formalism based on the net velocity auto-correlation function to obtain $n\times n$ phenomenological coefficients~\cite{kri05b}  
+$ms2$ employs the Green-Kubo formalism based on the net velocity correlation function to obtain $n\times n$ phenomenological coefficients~\cite{kri05b}  
 
 \begin{equation}\label{MS_lamda}
 L_{ij}= \frac{1}{3N}\int_0 ^{\infty} \Big\langle\sum_{{\it k}=1}^{{\it N_i}} \mathbf{v}_{\it i,k}(0)\cdot\sum_{{\it l}=1}^{{\it N_{j}}} \mathbf{v}_{\it j,l}(t)\Big\rangle \, d t,% \di,
 \end{equation}
 
-\noindent in a mixture of $n$ components. Here, $N$ is the total number of molecules, $N_{i}$ is the number of molecules of species $i$ and $\mathbf{v}_{i,k}(t)$ denotes the center of mass velocity vector of the $k$-th molecule of species $i$ at time $t$. Note that Eq.~\eqref{MS_lamda} corresponds to a reference frame in which the mass-averaged mixture velocity is zero~\cite{kri05b}.
+\noindent in a mixture of $n$ components. Here, $N$ is the total number of molecules, $N_{i}$ is the number of molecules of species $i$ and $\mathbf{v}_{i,k}(t)$ denotes the center of mass velocity vector of the $k$-th molecule of species $i$ at time $t$. Note that the phenomenological coefficients given in Eq.~\eqref{MS_lamda} are constrained by ~\cite{kri05b}
+\begin{equation}
+ \sum_i M_i L_{ij} = 0\,,
+\end{equation}
+where $M_i$ is the molar mass of component $i$.
 
 Starting from the phenomenological coefficients $L_{ij}$, the elements of a $(n-1) \times (n-1)$ matrix $\bm{\Delta}$ can be defined as~\cite{kri05b}
 
