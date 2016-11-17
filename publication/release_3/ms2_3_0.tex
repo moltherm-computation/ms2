@@ -54,6 +54,9 @@
 \usepackage[english]{babel}
 \geometry{bindingoffset=0mm, left=20mm, right=20mm, top=30mm, bottom=35mm}
 
+
+\usepackage{csquotes}
+
 \newcommand{\qq}[1]{{\lq}#1{\rq}}
 
 %% The amsthm package provides extended theorem environments
@@ -481,6 +484,22 @@ Following the Ewald summation approach, for any configuration of molecules in th
 The second term in Eq.~\eqref{MolSim_Ewald_Allgemein} determines the contributions that were subtracted due to the introduction of the fictive charge density function. This term cannot be determined explicitly by the evaluation of pairwise interactions, since the coulombic potential at $r_{lm}=L/2$, i.e. the largest distance accessible in molecular simulation, still exhibits significant contributions to the potential energy of the system. In Ewald summation, these contributions are determined in Fourier space from the negative charge distribution function $-\rho^{\mathrm{screen}}(\bm{r})$. Since $\rho^{\mathrm{screen}}(\bm{r})$ depends on molecular motions and hence molecular positions, a Fourier transformation is performed for every configurational change in the simulation volume. 
 
 The SPME is widely considered as an improved Ewald summation method. In this approach, the concept of splitting the long range charge-charge interactions is fully employed. The difference between both methods lies only in the calculation of the long range contributions. In the SPME approach, the electrostatic field of ions in the simulation volume is described by a spline function with a given functional form. For this given spline equation, the Fourier transformation is known and has, hence, not to be determined in each simulation step. This accelerates the calculation of the long range contribution and reduces simulation time and effort. The accuracy of the SPME results is equivalent to the Ewald approach.
+
+
+\section{Vectorization}
+\label{sec:vectorization} 
+
+Essential for the vectorization of loops is how accessed data is distributed in memory. Deducing this information automatically from the code can be very difficult for the compiler, if there is indirection. In $ms2$, many arrays are accessed via array pointers and the order of the underlying data is therefore obfuscated. The most relevant information is wether or not data is contiguous in memory. To provide this information to the compiler directly, array pointers can be given the attribute "contiguous". The FORTRAN standard specifies:
+
+\begin{displayquote}
+ The contiguous attribute specifies that [...] an array pointer can only be pointer associated with a contiguous target.
+ \end{displayquote}
+ 
+This means that  the array elements of a contiguous array pointer are not separated by any other data, potentially enabling a higher degree of vectorization.
+In version 3.0 of $ms2$, array pointers associated with contiguous targets have been given the contiguous attribute. The sequential performance gains -- and the resulting parallel performance gains -- achieved through this optimization depend on the specific simulation scenario, but are on average very significant. For MC and MD simulations, a sweet of simulations was run to evaluate the performance gains. The sweet covered the NPT and NVT ensembles, thermodynamic integration, Widom, different thermostats, different pure substances and mixtures. A total of 71 simulations were performed. 
+For MC simulations, the observed average reduction of runtime was more than 7\% and for MD simulations   more than 20\%.
+
+ 
 
 
 \section{Parallel ensemble calculations}
