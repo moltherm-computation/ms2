@@ -16,14 +16,14 @@ y          =   0.000000
 z          =  -0.3653
 sigma      =   3.106
 epsilon    =  43.18
-mass       =  15,999
+mass       =  15.999
 # O
 x          =  -1.279
 y          =   0.000000
 z          =  -0.3653
 sigma      =   3.106
 epsilon    =  43.18
-mass       =  15,999
+mass       =  15.999
 
 SiteType   =   Dipole
 NSites     =   1

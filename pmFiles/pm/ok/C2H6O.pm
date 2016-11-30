@@ -28,7 +28,7 @@ z          =  +6.571264e-17
 
 sigma      =   3.149559
 epsilon    =  85.053449
-mass       =  15,999
+mass       =  15.999
 
 SiteType   =   CHARGE
 NSites     =   3

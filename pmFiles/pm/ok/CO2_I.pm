@@ -19,7 +19,7 @@ z          =  -1.2869
 
 sigma      =   2.9755
 epsilon    =  100.493
-mass       =  15,999
+mass       =  15.999
 
 # O
 x          =   0.0
@@ -28,7 +28,7 @@ z          =   1.2869
 
 sigma      =   2.9755
 epsilon    =  100.493
-mass       =  15,999
+mass       =  15.999
 
 
 SiteType   =   Q
