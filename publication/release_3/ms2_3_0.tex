@@ -505,16 +505,16 @@ The present version adds a new level of parallelization. Different ensembles are
 To enable this feature, the \textit{mpiEnsembleGroups} option was introduced in the input file.
 The default (if not set or set to 0) is not to split the PE and to use a single MPI group.
 A value of 1 will enable the new feature and automatically set the number of MPI groups to a minimum of the number of
-ensembles and the number of PE. Otherwise, this option will set the number of MPI groups according to the specified value.
+ensembles and the number of PEs. Otherwise, this option will set the number of MPI groups according to the specified value.
 Another change applies to the restart capability of $ms2$. A checkpoint now consists of multiple restart (*.rst) files
-and can be restarted with the -r (or --restart) option of $ms2$.
+and can be restarted with the -r (or -{}-restart) option of $ms2$.
 %usage: <ms2cmd> -r <parfile> [<outputprefix>]
 
 \begin{figure}[htb]
 	\centering
 	\def\svgwidth{\textwidth}
 	\includegraphics[width=0.5\textwidth]{ms2_MPIranks.eps}
-	\caption{$ms2$ MPI ranks.}
+	\caption{$ms2$ MPI ranks for 6 PEs with 2 MPI groups.}
 	\label{fig:MPIranks}
 \end{figure}
 
@@ -524,15 +524,16 @@ The ``coloring'', i.e. the assignment of the PE to the MPI communicators, is don
 This is advantageous compared to e.g.\ a round robin fashion %(calculated using the process rank and modulo operator)
 %CommunicatorID=mod(ProcID,NCommunicators)
 if the processes have to be pinned to NUMA domains.
-Another communicator contains the root processes (subcommunicator rank 0 processes) of all groups
+Another communicator contains the root processes (Communicator\_R with subcommunicators rank 0 processes) of all groups
 to ease communication on a higher level among the groups
 (and there still is MPI\_COMM\_WORLD).
 
-Even if the computation of different ensembles is embarrassingly parallel, an interaction between the different communicators remains, e.g. when 
+Even if the computation of different ensembles is embarrassingly parallel,
+an interaction between the different communicators remains, e.g. when 
 the program receives a signal to write a checkpoint and terminate.
 This signal may be received from an arbitrary single PE
-(or non-isochronic from multiple PE).
-In the preceding releases of $ms$2, where ensembles were calculated sequentially
+(or non-isochronic from multiple PEs).
+In the preceding releases of $ms2$, where ensembles were calculated sequentially
 with a single global communicator, a MPI\_Allreduce call took care
 to spread this information among the processes after each MD time step and
 is still acceptable within the subcommunicators.
@@ -541,7 +542,9 @@ for each iteration in the computation would also implicitly synchronize
 all ensemble computations at this point.
 This is not a satisfactory solution, since computationally less intensive ensembles
 will be forced to wait for the slower ones.
-The present implementation uses non-blocking communication between the subcommunicator roots to avoid this problem.
+The present implementation uses non-blocking communication between the subcommunicator roots
+(using the Communicator\_R) to avoid this problem.
+% (Alternatively MPI intercommunicators could be used.)
 
 \begin{figure}[htb]
 	\centering
@@ -551,7 +554,7 @@ The present implementation uses non-blocking communication between the subcommun
 	\label{fig:Terminatestatus}
 \end{figure}
 
-Before the MD tme step iterations start, the root process will execute a MPI\_Irecv,
+Before the MD time step iterations start, the root process will execute a MPI\_Irecv,
 %to receive a terminate message within the iteration loop,
 whereas all other processes start a MPI\_Ibcast (see Figure \ref{fig:Terminatestatus}).
 %to get the get the information from the root
