@@ -3,7 +3,7 @@ NSiteTypes =   3
 SiteType   =   LJ126
 NSites     =   4
 
-# CH, Offset 0.4*rCH
+# CH
 x          =   0.0
 y          =   0.0
 z          =   0.8179

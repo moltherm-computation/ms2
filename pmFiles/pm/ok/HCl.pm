@@ -9,7 +9,7 @@ y          =  	 0.000000
 z          =  	 -0.0378
 sigma      =      3.52 
 epsilon    =    179.00
-mass       =     36,461
+mass       =     36.461
 
 SiteType   = Charge
 NSites     = 2
