@@ -1,73 +1,163 @@
+
 { % Tabellendefinitionen gelten nur in diesem Dokument
-
-% Longtable auf Spaltebreite ausdehnen
-\setlength\LTleft{0pt}
-\setlength\LTright{0pt}
-% Definition neuer Spaltentypen
-\newcolumntype{Z}{>{$}p{0.15\linewidth}<{$}} % Symbol (mit Matheumgebung)
-\newcolumntype{A}{>{\bfseries} p{0.15\linewidth}} % Abkürzung (fett)
-\newcolumntype{B}{l @{\extracolsep{\fill}}} % Beschreibung
-
-
-\chapter{Symbolverzeichnis}
-
-\section*{Formelzeichen}
-
-\begin{longtable}{Z B r}
-\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
-\addlinespace
-\endhead
-% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
-%************************************************************************
-a               & Länge                      & \SI{}{m}         \\
-b               & Breite                     & \SI{}{m}         \\
-c               & spezifische Wärmekapazität & \SI{}{kJ/(kg.K)} \\
-\ell            & charakteritische Länge     & \SI{}{m}         \\
-Re              & Reynoldszahl               &                  \\ 
-w               & Strömungsgeschwindigkeit   & \SI{}{m/s}       \\ 
-%************************************************************************
-\end{longtable}
-
-
-\section*{Griechische Symbole}
-
-\begin{longtable}{Z B r}
-\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
-\addlinespace
-\endhead
-% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
-%************************************************************************
-\lambda         & Wärmeleitfähigkeit         & \SI{}{W/(m~K)}   \\ 
-\nu             & kinematische viskosität    & \SI{}{m^2/s}     \\
-\varrho         & Dichte                     & \SI{}{kg/m^3}     \\
-%************************************************************************
-\end{longtable}
-
-
-\section*{Indizes}
-
-\begin{longtable}{Z l} 
-\textbf{Symbol} & \textbf{Bedeutung} \\
-\addlinespace
-\endhead
-% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
-%************************************************************************
-\mathrm{L}      & Luft               \\
-\mathrm{p}      & isobar             \\
-%************************************************************************
-\end{longtable}
-
-
-
-\chapter{Abkürzungsverzeichnis}
-
-\begin{longtable}{@{} A l @{}}
-%************************************************************************
-eps & Encapsulated PostScript  \\
-pdf & Portable Document Format \\
-svg & Scalable Vector Format   \\
-%************************************************************************
-\end{longtable}
+	
+	% Longtable auf Spaltebreite ausdehnen
+	\setlength\LTleft{0pt}
+	\setlength\LTright{0pt}
+	% Definition neuer Spaltentypen
+	\newcolumntype{Z}{>{$}p{0.15\linewidth}<{$}} % Symbol (mit Matheumgebung)
+	\newcolumntype{A}{>{\bfseries} p{0.15\linewidth}} % Abkürzung (fett)
+	\newcolumntype{B}{l @{\extracolsep{\fill}}} % Beschreibung
+	
+	
+	\chapter{List of Symbols and Abbreviations}
+	
+	\section*{Symbols}
+	
+	\begin{longtable}{Z B r}
+		\textbf{symbol} & \textbf{meaning}         &  \\
+		\addlinespace
+		\endhead
+		% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+		
+		A    & Helmholtz free energy &  \\
+		a      &  probability that determines that the newly generated state is accepted or not &  \\
+		B     & intermolecular potential by \cite{gray} &  \\
+		c_p   & molar isobaric heat capacity &  \\
+		c_v   & molar isochoric heat capacity &  \\
+		D     & self-diffusion coefficient  &  \\
+		D     & Maxwell Stefan diffusion coefficient &  \\
+		E     & total hamiltonian of the system &  \\
+		E     & internal energy &  \\
+		F     & molecular degrees of freedom in the system &  \\
+		G     & Gibbs free energy &  \\
+		g     & radial distribution function &  \\
+		H     & enthalpy &  \\
+		H  & Henry’s law constant &  \\
+		I     & matrix of angular momentum of inertia &  \\
+		j_e & electric current flux &  \\
+		J_p   &  stress tensor &  \\
+		K     & total kinetic energy of the system &  \\
+		k_B   & Boltzmann’s constant &  \\
+		l     & length &  \\
+		L & phenomenological coefficients which are related to the transport diffusion in a mixture &  \\
+		M     & molar mass &  \\
+		m     & mass  &  \\
+		n  & solvation number around molecule i &  \\
+		N_A   & Avogadro constant &  \\
+		N  & number of  molecules  &  \\
+		p     & pressure &  \\
+		P  & probability of occurrence of the configurations &  \\
+		q     & point charges magnitude &  \\
+		Q     & quadrupole moment &  \\
+		$\textit{R}$     & molar or universal gas constant &  \\
+		r      & distance &  \\
+		r_c   & cut-off radius Interactions &  \\
+		S     & entropy &  \\
+		T     & temperature &  \\
+		t     & time  &  \\
+		U     &  total potential energy of the system &  \\
+		u     & intermolecular potential energy  &  \\
+		V     & volume &  \\
+		v     & velocity  &  \\
+		w     & velocity of a sound wave traveling through an elastic medium &  \\
+		$w $    & angular velocity &  \\
+		x     & composition of the liquid &  \\
+		
+		
+		%************************************************************************
+	\end{longtable}
+	
+	
+	\section*{Greek Symbols}
+	
+	\begin{longtable}{Z B r}
+		\textbf{symbol} & \textbf{meaning}         &  \\
+		\addlinespace
+		\endhead
+		% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+		%************************************************************************
+		\alpha & trial probability of occurrence of a certain based on the current configuration &  \\
+		\alpha_p & volume expansivity &  \\
+		\beta & inverse temperature &  \\
+		\beta_T & isothermal compressibility &  \\
+		\varepsilon & Lennard-Jones energy parameter &  \\
+		\epsilon_0 & permittivity of the vacuum &  \\
+		\eta  & Lennard-Jones size-mixing parameter &  \\
+		\eta  & shear viscosity &  \\
+		\eta_v & bulk viscosity &  \\
+		\Gamma & torque  &  \\
+		\lambda & thermal conductivity &  \\
+		\mu   & dipole moment  &  \\
+		\phi  & azimuthal angle, to the positive x-axis  &  \\
+		\varphi & angle &  \\
+		\pi  &  transition probability between two states&  \\
+		\rho &  number density  &  \\
+		\sigma   &  Lennard-Jones size  parameter &  \\
+		\theta & polar angle, to the positive z-axis &  \\
+		\theta & unit step function &  \\
+		\Theta & Heaviside function &  \\
+		\tilde{\mu} & chemical potential  &  \\
+		\xi   &  Lennard-Jones energy-mixing parameter &  \\
+		
+		%************************************************************************
+	\end{longtable}
+	
+	
+	\section*{Subscript/Superscript}
+	
+	\begin{longtable}{Z l} 
+		\textbf{symbol} & \textbf{meaning} \\
+		\addlinespace
+		\endhead
+		% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+		%************************************************************************
+		*     & physical quantities in their reduced form \\
+		\inf  & infinite dilution \\
+		D    & Dipole\\
+		id    & ideal gas contribution \\
+		L     & local\\
+		LJ    & Lennard-Jones\\
+		q     & Point charge\\
+		Q    & Quadrupole \\
+		ref   & reference \\
+		res   & residual part \\
+		x     &  vector components \\
+		y     &  vector components \\
+		z     &  vector components \\
+		
+		
+		
+		
+		%************************************************************************
+	\end{longtable}
+	
+	
+	
+	\section*{List of Abbreviations}
+	
+	\begin{longtable}{ A l}
+		%************************************************************************
+		
+		H-bonding & Hydrogen bonding \\
+		NpH   & Isoenthalpic–isobaric ensemble \\
+		LJ sites & Lennard-Jones sites \\
+		LRC   & long range correction \\
+		MC    & Monte-Carlo \\
+		MD    & Molecular dynamics \\
+		NpT   & isobaric-isothermal ensemble  \\
+		NVE   & micro-canonical ensemble  \\
+		NVT   & canonical ensemble \\
+		pseudo-$\mu V T$ & grand equilibrium method \\
+		RDF   & radial distribution function \\
+		RF & reaction field   \\
+		VLE   & Vapour-liquid equilibrium \\
+		
+		
+		
+		
+		%************************************************************************
+	\end{longtable}
 }
 
 
@@ -81,3 +171,113 @@ svg & Scalable Vector Format   \\
 %%% TeX-master: "master"
 %%% coding: utf-8
 %%% End: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%{ % Tabellendefinitionen gelten nur in diesem Dokument
+%
+%% Longtable auf Spaltebreite ausdehnen
+%\setlength\LTleft{0pt}
+%\setlength\LTright{0pt}
+%% Definition neuer Spaltentypen
+%\newcolumntype{Z}{>{$}p{0.15\linewidth}<{$}} % Symbol (mit Matheumgebung)
+%\newcolumntype{A}{>{\bfseries} p{0.15\linewidth}} % Abkürzung (fett)
+%\newcolumntype{B}{l @{\extracolsep{\fill}}} % Beschreibung
+%
+%
+%\chapter{Symbolverzeichnis}
+%
+%\section*{Formelzeichen}
+%
+%\begin{longtable}{Z B r}
+%\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
+%\addlinespace
+%\endhead
+%% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%%************************************************************************
+%a               & Länge                      & \SI{}{m}         \\
+%b               & Breite                     & \SI{}{m}         \\
+%c               & spezifische Wärmekapazität & \SI{}{kJ/(kg.K)} \\
+%\ell            & charakteritische Länge     & \SI{}{m}         \\
+%Re              & Reynoldszahl               &                  \\ 
+%w               & Strömungsgeschwindigkeit   & \SI{}{m/s}       \\ 
+%%************************************************************************
+%\end{longtable}
+%
+%
+%\section*{Griechische Symbole}
+%
+%\begin{longtable}{Z B r}
+%\textbf{Symbol} & \textbf{Bedeutung}         & \textbf{Einheit} \\
+%\addlinespace
+%\endhead
+%% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%%************************************************************************
+%\lambda         & Wärmeleitfähigkeit         & \SI{}{W/(m~K)}   \\ 
+%\nu             & kinematische viskosität    & \SI{}{m^2/s}     \\
+%\varrho         & Dichte                     & \SI{}{kg/m^3}     \\
+%%************************************************************************
+%\end{longtable}
+%
+%
+%\section*{Indizes}
+%
+%\begin{longtable}{Z l} 
+%\textbf{Symbol} & \textbf{Bedeutung} \\
+%\addlinespace
+%\endhead
+%% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
+%%************************************************************************
+%\mathrm{L}      & Luft               \\
+%\mathrm{p}      & isobar             \\
+%%************************************************************************
+%\end{longtable}
+%
+%
+%
+%\chapter{Abkürzungsverzeichnis}
+%
+%\begin{longtable}{@{} A l @{}}
+%%************************************************************************
+%eps & Encapsulated PostScript  \\
+%pdf & Portable Document Format \\
+%svg & Scalable Vector Format   \\
+%%************************************************************************
+%\end{longtable}
+%}
+%
+%
+%\setcounter{table}{0}
+%% setzt den Tabellenzähler zurück, damit das Symbolverzeichnis
+%% nicht mitgezählt wird
+%
+%
+%%%% Local Variables: 
+%%%% mode: latex
+%%%% TeX-master: "master"
+%%%% coding: utf-8
+%%%% End: 

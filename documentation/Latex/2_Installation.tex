@@ -31,12 +31,13 @@ The \textit{ms}2 distribution consists of four major parts: the source code, jav
 
 % kann das makefile.mult aus dem trunk raus?! Oder sollte es hier zusätzlich erwähnt werden?!
 
-The compilation can be simplified using the provided ``Makefile'' found in the ``src'' directory (e.g.\ with \href{http://www.gnu.org/software/make/}{GNU make}). This file should be adopted to the local system requirements. Alternatively (or additionally) variables can be set through the make command line options as compiler flags. An overview of all options can be found in table \ref{tab:makefiledef} on page \pageref{tab:makefiledef}.\\
+
+The compilation can be simplified using the provided ``Makefile'' found in the ``src'' directory (e.g.\ with \href{http://www.gnu.org/software/make/}{GNU make}) and the compiler-related \texttt{*.mk}-files in the \texttt{makefiles}-subdirectory. The ``Makefile'' and the ``\texttt{*.mk}''-file should be adopted to the local system requirements as described below. Alternatively (or additionally) variables can be set through the make command line options as compiler flags. An overview of all options can be found in table \ref{tab:makefiledef} on page \pageref{tab:makefiledef}. \\
 When compiling \textit{ms}2, a variety of settings can be specified to fit the users needs and optimise the performance. The following strings are recognized in the makefile: \texttt{TARGET}, \texttt{RELEASE}, \texttt{MPI}, \texttt{OMP}, \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP} and \texttt{PROG}. If you have set these variable according your needs, just type \texttt{make} in the command line from the ``src'' directory.
 
 %There's also an obsolete ``Makefile.mult'' containing compiler options that have been used in the past (for systems, which might be already out of service today).
 
-\textbf{Settings in makefile}\\
+\textbf{Settings in \texttt{Makefile}}\\
 First of all a compiler has to be chosen. Through the definition of \texttt{COMPILER}-variable, the corresponding file with suffix ``.mk'' in the ``makefiles'' subdirectory will be included during the execution of \texttt{make}. These files contain specific settings for compilers and/or systems that \textit{ms}2 is suitable for.\\
 \begin{itemize}
 	\item Version:\\
@@ -49,26 +50,29 @@ First of all a compiler has to be chosen. Through the definition of \texttt{COMP
 	\item Parallelisation protocol:\\
 	\texttt{MPI~=~1} or \texttt{0} or \\
 	\texttt{OMP~=~1} or \texttt{0}\\
-	They have to be set according the used parallel compiler.
+	They have to be set according to the used parallel compiler.
 \end{itemize}
-The make command produces one executable file of \textit{ms}2 when run. To optimise the speed of the program for each application, the user should set the Feature Compiler Flags \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP} and \texttt{SP} according the Simulation dependencies -- especially if the user wants to run large numbers of Simulation with one executable. We suggest only to set a \texttt{Compiler Variable = 1} if you want to use this certain features, otherwise they will slow down your simulation speed.
+The make command produces one executable file of \textit{ms}2 when run. To optimise the speed of the program for each application, the user should set the Feature Compiler Flags \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP} and \texttt{SP} according the Simulation dependencies -- especially if the user wants to run large numbers of Simulation with one executable. We suggest only to set a \texttt{Compiler Variable = 1} if you want to use this certain feature, otherwise they will slow down your simulation speed.
 \begin{itemize}
 	\item Transport Properties:\\
 	\texttt{TRANS~=~1} or \texttt{0}\\
-	To produce an executable that can run simulations with the calculation of transport properties (like diffusion and conductivity) set \texttt{TRANS~=~1} -- see \ref{sec:Transport}. A Value of \texttt{0} means, that the routines for the calculation of transport properties are not to be compiled. The default value is \texttt{0}.
+	To produce an executable that can run simulations with the calculation of transport properties (like diffusion and conductivity) set \texttt{TRANS~=~1}%-- see \ref{sec:Transport}
+	. A Value of \texttt{0} means, that the routines for the calculation of transport properties are not to be compiled. The default value is \texttt{0}.
 	\item Hydrogen-Bonding evaluation:\\
 	\texttt{HBOND~=~1} or \texttt{0}\\
-	If you want to have a look at the H-Bonds in your system, turn this on (set variable \texttt{1}). See chapter \ref{sec:H-Bonding} for more information. It enables you to specify a geometric criterion for H-bonds in your input files. \textit{ms}2 plots then the pursuant H-bonding statistics. A Value of \texttt{0} means, that the routines for the calculation of H-bonds are not to be compiled. The default value is \texttt{0}.
+	If you want to have a look at the H-Bonds in your system, turn this on (set variable \texttt{1}). % See chapter \ref{sec:H-Bonding} for more information. 
+	It enables you to specify a geometric criterion for H-bonds in your input files. \textit{ms}2 plots then the pursuant H-bonding statistics. A Value of \texttt{0} means, that the routines for the calculation of H-bonds are not to be compiled. The default value is \texttt{0}.
 	\item Osmotic Pressure:\\
 	\texttt{OSMPO~=~2}, \texttt{1} or \texttt{0}\\
-	This Flag enables your executable to employ the osmotic pressure method described in section \ref{sec:OsmoticPressure}. The value \texttt{2} enables the pressure profile along the density profile and osmotic pressure results. %was macht der Value 1?!?!?
+	This Flag enables your executable to employ the osmotic pressure method% described in section \ref{sec:OsmoticPressure}
+	. The value \texttt{2} enables the pressure profile along the density profile and osmotic pressure results. %was macht der Value 1?!?!?
 	 A Value of \texttt{0} means, that the routines for use of the osmotic pressure method are not to be compiled. The default value is \texttt{0}.
 	 \item Single precision:\\
 	 \texttt{SP~=~1} or \texttt{0}\\
 	 To speed up your simulation you can choose single precision (set value \texttt{1}) instead of the default double precision  (set value \texttt{0}). Tread with care though. 
 	 \item Name of the executable file:\\
 	 \texttt{PROG~=~String}\\
-	 The user can set the value to adapt the name of the executable file that is produced by the make command. According to the values of \texttt{Trans}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP}, \texttt{COMPILER} and \texttt{TARGET} the executable will have an addition in its name respectively.
+	 The user can set the value to adapt the name of the executable file that is produced by the make command. According to the values of \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP}, \texttt{COMPILER} and \texttt{TARGET} the executable will have an addition in its name respectively.
 \end{itemize}
 
 % Beispiel Tabelle machen?!?!
@@ -124,9 +128,12 @@ Variable & Description & Values & Description \\
 \label{tab:makefiledef}
 \end{table}
 % was ist mit PGI in Tabelle?!
- 
- 
- 
+
+\pagebreak
+
+\textbf{Compiler-related \texttt{*.mk}-files}\\
+For each by \textit{ms}2 supported compiler, the subdirectory \texttt{makefiles} in \texttt{src} contains one \texttt{*.mk}-file, e\,g. \texttt{INTEL.mk}. The first three lines define the used FORTRAN90 comilers. In rare system depending cases, the optimisation degree (the integer after the -O for the \texttt{F90FLAGS\_RELEASE} has to be decreased to 2 or 1. We suggest to use the slightly faster \texttt{mpiifort}-Compiler instead of the \texttt{mpiF90} in case you are using the \texttt{INTEL.mk}.
+
 \textbf{make command line options}
 Instead of changing the Makefile, the definitions can also be set
 directly on the commandline, like

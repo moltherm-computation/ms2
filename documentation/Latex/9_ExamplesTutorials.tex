@@ -8,14 +8,23 @@
 
 % Input und Output kurz erläutern.
 
-This part of the manual deals with example applications, where the use of the provided software will be demonstrated. The examples presented in this section were chosen such that a wide class of applications is covered. Each problem is briefly described and the appropriate input files are given. also includes some output files. 
+This part of the manual deals with example applications, where the use of the provided software is demonstrated. The examples presented in this section were chosen such that a wide class of applications is covered. Each problem is briefly described and the appropriate input files are given. also includes some output files. \\
+The input and output-results of these examples are part of the \textit{ms}2 distribution and lie in the ``examples´´-directory.
+
+Keywords listed in cahp. xx
+pm files in chap. yyy
+%in Klammer jeweils auf die Keywords verweisen?
 
 
 \section{Lennard-Jones fluid}
-\label{sec:Lennard-Jones Fluid}
+\label{sec:Example_Lennard-Jones Fluid}
+This example demonstrates the Simulation of a simple \textit{Lennard-Jones Fluid} by Molecular Dynamics (MD) and the calculation of its chemical Potential. The complete *.par file is given below. The *pm-file for that simulation is printed in \ref{sec:Potential Models in the ms2-distribution}. The MD simulation of the Lennard-Jones fluid is executed in the \textit{NVT} ensemble, where the chemical potential is calculated by the Widoms's test molecule method. In addition, the calculation of the transport properties is enabled.\\
+The lines 1 to 6 are Header and units affecting information. Lines 7 to 10 are general settings for the Simulation: Simulation type (=MD), used integrator, timestep for the solution of newtons equation of motion and the applied physical system respectively. 
+The last keywords indicates, that the user has to provide the Number of Particles, the Temperature and the Volume (=the density) of the simulation system. Lines 11 to 13 define the number of iterations to solve newtons 1st law, first 300000 timesteps for the equilibration of the system and then 1mio timesteps for the actual calculation of equilibrium substance properties. Lines 14 to 16 set the output frequencies for writing results of running averages (to *.rav and *.run), errors (to ???) and trajectories (to *.vim-files) respectively. Lines 17 defines the Algorithm for the determination of the Cutoff distance between two sites, line 18 sets the number of state points to run by this *.par-input file to one. The Evaluation of multiple state points by one input file is described in section \ref{sec:multiple Ensembles for multiple state points}-\textit{MultiEnsemble}.\\
+From line 20 to 31, the settings for the one (and in this simulation only) state point/ Ensemble are written. The Temperature and Density are the initialisation values and the temperature is to held constant by the thermostat (see XX). The molecule \texttt{lj.pm} that is called in line 33 as the only (line 27)  component is placed in the simulation domain 1372 times (line 26).\\
+For the calculation of the chemical Potential, in this simulation the \textit{Widom-Method} is applied (line 35), where the number of Testparticles is 3000 (line 36). Line 38 sets the cutoff for force-calculation and the XXX $\varepsilon$???
 
-An example for a complete *.par file is given below for a MD simulation of the Lennard-Jones fluid in the \textit{NVT} ensemble, where the chemical potential is calculated by the Widoms's test molecule method. In addition, the calculation of the transport properties is enabled.
-
+Transport???
 
 
 Parameters and options specified in the *.pm file for the Lennard-Jones fluid:\\\\
@@ -70,7 +79,7 @@ Epsilon       =       1.0E10
 
 
 \section{Vapour-Liquid Equilibrium of a \ce{O2} -- Aceton mixture}
-\label{sec:Vapour-Liquid Equilibrium of a O2 - Aceton mixture}
+\label{sec:Example_Vapour-Liquid Equilibrium of a O2 - Aceton mixture}
 
 \begin{Verbatim}[frame=single,framesep=6.5mm,label=\fbox{VLE \ce{O2} -- Aceton mixture},numbers=left,numbersep=-10pt,xrightmargin=5cm]
 #
@@ -140,14 +149,14 @@ Epsilon     = 1.0E10
 
 
 \section{calculating configurational properties}
-\label{sec:calculating configurational properties}
+\label{sec:Example_calculating configurational properties}
 
 
 
 
 
 \section{calculating transport properties}
-\label{sec:calculating transport properties}
+\label{sec:Example_calculating transport properties}
 
 
 
@@ -155,26 +164,26 @@ Epsilon     = 1.0E10
 
 
 \section{chemical potential by ThermoInt}
-\label{sec:chemical potential by ThermoInt}
+\label{sec:Example_chemical potential by ThermoInt}
 
 
 
 
 \section{\ce{NaCl}-Water Solution \& osmotic pressure}
-\label{sec:NaCl-Water Solution osmotic pressure}
+\label{sec:Example_NaCl-Water Solution osmotic pressure}
 
 
 
 
 
 \section{multi-Ensemble method}
-\label{sec:multi-Ensemble method}
+\label{sec:Example_multi-Ensemble method}
 
 
 
 
 \section{humid air ensemble}
-\label{sec:humid air ensemble}
+\label{sec:Example_humid air ensemble}
 
 
 

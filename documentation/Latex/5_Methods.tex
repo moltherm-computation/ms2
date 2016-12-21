@@ -675,6 +675,7 @@ n_{ij} = 4\pi \rho_{j} \int_0^{r_{\mathrm{min}}} r^2g_{ij}(r) \mathrm{d}r \mbox{
 \end{equation}
 where $\rho_{j}$ is the number density of component $j$ and $r_{\mathrm{min}}$ is the distance up to which the solvation number is calculated. 
 
+\pagebreak
 
 \subsubsection{Hydrogen bonding}
 \label{sec:Hydrogen bonding}
@@ -722,6 +723,8 @@ During simulation, \textit{ms}2 lists the analysis of the H-bonding in the \text
 Following the \textit{Haughney}-criterion, \textit{ms}2 calculates and itemizes the number $N_i$ of molecules with $i=0,1,2,3$ or more hydrogen bonds. In the \texttt{*.rav} file these numbers are listed according to the component combination. E.g. the \texttt{N3\_( 1, 2, 2, 3)} column lists the number of molecules which correspond to component 1 and are bonded twice with component 2 and once with component 3. As usual for the \texttt{*.rav} file, these values are running averages. 
 
 
+
+\pagebreak
 
 \subsection{Henry' s law constant}
 \label{sec:Henry' s law constant}
@@ -806,7 +809,7 @@ Accordingly, there are four parameters involved with the present approach:
 \begin{itemize}
 	\item \textit{LambdaMin} (the lower boundary of the interval $\lambda_\text{min} \leq \lambda \leq 1$, default value is 0.2 ),
   \item \textit{NBins} (the number of discrete bins in the interval $\lambda_\text{min} \leq \lambda \leq 1$, default value is 100),
-  \item \textit{LambdaStepMax} (defines the change in $\lambda$ during simulation, which is random value between zero and \pm \textit{LambdaStepMax}, default value is 0.1),
+  \item \textit{LambdaStepMax} (defines the change in $\lambda$ during simulation, which is random value between zero and $\pm$ \textit{LambdaStepMax}, default value is 0.1),
   \item \textit{LambdaExponent} (the exponent $x$ for the non-linear scaling $U_j(\lambda)=\lambda^x U_j$ $(\lambda_\text{min} \leq \lambda \leq 1)$, default value is 4.0 (it does not have to be an integer)).
 \end{itemize}
 One should keep in mind when choosing these parameters that thermodynamic integration always involves larger statistical uncertainties than the equivalent pure Widom scenario for a state point for which the latter works perfectly. In other words: the larger the contribution of the numerical integration part is compared to the Widom contribution at $\lambda_\text{min}$ is, the higher the statistical uncertainty of the calculated chemical potential gets. This means that setting $\lambda_\text{min}$ very low or the exponent $x$ very high (e.g. 12) might not be beneficial in many systems. Moreover, high exponent $x$ values for MD simulations are not advised since the scaling with $x$ at high $lambda$ values (where the absolute value of $U_j(\lambda)$ is close that of the non-scaled state) may result in new $U_j(\lambda)$ energies (thus forces) that non-negligibly interfere with the dynamics of the system when $\lambda$ is changed during the simulation. For MD simulations, a value smaller then 1.0 for $x$ is possibly a better choice for many systems.
@@ -854,6 +857,20 @@ liquid equilibrium simulations.
 % Max
 
 
+The OPAS method (osmotic pressure for the activity of the solvent) is an alternative to existing methods for determining chemical potentials and related properties in the liquid phase. The method is mainly intended for studying electrolyte solutions, but can in principle also be used for studying mixtures of molecular species. It is only briefly introduced here, for more details, the reader is referred to \cite{kohns2016}.\\
+The method is based on a direct computation of the osmotic equilibrium between a pure solvent phase and a solution phase. To this end, two planar, semipermeable membranes are introduced in the cubic \emph{ms}2 simulation box. Thereby, the box is divided into an inner compartment, which contains the solution phase, and an outer compartment, which contains the pure solvent phase. The solvent molecules can pass the membrane, but the solute molecules are kept in the inner compartment by applying a force $F=c\Delta z$, if their center of mass position penetrates one of the membranes by a length of $\Delta z$. As a result, a pressure difference, called the osmotic pressure $\Pi=p_{\rm in}-p_{\rm out}$ is present between the two phases. Assuming an incompressible solvent, it can be shown that this osmotic pressure is directly related to the solvent activity via
+\begin{equation}
+\ln(a_{\rm solv})=-\frac{\Pi}{\rho_{\rm solv}RT}.
+\label{OPASEq:LnA}
+\end{equation}
+The density of the pure liquid solvent $\rho_{\rm solv}$ at the temperature $T$ is easily available from separate molecular simulations. The osmotic pressure $\Pi$ can be sampled as the total force on the membranes per membrane area:
+\begin{equation}
+\Pi=\frac{\sum_{i}^{}|F_{i}|}{A_{\rm tot}},
+\end{equation}
+where the summation runs over all solute molecules, allowing for the calculation of the solvent activity via Eq. (\ref{OPASEq:LnA}).\\
+OPAS simulations should be carried out in two steps: First, a pseudo-$NpT$ simulation should be performed. When using the OPAS version of the \emph{ms}2 program, the barostat is modified such that the pressure is kept constant at the specified value in the outer compartment, i.e. the pure solvent phase (for details see \cite{kohns2016}). This simulation yields the 'density' of the system in osmotic equilibrium (in fact it yields the box volume $V$). In a second step, a $NVT$ simulation should be carried out at that 'density'. In this simulation, the osmotic pressure $\Pi$ is monitored.\\
+Additionally, the OPAS version of the \emph{ms}2 program computes density profiles for all components. These are required to calculate the composition of the solution phase, as it fluctuates during the simulation. However, these fluctuations are usually very small once equilibrium is attained. The OPAS version of \emph{ms}2 outputs an additional file with extension *.dcp. It contains the number density of all components versus the coordinate normal to the membrane. The number of bins for the density profile can be specified, see below.\\
+To obtain a \emph{ms}2 version for performing OPAS simulations, the flag 'OSMOP = 1' must be included when compiling the source code. To assign whether a component can permeate the membrane, the keywords 'Permeability = On' or 'Permeability = Off' must be provided in the *.par file. Additionally, the number of bins for the density profile must be assigned in the *.par file using the keyword 'NumDenBins = 120'. For OPAS simulations, it is recommended to use at least 4000 particles, mainly to obtain unperturbed density profiles.\\
 
 
 

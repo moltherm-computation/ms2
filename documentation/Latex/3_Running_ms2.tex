@@ -24,6 +24,9 @@ output files is shown in Figure~\ref{fig:File-structure}.
 \label{sec:Running ms2 on Windows or Linux}
 % Simon
 
+\textbf{Restart a Simulation with \texttt{*.rst} file}
+
+
 
 
 \section{Running \textit{ms}2 in serial or parallel mode}
@@ -34,6 +37,7 @@ output files is shown in Figure~\ref{fig:File-structure}.
 \section{Flowchart}
 \label{sec:Flowchart}
 %Simon
+
 
 
 
@@ -97,6 +101,21 @@ and \textit{InertMomZ} are read if the moments of inertia are to be specified ma
 
 % Aufteilung in Standard und Optional (rtr, vim, rdf, thi) 
 
+% Name of output files: by default the string of the input files * ending. Name can be manually ajusted.
+
+% Tatjana:
+%Restart geht jetzt mit "-r", also
+%
+%*/ms2  -r  ***.par
+%
+%Bei früheren Versionen konnte man mit dem rst file starten, geht jetzt aber glaube ich nicht mehr.
+%*/ms2   ***.rst
+%
+%Wie lange noch gerechnet werden soll, legt entweder die Schrittzahl fest, oder du kannst auch die Walltime im par file festlegen.
+
+% Simon:
+%die Abwärtskompalitibiltät scheint nicht zu funktionieren?! die rst Veriante funktioniert nicht mehr.. -> ev. als Fußnote?!
+
 \textit{ms}2 yields eight output files:
 \begin{itemize}
 	\item *.log file - stores a complete summary of all execution steps taken by \textit{ms}2.
@@ -125,6 +144,44 @@ and \textit{InertMomZ} are read if the moments of inertia are to be specified ma
 \end{itemize}
 The next section provides some output files to illustrate the structure of them.
 
+\subsection{log - file}
+\label{sec:log - file}
+
+
+
+\subsection{res - file}
+\label{sec:res - file}
+
+
+\subsection{rav - file}
+\label{sec:rav - file}
+
+
+
+\subsection{rst - file}
+\label{sec:rst - file}
+
+
+
+\subsection{vim - file}
+\label{sec:vim - file}
+
+
+
+\subsection{nrm - file}
+\label{sec:nrm - file}
+
+
+
+\subsection{rdf - file}
+\label{sec:rdf - file}
+
+
+\subsection{thi - file}
+\label{sec:thi -file}
+
+
+
 
 \section{Command line options}
 \label{sec:Command line options}
@@ -132,4 +189,4 @@ The next section provides some output files to illustrate the structure of them.
 
 % in ms2_global ab Zeile 1131
 
-
+% give name for Output Data, different from default: put string behind the *par file in the command line to run a job. 
