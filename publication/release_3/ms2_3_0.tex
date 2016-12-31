@@ -501,14 +501,28 @@ For MC simulations, the observed average reduction of runtime was more than 7\% 
 \label{sec:ParallelEnsembleCalculations}
 
 $ms2$ was already parallelized in its initial version for distributed memory architectures using MPI \cite{ms2_2.0, ms2}.
-The present version adds a new level of parallelization. Different ensembles are independent of each other, so that sampling different state points can be done concurrently. To achieve this, the processing elements (PE) were split in $c$ disjunct groups such that each group consecutively computes an ensemble that is assigned to it.
+The present version adds a new level of parallelization to the molecular dynamics part.
+Different ensembles are independent of each other, so that sampling different state points can be done concurrently.
+To achieve this, the processing elements (PEs) were split in disjunct groups and each group consecutively
+computes the ensembles assigned to it (possibly in parallel).
 To enable this feature, the \textit{mpiEnsembleGroups} option was introduced in the input file.
-The default (if not set or set to 0) is not to split the PE and to use a single MPI group.
+The default (if not set or set to 0) is not to split the PEs and to use a single MPI group.
 A value of 1 will enable the new feature and automatically set the number of MPI groups to a minimum of the number of
-ensembles and the number of PEs. Otherwise, this option will set the number of MPI groups according to the specified value.
-Another change applies to the restart capability of $ms2$. A checkpoint now consists of multiple restart (*.rst) files
-and can be restarted with the -r (or -{}-restart) option of $ms2$.
+ensembles and the number of PEs. Otherwise, this option will set the number of MPI groups according to the specified integer value.
+Another change applies to the restart capability of $ms2$. A checkpoint now consists of a restart (*.rst) file for each MPI group
+and can be restarted with the $ms2$ -r (or -{}-restart) option.
 %usage: <ms2cmd> -r <parfile> [<outputprefix>]
+To illustrate this a MD run of 3 ensembles with 24 processes will serve as an example.
+Without the \textit{mpiEnsembleGroups} option or with \textit{mpiEnsembleGroups=0}
+all 24 PEs will calculate the first ensemble in parallel, afterwards the second
+and finally the third one. Setting \textit{mpiEnsembleGroups=1} will be equivalent
+to \textit{mpiEnsembleGroups=3} for this example and groups of 8 PEs each will calculate
+an ensemble in parallel concurrently. The user might also directly specifiy the number
+of groups, but has to be aware that with e.g.\ \textit{mpiEnsembleGroups=2} one group
+will have to process two ensembles, while the other one only handles a single one.
+It is also possible to specify non-optimal settings like \textit{mpiEnsembleGroups=5},
+where some groups get two PEs, while others get three and some groups don't even get
+a single ensemble and therefore some PEs run idle with this setting.
 
 \begin{figure}[htb]
 	\centering
@@ -535,11 +549,11 @@ This signal may be received from an arbitrary single PE
 (or non-isochronic from multiple PEs).
 In the preceding releases of $ms2$, where ensembles were calculated sequentially
 with a single global communicator, a MPI\_Allreduce call took care
-to spread this information among the processes after each MD time step and
-is still acceptable within the subcommunicators.
+to spread this information among the processes after each MD time step.
+This is still acceptable within the subcommunicators.
 A collective communication of all PE beyond subcommunicator boundaries
-for each iteration in the computation would also implicitly synchronize
-all ensemble computations at this point.
+for each iteration in the computation would also implicitly (and artificially)
+synchronize all ensemble computations at this point.
 This is not a satisfactory solution, since computationally less intensive ensembles
 will be forced to wait for the slower ones.
 The present implementation uses non-blocking communication between the subcommunicator roots
@@ -555,18 +569,19 @@ The present implementation uses non-blocking communication between the subcommun
 \end{figure}
 
 Before the MD time step iterations start, the root process will execute a MPI\_Irecv,
-%to receive a terminate message within the iteration loop,
+to receive a terminate message within the iteration loop,
 whereas all other processes start a MPI\_Ibcast (see Figure \ref{fig:Terminatestatus}).
-%to get the get the information from the root
-During the iterations, any process may trigger a termination by sending a message
-to the root, which will broadcast the information to notify all other processes.
+to get the information from the root.
+During the iterations, any process(es) may trigger a termination by sending a message
+to the root, which will broadcast the information to notify all other processes then.
 If no termination occurs during the iterations, the root will send a message to itself
 and broadcast a non-termination message to all other processes to finish %satisfy
 the outstanding receive and broadcast. To take care of several processes sending
 a termination message at once, a summation reduction determines the sum of all
 respective messages for the root process to receive them all.
+% Alternatively MPI_CANCEL could be used here as well, but for some MPI implementations this doesn't work stable.
 This technique can also be used hierarchically, replacing the MPI\_Allreduce call within each subcommunicator.
-
+%Like mentioned above,
 After termination, every subcommunicator writes its own restart (*.rst) file.
 
 %% The Appendices part is started with the command \appendix;
