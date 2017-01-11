@@ -522,9 +522,10 @@ to \textit{mpiEnsembleGroups}=3 in this example and three groups of 8 PE each wi
 an ensemble in parallel concurrently. The user may also directly specifiy the number
 of groups, but has to be aware that with e.g.\ \textit{mpiEnsembleGroups}=2 one group
 will have to process two ensembles, while the other one only handles a single one.
-It is also possible to specify non-optimal settings like \textit{mpiEnsembleGroups}=5,
-\textcolor[rgb]{1,0,0}{where some groups get two PE, while others get three and some groups do not even get
-a single ensemble and therefore some PE run idle with this setting.}
+Even if settings are set explicitly, like \textit{mpiEnsembleGroups}=5, there's
+a correction to avoid having more groups than ensembles or PE, which means for
+this example due to the three ensembles that after the automatic correction also
+\textit{mpiEnsembleGroups}=min(3,24)=3 is used.
 
 \begin{figure}[htb]
 	\centering
