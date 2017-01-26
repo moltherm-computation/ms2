@@ -85,7 +85,7 @@
 %%   sort&compress   -  like sort, but also compresses numerical citations
 %%   compress - compresses without sorting
 %%
-%% \biboptions{comma,round}
+\biboptions{sort&compress}
 
 % \biboptions{}
 
@@ -151,6 +151,7 @@
 \author[hlrs]{Amer Wafai}
 \author[ltd]{Simon Stephan}
 \author[ltd]{Maximilian Kohns}
+\author[ltd]{Steffen Reiser}
 \author[ltd]{Stephan Deublein} 
 \author[ltd]{Martin Horsch}
 \author[ltd]{Hans Hasse}
@@ -211,7 +212,7 @@ scalability is up to 2000 cores)\\
 {\em Catalogue identifiers of previous versions:} AEJF\_v1\_0 and AEJF\_v2\_0\\
 
 \noindent
-{\em Supplementary material:}\\
+{\em Supplementary material:} A detailed description of the parameter setup for thermodynamic integration and hydrogen bonding is given in the supplementary material. Furthermore, an overview over all compatible (?) force-fields is supplied\\
 
 \noindent
 {\em Journal reference of previous versions:} Deublein et al., Comput. Phys. Commun. 182 (2011) 2350 and Glass et al., Comput. Phys. Commun. 185 (2014) 3302\\
@@ -223,7 +224,7 @@ scalability is up to 2000 cores)\\
 {\em Reasons for the new version:} Introduction of new features as well as enhancement of computational efficiency\\
 
 \noindent
-{\em Summary of revisions:} Two new ensembles ($NVE$ and $NpH$), new properties (Helmholtz energy derivatives, chemical potential via thermodynamic integration, Maxwell-Stefan diffusion coefficient elements of quaternary mixtures, activity coefficients via osmotic pressure), new functionalities (detection of hydrogen bonding, smooth-particle mesh Ewald summation, ability to carry out molecular dynamics runs for an arbitrary number of state points in a single program execution)\\
+{\em Summary of revisions:} Two new ensembles ($NVE$ and $NpH$), new properties (Helmholtz energy derivatives, chemical potential via thermodynamic integration, Maxwell-Stefan diffusion coefficient elements of quaternary mixtures, activity coefficients via osmotic pressure), new functionalities (detection and statistics of hydrogen bonding, smooth-particle mesh Ewald summation, ability to carry out molecular dynamics runs for an arbitrary number of state points in a single program execution)\\
 
 \noindent
 {\em Nature of problem:} Calculation of application oriented thermodynamic properties: vapor-liquid equilibria of pure fluids and multi-component mixtures, thermal, caloric and entropic data as well as transport properties\\
@@ -232,10 +233,10 @@ scalability is up to 2000 cores)\\
 {\em Solution method:} Molecular dynamics, Monte Carlo, various ensembles, Grand Equilibrium method, Green-Kubo formalism, Lustig formalism, OPAS method, smooth-particle mesh Ewald summation\\
 
 \noindent
-{\em Typical running time:} Varies (typically from a couple of hours up to days), depending on the specific scenario (system size, calculated properties, number of CPU cores used)\\
+{\em Typical running time:} Typically from a couple of hours up to days, depending on the specific scenario (system size, calculated properties, number of CPU cores used)\\
 
 \noindent
-{\em Restrictions:} Typical problems addressed by $ms2$ are solved by simulating systems containing typically 1000 to 5000 molecules that are modelled as rigid bodies\\
+{\em Restrictions:} Typical problems addressed by $ms2$ are solved by simulating systems containing 1000 to 5000 molecules that are modelled as rigid bodies\\
 
 \noindent
 {\em Documentation:} Documentation is provided with the installation package and is available at http://www.ms-2.de\\
@@ -246,17 +247,24 @@ scalability is up to 2000 cores)\\
 \section{Introduction}
 \label{sec:intro}
 
-The software $ms$2 is a molecular force field based simulation tool that allows for the calculation of thermodynamic properties of pure substances and mixtures in their homogeneous states as well as vapor-liquid equilibria. The tool was first released in 2011 \cite{ms2}, followed by a major update ($ms$2 release 2.0) in 2014 \cite{ms2_2.0}. The following sections introduce and describe the new features of the present update, i.e. release 3.0.
+Due to the continuous increase in computing power, the range of possible applications of molecular modeling and simulation has become broader over time, proceeding from qualitative basic research in soft matter physics to quantitative applications in chemical engineering. Reaching agreement with the available experimental data, and predicting properties where experimental data are rare or absent, molecular methods transform engineering data science \cite{ungerer2007molecular,palmer2015recent}. This progress is driven by massively-parallel high performance computing with scalable codes \cite{bungartz2015alexander} and by the concurrent execution of large numbers of simulations \cite{koster2016automatized} or of simulations which can be decomposed into a large number of concurrent tasks \cite{valeriani2007computing,glowacki2011boxed,meadley2012thermodynamics}.
+
+The program $ms$2 (molecular simulation 2) was designed to compute thermodynamic properties of pure fluids and mixtures by Monte Carlo (MC) and molecular dynamics (MD) simulation. Licences are available without cost for all purposes which concern academic research and teaching \cite{ms2web}. The previous two major releases of $ms$2 \cite{ms2,ms2_2.0} facilitate the simulation of vapor-liquid equilibria (VLE) by Grand Equilibrium simulation and the computation of many thermodynamic bulk properties, including linear transport coefficients, for molecular models consisting of Lennard-Jones interaction sites, point charges, and point multipoles. It has been shown that such models can reach a high accuracy for a wide variety of thermodynamic properties for many molecular fluids \cite{nieto2007anisotropic,el2011thermodynamic,huang2011vapor,ketko2011development,reiser2015density,werth2015molecular}, leading to an increasing popularity of molecular methods in the engineering sciences \cite{srivastava2011phase,lu2014adsorption,sharma2015molecular,kern2016molecular,muscatello}.
+
+Similar molecular simulation programs, which address multiple academic communities, include CHARMM \cite{brooks2009charmm}, DL\_POLY \cite{todorov2006dl_poly_3}, ESPResSo \cite{limbach2006espresso}, GIBBS \cite{lagache2001prediction}, GROMACS \cite{abraham2015gromacs}, IMD \cite{roth2000molecular}, LAMMPS \cite{plimpton1995fast}, $ls$1 mardyn \cite{niethammer2014ls1}, NAMD \cite{phillips2005scalable}, TINKER \cite{ren2003polarizable}, and Towhee \cite{martin2013mcccs}. In comparison with these codes, the aim of $ms$2 is to focus on applications of molecular modeling and simulation in fluid process engineering, both industrial and academic. Hence, a high accuracy, short response times and the suitability for coupling with equations of state \cite{koster2016automatized, thol2016equation} and rigorous model optimization approaches \cite{hulsmann2010grow, hulsmann2010assessment, stobener2014multicriteria} have been priorities in developing both the code base and the toolset which is provided jointly with it. The present work discusses the third major release of $ms$2 and its most important innovations, which are presented in detail in the following sections.
+
 
 %% main text
 \section{Microcanonical and isobaric-isoenthalpic ensembles}
 \label{sec:ensembles} 
 
-An ensemble is the set of all theoretically possible microscopic configurations on the molecular level under specific macroscopic constrains. The microcanonical ($NVE$) ensemble is the set of all configurations that fulfill the condition of having the same number of particles $N$, volume $V$ and energy $E$, whereas the isobaric-isoenthalpic ($NpH$) ensemble represents a system at constant number of particles $N$, pressure $p$ and enthalpy $H$. Molecular dynamics (MD) mimics the time evolution of the system by numerically solving Newton's equations of motion for all considered molecules. Because of the nature of this solution, the time is discredized and the method yields microscopic configurations at discrete and consecutive time steps. The Monte Carlo (MC) method is the application of statistical mechanics to describe molecular systems. With this approach, microscopic configurations are generated by random numbers that are potentially accepted such that only relevant and physically meaningful configurations are sampled \cite{fre02}. The generation and acceptance of these configurations is governed by specific probabilities that are ensemble-dependent and described in the literature for essentially every relevant ensemble. For MC simulations, the $NVE$ and $NpH$ ensembles were implemented in $ms2$ release 3.0 according to Refs. \cite{lus98, kri05}. For MD simulations, the pressure is kept constant using Andersen's barostat \cite{and80} in case of the $NpH$ ensemble. Because the solution of Newton's equations of motion is approximate, the total energy of the system $E=K+U$, which consists of a kinetic $K$ (exclusively molecular momentum dependent) and potential $U$ (exclusively molecular position dependent) energy contribution, is not rigorously conserved in a standard MD run mainly for numerical reasons. Therefore, the  translational and rotational momentum of every molecule is rescaled such that the total kinetic energy $K$ fulfils $K=E-U$, where the total energy $E$ is specified and the potential energy $U$ is calculated from the current microscopic configuration. For a $NpH$ ensemble run, the solution is analogous: Momenta are rescaled such that the current kinetic energy $K$ fulfils $K=H-U-pV$, where $H$ and $p$ are specified, $U$ and $V$ are dependent on the current microscopic configuration. This extends the ensembles available in $ms2$ to five:  $NVT$, $NVE$, $NpT$, $NpH$ and $\mu VT$, where $\mu$ is the chemical potential.\\ For verification purposes, Table~\ref{tab:ensembles} contains numerical results for methyl fluoride modeled by a quadrupolar two-center Lennard--Jones potential \cite{sto01} at $T=300$ K and $\rho=1$ mol/l. Figure~\ref{fig:ensemble} shows the running averages of the calculated properties in Table~\ref{tab:ensembles} at the same state point.
+An ensemble is the set of all theoretically possible microscopic configurations on the molecular level under specific macroscopic constrains. The microcanonical ($NVE$) ensemble is the set of all configurations that fulfill the condition of having the same number of particles $N$, volume $V$ and energy $E$, whereas the isobaric-isoenthalpic ($NpH$) ensemble represents a system at constant number of particles $N$, pressure $p$ and enthalpy $H$. Molecular dynamics (MD) mimics the time evolution of a mechanical system by numerically solving Newton's equations of motion for all considered molecules. Because of the nature of this solution, the time is discredized and the method yields microscopic configurations at discrete and consecutive time steps. The Monte Carlo (MC) method is the application of statistical mechanics to describe molecular systems. With this approach, microscopic configurations are generated by random numbers that are potentially accepted such that only relevant and physically meaningful configurations are sampled \cite{fre02}. The generation and acceptance of these configurations is governed by specific probabilities that are ensemble-dependent and described in the literature for essentially every relevant ensemble. For MC simulations, the $NVE$ and $NpH$ ensembles were implemented in $ms2$ release 3.0 according to Refs. \cite{lus98, kri05}. For MD simulations, the pressure is kept constant using Andersen's barostat \cite{and80} in case of the $NpH$ ensemble. Because the solution of Newton's equations of motion is approximate, the total energy of the system $E=K+U$, which consists of a kinetic $K$ (exclusively molecular momentum dependent) and potential $U$ (exclusively molecular position dependent) energy contribution, is not rigorously conserved in a standard MD run mainly for numerical reasons. Therefore, the  translational and rotational momentum of every molecule is rescaled such that the total kinetic energy $K$ fulfils $K=E-U$, where the total energy $E$ is specified and the potential energy $U$ is calculated from the current microscopic configuration. For a $NpH$ ensemble run, the solution is analogous: Momenta are rescaled such that the current kinetic energy $K$ fulfils $K=H-U-pV$, where $H$ and $p$ are specified, $U$ and $V$ are dependent on the current microscopic configuration. This extends the ensembles available in $ms2$ to five:  $NVT$, $NVE$, $NpT$, $NpH$ and $\mu VT$, where $\mu$ is the chemical potential. 
+
+For verification purposes, Table~\ref{tab:ensembles} contains numerical results for methyl fluoride modeled by a quadrupolar two-center Lennard--Jones potential \cite{sto01} at $T=300$ K and $\rho=1$ mol/l. Figure~\ref{fig:ensemble} shows the running averages of the calculated properties in Table~\ref{tab:ensembles} at the same state point.
 
 \begin{table}
   \centering
-  \caption{Comparison of the ensembles implemented in \textit{ms}2 for methyl fluoride (R41)~\cite{sto01} in terms of temperature $T$, density $\rho$, pressure $p$ and potential energy $u$. Numbers in parentheses denote statistical uncertainties in the last digit that were estimated with the block averaging method of Flyvbjerg and Petersen \cite{fly89}.}
+  \caption{Comparison of the ensembles implemented in \textit{ms}2 for methyl fluoride \cite{sto01} in terms of temperature $T$, density $\rho$, pressure $p$ and potential energy $u$. Numbers in parentheses denote statistical uncertainties in the last digit that were estimated with the block averaging method of Flyvbjerg and Petersen \cite{fly89}.}
     \begin{tabular}{rrllll}
     \hline
           &       & $T$ & $\rho$ & $p$ & $u$ \\
@@ -282,7 +290,7 @@ An ensemble is the set of all theoretically possible microscopic configurations 
 \centering
 \vskip 2mm
 \includegraphics[scale=0.50]{Ensemblevergleich_1.eps} 
-\caption{\footnotesize \label{fig:ensemble} Comparison of the ensembles implemented in \textit{ms}2 for methyl fluoride (R41)~\cite{sto01} in terms of running averages for temperature $T$, density $\rho$, pressure $p$ and potential energy $u$.}
+\caption{\footnotesize \label{fig:ensemble} Comparison of the ensembles implemented in \textit{ms}2 for methyl fluoride \cite{sto01} in terms of running averages for temperature $T$, density $\rho$, pressure $p$ and potential energy $u$.}
 \end{figure}
 
 \section{Helmholtz energy derivatives in the microcanonical ensemble}
@@ -293,12 +301,11 @@ The generalized calculation of the Helmholtz energy derivatives
 A^\text{r}_{nm}=(1/T)^n \rho^m \frac{\partial^{n+m}f^\text{r}(T,\rho)/(RT)}{\partial(1/T)^n \partial \rho^m},
 \label{eq:helmholtzderiv}
 \end{equation}
-with the molar residual Helmholtz energy $f^\text{r}$, the temperature $T$, the density $\rho$ and the molar gas constant $R$ was introduced in $ms$2 also for the $NVE$ ensemble up to the order $n=3$ and $m=2$. The total reduced Helmholtz energy $f/(RT)$ can be additively separated into an ideal $f^\text{o}/(RT)$ and a residual contribution $f^\text{r}/(RT)$. The ideal contribution by definition corresponds to the value of $f/(RT)$ when no intermolecular interactions are at work \cite{spa00}. $f^\text{o}/(RT)$ consists of an exclusively temperature and an exclusively density dependent part. The latter has a trivial density dependence $\ln(\rho/\rho_\text{ref})$, whereas the former is non-trivial. A formalism that allows for the calculation of the residual Helmholtz derivatives on the fly from a single simulation run per state point was published by Lustig \cite{lus11, lus12} and was already introduced for the $NVT$ ensemble in the preceding program version. $ms2$ release 3.0 now yields these derivatives also for the $NVE$ ensemble. Here, however, in contrast to $NVT$ simulations, there are two numerical results for each calculated derivative $A_{nm}$ due to the two possible entropy definitions in statistical mechanics \cite{lus12}. In any case, these two different sets of results must be identical in the thermodynamic limit ($N \longrightarrow \infty$). In practice, they already agree within their statistical uncertainty for a simulation with around a thousand molecules. For verification purposes, Table~\ref{tab:lustig} contains numerical results for methyl fluoride \cite{sto01}.\\
-A detailed description of how to convert these derivatives into common thermodynamic properties is provided in the supplementary material of release 2.0 of $ms$2 \cite{ms2_2.0} and in Ref. \cite{spa00}.
+with the molar residual Helmholtz energy $f^\text{r}$, the temperature $T$, the density $\rho$ and the molar gas constant $R$ was introduced in $ms$2 also for the $NVE$ ensemble up to the order $n=3$ and $m=2$. The total reduced Helmholtz energy $f/(RT)$ can be additively separated into an ideal $f^\text{o}/(RT)$ and a residual contribution $f^\text{r}/(RT)$. The ideal contribution by definition corresponds to the value of $f/(RT)$ when no intermolecular interactions are at work \cite{spa00}. $f^\text{o}/(RT)$ consists of an exclusively temperature and an exclusively density dependent part. The latter is the trivial term $\ln(\rho/\rho_\text{ref})$, whereas the former is non-trivial. A formalism that allows for the calculation of the residual Helmholtz derivatives on the fly from a single simulation run per state point was published by Lustig \cite{lus11, lus12} and was already introduced for the $NVT$ ensemble in the preceding program version. $ms2$ release 3.0 now yields these derivatives also for the $NVE$ ensemble. Here, however, in contrast to $NVT$ simulations, there are two numerical results for each calculated derivative $A_{nm}$ due to the two possible entropy definitions in statistical mechanics \cite{lus12}. In any case, these two different sets of results must be identical in the thermodynamic limit ($N \longrightarrow \infty$). In practice, they already agree within their statistical uncertainty for a simulation based on around a thousand molecules. For verification purposes, Table~\ref{tab:lustig} contains numerical results for methyl fluoride \cite{sto01}. A detailed description of the calculation of these derivatives can be found in Ref. \cite{lus12}. Their conversion into common thermodynamic properties is provided in the supplementary material of release 2.0 of $ms$2 \cite{ms2_2.0} and in Ref. \cite{spa00}.
 
 \begin{table}
   \centering
-  \caption{Comparison of the residual Helmholtz energy derivatives $A^\text{r}_{nm}$ of methyl fluoride (R41)~\cite{sto01} at $T=300$ K and $\rho=1$ mol/l. Numbers in brackets denote statistical uncertainties in the last digit that were estimated with the block averaging method of Flyvbjerg and Petersen \cite{fly89}. Superscripts (1) and (2) indicate the two different entropy definitions \cite{lus12}.} 
+  \caption{Comparison of the residual Helmholtz energy derivatives $A^\text{r}_{nm}$ of methyl fluoride \cite{sto01} at $T=300$ K and $\rho=1$ mol/l. Numbers in brackets denote statistical uncertainties in the last digit that were estimated with the block averaging method of Flyvbjerg and Petersen \cite{fly89}. Superscripts (1) and (2) indicate the two different entropy definitions \cite{lus12}.} 
     \begin{tabular}{rrlllll}
     \hline
           &       & $A^\text{r}_{10}$ & $A^\text{r}_{01}$ & $A^\text{r}_{20}$ & $A^\text{r}_{11}$ & $A^\text{r}_{02}$\\
@@ -319,25 +326,25 @@ A detailed description of how to convert these derivatives into common thermodyn
 \section{Thermodynamic integration}
 \label{sec:thermoint}
 
-The previously described method of Lustig does not allow for the direct sampling of the chemical potential and other entropic properties like $A^{r}_{00}$. Such an effort requires techniques based on free energy calculation, such as particle insertion and/or thermodynamic integration \cite{fre02}. Widom's particle insertion method \cite{wid63} is a conceptually straightforward approach to calculate the chemical potential with a low computational cost, both for pure substances and mixtures. The total chemical potential $\mu_{i}$ of species $i$ can be separated into an ideal (o) and a residual (r) contribution in the same way as the Helmholtz energy is decomposed, cf. section~\ref{sec:ensembles}: $\mu_{i} (T,\rho,x_i) = \mu^\text{o}_{i}(T) + RT \ln (N_i/(V \rho_\text{ref})) + \mu^{r}_{i} (T,\rho,x_i)$, where $N_i$ is the number of molecules of species $i$, $\rho=N/V$, $x_i=N_i/N$ and $\rho_\text{ref}$ is an arbitrary reference density. The expression $\mu_{i} - \mu^\text{o}_{i}(T)$ is often referred to as the configurational chemical potential $\mu^\text{conf}_{i}$. Widom's method requires the frequent insertion of an additional $(i=N+1)$ test particle into the simulation volume at a random position with a random orientation. At constant temperature and constant pressure or volume the potential energy $U_i$ of this test particle, i.e. the interaction energy with all other "real" $N$ molecules, yields the configurational chemical potential according to
+The previously described method of Lustig does not allow for the direct sampling of the chemical potential and other entropic properties like $A^{r}_{00}$. Such an effort requires techniques based on free energy calculation, such as particle insertion and/or thermodynamic integration \cite{fre02}. Widom's particle insertion method \cite{wid63} is a conceptually straightforward approach to calculate the chemical potential with a low computational cost, both for pure substances and mixtures. The total chemical potential $\mu_{i}$ of species $i$ can be separated into an ideal (o) and a residual (r) contribution in the same way as the Helmholtz energy is decomposed, cf. section~\ref{sec:ensembles}: $\mu_{i} (T,\rho,x_i) = \mu^\text{o}_{i}(T) + RT \ln (N_i/(V \rho_\text{ref})) + \mu^\text{r}_{i} (T,\rho,x_i)$, where $N_i$ is the number of molecules of species $i$, $\rho=N/V$, $x_i=N_i/N$ and $\rho_\text{ref}$ is an arbitrary reference density. The expression $\mu_{i} - \mu^\text{o}_{i}(T)$ is often referred to as the configurational chemical potential $\mu^\text{conf}_{i}$. Widom's method requires the frequent insertion of an additional $(i=N+1)$ test particle into the simulation volume at a random position with a random orientation. At constant temperature and constant pressure or volume the potential energy $U_i$ of this test particle, i.e. the interaction energy with all other "real" $N$ molecules, yields the configurational chemical potential according to
 \begin{equation}
 \mu^\text{conf}_{i}=\mu_{i}-\mu^{\text{o}}_{i}\left(T\right)=-k_{\text{B}}T \ln \frac{\left\langle V \exp \left(-U_i/k_{\text{B}}T\right)\right\rangle}{\left\langle N_{i}\right\rangle},
 \label{eq:widom}
 \end{equation}
 where $k_\text{B}$ is Boltzmann's constant. The test particle is removed immediately after the calculation of its potential energy $U_i$, thus it does not influence the real molecules in the system in any way. In contrast to the usual convention, the brackets $<>$  have a dual meaning here: They stand for either $NVT$ or $NpT$ ensemble averages as well as an integral over all possible positions and orientations of the test particles added to the system. The density of the system has a significant influence on the accuracy of this method. For state points with a very high density, test particles almost always overlap with real molecules, which leads to a potential energy $U_i \rightarrow \infty$ and thus to a vanishing contribution to Eq.~(\ref{eq:widom}), resulting in poor statistics and often even to complete failure of sampling.\\
 
-Thermodynamic integration is one solution to overcome the limitations of Widom's particle insertion method. The idea behind calculating the chemical potential by thermodynamic integration is to avoid insertion of the test particle in a challenging system $A$, but rather perform it in system $B$ for which this can be done without sampling problems. Since the chemical potential is a state property, its difference $\mu_{A,i}-\mu_{B,i}$ can be calculated along any path between states $A$ and $B$, which is represented by the scalar parameter $\lambda$. It can be shown \cite{fre02} that the relation between $\lambda$ and $\mu_{A,i}-\mu_{B,i}$ is 
+Thermodynamic integration is one solution to overcome the limitations of Widom's particle insertion method. The idea behind calculating the chemical potential by thermodynamic integration is to avoid insertion of test particles in a challenging system $A$, but rather perform it in system $B$ for which this can be done without sampling problems. Since the chemical potential is a state property, its difference $\mu_{A,i}-\mu_{B,i}$ can be calculated along any path between states $A$ and $B$, which is represented by the scalar parameter $\lambda$. It can be shown \cite{fre02} that the relation between $\lambda$ and $\mu_{A,i}-\mu_{B,i}$ is 
 \begin{equation}
 \mu_{A,i}-\mu_{B,i}=\int_{B(\lambda_\text{min})}^{A(\lambda_\text{max})} \left\langle \frac{\partial U_i(\lambda)}{\partial \lambda} \right\rangle d \lambda. 
 \label{eq:thermoint}
 \end{equation}
-The brackets $<>$ in this equation denote $NVT$ or $NpT$ ensemble averages and $U_i$ is the potential energy of particle $i$ that must be a part of the system in the same way as the other molecules are. The only difference between particle $i$ and all other molecules is that its interaction energy $U_i(\lambda)$ is scaled between states $A(\lambda_\text{max})$ and $B(\lambda_\text{min})$ with $\lambda$. As long as $\partial U_i(\lambda)/\partial \lambda$ can be calculated analytically and sampled during simulation, the actual way of scaling $U_i(\lambda)$ with $\lambda$ can be chosen arbitrarily because $\mu_i$ is a state property. The integration with respect to $\lambda$ is carried out numerically. Assuming that $\mu_{B,i}$ is practically zero or at least can successfully be calculated by Widom’s particle insertion method for state $B$ using Eq.~\eqref{eq:widom}, $\mu_{A,i}$ yields the configurational contribution to the total chemical potential. The non-linear scaling $U_i(\lambda)=\lambda^d U_i$ for $\lambda_\text{min} \leq \lambda \leq 1 = \lambda_\text{max}$ with an adaptive sampling technique \cite{kri07} was implemented for MC simulations with $d$ and $\lambda_\text{min}$ being input parameters. This adaptive technique allows for the sampling of the entire range of $\lambda_\text{min} \leq \lambda \leq 1$ in a single MC run with an arbitrary resolution for numerical integration. In addition to the standard $NVT$ and $NpT$ ensemble MC moves, the simulation includes changes of $\lambda$ controlled by a proper MC acceptance criterion, ensuring visits at each discrete $\lambda$ value in the range $\lambda_\text{min} \leq \lambda \leq 1$. For MD simulations, changes of $\lambda$ are also carried out on the fly in a single simulation, but without any acceptance criterion. A detailed description of the parameter setup is given in the supplementary material. Figure~\ref{fig:chempot} shows the running averages for the residual chemical potential of methyl fluoride (R41) at two different state points calculated by either Widom's test particle insertion or the present thermodynamic integration method. For high temperatures and low densities, Widom's test particle insertion and the thermodynamic integration agree satisfactory. Widom fails, however, for dense and strongly interacting fluids.  \\
+The brackets $<>$ in this equation denote $NVT$ or $NpT$ ensemble averages and $U_i$ is the potential energy of particle $i$ that must be a part of the system in the same way as the other molecules are. The only difference between particle $i$ and all other molecules is that its interaction energy $U_i(\lambda)$ is scaled between states $A(\lambda_\text{max})$ and $B(\lambda_\text{min})$ with $\lambda$. As long as $\partial U_i(\lambda)/\partial \lambda$ can be calculated analytically and sampled during simulation, the actual way of scaling $U_i(\lambda)$ with $\lambda$ can be chosen arbitrarily because $\mu_i$ is a state property. The integration with respect to $\lambda$ is carried out numerically. Assuming that $\mu_{B,i}$ is practically zero or at least can successfully be calculated by Widom’s particle insertion method for state $B$ using Eq.~\eqref{eq:widom}, $\mu_{A,i}$ yields the configurational contribution to the total chemical potential. The non-linear scaling $U_i(\lambda)=\lambda^d U_i$ for $\lambda_\text{min} \leq \lambda \leq 1 = \lambda_\text{max}$ with an adaptive sampling technique \cite{kri07} was implemented for MC simulations with $d$ and $\lambda_\text{min}$ being input parameters. This adaptive technique allows for the sampling of the entire range of $\lambda_\text{min} \leq \lambda \leq 1$ in a single MC run with an arbitrary resolution for numerical integration. In addition to the standard $NVT$ and $NpT$ ensemble MC moves, the simulation includes changes of $\lambda$ controlled by a proper MC acceptance criterion, ensuring visits at each discrete $\lambda$ value in the range $\lambda_\text{min} \leq \lambda \leq 1$. For MD simulations, changes of $\lambda$ are also carried out on the fly in a single simulation, but without any acceptance criterion. A detailed description of the parameter setup is given in the supplementary material. Figure~\ref{fig:chempot} shows the running averages for the residual chemical potential of methyl fluoride at two different state points calculated by either Widom's particle insertion or the present thermodynamic integration method. For high temperatures and low densities, the agreement between Widom's particle insertion and thermodynamic integration is satisfactory. Widom fails, however, for dense and strongly interacting fluids.  \\
 
 \begin{figure}
 \centering
 \vskip 2mm
 \includegraphics[scale=0.50]{chmpot_ti_widom.eps} 
-\caption{\footnotesize \label{fig:chempot} Comparison of the residual chemical potential $\mu^\text{r}$ of methyl fluoride (R41)~\cite{sto01} at two different state points calculated by $ms$2 using either Widom's particle insertion method or the present thermodynamic integration (TI) method.}
+\caption{\footnotesize \label{fig:chempot} Comparison of the residual chemical potential $\mu^\text{r}$ of methyl fluoride \cite{sto01} at two different state points calculated by $ms$2 using either Widom's particle insertion method or the present thermodynamic integration (TI) method.}
 \end{figure}
 
 \section{Quaternary Maxwell-Stefan diffusion coefficients}
@@ -372,21 +379,21 @@ Starting from the phenomenological coefficients $L_{ij}$, the elements of a $(n-
 {\textit{\DJ}_{23}}&= \frac{1}{1/{\textit{\DJ}_{24}}-B_{23}/{x_2}}.\\
 \end{align}
 
-MD simulation runs for Lennard-Jones fluids were performed in order to test the validity of the quaternary Maxwell-Stefan diffusion coefficient elements calculated with $ms2$. For this purpose, a quaternary Lennard-Jones pseudo mixture was created with different name labels only for the molecules divided into four mole fractions ($x_1$= 0.1, $x_2$= 0.2, $x_3$ = 0.3 and $x_4$ = 0.4 mol mol$^{-1}$). A system containing 800 molecules was simulated in the dense liquid state and the resulting Maxwell-Stefan diffusion coefficient elements were compared with the corresponding self-diffusion coefficient that has to be identical in the present case.
+MD simulation runs for Lennard-Jones fluids were performed in order to test the validity of the quaternary Maxwell-Stefan diffusion coefficient elements calculated with $ms2$. For this purpose, a quaternary Lennard-Jones pseudo-mixture was created by giving different labels to identical molecules, dividing them into four mole fractions ($x_1$= 0.1, $x_2$= 0.2, $x_3$ = 0.3 and $x_4$ = 0.4 mol mol$^{-1}$). A system containing 800 molecules was simulated in the dense liquid state and the resulting Maxwell-Stefan diffusion coefficient elements were compared with the corresponding self-diffusion coefficient that has to be identical in the present case.
 
-Fig.~\ref{diff} shows the development of the calculated values of the six different Maxwell-Stefan diffusion coefficient elements with the number of time origins. As can be seen, the resulting values become independent after around $10^4$ time origins and then oscillate around their mean value. The higher statistical uncertainties of ${\textit{\DJ}_{12}}$  and ${\textit{\DJ}_{13}}$ are due to the small number of species $1$ molecules compared with the number of molecules of the other species.
+Fig.~\ref{diff} shows the development of the calculated values of the six Maxwell-Stefan diffusion coefficient elements with the number of time origins. As can be seen, the resulting values become independent after around $10^4$ time origins and then oscillate around their mean value. The higher statistical uncertainties of ${\textit{\DJ}_{12}}$  and ${\textit{\DJ}_{13}}$ are due to the small number of species $1$ molecules compared with the number of molecules of the other species.
 
 \begin{figure}
 \centering
 \vskip 2mm
 \includegraphics[scale=0.50]{Quaternary_plot.eps} 
-\caption{\footnotesize \label{diff} Maxwell-Stefan diffusion coefficient elements $\textit{\DJ}_{ij}$ as a function of time origins for a quaternary pseudo mixture ($\epsilon=\epsilon_1=\epsilon_2=\epsilon_3=\epsilon_4$ and $\sigma=\sigma_1=\sigma_2=\sigma_3=\sigma_4$) at $k_\text{B} T / \epsilon$ = 0.728 and $\rho \sigma^3$ = 0.8442.}
+\caption{\footnotesize \label{diff} Maxwell-Stefan diffusion coefficient elements $\textit{\DJ}_{ij}$ and the self-diffusion coefficient $D_\text{i}$ as a function of time origins of a quaternary pseudo-mixture ($\epsilon=\epsilon_1=\epsilon_2=\epsilon_3=\epsilon_4$ and $\sigma=\sigma_1=\sigma_2=\sigma_3=\sigma_4$) at $k_\text{B} T / \epsilon$ = 0.728 and $\rho \sigma^3$ = 0.8442.}
 \end{figure}
 
 \section{Hydrogen bonding}
 \label{sec:Hydrogen bonding}
 
-There is no unambiguous characterization of a hydrogen bond between two molecules \cite{Stillinger80, HI10, ADKSSACCDHKLMN11}. Rather, the hydrogen (H)~bond \qq{is a structural motif and involves at least three atoms} \cite{TK06}. The International Union of Pure and Applied Chemistry (IUPAC) defines the hydrogen bond as \qq{an attractive interaction between a hydrogen atom from a molecule or molecular fragment X--H in which X is more electronegative than H, and an atom or a group of atoms in the same or a different molecule, in which there is evidence of bond formation} \cite{ADKSSACCDHKLMN11}.
+There is no definite characterization of a hydrogen bond between two molecules \cite{Stillinger80, HI10, ADKSSACCDHKLMN11}. Rather, the hydrogen (H)~bond \qq{is a structural motif and involves at least three atoms} \cite{TK06}. The International Union of Pure and Applied Chemistry (IUPAC) defines the hydrogen bond as \qq{an attractive interaction between a hydrogen atom from a molecule or molecular fragment X--H in which X is more electronegative than H, and an atom or a group of atoms in the same or a different molecule, in which there is evidence of bond formation} \cite{ADKSSACCDHKLMN11}.
 
 Energetic \cite{Stillinger80}, geometric \cite{Haughney1987} and topological \cite{HI10} hydrogen bonding criteria have been proposed in the literature. Geometric criteria, which are not overly complex, are often based on the following assumptions \cite{RMHH12}:
 \begin{itemize}
@@ -399,7 +406,7 @@ Accordingly, a class of geometric criteria for the evaluation of hydrogen bondin
         \item{} The distance between the acceptor sites of the acceptor and donor molecules is smaller than a threshold distance, i.e. $\ell_\mathrm{AA}$.
         \item{} The angle between the acceptor-donor axis and the acceptor-acceptor axis is smaller than a threshold angle, i.e.\ $\varphi_\mathrm{DAA}$ or $\varphi_\mathrm{AAD}$. 
 \end{itemize}
-Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\mathrm{DAA}$ and $\varphi_\mathrm{AAD}$ are parameters of the implemented class of hydrogen bonding criteria. For methanol, e.g., Haughney \textit{et al.}\ \cite{Haughney1987} proposed $\ell_\mathrm{AD} = \ell_\mathrm{DA} = 2.6$ \AA{}, $\ell_\mathrm{AA} = 3.5$ \AA{} and $\varphi_\mathrm{AAD}= \varphi_\mathrm{DAA} = 30^\circ$. Such geometric criteria have been applied to a variety of fluids, in particular to water \cite{LC93, CC06, LC96}, methanol-water mixtures \cite{CC14, gue08} or ethanol \cite{RMHH12, SPG97, XYH09}. Hydrogen bonds in sorbate-sorbent interactions can be treated analogously \cite{BKS14}. E.g., for hydrogen fluoride, a simpler distance-based criterion can be used \cite{KBMP03}, which is also covered by the present implementation. A detailed description of the parameter setup is given in the supplementary material. 
+Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\mathrm{DAA}$ and $\varphi_\mathrm{AAD}$ are parameters of the implemented class of hydrogen bonding criteria. For methanol, e.g., Haughney et al. \cite{Haughney1987} proposed $\ell_\mathrm{AD} = \ell_\mathrm{DA} = 2.6$ \AA{}, $\ell_\mathrm{AA} = 3.5$ \AA{} and $\varphi_\mathrm{AAD}= \varphi_\mathrm{DAA} = 30^\circ$. Such geometric criteria have been applied to a variety of fluids, in particular to water \cite{LC93, CC06, LC96}, methanol-water mixtures \cite{CC14, gue08} or ethanol \cite{RMHH12, SPG97, XYH09}. Hydrogen bonds in sorbate-sorbent interactions can be treated analogously \cite{BKS14}. E.g., for hydrogen fluoride, a simpler distance-based criterion can be used \cite{KBMP03}, which is also covered by the present implementation. A detailed description of the parameter setup is given in the supplementary material. 
 
 \begin{figure}[htb]
 	\centering
@@ -410,11 +417,11 @@ Therein, $\ell_\mathrm{AD}$, $\ell_\mathrm{DA}$, $\ell_\mathrm{AA}$, $\varphi_\m
 	\label{fig:Hbonding}
 \end{figure}
 
-To to test the capabilities of the hydrogen bonding statistics in $ms2$ a MD simulation run of the ternary mixture water(w) + methanol(m) + ethanol(e) ($x_\text{w}$ = 0.33 mol mol$^{-1}$, $x_\text{m}$ = 0.33 mol mol$^{-1}$, $x_\text{e}$ = 0.34 mol mol$^{-1}$) at $T$ = 298.15 K and $p$ = 0.1 MPa was performed with 4000 molecules. In this mixture all species can form hydrogen bonds with each other because all three molecules contain hydroxyl groups. Thus the hydrogen atoms may act as donors and the oxygen atoms as acceptors to form hydrogen bonds. Throughout, between like and unlike molecules, the geometric criteria of Haughney \textit{et al.}\ \cite{Haughney1987} were used. The results are listed in Table~\ref{tab:hbond}. The hydrogen bonding statistics in $ms2$ not only indicates the amount of monomers (no bond), dimers (one bond), trimers (two bonds) and tetramers (three bonds), but also provides information about which molecule species pairs are bonded. 
+To test the capabilities of the hydrogen bonding statistics implemented in $ms2$, a MD simulation run of the ternary mixture water (w) + methanol (m) + ethanol (e) ($x_\text{w}$ = 0.33 mol mol$^{-1}$, $x_\text{m}$ = 0.33 mol mol$^{-1}$, $x_\text{e}$ = 0.34 mol mol$^{-1}$) at $T$ = 298.15 K and $p$ = 0.1 MPa was carried out with 4000 molecules. In this mixture all species can form hydrogen bonds with each other because all three molecules contain hydroxyl groups. Thus the hydrogen atoms may act as donors and the oxygen atoms as acceptors to form hydrogen bonds. Throughout, between like and unlike molecules, the geometric criteria of Haughney et al. \cite{Haughney1987} were used. The results are listed in Table~\ref{tab:hbond}. The hydrogen bonding statistics in $ms2$ not only indicates the amount of monomers (no bond), dimers (one bond), trimers (two bonds) and tetramers (three bonds), but also provides information about which molecule species pairs are bonded. 
 
 \begin{table}
   \centering
-  \caption{Hydrogen bond statistics of the ternary mixture water (w) + methanol (m) + ethanol (e) ($x_\text{w}$ = 0.33 mol mol$^{-1}$, $x_\text{m}$ = 0.33 mol mol$^{-1}$, $x_\text{e}$ = 0.34 mol mol$^{-1}$) at $T$ = 298.15 K and $p$ = 0.1 MPa in relative terms.} 
+  \caption{Hydrogen bonding statistics of the ternary mixture water (w) + methanol (m) + ethanol (e) ($x_\text{w}$ = 0.33 mol mol$^{-1}$, $x_\text{m}$ = 0.33 mol mol$^{-1}$, $x_\text{e}$ = 0.34 mol mol$^{-1}$) at $T$ = 298.15 K and $p$ = 0.1 MPa in relative terms.} 
     \begin{tabular}{r| r| r| r}
 		\hline
 		& water & methanol & ethanol  \\
@@ -450,7 +457,7 @@ four or more bonds		  & 65.1\% &		4.9\% &		8.0\% \\ \hline
 \section{OPAS Method}
 \label{sec:opas}
 
-The OPAS (osmotic pressure for the activity of the solvent) method was implemented in \textit{ms}2. It is an alternative to standard methods, e.g.\ the Widom test particle method \cite{wid63} or thermodynamic integration \cite{moucka2013, mester2015, moucka2015}, for calculating chemical potentials in the liquid phase by MD simulations. It is particularly well-suited for studying the solvent activity of electrolyte solutions, but can in principle also be used for studying mixtures of molecular species. Details and a thorough assessment of the method are presented in Ref.\ \cite{kohns2016}, the method is only briefly outlined in the following.
+The OPAS (osmotic pressure for the activity of the solvent) method was implemented in \textit{ms}2. It is an alternative to e.g.\ the Widom's particle insertion \cite{wid63} or thermodynamic integration \cite{moucka2013, mester2015, moucka2015}, for calculating chemical potentials in the liquid phase by MD simulations. It is particularly well-suited for studying the solvent activity of electrolyte solutions, but can in principle also be used for studying mixtures of molecular species. Details and a thorough assessment of the method are presented in Ref.\ \cite{kohns2016}, the method is only briefly outlined in the following.
 
 The basic idea is a direct simulation of the osmotic equilibrium between a pure solvent phase and a solution phase by introducing semi-permeable membranes into the simulation volume. These are realized by an external force field that acts only on the solute molecules to keep them in the solution phase. By sampling the total net membrane force per membrane area, the pressure difference between the two phases, i.e. the osmotic pressure $\Pi$, is measured. Assuming an incompressible solvent, the solvent activity is related to this osmotic pressure by
 \begin{equation}
@@ -463,16 +470,16 @@ Fig.\ \ref{Fig:JCComparison} shows molecular simulation results for the mean ion
 \begin{figure}[htb]
 \centering
  \includegraphics[width=8.0cm]{JCComparison.eps}
-\caption{Mean ionic activity coefficient of NaCl over salt molality for aqueous NaCl solutions at $T$ = 298.15 K and $p=$ 1 bar using the SPC/E + Joung-Cheatham \cite{joung2008} model combination. The colored lines represent simulation results by different groups for that model combination (from top to bottom): OPAS simulations by Kohns \textit{et al.}\ \cite{kohns2016} (red dashed line), free energy calculations by Benavides \textit{et al.}\ \cite{benavides2016} (violet densely-dotted line), gradual insertion of ion pairs by Mester and Panagiotopoulos \cite{mester2015} (blue dashed-dotted line), and osmotic ensemble Monte Carlo simulations by Mou\v{c}ka \textit{et al.}\ \cite{moucka2015} (green dotted line). The black solid line shows the correlation to experimental data by Hamer and Wu \cite{hamer1972}.}
+\caption{Mean ionic activity coefficient of NaCl over salt molality for aqueous NaCl solutions at $T$ = 298.15 K and $p=$ 1 bar using the SPC/E + Joung-Cheatham \cite{joung2008} model combination. The colored lines represent simulation results by different groups for that model combination (from top to bottom): OPAS simulations by Kohns et al. \cite{kohns2016} (red dashed line), free energy calculations by Benavides et al. \cite{benavides2016} (violet densely-dotted line), gradual insertion of ion pairs by Mester and Panagiotopoulos \cite{mester2015} (blue dashed-dotted line), and osmotic ensemble Monte Carlo simulations by Mou\v{c}ka et al. \cite{moucka2015} (green dotted line). The black solid line shows the correlation to experimental data by Hamer and Wu \cite{hamer1972}.}
 \label{Fig:JCComparison}
 \end{figure}
 
 \section{Electrostatic long range corrections}
 \label{sec:ewald}
 
-The applicability of $ms$2 was extended to electrically charged molecules or ions. The long ranged intermolecular interactions between those molecules and the surrounding solvent are considered using two well established approaches, Ewald summation and smooth-particle mesh Ewald summation (SPME). Both are well known \cite{fre02} and are thus introduced here only briefly. 
+The applicability of $ms$2 was extended to electrically charged molecules or ions. The long ranged intermolecular interactions are considered by two well established approaches, Ewald summation and smooth-particle mesh Ewald summation (SPME). Both are well known \cite{fre02} and are thus introduced here only briefly. 
 
-In Ewald summation, the overall Coulombic potential acting in the simulation volume is determined by a sum of two terms, the short range Coulombic contribution $u^{\mathrm{c, short}}$ and the long range Coulombic contribution $u^{\mathrm{c, long}}$ according to
+In Ewald summation, the overall Coulombic potential acting in the simulation volume is determined by a sum of two terms, i.e. the short range Coulombic contribution $u^{\mathrm{c, short}}$ and the long range Coulombic contribution $u^{\mathrm{c, long}}$ 
 \begin{equation}
  u^{\mathrm{c}} = u^{\mathrm{c, short}} + u^{\mathrm{c, long}}  \mbox{   .}
 \label{MolSim_Ewald_Allgemein}
@@ -482,17 +489,16 @@ The separation into these terms is achieved by the introduction of a fictive cha
 
 Following the Ewald summation approach, for any configuration of molecules in the simulation volume, each point charge of magnitude $q_l$ in the simulation volume is superimposed with one countercharge of magnitude $-q_l$. Due to  the presence of this superimposed charge, the interaction potential decays to zero within a distance that is reasonably short for molecular simulation and can, hence, be explicitly considered by the short term contribution of the Ewald summation. 
 
-The second term in Eq.~\eqref{MolSim_Ewald_Allgemein} determines the contributions that were subtracted due to the introduction of the fictive charge density function. This term cannot be determined explicitly by the evaluation of pairwise interactions, since the Coulombic potential at $r_{lm}=V^{1/3}/2$, i.e. the largest distance accessible in the molecular simulation run, still exhibits significant contributions to the potential energy of the system. In Ewald summation, these contributions are determined in Fourier space from the negative charge distribution function $-\rho^{\mathrm{screen}}(\bm{r})$. Since $\rho^{\mathrm{screen}}(\bm{r})$ depends on the molecular positions, a Fourier transformation is performed for every configurational change in the simulation volume. 
+The second term in Eq.~\eqref{MolSim_Ewald_Allgemein} determines the contribution that was subtracted due to the introduction of the fictive charge density function. This term cannot be determined explicitly by the evaluation of pairwise interactions, since the Coulombic potential at $r_{lm}=V^{1/3}/2$, i.e. the largest distance accessible in the molecular simulation volume $V$, is still a substantial part of the potential energy of the system. In Ewald summation, this contribution is determined in Fourier space from the negative charge distribution function $-\rho^{\mathrm{screen}}(\bm{r})$. Since $\rho^{\mathrm{screen}}(\bm{r})$ depends on the molecular positions $\boldsymbol{r}$, a Fourier transformation is performed for every configurational change in the simulation volume. 
 
-The SPME is widely considered as an improved Ewald summation method. In this approach, the concept of splitting the long range charge-charge interactions is fully employed. The difference between both methods lies only in the calculation of the long range contributions. In the SPME approach, the electrostatic field of ions in the simulation volume is described by a spline function with a given functional form. For this given spline equation, the Fourier transformation is known and has, hence, not to be determined in each simulation step. This accelerates the calculation of the long range contribution for molecular dynamics simulation vastly. Studied systems showed an increased performance of up to 21\% in total computational time. The accuracy of the SPME results is assumed to be equivalent to the Ewald approach.
-
+The SPME is widely considered as an improved Ewald summation method. In this approach, the concept of splitting the long range charge-charge interactions is fully employed. The difference between both methods lies only in the calculation of the long range contributions. In the SPME approach, the electrostatic field of ions in the simulation volume is described by a spline function with a given functional form. For this given spline equation, the Fourier transformation is known and has, hence, not to be determined in each simulation step. This accelerates the calculation of the long range contribution and reduces simulation effort and time. The accuracy of the SPME results is assumed to be equivalent to the Ewald approach. In $ms$2 SPME is implemented in its original form wherein the splines are evaluated for all particles at a time, making it specifically useful for MD simulations. Typical systems show an improved performance of up to 21\% in total computational time.
 
 \section{Vectorization}
 \label{sec:vectorization} 
 
-For the vectorization of loops it is essential how accessed data are distributed in memory. Deducing this information automatically from the code can be very difficult for the compiler, if there is indirection. In $ms2$, many arrays are accessed via array pointers and the order of the underlying data is therefore obfuscated. The most relevant information is wether or not data are contiguous in physical memory. To provide this information to the compiler directly, array pointers can be given the attribute "contiguous". The FORTRAN standard specifies: \textit{"The contiguous attribute specifies that [...] an array pointer can only be pointer associated with a contiguous target."} 
+For the vectorization of loops it is essential how accessed data are distributed in physical memory. Deducing this information automatically from the code can be very difficult for the compiler, especially if there is indirection. In $ms2$, many arrays are accessed via array pointers and the order of the underlying data is therefore obfuscated. The most relevant information is wether or not data are contiguous in physical memory. To provide this information to the compiler directly, array pointers can be given the attribute "contiguous". The Fortran standard specifies: \textit{"The contiguous attribute specifies that [...] an array pointer can only be pointer associated with a contiguous target."} 
 This means that  the array elements of a contiguous array pointer are not separated by any other data, potentially enabling a higher degree of vectorization.
-In $ms2$ release 3.0, array pointers associated with contiguous targets have been given the contiguous attribute. The sequential performance gains -- and the resulting parallel performance gains -- achieved through this optimization depend on the specific simulation scenario, but are on average very significant. For MC and MD simulations, a suite of simulations was executed to evaluate the performance gains. The suite covered the $NPT$ and $NVT$ ensembles, thermodynamic integration, Widom test particle insertion, different thermostats, different pure fluids and mixtures. A total of 71 simulation runs were performed. 
+In $ms2$ release 3.0, array pointers associated with contiguous targets have been given the contiguous attribute. The sequential performance gains -- and the resulting parallel performance gains -- achieved with this optimization depend on the specific simulation scenario, but are on average very significant. For MC and MD simulations, a suite of simulations was executed to evaluate the performance gains. The suite covered the $NpT$ and $NVT$ ensembles, thermodynamic integration, Widom test particle insertion, different thermostats, different pure fluids and mixtures. A total of 71 simulation runs was performed. 
 For MC simulations, the observed average reduction of runtime was more than 7\% and for MD simulations   more than 20\%.
 
  
@@ -501,67 +507,64 @@ For MC simulations, the observed average reduction of runtime was more than 7\% 
 \section{Parallel ensemble calculations}
 \label{sec:ParallelEnsembleCalculations}
 
-$ms2$ was already parallelized in its initial version for distributed memory architectures using the message passing interface (MPI) \cite{ms2_2.0, ms2}.
-The present release 3.0 adds a new level of parallelization for MD simulations.
-Different ensembles are independent of each other so that sampling different state points can be done concurrently.
-To achieve this, the processing elements (PE) are split in disjunct groups and each group consecutively
-computes the ensembles assigned to it (typically in parallel too).
+$ms2$ was already parallelized in its initial version for distributed memory architectures using the message passing interface (MPI) \cite{ms2, ms2_2.0}.
+The present release 3.0 adds an additional level of parallelization for MD simulations.
+Different ensembles are independent of each other in the sense that sampling different state points can be done concurrently.
+To achieve this, the processing elements (PE) are split in disjunct groups and each group consecutively computes the ensembles assigned to it (typically in parallel too).
 To enable this feature, the \textit{mpiEnsembleGroups} option was introduced in the input file.
-The default (if not set or set to 0) is not to split the PE and to use a single MPI group.
-A value of 1 will enable the new feature and automatically set the number of MPI groups to a minimum of the number of
-ensembles and the number of PE. Otherwise, this option will set the number of MPI groups according to the specified integer value.
-Another change applies to the restart capability of $ms2$. A checkpoint now consists of a restart (*.rst) file for each MPI group
-and can be restarted with the $ms2$ -r (or -{}-restart) option.
-%usage: <ms2cmd> -r <parfile> [<outputprefix>]
+The default (if not set or set to 0) is not to split the PE and to use a single ensemble group.
+A value of 1 will enable the new feature and automatically set the number of ensemble groups to the minimum of the number of ensembles and the number of PE, 
+i.e. \textit{mpiEnsembleGroups}=min(ensembles, PE). 
+Otherwise, this option will set the number of ensemble groups according to the specified integer value.
+The ``coloring'', i.e. the assignment of the PE to the ensemble groups, is done in continguous blocks.
+%CommunicatorID=ProcID*NCommunicators/NProcs
+This is advantageous, e.g. compared to a round robin fashion, %(calculated using the process rank and modulo operator)
+%CommunicatorID=mod(ProcID,NCommunicators) 
+if the processes have to be pinned to NUMA domains.
+
+Another change applies to the restart capability of $ms2$. 
+A checkpoint now consists of one restart (*.rst) file for each ensemble group that can be restarted with the $ms2$ -r (or -{}-restart) option.
 
 To illustrate the new feature, a MD program execution for three ensembles with 24 processes will serve as an example.
-Without the \textit{mpiEnsembleGroups} option or with \textit{mpiEnsembleGroups}=0
-all 24 PE will calculate the first ensemble in parallel, afterwards the second ensemble
-and finally the third one. Setting \textit{mpiEnsembleGroups}=1 is equivalent
-to \textit{mpiEnsembleGroups}=3 in this example and three groups of 8 PE each will calculate
-an ensemble in parallel concurrently. The user may also directly specifiy the number
-of groups, but has to be aware that with e.g.\ \textit{mpiEnsembleGroups}=2 one group
-will have to process two ensembles, while the other one only handles a single one.
-Even if settings are set explicitly, like \textit{mpiEnsembleGroups}=5, there's
-a correction to avoid having more groups than ensembles or PE, which means for
-this example due to the three ensembles that after the automatic correction also
-\textit{mpiEnsembleGroups}=min(3,24)=3 is used.
+Without the \textit{mpiEnsembleGroups} option (or with \textit{mpiEnsembleGroups}=0) all 24 PE will in parallel calculate the first time step of the first ensemble, 
+then the first time step of the second ensemble and finally the first time step of the third one, before the second time step is handled accordingly. 
+Setting \textit{mpiEnsembleGroups}=1 is equivalent to \textit{mpiEnsembleGroups}=3 in this example and three groups of eight PE each will calculate
+one ensemble in parallel concurrently. 
+The user may also directly specifiy the number of groups, but has to be aware that in this example with \textit{mpiEnsembleGroups}=2 one group will have to 
+process two ensembles, while the other one only processes a single one.
+
+
+%Even if settings are set explicitly, like \textit{mpiEnsembleGroups}=5, there is
+%a correction to avoid having more groups than ensembles or PE, which means for
+%this example due to the three ensembles that after the automatic correction also
+%\textit{mpiEnsembleGroups}=min(3,24)=3 is used.
+
+
+$ms2$ creates a MPI communicator for each of the ensemble groups with the MPI\_Comm\_Split command, cf. Figure \ref{fig:MPIranks}.
+Another MPI communicator contains the root processes of all groups (Communicator\_R including subcommunicators rank 0 processes)
+to ease communication on a higher level among the groups.
+
 
 \begin{figure}[htb]
 	\centering
 	\def\svgwidth{\textwidth}
 	\includegraphics[width=0.5\textwidth]{ms2_MPIranks.eps}
-	\caption{$ms2$ MPI ranks for 6 PE with 2 MPI groups.}
+	\caption{MPI ranks for 24 PE in 3 MPI groups, indicating communicator hierarchy of $ms$2.}
 	\label{fig:MPIranks}
 \end{figure}
 
-$ms2$ creates a MPI communicator for each of the MPI groups with the MPI\_Comm\_Split command, cf. Figure \ref{fig:MPIranks}.
-The ``coloring'', i.e. the assignment of the PE to the MPI communicators, is done in continguous blocks.
-%CommunicatorID=ProcID*NCommunicators/NProcs
-This is advantageous, e.g. compared to e.g.\ a round robin fashion, %(calculated using the process rank and modulo operator)
-%CommunicatorID=mod(ProcID,NCommunicators)
-if the processes have to be pinned to NUMA domains.
-Another communicator contains the root processes (Communicator\_R with subcommunicators rank 0 processes) of all groups
-to ease communication on a higher level among the groups
-(and there still is MPI\_COMM\_WORLD).
 
-Even if the computation of different ensembles is embarrassingly parallel,
-an interaction between the different communicators remains, e.g. when 
-the program receives a signal to write a checkpoint and terminate.
-This signal may be received from an arbitrary single PE
-(or non-isochronic from multiple PE).
-In the preceding releases of $ms2$, where ensembles were calculated sequentially
-with a single global communicator, a MPI\_Allreduce call took care
-to spread this information among the processes after each MD time step.
-This is still acceptable within the subcommunicators.
-A collective communication of all PE beyond subcommunicator boundaries
-for each iteration in the computation would also implicitly (and artificially)
-synchronize all ensemble computations at this point.
-However, this is not a satisfactory solution, because computationally less intensive ensembles
-would be forced to wait for the slower ones.
-The present implementation uses non-blocking communication between the subcommunicator roots
-(using the Communicator\_R) to avoid this problem.
-% (Alternatively MPI intercommunicators could be used.)
+Even if the computation of different ensembles is embarrassingly parallel, an interaction between the different ensemble groups through communicators remains, 
+e.g. when the program receives a signal to write a checkpoint and terminate.
+This signal may be received from an arbitrary single PE (or non-isochronic from multiple PE).
+In the preceding releases of $ms2$, where ensembles are calculated consecutively with the single global communicator MPI\_COMM\_WORLD, 
+a MPI\_Allreduce spreads this information among all processes after every MD time step.
+This is still the case within the ensemble groups.
+A collective communication of all PE beyond ensemble group boundaries for every iteration in the computation would implicitly
+synchronize all ensemble computations.
+However, this is not satisfactory because computationally less intensive ensembles would be forced to wait for slower ones to conclude their time step.
+The present implementation uses non-blocking communication between the ensemble group roots through Communicator\_R to avoid this problem.
+
 
 \begin{figure}[htb]
 	\centering
@@ -571,25 +574,20 @@ The present implementation uses non-blocking communication between the subcommun
 	\label{fig:Terminatestatus}
 \end{figure}
 
-Before the MD time step iterations start, the root process executes a MPI\_Irecv call
-to receive a terminate message within the iteration loop,
-whereas all other processes start a MPI\_Ibcast, cf. Figure \ref{fig:Terminatestatus},
-to obtain the information from the root.
-During the iterations, any process may trigger a termination by sending a message
-to the root, which will broadcast the information to notify all other processes then.
-If no termination occurs during the iterations, the root will send a message to itself
-and broadcast a non-termination message to all other processes to finish %satisfy
-the outstanding receive and broadcast. To take care of several processes sending
-a termination message at once, a summation reduction determines the sum of all
-respective messages for the root process to receive them all.
-% Alternatively MPI_CANCEL could be used here as well, but for some MPI implementations this doesn't work stable.
+Before any MD time step iterations start, the root process executes a MPI\_Irecv call to receive a potential terminate message,
+whereas all other processes execute a MPI\_Ibcast to obtain a potential terminate message from the root, cf. Figure \ref{fig:Terminatestatus}.
+During program execution, any process may trigger termination by sending a message to the root, which will then broadcast the information to notify all other processes.
+If no termination occurs during the iterations, the root will send a message to itself and broadcast a non-termination message to all other processes to satisfy
+the outstanding receive and broadcast. 
+To take care of several processes sending a termination message, a summation reduction determines the sum of all
+respective messages for the root process to receive all of them.
 This technique can also be used hierarchically, replacing the MPI\_Allreduce call within each subcommunicator.
-%Like mentioned above,
-After termination, every subcommunicator writes its own restart (*.rst) file.
+After termination, every ensemble group writes its own restart (*.rst) file.
 
 
 \section*{Acknowledgements}
-The authors gratefully acknowledge financial support by BMBF under the grant ``01IH13005A SkaSim: Skalierbare HPC-Software für molekulare Simulationen in der chemischen Industrie'' and computational support by the High Performance Computing Center Stuttgart (HLRS) under the grant MMHBF2(????). The present research was conducted under the auspices of the Boltzmann-Zuse Society of Computational Molecular Engineering (BZS). Oculus, Talpas, andere Grueße...?
+The authors gratefully acknowledge financial support by BMBF under the grant ``01IH13005A SkaSim: Skalierbare HPC-Software f\"ur molekulare Simulationen in der chemischen Industrie'' and computational support by the High Performance Computing Center Stuttgart (HLRS) under the grant MMHBF2. Furthermore, we gratefully acknowledge the Paderborn Center for Parallel Computing
+(PC$^2$) for the generous allocation of computer time on the OCuLUS cluster. The present research was conducted under the auspices of the Boltzmann-Zuse Society of Computational Molecular Engineering (BZS). H.H. and M.K. acknowledge support of this work by DFG under a Reinhart Koselleck Grant.
 
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
@@ -607,7 +605,7 @@ The authors gratefully acknowledge financial support by BMBF under the grant ``0
 %%
 
 %% References with bibTeX database:
-
+\newpage
 \bibliography{biblio}
 \bibliographystyle{elsarticle-num}
 %% Authors are advised to submit their bibtex database files. They are
