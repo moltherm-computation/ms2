@@ -1,0 +1,583 @@
+% This file was created with JabRef 2.10.
+% Encoding: UTF8
+
+
+@Book{Allen,
+  Title                    = {Computer Simulations of Liquids},
+  Author                   = {Allen, M.P. \& Tilldesley, D.J.},
+  Publisher                = {Oxford University Press},
+  Year                     = {2002},
+
+  Address                  = {Oxford},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.03.09}
+}
+
+@Article{Arunan2011,
+  Title                    = {Demodels the hydrogen bond: An account (IUPAC technical report)},
+  Author                   = {Arunan, E and Desirajiu, G.R. and Klein, R.A. and Sadlej, J. and Scheiner, S. and Alkorta, I.},
+  Journal                  = {Pure and Applied Chemistry},
+  Year                     = {2011},
+  Number                   = {8},
+  Pages                    = {1619-1636},
+  Volume                   = {83},
+
+  Doi                      = {10.1351/PAC-REP-10-01-01},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.05.11}
+}
+
+@Article{Berendsen1977,
+  Title                    = {Interaction Models for Water in Relation to Protein Hydration},
+  Author                   = {Berendsen, H.J.C. and Postma, J.P.M. and Gunsteren, W.F.},
+  Journal                  = {Intermolecular Forces},
+  Year                     = {1977},
+  Pages                    = {331},
+
+  Doi                      = {10.1007/978-94-015-7658-1_21},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {07.07.2015}
+}
+
+@Article{Berendsen1987,
+  Title                    = {The Missing Term in Effective Pair Potentials},
+  Author                   = {Berendsen, H. J. C. and Grigera, J. R. and Straatsma, T. P.},
+  Journal                  = {The Journal of Physical Chemistry},
+  Year                     = {1987},
+  Number                   = {24},
+  Pages                    = {6269-6271},
+  Volume                   = {91},
+
+  Doi                      = {10.1021/j100308a038},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.08.05}
+}
+
+@Article{Berendsen1984,
+  Title                    = {Molecular dynamics with coupling to an external bath},
+  Author                   = {Berendsen, H. J. C. and Postma, J.M.P. and {van Gunsteren}, W.F. and DiNola, A. and Haak, J.R.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {1984},
+  Pages                    = {3684},
+  Volume                   = {81},
+
+  Doi                      = {10.1063/1.448118},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.12.06}
+}
+
+@Book{Berendsen1981,
+  Title                    = {Intermolecular Forces},
+  Author                   = {Berendsen, H. J. C. and Postma, J. P. M. and van Gunsteren, W. F. and Hermans, J.},
+  Editor                   = {Pullman B.},
+  Publisher                = {D. Reidel Publishing Company},
+  Year                     = {1981},
+
+  Doi                      = {10.1007/978-94-015-7658-1_21},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.08.05}
+}
+
+@Article{Deublein2013,
+  Title                    = {Automated development of force fields for the calculation of thermodynamic properties acetonitrile as a case study},
+  Author                   = {Deublein, S. and Metzler, P. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Molecular Simulation},
+  Year                     = {2013},
+  Number                   = {2},
+  Pages                    = {109},
+  Volume                   = {39},
+
+  Doi                      = {10.1080/08927022.2012.705434},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Deublein2012_A,
+  Title                    = {A Set of Molecular Models for Alkaline-Earth Cations in Aqueous Solution},
+  Author                   = {Deublein, S. and Reiser, S. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Journal of Physical Chemistry B},
+  Year                     = {2012},
+  Number                   = {18},
+  Pages                    = {5448},
+  Volume                   = {116},
+
+  Doi                      = {10.1021/jp3013514},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Deublein2012_B,
+  Title                    = {A set of molecular models for alkali and halide ions in aqueous solution},
+  Author                   = {Deublein, S. and Vrabec, J. and Hasse, H.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2012},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Eckl2007,
+  Title                    = {Vapor pressure of R227ea + ethanol at 343.13K by molecular simulation},
+  Author                   = {Eckl, B. and Huang, Y. and Vrabec, J.and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2007},
+  Pages                    = {177–182},
+  Volume                   = {260},
+
+  Doi                      = {10.1016/j.fluid.2007.05.011},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.06.23}
+}
+
+@Article{Eckl2009,
+  Title                    = {Thermophysical Properties of Dry and Humid Air by Molecular Simulation Including Dew Point Calculations with the Mollier Ensemble},
+  Author                   = {Eckl, B. and Schnabel, T. and Vrabec, J. and Wendland,, M. and Hasse, H.},
+  Journal                  = {Ind. Eng. Chem. Res.},
+  Year                     = {2009},
+  Pages                    = {10110},
+  Volume                   = {48},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Eckl2008_A,
+  Title                    = {On the application of force fields for predicting a wide variety of properties: Ethylene oxide as an example},
+  Author                   = {Eckl, B. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2008},
+  Number                   = {1},
+  Volume                   = {274},
+
+  Doi                      = {10.1016/j.fluid.2008.02.002},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Eckl2008_B,
+  Title                    = {An optimised molecular model for ammonia},
+  Author                   = {Eckl, B. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Molecular Physics: An International Journal at the Interface Between Chemistry and Physics},
+  Year                     = {2008},
+  Number                   = {8},
+  Pages                    = {1039},
+  Volume                   = {106},
+
+  Doi                      = {10.1080/00268970802112137},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Eckl2008_C,
+  Title                    = {Set of Molecular Models Based on Quantum Mechanical Ab Initio Calculations and Thermodynamic Data},
+  Author                   = {Eckl, B. and Vrabec, J. and Hasse, H.},
+  Journal                  = {The Journal of Physical Chemistry B},
+  Year                     = {2008},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Elts2012,
+  Title                    = {Fluid phase behavior from molecular simulation Hydrazine, Monomethylhydrazine, Dimethylhydrazine and binary mixtures containing these compounds},
+  Author                   = {Elts, E. and Windmann, T. and Staak, D. and Vrabec, J.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2012},
+  Volume                   = {322},
+
+  Doi                      = {10.1016/j.fluid.2012.03.008},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Engin2011,
+  Title                    = {On the difference between a point multipole and an equivalent linear arrangement
+of point charges in force field models for vapour–liquid equilibria;
+partial charge based models for 59 real fluids},
+  Author                   = {Engin, C. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Molecular Physics},
+  Year                     = {2011},
+  Number                   = {16},
+  Pages                    = {1975-1982},
+  Volume                   = {109},
+
+  Doi                      = {10.1080/00268976.2011.601604},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.07.08}
+}
+
+@Book{Frenkel,
+  Title                    = {Understanding Molecular Dynamics: From Algorithms to Applications},
+  Author                   = {Frenkel, Daan \& Smit, Berend},
+  Publisher                = {Academic Press},
+  Year                     = {2002},
+
+  Address                  = {San Diego},
+  Edition                  = {2nd edition},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.02.16}
+}
+
+@Article{Guevara-Carrion2016,
+  Title                    = {Mutual diffusion of binary liquid mixtures containing methanol, ethanol, acetone,
+benzene, cyclohexane, toluene, and carbon tetrachloride},
+  Author                   = {Guevara-Carrion, G. and Janzen, T. and Munoz-Munoz, Y. and Vrabec, J.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2016},
+  Volume                   = {144},
+
+  Doi                      = {10.1063/1.4943395},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.07.12},
+  Url                      = {http://dx.doi.org/10.1063/1.4943395}
+}
+
+@Book{Hansen,
+  Title                    = {Theory of simple liquids},
+  Author                   = {Hansen, J.P. and McDonald, I.R.},
+  Publisher                = {Academic Press},
+  Year                     = {1986},
+
+  Address                  = {London},
+  Edition                  = {2nd},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.05.15}
+}
+
+@Article{Haughney1987,
+  Title                    = {Molecular-Dynamics Simulation of liquid Methanol},
+  Author                   = {Haughney, M. and Ferrario, M. and McDonald, I.R.},
+  Journal                  = {The Journal of Physical Chemistry},
+  Year                     = {1987},
+  Number                   = {19},
+  Pages                    = {4934},
+  Volume                   = {91},
+
+  Doi                      = {10.1021/j100303a011},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.05.11}
+}
+
+@Article{Huang2012,
+  Title                    = {Molecular Modeling and Simulation of Vapor–Liquid Equilibria of Ethylene Oxide, Ethylene Glycol, and Water as Well as their Binary Mixtures},
+  Author                   = {Huang, Y. aHuang, Y., T. and Heilig, M. and Hasse, H. and Vrabec, J.},
+  Journal                  = {Ind. Eng. Chem. Res.},
+  Year                     = {2012},
+  Number                   = {21},
+  Volume                   = {51},
+
+  Doi                      = {10.1021/ie300248z},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Huang2011,
+  Title                    = {Vapor-Liquid Equilibria of Hydrogen Chloride, Phosgene, Benzene, Chlorobenzene, Ortho-Dichlorobenzene and Toluene by Molecular Simulation},
+  Author                   = {Huang, Y. and Heilig, M. and Vrabec, J. and Hasse, H.},
+  Journal                  = {AIChE Journal},
+  Year                     = {2011},
+  Number                   = {4},
+  Pages                    = {1043},
+  Volume                   = {57},
+
+  Doi                      = {10.1002/aic.12329},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Jorgensen1983,
+  Title                    = {Comparison of simple potential functions for simulating liquid water},
+  Author                   = {Jorgensen, W. L. and Chandrasekahr, J. and Madura, J. D. and Impey R. W. and Klein, M. L.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {1983},
+  Number                   = {2},
+  Pages                    = {927},
+  Volume                   = {79},
+
+  Doi                      = {10.1063/1.445869},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.09.16},
+  Url                      = {http://dx.doi.org/10.1063/1.445869}
+}
+
+@Article{Kohns2016,
+  Title                    = {Solvent activity in electrolyte ssolution from molecular simulation of the osmotic pressure},
+  Author                   = {Kohns, M. and Reiser, S. and Horsch, M. and Hasse, H.},
+  Journal                  = {J. Chem. Phys.},
+  Year                     = {2016},
+  Number                   = {144},
+  Pages                    = {084112},
+
+  Doi                      = {10.1063/1.4942500},
+  Owner                    = {Stephan},
+  Timestamp                = {2016.08.23}
+}
+
+@Article{Koester2012,
+  Title                    = {Vapor–liquid equilibria of ethylene (C2H4) + decafluorobutane (C4F10) at 268–298 K from experiment, molecular simulation and the Peng–Robinson equation of state},
+  Author                   = {Köster, A. and Nandi, P. and Windmann, T. and Ramjugernath, D. and Vrabec, J.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2012},
+  Volume                   = {336},
+
+  Doi                      = {10.1016/j.fluid.2012.08.023},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Langenbach2015,
+  Title                    = {On the simultaneous description of h-bonding and dipolar interactions with point charges in force field models},
+  Author                   = {Langenbach, K. and Engin, C. and Reiser, S. and Horsch, M. and Hasse, H.},
+  Journal                  = {AIChE Journal},
+  Year                     = {2015},
+  Number                   = {9},
+  Pages                    = {2926},
+  Volume                   = {61},
+
+  Doi                      = {10.1002/aic.14820},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Book{Leach,
+  Title                    = {Molecular Modelling: Principles and Applications},
+  Author                   = {Leach, Andrew R.},
+  Publisher                = {Prentice Hall},
+  Year                     = {2001},
+
+  Address                  = {Harlow, UK},
+  Edition                  = {2nd edition},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.03.09}
+}
+
+@Article{Mahoney2000,
+  Title                    = {A five-site model for liquid water and the reproduction of the density anomaly by rigid,
+nonpolarizable potential functions},
+  Author                   = {Mahoney, M. W. and Jorgensen, W. L.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2000},
+  Number                   = {20},
+  Pages                    = {8910-8922},
+  Volume                   = {112},
+
+  Doi                      = {10.1063/1.481505},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.08.05},
+  Url                      = {http://dx.doi.org/10.1063/1.481505}
+}
+
+@Article{Merker2010,
+  Title                    = {Molecular model for carbon dioxide optimized to vapor-liquid equilibria},
+  Author                   = {Merker, T. and Engin, C. and Vrabec, J. and Hasse, H.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2010},
+  Pages                    = {234512},
+  Volume                   = {132},
+
+  Doi                      = {10.1063/1.3434530},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Book{Merker2009,
+  Title                    = {HIGH PERFORMANCE COMPUTING IN SCIENCE AND ENGINEERING '08},
+  Author                   = {Merker, T. and Guevara-Carrion, G. and Vrabec, J. and Hasse, H.},
+  Editor                   = {Nagel, W. E. and Kroner, D. B. and Resch, M. M.},
+  Publisher                = {Springer},
+  Year                     = {2009},
+
+  Doi                      = {10.1007/978-3-540-88303-6_37},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.10.04}
+}
+
+@Article{Merker2012,
+  Title                    = {Molecular simulation study on the solubility of carbon dioxide in mixtures of cyclohexane + cyclohexanone},
+  Author                   = {Merker, T. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2012},
+  Pages                    = {77},
+  Volume                   = {315},
+
+  Doi                      = {10.1016/j.fluid.2011.11.003},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Miroshnichenko2013,
+  Title                    = {Molecular simulation of the vapor–liquid phase behavior of cyanides and their binary mixtures},
+  Author                   = {Miroshnichenko, S. and Grützner, T. and Staak, D. and Vrabec, J.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2013},
+  Volume                   = {354},
+
+  Doi                      = {10.1016/j.fluid.2013.06.039},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Munoz2015,
+  Title                    = {Lennard-Jones force field parameters for cyclic alkanes from cyclopropane to cyclohexane},
+  Author                   = {{Munoz-Munoz}, Y.M. and Guevara-Carrion, G. and Llano-Restrepo, M. and Vrabec, J.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2015},
+  Pages                    = {150},
+  Volume                   = {404},
+
+  Doi                      = {10.1016/j.fluid.2015.06.033},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Book{Rappaport,
+  Title                    = {The Art of Molecular Dynamics},
+  Author                   = {Rappaport, D.C.},
+  Publisher                = {Cambridge University Press},
+  Year                     = {2004},
+
+  Address                  = {Cambridge},
+  Edition                  = {2nd},
+
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2015.04.21}
+}
+
+@Article{Reiser2014,
+  Title                    = {Molecular dispersion energy parameters for alkali and halide ions in aqueous solution},
+  Author                   = {Reiser, S. and Deubein, and S. Vrabec, J. and Hasse, H.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2014},
+  Volume                   = {140},
+
+  Doi                      = {http://dx.doi.org/10.1063/1.4858392},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.06.23}
+}
+
+@Article{Schnabel2007_B,
+  Title                    = {Molecular model for formic acid adjusted to vapor–liquid equilibria},
+  Author                   = {Schnabel, T. and Cortada, M. and Vrabec, JVrabec, J., S. and Hasse, H.},
+  Journal                  = {Chemical Physics Letters},
+  Year                     = {2007},
+  Number                   = {4},
+  Pages                    = {268},
+  Volume                   = {435},
+
+  Doi                      = {10.1016/j.cplett.2006.12.091},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Schnabel2007_A,
+  Title                    = {Hydrogen Bonding of Methanol in Supercritical CO2: Comparison between 1H NMR Spectroscopic Data and Molecular Simulation Results},
+  Author                   = {Schnabel, T. and Srivastava, A. and Vrabec, J. and Hasse, H.},
+  Journal                  = {J.Phys.Chem. B},
+  Year                     = {2007},
+  Number                   = {33},
+  Pages                    = {9871},
+  Volume                   = {111},
+
+  Doi                      = {10.1021/jp0720338},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Schnabel2008,
+  Title                    = {Molecular simulation study of hydrogen bonding mixtures and new
+molecular models for mono- and dimethylamine},
+  Author                   = {Schnabel, T. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2008},
+  Pages                    = {144–159},
+  Volume                   = {263},
+
+  Doi                      = {10.1016/j.fluid.2007.10.003},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.06.23}
+}
+
+@Article{Schnabel2005,
+  Title                    = {Henry’s law constants of methane, nitrogen, oxygen and carbon
+dioxide in ethanol from 273 to 498 K: Prediction
+from molecular simulation},
+  Author                   = {Schnabel, T. and Vrabec, J. and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2005},
+  Pages                    = {134-143},
+  Volume                   = {233},
+
+  Doi                      = {10.1016/j.fluid.2005.04.016},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.06.23}
+}
+
+@PhdThesis{Stoll2004,
+  Title                    = {Molecular Models for the Prediction of Thermophysical Properties of Pure Fluids and Mixtures},
+  Author                   = {Stoll, J.},
+  School                   = {Universität Stuttgart},
+  Year                     = {2004},
+
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.05.31}
+}
+
+@Article{Stoll2003,
+  Title                    = {A set of molecular models for carbon monoxide and halogenated hydrocarbons},
+  Author                   = {Stoll, J. and Vrabec, J. and Hasse, H.},
+  Journal                  = {The Journal of Chemical Physics},
+  Year                     = {2003},
+  Pages                    = {11396},
+  Volume                   = {119},
+
+  Doi                      = {10.1063/1.1623475},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Vrabec2009,
+  Title                    = {Molecular models for 267 binary mixtures validated by vapor liquid quilibria: A systematic approach},
+  Author                   = {Vrabec, J. and Huang, Y. and Hasse, H.},
+  Journal                  = {Fluid Phase Equilibria},
+  Year                     = {2009},
+  Number                   = {2},
+  Pages                    = {120-135},
+  Volume                   = {279},
+
+  Doi                      = {10.1016/j.fluid.2009.02.017},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+
+@Article{Varbec2005,
+  Title                    = {Molecular models of unlike interactions in fluid mixtures},
+  Author                   = {Vrabec, J. and Stoll, J. and Hasse, H.},
+  Journal                  = {Molecular Simulation},
+  Year                     = {2005},
+  Number                   = {4},
+  Pages                    = {215–221},
+  Volume                   = {31},
+
+  Doi                      = {10.1080/08927020412331332776},
+  Owner                    = {gkanagalingam},
+  Timestamp                = {2016.06.23}
+}
+
+@Article{Vrabec2001,
+  Title                    = {A Set of Molecular Models for Symmetric Quadrupolar Fluids},
+  Author                   = {Vrabec, J. and Stoll, J. and Hasse, H.},
+  Journal                  = {The Journal of Physical Chemistry B},
+  Year                     = {2001},
+  Number                   = {48},
+  Pages                    = {12126},
+  Volume                   = {105},
+
+  Doi                      = {10.1021/jp012542o},
+  Owner                    = {Simon Stephan},
+  Timestamp                = {2016.04.24}
+}
+

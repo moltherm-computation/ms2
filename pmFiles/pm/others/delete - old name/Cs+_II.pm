@@ -9,7 +9,7 @@ y          =   0.0
 z          =   0.0
 
 sigma      =   3.580  
-epsilon    = 200.00
+epsilon    = 100.00
 mass       = 132.905
 
 SiteType   =   Charge
