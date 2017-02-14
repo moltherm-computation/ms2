@@ -1312,7 +1312,7 @@ contains
 #endif
 
 #if MPI_VER > 0
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
+    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
       allocate(this%NBox0,STAT=stat)
       call AllocationError( stat, 'NProcs' )
       allocate(this%NBox1,STAT=stat)
@@ -1709,7 +1709,7 @@ contains
          if(stat >0) write(*,*) 'Allocation Error Vec2'
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
 
          if (this%KappaL .eq. 0.) then
             this%Kappa = sqrt(PI) * (4.0_RK*this%NPart / this%Volume0**2)**(1._RK/6._RK)
@@ -2067,7 +2067,7 @@ contains
     end if
 
 #ifdef SPME
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call dfftw_destroy_plan(this%qgrid_forward)
       call dfftw_destroy_plan(this%qgrid_backward)
       if ( associated ( this%qgrida ) ) then 
@@ -2179,7 +2179,6 @@ contains
         deallocate( this%Component )
         this%Component => reallocate
         call Construct( this%Component(ncomp), this%Component(i))
-        this%Component(i)%Ntest = 100
       end if
 
     end do
@@ -2956,7 +2955,7 @@ contains
         call EwaldSelfTerm(this)
 
 #ifdef SPME
-      else if (LongRange .eq. PME ) then
+      else if (LongRange .eq. SPME ) then
         this%Kappa = this%KappaL / this%BoxLength
         do i=1,this%NComponents
           do j=1,this%NComponents
@@ -3879,6 +3878,7 @@ contains
     integer, dimension(3)     :: NCells1dim                ! Number of unit cells in one dimension of lattice
 #if OSMOP > 0
     integer                   :: Npermeable, nc1, nm1
+    real(RK), dimension(3)    :: swap
 #endif
 
     NCells = ceiling( real( this%NPart, RK ) / real( NPartInCell, RK ) )
@@ -3894,10 +3894,10 @@ contains
         end if
       end do
 
-      if ( (this%NPart-Npermeable) .gt. 0.5_RK*NCells*NPartInCell ) then
-        NCells = 2._RK * ( ceiling( real( this%NPart-Npermeable, RK ) / real( NPartInCell, RK ) ) )
+      do while ( (this%NPart-Npermeable) .gt. 0.5_RK*NCells*NPartInCell )
+        NCells = 1.2_RK * ( ceiling( real( this%NPart-Npermeable, RK ) / real( NPartInCell, RK ) ) )
         NCells1dim = ceiling( NCells**Third )
-      end if
+      end do
     end if
 #endif
 
@@ -3924,63 +3924,66 @@ contains
 
     ! Set all positions
 loop:do l = 1, NPartInCell
-      do i = 1, NCells1dim(1)
+xloop:do i = 1, NCells1dim(1)
         do j = 1, NCells1dim(2)
           do k = 1, NCells1dim(3)
             nc = select_component( comp )
+! #if OSMOP > 0
+!             if (SimulationType .eq. MolecularDynamics ) then
+!               if ( Npermeable == 0 .and. i < ceiling((NCells1dim(1)+1)/2._RK) ) then
+!                 comp(nc)=comp(nc)+1
+!                 cycle xloop
+!               end if
+!               if ( i < ceiling((NCells1dim(1)+1)/2._RK) ) then
+!                 do while (.not. this%Component(nc)%permeable ) ! set permeable particles as long as some are still to be set
+!                   comp(nc)=comp(nc)+1
+!                   nc = select_component( comp )
+!                 end do
+!               end if
+!               if ( this%Component(nc)%permeable ) Npermeable = Npermeable - 1
+!             end if
+! #endif
             nm = comp(nc) + 1
             pc => this%Component(nc)
-#if OSMOP > 0
-            if (SimulationType .eq. MolecularDynamics) then
-              if ( ((xl(1) * (CellX(l) + i - 1)) .lt. 0.25_RK) .or. ((xl(1) * (CellX(l) + i - 1)) .gt. 0.75_RK) ) then
-                if ( Npermeable > 0 ) then ! set positions randomly as long as permeable particles are still to be set
-                  do while (.not. this%Component(nc)%permeable )
-                    comp(nc)=comp(nc)+1
-                    nc = select_component( comp )
-                  end do
-                else ! if all permeable particles are set, but not all non permeable ones, exchange positions
-                  if (pc%permeable) then
-                    nc1 = nc
-                    nm1 = rnd(pc%NPart)
-                    do while ( (this%Component(nc1)%P0(nm1,1) .lt. 0.25_RK) .or. (this%Component(nc1)%P0(nm1,1) .gt. 0.75_RK) )
-                      nm1 = rnd(this%Component(nc1)%NPart)
-                    end do
-                    do while (this%Component(nc)%permeable )
-                      nc = select_component( comp )
-                    end do
-                    nm = comp(nc) + 1
-                    this%Component(nc)%P0(nm,:) = this%Component(nc1)%P0(nm1,:)
-                    nc = nc1
-                    nm = nm1
-                    pc => this%Component(nc)
-                  else
-                    nc1 = nc
-                    do while (.not. this%Component(nc1)%permeable )
-                      nc1 = rnd(this%NComponents)
-                    end do
-                    nm1 = rnd(this%Component(nc1)%NPart)
-                    do while ( (this%Component(nc1)%P0(nm1,1) .lt. 0.25_RK) .or. (this%Component(nc1)%P0(nm1,1) .gt. 0.75_RK) )
-                      nm1 = rnd(this%Component(nc1)%NPart)
-                    end do
-                    this%Component(nc)%P0(nm,:) = this%Component(nc1)%P0(nm1,:)
-                    pc => this%Component(nc1)
-                  end if
-                end if
-              end if
-            end if
-#endif
             pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1)
             pc%P0(nm, 2) = xl(2) * (CellY(l) + j - 1)
             pc%P0(nm, 3) = xl(3) * (CellZ(l) + k - 1)
             n = n + 1
-#if OSMOP > 0
-            if (this%Component(nc)%permeable .and. SimulationType .eq. MolecularDynamics) Npermeable= Npermeable-1
-#endif
+
             if( n == this%NPart ) exit loop
           end do
         end do
-      end do
+      end do xloop
     end do loop
+
+#if OSMOP > 0
+    do i = 1, this%NComponents
+      if (.not. this%Component(i)%permeable) then
+        do j = 1, this%Component(i)%NPart
+          if ( this%Component(i)%P0(j,1) .le. 0.25_RK .or. this%Component(i)%P0(j,1) .ge. 0.75_RK ) then
+            nc1 = rnd(this%NComponents)
+            do while (.not. this%Component(nc1)%permeable )
+              nc1 = rnd(this%NComponents)
+            end do
+            nm1 = rnd(this%Component(nc1)%NPart)
+            do while ( this%Component(nc1)%P0(nm1,1) .le. 0.25_RK .or. this%Component(nc1)%P0(nm1,1) .ge. 0.75_RK )
+              nm1 = rnd(this%Component(nc1)%NPart)
+            end do
+            swap(:) = this%Component(i)%P0(j,:)
+            this%Component(i)%P0(j,:) = this%Component(nc1)%P0(nm1,:)
+            this%Component(nc1)%P0(nm1,:) = swap(:)
+          end if
+        end do
+      end if
+    end do
+
+    do i = 1, this%NComponents
+      do j = 1, this%Component(i)%NPart
+        write( IOBuffer, '(T10,I3," ",F9.3," ",F9.3," ",F9.3)' ) i, this%Component(i)%P0(j, 1), this%Component(i)%P0(j, 2), this%Component(i)%P0(j, 3)
+        call LogWrite
+      end do
+    end do
+#endif
 
     do i = 1, this%NComponents
       this%Component(i)%P0 = this%Component(i)%P0 - 0.5_RK
@@ -4923,7 +4926,7 @@ loop3:    do nc = 1, this%NComponents
        this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrLJ * NProcs)/NBinsDen
     end do
 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
+    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
         this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
     end if
  
@@ -5592,7 +5595,7 @@ loop3:    do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierTerm (this)
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       call PMEFourierTerm (this)
 #endif
     end if
@@ -5614,7 +5617,7 @@ loop3:    do nc = 1, this%NComponents
     this%d2EpotdV2 = d2EpotdV2
 #endif
 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
+    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
       if( RootProc ) then
        this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
        this%Virial = this%Virial + this%EVirial
@@ -6213,7 +6216,7 @@ loop2:        do nc = 1, this%NComponents
       call EwaldSelfTerm_Energy ( this )
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       call PMESelfTermMC ( this )
 #endif
     end if
@@ -6251,7 +6254,7 @@ loop2:        do nc = 1, this%NComponents
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #ifdef SPME
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       call charge_grid_MCall ( this )
       call PMEFourierTermMC ( this )
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -6300,7 +6303,7 @@ loop2:        do nc = 1, this%NComponents
        EPotNew = EPotnew + this%UFourier
 #ifdef SPME
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
@@ -6343,7 +6346,7 @@ loop2:        do nc = 1, this%NComponents
        EPotNew = EPotnew + this%UFourier
 #ifdef SPME
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
@@ -6391,7 +6394,7 @@ loop2:        do nc = 1, this%NComponents
        EPotNew = EPotnew + this%UFourier + this%USelbstTerm + this%UIntra
 #ifdef SPME
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
@@ -6434,7 +6437,7 @@ loop2:        do nc = 1, this%NComponents
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #ifdef SPME
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       call charge_grid_MCall (this)
       call PMEFourierTermMC(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -6470,7 +6473,7 @@ loop2:        do nc = 1, this%NComponents
     end do
 
 ! Ewald 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME)) then
       E = E + this%UFourier
     end if
 
@@ -6510,7 +6513,7 @@ loop2:        do nc = 1, this%NComponents
 !       call EwaldFourierEnergy(this)
        V = V + this%EVirial
 
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        V = V + this%EVirial
     end if
 
@@ -6594,7 +6597,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6614,7 +6617,7 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6658,7 +6661,7 @@ loop2:        do nc = 1, this%NComponents
           call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -6722,7 +6725,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6743,7 +6746,7 @@ loop2:        do nc = 1, this%NComponents
     call Mol2Atom1( pc, np )
 
 #ifdef SPME
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6786,7 +6789,7 @@ loop2:        do nc = 1, this%NComponents
         call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -6850,7 +6853,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6870,7 +6873,7 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6929,7 +6932,7 @@ loop2:        do nc = 1, this%NComponents
           call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -6993,7 +6996,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -7014,7 +7017,7 @@ loop2:        do nc = 1, this%NComponents
     call Mol2Atom1( pc, np )
 
 #ifdef SPME
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7072,7 +7075,7 @@ loop2:        do nc = 1, this%NComponents
         call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -7136,7 +7139,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -7156,7 +7159,7 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7213,7 +7216,7 @@ loop2:        do nc = 1, this%NComponents
           call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -7275,7 +7278,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -7296,7 +7299,7 @@ loop2:        do nc = 1, this%NComponents
     call Mol2Atom1( pc, np )
 
 #ifdef SPME
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7351,7 +7354,7 @@ loop2:        do nc = 1, this%NComponents
         call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -7425,7 +7428,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
@@ -7455,7 +7458,7 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
     ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7498,7 +7501,7 @@ loop2:        do nc = 1, this%NComponents
           call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
@@ -7570,7 +7573,7 @@ loop2:        do nc = 1, this%NComponents
       END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
@@ -7592,7 +7595,7 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
     ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. PME) then
+    if (LongRange .eq. SPME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7634,7 +7637,7 @@ loop2:        do nc = 1, this%NComponents
         call EwaldFourierEnergy(this,nc,np)
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
@@ -7854,11 +7857,11 @@ loop2:        do nc = 1, this%NComponents
 
 #ifdef SPME
 ! ----------------------------------------------------------------
-    else if (LongRange .eq. PME) then ! PME 
+    else if (LongRange .eq. SPME) then ! SPME 
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call PMESetup(this)
-      write (*,*) 'Gradual Insertion does not yet work with PME'
+      write (*,*) 'Gradual Insertion does not yet work with SPME'
       STOP
 #endif
 ! ----------------------------------------------------------------
@@ -8191,8 +8194,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     else ! MolecularDynamics
 
       if (RootProc) then
-        LambdaNew=pt%Lambda+0.2_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
-        ! should be 1/10 of MC-stepwidth for equl distribution (esimation by Gabor and Michael)
+        LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+        ! should be 1/10 of MC-stepwidth for equl distribution (estimation by Gabor and Michael)
         if (LambdaNew<pc%LaMin) then
           LambdaNew = pc%LaMin
         elseif (LambdaNew>=pc%LaMax) then
@@ -8326,12 +8329,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end if 
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then           ! PME-SUMMATION
+    else if (LongRange .eq. SPME) then           ! SPME-SUMMATION
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
       call chargegrid_plus (this, nc, np)
       call PMESelfTermMC( this )
-      write (*,*) 'Insertion and Deletion is not supported for PME!'
+      write (*,*) 'Insertion and Deletion is not supported for SPME!'
       STOP
 #endif
 
@@ -8488,7 +8491,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end if
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       EVirialIntra = this%EVirialIntra
@@ -8502,7 +8505,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%Component(nc)%NPart = this%Component(nc)%NPart + 1
-      write(*,*) 'Molecule Deletion is not supported yet with PME'
+      write(*,*) 'Molecule Deletion is not supported yet with SPME'
       STOP
 #endif
 
@@ -8686,7 +8689,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        end if
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
@@ -8779,7 +8782,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
 #ifdef SPME
-        else if (LongRange .eq. PME) then
+        else if (LongRange .eq. SPME) then
           this%UIntra = UIntra
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
@@ -8849,7 +8852,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
 #ifdef SPME
-        else if (LongRange .eq. PME) then
+        else if (LongRange .eq. SPME) then
           this%UIntra = UIntra
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
@@ -8966,12 +8969,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
-         this%UIntra = UIntra
-         this%EVirialIntra = EVirialIntra
-         this%UFourier = UFourier
-         this%EVirial = EVirial
-         call charge_grid_MCall ( this )
+      else if (LongRange .eq. SPME) then
+        call charge_grid_MCall ( this )
 #endif
       end if
     end if
@@ -8980,7 +8979,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Resize_VaporPhase                     !
+!  Subroutine TEnsemble_Resize_VaporPhase                      !
 !==============================================================!
 
   subroutine TEnsemble_Resize_vap( this,dv,EPotDelta,accept )
@@ -9015,7 +9014,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        EVirial = this%EVirial
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
@@ -9074,7 +9073,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
 #ifdef SPME
-      else if (LongRange .eq. PME) then
+      else if (LongRange .eq. SPME) then
          this%UIntra = UIntra
          this%EVirialIntra = EVirialIntra
          this%UFourier = UFourier
@@ -9185,7 +9184,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       EVirialIntra = this%EVirialIntra
@@ -9199,7 +9198,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%Component(nc)%NPart = this%Component(nc)%NPart + 1
-      write(*,*) 'Molecule Deletion is not supported yet with PME'
+      write(*,*) 'Molecule Deletion is not supported yet with SPME'
       STOP
 #endif
 
@@ -14433,7 +14432,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           q(2:4) = 0._RK
         end if
 
-        where( r(:) < 0._RK ) r(:) = r(:) + 1._RK
+        r(:) = r(:) + .5_RK
         write( IOBuffer, '("!", I3, 3I4, 4I5)' ) i, nint( r(:) * 999 ), nint( q(:) * 999 )
         call FileWrite( this%iounit_visual )
       end do
@@ -15412,7 +15411,7 @@ endif
          END DO
 
 #ifdef SPME
-    else if (LongRange .eq. PME) then
+    else if (LongRange .eq. SPME) then
     ! Calculate initial energies for the Ewald Summation
        this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
        do i=1,this%NComponents
@@ -16716,7 +16715,7 @@ endif
    integer            :: xi,yi,zi
    integer            :: x,y,z
 
-   real(RK)           :: err,err2
+   real(RK)           :: err
 
    real(RK)           :: qgrid_safe
 
@@ -16760,10 +16759,8 @@ endif
    qgrid => this%qgrida
    mult = 0._RK
    mult2 = 0._RK
-   j=NProc+1
-   i0 = this%NBox0(j)
-   i1 = this%NBox2(j)
-   err = 0
+   i0 = this%NBox0
+   i1 = this%NBox2
    DO i=i0,i1,1
 #else
    DO i=2,ngrid
@@ -16801,7 +16798,6 @@ endif
 
      EPotLocal = EPotLocal + eterm*struc
 
-     err = err + 1
      VirialLocal = VirialLocal + eterm*struc*(3._RK  + wterm)
 
 #if MPI_VER > 0
@@ -16816,7 +16812,6 @@ endif
       call MPI_Reduce( EPotLocal, this%UFourier, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( VirialLocal, this%EVirial, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( mult, mult2, ngrid+1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( err, err2, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
       this%UFourier = 0.5*this%UFourier * fac2
       this%EVirial  = -0.5*(this%EVirial)*fac2*Third
@@ -16832,8 +16827,7 @@ endif
 
    call dfftw_execute(this%qgrid_forward)
 
-! Last factor cause of multiplication with unitlength/angstroem in multiplication of this%qgrida! (look just some lines above this
-comment!)
+! Last factor cause of multiplication with unitlength/angstroem in multiplication of this%qgrida! (look just some lines above this comment!)
   facx = NX / boxl * fac2s / factor
   facy = NY / boxl * fac2s / factor
   facz = NZ / boxl * fac2s / factor
@@ -17226,7 +17220,7 @@ contains
     call dfftw_plan_dft_3d(this%qgrid_forward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_FORWARD,FFTW_PATIENT)
     call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_BACKWARD,FFTW_PATIENT)
 
-    else if (SimulationType .eq. (MonteCarlo .or. Gibbs) ) then
+    else if (SimulationType .eq. MonteCarlo .or. SimulationType .eq. Gibbs ) then
     call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgridb,FFTW_BACKWARD,FFTW_PATIENT)
     end if
 
@@ -17272,13 +17266,7 @@ contains
    END DO
 
 #if MPI_VER > 0
-    this%NBox1 = 1 +(ngrid - 1) / NProcs
-    DO i=1,NProcs
-      this%NBox0(i) = 1 + this%NBox1(i) * (i-1)
-    END DO
-    this%NBox2 = min(this%NBox0 + this%NBox1 - 1, ngrid)
-    this%NBox0(1) = 2
-    this%NBox1 = this%NBox2 - this%NBox0
+    this%NBox1 = ProcRange( ngrid, this%NBox0, this%NBox2 )
 #endif
 
 
@@ -17559,9 +17547,8 @@ contains
 
 ! Summation over all the Energies
 #if MPI_VER > 0
-   j=NProc+1
-   i0 = this%NBox0(j)
-   i1 = this%NBox2(j)
+   i0 = this%NBox0
+   i1 = this%NBox2
    DO i=i0,i1,1
 #else
    DO i=2,ngrid
@@ -18113,14 +18100,20 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-         !TODO: Check if this should be changed to ErrorApprox
-         call erfc_approx(KappaRij,approx)
+!          !TODO: Check if this should be changed to ErrorApprox
+!          call erfc_approx(KappaRij,approx)
+         !Michael: For SPME correct?
+         if (dr .ge. 0.0000001) then
+           call ErrorApprox(this%Interaction(i,i)%PotChargeCharge(j,jj), KappaRij, approx)
+           Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
+         else
+           Fij  = (qj*qjj/dr - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
+         end if
 
          eX = dx / dr
          eY = dy / dr
          eZ = dz / dr
 
-         Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
 
          Virloc = Virloc + Fij* (eX * dx + eY * dy + eZ * dz)
         END DO
@@ -18144,14 +18137,19 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-         !TODO: Check if this should be changed to ErrorApprox
-         call erfc_approx(KappaRij,approx)
+!          !TODO: Check if this should be changed to ErrorApprox
+!          call erfc_approx(KappaRij,approx)
+         !Michael: For SPME correct?
+         if (dr .ge. 0.0000001) then
+           call ErrorApprox(this%Interaction(i,i)%PotChargeCharge(j,jj), KappaRij, approx)
+           Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
+         else
+           Fij  = (qj*qjj/dr - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
+         end if
 
          eX = dx / dr
          eY = dy / dr
          eZ = dz / dr
-
-         Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
 
          Virloc = Virloc + Fij* (eX * dx + eY * dy + eZ * dz)
         END DO

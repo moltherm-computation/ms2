@@ -230,9 +230,9 @@ module ms2_component
 !DEBUG
 
     ! Variables for Thermodynamic Integration
-    integer           :: NBins, LambdaExponent
+    integer           :: NBins
     integer, pointer, contiguous  :: BinsVisit(:)
-    real(RK)          :: Lambda, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
+    real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
     real(RK), pointer, contiguous :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
 
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
@@ -624,12 +624,24 @@ contains
         call FileReadParameter( this%NBins, iounit_params , IdNBins, .false., 100 )
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I7)' ) this%NBins
         call LogWrite
-        call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+        else
+          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+        end if
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
         call LogWrite
-        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4)
-        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, I7)' ) this%LambdaExponent
+        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
+        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F7.5)' ) this%LambdaExponent
         call LogWrite
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 100 )
+        write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
+        call LogWrite
+#if MPI_VER>0
+        if (SimulationType .eq. MolecularDynamics) then
+          this%NTest = ((this%NTest-1)/NProcs +1)
+        endif
+#endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
           write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
