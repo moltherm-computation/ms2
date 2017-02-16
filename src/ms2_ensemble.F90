@@ -10076,7 +10076,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
            ! Number of steps
-           write( IOBuffer, '("           NR")' )
+           write( IOBuffer, '("         NR")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
