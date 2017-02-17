@@ -2828,10 +2828,15 @@ contains
     t = this%NRealComponents+1
     do i = 1, this%NRealComponents
       pc => this%Component(i)
-      if (pc%ChemPotMethod == ChemPotMethodThermoInt ) then
-        pc%NPart = pc%NPart - 1
-        this%Component(t)%NPart = 1
-        t = t+1
+      if ( pc%ChemPotMethod == ChemPotMethodThermoInt ) then
+        if ( pc%NPart >= 1) then
+          pc%NPart = pc%NPart - 1
+          this%Component(t)%NPart = 1
+          t = t+1
+        else
+          write (ErrorBuffer,'("At least one particle of ", A, " is required for Thermodynamic Integration" ,T45)' ) trim( pc%PotModFileName )
+          call Error
+        end if
       end if
     end do
 
