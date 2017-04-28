@@ -3,7 +3,7 @@ NSiteTypes =   1
 SiteType   =   LJ126
 NSites     =   1
 
-# Xe
+# CH4
 x          =   0.0
 y          =   0.0
 z          =   0.0

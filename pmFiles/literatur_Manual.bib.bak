@@ -1,5 +1,4 @@
-% This file was created with JabRef 2.10.
-% Encoding: UTF8
+% Encoding: UTF-8
 
 
 @Book{Allen,
@@ -581,3 +580,16 @@ from molecular simulation},
   Timestamp                = {2016.04.24}
 }
 
+@Article{Windmann2013,
+  author  = {Windmann, T. and Linnemann, M. and Vrabec, J.},
+  title   = {Fluid Phase Behavior of Nitrogen + Acetone and Oxygen + Acetone by Molecular Simulation, Experiment and the Peng-Robinson Equation of State},
+  journal = {Journal of Chemical \& Engineering Data},
+  year    = {2013},
+  volume  = {59},
+  number  = {1},
+  pages   = {28-38},
+  doi     = {10.1021/je400691f},
+  url     = {http://www.dx.doi.org/10.1021/je400691f},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}
