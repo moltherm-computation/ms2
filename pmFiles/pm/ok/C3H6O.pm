@@ -38,6 +38,7 @@ mass       =   15.035
 SiteType   =   Dipole
 NSites     =   1
 
+# d
 x          =   0.0
 y          =   0.0
 z          =   0.0
@@ -49,6 +50,7 @@ shielding  =   1.0
 SiteType   =   Quadrupole
 NSites     =   1
 
+#q
 x          =   0.0
 y          =  -0.8031
 z          =   0.0
