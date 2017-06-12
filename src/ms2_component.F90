@@ -239,7 +239,7 @@ module ms2_component
     real(RK) :: LiqFraction
 
     ! Long-range corrections
-    real(RK) :: EPotTestCorrLJ
+    real(RK) :: EPotTestCorrMIE
     real(RK) :: EPotTestCorrRF
 
     ! Accumulated sums, averages and errors
@@ -1404,27 +1404,27 @@ contains
     end if
 
     ! Site positions, orientations, forces and torques
-    do i = 1, this%Molecule%NLJ126
-      this%Molecule%SiteLJ126(i)%NPartMax => this%NPartMax
-      this%Molecule%SiteLJ126(i)%NPart => this%NPart
-      this%Molecule%SiteLJ126(i)%NTest => this%NTest
-      this%Molecule%SiteLJ126(i)%NPart0 => this%NPart0
-      this%Molecule%SiteLJ126(i)%NPart1 => this%NPart1
-      this%Molecule%SiteLJ126(i)%NPart2 => this%NPart2
+    do i = 1, this%Molecule%NMIEnm
+      this%Molecule%SiteMIEnm(i)%NPartMax => this%NPartMax
+      this%Molecule%SiteMIEnm(i)%NPart => this%NPart
+      this%Molecule%SiteMIEnm(i)%NTest => this%NTest
+      this%Molecule%SiteMIEnm(i)%NPart0 => this%NPart0
+      this%Molecule%SiteMIEnm(i)%NPart1 => this%NPart1
+      this%Molecule%SiteMIEnm(i)%NPart2 => this%NPart2
 
-      call Allocate( this%Molecule%SiteLJ126(i) )
-      this%Molecule%SiteLJ126(i)%PX => this%P0(:, 1)
-      this%Molecule%SiteLJ126(i)%PY => this%P0(:, 2)
-      this%Molecule%SiteLJ126(i)%PZ => this%P0(:, 3)
+      call Allocate( this%Molecule%SiteMIEnm(i) )
+      this%Molecule%SiteMIEnm(i)%PX => this%P0(:, 1)
+      this%Molecule%SiteMIEnm(i)%PY => this%P0(:, 2)
+      this%Molecule%SiteMIEnm(i)%PZ => this%P0(:, 3)
 
       if( ntest > 0 ) then
-        this%Molecule%SiteLJ126(i)%PXTest => this%P0Test(:, 1)
-        this%Molecule%SiteLJ126(i)%PYTest => this%P0Test(:, 2)
-        this%Molecule%SiteLJ126(i)%PZTest => this%P0Test(:, 3)
+        this%Molecule%SiteMIEnm(i)%PXTest => this%P0Test(:, 1)
+        this%Molecule%SiteMIEnm(i)%PYTest => this%P0Test(:, 2)
+        this%Molecule%SiteMIEnm(i)%PZTest => this%P0Test(:, 3)
       end if
 
 #if TRANS==1
-      this%Molecule%SiteLJ126(i)%Q0r => this%Q0
+      this%Molecule%SiteMIEnm(i)%Q0r => this%Q0
 #endif
     end do
 
@@ -1767,8 +1767,8 @@ contains
 #endif
 
     ! Site positions, orientations, forces and torques
-    do i = 1, this%Molecule%NLJ126
-      call Deallocate( this%Molecule%SiteLJ126(i) )
+    do i = 1, this%Molecule%NMIEnm
+      call Deallocate( this%Molecule%SiteMIEnm(i) )
     end do
     do i = 1, this%Molecule%NCharge
       call Deallocate( this%Molecule%SiteCharge(i) )
@@ -2103,7 +2103,7 @@ contains
     real(RK)                       :: A31(l), A32(l), A33(l)
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2142,11 +2142,7 @@ contains
         q4 = this%Q0(i-1+i0, 4)
 
         ! Normalise quaternions
-#if ARCH == 3
-        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
         qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
         q1 = q1 * qinv
         q2 = q2 * qinv
         q3 = q3 * qinv
@@ -2168,16 +2164,16 @@ contains
         A33(i) = q1**2 - q2**2 - q3**2 + q4**2
       end do
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
-        r1 = pLJ126%r(1) * BoxLengthInv
-        r2 = pLJ126%r(2) * BoxLengthInv
-        r3 = pLJ126%r(3) * BoxLengthInv
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
+        r1 = pMIEnm%r(1) * BoxLengthInv
+        r2 = pMIEnm%r(2) * BoxLengthInv
+        r3 = pMIEnm%r(3) * BoxLengthInv
         do i = 1, l
-          pLJ126%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pLJ126%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pLJ126%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pMIEnm%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pMIEnm%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pMIEnm%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2246,13 +2242,13 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, l
-          pLJ126%RX(i-1+i0) = this%P0(i, 1)
-          pLJ126%RY(i-1+i0) = this%P0(i, 2)
-          pLJ126%RZ(i-1+i0) = this%P0(i, 3)
+          pMIEnm%RX(i-1+i0) = this%P0(i, 1)
+          pMIEnm%RY(i-1+i0) = this%P0(i, 2)
+          pMIEnm%RZ(i-1+i0) = this%P0(i, 3)
         end do
       end do
 
@@ -2291,7 +2287,7 @@ contains
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2313,11 +2309,7 @@ contains
       q2 = this%Q0(np, 2)
       q3 = this%Q0(np, 3)
       q4 = this%Q0(np, 4)
-#if ARCH == 3
-      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
       qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
       q1 = q1 * qinv
       q2 = q2 * qinv
       q3 = q3 * qinv
@@ -2338,15 +2330,15 @@ contains
       A32 = 2._RK * (q3 * q4 - q1 * q2)
       A33 = q1**2 - q2**2 - q3**2 + q4**2
 
-      ! Loop over LJ126 sites in molecule
-      do i = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(i)
-        r1 = pLJ126%r(1) * BoxLengthInv
-        r2 = pLJ126%r(2) * BoxLengthInv
-        r3 = pLJ126%r(3) * BoxLengthInv
-        pLJ126%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
-        pLJ126%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
-        pLJ126%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+      ! Loop over MIEnm sites in molecule
+      do i = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(i)
+        r1 = pMIEnm%r(1) * BoxLengthInv
+        r2 = pMIEnm%r(2) * BoxLengthInv
+        r3 = pMIEnm%r(3) * BoxLengthInv
+        pMIEnm%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pMIEnm%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pMIEnm%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over charge sites in molecule
@@ -2406,12 +2398,12 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do i = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(i)
-        pLJ126%RX(np) = PXi
-        pLJ126%RY(np) = PYi
-        pLJ126%RZ(np) = PZi
+      ! Loop over MIEnm sites in molecule
+      do i = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(i)
+        pMIEnm%RX(np) = PXi
+        pMIEnm%RY(np) = PYi
+        pMIEnm%RZ(np) = PZi
       end do
 
       ! Loop over charge sites in molecule
@@ -2450,7 +2442,7 @@ contains
     real(RK)                       :: A31(np), A32(np), A33(np)
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2485,16 +2477,16 @@ contains
         A33(i) = q1**2 - q2**2 - q3**2 + q4**2
       end do
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
-        r1 = pLJ126%r(1) * BoxLengthInv
-        r2 = pLJ126%r(2) * BoxLengthInv
-        r3 = pLJ126%r(3) * BoxLengthInv
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
+        r1 = pMIEnm%r(1) * BoxLengthInv
+        r2 = pMIEnm%r(2) * BoxLengthInv
+        r3 = pMIEnm%r(3) * BoxLengthInv
         do i = 1, np
-          pLJ126%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pLJ126%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pLJ126%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pMIEnm%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pMIEnm%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pMIEnm%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2563,13 +2555,13 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do i = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(i)
+      ! Loop over MIEnm sites in molecule
+      do i = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(i)
         do j = 1, np
-          pLJ126%RXTest(j) = this%P0Test(j, 1)
-          pLJ126%RYTest(j) = this%P0Test(j, 2)
-          pLJ126%RZTest(j) = this%P0Test(j, 3)
+          pMIEnm%RXTest(j) = this%P0Test(j, 1)
+          pMIEnm%RYTest(j) = this%P0Test(j, 2)
+          pMIEnm%RZTest(j) = this%P0Test(j, 3)
         end do
       end do
 
@@ -2615,7 +2607,7 @@ contains
     real(RK)                       :: q1(l), q2(l), q3(l), q4(l)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2673,16 +2665,16 @@ contains
       q3(:) = this%Q0(i0:i1, 3)
       q4(:) = this%Q0(i0:i1, 4)
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, l
-          fx = pLJ126%FX(i-1+i0)
-          fy = pLJ126%FY(i-1+i0)
-          fz = pLJ126%FZ(i-1+i0)
-          r1x = ( pLJ126%RX(i-1+i0) - rx(i) ) * BoxLength
-          r1y = ( pLJ126%RY(i-1+i0) - ry(i) ) * BoxLength
-          r1z = ( pLJ126%RZ(i-1+i0) - rz(i) ) * BoxLength
+          fx = pMIEnm%FX(i-1+i0)
+          fy = pMIEnm%FY(i-1+i0)
+          fz = pMIEnm%FZ(i-1+i0)
+          r1x = ( pMIEnm%RX(i-1+i0) - rx(i) ) * BoxLength
+          r1y = ( pMIEnm%RY(i-1+i0) - ry(i) ) * BoxLength
+          r1z = ( pMIEnm%RZ(i-1+i0) - rz(i) ) * BoxLength
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
           this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
           this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
@@ -2778,13 +2770,13 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, l
-          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pLJ126%FX(i-1+i0)
-          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pLJ126%FY(i-1+i0)
-          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pLJ126%FZ(i-1+i0)
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pMIEnm%FX(i-1+i0)
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pMIEnm%FY(i-1+i0)
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pMIEnm%FZ(i-1+i0)
         end do
       end do
 
@@ -2854,7 +2846,7 @@ contains
     real(RK)                       :: q1, q2, q3, q4
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2877,15 +2869,15 @@ contains
       q3 = this%Q0(np, 3)
       q4 = this%Q0(np, 4)
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
-        fx = pLJ126%FX(np)
-        fy = pLJ126%FY(np)
-        fz = pLJ126%FZ(np)
-        r1x = ( pLJ126%RX(np) - rx ) * BoxLength
-        r1y = ( pLJ126%RY(np) - ry ) * BoxLength
-        r1z = ( pLJ126%RZ(np) - rz ) * BoxLength
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
+        fx = pMIEnm%FX(np)
+        fy = pMIEnm%FY(np)
+        fz = pMIEnm%FZ(np)
+        r1x = ( pMIEnm%RX(np) - rx ) * BoxLength
+        r1y = ( pMIEnm%RY(np) - ry ) * BoxLength
+        r1z = ( pMIEnm%RZ(np) - rz ) * BoxLength
         this%F(np, 1) = this%F(np, 1) + fx
         this%F(np, 2) = this%F(np, 2) + fy
         this%F(np, 3) = this%F(np, 3) + fz
@@ -2972,12 +2964,12 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
-        this%F(np, 1) = this%F(np, 1) + pLJ126%FX(np)
-        this%F(np, 2) = this%F(np, 2) + pLJ126%FY(np)
-        this%F(np, 3) = this%F(np, 3) + pLJ126%FZ(np)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
+        this%F(np, 1) = this%F(np, 1) + pMIEnm%FX(np)
+        this%F(np, 2) = this%F(np, 2) + pMIEnm%FY(np)
+        this%F(np, 3) = this%F(np, 3) + pMIEnm%FZ(np)
       end do
 
       ! Loop over charge sites in molecule
@@ -3018,7 +3010,7 @@ contains
     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -3073,43 +3065,43 @@ contains
       q3(:) = this%Q0(:, 3)
       q4(:) = this%Q0(:, 4)
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, np
-          fx = pLJ126%FX(i)
-          fy = pLJ126%FY(i)
-          fz = pLJ126%FZ(i)
+          fx = pMIEnm%FX(i)
+          fy = pMIEnm%FY(i)
+          fz = pMIEnm%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
-          vsx = pLJ126%vsLJx(i)
-          vsy = pLJ126%vsLJy(i)
-          vsz = pLJ126%vsLJz(i)
-          vbx = pLJ126%vbLJx(i)
-          vby = pLJ126%vbLJy(i)
-          vbz = pLJ126%vbLJz(i)
+          vsx = pMIEnm%vsMIEx(i)
+          vsy = pMIEnm%vsMIEy(i)
+          vsz = pMIEnm%vsMIEz(i)
+          vbx = pMIEnm%vbMIEx(i)
+          vby = pMIEnm%vbMIEy(i)
+          vbz = pMIEnm%vbMIEz(i)
        !   if (this%Conductivity) then
-            vsux= pLJ126%vsuLJx(i)
-            vsuy= pLJ126%vsuLJy(i)
-            vsuz= pLJ126%vsuLJz(i)
-            cx  = pLJ126%cLJx(i)
-            cy  = pLJ126%cLJy(i)
-            cz  = pLJ126%cLJz(i)
-            tux = pLJ126%tuLJx(i)
-            tuy = pLJ126%tuLJy(i)
-            tuz = pLJ126%tuLJz(i)
-            tlx = pLJ126%tlLJx(i)
-            tly = pLJ126%tlLJy(i)
-            tlz = pLJ126%tlLJz(i)
-            tdx = pLJ126%tdLJx(i)
-            tdy = pLJ126%tdLJy(i)
-            tdz = pLJ126%tdLJz(i)
+            vsux= pMIEnm%vsuMIEx(i)
+            vsuy= pMIEnm%vsuMIEy(i)
+            vsuz= pMIEnm%vsuMIEz(i)
+            cx  = pMIEnm%cMIEx(i)
+            cy  = pMIEnm%cMIEy(i)
+            cz  = pMIEnm%cMIEz(i)
+            tux = pMIEnm%tuMIEx(i)
+            tuy = pMIEnm%tuMIEy(i)
+            tuz = pMIEnm%tuMIEz(i)
+            tlx = pMIEnm%tlMIEx(i)
+            tly = pMIEnm%tlMIEy(i)
+            tlz = pMIEnm%tlMIEz(i)
+            tdx = pMIEnm%tdMIEx(i)
+            tdy = pMIEnm%tdMIEy(i)
+            tdz = pMIEnm%tdMIEz(i)
        !   end if
           !TRANSPORT_END
 #endif
-          r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
-          r1y = ( pLJ126%RY(i) - ry(i) ) * BoxLength
-          r1z = ( pLJ126%RZ(i) - rz(i) ) * BoxLength
+          r1x = ( pMIEnm%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pMIEnm%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pMIEnm%RZ(i) - rz(i) ) * BoxLength
           this%F(i, 1) = this%F(i, 1) + fx
           this%F(i, 2) = this%F(i, 2) + fy
           this%F(i, 3) = this%F(i, 3) + fz
@@ -3420,31 +3412,31 @@ contains
 
     else
 
-      ! Loop over LJ126 sites in molecule
-      do j = 1, this%Molecule%NLJ126
-        pLJ126 => this%Molecule%SiteLJ126(j)
+      ! Loop over MIEnm sites in molecule
+      do j = 1, this%Molecule%NMIEnm
+        pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, np
 #if  TRANS == 1
         !TRANSPORT_start
-          vsx = pLJ126%vsLJx(i)
-          vsy = pLJ126%vsLJy(i)
-          vsz = pLJ126%vsLJz(i)
-          vbx = pLJ126%vbLJx(i)
-          vby = pLJ126%vbLJy(i)
-          vbz = pLJ126%vbLJz(i)
+          vsx = pMIEnm%vsMIEx(i)
+          vsy = pMIEnm%vsMIEy(i)
+          vsz = pMIEnm%vsMIEz(i)
+          vbx = pMIEnm%vbMIEx(i)
+          vby = pMIEnm%vbMIEy(i)
+          vbz = pMIEnm%vbMIEz(i)
      !     if (this%Conductivity) then
-            vsux= pLJ126%vsuLJx(i)
-            vsuy= pLJ126%vsuLJy(i)
-            vsuz= pLJ126%vsuLJz(i)
-            cx  = pLJ126%cLJx(i)
-            cy  = pLJ126%cLJy(i)
-            cz  = pLJ126%cLJz(i)
+            vsux= pMIEnm%vsuMIEx(i)
+            vsuy= pMIEnm%vsuMIEy(i)
+            vsuz= pMIEnm%vsuMIEz(i)
+            cx  = pMIEnm%cMIEx(i)
+            cy  = pMIEnm%cMIEy(i)
+            cz  = pMIEnm%cMIEz(i)
       !    end if
           !TRANSPORT_END
 #endif
-          this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
-          this%F(i, 2) = this%F(i, 2) + pLJ126%FY(i)
-          this%F(i, 3) = this%F(i, 3) + pLJ126%FZ(i)
+          this%F(i, 1) = this%F(i, 1) + pMIEnm%FX(i)
+          this%F(i, 2) = this%F(i, 2) + pMIEnm%FY(i)
+          this%F(i, 3) = this%F(i, 3) + pMIEnm%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
           this%FS(i, 1) = this%FS(i, 1) + vsx
@@ -3556,7 +3548,7 @@ contains
     ! Initialize local arrays
     this%DensityProfileN(:) = 0
 
-    ! Loop over LJ126 sites in molecule
+    ! Loop over MIEnm sites in molecule
 #if MPI_VER > 0
 loop1:do i = this%NPart0, this%NPart2
 #else

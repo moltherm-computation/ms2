@@ -52,9 +52,9 @@ module ms2_molecule
     ! Principal moments of inertia
     real(RK) :: MOI(3)
 
-    ! 12-6 Lennard-Jones sites
-    integer :: NLJ126
-    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
+    ! MIE sites
+    integer :: NMIEnm
+    type(TSiteMIEnm), pointer, contiguous :: SiteMIEnm(:)
 
     ! Coulomb sites
     integer :: NCharge
@@ -140,7 +140,7 @@ contains
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
 
     ! Nullify pointers.
-    nullify( this%SiteLJ126 )
+    nullify( this%SiteMIEnm )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
@@ -153,24 +153,37 @@ contains
     call FileReadParameter( ntypes, iounit_potmod, IdSite_ntypes, .false. )
 
     ! Zero number of sites
-    this%NLJ126 = 0
+    this%NMIEnm = 0
     this%NCharge = 0
     this%Charge = 0._RK
     this%NDipole = 0
     this%NQuadrupole = 0
 
+
+	
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
-
-      case( 'LJ126', 'lj126', 'LJ', 'lj' )
-        call FileReadParameter( this%NLJ126, iounit_potmod, IdSite_NLJ126, .false. )
-        if( this%NLJ126 > 0 ) then
-          allocate( this%SiteLJ126(this%NLJ126), STAT = stat )
-          call AllocationError( stat, 'Lennard-Jones sites', this%NLJ126 )
-          do j = 1, this%NLJ126
-            call Construct( this%SiteLJ126(j) )
+      case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
+	  LJorMIE = 'MIE'
+        call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        if( this%NMIEnm > 0 ) then
+          allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
+          call AllocationError( stat, 'MIE sites', this%NMIEnm )
+          do j = 1, this%NMIEnm
+            call Construct( this%SiteMIEnm(j) )
+          end do
+        end if
+		
+	  case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
+	  LJorMIE = 'LJ'
+	    call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        if( this%NMIEnm > 0 ) then
+          allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
+          call AllocationError( stat, 'LJ sites', this%NMIEnm )
+          do j = 1, this%NMIEnm
+            call Construct( this%SiteMIEnm(j) )
           end do
         end if
 
@@ -209,6 +222,7 @@ contains
         call Error( trim( stype )//' potential is not implemented' )
       end select
     end do
+
 
     ! Read number of rotation axes
     call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
@@ -258,10 +272,10 @@ contains
 &         call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
 
       ! Apply scaling factors
-      do i = 1, this%NLJ126
-        this%SiteLJ126(i)%r = this%SiteLJ126(i)%r * scalegeo
-        this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
-        this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
+      do i = 1, this%NMIEnm
+        this%SiteMIEnm(i)%r = this%SiteMIEnm(i)%r * scalegeo
+        this%SiteMIEnm(i)%sig = this%SiteMIEnm(i)%sig * scalesig
+        this%SiteMIEnm(i)%eps = this%SiteMIEnm(i)%eps * scaleeps
       end do
 
       do i = 1, this%NCharge
@@ -333,11 +347,11 @@ contains
     integer :: i
 
     ! Deallocate arrays
-    if( associated( this%SiteLJ126 ) ) then
-      do i = 1, this%NLJ126
-        call Destruct( this%SiteLJ126(i) )
+    if( associated( this%SiteMIEnm ) ) then
+      do i = 1, this%NMIEnm
+        call Destruct( this%SiteMIEnm(i) )
       end do
-      deallocate( this%SiteLJ126 )
+      deallocate( this%SiteMIEnm )
     end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
@@ -395,23 +409,23 @@ contains
 
     ! Save number of potential types
     ntypes = 0
-    if( this%NLJ126 > 0 ) ntypes = ntypes + 1
+    if( this%NMIEnm > 0 ) ntypes = ntypes + 1
     if( this%NCharge > 0 ) ntypes = ntypes + 1
     if( this%NDipole > 0 ) ntypes = ntypes + 1
     if( this%NQuadrupole > 0 ) ntypes = ntypes + 1
     write( IOBuffer, '(I2)' ) ntypes
     call FileWriteParameter( iounit_normal, IdSite_ntypes )
 
-    ! Save Lennard-Jones sites
-    if( this%NLJ126 > 0 ) then
+    ! Save MIE sites
+    if( this%NMIEnm > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'LJ126'
+      write( IOBuffer, '(1X, A)' ) 'MIEnm'
       call FileWriteParameter( iounit_normal, IdSite_stype )
-      write( IOBuffer, '(I2)' ) this%NLJ126
-      call FileWriteParameter( iounit_normal, IdSite_NLJ126 )
-      do i = 1, this%NLJ126
+      write( IOBuffer, '(I2)' ) this%NMIEnm
+      call FileWriteParameter( iounit_normal, IdSite_NMIEnm )
+      do i = 1, this%NMIEnm
         call FileWriteBlank( iounit_normal )
-        call Save( this%SiteLJ126(i) )
+        call Save( this%SiteMIEnm(i) )
       end do
     end if
 
@@ -512,9 +526,9 @@ contains
     ! Calculate mass of molecule and COM position
     this%Mass = 0._RK
     r(:) = 0._RK
-    do i = 1, this%NLJ126
-      this%Mass = this%Mass + this%SiteLJ126(i)%mass
-      r(:) = r(:) + this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(:)
+    do i = 1, this%NMIEnm
+      this%Mass = this%Mass + this%SiteMIEnm(i)%mass
+      r(:) = r(:) + this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(:)
     end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
@@ -531,9 +545,9 @@ contains
     r(:) = r(:) / this%Mass
 
     ! Move COM to zero
-    do i = 1, this%NLJ126
+    do i = 1, this%NMIEnm
       do j = 1, 3
-        this%SiteLJ126(i)%r(j) = this%SiteLJ126(i)%r(j) - r(j)
+        this%SiteMIEnm(i)%r(j) = this%SiteMIEnm(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
@@ -573,13 +587,13 @@ contains
 
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
-    do i = 1, this%NLJ126
-      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+    do i = 1, this%NMIEnm
+      moi(1, 1) = moi(1, 1) + this%SiteMIEnm(i)%mass * ( this%SiteMIEnm(i)%r(2)**2 + this%SiteMIEnm(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(1) * this%SiteMIEnm(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(1) * this%SiteMIEnm(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteMIEnm(i)%mass * ( this%SiteMIEnm(i)%r(1)**2 + this%SiteMIEnm(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(2) * this%SiteMIEnm(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteMIEnm(i)%mass * ( this%SiteMIEnm(i)%r(1)**2 + this%SiteMIEnm(i)%r(2)**2 )
     end do
 
     do i = 1, this%NCharge
@@ -612,8 +626,8 @@ contains
     ! Transform to principal axes
     call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
     call eigen_sort( this%MOI(:), rotation(:,:) )
-    do i = 1, this%NLJ126
-      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
+    do i = 1, this%NMIEnm
+      this%SiteMIEnm(i)%r(:) = matmul( this%SiteMIEnm(i)%r(:), rotation(:, :) )
     end do
 
     do i = 1, this%NCharge
