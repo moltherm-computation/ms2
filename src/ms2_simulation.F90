@@ -533,10 +533,10 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
-&         .and. .not. SimulationType .eq. MonteCarlo ) &
-&         call Error( trim( SimulationTypeString )//" simulation of " &
-&         //trim( EnsembleTypeString )//" ensemble is not implemented" )
+!       if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
+! &         .and. .not. SimulationType .eq. MonteCarlo ) &
+! &         call Error( trim( SimulationTypeString )//" simulation of " &
+! &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
@@ -1454,7 +1454,6 @@ eqloop: do
       if( Equilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
-          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming GE equilibration")' )
@@ -1474,9 +1473,9 @@ eqloop: do
             call CheckNPart( this, NPartsOk )
 
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
-            if ( .not. AnyNPartOk) then
-                NPartsOk = .false.
+            if (SimulationType .eq. MonteCarlo) then
+              call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
+              if ( .not. AnyNPartOk)  NPartsOk = .false.
             endif
 #endif
             if( NPartsOk ) then
