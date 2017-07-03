@@ -41,9 +41,9 @@ module ms2_idf
     integer           :: UnitId1, UnitId2
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
 
   end type TIdfBond
 
@@ -73,8 +73,8 @@ module ms2_idf
     integer           :: UnitId1, UnitId2, UnitId3
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     logical           :: orientation1, orientation2
 
 
@@ -108,15 +108,15 @@ module ms2_idf
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: ForConst(:), gamma0(:)
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:)
-    real(RK), pointer :: RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: RX3(:), RY3(:), RZ3(:)
-    real(RK), pointer :: RX4(:), RY4(:), RZ4(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:)
-    real(RK), pointer :: FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: FX3(:), FY3(:), FZ3(:)
-    real(RK), pointer :: FX4(:), FY4(:), FZ4(:)
+    real(RK), pointer, contiguous :: ForConst(:), gamma0(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: RX3(:), RY3(:), RZ3(:)
+    real(RK), pointer, contiguous :: RX4(:), RY4(:), RZ4(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:)
+    real(RK), pointer, contiguous :: FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: FX3(:), FY3(:), FZ3(:)
+    real(RK), pointer, contiguous :: FX4(:), FY4(:), FZ4(:)
     logical           :: orientation1, orientation2
 !    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
 

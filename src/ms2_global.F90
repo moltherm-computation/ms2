@@ -13,11 +13,7 @@
 !* http://www.ms-2.de                                           *   
 !****************************************************************
 
-#ifndef ARCH
-#define ARCH    0
 #define FORTRAN 90
-#define MPI_VER 0
-#endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
@@ -158,6 +154,9 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
+  ! Extension of visualisation of h-bonding file.
+  character(*), parameter :: VisualHBFileExtension = '.hbvim'
+
   ! Extension of normalized potential model file
   character(*), parameter :: NormalizedPotModExtension = '.nrm'
 
@@ -172,6 +171,9 @@ module ms2_global
 
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
+
+  ! Extension of DCP file
+  character(*), parameter :: DCPFileExtension = '.dcp'
 
   ! Marker within a result file for each ensemble data
   character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
@@ -210,13 +212,16 @@ module ms2_global
   integer, parameter :: iounit_rdf       = iounit_start + 10
   integer, parameter :: iounit_thermoint = iounit_start + 11
   integer, parameter :: iounit_rescf     = iounit_start + 12
+  integer, parameter :: iounit_visualHB  = iounit_start + 13
+  integer, parameter :: iounit_dcp       = iounit_start + 14
+
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rescf - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -263,6 +268,8 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
+  character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdLongRange                   = 'LongRange'
   character(*), parameter :: IdKappa                       = 'Kappa'
@@ -297,6 +304,8 @@ module ms2_global
   character(*), parameter :: IdPotModFileName              = 'PotModel'
   character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
+  character(*), parameter :: IdPermeability                = 'Permeability'
+  character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
@@ -453,6 +462,10 @@ module ms2_global
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
+  real(RK)            :: kForceOsmoticPressure
+
+  ! Upper value of the standard deviation of the velocity distribution for the force cricteria used in GE + MD Simulations
+  real(RK), parameter :: root8PIplus1 = sqrt(8._RK / PI + 1._RK)  !rootkB8PIplus1 = sqrt((8._RK / PI + 1._RK) * kBoltzmann)
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
@@ -677,16 +690,13 @@ module ms2_global
   
   ! Number of RDF shells
   integer :: RDFNumberShells
-  
+
+  ! Number of density profile bins
+  integer :: NBinsDen
+
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
-
-  ! Calculate the radial distribution function
-  integer :: CallsToRDF = 0
-  
-  !RDF
-  real(RK) :: RDFRho, RDFRhoLocal
 
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
@@ -1129,10 +1139,10 @@ contains
     integer                                    :: mpiversion, mpisubversion
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
-    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
     integer                                    :: hostrank = MPI_PROC_NULL
     integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer                            :: ioranks(:)
+    integer,pointer, contiguous                :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP

@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
@@ -32,7 +28,6 @@ module ms2_accumulator
   use ms2_global
 
 
-
 !==============================================================!
 !  Type TAccumulator                                           !
 !==============================================================!
@@ -40,17 +35,17 @@ module ms2_accumulator
   type TAccumulator
 
     ! Block sum
-    real(RK), pointer :: BlockSum(:)
+    real(RK), pointer, contiguous :: BlockSum(:) => NULL()
 
     ! Number of summed values in block
-    integer , pointer :: NBlockSum(:)
+    integer , pointer, contiguous :: NBlockSum(:) => NULL()
 
 #if MPI_VER > 0        
     ! MC communication COL_DEBUG
-    real(RK), pointer :: BlockSumGathered(:)
+    real(RK), pointer, contiguous :: BlockSumGathered(:) => NULL()
 
     ! MC communication COL_DEBUG
-    integer , pointer :: NBlockSumGathered(:)
+    integer , pointer, contiguous :: NBlockSumGathered(:) => NULL()
 #endif  
 
     ! Total sum and average

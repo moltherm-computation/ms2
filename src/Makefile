@@ -9,6 +9,7 @@ TARGET   ?= RELEASE
 TRANS    ?= 0
 OSMOP    ?= 0
 HBOND    ?= 0
+SPME     ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
@@ -34,6 +35,9 @@ $(info osmoticPressure with profiling enabled)
 endif
 ifeq ($(HBOND),1)
 $(info H-Bonding statistics enabled)
+endif
+ifeq ($(SPME),1)
+$(info Smooth Particle Mesh Ewald enabled)
 endif
 ifeq ($(MPI),1)
 $(info MPI enabled)
@@ -95,6 +99,11 @@ ifeq ($(HBOND),1)
   PROG     := $(PROG)_hbond
 endif
 
+ifeq ($(SPME),1)
+  CPPFLAGS += -DSPME=1
+  PROG     := $(PROG)_spme
+endif
+
 SRCS =  ms2.F90 \
         ms2_stopwatch.F90 \
         ms2_global.F90 \
@@ -124,8 +133,14 @@ default: all
 
 all: $(PROG)
 
+ifeq ($(SPME),1)
+$(PROG): $(OBJS)
+	$(F90ld) $(LDFLAGS) -o $@ $(OBJS) -lfftw3 -lm 
+endif
+ifneq ($(SPME),1)
 $(PROG): $(OBJS)
 	$(F90ld) $(LDFLAGS) -o $@ $(OBJS)
+endif
 
 clean:
 	rm -f $(OBJS) $(MODS)
