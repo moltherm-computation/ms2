@@ -1271,20 +1271,6 @@ contains
       write( ErrorBuffer, '("There must be at least 1 component in ensemble", I2)' ) this%EnsembleNumber
       call Error
     end if
-    ! Michael Sch.: need to fix this!!!
-!    do i = 1, this%NRealComponents - 1
-!      do j = i + 1, this%NRealComponents
-!        call FileReadParameter( this%ScaleSigma(i, j), iounit_params , IdScaleSigma, .false. )
-!        if( i /= j ) this%ScaleSigma(j, i) = this%ScaleSigma(i, j)
-!        call FileReadParameter( this%ScaleEpsilon(i, j), iounit_params , IdScaleEpsilon, .false. )
-!        if( i /= j ) this%ScaleEpsilon(j, i) = this%ScaleEpsilon(i, j)
-!        write( IOBuffer, &
-!&         '(A, "-", A, " Lennard-Jones interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
-!&         trim( this%Component(i)%PotModFileName ), trim( this%Component(j)%PotModFileName ), &
-!&         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
-!        call LogWrite
-!      end do
-!    end do
     if( this%NComponents > 999 ) call Error( 'Cannot work with more than 999 components on '//Hardware )
 
 #if  TRANS == 1
@@ -13176,7 +13162,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaH(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
-            if (RootProc) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn ! Michael Sch.: für Minh
+            ! if (RootProc) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn ! Michael Sch.: für Minh
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa

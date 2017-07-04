@@ -845,7 +845,7 @@ contains
     else
       NP1 = max(this%NPart1, 1)
       N1 = NP1*this%NUnit1
-      N2 = NP1*this%NUnit2
+      N2 = max(this%NPart2, 1)*this%NUnit2
     end if
 
     ! Allocate arrays
