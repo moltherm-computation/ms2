@@ -313,7 +313,7 @@ contains
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
       if (LongRange .ne. Ewald) then
-        if (LongRange .ne. SPME) then
+        if (LongRange .ne. PME) then
           do i =1, this%NCharge
             this%Mue(:) = this%Mue(:) + this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
           end do

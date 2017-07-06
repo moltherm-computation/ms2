@@ -300,7 +300,7 @@ module ms2_ensemble
     real(RK),pointer, contiguous :: rold(:,:)
     real(RK),pointer, contiguous :: Vec2(:)
 
-#ifdef SPME
+#if SPME > 0
     ! SPME parameters
     integer         :: splineorder
     integer         :: gridx
@@ -828,7 +828,7 @@ module ms2_ensemble
     module procedure TEnsemble_EwaldSelf_Energy
   end interface
 
-#ifdef SPME
+#if SPME > 0
   interface PMEFourierTerm
     module procedure TEnsemble_PMEFourierTerm
   end interface
@@ -1306,7 +1306,7 @@ contains
 #endif
 
 #if MPI_VER > 0
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
+    if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME))then
       allocate(this%NBox0,STAT=stat)
       call AllocationError( stat, 'NProcs' )
       allocate(this%NBox1,STAT=stat)
@@ -1702,13 +1702,12 @@ contains
          allocate(this%Vec2(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
 
          if (this%KappaL .eq. 0.) then
             this%Kappa = sqrt(PI) * (4.0_RK*this%NPart / this%Volume0**2)**(1._RK/6._RK)
             this%KappaL = this%Kappa*this%BoxLength
-
          else
             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          end if
@@ -1983,7 +1982,7 @@ contains
   subroutine TEnsemble_Destruct( this )
 
     implicit none
-#ifdef SPME
+#if SPME > 0
     include 'fftw3.f'
 #endif
 
@@ -2060,8 +2059,8 @@ contains
 
     end if
 
-#ifdef SPME
-    if (LongRange .eq. SPME) then
+#if SPME > 0
+    if (LongRange .eq. PME) then
       call dfftw_destroy_plan(this%qgrid_forward)
       call dfftw_destroy_plan(this%qgrid_backward)
       if ( associated ( this%qgrida ) ) then 
@@ -2949,8 +2948,8 @@ contains
         end do
         call EwaldSelfTerm(this)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME ) then
+#if SPME > 0
+      else if (LongRange .eq. PME ) then
         this%Kappa = this%KappaL / this%BoxLength
         do i=1,this%NComponents
           do j=1,this%NComponents
@@ -3913,21 +3912,6 @@ xloop:do i = 1, NCells1dim(1)
         do j = 1, NCells1dim(2)
           do k = 1, NCells1dim(3)
             nc = select_component( comp )
-! #if OSMOP > 0
-!             if (SimulationType .eq. MolecularDynamics ) then
-!               if ( Npermeable == 0 .and. i < ceiling((NCells1dim(1)+1)/2._RK) ) then
-!                 comp(nc)=comp(nc)+1
-!                 cycle xloop
-!               end if
-!               if ( i < ceiling((NCells1dim(1)+1)/2._RK) ) then
-!                 do while (.not. this%Component(nc)%permeable ) ! set permeable particles as long as some are still to be set
-!                   comp(nc)=comp(nc)+1
-!                   nc = select_component( comp )
-!                 end do
-!               end if
-!               if ( this%Component(nc)%permeable ) Npermeable = Npermeable - 1
-!             end if
-! #endif
             nm = comp(nc) + 1
             pc => this%Component(nc)
             pc%P0(nm, 1) = xl(1) * (CellX(l) + i - 1)
@@ -4911,8 +4895,12 @@ loop3:    do nc = 1, this%NComponents
        this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
     end do
 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
-        this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
+    if ((LongRange .eq. Ewald) then
+      this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+      this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
+#endif
     end if
  
     !Calculation of the pressure profile (real and ideal part)
@@ -5553,8 +5541,8 @@ loop3:    do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
       call EwaldFourierTerm (this)
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       call PMEFourierTerm (this)
 #endif
     end if
@@ -5576,10 +5564,15 @@ loop3:    do nc = 1, this%NComponents
     this%d2EpotdV2 = d2EpotdV2
 #endif
 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME))then
-      if( RootProc ) then
-       this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
-       this%Virial = this%Virial + this%EVirial
+    if (RootProc) then
+      if (LongRange .eq. Ewald) then
+        this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
+        this%Virial = this%Virial + this%EVirial
+#if SPME > 0
+      else if (LongRange .eq. PME) then
+        this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
+        this%Virial = this%Virial + this%EVirial
+#endif
       end if
     end if
 
@@ -5619,7 +5612,6 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
     real(RK)                  :: EPot_h
-    integer                   :: tempVal, tempVal2
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
 #endif
@@ -5926,13 +5918,13 @@ loop2:        do nc = 1, this%NComponents
           call MPI_Reduce( ChemPot, pc%ChemPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-            pc%ChemPot = pc%ChemPot/NProcs
-            pc%HW_counter = pc%HW_counter/NProcs
-            pc%HW_denom = pc%HW_denom/NProcs 
+          pc%ChemPot = pc%ChemPot/NProcs
+          pc%HW_counter = pc%HW_counter/NProcs
+          pc%HW_denom = pc%HW_denom/NProcs 
         else
-            pc%ChemPot = ChemPot
-            pc%HW_counter = HW_counter_local
-            pc%HW_denom = HW_denom_local
+          pc%ChemPot = ChemPot
+          pc%HW_counter = HW_counter_local
+          pc%HW_denom = HW_denom_local
         endif
 #else
         pc%ChemPot = ChemPot
@@ -6169,9 +6161,8 @@ loop2:        do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
       call EwaldSelfTerm_Energy ( this )
-
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       call PMESelfTermMC ( this )
 #endif
     end if
@@ -6207,9 +6198,8 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#ifdef SPME
-
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       call charge_grid_MCall ( this )
       call PMEFourierTermMC ( this )
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -6256,9 +6246,8 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np)
        EPotNew = EPotnew + this%UFourier
-#ifdef SPME
-
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
@@ -6299,15 +6288,13 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,m)
        EPotNew = EPotnew + this%UFourier
-#ifdef SPME
-
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
   end subroutine TEnsemble_EwaldEnergy1
-
 
 
 
@@ -6347,9 +6334,8 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,ncold,npold)
        EPotNew = EPotnew + this%UFourier + this%USelbstTerm + this%UIntra
-#ifdef SPME
-
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
        call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
@@ -6390,9 +6376,8 @@ loop2:        do nc = 1, this%NComponents
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#ifdef SPME
-
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       call charge_grid_MCall (this)
       call PMEFourierTermMC(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -6428,12 +6413,15 @@ loop2:        do nc = 1, this%NComponents
     end do
 
 ! Ewald 
-    if ((LongRange .eq. Ewald) .or. (LongRange .eq. SPME)) then
+    if (LongRange .eq. Ewald) then
       E = E + this%UFourier
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+      E = E + this%UFourier
+#endif
     end if
 
   end function TEnsemble_GetEnergy1
-
 
 
 !==============================================================!
@@ -6466,10 +6454,11 @@ loop2:        do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
 !       call EwaldFourierEnergy(this)
-       V = V + this%EVirial
-
-    else if (LongRange .eq. SPME) then
-       V = V + this%EVirial
+      V = V + this%EVirial
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+      V = V + this%EVirial
+#endif
     end if
 
   end function TEnsemble_GetVirial
@@ -6551,8 +6540,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6570,9 +6559,9 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. SPME) then
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6615,8 +6604,8 @@ loop2:        do nc = 1, this%NComponents
           call Mol2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -6679,8 +6668,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6700,8 +6689,8 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
-    if (LongRange .eq. SPME) then
+#if SPME > 0
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6743,8 +6732,8 @@ loop2:        do nc = 1, this%NComponents
         call Mol2Atom1( pc, np )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -6807,8 +6796,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6826,9 +6815,9 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. SPME) then
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -6861,8 +6850,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration 
       if (Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&         MPI_RK, MPI_SUM, Communicator, ierror )
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else
         this%EPot = this%EPot - EPotDelta
       endif  
@@ -6886,8 +6874,8 @@ loop2:        do nc = 1, this%NComponents
           call Mol2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -6950,8 +6938,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -6971,8 +6959,8 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
-    if (LongRange .eq. SPME) then
+#if SPME > 0
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7006,8 +6994,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration 
       if (Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&         MPI_RK, MPI_SUM, Communicator, ierror )
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else
         this%EPot = this%EPot - EPotDelta
       endif  
@@ -7029,8 +7016,8 @@ loop2:        do nc = 1, this%NComponents
         call Mol2Atom1( pc, np )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -7093,8 +7080,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -7112,9 +7099,9 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
-    if (LongRange .eq. SPME) then
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7145,8 +7132,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration 
       if (Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&         MPI_RK, MPI_SUM, Communicator, ierror )
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else
         this%EPot = this%EPot - EPotDelta
       endif  
@@ -7170,8 +7156,8 @@ loop2:        do nc = 1, this%NComponents
           call Mol2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
           call chargegrid_min  (this, nc, np)
@@ -7232,8 +7218,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call chargegrid_min  (this, nc, np)
@@ -7253,8 +7239,8 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
-    if (LongRange .eq. SPME) then
+#if SPME > 0
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7285,8 +7271,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration 
       if (Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&         MPI_RK, MPI_SUM, Communicator, ierror )
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else
         this%EPot = this%EPot - EPotDelta
       endif  
@@ -7308,8 +7293,8 @@ loop2:        do nc = 1, this%NComponents
         call Mol2Atom1( pc, np )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min  (this, nc, np)
@@ -7382,8 +7367,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
@@ -7411,9 +7396,9 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. SPME) then
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7455,8 +7440,8 @@ loop2:        do nc = 1, this%NComponents
           call Mol2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
@@ -7527,8 +7512,8 @@ loop2:        do nc = 1, this%NComponents
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
@@ -7548,9 +7533,9 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Mol2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. SPME) then
+    if (LongRange .eq. PME) then
       call chargegrid_plus (this, nc, np)
     end if
 #endif
@@ -7591,8 +7576,8 @@ loop2:        do nc = 1, this%NComponents
         call Mol2Atom1( pc, np )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
@@ -7810,9 +7795,9 @@ loop2:        do nc = 1, this%NComponents
 
        end if       ! Acceptance Criteria
 
-#ifdef SPME
+#if SPME > 0
 ! ----------------------------------------------------------------
-    else if (LongRange .eq. SPME) then ! SPME 
+    else if (LongRange .eq. PME) then ! SPME 
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call PMESetup(this)
@@ -8083,7 +8068,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     type(TComponent), pointer  :: pc, pt
     type(TInteraction), pointer:: pmie
-    integer                    :: i, j, k, l, currentbin
+    integer                    :: currentbin
     real(RK)                   :: Shield1, Shield2
     real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
     real(RK)                   :: EPotOld, EPotNew
@@ -8165,7 +8150,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call MPI_Bcast( pt%Lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
       call ScaleInteractionThermoInt(this, nt, Factor)
-
       call Mol2Atom( this ) ! only for nt sufficient / call mol2atom( pt, 1 )
 
     end if
@@ -8279,8 +8263,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         this%UIntra  = UIntra
       end if 
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then           ! SPME-SUMMATION
+#if SPME > 0
+    else if (LongRange .eq. PME) then           ! SPME-SUMMATION
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
       call chargegrid_plus (this, nc, np)
@@ -8441,8 +8425,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call EwaldFourierEnergy(this,nc,np,1)
       end if
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       EVirialIntra = this%EVirialIntra
@@ -8639,8 +8623,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          EVirial = this%EVirial
        end if
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
@@ -8690,18 +8674,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         this%Virial = GetVirial( this )
 #endif
         end if
-    
 #if MPI_VER > 0
         ! in MC simulations we only communicate during common equilibration 
-        if (Equilibration .and. CommonEqui) then
-          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&           MPI_RK, MPI_SUM, Communicator, ierror )
+        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
+          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
         else
           this%EPot = GetEnergy( this )
         endif  
 #else
         this%EPot = GetEnergy( this )
-#endif	  
+#endif  
 	  else
         ! Reject volume change
         this%Volume0 = VolumeOld
@@ -8715,8 +8697,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #if MPI_VER > 0
           if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
             call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-             if ( this%OptPressure ) then
-               call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+            if ( this%OptPressure ) then
+              call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
              end if
           else
             this%EPot = GetEnergy(this)
@@ -8732,8 +8714,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           end if
 #endif
 
-#ifdef SPME
-        else if (LongRange .eq. SPME) then
+#if SPME > 0
+        else if (LongRange .eq. PME) then
           this%UIntra = UIntra
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
@@ -8760,14 +8742,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if ( this%OptPressure ) then
 #if MPI_VER > 0
           if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-            ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-            call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+            call MPI_Allreduce( GetVirial(this), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
           else
             this%Virial = GetVirial( this )
-          endif
-
+          end if
 #else
-        this%Virial = GetVirial( this )
+          this%Virial = GetVirial( this )
 #endif
         end if
 
@@ -8784,10 +8764,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 #if MPI_VER > 0
           if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-            call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             if ( this%OptPressure ) then
               call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             end if
+            call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
           else
             this%EPot = GetEnergy(this)
             if ( this%OptPressure ) then
@@ -8798,12 +8778,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #else
           this%EPot = GetEnergy(this)
           if ( this%OptPressure ) then
-            this%Virial = GetVirial( this )
+           this%Virial = GetVirial( this )
           end if
 #endif
 
-#ifdef SPME
-        else if (LongRange .eq. SPME) then
+#if SPME > 0
+        else if (LongRange .eq. PME) then
           this%UIntra = UIntra
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
@@ -8919,8 +8899,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          this%Virial = GetVirial( this )
 #endif
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
         call charge_grid_MCall ( this )
 #endif
       end if
@@ -8964,8 +8944,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        UFourier= this%UFourier
        EVirial = this%EVirial
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
        EVirialIntra = this%EVirialIntra
        UFourier= this%UFourier
        EVirial = this%EVirial
@@ -9023,8 +9003,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          this%Virial = GetVirial( this )
 #endif
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
          this%UIntra = UIntra
          this%EVirialIntra = EVirialIntra
          this%UFourier = UFourier
@@ -9134,8 +9114,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       EVirialIntra = this%EVirialIntra
@@ -12005,7 +11985,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: err_B(this%NComponents-1, this%NComponents-1)
     real(RK)                  :: D_12, D_13, D_14, D_23, D_24, D_34 
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
-    
 #endif
 #if HBOND > 0
     integer                   :: k, l
@@ -12025,7 +12004,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer :: tempVal, tempVal2, color
     integer :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
-    real(RK) :: tempReal
+    real(RK):: tempReal
 
     if ( SimulationType .eq. MonteCarlo) then
       NBlockSizes = int( sqrt( real( Step*NProcs / BlockSize, RK ) ) )
@@ -13703,33 +13682,25 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Volume change acceptance rate and maximum displacement
       if( ConstantPressure ) then
 #if MPI_VER > 0
-
-        call MPI_Reduce( this%NResizeSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
-        call MPI_Reduce( this%NResizeAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
+        call MPI_Reduce( this%NResizeSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        call MPI_Reduce( this%NResizeAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
         if ( Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate volume changes", T32, "in %:", F20.9)' ) &
 &                100._RK * real(tempVal, RK ) / real (tempVal2, RK )
         endif
-
 #else
         write( IOBuffer, '("Acceptance rate volume changes", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NResizeSuccesses, RK ) / real ( this%NResizeAttempts, RK )
 #endif         
- 
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_RK, MPI_MAX, &
-        &    NRootProc, Communicator, ierror )
-        if (Nproc == NRootProc) then
+        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        if ( Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) tempReal
         endif
-
 #else
-          write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) this%DispVol  
+        write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) this%DispVol
 #endif  
-
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       end if
@@ -13741,38 +13712,29 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         write( IOBuffer, '("Component ", A)' ) pc%PotModFileName
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        call MPI_Reduce( pc%NMoveSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-        &    NRootProc, Communicator, ierror )
-        call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-        &    NRootProc, Communicator, ierror )
-
+        call MPI_Reduce( pc%NMoveSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
 &                100._RK * real( tempVal, RK ) / real ( tempVal2, RK ) 
         endif
-
 #else
-          write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
-&                100._RK * real( pc%NMoveSuccesses, RK ) / real ( pc%NMoveAttempts, RK )   
+        write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
+&              100._RK * real( pc%NMoveSuccesses, RK ) / real ( pc%NMoveAttempts, RK )
 #endif
-
         call FileWrite( this%iounit_errors )
 
         if( pc%Molecule%IsElongated ) then
 #if MPI_VER > 0
-          call MPI_Reduce( pc%NRotateSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-&              NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NRotateAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-&              NRootProc, Communicator, ierror )
-
+          call MPI_Reduce( pc%NRotateSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( pc%NRotateAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
           if (Nproc == NRootProc) then
             write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
 &                  * real( tempVal, RK ) / real (tempVal2, RK )
           endif
-
 #else
-            write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
-&                  * real( pc%NRotateSuccesses, RK ) / real ( pc%NRotateAttempts, RK )
+          write( IOBuffer, '(T17, "rotates", T32, "in %:", F20.9)' ) 100._RK &
+&                * real( pc%NRotateSuccesses, RK ) / real ( pc%NRotateAttempts, RK )
 #endif
           call FileWrite( this%iounit_errors )
         end if
@@ -13780,34 +13742,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
           ! Biased move and rotate acceptance rates
 #if MPI_VER > 0
-          call MPI_Reduce( pc%NMoveBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-          &    NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NMoveBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-          &    NRootProc, Communicator, ierror )
-
+          call MPI_Reduce( pc%NMoveBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( pc%NMoveBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
           if (Nproc == NRootProc) then
             write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) 100._RK * real(tempVal, RK ) / &
 &                  real ( tempVal2, RK )
           endif
-
 #else
           write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) &
 &                100._RK * real( pc%NMoveBiasedSuccesses, RK ) / real ( pc%NMoveBiasedAttempts, RK )
 #endif
-
           call FileWrite( this%iounit_errors )
+
           if( pc%Molecule%IsElongated ) then
 #if MPI_VER > 0
-            call MPI_Reduce( pc%NRotateBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-&                NRootProc, Communicator, ierror )
-            call MPI_Reduce( pc%NRotateBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-&                NRootProc, Communicator, ierror )
-
+            call MPI_Reduce( pc%NRotateBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+            call MPI_Reduce( pc%NRotateBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
             if (Nproc == NRootProc) then
               write( IOBuffer, '(T17, "biased rotates", T32, "in %:", F20.9)' ) &
 &                    100._RK * real(tempVal, RK ) / real (tempVal2, RK )
             endif
-
 #else
             write( IOBuffer, '(T17, "biased rotates", T32, "in %:", F20.9)' ) &
 &                  100._RK * real( pc%NRotateBiasedSuccesses, RK ) / real ( pc%NRotateBiasedAttempts, RK )
@@ -13819,31 +13773,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         ! Maximum translational and rotational displacements
 #if MPI_VER > 0
-        call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, &
-&            NRootProc, Communicator, ierror )
+        call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) tempReal
         endif
-
 #else
-          write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) pc%DispTran
-#endif  
-
+        write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) pc%DispTran
+#endif
         call FileWrite( this%iounit_errors )
+
         if( pc%Molecule%IsElongated ) then
 #if MPI_VER > 0
-        call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, &
-&            NRootProc, Communicator, ierror )
-        if (Nproc == NRootProc) then
-          write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) tempReal
-        endif
-
+          call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
+          if (Nproc == NRootProc) then
+            write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) tempReal
+          endif
 #else
           write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) pc%DispRot
-#endif  
-
+#endif
           call FileWrite( this%iounit_errors )
-        end if
+        endif
         call FileWriteBlank( this%iounit_errors )
 
         ! Gradual insertion change fluctuating particle acceptance rates
@@ -13907,41 +13856,33 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Inserts and deletes acceptance rates
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
 #if MPI_VER > 0
-        call MPI_Reduce( this%NInsertSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
-        call MPI_Reduce( this%NInsertAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
-
+        call MPI_Reduce( this%NInsertSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        call MPI_Reduce( this%NInsertAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &                100._RK * real( tempVal, RK ) / real ( tempVal2, RK )
         endif
-
 #else
         write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
-#endif 
-
+#endif
         call FileWrite( this%iounit_errors )
-#if MPI_VER > 0
-        call MPI_Reduce( this%NDeleteSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
-        call MPI_Reduce( this%NDeleteAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, &
-&            NRootProc, Communicator, ierror )
 
+#if MPI_VER > 0
+        call MPI_Reduce( this%NDeleteSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        call MPI_Reduce( this%NDeleteAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &                100._RK * real(tempVal, RK ) / real ( tempVal2, RK )
         endif
-
 #else
-          write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
-&                100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
-#endif  
-       
+        write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
+&              100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
+#endif 
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       end if
+
     end if
 
 
@@ -15342,8 +15283,8 @@ endif
            END DO
          END DO
 
-#ifdef SPME
-    else if (LongRange .eq. SPME) then
+#if SPME > 0
+    else if (LongRange .eq. PME) then
     ! Calculate initial energies for the Ewald Summation
        this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
        do i=1,this%NComponents
@@ -15639,6 +15580,7 @@ endif
    ! Declare arguments
    type(TEnsemble)   :: this
 
+   ! Declare local variables
    integer :: i,j,l,m
    integer :: molec
 
@@ -15845,7 +15787,6 @@ endif
    call MPI_Reduce( EPotLocal - sum(this%U_fourierLocal*KappaL2*this%Vec2), VirialLocal, 1, MPI_RK, MPI_SUM, &
 &                   NRootProc, Communicator, ierror )
    call MPI_Reduce( VirIntraLocal, VirIntra, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-
 #else
    EPotLocal = sum(this%U_fourierLocal)
    VirialLocal = EPotLocal - sum(this%U_fourierLocal *KappaL2*this%Vec2)
@@ -15957,6 +15898,7 @@ endif
    ! Declare arguments
    type(TEnsemble)   :: this
 
+   ! Declare local variables
    integer :: i,j,l,m
    integer :: molec
 #if MPI_VER > 0
@@ -16111,16 +16053,13 @@ endif
 
 #if MPI_VER > 0
    if (Equilibration .and. CommonEqui) then
-     ! Energy
-      call MPI_Allreduce( sum(this%U_fourierLocal), EPotLocal, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-
-     ! Virial
-      if (this%OptPressure) then
-        call MPI_Allreduce( sum(this%U_fourierLocal) - sum(this%U_fourierLocal*KappaL2*this%Vec2), VirialLocal, 1, &
+     call MPI_Allreduce( sum(this%U_fourierLocal), EPotLocal, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+     if (this%OptPressure) then
+        call MPI_Allreduce( sum(this%U_fourierLocal) - sum(this%U_fourierLocal*KappaL2*this%Vec2), Viriallocal, 1, &
 &                           MPI_RK, MPI_SUM, Communicator, ierror )
         call MPI_Allreduce( VirIntraLocal, VirIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
         this%EVirial = -(Viriallocal - VirIntra)*Third / NProcs
-      end if
+     end if
      this%UFourier= EPotLocal / NProcs
 
    else
@@ -16581,7 +16520,7 @@ endif
 !==============================================================!
 !  Subroutine TSimulation_PME_FourierTerm                      !
 !==============================================================!
-#ifdef SPME
+#if SPME > 0
    subroutine TEnsemble_PMEFourierTerm(this)
 
    implicit none
@@ -16592,9 +16531,11 @@ endif
 #endif
 
    ! Declare arguments
+   type(TEnsemble) :: this
 
-   real(RK):: EPotLocal
-   real(RK):: Viriallocal
+   ! Declare local variables
+   type(TMolecule),pointer   :: pm
+   real(RK):: EPotLocal, Viriallocal
    real(RK):: kap,fac
    real(RK):: boxl,vol
    real(RK):: manhx,manhy,manhz
@@ -16604,6 +16545,7 @@ endif
    real(RK):: qr,qi,struc
    real(RK):: energ
    real(RK),pointer:: FX, FY, FZ
+   
    real(RK):: FXi, FYi, FZi
    real(RK):: FXcum, FYcum, FZcum
    real(RK):: q
@@ -16621,9 +16563,6 @@ endif
    integer :: counter
    integer :: i,j,k
    integer :: inter
-
-   type(TEnsemble)   :: this
-   type(TMolecule),pointer   :: pm
 
 !!!!!!!!!!!! Charge Grid
    real(RK),dimension(this%splineorder+5) ::  transf
@@ -16654,9 +16593,10 @@ endif
 
 #if MPI_VER > 0
    integer:: i0,i1
+   real(RK) :: mult(this%gridx*this%gridx*this%gridx+3)
+   real(RK) :: mult2(this%gridx*this%gridx*this%gridx+3)
    real(RK),pointer, contiguous :: qgrid(:,:)
-   real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult
-   real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult2
+   
 #endif
 
 ! Dimensions of charge
@@ -16694,6 +16634,7 @@ endif
    i0 = this%NBox0
    i1 = this%NBox2
    DO i=i0,i1,1
+    if (i==1) cycle
 #else
    DO i=2,ngrid
 #endif

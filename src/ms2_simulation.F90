@@ -796,8 +796,8 @@ contains
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
 
-        case( 'PME', 'pme', 'SPME', 'spme')
-            LongRange = SPME
+!         case( 'PME', 'pme', 'SPME', 'spme')
+            LongRange = PME
             LongRangeString = 'Smooth Particle Mesh Ewald Summation'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
@@ -935,8 +935,8 @@ contains
             this%Ensemble(i)%nvecmax = nvecmax_h
             this%Ensemble(i)%nmax = nmax_h
 
-#ifdef SPME
-      else if (LongRange .eq. SPME) then
+#if SPME > 0
+      else if (LongRange .eq. PME) then
             this%Ensemble(i)%KappaL = KappaL_h
             this%Ensemble(i)%gridx  = grid_h
             this%Ensemble(i)%gridy  = grid_h
@@ -1323,7 +1323,7 @@ contains
         call Mol2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. SPME) ) then
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
 
@@ -1704,7 +1704,7 @@ eqloop: do
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. SPME) ) then
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
         

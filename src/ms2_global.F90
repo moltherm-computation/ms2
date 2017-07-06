@@ -543,7 +543,7 @@ module ms2_global
   character(80)      :: LongRangeString
   integer, parameter :: Ewald         = 1
   integer, parameter :: RField        = 2
-  integer, parameter :: SPME          = 3
+  integer, parameter :: PME           = 3
   integer, parameter :: extRField     = 4
   integer, parameter :: Rodgers       = 5
   integer            :: LongRange
