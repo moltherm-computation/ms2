@@ -1007,8 +1007,7 @@ contains
             this%Ensemble(i)%nsqmax = nsqmax_h
             this%Ensemble(i)%nvecmax = nvecmax_h
             this%Ensemble(i)%nmax = nmax_h
-
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
             this%Ensemble(i)%KappaL = KappaL_h
             this%Ensemble(i)%gridx  = grid_h
@@ -1397,12 +1396,8 @@ contains
         call Unit2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if (LongRange .eq. Ewald) then
+        if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
-#ifdef SPME
-        else if (LongRange .eq. PME) then
-          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
-#endif
         end if
 
          ! Set all potential energy matrices
@@ -1810,12 +1805,8 @@ eqloop: do
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if (LongRange .eq. Ewald) then
+        if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
-#ifdef SPME
-        else if (LongRange .eq. PME) then
-          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
-#endif
         end if
         
         ! Set all potential energy matrices

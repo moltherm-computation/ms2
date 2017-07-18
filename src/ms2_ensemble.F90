@@ -318,7 +318,7 @@ module ms2_ensemble
     real(RK),pointer, contiguous :: Vec2(:)
     real(RK),pointer, contiguous :: VirIntra(:)
 
-#ifdef SPME
+#if SPME > 0
     ! SPME parameters
     integer         :: splineorder
     integer         :: gridx
@@ -897,7 +897,7 @@ module ms2_ensemble
     module procedure TEnsemble_EwaldSelf_Energy
   end interface
 
-#ifdef SPME
+#if SPME > 0
   interface PMEFourierTerm
     module procedure TEnsemble_PMEFourierTerm
   end interface
@@ -967,9 +967,6 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-    
-    !Declare variable for walltime solution in ms2_global
-    integer :: time_limit
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -1702,13 +1699,11 @@ contains
         allocate(this%VirIntra(this%NPartMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error VirIntra'
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
-
          if (this%KappaL .eq. 0.) then
             this%Kappa = sqrt(PI) * (4.0_RK*this%NPart / this%Volume0**2)**(1._RK/6._RK)
             this%KappaL = this%Kappa*this%BoxLength
-
          else
             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          end if
@@ -1718,7 +1713,6 @@ contains
              this%Interaction(i,j)%Kappa = this%Kappa
            end do
          end do
-
          allocate(this%bsp_arr(this%gridx+5),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error bsp_arr'
          allocate(this%bsp_modx(this%gridx+5),STAT=stat)
@@ -1727,10 +1721,10 @@ contains
          if(stat >0) write(*,*) 'Allocation Error bsp_mody'
          allocate(this%bsp_modz(this%gridz+5),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error bsp_modz'
-
-! Setup SPME calculation
-         call PMESetup (this)
+         ! Setup SPME calculation
+         call PMESetup(this)
 #endif
+
       else if (LongRange .eq. ExtRField) then
          do i=1,this%NComponents
            do j=1,this%NComponents
@@ -1804,12 +1798,6 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
-
-#if TRANS == 1
-    time_limit = 60
-#else
-    time_limit = 15
-#endif
 
 #if MPI_VER > 0
     ! Abortion of simulation run due to wall-time Constraints
@@ -2005,7 +1993,7 @@ contains
   subroutine TEnsemble_Destruct( this )
 
     implicit none
-#ifdef SPME
+#if SPME > 0
     include 'fftw3.f'
 #endif
 
@@ -2089,7 +2077,7 @@ contains
 
     end if
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
       call dfftw_destroy_plan(this%qgrid_forward)
       call dfftw_destroy_plan(this%qgrid_backward)
@@ -3016,7 +3004,7 @@ contains
         end do
         call EwaldSelfTerm(this)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME ) then
         this%Kappa = this%KappaL / this%BoxLength
         do i=1,this%NComponents
@@ -3024,7 +3012,7 @@ contains
             this%Interaction(i,j)%Kappa = this%Kappa
           end do
         end do
-        call PMESelfTermMC ( this )
+        call PMESelfTermMC( this )
 #endif
 
       else if (LongRange .eq. Rodgers ) then
@@ -5085,7 +5073,7 @@ loop5:    do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
 #endif
@@ -5954,10 +5942,10 @@ loop5:    do nc = 1, this%NComponents
     end do
 
     if (LongRange .eq. Ewald) then
-      call EwaldFourierTerm (this)
-#ifdef SPME
+      call EwaldFourierTerm(this)
+#if SPME > 0
     else if (LongRange .eq. PME) then
-      call PMEFourierTerm (this)
+      call PMEFourierTerm(this)
 #endif
     end if
 
@@ -6002,7 +5990,7 @@ loop5:    do nc = 1, this%NComponents
       if (LongRange .eq. Ewald) then
         this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
         this%Virial = this%Virial + this%EVirial
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%EPot   = this%EPot   + this%UFourier + this%USelbstTerm + this%UIntra
         this%Virial = this%Virial + this%EVirial
@@ -6802,11 +6790,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     Intra = 0._RK
 
     if (LongRange .eq. Ewald) then
-      call EwaldSelfTerm_Energy ( this )
-
-#ifdef SPME
+      call EwaldSelfTerm_Energy( this )
+#if SPME > 0
     else if (LongRange .eq. PME) then
-      call PMESelfTermMC ( this )
+      call PMESelfTermMC( this )
 #endif
     end if
 
@@ -6853,11 +6840,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#ifdef SPME
+#if SPME > 0
 
     else if (LongRange .eq. PME) then
-      call charge_grid_MCall ( this )
-      call PMEFourierTermMC ( this )
+      call charge_grid_MCall( this )
+      call PMEFourierTermMC( this )
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #endif
     end if
@@ -6916,9 +6903,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np)
        EPotNew = EPotnew + this%UFourier
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC ( this )
+       call PMEFourierTermMC( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -6964,10 +6951,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np)
        EPotNew = EPotnew + this%UFourier
-#ifdef SPME
-
+#if SPME > 0
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC ( this )
+       call PMEFourierTermMC( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -7014,10 +7000,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,m)
        EPotNew = EPotnew + this%UFourier
-#ifdef SPME
+#if SPME > 0
 
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC ( this )
+       call PMEFourierTermMC( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -7066,10 +7052,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,ncold,npold)
        EPotNew = EPotnew + this%UFourier + this%USelbstTerm + this%UIntra
-#ifdef SPME
-
+#if SPME > 0
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC ( this )
+       call PMEFourierTermMC( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -7115,9 +7100,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
-      call charge_grid_MCall (this)
+      call charge_grid_MCall(this)
       call PMEFourierTermMC(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #endif
@@ -7174,7 +7159,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Ewald 
     if (LongRange .eq. Ewald) then
       E = E + this%UFourier
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       E = E + this%UFourier
 #endif
@@ -7237,7 +7222,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Ewald
     if (LongRange .eq. Ewald) then
       E = E + this%UFourier
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       E = E + this%UFourier
 #endif
@@ -7284,9 +7269,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !    if (LongRange .eq. Ewald) then
 !      call EwaldFourierEnergy(this)
 !      E = E + this%UFourier + this%UIntra + this%USelbstTerm
-!#ifdef SPME
+!#if SPME > 0
 !    else if (LongRange .eq. PME) then
-!      call charge_grid_MCall (this)
+!      call charge_grid_MCall(this)
 !      call PMEFourierTermMC(this)
 !      E = E + this%UFourier + this%UIntra + this%USelbstTerm
 !#endif
@@ -7438,7 +7423,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     if (LongRange .eq. Ewald) then
       V = V + this%EVirial
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       V = V + this%EVirial
 #endif
@@ -7535,7 +7520,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: r(3)
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     real(RK)                  :: EPotDelta
@@ -7561,11 +7546,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -7585,10 +7570,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -7631,14 +7616,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min  (this, nc, np)
+          call chargegrid_min(this, nc, np)
           pc%P0(np, :, nu) = r(:)
           call Unit2Atom1( pc, np, nu )
-          call chargegrid_plus (this, nc, np)
+          call chargegrid_plus(this, nc, np)
 #endif
       else
           pc%P0(np, :, nu) = r(:)
@@ -7672,7 +7657,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: TransMove
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     real(RK)                  :: EPotDelta
@@ -7700,11 +7685,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -7722,10 +7707,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert molecular coordinates to atom positions and calculate Energies
     call Unit2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -7764,15 +7749,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%P0(np, :, :) = r(:,:)
           call Unit2Atom1( pc, np )
           call EwaldFourierEnergy(this,nc,np)
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min  (this, nc, np)
+          call chargegrid_min(this, nc, np)
           pc%Pm0(np, :) = rm(:)
           pc%P0(np, :, :) = r(:,:)
           call Unit2Atom1( pc, np )
-          call chargegrid_plus (this, nc, np)
+          call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
@@ -7806,7 +7791,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: q(4), dq(3)
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
@@ -7832,11 +7817,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -7853,9 +7838,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -7894,14 +7879,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
 
       else
@@ -7937,7 +7922,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: dq(3)
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
@@ -7969,11 +7954,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -7986,9 +7971,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RotateMol(pc,np,dq)
     call Unit2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8030,17 +8015,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         do i=1,NUnit
           pc%P0(np, :, i) = p(:,i)
           pc%Q0(np, :, i) = q(:,i)
           call Unit2Atom1( pc, np, i )
         end do
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
       else
         do i=1,NUnit
@@ -8076,7 +8061,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: r(3), rm(3), NewOmega
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     real(RK)                  :: EPotDelta
@@ -8102,11 +8087,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8130,10 +8115,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8177,15 +8162,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min  (this, nc, np)
+          call chargegrid_min(this, nc, np)
           pc%P0(np, :, nu) = r(:)
           pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
-          call chargegrid_plus (this, nc, np)
+          call chargegrid_plus(this, nc, np)
 #endif
       else
           pc%P0(np, :, nu) = r(:)
@@ -8219,7 +8204,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: TransMove, NewOmega
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     real(RK)                  :: EPotDelta
@@ -8246,11 +8231,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8270,10 +8255,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Unit2Atom1( pc, np )
 
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8320,18 +8305,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end do
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min  (this, nc, np)
+          call chargegrid_min(this, nc, np)
           pc%Pm0(np, :) = rm(:)
           do j=1, NUnit
             pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
             pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
             call Unit2Atom1( pc, np, j )
           end do
-          call chargegrid_plus (this, nc, np)
+          call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
@@ -8368,7 +8353,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: q(4), dq(3), NewOmega
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
@@ -8393,11 +8378,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8413,9 +8398,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8459,14 +8444,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
 
       else
@@ -8502,7 +8487,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: dq(3), NewOmega
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
@@ -8534,11 +8519,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8551,9 +8536,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RotateMol(pc,np,dq)
     call Unit2Atom1(pc,np)
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8599,17 +8584,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         do i=1,NUnit
           pc%P0(np, :, i) = p(:,i)
           pc%Q0(np, :, i) = q(:,i)
           call Unit2Atom1( pc, np, i )
         end do
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
       else
         do i=1,NUnit
@@ -8670,11 +8655,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8698,10 +8683,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8742,15 +8727,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         pc%P0(np, :, nu) = r(:)
         pc%Pm0(np, :) = rm(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%P0(np, :, nu) = r(:)
@@ -8809,11 +8794,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8831,10 +8816,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions and calculate Energies
     call Unit2Atom1( pc, np )
 
-#ifdef SPME
+#if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -8880,18 +8865,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         pc%Pm0(np, :) = rm(:)
         do j=1, NUnit
           pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
           pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
           call Unit2Atom1( pc, np, j )
         end do
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
@@ -8952,11 +8937,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -8971,9 +8956,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -9014,14 +8999,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
 
       else
@@ -9086,11 +9071,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -9103,9 +9088,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RotateMol(pc,np,dq)
     call Unit2Atom1(pc,np)
 
-#ifdef SPME
+#if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -9148,17 +9133,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
+        call chargegrid_min(this, nc, np)
         do i=1,NUnit
           pc%P0(np, :, i) = p(:,i)
           pc%Q0(np, :, i) = q(:,i)
           call Unit2Atom1( pc, np, i )
         end do
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
 #endif
 
       else
@@ -9195,7 +9180,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: r(3), rm(3), dr(3), f1, f2
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc, pcf
@@ -9233,12 +9218,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -9267,10 +9252,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -9312,7 +9297,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         pc%P0(np, :, nu)  = r(:)
         pc%Pm0(np, :) = rm(:)
@@ -9353,7 +9338,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: dr(3), q(4), dq(3), f1
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EFourier
-#ifdef SPME
+#if SPME > 0
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc, pcf
@@ -9390,12 +9375,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
-      call chargegrid_min  (this, nc, np)
+      call chargegrid_min(this, nc, np)
 #endif
     end if
 
@@ -9412,10 +9397,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
-#ifdef SPME
+#if SPME > 0
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
+      call chargegrid_plus(this, nc, np)
     end if
 #endif
 
@@ -9455,7 +9440,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         pc%Q0(np,:,nu) = q(:)
         call Unit2Atom1( pc, np, nu )
@@ -9667,7 +9652,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       end if       ! Acceptance Criteria
 
-#ifdef SPME
+#if SPME > 0
 ! ----------------------------------------------------------------
     else if (LongRange .eq. PME) then ! PME 
       EFourier = this%UFourier
@@ -10140,11 +10125,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%UIntra  = UIntra
         end if 
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then           ! PME-SUMMATION
         EVirial  = this%EVirial
         this%qgrida_old = this%qgrida
-        call chargegrid_plus (this, nc, np)
+        call chargegrid_plus(this, nc, np)
         call PMESelfTermMC( this )
         write (*,*) 'Insertion and Deletion is not supported for PME!'
         STOP
@@ -10376,7 +10361,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call EwaldFourierEnergy(this,nc,np,1)
         end if
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
         EFourier = this%UFourier
         !EVirial  = this%EVirial
@@ -10384,11 +10369,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         USelf    = this%USelbstTerm
         UIntra   = this%UIntra
         this%qgrida_old = this%qgrida
-        call chargegrid_min ( this, nc,np )
+        call chargegrid_min( this, nc,np )
         this%NPart = this%NPart - 1
         this%NUnitTotal = this%NUnitTotal - nu
         this%Component(nc)%NPart = this%Component(nc)%NPart - 1
-        call PMESelfTermMC ( this )
+        call PMESelfTermMC( this )
   ! For further use of the following code
         this%NPart = this%NPart + 1
         this%NUnitTotal = this%NUnitTotal + nu
@@ -10661,7 +10646,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK) :: EPotDelta
     real(RK) :: EVirial
     real(RK) :: UFourier
-#ifdef SPME
+#if SPME > 0
     real(RK) :: UIntra, EVirialintra
 #endif
     real(RK) :: DelBoxL,BoxLengthOld
@@ -10683,7 +10668,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         EVirial = this%EVirial
       end if
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       UFourier = this%UFourier
       UIntra = this%UIntra
@@ -10837,13 +10822,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end if
 #endif
 
-#ifdef SPME
+#if SPME > 0
         else if (LongRange .eq. PME) then
           this%UIntra = UIntra
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
           this%EVirial = EVirial
-          call charge_grid_MCall ( this )
+          call charge_grid_MCall( this )
 #endif
         end if
       end if
@@ -10977,13 +10962,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end if
 #endif
 
-#ifdef SPME
+#if SPME > 0
         else if (LongRange .eq. PME) then
           this%UFourier = UFourier
           this%UIntra = UIntra
           this%EVirial = EVirial
           this%EVirialIntra = EVirialIntra
-          call charge_grid_MCall ( this )
+          call charge_grid_MCall( this )
 #endif
         end if
 
@@ -11102,9 +11087,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
          this%Virial = GetVirial( this )
 #endif
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
-        call charge_grid_MCall ( this )
+        call charge_grid_MCall( this )
 #endif
       end if
     end if
@@ -11133,7 +11118,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK), intent(in out) :: EPotDelta
     real(RK) :: VolumeOld, EPotOld
     real(RK) :: EVirial, UFourier, BoxLengthOld, DelBoxL
-#ifdef SPME
+#if SPME > 0
     real(RK) :: UIntra, EVirialintra
 #endif
 #if MPI_VER > 0
@@ -11148,7 +11133,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        UFourier= this%UFourier
        EVirial = this%EVirial
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
        UFourier = this%UFourier
        UIntra = this%UIntra
@@ -11212,13 +11197,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
          this%Virial = GetVirial( this )
 #endif
 
-#ifdef SPME
+#if SPME > 0
       else if (LongRange .eq. PME) then
          this%UFourier = UFourier
          this%UIntra = UIntra
          this%EVirial = EVirial
          this%EVirialIntra = EVirialIntra
-         call charge_grid_MCall ( this )
+         call charge_grid_MCall( this )
 #endif
       end if
 
@@ -11289,7 +11274,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Ewald Parameter
     real(RK)                    :: EFourier
     real(RK)                    :: EVirial
-#ifdef SPME
+#if SPME > 0
     real(RK)                    :: EVirialIntra
 #endif
     real(RK)                    :: USelf, UIntra
@@ -11322,7 +11307,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
@@ -11330,11 +11315,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
       this%qgrida_old = this%qgrida
-      call chargegrid_min ( this, nc,np )
+      call chargegrid_min( this, nc,np )
       this%NPart = this%NPart - 1
       this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart - 1
-      call PMESelfTermMC ( this )
+      call PMESelfTermMC( this )
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
@@ -12037,7 +12022,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3
     real(RK)                  :: HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
-    integer                   :: time_limit
 #if HBOND > 0
     integer                   :: k, l
 #endif
@@ -12753,13 +12737,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 ! END IF of step ==1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! Set Time limit for Abortion if Simulation runs in Karlsruhe, Germany
-#if TRANS == 1
-    time_limit = 60
-#else
-    time_limit = 15
-#endif
-
     ! Update accumulators
     ! 1.) Basic sums
     call Update( this%SumPressure, this%Pressure )
@@ -13334,12 +13311,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
- 
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
-            write( IOBuffer, '(" ",F10.5)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+          write( IOBuffer, '(" ",F10.5)' ) 0._RK
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
         end if
       end do
 
@@ -13578,12 +13552,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
- 
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
-            write( IOBuffer, '(" ",F10.5)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+          write( IOBuffer, '(" ",F10.5)' ) 0._RK
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
         end if
       end do
 
@@ -13736,9 +13707,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
- 
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
           if( pc%NPart > 1 ) then
             select case( pc%ChemPotMethod )
             case( ChemPotMethodGradIns )
@@ -13919,8 +13887,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
           if( Equilibration ) then
             write( IOBuffer, '(" ",F10.5)' ) 0._RK
             call FileWriteNoAdvance( this%iounit_result )
@@ -14123,9 +14089,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-
-          ! Update time limit according to consumed time necessary
-          time_limit = 60
           if( Equilibration ) then
             write( IOBuffer, '(" ",F10.5)' ) 0._RK
             call FileWriteNoAdvance( this%iounit_result )
@@ -14461,7 +14424,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 
 #if MPI_VER > 0
-! Abortion of simulation run in Karlsruhe
+    ! Abortion of simulation run due to wall-time Constraints
     call time_left(time_limit)
 #endif
 
@@ -17912,7 +17875,7 @@ endif
            END DO
          END DO
 
-#ifdef SPME
+#if SPME > 0
     else if (LongRange .eq. PME) then
     ! Calculate initial energies for the Ewald Summation
        this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
@@ -18085,7 +18048,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_SelfTerm                       !
+!  Subroutine TEnsemble_Ewald_SelfTerm                         !
 !==============================================================!
 
   subroutine TEnsemble_EwaldSelfTerm( this )
@@ -18099,6 +18062,7 @@ endif
 
     ! Declare arguments
     type(TEnsemble)         :: this
+
     ! Declare local variables
     integer :: i,Si,Sj
     integer :: NX,NY,NZ
@@ -18211,7 +18175,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTerm                    !
+!  Subroutine TEnsemble_Ewald_FourierTerm                      !
 !==============================================================!
 
    subroutine TEnsemble_EwaldFourierTerm(this)
@@ -18224,8 +18188,10 @@ endif
    ! Declare arguments
    type(TEnsemble)   :: this
 
+   ! Declare local variables
    integer :: i,j,l,m
    integer :: molec
+   type(TMolecule), pointer :: mol
 
    real(RK),pointer, contiguous :: RX(:),RY(:),RZ(:)
    real(RK),pointer, contiguous :: PX(:),PY(:),PZ(:)
@@ -18257,10 +18223,7 @@ endif
    real(RK),pointer, contiguous :: VBx(:),VBy(:),VBz(:)
    real(RK)        :: multiplicator
    real(RK)        :: Contrib
-  
 #endif
-
-   type(TMolecule), pointer :: mol
 
    EPotLocal = 0.0_RK
    VirialLocal = 0.0_RK
@@ -18444,7 +18407,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_SelfTerm_Energy                !
+!  Subroutine TEnsemble_Ewald_SelfTerm_Energy                  !
 !==============================================================!
 
   subroutine TEnsemble_EwaldSelf_Energy( this )
@@ -18517,7 +18480,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermEnergy              !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergy                !
 !==============================================================!
 
    subroutine TEnsemble_EwaldFourierEnergy(this)
@@ -18528,13 +18491,13 @@ endif
     include 'mpif.h'
 #endif
 
-   type(TMolecule), pointer :: mol
-
    ! Declare arguments
    type(TEnsemble)   :: this
 
+   ! Declare local variables
    integer :: i,j,l,m
    integer :: molec
+   type(TMolecule), pointer :: mol
 #if MPI_VER > 0
    integer,pointer :: i0
    integer,pointer :: i1
@@ -18724,7 +18687,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermEnergy1             !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergy1               !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierEnergy1(this,nc,np)
 
@@ -18735,9 +18698,11 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)          :: this
-   type(TMolecule), pointer :: mol
+   type(TEnsemble)    :: this
+   integer,intent(in) :: nc,np
 
+   ! Declare local variables
+   type(TMolecule), pointer :: mol
    real(RK):: RX,RY,RZ
    real(RK):: RX2,RY2,RZ2
    real(RK),pointer :: q(:)
@@ -18747,10 +18712,7 @@ endif
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
-
    integer :: i,l
-   integer,intent(in)::nc,np
-
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
@@ -18830,7 +18792,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermEnergyCF            !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergyCF              !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierEnergy_CF(this,nc,np,ncold,npold)
 
@@ -18841,10 +18803,13 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)          :: this
+   type(TEnsemble)    :: this
+   integer,intent(in) :: nc,np
+   integer,intent(in) :: ncold,npold
+
+   ! Declare local variables
    type(TMolecule), pointer :: mol
    type(TMolecule), pointer :: mol2
-
    real(RK):: RX,RY,RZ
    real(RK),pointer :: q(:)
    real(RK),pointer :: q2(:)
@@ -18854,11 +18819,7 @@ endif
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
-
    integer :: i,l
-   integer,intent(in)::nc,np
-   integer,intent(in)::ncold,npold
-
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
@@ -18943,7 +18904,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TSimulation_Ewald_FourierTermAddDel              !
+!  Subroutine TEnsemble_Ewald_FourierTermAddDel                !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierAddDel(this,nc,np,m)
 
@@ -18954,9 +18915,11 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)          :: this
-   type(TMolecule), pointer :: mol
+   type(TEnsemble)    :: this
+   integer,intent(in) :: nc,np,m
 
+   ! Declare local variables
+   type(TMolecule), pointer :: mol
    real(RK):: RX,RY,RZ
    real(RK),pointer :: q(:)
    real(RK):: KVec(3)
@@ -18965,14 +18928,10 @@ endif
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK):: Faktor
-
    integer :: i,l
-   integer,intent(in)::nc,np,m
-
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
-
 
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
@@ -19040,22 +18999,24 @@ endif
   END subroutine TEnsemble_EwaldFourierAddDel
 
 
-
 !==============================================================!
-!  Subroutine TSimulation_PME_FourierTerm                      !
+!  Subroutine TEnsemble_PME_FourierTerm                        !
 !==============================================================!
-#ifdef SPME
+#if SPME > 0
    subroutine TEnsemble_PMEFourierTerm(this)
 
    implicit none
 
-    include 'fftw3.f'
+   include 'fftw3.f'
 #if MPI_VER > 0
-    include 'mpif.h'
+   include 'mpif.h'
 #endif
 
    ! Declare arguments
+   type(TEnsemble)   :: this
 
+   ! Declare local variables
+   type(TMolecule),pointer   :: pm
    real(RK):: EPotLocal
    real(RK):: Viriallocal
    real(RK):: kap,fac
@@ -19085,9 +19046,6 @@ endif
    integer :: i,j,k
    integer :: inter
 
-   type(TEnsemble)   :: this
-   type(TMolecule),pointer   :: pm
-
 !!!!!!!!!!!! Charge Grid
    real(RK),dimension(this%splineorder+5) ::  transf
    real(RK),dimension(this%splineorder+5) :: dtransf
@@ -19112,12 +19070,12 @@ endif
    real(RK)           :: err
    real(RK)           :: qgrid_safe
 
-
 #if MPI_VER > 0
-   integer:: i0,i1
+   integer  :: i0,i1
+   real(RK) :: Virmpi, Fcum(3)
    real(RK),pointer, contiguous :: qgrid(:,:)
-   real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult
-   real(RK),dimension(this%gridx*this%gridx*this%gridx+1):: mult2
+   real(RK) :: mult(this%gridx*this%gridx*this%gridx+3)
+   real(RK) :: mult2(this%gridx*this%gridx*this%gridx+3)
 #endif
 
 ! Dimensions of charge
@@ -19156,6 +19114,7 @@ endif
    i1 = this%NBox2
 
    DO i=i0,i1,1
+     if (i==1) cycle
 #else
    DO i=2,ngrid
 #endif
@@ -19230,20 +19189,28 @@ endif
 !!!!!!!!!!!!! Calculation of the forces!!!!
 !    counter = 1 
    VirLoc = 0._RK
+   FXcum = 0._RK
+   FYcum = 0._RK
+   FZcum = 0._RK
    DO i=1,this%NComponents
-     DO j=1,this%Component(i)%Molecule%NCharge
-       q =  this%Component(i)%Molecule%SiteCharge(j)%e
-       DO k=1,this%Component(i)%NPart
+     pm=>this%Component(i)%Molecule
+     DO j=1,pm%NCharge
+       q = pm%SiteCharge(j)%e
+#if MPI_VER > 0
+       DO k=this%Component(i)%NPart0,this%Component(i)%NPart2
+#else
+       DO k=1,this%Component(i)%NPart ! can and should! be parallised using this%Component(i)%NPart0/2 (Michael Sch.)
+#endif
 
        strucx = 0._RK
        strucy = 0._RK
        strucz = 0._RK
 
 !!!!!!!!!!!!!!!!!!!!!
-       q  = this%Component(i)%Molecule%SiteCharge(j)%e
-       RX = this%Component(i)%Molecule%SiteCharge(j)%RX(k)
-       RY = this%Component(i)%Molecule%SiteCharge(j)%RY(k)
-       RZ = this%Component(i)%Molecule%SiteCharge(j)%RZ(k)
+       q  = pm%SiteCharge(j)%e
+       RX = pm%SiteCharge(j)%RX(k)
+       RY = pm%SiteCharge(j)%RY(k)
+       RZ = pm%SiteCharge(j)%RZ(k)
 
        RX     = RX - anint(RX)
        RY     = RY - anint(RY)
@@ -19300,11 +19267,9 @@ endif
        END DO
 !!!!!!!!!1
 
-
-
-         FX =>  this%Component(i)%Molecule%SiteCharge(j)%FX(k)
-         FY =>  this%Component(i)%Molecule%SiteCharge(j)%FY(k)
-         FZ =>  this%Component(i)%Molecule%SiteCharge(j)%FZ(k)
+         FX => pm%SiteCharge(j)%FX(k)
+         FY => pm%SiteCharge(j)%FY(k)
+         FZ => pm%SiteCharge(j)%FZ(k)
 
          FXi = strucx*facx*q
          FYi = strucy*facy*q
@@ -19318,24 +19283,40 @@ endif
          FYcum = FYcum + FYi
          FZcum = FZcum + FZi
 
-         VirLoc = VirLoc + FXi*(this%Component(i)%Molecule%SiteCharge(j)%RX(k) - &
-&                 this%Component(i)%Molecule%SiteCharge(j)%PX(k))*this%BoxLength
-         VirLoc = VirLoc + FYi*(this%Component(i)%Molecule%SiteCharge(j)%RY(k) - &
-&                 this%Component(i)%Molecule%SiteCharge(j)%PY(k))*this%BoxLength
-         VirLoc = VirLoc + FZi*(this%Component(i)%Molecule%SiteCharge(j)%RZ(k) - &
-&                 this%Component(i)%Molecule%SiteCharge(j)%PZ(k))*this%BoxLength
+         VirLoc = VirLoc + FXi*(pm%SiteCharge(j)%RX(k) - pm%SiteCharge(j)%PX(k))*this%BoxLength
+         VirLoc = VirLoc + FYi*(pm%SiteCharge(j)%RY(k) - pm%SiteCharge(j)%PY(k))*this%BoxLength
+         VirLoc = VirLoc + FZi*(pm%SiteCharge(j)%RZ(k) - pm%SiteCharge(j)%PZ(k))*this%BoxLength
 
        END DO
      END DO
    END DO
 
+#if MPI_VER > 0
+      Virmpi = VirLoc
+      call MPI_Reduce( Virmpi, VirLoc, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Allreduce( FXcum, Fcum(1), 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( FYcum, Fcum(2), 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( FZcum, Fcum(3), 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      FXcum = Fcum(1) /this%NPart
+      FYcum = Fcum(2) /this%NPart
+      FZcum = Fcum(3) /this%NPart
+#else
+      FXcum = FXcum /this%NPart
+      FYcum = FYcum /this%NPart
+      FZcum = FZcum /this%NPart
+#endif
+
    DO i=1,this%NComponents
      DO j=1,this%Component(i)%Molecule%NCharge
        pm=>this%Component(i)%Molecule
+#if MPI_VER > 0
+       DO k=this%Component(i)%NPart0,this%Component(i)%NPart2 ! can also be rewritten to sequential...makes only sense for large systems
+#else
        DO k=1,this%Component(i)%NPart
-         pm%SiteCharge(j)%FX(k) = pm%SiteCharge(j)%FX(k) - FXcum/this%NPart
-         pm%SiteCharge(j)%FY(k) = pm%SiteCharge(j)%FY(k) - FYcum/this%NPart
-         pm%SiteCharge(j)%FZ(k) = pm%SiteCharge(j)%FZ(k) - FZcum/this%NPart
+#endif
+         pm%SiteCharge(j)%FX(k) = pm%SiteCharge(j)%FX(k) - FXcum
+         pm%SiteCharge(j)%FY(k) = pm%SiteCharge(j)%FY(k) - FYcum
+         pm%SiteCharge(j)%FZ(k) = pm%SiteCharge(j)%FZ(k) - FZcum
        END DO
      END DO
    END DO
@@ -19345,19 +19326,21 @@ endif
 
 contains
 
-!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Calculate Spline function and Derivative of the spline function
     real(RK) function fillspline(w,spline,dspline)
 
     implicit none
-      real(RK),intent(in) ::  w
-      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
+    ! Declare Arguments
+    real(RK),intent(in) ::  w
+    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
-      real(RK)            :: div
-      real(RK)            :: dj,di,dorder
-      integer             :: i,j,order
+    ! Declare local variables
+    real(RK)            :: div
+    real(RK)            :: dj,di,dorder
+    integer             :: i,j,order
 
       order = this%splineorder
 
@@ -19402,15 +19385,19 @@ contains
     end function fillspline
 
 
-
    end subroutine TEnsemble_PMEFourierTerm
 
-
+!==============================================================!
+!  Subroutine TEnsemble_charge_grid                            !
+!==============================================================!
    subroutine charge_grid(this)
 
    implicit none
+
+   ! Declare Arguments
    type(TEnsemble)    :: this
 
+   ! Declare local variables
    real(RK)           :: boxl
    real(RK),dimension(this%splineorder+5) ::  transf
    real(RK),dimension(this%splineorder+5) :: dtransf
@@ -19439,7 +19426,6 @@ contains
    real(RK)           :: err
    real(RK)           :: fac
 
-
    this%qgrida = 0._RK
 
    NX = this%gridx
@@ -19448,7 +19434,6 @@ contains
 
    boxl  = this%BoxLength
    order = this%splineorder
-
 
 ! Dimensions of charge
    fac = UnitCharge / ElementaryCharge
@@ -19529,14 +19514,16 @@ contains
     real(RK) function fillspline(w,spline,dspline)
 
     implicit none
-      real(RK),intent(in) ::  w
-      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
+    ! Declare Arguments
+    real(RK),intent(in) ::  w
+    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
-      real(RK)            :: div
-      real(RK)            :: dj,di,dorder
-      integer             :: i,j,order
+    ! Declare local variables
+    real(RK)            :: div
+    real(RK)            :: dj,di,dorder
+    integer             :: i,j,order
 
       order = this%splineorder
 
@@ -19583,17 +19570,18 @@ contains
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! SPME for MonteCarlo Simulations
+! Subroutine TEnsemble_PME_Setup                                   !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  subroutine TEnsemble_PME_Setup ( this )
+  subroutine TEnsemble_PME_Setup( this ) ! Deublein: SPME for MonteCarlo Simulations 
 
     implicit none
 
     include 'fftw3.f'
+
     ! Declare arguments
     type(TEnsemble)         :: this
 
+    ! Declare local variables
     real(RK)::bspx(this%splineorder)
     real(RK)::bspy(this%splineorder)
     real(RK)::bspz(this%splineorder)
@@ -19619,7 +19607,7 @@ contains
     err = pme_bspline(NX,NY,NZ)
 
 ! Self Term
-    call PMESelfTermMC (this )
+    call PMESelfTermMC(this )
 
 
 ! Allocation of bbtot
@@ -19668,8 +19656,11 @@ contains
     real(RK) function pme_bspline(NX,NY,NZ)
 
     implicit none
+
+    ! Declare Arguments
     integer,intent(in) :: NX,NY,NZ
 
+    ! Declare local variables
     real(RK)    :: w
     real(RK)    :: err
     real(RK),dimension(this%splineorder+5):: spline,dspline
@@ -19696,16 +19687,17 @@ contains
     end function pme_bspline
 
 
-
-
-    function pme_dftmod (grid) result(bmod)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function pme_dftmod(grid) result(bmod)
 
     implicit none
 
+    ! Declare Arguments
     real(RK),dimension(this%gridx) :: bmod
     real(RK),pointer, contiguous :: barr(:)
     integer  :: grid
 
+    ! Declare local variables
     real(RK) :: twopi
     real(RK) :: tinys
     real(RK) :: sum1,sum2
@@ -19736,13 +19728,16 @@ contains
     real(RK) function fillspline(w,spline,dspline)
 
     implicit none
-      real(RK),intent(in) :: w
-      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
-      real(RK)            :: div
-      real(RK)            :: dj,di,dorder
-      integer             :: i,j,order
+    ! Declare Arguments
+    real(RK),intent(in) :: w
+    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
+
+    ! Declare local variables
+    real(RK)            :: div
+    real(RK)            :: dj,di,dorder
+    integer             :: i,j,order
 
       order = this%splineorder
 
@@ -19787,9 +19782,9 @@ contains
   end subroutine TEnsemble_PME_Setup
 
 
-
-
-
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Subroutine TEnsemble_PMESelfTerm_MC                              !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine TEnsemble_PMESelfTerm_MC( this )
 
     implicit none
@@ -19852,7 +19847,6 @@ contains
       this%UIntra = this%UIntra + this%component(i)%NPart * UIntraTermKomp
     END DO
 
-
     end subroutine TEnsemble_PMESelfTerm_MC
 
 
@@ -19860,7 +19854,6 @@ contains
 !==============================================================!
 !  Subroutine TEnsemble_PME_FourierTerm MonteCarlo             !
 !==============================================================!
-
    subroutine TEnsemble_PMEFourierTerm_MC(this)
 
    implicit none
@@ -19868,7 +19861,9 @@ contains
     include 'fftw3.f'
 
    ! Declare arguments
+   type(TEnsemble)   :: this
 
+   ! Declare local variables
 ! Factors
    real(RK):: fac2, fac2s
    real(RK):: factor
@@ -19893,11 +19888,6 @@ contains
    integer :: index_loc
 
    integer :: i,j,k
-
-   type(TEnsemble)   :: this
-
-
-
 #if MPI_VER > 0
    integer:: i0,i1
 #endif
@@ -19969,12 +19959,17 @@ contains
    end subroutine TEnsemble_PMEFourierTerm_MC
 
 
-
+!==============================================================!
+!  Subroutine TEnsemble_PME_charge_grid_MCall                  !
+!==============================================================!
    subroutine charge_grid_MCall(this)
 
    implicit none
+
+   ! Declare arguments
    type(TEnsemble)    :: this
 
+   ! Declare local variables
    real(RK)           :: boxl
    real(RK),dimension(this%splineorder+5) ::  transf
    real(RK),dimension(this%splineorder+5) ::  splinex
@@ -20085,10 +20080,12 @@ contains
     real(RK) function fillspline(w,spline)
 
     implicit none
-      real(RK),intent(in) ::  w
-      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
+    ! Declare arguments
+    real(RK),intent(in) ::  w
+    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
+   ! Declare local variables
       real(RK)            :: div
       real(RK)            :: dj,di,dorder
       integer             :: i,j,order
@@ -20129,15 +20126,19 @@ contains
    end subroutine charge_grid_MCall
 
 
-
+!==============================================================!
+!  Subroutine TEnsemble_PMEChargeGrid_plus                     !
+!==============================================================!
    subroutine TEnsemble_PMChargeGrid_plus(this,nc,np)
 
    implicit none
+
+   ! Declare arguments
    type(TEnsemble)    :: this
    integer,intent(in) :: nc
    integer,intent(in) :: np
 
-
+   ! Declare local variables
    real(RK)           :: boxl
    real(RK),dimension(this%splineorder+5) ::  transf
    real(RK),dimension(this%splineorder+5) ::  splinex
@@ -20240,10 +20241,12 @@ contains
     real(RK) function fillspline(w,spline)
 
     implicit none
+
+    ! Declare arguments
       real(RK),intent(in) ::  w
       real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
-
+   ! Declare local variables
       real(RK)            :: div
       real(RK)            :: dj,di,dorder
       integer             :: i,j,order
@@ -20284,14 +20287,19 @@ contains
    end subroutine TEnsemble_PMChargeGrid_plus
 
 
-
+!==============================================================!
+!  Subroutine TEnsemble_PMEChargeGrid_min                      !
+!==============================================================!
    subroutine TEnsemble_PMChargeGrid_min(this,nc,np)
 
    implicit none
+
+   ! Declare arguments
    type(TEnsemble)    :: this
    integer,intent(in) :: nc
    integer,intent(in) :: np
 
+   ! Declare local variables
    real(RK)           :: boxl
    real(RK),dimension(this%splineorder+5) ::  transf
    real(RK),dimension(this%splineorder+5) ::  splinex
@@ -20395,13 +20403,15 @@ contains
     real(RK) function fillspline(w,spline)
 
     implicit none
-      real(RK),intent(in) ::  w
-      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
+    ! Declare arguments
+    real(RK),intent(in) ::  w
+    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
-      real(RK)            :: div
-      real(RK)            :: dj,di,dorder
-      integer             :: i,j,order
+    ! Declare local variables
+    real(RK)            :: div
+    real(RK)            :: dj,di,dorder
+    integer             :: i,j,order
 
       order = this%splineorder
 
@@ -20439,25 +20449,31 @@ contains
    end subroutine TEnsemble_PMChargeGrid_min
 
 
+!==============================================================!
+!  Subroutine TEnsemble_VirialIntra (SPME)                     !
+!==============================================================!
    subroutine TEnsemble_VirialIntra(this)
 
    implicit none
-   type(TEnsemble)            :: this
-   type(TMolecule),pointer    :: pm
 
+   ! Declare Arguments
+   type(TEnsemble)            :: this
+
+   ! Declare local variables
+   type(TMolecule),pointer    :: pm
    integer  :: i,j,jj,k
    real(RK) :: RX,RY,RZ
    real(RK) :: PX,PY,PZ
    real(RK) :: dx,dy,dz,dr
    real(RK) :: ex,ey,ez
    real(RK) :: qj,qjj
-   real(RK) :: virloc
+   real(RK) :: Virloc
    real(RK) :: Kappa
    real(RK) :: kapparij,approx
    real(RK) :: fij
    real(RK) :: Faktor
 
-   virloc = 0._RK
+   Virloc = 0._RK
    Kappa  = this%Kappa
    Faktor = 2._RK/sqrt(Pi) * Kappa
 
@@ -20544,9 +20560,9 @@ contains
        END DO
      END DO
    END DO
+!!! Michael Sch.: This routine does nothing...no result transferrred no type/class variable safed/changed!
 
    end subroutine TEnsemble_VirialIntra
-
 #endif
 
 
