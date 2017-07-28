@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
-!  (c) 2014 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
+!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -1241,11 +1241,11 @@ contains
       if(mod(this%NSpanCF, this%NStepCorr) .eq. 0) then
         this%NSpanCF = this%NSpanCF/this%NStepCorr
         this%NCorr = this%NCorr/this%NStepCorr
-        write( IOBuffer, '("Correlation Function (CF) is calculated every",I3,"-th time step")') this%NStepCorr
+        write( IOBuffer, '("Correlation Functions (CF) are calculated every",I3,"-th time step")') this%NStepCorr
         call LogWrite
       else
         this%NStepCorr = 1
-        write( IOBuffer, '("Correlation Function (CF) is calculated every time step")')
+        write( IOBuffer, '("Correlation Functions (CF) are calculated every time step")')
         call LogWrite
         write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
         call LogWrite
@@ -1254,7 +1254,7 @@ contains
       this%TimeStepCorr = TimeStep * this%NStepCorr
 
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-        write( IOBuffer, '("Length of CF:",T26, I5)' ) this%NCorr*this%NStepCorr
+        write( IOBuffer, '("Length of CF:",T26, I7)' ) this%NCorr*this%NStepCorr
         call LogWrite
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
@@ -1263,18 +1263,18 @@ contains
       endif
       
       ! Correlation length output
-      write( IOBuffer, '("Time Span between CF:",T26, I5)' ) this%NSpanCF*this%NStepCorr
+      write( IOBuffer, '("Time Span between CF:",T26, I7)' ) this%NSpanCF*this%NStepCorr
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
-      write( IOBuffer, '("Print CF each:",T26, I5)' ) this%Nviewcf
+      write( IOBuffer, '("Print CF each:",T26, I7)' ) this%Nviewcf
       call LogWrite
 
       if ( ((this%Nviewcf*this%NSpanCF*this%NStepCorr+this%NCorr*this%NStepCorr) > NSteps) .or. (this%Nviewcf .eq. 0) ) then
         write(IOBuffer, '("Warning: Updates of CF not sufficient - Output once at the end of simulation")')
         call LogWrite
         this%Nviewcf = int((NSteps-this%NCorr*this%NStepCorr)/(this%NSpanCF*this%NStepCorr))
-        write( IOBuffer, '("Print after", I6," CF")' ) this%Nviewcf
+        write( IOBuffer, '("Print after", I7," CF")' ) this%Nviewcf
         call LogWrite
       end if
 
@@ -1344,10 +1344,10 @@ contains
         call FileReadParameter( this%ScaleEpsilon(i, j), iounit_params , IdScaleEpsilon, .false. )
         if( i /= j ) this%ScaleEpsilon(j, i) = this%ScaleEpsilon(i, j)
         write( IOBuffer, &
-&         '(A, "-", A, " MIE interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
+&         '(A, "-", A, " ", A, " interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
 &         trim( this%Component(i)%PotModFileName ), &
 &         trim( this%Component(j)%PotModFileName ), &
-&         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
+&         trim(LJorMIE), this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
         call LogWrite
       end do
     end do
@@ -1445,7 +1445,7 @@ contains
 
       if( this%NMIEnmMax > 0 ) then
         call FileReadParameter( this%RCutoffMIEnmMIEnm, iounit_params , IdRCutoffMIEnmMIEnm, .false. )
-        write( IOBuffer, '("MIE cutoff radius: ",T45, F6.3, " sigma")' ) this%RCutoffMIEnmMIEnm
+        write( IOBuffer, '(A, " cutoff radius: ",T45, F6.3, " sigma")' ) trim(LJorMIE), this%RCutoffMIEnmMIEnm
         call LogWrite
       end if
 
@@ -1512,11 +1512,11 @@ contains
 
       
       if (LongRange .eq. Ewald) then
-	do i = 1, this%NComponents
-	  if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
+        do i = 1, this%NComponents
+          if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
              this%EConductivity = .true.
-	  end if
-	end do
+          end if
+        end do
       end if
 
 
@@ -1613,7 +1613,7 @@ contains
 
     do i = 1, this%NRealComponents
       write( IOBuffer, '("- chem. pot. of ", A, " from ", A, T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
-&        LJorMIE, this%Component(i)%EPotTestCorrMIE
+&        trim(LJorMIE), this%Component(i)%EPotTestCorrMIE
       call LogWrite
     end do
 
@@ -1920,9 +1920,9 @@ contains
         this%ScaleEpsilon(i:i+1, j:j+1) = scaleEpsilon
 
         if( i /= j ) this%ScaleEpsilon(j:j+1, i:i+1) = scaleEpsilon
-        write( IOBuffer, '(A, "-", A, " MIE interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
+        write( IOBuffer, '(A, "-", A, " ", A, " interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
 &         trim( this%Component(i)%PotModFileName ), trim( this%Component(j)%PotModFileName ), &
-&         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
+&         trim(LJorMIE), this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
         call LogWrite
 
       end do
@@ -1942,9 +1942,9 @@ contains
       do j = i + 1, this%NComponents, 2
 
         this%Interaction(i, j)%EPotCorrMIE = sum( this%Interaction(i, j)%PotMIEnmMIEnm(:, :)%EPotCorr )
-        write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from MIE:", F12.8)' ) &
+        write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from ", A, ":", F12.8)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), trim( this%Component(j)%Molecule%PotModFileName ), &
-&         .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
+&         trim(LJorMIE), .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
         call LogWrite
 
       end do
@@ -12193,17 +12193,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                           Publishing with ms2                                *")')
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                          *")')
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* G. Rutkai, A. K�ster, G. Guevara-Carrion, T. Janzen, M. Schappals, C.W. Glass, M. Bernreuther *")')
+    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,       *")') 
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* A. Wafai, S. Stephan, M. Kohns, S. Reiser, S. Deublein, M. Horsch, H. Hasse, J. Vrabec        *")')
+    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2017)                                       *")')
+    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                              *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2017)                                   *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
@@ -12338,8 +12340,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Cutoff radii
     if( this%NMIEnmMax > 0 ) then
-      write( IOBuffer, '("MIE cutoff radius", T36, ":", F20.9, " A")' ) &
-&            this%RCutoffMIEnmMIEnm * UnitLength / Angstroem
+      write( IOBuffer, '(A, " cutoff radius", T36, ":", F20.9, " A")' ) &
+&            trim(LJorMIE), this%RCutoffMIEnmMIEnm * UnitLength / Angstroem
       call FileWrite( this%iounit_errors )
     end if
 
@@ -12994,12 +12996,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      write( IOBuffer, '("Number of ACF", T36, ":",T45, I6 )' ) this%Mmess
+      write( IOBuffer, '("Number of CF", T36, ":",T45, I6 )' ) this%Mmess
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       value = this%NCorr*this%TimeStepCorr
-      write( IOBuffer, '("Length ACF  ", T29, "reduced:", F20.9)' ) value
+      write( IOBuffer, '("Length of CF  ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
 
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -13007,7 +13009,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWriteBlank( this%iounit_errors )
 
       value = this%NSpanCF*this%TimeStepCorr
-      write( IOBuffer, '("Time span between ACF ", T29, "reduced:", F20.9)' ) value
+      write( IOBuffer, '("Time span between CF ", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
 
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -13051,7 +13053,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
               write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
               call FileWrite( this%iounit_errors )
-              write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+              write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
               call FileWrite( this%iounit_errors )     
             end do
           end do 
@@ -13093,24 +13095,25 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           
           write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          if (this%MolarEnthConduct .eq. .true.) then
-            Average  = this%SumSoret%Average
-            Variance = this%SumSoret%Variance
-            value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
-            write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", 2F20.9)' ) Average*value, Variance*value
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          else
-            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          end if  !this%MolarEnthConduct
+          !...Calculation of Thermal diff. coeff. does not work yet...
+          !if (this%MolarEnthConduct .eqv. .true.) then
+          !  Average  = this%SumSoret%Average
+          !  Variance = this%SumSoret%Variance
+          !  value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
+          !  write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
+          !  call FileWrite( this%iounit_errors )
+          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", 2F20.9)' ) Average*value, Variance*value
+          !  call FileWrite( this%iounit_errors )
+          !  call FileWriteBlank( this%iounit_errors )
+          !else
+          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+          !  call FileWrite( this%iounit_errors )
+          !  call FileWriteBlank( this%iounit_errors )
+          !end if  !this%MolarEnthConduct
 
         end if !this components = 2
      
@@ -13194,17 +13197,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
           write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12 
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )      
           write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         end if !this%NComponents == 3 
@@ -13284,32 +13287,32 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
           write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
@@ -13321,10 +13324,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           Average  = this%Sumself_i(i)%Average
           Variance = this%Sumself_i(i)%Variance
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' )  &
+          write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", 2F20.9)' )  &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
           call FileWrite( this%iounit_errors )
         end do
         call FileWriteBlank( this%iounit_errors )
@@ -13333,9 +13336,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         Average  = this%SumVisco_s%Average
         Variance = this%SumVisco_s%Variance
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
+        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
+        write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
@@ -13343,9 +13346,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (this%Bulkviscosity ) then
           Average  = this%SumVisco_b%Average
            Variance = this%SumVisco_b%Variance
-          write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
+          write( IOBuffer, '("Bulk viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
+          write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         else
@@ -13365,7 +13368,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
         elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eq. .true.) then
+          if (this%MolarEnthConduct .eqv. .true.) then
                write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
                call FileWrite( this%iounit_errors )
                write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
@@ -13398,7 +13401,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               do j = 1, this%NComponents
                  write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,0._RK
                  call FileWrite( this%iounit_errors )
-                 write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+                 write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
                  call FileWrite( this%iounit_errors )
               end do
            end do
@@ -13408,20 +13411,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if ( this%NComponents==2 ) then
           write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-          if (this%MolarEnthConduct .eqv. .true.) then
-            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", F20.9)' ) 0._RK 
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          else
-            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          end if
+
+          !...Calculation of Thermal diff. coeff. does not work yet...
+          !if (this%MolarEnthConduct .eqv. .true.) then
+          !  write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
+          !  call FileWrite( this%iounit_errors )
+          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
+          !  call FileWrite( this%iounit_errors )
+          !  call FileWriteBlank( this%iounit_errors )
+          !else
+          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+          !  call FileWrite( this%iounit_errors )
+          !  call FileWriteBlank( this%iounit_errors )
+          !end if
           
         end if
 
@@ -13429,39 +13434,39 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if( this%NComponents == 3 ) then
           write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)') 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
           write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         end if    
 
         do i = 1, this%NComponents
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
+          write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T21, "in 10E-10 m^2/s:", F20.9)' )  0._RK
+          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
         end do
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Shear-Viscosity    ", T29, "reduced:", F20.9)' )  0._RK
+        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", F20.9)' )  0._RK
         call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+        write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
         if (this%Bulkviscosity ) then
-          write( IOBuffer, '("Bulk-Viscosity     ", T29, "reduced:", F20.9)' )  0._RK
+          write( IOBuffer, '("Bulk viscosity     ", T29, "reduced:", F20.9)' )  0._RK
           call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T23, "in 10E-4 Pa s:", F20.9)' ) 0._RK
+          write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
         else
           write( IOBuffer, '("Bulk viscosity only defined for the NVE ensemble")' )
         end if
@@ -13488,7 +13493,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       
 
         if (this%EConductivity) then
-           write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._RK
+           write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
         else
@@ -14111,17 +14116,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                           Publishing with ms2                                *")')
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                          *")')
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* G. Rutkai, A. K�ster, G. Guevara-Carrion, T. Janzen, M. Schappals, C.W. Glass, M. Bernreuther *")')
+    write( IOBuffer, '("* G. Rutkai, A. Köster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* A. Wafai, S. Stephan, M. Kohns, S. Reiser, S. Deublein, M. Horsch, H. Hasse, J. Vrabec        *")')
+    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2017)                                       *")')
+    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                              *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2017)                                   *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
@@ -14248,7 +14255,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     do i = 1, this%NComponents
       do j = 1, this%Component(i)%Molecule%NMIEnm
         psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
-        write( IOBuffer, '("~", I3, " MIE", 4F8.4, "  1")' ) i, psMIEnm%r(:) * UnitLength / Angstroem, &
+        write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
 &              psMIEnm%sig  * UnitLength / Angstroem
         call FileWrite( this%iounit_visual )
       end do
@@ -14541,8 +14548,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end do
     end do
 
-    ! Open RDF file
-    if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
+    ! Rewrite RDF file
+    ! if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
+    ! RDF files are updated with RDFUpdateFrequence, see ms2_simulation
+
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
       write(IOBuffer, '(T5," r [A]")')
@@ -14572,13 +14581,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
       call FileWriteBlank( this%iounit_rdf )
-    end if
 
     do o = 1, RDFNumberShells
-      if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
-        write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
-        call FileWriteNoAdvance( this%iounit_rdf )
-      end if
+      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+      call FileWriteNoAdvance( this%iounit_rdf )
       do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
@@ -14592,19 +14598,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
               end if
               this%RDFValue(o) = RDFRhoLocal / RDFRho  
-              if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps) then
-                write(IOBuffer, '(F10.4)') this%RDFValue(o)
-                call FileWriteNoAdvance( this%iounit_rdf )
-              end if
+              write(IOBuffer, '(F10.4)') this%RDFValue(o)
+              call FileWriteNoAdvance( this%iounit_rdf )
             end do
           end do
         end do
       end do
-     if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) call FileWriteBlank( this%iounit_rdf )
+     call FileWriteBlank( this%iounit_rdf )
     enddo
 
     ! Close RDF file
-    if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) call FileClose( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFUpdate
 
@@ -16443,7 +16447,7 @@ endif
    dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
 
 
-   if (this%consup .eq. .true.) then
+   if (this%consup .eqv. .true.) then
      DO j=1,this%NCons,1
           write( IOBuffer, '(F10.5)' ) this%UCons(j) / BlockSize
           call FileWriteNoAdvance( this%iounit_runave )
