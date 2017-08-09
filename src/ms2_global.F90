@@ -125,8 +125,8 @@ module ms2_global
   character(*), parameter :: Hardware = 'pc/sunF90'
 #elif defined __PATHSCALE__
   character(*), parameter :: Hardware = 'pc/pathf9X'
-#elif defined _PGF
-  character(*), parameter :: Hardware = 'pc/PGF'
+#elif defined _PGF || defined __PGI
+  character(*), parameter :: Hardware = 'pc/PGI'
 #elif defined _CRAYFTN
   character(*), parameter :: Hardware = 'XE6/CRAY'
 #elif defined __GNUC__
@@ -725,7 +725,7 @@ module ms2_global
   logical :: TerminateProgram
 
 ! PGF compiler version < 6.0 seems to need this
-! #ifdef _PGF
+! #if defined _PGF || defined __PGI
 !   ! External funtion for signal handling
 !   external SetTerminateProgram
 ! #endif
@@ -931,7 +931,7 @@ module ms2_global
 #endif
   
   ! change current directory
-#if defined _PGF
+#if defined _PGF || defined __PGI
   integer, external :: chdir
 !#elif defined
   !external chdir
@@ -942,7 +942,7 @@ module ms2_global
 #endif
 
   ! User name from console
-#if ARCH == 1 || defined _PGF
+#if ARCH == 1 || defined _PGF || defined __PGI
   character(256), external :: getlog
 #elif ARCH == 2 || ARCH==3
   external getlog
@@ -1230,7 +1230,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__ 
+#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
 #elif defined _CRAYFTN
         call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
@@ -1348,7 +1348,7 @@ contains
     write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
     write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
-#elif defined __PGI
+#elif defined __PGI || defined _PGF
     write( IOBuffer, '("Compiler version     : PGI pgf")' )
 #elif defined __SUNPRO_F95
     write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
@@ -1397,7 +1397,7 @@ contains
 #if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __PGI || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -1406,7 +1406,7 @@ contains
 #endif
 #ifdef _CRAYFTN
    username = 'Getlog is not supported'
-#elif ARCH == 1 || defined _PGF
+#elif ARCH == 1 || defined _PGF || defined __PGI
     username = getlog()
 #elif ARCH == 2 || ARCH == 3
     call getlog( username )
