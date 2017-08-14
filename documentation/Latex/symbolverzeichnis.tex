@@ -1,4 +1,6 @@
 
+
+\renewcommand{\arraystretch}{1.2}	
 { % Tabellendefinitionen gelten nur in diesem Dokument
 	
 	% Longtable auf Spaltebreite ausdehnen
@@ -10,7 +12,7 @@
 	\newcolumntype{B}{l @{\extracolsep{\fill}}} % Beschreibung
 	
 	
-	\chapter{List of Symbols and Abbreviations}
+	\chapter{List of symbols and abbreviations}
 	
 	\section*{Symbols}
 	
@@ -20,39 +22,39 @@
 		\endhead
 		% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
 		
-		A    & Helmholtz free energy &  \\
-		a      &  probability that determines that the newly generated state is accepted or not &  \\
-		B     & intermolecular potential by \cite{gray} &  \\
-		c_p   & molar isobaric heat capacity &  \\
-		c_v   & molar isochoric heat capacity &  \\
-		D     & self-diffusion coefficient  &  \\
-		D     & Maxwell Stefan diffusion coefficient &  \\
+		A    & Helmholtz energy &  \\
+		a      &  probability that determines whether the newly generated state is accepted or not &  \\
+		B     & intermolecular potential  &  \\ % by \cite{gray}
+		c_\mathrm{p}   & molar isobaric heat capacity &  \\
+		c_\mathrm{v}   & molar isochoric heat capacity &  \\
+%		D     & self-diffusion coefficient  &  \\
+		D     & Maxwell-Stefan diffusion coefficient &  \\
 		E     & total hamiltonian of the system &  \\
 		E     & internal energy &  \\
 		F     & molecular degrees of freedom in the system &  \\
-		G     & Gibbs free energy &  \\
+		G     & Gibbs energy &  \\
 		g     & radial distribution function &  \\
 		H     & enthalpy &  \\
 		H  & Henry’s law constant &  \\
 		I     & matrix of angular momentum of inertia &  \\
-		j_e & electric current flux &  \\
-		J_p   &  stress tensor &  \\
+		j_\mathrm{e} & electric current flux &  \\
+		J_\mathrm{p}   &  stress tensor &  \\
 		K     & total kinetic energy of the system &  \\
-		k_B   & Boltzmann’s constant &  \\
+		k_\mathrm{B}   & Boltzmann’s constant &  \\
 		l     & length &  \\
-		L & phenomenological coefficients which are related to the transport diffusion in a mixture &  \\
+		L & phenomenological coefficients which are related to transport diffusion in a mixture &  \\
 		M     & molar mass &  \\
 		m     & mass  &  \\
-		n  & solvation number around molecule i &  \\
-		N_A   & Avogadro constant &  \\
+		n_i  & solvation number around molecule $i$ &  \\
+		N_\mathrm{A}   & Avogadro constant &  \\
 		N  & number of  molecules  &  \\
 		p     & pressure &  \\
-		P  & probability of occurrence of the configurations &  \\
+		P  & probability for a configuration &  \\
 		q     & point charges magnitude &  \\
 		Q     & quadrupole moment &  \\
 		$\textit{R}$     & molar or universal gas constant &  \\
 		r      & distance &  \\
-		r_c   & cut-off radius Interactions &  \\
+		r_\mathrm{c}   & cut-off radius  &  \\
 		S     & entropy &  \\
 		T     & temperature &  \\
 		t     & time  &  \\
@@ -60,7 +62,7 @@
 		u     & intermolecular potential energy  &  \\
 		V     & volume &  \\
 		v     & velocity  &  \\
-		w     & velocity of a sound wave traveling through an elastic medium &  \\
+		w     & speed of sound &  \\
 		$w $    & angular velocity &  \\
 		x     & composition of the liquid &  \\
 		
@@ -83,22 +85,22 @@
 		\beta_T & isothermal compressibility &  \\
 		\varepsilon & Lennard-Jones energy parameter &  \\
 		\epsilon_0 & permittivity of the vacuum &  \\
-		\eta  & Lennard-Jones size-mixing parameter &  \\
+		\eta  & combination rule parameter &  \\
 		\eta  & shear viscosity &  \\
 		\eta_v & bulk viscosity &  \\
 		\Gamma & torque  &  \\
 		\lambda & thermal conductivity &  \\
 		\mu   & dipole moment  &  \\
-		\phi  & azimuthal angle, to the positive x-axis  &  \\
+		\phi  & azimuthal angle, to the positive $x$ axis  &  \\
 		\varphi & angle &  \\
 		\pi  &  transition probability between two states&  \\
 		\rho &  number density  &  \\
 		\sigma   &  Lennard-Jones size  parameter &  \\
-		\theta & polar angle, to the positive z-axis &  \\
+		\theta & polar angle, to the positive $z$ axis &  \\
 		\theta & unit step function &  \\
 		\Theta & Heaviside function &  \\
 		\tilde{\mu} & chemical potential  &  \\
-		\xi   &  Lennard-Jones energy-mixing parameter &  \\
+		\xi   &  combination rule parameter &  \\
 		
 		%************************************************************************
 	\end{longtable}
@@ -112,16 +114,16 @@
 		\endhead
 		% Symbolspalte wird immer in Matheumgebung gesetzt --> $ $ nicht nötig
 		%************************************************************************
-		*     & physical quantities in their reduced form \\
+		*     & reduced physical quantities \\
 		\inf  & infinite dilution \\
 		D    & Dipole\\
-		id    & ideal gas contribution \\
-		L     & local\\
-		LJ    & Lennard-Jones\\
+		\mathrm{id}    & ideal gas contribution \\
+		\mathrm{L}     & local\\
+		\mathrm{LJ}    & Lennard-Jones\\
 		q     & Point charge\\
 		Q    & Quadrupole \\
-		ref   & reference \\
-		res   & residual part \\
+		\mathrm{ref}   & reference \\
+		\mathrm{res}   & residual part \\
 		x     &  vector components \\
 		y     &  vector components \\
 		z     &  vector components \\

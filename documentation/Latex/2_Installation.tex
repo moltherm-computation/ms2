@@ -5,12 +5,12 @@
 
 
 
-\section{Downloading the source Code}
+\section{Downloading the source code}
 \label{sec:Downloading the source Code}
 % Simon
-Please download the \textit{ms}2 distribution on the webpage: \href{http://www.ms-2.de/download}{\textit{ms}2}. The User must either be a natural person or an academic institution represented by a natural person.
-You need to have an user account that can also be requested on the website. Any use of the Software shall only be for purposes of research and academic teaching. There is no license or registration fee. Use in connection with a business purpose is not permitted. Transferring the Software to third parties is not allowed. LTD, as the supplier of \textit{ms}2, provides the Software without any guarantee obligation or any warranty as to its features and gives no guarantee that the Software is free from faults.\\
-The \textit{ms}2 distribution consists of four major parts: the source code, java tools for pre- and postprocessing, a bunch of parameter files for different chemical substances that were developed in our group in the last decade and some example input files for different problems. The installation and use of the \textit{ms}2 program is explained in detail in section XX and XX. The application of the java tools is shown in section xxx. A detailed list of the parameter files for ca. 200 molecules that comes with the \textit{ms}2 distribution is in section xxx. The examples are explained in section xx of this manual. 
+The \textit{ms}2 distribution is available on the webpage: \href{http://www.ms-2.de/download}{http://www.ms-2.de/download}. Users must either be a natural person or an academic institution represented by a natural person. The \textit{ms}2 distribution consists of four major parts: the source code, java tools for pre- and postprocessing, force field models from the \href{http://thermovm.mv.uni-kl.de/moleculeDB/}{\textit{Molecular Models of the Boltzmann-Zuse Society}} database as input files for \textit{ms}2 and some example input files for the calculation of different properties. The installation and use of the \textit{ms}2 program is explained in detail in section \ref{sec:Runningms2}, \ref{sec:Keywords} to \ref{sec:Methods}. The application of the java tools is shown in section \ref{sec:Tools}. A detailed list of the force fields that comes with the \textit{ms}2 distribution is in section \ref{sec:Potential Models in the ms2-distribution}. 
+%The examples are explained in section xx of this manual. 
+
 
 
 % Verisionen -> Zugang zu älteren Versionen?!
@@ -24,52 +24,52 @@ The \textit{ms}2 distribution consists of four major parts: the source code, jav
 
 \section{Building \textit{ms}2}
 \label{sec:Compiling ms2}
-\textit{ms}2 is tested on Linux and Windows, why be give a short explanation how to install the \textit{ms}2 on these two systems.  
+\textit{ms}2 is tested on Linux and Windows platforms, a short explanation how to install the \textit{ms}2 on these two systems is given in the following.
+
 % Hier noch ein paar Allgemeine Sätze/ wie toll es auf Großrechnern läuft 
 
-\subsection{Building on Linux}
+\subsection{Building \textit{ms}2 on Linux platforms}
 
 % kann das makefile.mult aus dem trunk raus?! Oder sollte es hier zusätzlich erwähnt werden?!
 
 
-The compilation can be simplified using the provided ``Makefile'' found in the ``src'' directory (e.g.\ with \href{http://www.gnu.org/software/make/}{GNU make}) and the compiler-related \texttt{*.mk}-files in the \texttt{makefiles}-subdirectory. The ``Makefile'' and the ``\texttt{*.mk}''-file should be adopted to the local system requirements as described below. Alternatively (or additionally) variables can be set through the make command line options as compiler flags. An overview of all options can be found in table \ref{tab:makefiledef} on page \pageref{tab:makefiledef}. \\
-When compiling \textit{ms}2, a variety of settings can be specified to fit the users needs and optimise the performance. The following strings are recognized in the makefile: \texttt{TARGET}, \texttt{RELEASE}, \texttt{MPI}, \texttt{OMP}, \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP} and \texttt{PROG}. If you have set these variable according your needs, just type \texttt{make} in the command line from the ``src'' directory.
+The compilation can be carried out using the provided ``Makefile'' found in the ``src'' directory (e.g.\ with \href{http://www.gnu.org/software/make/}{GNU make}) and the compiler-related \texttt{*.mk}-files in the \texttt{makefiles}-subdirectory. The ``Makefile'' and the ``\texttt{*.mk}''-file should be adopted to the local system requirements as described below. Alternatively (or additionally) variables can be set through the make command line options as compiler flags. An overview of all options can be found in table \ref{tab:makefiledef}.\\
+When compiling \textit{ms}2, a variety of settings can be specified according to the users needs and optimise the performance. The following strings are recognized in the makefile: \texttt{TARGET}, \texttt{RELEASE}, \texttt{MPI}, \texttt{OMP}, \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP} and \texttt{PROG}. After settings these variable according to the users hardware and computational need, typing \texttt{make} in the command line from the ``src'' directory compiles \textit{ms}2 and creates and executable in the current directory.
 
 %There's also an obsolete ``Makefile.mult'' containing compiler options that have been used in the past (for systems, which might be already out of service today).
 
-\textbf{Settings in \texttt{Makefile}}\\
-First of all a compiler has to be chosen. Through the definition of \texttt{COMPILER}-variable, the corresponding file with suffix ``.mk'' in the ``makefiles'' subdirectory will be included during the execution of \texttt{make}. These files contain specific settings for compilers and/or systems that \textit{ms}2 is suitable for.\\
+\textbf{Settings in the \texttt{Makefile}}\\
+First of all a compiler has to be chosen. Through the definition of the \texttt{COMPILER} variable, the corresponding file with suffix ``.mk'' in the ``makefiles'' subdirectory will be included during the execution of \texttt{make}. These files contain specific settings for compilers and/or systems that \textit{ms}2 is suitable for.\\
 \begin{itemize}
 	\item Version:\\
 	\texttt{TARGET~=~RELEASE} or \texttt{DEBUG}\\
-	The \texttt{DEBUG}-Version is manly used by developers. Default is \texttt{RELEASE}.
+	The \texttt{DEBUG} version is manly used by developers. Default is \texttt{RELEASE}.
 	\item FORTRAN Compiler:\\
 	\texttt{COMPILER~=~INTEL}, \texttt{GNU} or \texttt{PGI}\\
-	The entry \texttt{GNU} found in the given Makefile e.g.\ corresponds to ``makefiles/GNU.mk'', which contains settings for the widely used \href{http://www.gnu.org/software/gcc/}{GNU compiler}. There are other predefined settings available, like e.g.\  ``INTEL'' for the \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler}. Default value is \texttt{GNU}.
+	The entry \texttt{GNU} found in the given Makefile corresponds to ``makefiles/GNU.mk'', which contains settings for the widely used \href{http://www.gnu.org/software/gcc/}{GNU compiler}. There are other predefined settings available, like ``INTEL'' for the \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler}. The default value is \texttt{GNU}, since that compiler is freeware. 
 %	(@Martin: hier auch die Cray und Ace compiler aufnehmen?)   Auch etwas zu pgi schreiben?
 	\item Parallelisation protocol:\\
 	\texttt{MPI~=~1} or \texttt{0} or \\
 	\texttt{OMP~=~1} or \texttt{0}\\
-	They have to be set according to the used parallel compiler.
+	These parameters have to be set to invoke the implemented parallelisation schemes. 
 \end{itemize}
-The make command produces one executable file of \textit{ms}2 when run. To optimise the speed of the program for each application, the user should set the Feature Compiler Flags \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP} and \texttt{SP} according the Simulation dependencies -- especially if the user wants to run large numbers of Simulation with one executable. We suggest only to set a \texttt{Compiler Variable = 1} if you want to use this certain feature, otherwise they will slow down your simulation speed.
+The make command produces one executable file of \textit{ms}2. To optimise the execution speed of the program for each application, the user should set the Feature Compiler Flags \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP} and \texttt{SP} according the Simulation dependencies -- especially if the user wants to run large numbers of simulations with one executable. We suggest only to set a \texttt{Compiler Variable = 1} if you want to use this certain feature, otherwise they will slow down your simulation speed.
 \begin{itemize}
-	\item Transport Properties:\\
+	\item Transport properties:\\
 	\texttt{TRANS~=~1} or \texttt{0}\\
-	To produce an executable that can run simulations with the calculation of transport properties (like diffusion and conductivity) set \texttt{TRANS~=~1}%-- see \ref{sec:Transport}
-	. A Value of \texttt{0} means, that the routines for the calculation of transport properties are not to be compiled. The default value is \texttt{0}.
-	\item Hydrogen-Bonding evaluation:\\
+	To produce an executable that samples transport properties (like diffusion and conductivity)  \texttt{TRANS~=~1} has to be set. A value of \texttt{0} means that the routines for the calculation of transport properties are not compiled. The default value is \texttt{0}, since the program execution for the sampling of the default properties is faster in that case.
+	\item Hydrogen-bonding evaluation:\\
 	\texttt{HBOND~=~1} or \texttt{0}\\
 	If you want to have a look at the H-Bonds in your system, turn this on (set variable \texttt{1}). % See chapter \ref{sec:H-Bonding} for more information. 
-	It enables you to specify a geometric criterion for H-bonds in your input files. \textit{ms}2 plots then the pursuant H-bonding statistics. A Value of \texttt{0} means, that the routines for the calculation of H-bonds are not to be compiled. The default value is \texttt{0}.
-	\item Osmotic Pressure:\\
+	It enables you to specify a geometric criterion for H-bonds in your input files. \textit{ms}2 plots then the pursuant H-bonding statistics. A Value of \texttt{0} means, that the routines for the calculation of H-bonds are not to be compiled. The default value is \texttt{0}, since the program execution for the sampling of the default properties is faster in that case.
+	\item Osmotic pressure:\\
 	\texttt{OSMPO~=~2}, \texttt{1} or \texttt{0}\\
-	This Flag enables your executable to employ the osmotic pressure method% described in section \ref{sec:OsmoticPressure}
+	This flag enables the osmotic pressure method% described in section \ref{sec:OsmoticPressure}
 	. The value \texttt{2} enables the pressure profile along the density profile and osmotic pressure results. %was macht der Value 1?!?!?
 	 A Value of \texttt{0} means, that the routines for use of the osmotic pressure method are not to be compiled. The default value is \texttt{0}.
 	 \item Single precision:\\
 	 \texttt{SP~=~1} or \texttt{0}\\
-	 To speed up your simulation you can choose single precision (set value \texttt{1}) instead of the default double precision  (set value \texttt{0}). Tread with care though. 
+	 To speed up your simulation you can choose single precision (set value \texttt{1}) instead of the default double precision  (set value \texttt{0}). Users are advised to use \texttt{SP~=~1} with care.
 	 \item Name of the executable file:\\
 	 \texttt{PROG~=~String}\\
 	 The user can set the value to adapt the name of the executable file that is produced by the make command. According to the values of \texttt{TRANS}, \texttt{HBOND}, \texttt{OSMOP}, \texttt{SP}, \texttt{COMPILER} and \texttt{TARGET} the executable will have an addition in its name respectively.
@@ -82,66 +82,74 @@ The make command produces one executable file of \textit{ms}2 when run. To optim
 % FORTRAN = 90 (@Martin: gibt es da andere möglichkeiten? Wird im source code, wenn dann nur als 90 definiert, aber nie verwendet.)
 %Compiler flags
 
-
-
+\renewcommand{\arraystretch}{1.2}
 \begin{table}[h!]
-\centering
-\begin{tabular}{llll}
-\hline
-Variable & Description & Values & Description \\
-\hline
-\multicolumn{4}{l}{Compiler}\\
-\hline
-\texttt{COMPILER} & Compiler presets          & \texttt{GNU}   & \href{http://www.gnu.org/software/gcc/}{GNU compiler} \\
-         &                           & \texttt{INTEL} & \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler} \\
-         &                           & {\tiny see makefiles subdirectory} \\
-\hline
-\texttt{TARGET}   & see above                 & \texttt{RELEASE}\\
-         &                           & \texttt{DEBUG} \\
-\hline
-\multicolumn{4}{l}{Parallelization}\\
-\hline
-\texttt{MPI}      & \href{http://mpi-forum.org/}{MPI} & \texttt{0} & off \\
-         &                                   & \texttt{1} & on \\
-\hline
-\texttt{OMP}      & \href{http://openmp.org/}{OpenMP} & \texttt{0} & off \\
-         &                                   & \texttt{1} & on \\
-\hline
-\multicolumn{4}{l}{Features}\\
-\hline
-\texttt{SP}       & Single Precision          & \texttt{0} & off \\
-         &                           & \texttt{1} & on \\
-\hline
-\texttt{TRANS}    &        Transport          & \texttt{0} & off \\
-         &                           & \texttt{1} & on \\
-\hline
-\texttt{OSMOP}    &         Osmotic pressure  & \texttt{0} & off \\
-         &                           & \texttt{1} & on \\
-\hline
-\texttt{HBOND}    &     H-Bonding statistics  & \texttt{0} & on \\
-         &                           & \texttt{1} & on \\
-\hline
-\texttt{PROG}    &     Name of executable  & String &  \\
-\hline
-\end{tabular}
-\caption{Makefile definitions}
-\label{tab:makefiledef}
+	\centering
+	\begin{tabular}{llll}
+		\toprule
+		Variable & Description & Values & Description \\
+		\midrule
+		&                           &  &  \\
+		
+		\multicolumn{4}{l}{{Compiler settings:}}\\
+		\midrule
+		\texttt{COMPILER} & Compiler presets          & \texttt{GNU}   & \href{http://www.gnu.org/software/gcc/}{GNU compiler} \\
+		&                           & \texttt{INTEL} & \href{https://software.intel.com/en-us/intel-compilers}{INTEL compiler} \\
+		&                           & \texttt{PGI} & PGI compiler \\
+		&                           & {\tiny see makefiles subdirectory} \\
+		
+		\texttt{TARGET}   & see above                 & \texttt{RELEASE} & for production simulations \\
+		&                           & \texttt{DEBUG} & for code developing   \\
+		
+		\multicolumn{4}{l}{{Parallelization setting:}}\\
+		\midrule
+		\texttt{MPI}      & \href{http://mpi-forum.org/}{MPI} & \texttt{0} & off \\
+		&                                   & \texttt{1} & on \\
+		&                           &  &  \\
+		
+		\texttt{OMP}      & \href{http://openmp.org/}{OpenMP} & \texttt{0} & off \\
+		&                                   & \texttt{1} & on \\
+		
+		\multicolumn{4}{l}{{Features to be accessible:}}\\
+		\midrule
+		\texttt{SP}       & Single Precision          & \texttt{0} & off \\
+		&                           & \texttt{1} & on \\
+		&                           &  &  \\
+		
+		\texttt{TRANS}    &        Transport          & \texttt{0} & off \\
+		&                           & \texttt{1} & on \\
+		&                           &  &  \\
+		
+		\texttt{OSMOP}    &         Osmotic pressure  & \texttt{0} & off \\
+		&                           & \texttt{1} & on \\
+		&                           &  &  \\
+		
+		\texttt{HBOND}    &     H-Bonding statistics  & \texttt{0} & on \\
+		&                           & \texttt{1} & on \\
+		&                           &  &  \\
+		
+		\texttt{PROG}    &     Name of executable  & String & can be set by user \\
+		\bottomrule
+	\end{tabular}
+	\caption{Makefile definitions}
+	\label{tab:makefiledef}
 \end{table}
 % was ist mit PGI in Tabelle?!
+\renewcommand{\arraystretch}{1}
 
 \pagebreak
 
-\textbf{Compiler-related \texttt{*.mk}-files}\\
-For each by \textit{ms}2 supported compiler, the subdirectory \texttt{makefiles} in \texttt{src} contains one \texttt{*.mk}-file, e\,g. \texttt{INTEL.mk}. The first three lines define the used FORTRAN90 comilers. In rare system depending cases, the optimisation degree (the integer after the -O for the \texttt{F90FLAGS\_RELEASE} has to be decreased to 2 or 1. We suggest to use the slightly faster \texttt{mpiifort}-Compiler instead of the \texttt{mpiF90} in case you are using the \texttt{INTEL.mk}.
 
-\textbf{make command line options}
-Instead of changing the Makefile, the definitions can also be set
-directly on the commandline, like
+\textbf{Compiler-related \texttt{*.mk} files}\\
+For each supported compiler, the subdirectory \texttt{makefiles} in \texttt{src} contains one \texttt{*.mk} file, e\,g. \texttt{INTEL.mk}. The first three lines define the used FORTRAN90 comilers. In rare system depending cases, the optimisation degree (the integer after the -O for the \texttt{F90FLAGS\_RELEASE} has to be decreased to 2 or 1). It is suggested to use the slightly faster \texttt{mpiifort}-Compiler instead of the \texttt{mpiF90} in case you are using the \texttt{INTEL.mk}.
+
+\textbf{make command line options}\\
+Instead of changing the Makefile, the definitions can also be set directly in the command line, that will overwrite the settings in the makefile. For example:\\
 
 %\begin{lstlisting}
 \texttt{make TARGET=RELEASE COMPILER=GNU}
 
-That will overwrite the settings in the makefile.
+
 %\end{lstlisting}
 %These settings will overwrite the ones in the Makefile.
 
@@ -151,14 +159,14 @@ That will overwrite the settings in the makefile.
 Depending on compiler and preprocessor variables set in the makefile, the following compiler flags are used in the compilation/build process:
 \begin{itemize}
 	\item[] OMPFlags: -mp/openmp/fopenmp
-	\item[] CPPFlags: -DARCH=2 –DFORTRAN=90 (replaces compiler flags for ARCH and FORTRAN!)
+	\item[] CPPFlags: -DARCH=2 –DFORTRAN=90 (replaces compiler flags for ARCH and FORTRAN)
 	\item[] Releaseflags: -O3 -vec/qopt-report=3/5
 	\item[] Debugflags: -O0 -vec/qopt-report=0 -g
 	\item[] GNU: -ffree-line-length-none -mtune=generic
 	\item[] INTEL: -fpp –r8
 	\item[] PGI: -C
 \end{itemize}
-If you are unsure what compiler flags to set, we suggest to leave the make file blank.
+If the user is unsure what compiler flags to set, it is suggested to leave the make file blank.
 % gab es nicht einen Flag um den Namen der executable zu definieren?!
 
 
@@ -170,8 +178,7 @@ If you are unsure what compiler flags to set, we suggest to leave the make file 
 
 
 \subsection{Building on Windows}
-\textit{ms}2 runs also on windows systems. The source code has to be downloaded and compiled similar to Linux platforms. we suggest using a Linux-like shell as \href{https://www.cygwin.com}{\textit{cygwin}}. It provides a terminal window that runs a handsome Linux shell and comes with the \textit{GNU gfortran} compiler\footnote{during the installation of cygwin, all the FORTRAN depending packages have to be tagged.}. This is very useful, since \textit{ms}2 is a command line-based program whose utilisation is in our experience best in combination with the standard Linux commands, such as \texttt{sed}, \texttt{awk}, \texttt{grep}, \texttt{find} etc.. Additionally, the preparation of input files and analysis of the output files of \textit{ms}2 can be done in a fashionable way by shell-scripts. The installation of \textit{ms}2 in \textit{cygwin} follows the above standing installation instructions on Linux platforms. \\
-Of course \textit{ms}2 can also be compiled using standard windows tools.
+\textit{ms}2 can also be executed on windows systems. The source code has to be downloaded and compiled in a similar way as for Linux platforms. It is suggested to use a Linux-like shell, for example \href{https://www.cygwin.com}{\textit{cygwin}}. It provides a terminal window that runs a handsome Linux shell and comes with the \textit{GNU gfortran} compiler\footnote{during the installation of cygwin, all the FORTRAN depending packages have to be tagged.}. This is very useful, since \textit{ms}2 is a command line-based program whose utilisation is in our experience best in combination with the standard Linux commands, such as \texttt{sed}, \texttt{awk}, \texttt{grep}, \texttt{find} etc.. Additionally, the preparation of input files and analysis of the output files of \textit{ms}2 can be done by shell scripts. The installation of \textit{ms}2 in \textit{cygwin} follows the installation instructions on Linux platforms discussed above. Of course, \textit{ms}2 can also be compiled using standard windows tools.
 
 
 

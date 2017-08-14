@@ -1,158 +1,163 @@
 
 
 
-\chapter{Keywords}
+\chapter{Keywords for parameter (.par) files}
 \label{sec:Keywords}
 
 % aus "ms2_global" Liste der "identifiers" als Grundlage verwenden.
 
 % auch aus dem alten Manual lange liste mit keywords checken.
 
-\section{Keywords listed by category}
-\label{sec:Keywords listed by category}
+%\section{Keywords listed by category}
+%\label{sec:Keywords listed by category}
+
+Table \ref{tab_KeywordsParFile} gives an overview over the keywords (first row) that can be specified in the \texttt{$^{*}$\hspace{-3pt}.par} file and its expected values (second row). The third row gives a short explanation of the keyword, while the fourth row gives some recommendations. 
 
 
 
 
+%\section{Keywords listed alphabetical}
+%\label{sec:Keywords listed alphabetical}
 
 
-\section{Keywords listed alphabetical}
-\label{sec:Keywords listed alphabetical}
 
-\begin{longtable}{p{0.20\textwidth} p{0.10\textwidth} p{0.5\textwidth} c }
-	\caption{Parameters and options specified in the~*.par~file.} \\
-	% 
-	% First header
-	\hline\hline
-	\onehalfspacing Parameter & Option & Explanation & Recommended value \\
-	\endfirsthead
-	% 
-	% Every page header
-	\multicolumn{4}{l}{\textbf{Table~\ref{Appendix_par}}    continued}\\
-	\hline\hline
-	\onehalfspacing Parameter & Option & Explanation & Recommended value \\
-	\hline\hline
-	\endhead
-	% 
-	% Footnote every page
-	\hline
-	\endfoot
-	% 
-	% Footnote very end
-	\hline \hline
-	\endlastfoot
-	% 
-	% 
-	% \hline\hline
-	% 
-	\hline\hline
-	\multicolumn{4}{l}{\textbf{Simulation specific}}\\
-	\hline\hline
+
+\begin{landscape}
 	
-	WallTime    & &  &     1420\\
-	TimeLimit   & & &       120\\
-	\hline
-	Units                      &  SI       & Physical properties in the *.par file are given in SI units        & SI  \\
-	\onehalfspacing            &  reduced  & Physical properties in the *.par file are given in reduced units with respect to the reference values of length~$\sigma_{\mathrm R}$, energy~$\epsilon_{\mathrm R}$ and mass~$m_{\mathrm R}$    &     \\
-	\hline
-	LengthUnit                 &           & Reference length $\sigma_{\mathrm R}$ in \AA                      & 3.0 \\
-	EnergyUnit                 &           & Reference energy $\epsilon_{\mathrm R} / k_{\mathrm B}$ in K      & 100.0 \\
-	\onehalfspacing MassUnit   &           & Reference mass $m_{\mathrm R}$ in atomic units $u=1.6605 \times 10^{-27}$~kg & 100.0 \\
-	\hline
-	Simulation                 & MD        & Molecular dynamics simulation                             &    \\
-	\onehalfspacing            & MC        & Monte-Carlo simulation                                    &    \\
-	\hline
-	Integrator                 & Gear      & Gear predictor-corrector integrator (MD only)             & Gear \\
-	& Leapfrog  & Leapfrog integrator (MD only)                             &      \\
-	\onehalfspacing TimeStep   &           & Time step of one MD step in fs (MD only)                  & $\sim$1 \\
-	\hline
-	\onehalfspacing Acceptance &           & Acceptance rate for MC moves (MC only)                    & 0.5 \\
-	\hline
-	Ensemble                   & NVT       & Canonical ensemble                                        &     \\
-	& NVE       & Micro-canonical ensemble                                  &     \\
-	& NPT       & Isobaric-isothermal ensemble                              &     \\
-	\onehalfspacing            & GE        & Grand equilibrium method (pseudo-$\mu VT$)&     \\
-	\hline
-	MCORSteps                  &           & MC relaxation loops for pre-equilibration                 & 100 \\
-	NVTSteps                   &           & Number of equilibration time steps (MD) or loops (MC) in the $NVT$ ensemble             & 20000 \\
-	NPTSteps                   &           & Number of equilibration time steps (MD) or loops (MC) in the $NpT$ ensemble (optional)  & 50000 \\
-	\onehalfspacing RunSteps   &           & Number of production time steps (MD) or loops (MC)        & 300000 \\
-	\hline
-	ResultFreq                 &           & Size of block averages in time steps or loops             & 100 \\
-	ErrorFreq                  &           & Frequency of writing the~*.res~file in time steps or loops    & 5000 \\
-	VisualFreq &           & Frequency of saving configurations in the~*.vim~file for visualization in time steps (MD) or loops (MC) & 5000 \\
-	\onehalfspacing RDFFreq & & & 1000 \\
-	\hline
-	CutoffMode                 & COM       & Center of mass cut-off                                    & COM \\
-	\onehalfspacing            & Site      & Site-site cut-off                                         & \\
-	\hline
-	NEnsemble  &           & Number of ensembles in the simulation                     & 1 \\
-	\onehalfspacing mpiEnsembleGroups & & &1\\
-	\hline
-	CorrfunMode                & yes       & Calculation of autocorrelation functions enabled          &  \\
-	\onehalfspacing            & no        & Calculation of autocorrelation functions disabled         &  \\
-	
-	
-	
-	\hline\hline
-	\multicolumn{4}{l}{\textbf{Simulation specific}}\\
-	\hline\hline
-	Temperature                &           & Specified temperature                                     &   \\
-	Pressure                   &           & Specified pressure                                        &   \\
-	Density                    &           & Specified density                                         &   \\
-	PistonMass                 &           & Piston mass for simulations at constant pressure          &   \\
-	\onehalfspacing NParticles &           & Total number of molecules                                 & 864 - 4000 \\
-	\hline
-	NumShells & & Number of shells for the calculation of RDF &  300\\
-	OptPressure & & &  yes\\
-	CommonEqui  & & &   yes\\
-	NComponents & & &   2\\
-	\hline
-	
-	Liqdensity                 &           & Simulation result density                                 &  \\
-	VarLiqDensity              &           & Statistical uncertainty of density      &  \\
-	LiqEnthaly                 &           & Simulation result residual enthalpy                       &  \\
-	VarLiqEnthaly              &           & Statistical uncertainty of residual enthalpy              &  \\
-	LiqBetaT                   &           & Simulation result isothermal compressibility              &  \\
-	VarLiqBetaT                &           & Statistical uncertainty of isothermal compressibility     &  \\
-	LiqdHdP                    &           & Simulation result ($dh^{\mathrm{ res}}/dp$)$_T$               &  \\
-	\onehalfspacing VardHdP    &           & Statistical uncertainty of ($dh^{\mathrm{ res}}/dp$)$_T$  &  \\
-	\hline
-	\onehalfspacing NComponents&           & Number of components in the simulation                    &   \\
-	\hline
-	Corrlength                 &           & Length of the autocorrelation in time steps               &   \\
-	SpanCorrFun                &           & Time steps separating subsequent autocorrelation functions&   \\
-	ViewCorrFun                &           & Output frequency of the full autocorrelation functions into the *.rtr~file      &   \\
-	\onehalfspacing ResultFreqCF&          & Output frequency of transport properties into the *.res~file          &   \\
-	\hline
-	PotModel                   &           & Potential model~*.pm~file of a component                   &   \\
-	MolarFract                  &           & Molar fraction of a component                             &   \\
-	ChemPotMethod              & none      & No calculation of the chemical potential for this component   & none \\
-	& Widom     & Calculation of the chemical potential for this component using Widoms's test molecule method & \\
-	& GradIns   & Calculation of the chemical potential for this component using gradual insertion & \\
-	NTest                      &           & Number of test molecules for Widom's test molecule method & 2000 \\
-	WeightFactors              & Guess     & For gradual insertion: use user defined initial values for the weight factors with optimization of these factors during simulation   & Guess \\
-	\onehalfspacing            & OptSet    & For gradual insertion: user defined values for the weight factors without adjustment during simulation                                  &       \\
-	\hline
-	eta & & Binary size interaction parameter& 1\\
-	xi & & Binary energy interaction parameter & 1\\
-	\hline
-	NHBondCriteria& & & 2\\
-	\hline
-	Cutoff                     &           & Cut-off radius for center of mass cut-off                 &       \\
-	CutoffLJ                   &           & Cut-off radius for LJ interactions (site-site cut-off)    &       \\
-	CutoffDD                   &           & Cut-off radius for dipole-dipole interactions (site-site cut-off)         &       \\
-	CutoffDQ                   &           & Cut-off radius for dipole-quadrupole interactions (site-site cut-off)     &       \\
-	\onehalfspacing CutoffQQ   &           & Cut-off radius for quadrupole-quadrupole interactions (site-site cut-off) &       \\
-	\hline
-	\onehalfspacing Epsilon    &           & Dielectric constant                                       & 1.0E+10
-	% 
-	\label{Appendix_par}
-\end{longtable}
+	\small
+	\setlength\tabcolsep{8pt}
+	\begin{longtable}{llll}%[htbp]
+		\toprule
+		\onehalfspacing \textbf{keyword} & \textbf{value} & \textbf{explanation} &  \textbf{recommended value} \\
+		\bottomrule
+		\endhead
+%		\bottomrule
+		\midrule
+		\multicolumn{4}{r}{\textit{Continued on next page}}
+		\endfoot
+		\bottomrule
+		\caption{Parameters and options specified in the~*.par~file.} \\
+		
+		\endlastfoot
+		&&&\\
+
+		\multicolumn{4}{l}{{Simulation specific:}}\\
+		\midrule
+		
+		\texttt{WallTime}    & &  &     \texttt{1420}\\
+		\texttt{TimeLimit}   & & &       \texttt{120}\\
+		\midrule
+		\texttt{Units}                      &  \texttt{SI}       & physical properties in the *.par file are given in SI units        & \texttt{SI}  \\
+		\onehalfspacing            &  \texttt{reduced}  & physical properties in the *.par file are given in &\\
+		&	& reduced units with respect to the reference values of length~$\sigma_{\mathrm ref}$,&\\ & & energy~$\epsilon_{\mathrm ref}$ and mass~$m_{\mathrm ref}$    &     \\
+		\midrule
+		\texttt{LengthUnit}                 &           & reference length $\sigma_{\mathrm ref}$ in \AA                      & \texttt{3.0} \\
+		\texttt{EnergyUnit}                 &           & reference energy $\epsilon_{\mathrm ref} / k_{\mathrm B}$ in K      & \texttt{100.0} \\
+		\onehalfspacing \texttt{MassUnit}   &           & reference mass $m_{\mathrm ref}$ in atomic units $u=1.6605 \times 10^{-27}$~kg & 100.0 \\
+		\midrule
+		\texttt{Simulation}                 & \texttt{MD}        & molecular dynamics simulation                             &    \\
+		\onehalfspacing            & \texttt{MC}        & Monte-Carlo simulation                                    &    \\
+		\midrule
+		\texttt{Integrator}                 & \texttt{Gear}      & gear predictor-corrector integrator (MD only)             & \texttt{Gear} \\
+		& \texttt{Leapfrog}  & Leapfrog integrator (MD only)                             &      \\
+		\onehalfspacing TimeStep   &           & time step of one MD step in fs (MD only)                  & $\sim$1 \\
+		\midrule
+		\onehalfspacing \texttt{Acceptance} &           & acceptance rate for MC moves (MC only)                    & \texttt{0.5} \\
+		\midrule
+		\texttt{Ensemble}                   & \texttt{NVT}       & canonical ensemble                                        &     \\
+		& \texttt{NVE}       & micro-canonical ensemble                                  &     \\
+		& \texttt{NPT}       & isobaric-isothermal ensemble                              &     \\
+		\onehalfspacing            & GE        & Grand equilibrium method (pseudo-$\mu VT$)&     \\
+		& \texttt{NpH}  	& isoenthalpic–isobaric ensemble & \\
+		\hline
+		\texttt{MCORSteps}                  &           & MC relaxation loops for pre-equilibration                 & \texttt{100} \\
+		\texttt{NVTSteps}                   &           & number of equilibration time steps (MD) or loops (MC) in the $NVT$ ensemble             & \texttt{20000} \\
+		\texttt{NPTSteps}                   &           & number of equilibration time steps (MD) or loops (MC) in the $NpT$ ensemble (optional)  & \texttt{50000} \\
+		\onehalfspacing \texttt{RunSteps}   &           & number of production time steps (MD) or loops (MC)        & \texttt{300000} \\
+		\midrule
+		\texttt{ResultFreq}                 &           & size of block averages in time steps or loops             & \texttt{100} \\
+		\texttt{ErrorFreq}                  &           & frequency of writing the~*.res~file in time steps or loops    & \texttt{5000} \\
+		\texttt{VisualFreq} &           & frequency of saving trajectories in the~*.vim~file& \texttt{5000} \\
+		\onehalfspacing \texttt{RDFFreq} & & & \texttt{1000} \\
+		\midrule
+		\texttt{CutoffMode}                 & \texttt{COM}       & center of mass cut-off                                    & \texttt{COM} \\
+		\onehalfspacing            & \texttt{Site}      & site-site cut-off                                         & \\
+%		\midrule
+		\texttt{NEnsemble}  &           & number of ensembles in the simulation                     & 1 \\
+		\onehalfspacing \texttt{mpiEnsembleGroups} & & &1\\
+		\midrule
+		\texttt{CorrfunMode}                & yes       & calculation of autocorrelation functions enabled          &  \\
+		\onehalfspacing            & no        & calculation of autocorrelation functions disabled         &  \\
+		
+		
+		
+		\midrule
+		
+		
+		\texttt{Temperature}                &           & specified temperature                                     &   \\
+		\texttt{Pressure}                   &           & specified pressure                                        &   \\
+		\texttt{Density}                    &           & specified density                                         &   \\
+		\texttt{PistonMass}                 &           & piston mass for simulations at constant pressure          &   \\
+		\onehalfspacing \texttt{NParticles} &           & total number of molecules                                 & \texttt{864 - 4000} \\
+		\midrule
+		\texttt{NumShells} & & number of shells for the calculation of RDF &  300\\
+		\texttt{OptPressure} & & &  \\
+		\texttt{CommonEqui}  & & &   \\
+		\texttt{NComponents} & & &   \\
+%		\midrule
+		
+		\texttt{Liqdensity}                 &           & simulation result density                                 &  \\
+		\texttt{VarLiqDensity}              &           & statistical uncertainty of density      &  \\
+		\texttt{LiqEnthaly}                 &           & simulation result residual enthalpy                       &  \\
+		\texttt{VarLiqEnthaly}              &           & statistical uncertainty of residual enthalpy              &  \\
+		\texttt{LiqBetaT}                   &           & simulation result isothermal compressibility              &  \\
+		\texttt{VarLiqBetaT}                &           & statistical uncertainty of isothermal compressibility     &  \\
+		\texttt{LiqdHdP}                    &           & simulation result ($dh^{\mathrm{ }}/dp$)$_T$               &  \\
+		\onehalfspacing \texttt{VardHdP}    &           & statistical uncertainty of ($dh^{\mathrm{}}/dp$)$_T$  &  \\
+		\midrule
+		\onehalfspacing \texttt{NComponents} &           & number of components  &   \\
+		\midrule
+		\texttt{Corrlength}                 &           & length of the autocorrelation in time steps               &   \\
+		\texttt{SpanCorrFun}                &           & time steps separating subsequent autocorrelation functions&   \\
+		\texttt{ViewCorrFun}                &           & output frequency of the full autocorrelation functions into the *.rtr~file      &   \\
+		\onehalfspacing \texttt{ResultFreqCF} &          & output frequency of transport properties into the *.res~file          &   \\
+		\midrule
+		\texttt{PotModel}                   &           & potential model~*.pm~file of a component                   &   \\
+		\texttt{MolarFract}                  &           & molar fraction of a component                             &   \\
+		\texttt{ChemPotMethod}              & \texttt{none}      & no calculation of the chemical potential for this component   &  \\
+		& \texttt{Widom}     & calculation of the chemical potential for this component using Widoms's test molecule method & \\
+		& \texttt{ThermoInt}   & calculation of the chemical potential for this component using thermodynamic integration  & \\
+		\texttt{NTest}                      &           & number of test molecules for Widom's test molecule method & \texttt{2000} \\
+		\texttt{WeightFactors}              & \texttt{Guess}     & for gradual insertion: use user defined initial values for the weight   & Guess \\
+		&&factors with optimization of these factors during simulation &\\
+		\onehalfspacing            & \texttt{OptSet}    & for gradual insertion: values for the weight factors without adjustment during simulation                                  &       \\
+		\midrule
+		\texttt{eta} & & binary size interaction parameter $\eta$ -- combination rule & \texttt{1}\\
+		\texttt{xi} & & binary energy interaction parameter $\xi$ -- combination rule & \texttt{1}\\
+		\midrule
+		\texttt{NHBondCriteria} & & & \texttt{2}\\
+		\midrule
+		\texttt{Cutoff}                     &           & cut-off radius for center of mass cut-off                 &       \\
+		\texttt{CutoffLJ}                   &           & cut-off radius for LJ interactions (site-site cut-off)    &       \\
+		\texttt{CutoffDD}                   &           & cut-off radius for dipole-dipole interactions (site-site cut-off)         &       \\
+		\texttt{CutoffDQ}                   &           & cut-off radius for dipole-quadrupole interactions (site-site cut-off)     &       \\
+		\onehalfspacing CutoffQQ   &           & cut-off radius for quadrupole-quadrupole interactions (site-site cut-off) &       \\
+		\midrule
+		\onehalfspacing \texttt{Epsilon}    &           & reaction field parameter         & \texttt{1.0E+10}
+		% 
+		\label{tab_KeywordsParFile}
+	\end{longtable}
+\end{landscape}
+
+% links in der Tabelle zu den jeweiligen sections setzen, in denen der Teil erklärt wird. Dort dann nochmal im speziellen auf die Anwendung der Methode in Bezug auf die Keywords eingehen.
+
+% noch in die Tabelle schreiben, welche Werte int oder double sind
+
+% keywords aufteilen und chategorisieren.
 
 
-\section{parsing rules}
-\label{sec:parsing rules}
+%\section{parsing rules}
+%\label{sec:parsing rules}
 
 
 
