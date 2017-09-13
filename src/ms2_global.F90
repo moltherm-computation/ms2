@@ -370,8 +370,8 @@ module ms2_global
   character(*), parameter :: IdSite_MOI1                   = 'InertMomX'
   character(*), parameter :: IdSite_MOI2                   = 'InertMomY'
   character(*), parameter :: IdSite_MOI3                   = 'InertMomZ'
-  character(*), parameter :: IdMIE_n					   = 'MIE_n'
-  character(*), parameter :: IdMIE_m					   = 'MIE_m' 
+  character(*), parameter :: IdMIE_n                       = 'MIE_n'
+  character(*), parameter :: IdMIE_m                       = 'MIE_m' 
   character(*), parameter :: IdMIEnm_r1                    = 'x'
   character(*), parameter :: IdMIEnm_r2                    = 'y'
   character(*), parameter :: IdMIEnm_r3                    = 'z'
@@ -687,23 +687,23 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
-  integer :: Communicator	! actual MPI communicator
-  !integer :: Communicator_W	! =MPI_COMM_WORLD
-  integer :: Communicator_R	! MPI communicator containing all roots
-  integer :: NProcs	! number of PEs within actual MPI communicator
-  integer :: NProc	! MPI rank of actual MPI communicator
-  integer :: NRootProc	! MPI rank of root of actual MPI communicator
-  logical :: RootProc	! is PE root within actual MPI communicator
-  integer :: NProcs_W	! number of PEs within MPI_COMM_WORLD
-  integer :: NProc_W	! MPI rank within MPI_COMM_WORLD
-  integer :: NRootProc_W	! MPI rank of root PE within MPI_COMM_WORLD
-  logical :: RootProc_W 	! is PE root of MPI_COMM_WORLD?
-  integer :: NProcs_R	! number of PEs within actual Communicator_R
-  integer :: NProc_R	! MPI rank within actual Communicator_R
-  integer :: NRootProc_R	! MPI rank of root PE within actual Communicator_R
-  logical :: RootProc_R 	! is PE root of actual Communicator_R?
-  integer :: NCommunicators	! number of Communicators (useful after MPI_Comm_Split)
-  integer :: NCommunicator	! ID of the Communicator
+  integer :: Communicator   ! actual MPI communicator
+  !integer :: Communicator_W    ! =MPI_COMM_WORLD
+  integer :: Communicator_R ! MPI communicator containing all roots
+  integer :: NProcs ! number of PEs within actual MPI communicator
+  integer :: NProc  ! MPI rank of actual MPI communicator
+  integer :: NRootProc  ! MPI rank of root of actual MPI communicator
+  logical :: RootProc   ! is PE root within actual MPI communicator
+  integer :: NProcs_W   ! number of PEs within MPI_COMM_WORLD
+  integer :: NProc_W    ! MPI rank within MPI_COMM_WORLD
+  integer :: NRootProc_W    ! MPI rank of root PE within MPI_COMM_WORLD
+  logical :: RootProc_W     ! is PE root of MPI_COMM_WORLD?
+  integer :: NProcs_R   ! number of PEs within actual Communicator_R
+  integer :: NProc_R    ! MPI rank within actual Communicator_R
+  integer :: NRootProc_R    ! MPI rank of root PE within actual Communicator_R
+  logical :: RootProc_R     ! is PE root of actual Communicator_R?
+  integer :: NCommunicators ! number of Communicators (useful after MPI_Comm_Split)
+  integer :: NCommunicator  ! ID of the Communicator
   !
   !integer, parameter :: mpimsgtag_log    = 0
   integer, parameter :: mpimsgtag_simTerm = 1
@@ -734,7 +734,7 @@ module ms2_global
   logical, parameter :: TerminateProgram = .false.
 #endif
 
-  integer, parameter :: IdErrorCodeBase = b'1000000000000000'	!=32768
+  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
   ! bits might code error type, origin (module&function),...
 
@@ -1058,7 +1058,7 @@ contains
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
     ! (avoiding some internal communication within the MPI library)    
-    call SetCommunicator(newCommunicator)	!   RootProc is now true for the root of the new communicator(s)
+    call SetCommunicator(newCommunicator)   !   RootProc is now true for the root of the new communicator(s)
     ! (re)open log files
     call LogOpen
     
@@ -1181,8 +1181,8 @@ contains
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-	call Global_printVersion()
-	call Global_printUsage()
+    call Global_printVersion()
+    call Global_printUsage()
         ! Abort program
 #if MPI_VER > 0
         call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
@@ -1193,7 +1193,7 @@ contains
       do i = 1,narg
         argpos=i
         call getarg( argpos, buffer )
-      	!print *,"processing command line argument ",trim(buffer)
+        !print *,"processing command line argument ",trim(buffer)
         if (trim(buffer).eq."-V" .or. trim(buffer).eq."--version") then
           call Global_printVersion()
 #if MPI_VER > 0
@@ -1208,10 +1208,10 @@ contains
           stop
         else if (trim(buffer).eq."-r" .or. trim(buffer).eq."--restart") then
           Restart = .true.
-	else
-	!  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
-	  exit
-      	end if
+    else
+    !  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
+      exit
+        end if
       end do
       if (argpos>narg) then
 #if MPI_VER > 0
@@ -1254,7 +1254,7 @@ contains
         if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
 !           buffer = buffer( 1:dot - 1 )
           ParameterFileName =  trim( buffer )    ! possible truncation
-	!else
+    !else
         !  ParameterFileName =  trim(buffer)//ParameterFileExtension
         end if
         !RestartFileName=trim(buffer(1:dot-1))//RestartFileExtension
@@ -1490,18 +1490,18 @@ contains
 #if ARCH == 1 || ARCH == 2
 #ifdef _CRAYFTN
 #elif defined  __GNUC__
-    call signal( 1, IgnoreSignal )	! Ignore SIGHUP
-    call signal( 2, SetTerminateProgram )	! Catch SIGINT
-    call signal( 3, SetTerminateProgram )	! Catch SIGQUIT
-    call signal( 15, SetTerminateProgram )	! Catch SIGTERM
+    call signal( 1, IgnoreSignal )  ! Ignore SIGHUP
+    call signal( 2, SetTerminateProgram )   ! Catch SIGINT
+    call signal( 3, SetTerminateProgram )   ! Catch SIGQUIT
+    call signal( 15, SetTerminateProgram )  ! Catch SIGTERM
 #else
-    i = signal( 1, SetTerminateProgram, 1 )	! Ignore SIGHUP (HangUP)
-    i = signal( 2, SetTerminateProgram, -1 )	! Catch SIGINT (INTerrupt)
-    i = signal( 3, SetTerminateProgram, -1 )	! Catch SIGQUIT (QUIT)
-    i = signal( 15, SetTerminateProgram, -1 )	! Catch SIGTERM (TERMinate)
+    i = signal( 1, SetTerminateProgram, 1 ) ! Ignore SIGHUP (HangUP)
+    i = signal( 2, SetTerminateProgram, -1 )    ! Catch SIGINT (INTerrupt)
+    i = signal( 3, SetTerminateProgram, -1 )    ! Catch SIGQUIT (QUIT)
+    i = signal( 15, SetTerminateProgram, -1 )   ! Catch SIGTERM (TERMinate)
 #endif
 #elif ARCH == 3
-    i = signal( 15, SetTerminateProgram )	! Catch SIGTERM
+    i = signal( 15, SetTerminateProgram )   ! Catch SIGTERM
 #endif
     write( IOBuffer, '(72("-"))')
     call LogWrite
@@ -1643,8 +1643,8 @@ contains
 #endif
     !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
     stop IdErrorCodeBase
-    !error stop IdErrorCodeBase	! this is an error, so error stop might be favorable
-    !stop 4	! very old Fortran versions only support char (0-255)
+    !error stop IdErrorCodeBase ! this is an error, so error stop might be favorable
+    !stop 4 ! very old Fortran versions only support char (0-255)
     ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error

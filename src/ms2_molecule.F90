@@ -160,13 +160,13 @@ contains
     this%NQuadrupole = 0
 
 
-	
+    
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
       case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
-	  LJorMIE = 'MIE'
+      LJorMIE = 'MIE'
         call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
@@ -175,10 +175,10 @@ contains
             call Construct( this%SiteMIEnm(j) )
           end do
         end if
-		
-	  case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
-	  LJorMIE = 'LJ'
-	    call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        
+      case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
+      LJorMIE = 'LJ'
+        call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
           call AllocationError( stat, 'LJ sites', this%NMIEnm )

@@ -42,7 +42,7 @@ module ms2_site
     real(RK)          :: r(3)
     real(RK)          :: sig, eps
     real(RK)          :: mass
-	real(RK)          :: mie_n, mie_m
+    real(RK)          :: mie_n, mie_m
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
@@ -271,20 +271,20 @@ contains
 
     ! Declare arguments
     type(TSiteMIEnm) :: this
-	
+    
 
     ! Read site parameters
       select case( LJorMIE )
       case( 'MIE' ) !Case: Mie-Potential
-	     call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
-	     call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
+         call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
+         call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
             if ( this%mie_n == 4._RK) this%mie_n = 3.99999_RK !to avoid poles in the correction functions
             if ( this%mie_m == 4._RK) this%mie_m = 3.99999_RK
             if ( this%mie_n == 5._RK) this%mie_n = 4.99999_RK
             if ( this%mie_m == 5._RK) this%mie_m = 4.99999_RK
-	  case( 'LJ' )    !Case: LJ126-Potential
-	     this%mie_n = 12._RK
-		 this%mie_m = 6._RK
+      case( 'LJ' )    !Case: LJ126-Potential
+         this%mie_n = 12._RK
+         this%mie_m = 6._RK
       end select  
     call FileReadParameter( this%r(1), iounit_potmod, IdMIEnm_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdMIEnm_r2, .false. )

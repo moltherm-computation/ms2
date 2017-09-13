@@ -309,7 +309,7 @@ contains
     end if
     write( IOBuffer, '("Name tag for output ",A,": ",T44, A)' ) trim( str ), trim( OutputNameTag )
     call LogWrite
-	call LogWriteBlank
+    call LogWriteBlank
 
     call FileReadParameter( max_time , iounit_params , IdWallTime , .true., 20160  )
     write( IOBuffer, '("Specified walltime: ",T23, I5, " m")' ) max_time
@@ -599,8 +599,8 @@ contains
           call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ",T40, I7)' ) NStepsP
           call LogWrite
-		  
-		else if( EnsembleType .eq. EnsembleTypeNPH ) then
+          
+        else if( EnsembleType .eq. EnsembleTypeNPH ) then
           call FileReadParameter( NStepsH, iounit_params , IdNStepsH, .true., 0 )
           write( IOBuffer, '("Number of NPH equilibration steps: ",T40, I7)' ) NStepsH
           call LogWrite
@@ -870,7 +870,7 @@ contains
       call FileClose( iounit_params )
       call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
       ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
-      call SplitCommunicator(this%mpiEnsembleGroups)	! setting NCommunicator, NCommunicators and Communicator etc
+      call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
       ! 1-index based
       this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
       this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
@@ -2025,8 +2025,8 @@ eqloop: do
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
         else ! .not.RootProc_R
-          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then	! only works if NRootProc_R.ne.1 (NRootProc_R==0)
-          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then	! should work for NProcs_R.gt.1
+          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
+          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then    ! should work for NProcs_R.gt.1
             ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
@@ -2823,7 +2823,7 @@ eqloop: do
           end if
           write( IOBuffer, '("reading ensemble",I6," (marker ",A,")")' ) i, trim(ensemblemarker)
           call LogWriteTime
-	end if
+    end if
         ! reading ensemble data
         call RestartRead( this%Ensemble(i) )
       end do
