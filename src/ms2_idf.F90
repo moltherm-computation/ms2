@@ -154,9 +154,16 @@ contains
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
     call FileReadParameter( this%R0, iounit_potmod, IdBond_R0, .false.)
     if (Shake > 0) then
-      this%ForConst = 1e08_RK
+      this%ForConst = 1e07_RK
     else
       call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
+      if (this%ForConst < 100) then
+        call LogWriteBlank
+        write( IOBuffer, '("WARNING: Check your bond definition. Currently a/some connections are faulty.")' )
+        call LogWrite
+        write( IOBuffer, '("Either use Shake to keep bonds rigd or choose a reasonably high force constant.")' )
+        call LogWrite
+      end if
     end if
 
     ! Convert to SI units
@@ -327,7 +334,7 @@ end subroutine TIdfAngle_Construct
       end do
     end if
 
-    if (LJEl14 .and. (this%nmax .ge. 0)) then
+    if (LJEl14 .and. (this%nmax > 0)) then
       this%ScaleLJ14 = 0.0
       this%ScaleEl14 = 0.0
       call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )

@@ -237,6 +237,7 @@ module ms2_component
 
     ! Variables for Thermodynamic Integration
     integer           :: NBins
+    integer           :: changeLaFreq, changeLaPart, forfeitLaSampl
     integer, pointer, contiguous  :: BinsVisit(:)
     real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax
     real(RK)          :: ExpMinusBetaEnLaMin, currentBinsEn
@@ -344,6 +345,10 @@ module ms2_component
     module procedure TComponent_RemoveNetMomentum
   end interface
 
+  interface SlowExceptions
+    module procedure TComponent_SlowExceptions
+  end interface
+
   interface CalculateEKin
     module procedure TComponent_CalculateEKin
   end interface
@@ -400,14 +405,6 @@ module ms2_component
     module procedure TComponent_DensityProfile
   end interface
 #endif
-
-  interface Flex2Rigid
-    module procedure TComponent_Flex2Rigid
-  end interface
-
-  interface Rigid2Flex
-    module procedure TComponent_Rigid2Flex
-  end interface
 
   interface PredictGear
     module procedure TComponent_PredictGear
@@ -668,7 +665,7 @@ contains
         call LogWrite
 
       case (ChemPotMethodThermoInt)
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -687,9 +684,32 @@ contains
         call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 250 )
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
+
+        ! Michael Sch.: new for enhanced possibilites for E(la) sampling
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+        else
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+        end if
+        write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
+        call LogWrite
+        this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
+        if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
+        ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
+        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaFreq, .false., this%changeLaPart)
+        write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
+        call LogWrite
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+        else
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+        end if
+        write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
+        call LogWrite
+
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
           this%NTest = ((this%NTest-1)/NProcs +1)
@@ -2656,13 +2676,21 @@ contains
     nu = this%Molecule%NUnit
 
     ! Set random linear velocities
-    do k=1,nu
+    if (EMinimizationIDF) then ! Michaael Sch.: changed here for preEquilibration
       do i = 1, 3
         do j = 1, this%NPart
-          this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          this%P1(j, i, :) = rnd( -1._RK, 1._RK )
         end do
       end do
-    end do
+    else
+      do k=1,nu 
+        do i = 1, 3
+          do j = 1, this%NPart
+            this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          end do
+        end do
+      end do
+    end if
 
     ! Normalize translational velocity vectors (only done once - needs not to be efficient)
     do k=1,nu
@@ -2827,6 +2855,48 @@ contains
     end do
 
   end subroutine TComponent_RemoveNetMomentum
+
+
+!==============================================================!
+!  Subroutine TComponent_SlowExceptions                        !
+!==============================================================!
+
+  subroutine TComponent_SlowExceptions( this, maxmolEkin )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    real(RK),intent(in) :: maxmolEkin
+
+    ! Declare local variables
+    integer  :: i, j, k, nu
+    real(RK) :: Ekin, slowing
+    
+    nu = this%Molecule%NUnit
+
+    ! Loop over all molecules   
+    do i = 1, this%NPart
+      Ekin = 0._RK
+      do  k = 1, nu
+        ! Calculate translational kinetic energy
+        Ekin = Ekin+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
+&           * sum( this%P1(i, :, k)**2 ) * this%BoxLength**2
+        ! Calculate rotational kinetic energy
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          Ekin = Ekin + this%Molecule%Unit(k)%MOI(j) * .5_RK &
+&             *  this%W0(i, j, k)**2
+        end do
+      end do
+      ! Check for too fast molecules
+      if (Ekin > maxmolEkin) then
+        slowing = sqrt( maxmolEkin / Ekin )
+        this%P1(i, :, :) = this%P1(i, :, :) * slowing
+        if( this%Molecule%isElongated ) this%W0(i, :, :) = this%W0(i, :, :) * slowing
+      end if
+    end do
+
+  end subroutine TComponent_SlowExceptions
 
 
 !==============================================================!
@@ -5127,59 +5197,6 @@ subroutine TComponent_InitUnit( this, np, dq )
 
   end subroutine TComponent_Unit2Mol1
 
-
-!==============================================================!
-!  Subroutine TComponent_Flex2Rigid                            !
-!==============================================================!
-
-  subroutine TComponent_Flex2Rigid( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst(:) = this%Molecule%IDFDihedral(i)%ForConst(:) * 1e10_RK
-    end do
-
-  end subroutine TComponent_Flex2Rigid
-
-
-!==============================================================!
-!  Subroutine TComponent_Rigid2Flex                            !
-!==============================================================!
-
-  subroutine TComponent_Rigid2Flex( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst / 1e10_RK
-    end do
-
-  end subroutine TComponent_Rigid2Flex
 
 #if OSMOP > 0
 !==============================================================!

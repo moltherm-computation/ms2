@@ -255,7 +255,9 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
-  character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
+  character(*), parameter :: IdNStepsMCOR                  = 'MCORSteps'
+  character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
+  character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
   character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
@@ -332,6 +334,9 @@ module ms2_global
   character(*), parameter :: IdNBins                       = 'NBins'
   character(*), parameter :: IdLambdaStepMax               = 'LambdaStepMax'
   character(*), parameter :: IdLambdaExponent              = 'LambdaExponent'
+  character(*), parameter :: IdchangeLaFreq                = 'ChangeLaFreq'
+  character(*), parameter :: IdchangeLaPart                = 'ChangeLaPartFreq'
+  character(*), parameter :: IdforfeitLaSampl              = 'ForfeitLaSamplSteps'
 
   character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
   character(*), parameter :: IdPrintIDF                    = 'printIDF'      ! print contributions to inramolecular energy
@@ -466,6 +471,7 @@ module ms2_global
 
   ! Upper value of the standard deviation of the velocity distribution for the force cricteria used in GE + MD Simulations
   real(RK), parameter :: root8PIplus1 = sqrt(8._RK / PI + 1._RK)  !rootkB8PIplus1 = sqrt((8._RK / PI + 1._RK) * kBoltzmann)
+  real(RK), parameter :: root3sigstd  = 1._RK + (3._RK * PI / 8._RK)  ! threefold of standard deviation, to the square ..for upper T limit
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
@@ -609,8 +615,12 @@ module ms2_global
   integer :: NSteps
 
   ! Number of MC overlap reduction steps
-  integer :: NStepsMC
+  integer :: NStepsMCOR
 
+  ! Number of energy minimization steps; 1. rigid type, 2. flexible type
+  integer :: NStepsrigEmin
+  integer :: NStepsflexEmin
+  
   ! Number of NVE equilibration time steps
   integer :: NStepsE
 
@@ -636,7 +646,7 @@ module ms2_global
   integer :: Step, StepTotal
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, GradInsInitialization
+  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, EMinimizationIDF, GradInsInitialization
 
   ! Restart flag
   logical :: Restart
