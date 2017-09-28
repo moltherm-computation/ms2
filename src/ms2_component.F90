@@ -675,9 +675,13 @@ contains
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+          write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
+          call LogWrite
+          this%LaStepMax = (this%LaMax-this%LaMin) / (this%NBins-1)
+          this%deltaLa = this%LaStepMax
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+          this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
         end if
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F8.5)' ) this%LaStepMax
         call LogWrite
@@ -720,7 +724,6 @@ contains
           write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
           call LogWrite
         endif
-        this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
 
       end select
 
@@ -2890,7 +2893,9 @@ contains
       end do
       ! Check for too fast molecules
       if (Ekin > maxmolEkin) then
-        slowing = sqrt( maxmolEkin / Ekin )
+        slowing = sqrt( 0.7_RK*maxmolEkin / Ekin )
+        !write( IOBuffer, '("Molecule ", I4, " is to fast by a factor of ", F9.6,"; slowing it down.")' ) i, slowing ! Michael DEBUG
+        !call LogWrite
         this%P1(i, :, :) = this%P1(i, :, :) * slowing
         if( this%Molecule%isElongated ) this%W0(i, :, :) = this%W0(i, :, :) * slowing
       end if
@@ -2914,17 +2919,16 @@ contains
     integer :: i, k, nu
     
     nu = this%Molecule%NUnit
+    this%EKinTran = 0._RK
+    this%EKinRot = 0._RK
 
     ! Calculate translational kinetic energy
-    this%EKinTran = 0._RK
     do  k = 1,  nu
       this%EKinTran = this%EkinTran+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
 &       * sum( this%P1(1:this%NPart, :, k)**2 ) * this%BoxLength**2
     end do
 
-
     ! Calculate rotational kinetic energy
-    this%EKinRot = 0._RK
     do k = 1, nu
       do i = 1, this%Molecule%Unit(k)%NDFRot
         this%EKinRot = this%EKinRot + this%Molecule%Unit(k)%MOI(i) * .5_RK &
@@ -5845,10 +5849,11 @@ loop1:do i = 1, this%NPart
     real(RK),intent(in out) :: VirialShake
 
     ! Declare local variables
-    logical                 :: need, stable
+    logical                 :: need
     type(TIdfBond), pointer :: pBond
-    integer                 :: np, nu, it, itmax
-    integer                 :: i, i0, i1, j, k, Unit1, Unit2
+    integer                 :: it, itmax, unstableMol
+    integer                 :: i, i0, i1, j, k
+    integer                 :: np, nu, Unit1, Unit2
     real(RK)                :: BoxLength, Shake2, Shake002
     real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
     real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
@@ -5881,17 +5886,16 @@ loop1:do i = 1, this%NPart
     Shake002 = Shake2/100
     np = this%NPart
     nu = this%Molecule%NUnit
-    it = 0
+    unstableMol = 0
     itmax = 9999
-    stable = .true.
 
 #if MPI_VER > 0
     i0 = this%NPart0
     i1 = this%NPart2
-    do i = i0, i1
+molloop: do i = i0, i1
 #else
-    i1 = this%NPart1
-    do i = 1, i1
+    i1 = this%NPart
+molloop: do i = 1, i1
 #endif
 !     do i = 1, np
       ! get/save old site and COM (of unit) positions 
@@ -6240,11 +6244,11 @@ loop1:do i = 1, this%NPart
         elseif ( dRmax >= dRmaxold .or. Shake002 > (dRmaxold - dRmax) ) then
           dRmax = 0.1_RK*Shake2
           need = .false.
-          stable = .false.
+          unstableMol = i
           ! happens for Force*timestep too high; QShake can't resolve constraints if displacements each timestep are very large
           ! checks to-do: timestep below 10fs and able to display dynamics? Average displacement < sigma?
           !dRmax = 0._RK
-          !cycle
+          exit molloop
         end if
 
       end do ! shake-force calculation for molecule i finished
@@ -6260,7 +6264,7 @@ loop1:do i = 1, this%NPart
         endif
       end do
 
-    end do ! molecule loop
+    end do molloop ! molecule loop
 
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
@@ -6268,28 +6272,34 @@ loop1:do i = 1, this%NPart
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( stable, stableRoot, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
+    call MPI_Reduce( unstableMol, unstableMolRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
     if (RootProc) then
       it = itRoot
-      stable = stableRoot
+      unstableMol = unstableMolRoot
 #endif
 
-      if ( .not. stable) then ! unsauber geschrieben, da auch andere Procs als der Root unstable sein können
-        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
-        call LogWrite
-        write( IOBuffer, '("Stop at iteration: ", I4)' ) it
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+      if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
+        call FileRewrite( iounit_restart, trim(RestartFileName) )
+        write( iounit_restart, '(A)' ) trim( ParameterFileName )
+        write( iounit_restart, '(2I10)' ) Step, StepTotal
+        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        call RestartSave( this )
+        do i = 1, np
+          do k = 1, nu
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
+          end do
+        end do
+        call FileClose( iounit_restart )
       end if
 
-      if ( it >= itmax ) then  !Michael Sch.: this case should never happen
-        write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
+      if (unstableMol > 0) then 
+        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, &
+&                          " in step", I10, ". Stop at iteration: ", I4)' ) unstableMol, Step, it
         call LogWrite
-        write( IOBuffer, '("This can happen if the given configuration has to many overlaps.")' )
-        call LogWrite
-        write( IOBuffer, '("Try a lower initial density or use MCOR-Steps to avoid this.")' )
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+        call Error( 'QShake was not converging. Occuring forces to high for integration.' )
+      end if
+      if ( it >= itmax ) then
+        call Error( 'Initial density to high for QShake. Probably to many overlaps.' )
       end if
 #if MPI_VER > 0
     end if
@@ -6474,6 +6484,8 @@ contains
 
     ! Increase NPart
     selected = rnd( this%NPart )
+    !IOBuffer = '' ! Michael DEBUG
+    !write( IOBuffer, '("Duplicating particle number " I4," for insertion at end. ")' ) selected
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
     this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )

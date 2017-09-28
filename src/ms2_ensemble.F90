@@ -3054,7 +3054,7 @@ contains
       end do
       if ( Shake > 0 .and. UseIntDegFreed) then
           this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
-        end if
+      end if
       pc%NDFRot = pc%NPart * pc%NDFRot
       pc%NDF = pc%NDFTran + pc%NDFRot
       this%NDFTran = this%NDFTran + pc%NDFTran
@@ -4341,26 +4341,24 @@ loop:do l = 1, NPartInCell
     ! Declare local variables
     integer                   :: i, np
     real(RK)                  :: scale, Reference
-    real(RK)                  :: RefmaxEkin, maxmolEkin
+    real(RK)                  :: maxmolEkin
     type(TComponent), pointer :: pc
 
     ! Check for root process
     if( RootProc ) then
 
-      if(.not. NVTEquilibration .and. EnsembleType .eq. EnsembleTypeGE .and. Step .ne. 0) then
-        RefmaxEkin = 0.5_RK * this%RefTemperature * root3sigstd
-! 3 since also energies that correspond to the max possible kinetic energy should be allowed, in accordance to the maxwell boltzmann distribution
-! three times the standard deviation, for 85% of the distribution would be: SQRT(8/PI+1)
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          if (UseIntDegFreed .and. Shake > 0 ) then
-            maxmolEkin = RefmaxEkin * (pc%NDF/pc%NPart - pc%Molecule%NBond)
-          else
-            maxmolEkin = RefmaxEkin * pc%NDF / pc%NPart 
-          end if
-          call SlowExceptions( pc, maxmolEkin )
-        end do
-      end if
+      ! Slow down individual molecules that are not in accordance to the Boltzmann Distribution (
+      !if(.not. NVTEquilibration .and. EnsembleType .eq. EnsembleTypeGE .and. Step .ne. 0) then
+      !  do i = 1, this%NComponents
+      !    pc => this%Component(i)
+      !    if (UseIntDegFreed .and. Shake > 0 ) then
+      !      maxmolEkin = 0.9_RK*this%RefTemperature * (pc%Molecule%NDF - pc%Molecule%NBond)
+      !    else
+      !      maxmolEkin = 0.9_RK*this%RefTemperature * pc%Molecule%NDF
+      !    end if
+      !    call SlowExceptions( pc, maxmolEkin )
+      !  end do
+      !end if
       
       ! Nullify kinetic energies
       this%EKinTran = 0._RK
@@ -6496,7 +6494,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
             NTestBinDen = 0
   
-            do m=1, pc%NTest ! Michael Sch.: P0Test(.,1,1) is not correct here...should be either Pm0 or unit specific!
+            do m=1, pc%NTest ! Michael Sch.: for IDF: P0Test(.,1,1) is not correct here...should be either Pm0 or unit specific!
               if (this%P0Test(m,1,1) .ge. real(j-1)/NBinsDen) then
                 if (this%P0Test(m,1,1) < real(j)/NBinsDen) then
                   ChemPotProfile(j) = ChemPotProfile(j) + (exp( -( this%EPotTest(m)) /  this%Temperature))
@@ -6558,12 +6556,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
           this%EPotTest(:) = 0._RK
           this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
-!           !alternative way:
-!           if (RootProc) then
-!             this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTest
-!           else
-!             this%EPotTest(:) = 0._RK
-!           end if
         else
           this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
         end if
@@ -10146,13 +10138,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: r(3), q(3), FIns(3,this%NUnitMax)
-    real(RK)                  :: EPotIns
+    real(RK)                  :: EPotIns, InvDensityCorr
     type(TComponent), pointer :: pc
     integer                   :: i, j, np, nu, dummy
     logical                   :: success, barrier
     real(RK)                  :: UIntra, USelbst, EFourier, EVirial
     real(RK)                  :: E, EIntra, EBond, EAngle, EDihedral
-    real(RK)                  :: Fbarrier(this%Component(nc)%Molecule%NUnit)
+    !real(RK)                  :: Fbarrier(this%Component(nc)%Molecule%NUnit)
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll
 #endif
@@ -10161,7 +10153,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc => this%Component(nc)
     nu = pc%Molecule%NUnit
     success = .true.
-    barrier = .false.
+    barrier = .true.
 
     do dummy = 1, 1
     if ( (SimulationType .eq. MonteCarlo) .or. ( (SimulationType .eq. MolecularDynamics) .and. RootProc ) ) then
@@ -10174,11 +10166,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, 3
         r(i) = rnd( -.5_RK, .5_RK )
       end do
-      !  Michael Sch.: Rotation problematic???, especially for MD since velocities are not changed alongside rotation
-      ! Instead of just duplicating and moving a particle, a velocity spin could replace the rotation....
       do i = 1, 3
         q(i) = rnd( -1._RK, 1._RK )
       end do
+      !  Michael Sch.: Rotation problematic with IDF, especially for MD since velocities are not changed alongside rotation
+      ! Instead of just duplicating and moving a particle, a velocity spin could replace the rotation....
+      if (Shake > 0) q(:) = 0._RK 
 
       call AddParticle( pc, r, q )
       if ( tooManyParticles ) exit
@@ -10187,8 +10180,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       this%NUnitTotal = this%NUnitTotal + nu
 
       ! Force criteria for acceptance in MD Simulations
+      ! derived from standard deviation of the velocity distribution ...3.57 is means 3.57 times the standard deviation 
+      ! 3.57_RK * sqrt((3 * PI - 8._RK )/ PI) + sqrt(8/PI) ..= 4.0
       ! Currently Forces only implemented/calculated for LJ, bond, angle and dihedral potential!!!
-      Fbarrier(:) = root8PIplus1 * sqrt( this%Temperature * this%Component(nc)%Molecule%Unit(:)%Mass )
+      !Fbarrier(:) = 4._RK * sqrt( this%Temperature * this%Component(nc)%Molecule%Unit(:)%Mass )
 
       if (LongRange .eq. Ewald) then           ! EWALD-SUMMATION
         UIntra   = this%UIntra
@@ -10262,38 +10257,38 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
               call MDEnergy( this%Interaction(j,nc), np, nu, FIns(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .false. )
             end if
           end do
-          do i = 1, nu
-            FIns(:,i) = FIns(:,i)*timestep + this%Component(nc)%P1(np,:,i)*this%Component(nc)%Molecule%Unit(i)%Mass
-            barrier = barrier .or. any(abs(FIns(:,i))>Fbarrier(i))
-          end do
-          do while (barrier)
-            barrier = .false.
-            call RemoveParticle( pc, np )
-            do i = 1, 3
-              r(i) = rnd( -.5_RK, .5_RK )
-            end do
-            do i = 1, 3
-              q(i) = rnd( -1._RK, 1._RK )
-            end do
-            call AddParticle( pc, r, q )
-            E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; FIns(:,:) = 0._RK;
-            do j = 1, this%NComponents
-              if (j > nc) then
-                call MDEnergy( this%Interaction(nc,j), np, nu, FIns(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
-              else
-                call MDEnergy( this%Interaction(j,nc), np, nu, FIns(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .false. )
-              end if
-            end do
-            do i = 1, nu
-              FIns(:,i) = FIns(:,i)*timestep + this%Component(nc)%P1(np,:,i)*this%Component(nc)%Molecule%Unit(i)%Mass
-              barrier = barrier .or. any(abs(FIns(:,i))>Fbarrier(i))
-            end do
-          end do
+          !do i = 1, nu
+          !  FIns(:,i) = FIns(:,i) + timestep*this%Component(nc)%P1(np,:,i)*this%Component(nc)%Molecule%Unit(i)%Mass
+          !  !barrier = barrier .or. any(abs(FIns(:,i))>Fbarrier(i))
+          !end do
+          !do while (barrier)
+          !  barrier = .false.
+          !  call RemoveParticle( pc, np )
+          !  do i = 1, 3
+          !    r(i) = rnd( -.5_RK, .5_RK )
+          !  end do
+          !  do i = 1, 3
+          !    q(i) = 0._RK ! rnd( -1._RK, 1._RK ) ! see top for explanation
+          !  end do
+          !  call AddParticle( pc, r, q )
+          !  E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; FIns(:,:) = 0._RK;
+          !  do j = 1, this%NComponents
+          !    if (j > nc) then
+          !      call MDEnergy( this%Interaction(nc,j), np, nu, FIns(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
+          !    else
+          !      call MDEnergy( this%Interaction(j,nc), np, nu, FIns(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .false. )
+          !    end if
+          !  end do
+          !  do i = 1, nu
+          !    FIns(:,i) = FIns(:,i) + this%Component(nc)%P1(np,:,i)*this%Component(nc)%Molecule%Unit(i)%Mass
+          !    barrier = barrier .or. any(abs(FIns(:,i))>Fbarrier(i))
+          !  end do
+          !end do
           EPotIns = E - EIntra
-          if (EBond > 1000 ) then
-            EPotIns = EPotIns + EBond ! Michael Sch.: workaround for faulty COM and therefore faulty Rotation of new particle
-          end if
         end if
+        InvDensityCorr = this%Volume0 / np
+        if (Shake > 0) InvDensityCorr =  this%Volume0 / (this%NUnitTotal-nu-this%constrNDF/3._RK)
+
         ! Apply acceptance criterion
 #if MPI_VER > 0
         if ( (SimulationType .eq. MonteCarlo) .and. (Equilibration .and. CommonEqui) ) then
@@ -10305,11 +10300,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
         endif 
     
-        if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%RefTemperature ) * this%Volume0 / np )) then
+        if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%RefTemperature ) * InvDensityCorr )) then
 
 #else
         EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
-        if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotIns / this%RefTemperature ) * this%Volume0 / np )) then
+        if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotIns / this%RefTemperature ) * InvDensityCorr )) then
 #endif
 
           ! Accept Insertion
@@ -10327,12 +10322,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             ! Update long range correction
             call CalculateCorr( this )
           end if
+          call LogWriteNoAdvance
+          !write( IOBuffer, '("Molecule insertion sucessful.")' ) ! Michael DEBUG
+          !call LogWrite
 
         else
           ! Reject Insertion
           call RemoveParticle( pc, np )
           this%NPart = this%NPart - 1
           this%NUnitTotal = this%NUnitTotal - nu
+          !write( IOBuffer, '("Molecule insertion failed.")' ) ! Michael DEBUG
+          !call LogWrite
         end if 
 
       end if
@@ -10395,7 +10395,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer                     :: i, k, n1, n2, nu, nup
     real(RK)                    :: E, EIntra, EBond, EAngle, EDihedral
 ! Ewald Parameter
-    real(RK)                    :: EFourier
+    real(RK)                    :: EFourier, DensityCorr
     !real(RK)                    :: EVirial, EVirialIntra
     real(RK)                    :: USelf, UIntra
 
@@ -10524,13 +10524,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end if
 
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+        DensityCorr = this%Density
+        if (Shake > 0) DensityCorr = (this%NUnitTotal-this%constrNDF/3._RK) / this%Volume0
 
         ! Apply acceptance criterion
-        if( rnd( 0._RK, 1._RK ) .lt. ( exp( EPotDel / this%RefTemperature - pc%ChemPot ) * this%Density * pc%Fraction )) then
+        if( rnd( 0._RK, 1._RK ) .lt. ( exp( EPotDel / this%RefTemperature - pc%ChemPot ) * DensityCorr * pc%Fraction )) then
 
           ! Accept Deletion
           this%NDeleteSuccesses = this%NDeleteSuccesses + 1
           call RemoveParticle( pc, np )
+          !write( IOBuffer, '("Deletion of molecule ", I4," sucessful. Moving particle", I4," to that position")' ) np, this%NPart ! Michael DEBUG
+          !call LogWrite
 
           if (SimulationType .ne. MonteCarlo) then
             success = .true.
@@ -10570,7 +10574,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             ! Update long range correction
             call CalculateCorr( this )
           end if
-
+        else
+          !write( IOBuffer, '("Deletion of molecule ", I4," failed.")' ) np ! Michael DEBUG
+          !call LogWrite
         end if
 
       end if
@@ -13203,15 +13209,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
         case( ChemPotMethodThermoInt )
+          !if (.not. Equilibration .and. RootProc .and. Step==0 ) write(*,*) trim( ParameterFileName )      ! Michael Sch.: für Minh
           if (.not. Equilibration .and. mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ) then
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
+            if (SimulationType .eq. MolecularDynamics) currentbin = currentbin +1
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
             pc%BinsEn(currentbin)     = (                  pc%currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
             pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaH(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
-            if ( RootProc .and. mod(Step,1000)==0 ) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn ! Michael Sch.: für Minh
+            !if ( RootProc .and. mod(Step,1000)==0 ) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn      ! Michael Sch.: für Minh
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa
