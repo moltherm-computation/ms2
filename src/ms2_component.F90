@@ -703,7 +703,7 @@ contains
         this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
         if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
         ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
-        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaFreq, .false., this%changeLaPart)
+        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
         write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
@@ -5869,8 +5869,7 @@ loop1:do i = 1, this%NPart
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
 
 #if MPI_VER > 0
-    integer                 :: itRoot
-    logical                 :: stableRoot
+    integer                 :: itRoot, unstableMolRoot
 
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
     call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
