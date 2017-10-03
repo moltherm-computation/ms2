@@ -34,17 +34,17 @@
 \contentsline {subsection}{\numberline {5.6.1}Ensembles overview}{23}{subsection.5.6.1}
 \contentsline {subsection}{\numberline {5.6.2}Statistical uncertainties}{25}{subsection.5.6.2}
 \contentsline {subsection}{\numberline {5.6.3}Time-independent properties from Helmholtz energy derivatives (NVT, NVE)}{25}{subsection.5.6.3}
-\contentsline {subsection}{\numberline {5.6.4}Static properties from conventional fluctuation formulas (NpT, NpH)}{27}{subsection.5.6.4}
+\contentsline {subsection}{\numberline {5.6.4}Static properties from conventional fluctuation formulas (NpT)}{27}{subsection.5.6.4}
 \contentsline {subsection}{\numberline {5.6.5}Transport properties}{27}{subsection.5.6.5}
 \contentsline {subsection}{\numberline {5.6.6}Configurational properties}{30}{subsection.5.6.6}
 \contentsline {subsubsection}{Hydrogen bonding}{30}{section*.6}
 \contentsline {subsection}{\numberline {5.6.7}Henry' s law constant}{32}{subsection.5.6.7}
-\contentsline {subsection}{\numberline {5.6.8}Second virial coefficient}{32}{subsection.5.6.8}
+\contentsline {subsection}{\numberline {5.6.8}Second virial coefficient}{33}{subsection.5.6.8}
 \contentsline {subsection}{\numberline {5.6.9}Chemical potential and partial molar properties }{33}{subsection.5.6.9}
 \contentsline {section}{\numberline {5.7}Special features}{35}{section.5.7}
 \contentsline {subsection}{\numberline {5.7.1}Vapor-liquid equilibrium}{35}{subsection.5.7.1}
-\contentsline {subsection}{\numberline {5.7.2}Osmotic pressure}{36}{subsection.5.7.2}
-\contentsline {subsection}{\numberline {5.7.3}Multiple ensembles for multiple state points}{36}{subsection.5.7.3}
+\contentsline {subsection}{\numberline {5.7.2}Osmotic pressure for the activity of the solvent}{36}{subsection.5.7.2}
+\contentsline {subsection}{\numberline {5.7.3}Multiensembles for multiple state points}{37}{subsection.5.7.3}
 \contentsline {chapter}{\numberline {6}Potential models in the \textit {ms}2 - distribution}{38}{chapter.6}
 \contentsline {chapter}{\numberline {7}Computational aspects}{43}{chapter.7}
 \contentsline {section}{\numberline {7.1}Parallelization}{43}{section.7.1}

@@ -17,15 +17,18 @@
 \label{sec:Parallelization}
 % 
 
-The source code is developed for an efficient parallelism with distributed memory, using the MPI~\parencite{Forum2009}
-standard for communication. The program uses the following MPI calls:
+The source code is developed for an efficient parallelism with distributed memory, using the PI standard for communication~\parencite{Forum2009}. The program uses the following MPI calls:
 \begin{itemize}
 	\item \lstinline{MPI_Init}, \lstinline{MPI_Finalize}, \lstinline{MPI_Comm_rank}, \lstinline{MPI_Comm_size} to set up basic MPI functionality
 	\item \lstinline{MPI_Abort} to stop the program in case of an error
 	\item \lstinline{MPI_Barrier}, \lstinline{MPI_Wtime} and \lstinline{MPI_Wtick} within the stopwatch class
 	\item \lstinline{MPI_Bcast}, \lstinline{MPI_Reduce}, \lstinline{MPI_Allreduce} for simulation data exchange
 \end{itemize}
-Exclusively collective communication is used, an approach suitable for molecular simulations, where the cut-off radius is in the order of the simulation volume edge length. For MD simulations with \textit{ms}2, only the force calculation is parallelized using the molecule decomposition according to Plimpton~\parencite{plimpton}. The interaction matrix is rearranged such that the number of interaction partners is almost equally distributed in the matrix. This is achieved by calculating the interactions between molecule 1 and $N$ as interactions between molecules $N$ and 1, cf. Figure~\ref{ms2pic_plimpton}. The parallelization scheme then distributes the calculation among $N_P$ processors with an almost equal work load such that every processor executes $N/N_P$ rows of the interaction matrix. The master process reduces then all the force components to sum up the resulting molecular forces on each molecule.
+Exclusively collective communication is used, an approach that is suitable for molecular simulations, where the cut-off radius is in the order of the simulation volume edge length. For MD simulations with \textit{ms}2, only the force calculation is parallelized using the molecule decomposition according to Plimpton~\parencite{plimpton}. The interaction matrix is rearranged such that the number of interaction partners is almost equally distributed in the matrix. This is achieved by calculating the interactions between molecule 1 and $N$ as interactions between molecules $N$ and 1, cf. Figure~\ref{ms2pic_plimpton}. The parallelization scheme then distributes the calculation among $N_P$ processors with an almost equal work load such that every processor executes $N/N_P$ rows of the interaction matrix. The master process reduces then all the force components to sum up the resulting molecular forces on each molecule.
+
+% DE: Explanation of Triviral MC parallelization
+The MC code is parallelized exploiting the stochastic nature of the simulation method. Starting from an equilibrated configuration in the simulation volume, the molecular configuration is copied multiple times into different volumes. Then, each copy runs  independently parallel, but with a different random number seeds, to calculate the desired thermodynamic properties. At the end, the data from all copies are gathered and averaged.
+
 \begin{figure}
 	\begin{center}
 		\includegraphics[width=7cm]{fig_Plimpton}
@@ -33,20 +36,16 @@ Exclusively collective communication is used, an approach suitable for molecular
 	\caption{Schematic of the molecule decomposition parallelization by Plimpton~\parencite{plimpton}.}
 	\label{ms2pic_plimpton}
 \end{figure}
-\newline\noindent
-% DE: Explanation of Triviral MC parallelization
-The MC code is parallelized exploiting the stochastic nature of the simulation method. Starting from an equilibrated state in the simulation volume, the molecular configuration is copied multiple times into different volumes. Then, each copy runs  independently parallel, but with a different random number seeds, to calculate the desired thermodynamic properties. At the end, the data from all copies are gathered and averaged.
-
 
 
 \section{Vectorization \& memory}
 \label{sec:Vectorization Memory}
 % 
 
-The program \textit{ms}2 specifically accounts for vector-parallel machines. All the main information needed in the computationally costly inner loops of the calculation, like the positions of the molecules and their sites, are stored in vectors that are accessed sequentially. This allows for an efficient use of memory on vector-parallel machines. 
-% 
-For the evaluation of one configuration in \textit{ms}2, e.\,g. the position vectors are loaded once and then distributed among all processors. Then, additional information like interaction partners of each individual molecule is computed, tabulated in vectors and communicated. The order of this data follows the order of all other vectors, e.\,g. the position vector. An example of a storage vector is shown in Table~\ref{vector_ex}. The appropriate order allows for a serial access to the data in all vectors in the random access memory. Therefore, the calculations can be vectorized, increasing the efficiency. 
-% 
+The program \textit{ms}2 specifically accounts for vector-parallel machines. All data needed in the computationally costly inner loops of the calculation, like the positions of the molecules and their sites, are stored in vectors that are accessed sequentially. This allows for an efficient use of memory on vector-parallel machines. 
+
+For the evaluation of one configuration in \textit{ms}2, e.\,g. the position vectors are loaded once and then distributed among all processors. Subsequently, additional information like interaction partners of each individual molecule is computed, tabulated in vectors and communicated. The order of these data follows the order of all other vectors, e.\,g. the position vector. An example of a storage vector is shown in Table~\ref{vector_ex}. The appropriate order allows for a serial access to the data in all vectors in the random access memory. Therefore, the calculations can be vectorized, increasing efficiency. 
+
 \begin{table}[ht]
 	\noindent
 	\caption{Listing of the interaction partners for a molecule $i$, indicating the assembly in the storage vector.}
@@ -76,13 +75,12 @@ For the evaluation of one configuration in \textit{ms}2, e.\,g. the position vec
 \label{sec:Structure of program code}
 % Michael ?
 
-This section discusses the code design and implementation issues of $ms2$ in detail. These explanations of the source code are intended to help understanding the program and to encourage the reader to further develop and improve the code. New developers should get a smooth entry and the possibility to make fast adaptations to new problems. Due to the experience of the core developers and the suitability for an efficient numerical code, Fortran90 was chosen as programming language. The program makes extensive use of the concepts introduced with Fortran90, notably modular programming.
+This section discusses the code design and implementation issues of $ms2$ in detail. These explanations of the source code are intended to help understanding the program and to encourage the reader to further develop and improve the code. Due to the experience of the core developers and the suitability for an efficient numerical code, Fortran90 was chosen as programming language. The program makes extensive use of the concepts introduced with Fortran90, notably modular programming.
 % 
 
 A wide variety of different simulation setups is possible, each requiring different computations. The most significant difference between the setups lies with the choice of MD or MC. While MD features extensive force calculations in order to update the molecular positions, MC is based on a Markov chain, where a molecular move is accepted with a certain probability. However, there are many other choices regarding the setup. This variety leads to a strong need for a highly modular structure, where modules have clear-cut interfaces. Given such a modularity, the appropriate functionalities can be combined to the desired simulation, while leaving out any unnecessary code\footnote{Unnecessary for the current setup.}. Besides avoiding if-statements at computationally demanding points and therefore leading to a better data flow, this allows for an efficient implementation of new functionalities, as existing modules can be used whenever feasible. In $ms2$, a stringent philosophy regarding modularization was followed.
 % 
-The runs need to be fast and scale well with increasing number of processors in order to achieve short response times. $ms2$ is parallelized with the Message Passing Interface~(MPI)~\parencite{Forum2009}. While MD needs synchronization after every time step due to its deterministic nature, MC can be run embarrassingly parallel, only requiring synchronization at the very end of a run\footnote{Therefore, parallelization can be achieved by simply executing multiple MC runs simultaneously and averaging over all runs}. Furthermore, the by far most expensive part of the code, calculating forces and potential energies, is highly vectorized 
-and optimized.
+The runs need to be fast and scale well with increasing number of processors in order to achieve short response times. $ms2$ is parallelized with the Message Passing Interface~(MPI)~\parencite{Forum2009}. While MD needs synchronization after every time step due to its deterministic nature, MC can be run embarrassingly parallel, only requiring synchronization at the very end of a run\footnote{Therefore, parallelization can be achieved by simply executing multiple MC runs simultaneously and averaging over all runs}. Furthermore, the by far most expensive part of the code, calculating forces and interaction energies, is highly vectorized and optimized.
 
 In order to keep the class hierarchy flat, $ms2$ does not make use of inheritance and hence polymorphism. E.\,g. the module \lstinline{ms2_site} contains the classes \lstinline{TSiteLJ126}, \lstinline{TSiteCharge}, \lstinline{TSiteDipole} and \lstinline{TSiteQuadrupole}, which have data and functionalities in common, but they are not derived from a common class.
 \begin{figure}
