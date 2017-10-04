@@ -10322,8 +10322,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             ! Update long range correction
             call CalculateCorr( this )
           end if
-          call LogWriteNoAdvance
-          !write( IOBuffer, '("Molecule insertion sucessful.")' ) ! Michael DEBUG
+          !call LogWriteNoAdvance ! Michael DEBUG
+          !write( IOBuffer, '("Molecule insertion sucessful.")' )
           !call LogWrite
 
         else
