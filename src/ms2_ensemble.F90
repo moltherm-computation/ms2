@@ -10027,16 +10027,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc => this%Component(nc)
 
     ! Get old energy of fluctuating particle
-    if (SimulationType .ne. MolecularDynamics ) then
-      if ( Step .gt. pc%changeLaPart .and. pt%Lambda .gt. 0.995_RK) then
+    if (SimulationType .ne. MolecularDynamics ) then ! Michael Sch.: MC+TI gets core dump, runs completly though....problem?
+      if ( Step .gt. pc%changeLaPart .and. nint(pt%Lambda/pc%deltaLa) .ge. pt%NBins) then
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
       end if
       EPotOld = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       EPotOld = EPotOld + GetEnergy( this, nt, 1 )
-
-      currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
-      ChempotDelta=-pc%BinsIntdEndLa(currentbin)
 
       ! Save states for the Ewald Summation and/or derivates
       if (LongRange .eq. Ewald) then     ! Ewald Summation
@@ -10054,7 +10051,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Change state of lambda
       LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
 
-      if (LambdaNew>=pc%LaMin .and. LambdaNew<pc%LaMax) then 
+      if (LambdaNew>=pc%LaMin .and. LambdaNew<=pc%LaMax) then 
         
         currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
         ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
@@ -10085,23 +10082,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     else ! not MC
 
-      if ( Step .gt. pc%changeLaPart .and. pt%Lambda .gt. 0.995_RK) then
+      if ( Step .gt. pc%changeLaPart .and. pt%Lambda+pc%LaStepMax > pc%LaMax) then
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
       end if
       if (RootProc) then
-        ! Michael Sch.: changes für Minh
-        !LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
         LambdaNew=pt%Lambda+pc%LaStepMax
-        if (LambdaNew<pc%LaMin .or. LambdaNew>=pc%LaMax) then
+        if (LambdaNew<pc%LaMin .or. LambdaNew>pc%LaMax) then
           pc%LaStepMax = -pc%LaStepMax
-          LambdaNew = pt%Lambda+pc%LaStepMax
+          LambdaNew = pt%Lambda ! +pc%LaStepMax ! Minh test
         end if
-        !if (LambdaNew<pc%LaMin) then
-          !LambdaNew = 1.5_RK * pt%Lambda - 0.5_RK * LambdaNew
-        !elseif (LambdaNew>=pc%LaMax) then
-          !LambdaNew = 1.5_RK * pt%Lambda - 0.5_RK * LambdaNew
-        !end if
         Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
         pt%Lambda=LambdaNew
       end if
@@ -13212,14 +13202,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           !if (.not. Equilibration .and. RootProc .and. Step==0 ) write(*,*) trim( ParameterFileName )      ! Michael Sch.: für Minh
           if (.not. Equilibration .and. mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ) then
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
-            if (SimulationType .eq. MolecularDynamics) currentbin = currentbin +1
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
             pc%BinsEn(currentbin)     = (                  pc%currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
             pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaH(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
-            !if ( RootProc .and. mod(Step,1000)==0 ) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn      ! Michael Sch.: für Minh
+            !if ( RootProc .and. mod(Step,250)==0 ) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn      ! Michael Sch.: für Minh
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa
@@ -16670,11 +16659,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call MPI_Reduce( pc%BinsIntHW(0: NBins-1)                             , BinsIntHW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( pc%BinsVisit(0: NBins-1)                             , BinsVisit(0: NBins-1), NBins, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
       do j=0,pc%NBins-1
-        if (BinsVisit(j) .eq. 0) then 
-          LocalVisit=1
-        else
-          LocalVisit=BinsVisit(j)
-        end if
+        LocalVisit=BinsVisit(j)
+        if (LocalVisit == 0) LocalVisit=1 
         BinsEn(j)        = BinsEn(j)/LocalVisit
         BinsdEndLa(j)    = BinsdEndLa(j)/LocalVisit
         BinsdEndLaV(j)   = BinsdEndLaV(j)/LocalVisit

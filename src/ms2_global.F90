@@ -1271,7 +1271,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGFF || defined __PGI || defined __PATHSCALE__ 
+#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
 #elif defined _CRAYFTN
         call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
@@ -1438,7 +1438,7 @@ contains
 #if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined _PGI || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __PGI || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )

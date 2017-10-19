@@ -1494,21 +1494,21 @@ eqloop: do
           StepStart = 1
           UseIntDegFreed = .true.
         end if
-        if ( NStepsflexEmin > 0 ) then
-          do k = 1, this%NEnsembles
-            do j = 1, this%Ensemble(k)%NComponents
-              do i = 1, this%Ensemble(k)%Component(j)%NPart
-                do l = 1, this%Ensemble(k)%Component(j)%Molecule%NUnit
-                  do m = 1, 3
+        do k = 1, this%NEnsembles
+          do j = 1, this%Ensemble(k)%NComponents
+            do i = 1, this%Ensemble(k)%Component(j)%NPart
+              do l = 1, this%Ensemble(k)%Component(j)%Molecule%NUnit
+                do m = 1, 3
       ! Michael Sch.: offsetting all unit velocities by +/- 10%, before all velocities within a molecule are the same
-                    this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
-&                                                             * ( 1._RK + 0.1_RK * rnd(-1._RK,1._RK) )
-                  end do
+                  this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
+&                                                           * ( 1._RK + 0.1_RK * rnd(-1._RK,1._RK) )
                 end do
               end do
             end do
           end do
+        end do
 
+        if ( NStepsflexEmin > 0 ) then
           TimeStep = TimeStep * 0.1_RK
           StepEnd = NStepsflexEmin
           call Timer_setTag(RunStepsTimer,"Flexible energy minimization")

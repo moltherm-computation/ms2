@@ -677,8 +677,8 @@ contains
         if (SimulationType .eq. MolecularDynamics) then
           write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
           call LogWrite
-          this%LaStepMax = (this%LaMax-this%LaMin) / (this%NBins-1)
-          this%deltaLa = this%LaStepMax
+          this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
+          this%deltaLa = -this%LaStepMax
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
           this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
@@ -900,7 +900,7 @@ contains
     this%Fraction = 0._RK
     this%NBins = 0
 
-    this%Lambda = 1.0_RK - Zero
+    this%Lambda = 1.0_RK !- Zero ! test Minh
 
     ! Set fluctuating state (for GradIns)
     this%FluctState = 0
@@ -5867,7 +5867,6 @@ loop1:do i = 1, this%NPart
     real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), intermedQ0(4), addW1(3), addQ1(4)
     real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit), tempW0(3)
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
-
 #if MPI_VER > 0
     integer                 :: itRoot, unstableMolRoot
 
