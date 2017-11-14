@@ -4,7 +4,7 @@ F90mpi           = mpif90
 OMPFLAGS         = -openmp
 CPPFLAGS         = -DARCH=2 -DFORTRAN=90
 F90FLAGS_RELEASE = -O3 -fpp -r8 -qopt-report=5 
-F90FLAGS_DEBUG   = -O0 -fpp -r8 -qopt-report=0 -g 
+F90FLAGS_DEBUG   = -O0 -fpp -r8 -qopt-report=0 -g -debug all -check all
 F90FLAGS_PROF    = -O3 -fpp -r8 -qopt-report=0 -g 
 PROG             = ms2_INTEL
 
