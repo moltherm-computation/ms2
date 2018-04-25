@@ -76,7 +76,7 @@ module ms2_potential
   interface Get_RDF
     module procedure TPotMIEMIE_RDF
   end interface
-
+  
   interface Force_Trans
     module procedure TPotMIEMIE_Force_Trans
   end interface
@@ -983,7 +983,7 @@ contains
 !$OMP PRIVATE(sitecorr, EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
 !$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv)
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv ) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
@@ -1653,7 +1653,7 @@ loop3:  do j = j0, j1
 
 
 !==============================================================!
-!  Subroutine TPotMIEMIE_RDF                                     !
+!  Subroutine TPotMIEMIE_RDF                                   !
 !==============================================================!
 
   subroutine TPotMIEMIE_RDF( this, RDFdr )
@@ -1708,10 +1708,10 @@ loop1:do k = 1, this%NInCutoff(i)
     end do
 
   end subroutine TPotMIEMIE_RDF
-
+  
 
 !==============================================================!
-!  Subroutine TPotMIEMIE_ChemicalPotential                       !
+!  Subroutine TPotMIEMIE_ChemicalPotential                     !
 !==============================================================!
 
   subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest, BoxLength )
