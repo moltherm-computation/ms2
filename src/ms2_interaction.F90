@@ -61,7 +61,7 @@ module ms2_interaction
     real(RK), pointer, contiguous :: MayerFFunction1(:), IntFFunction1(:)
     real(RK), pointer, contiguous :: MayerFFunction2(:), IntFFunction2(:)
     ! Array for the shells of RDF inside of KBI
-    integer, pointer, contiguous          :: KBISum(:)
+    integer(KIND=8), pointer, contiguous          :: KBISum(:)
 
     ! Virial
     real(RK), pointer, contiguous :: Virial(:, :), Virial1(:), VirialNew(:, :)

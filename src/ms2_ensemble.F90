@@ -15106,7 +15106,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK) :: G110(3), G120(3), G130(3), G220(3), G230(3), G330(3)
 #if MPI_VER > 0
     real(RK) :: KBI_hilf(KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
-    integer  :: KBISum_hilf(KBINumberShells)
+    integer(KIND=8)  :: KBISum_hilf(KBINumberShells)
 #endif
     
 #if MPI_VER > 0
@@ -15114,7 +15114,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i= 1, this%NComponents
             do j= i, this%NComponents
                 do o = 1, KBINumberShells
-                    call MPI_Reduce( this%Interaction(i,j)%KBISum(o), KBISum_hilf(o), 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+                    call MPI_Reduce( this%Interaction(i,j)%KBISum(o), KBISum_hilf(o), 1, MPI_INTEGER8, MPI_SUM, NRootProc, Communicator, ierror )
                     this%Interaction(i,j)%KBISum(o) = KBISum_hilf(o)
                 end do
             end do
@@ -15508,7 +15508,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer                   :: k, Mindex, StepCorr
 #endif
 #if MPI_VER > 0 
-    integer                   :: KBISum_hilf(KBINumberShells*NProcs)
+    integer(KIND=8)           :: KBISum_hilf(KBINumberShells*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
 #endif
     
@@ -15690,8 +15690,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i= 1, this%NComponents
             do j= i, this%NComponents
 #if MPI_VER > 0     
-                call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER, &
-&                   KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
+                call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER8, &
+&                   KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER8, NRootProc, Communicator, ierror )
                 if( RootProc ) then
                     do o = 1, KBINumberShells*NProcs
                         write(iounit_restart, '(I10)' ) KBISum_hilf(o)
@@ -15864,7 +15864,7 @@ endif
     integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
 #if MPI_VER > 0 
-    integer                   :: KBISum_hilf(KBINumberShells*NProcs)
+    integer(KIND=8)           :: KBISum_hilf(KBINumberShells*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
 #endif
     
@@ -16081,8 +16081,8 @@ endif
                         read( iounit_restart, '(I10)' ) KBISum_hilf(o)
                     end do
                 end if
-                call MPI_Scatter( KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER, &
-&                   this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )            
+                call MPI_Scatter( KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER8, &
+&                   this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER8, NRootProc, Communicator, ierror )            
 #else 
                 do o = 1, KBINumberShells
                     read( iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)

@@ -494,7 +494,7 @@ contains
         Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
       end do
 #ifdef _PGF
-      ! Call write to prevent vectorization of loop (a bug in pgi compiler) TESTSTRING
+      ! Call write to prevent vectorization of loop (a bug in pgi compiler)
       write( IOBuffer, '("Prevent loop vectorization")' )
 #endif
       Tau(i) = Tau(i) / real( (NBlocks / i), RK )
