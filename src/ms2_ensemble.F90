@@ -418,11 +418,13 @@ module ms2_ensemble
    integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
    integer,pointer, contiguous  :: DonComp(:), DonAccSite(:), DonDonSite(:)
    real(RK),pointer, contiguous :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
-   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
+   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:)
+   integer,pointer, contiguous  :: NHBond3(:,:,:,:), NHBond4(:,:,:,:,:), NHBondN(:)
    type(TAccumulator),pointer, contiguous :: SumHBond0(:)
    type(TAccumulator),pointer, contiguous :: SumHBond1(:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond2(:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond3(:,:,:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBond4(:,:,:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
 
@@ -2478,7 +2480,7 @@ contains
     ! Declare local variables
     integer   :: i, j
 #if HBOND > 0
-    integer   :: k, l,stat
+    integer   :: k, l, m, stat
 
     allocate( this%SumHBond0(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -2488,6 +2490,8 @@ contains
     call AllocationError( stat, 'components', (this%NComponents**2)*this%NComponents )
     allocate( this%SumHBond3(this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2) )
+    allocate( this%SumHBond4(this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents), STAT = stat )
+    call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2)*this%NComponents )
     allocate( this%SumHBondN(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -2532,6 +2536,9 @@ contains
             call Construct( this%SumHBond2(i,j,k), .false. )
             do l = k, this%NComponents
               call Construct( this%SumHBond3(i,j,k,l), .false. )
+              do m = l, this%NComponents
+                call Construct( this%SumHBond4(i,j,k,l,m), .false. )
+              end do
             end do
           end do
         end do
@@ -2671,7 +2678,7 @@ contains
     ! Declare local variables
     integer :: i, j
 #if HBOND > 0
-    integer :: k, l
+    integer :: k, l, m
 #endif
 
     ! Destruct accumulators
@@ -2704,6 +2711,9 @@ contains
             call Destruct( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Destruct( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Destruct( this%SumHBond4(i,j,k,l,m) )
+              end do
             end do
           end do
         end do
@@ -3253,6 +3263,8 @@ contains
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents )
     allocate( this%NHBond3( this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2 )
+    allocate( this%NHBond4( this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
+    call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2*this%NComponents )
     allocate( this%NHBondN( this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -9942,7 +9954,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
     real(RK)                   :: a1, a2 ! dummy arguments
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
 
     if( Step == 1 ) then
@@ -9986,6 +9998,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call Reset( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Reset( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Reset( this%SumHBond4(i,j,k,l,m) )
+              end do 
             end do
           end do
         end do
@@ -10445,6 +10460,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
@@ -10452,6 +10468,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -10461,6 +10478,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -10472,6 +10490,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("  HB4_(", I1, ",", I1, ",", I1, ",", I1,",", I1, ")")' ) i, j, k, l, m
+                  call FileWriteNoAdvance( this%iounit_result )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
           call FileWriteNoAdvance( this%iounit_result )
@@ -10613,6 +10646,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update( this%SumHBond2(i,j,k), real(this%NHBond2(i,j,k),RK) )
           do l = k, this%NComponents
             call Update( this%SumHBond3(i,j,k,l), real(this%NHBond3(i,j,k,l),RK) )
+            do m = l, this%NComponents
+              call Update( this%SumHBond4(i,j,k,l,m), real(this%NHBond4(i,j,k,l,m),RK) )
+            end do
           end do
         end do
       end do
@@ -11718,6 +11754,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
@@ -11726,6 +11763,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11736,6 +11774,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11748,6 +11787,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
@@ -12124,7 +12179,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
 #endif
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
@@ -12186,6 +12241,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Error( this%SumHBond2(i,j,k) )
           do l = k, this%NComponents
             call Error( this%SumHBond3(i,j,k,l) )
+            do m = l, this%NComponents
+              call Error( this%SumHBond4(i,j,k,l,m) )
+            end do
           end do
         end do
       end do
@@ -13174,6 +13232,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       write( IOBuffer, '("HBond0 of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         Average = this%SumHBond1(i,j)%Average
@@ -13182,6 +13241,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWrite( this%iounit_errors )
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -13192,6 +13252,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -13204,10 +13265,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+     
+    do i = 1, this%NComponents
+      do  j = 1, this%NComponents
+        do k = j, this%NComponents
+          do l = k, this%NComponents
+            do m = l, this%NComponents
+              Average = this%SumHBond4(i,j,k,l,m)%Average
+              Variance = this%SumHBond4(i,j,k,l,m)%Variance
+              write( IOBuffer, '("HBond4 of [", I2, "] with (", I2, ",", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, l, m, Average, Variance
+              call FileWrite( this%iounit_errors )
+            end do
+          end do
+        end do
+      end do
+    end do
+
     do i = 1, this%NComponents
       Average = this%SumHBondN(i)%Average
       Variance = this%SumHBondN(i)%Variance
-      write( IOBuffer, '("HBond4+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
+      write( IOBuffer, '("HBond5+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
     call FileWriteBlank( this%iounit_errors )
@@ -19603,7 +19680,7 @@ contains
     type(TComponent), pointer :: pacc, pdon
     type(TSiteCharge), pointer :: paccacc, pdonacc, pmixdon
     logical             :: MixTerm
-    integer             :: h, i, i0, i1, j, k ,l, m
+    integer             :: h, i, i0, i1, j, k ,l, m, n
     real(RK)            :: BoxLengthInv
     real(RK)            :: LAA, LAD, LintraAD, CosAngle
     real(RK)            :: AngleCrit, DistCrit1, DistCrit2
@@ -19612,11 +19689,12 @@ contains
     integer,allocatable :: Counter(:,:), NHBAll(:)
 
     ! Initialize arrays
-    this%NHBond0(:)       = 0
-    this%NHBond1(:,:)     = 0
-    this%NHBond2(:,:,:)   = 0
-    this%NHBond3(:,:,:,:) = 0
-    this%NHBondN(:)       = 0
+    this%NHBond0(:)         = 0
+    this%NHBond1(:,:)       = 0
+    this%NHBond2(:,:,:)     = 0
+    this%NHBond3(:,:,:,:)   = 0
+    this%NHBond4(:,:,:,:,:) = 0
+    this%NHBondN(:)         = 0
 
     allocate( Counter(this%NComponents,this%NPart) )
     Counter(:,:) = 0
@@ -19706,8 +19784,10 @@ contains
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*100
                 elseif ( Counter(this%AccComp(h),i) < 10000 ) then
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*10000
+                elseif ( Counter(this%AccComp(h),i) < 1000000 ) then
+                  Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*1000000
                 else
-                  Counter(this%AccComp(h),i) = 1000000
+                  Counter(this%AccComp(h),i) = 100000000
                 end if
               end if
 
@@ -19733,7 +19813,7 @@ contains
         m = 0
         if ( Counter(h,i) == 0 ) then
           this%NHBond0(h)=this%NHBond0(h) + 1
-        elseif ( Counter(h,i) == 1000000 ) then
+        elseif ( Counter(h,i) == 100000000 ) then
           this%NHBondN(h)=this%NHBondN(h) + 1
         elseif ( Counter(h,i) < 100 ) then
           do while (Counter(h,i) > 0 )
@@ -19760,7 +19840,7 @@ contains
             j = m
           end if
           this%NHBond2(h,j,k)=this%NHBond2(h,j,k) + 1
-        else
+        elseif (Counter(h,i) < 1000000 ) then
           do while (Counter(h,i) > 10000 )
             m = m + 1
             Counter(h,i) = Counter(h,i) - 10000
@@ -19794,6 +19874,61 @@ contains
             end if
           end if
           this%NHBond3(h,j,k,l)=this%NHBond3(h,j,k,l) + 1
+        else
+          do while (Counter(h,i) > 1000000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1000000
+          end do
+          j = m
+          m = 0
+          do while (Counter(h,i) > 10000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 10000
+          end do
+          if (j .le. m) then
+            k = m
+          else
+            k = j
+            j = m
+          end if
+          m = 0
+          do while (Counter(h,i) > 100 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 100
+          end do
+          if (k .le. m) then
+            l = m
+          else
+            l = k
+            if (j .le. m) then
+              k = m
+            else
+              k = j
+              j = m
+            end if
+          end if
+          m = 0
+          do while (Counter(h,i) > 0 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1
+          end do
+          if (l .le. m) then
+            n = m
+          else
+            n = l
+            if (k .le. m) then
+              l = m
+            else
+              l = k
+              if (j .le. m) then
+                k = m
+              else
+                k = j
+                j = m
+              end if
+            end if
+          end if
+          this%NHBond4(h,j,k,l,n)=this%NHBond4(h,j,k,l,n) + 1
         end if
 
       end do
@@ -19812,6 +19947,10 @@ contains
           do l = k, this%NComponents
             call MPI_Reduce( this%NHBond3(:,j,k,l), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
             if (RootProc) this%NHBond3(:,j,k,l) = NHBAll(:)
+            do n = l, this%NComponents
+              call MPI_Reduce( this%NHBond4(:,j,k,l,n), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+              if (RootProc) this%NHBond4(:,j,k,l,n) = NHBAll(:)
+            end do 
           end do
         end do
       end do
@@ -19819,7 +19958,7 @@ contains
       if (RootProc) this%NHBondN(:) = NHBAll(:)
     end if
 #endif
-    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)
+    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)-this%NHBond4(1,1,1,1,1)
 
 !      !Output of the H-bonded Molecules
 !      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then  
