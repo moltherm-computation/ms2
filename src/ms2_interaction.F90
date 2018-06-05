@@ -1021,14 +1021,15 @@ contains
     type(TInteraction)       :: this
     real(RK), intent(in)     :: InvKBIdr
     
-!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, N2, KBISchalenIndex, Rij,PXi, PYi, PZi, PXij, PYij, PZij)
     ! Declare local variables
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: Rij
     integer           :: i, j, N, N2
     integer           :: KBISchalenIndex
-
+    
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, N2, KBISchalenIndex, Rij,PXi, PYi, PZi, PXij, PYij, PZij)
+    
     N = this%NPart1
 
     ! Assign local pointers
@@ -1770,7 +1771,8 @@ contains
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+            d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * &
+&                          ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
 &                          + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
 
           end do
@@ -2795,8 +2797,9 @@ contains
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
+            d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * &
+&                          ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+&                          + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
           end do
         end do
       end do
