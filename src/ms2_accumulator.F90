@@ -127,7 +127,7 @@ contains
     this%NTotalSum = 0
 
     ! Allocate arrays
-    if (present(trans) .and. trans .eq. .true.) then
+    if (present(trans) .and. trans .eqv. .true.) then
       call Allocate( this, trans )
     elseif (present(kbi) .and. kbi) then
       call Allocate( this, trans, kbi )

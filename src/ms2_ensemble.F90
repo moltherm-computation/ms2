@@ -5048,7 +5048,7 @@ loop3:    do nc = 1, this%NComponents
        this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
     end do
 
-    if ((LongRange .eq. Ewald) then
+    if (LongRange .eq. Ewald) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
 #if SPME > 0
     else if (LongRange .eq. PME) then
