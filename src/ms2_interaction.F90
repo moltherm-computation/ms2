@@ -1148,7 +1148,6 @@ contains
               Rij = sqrt (RijSquared)
               KBISchalenIndex = INT(Rij*InvKBIdr) + 1
               this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
-              print*,KBISchalenIndex
             end do
             this%NInCutoff(i) = NInCutoff
           end do
