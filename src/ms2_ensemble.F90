@@ -5686,7 +5686,7 @@ loop3:    do nc = 1, this%NComponents
           call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
         endif
 #else
-        call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
+        call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
 #endif
 
       end do
@@ -15123,14 +15123,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     TempStep = mod( Step, BlockSizeKBI ) 
     if (TempStep == 0) TempStep = BlockSizeKBI
     
-    if ( SimulationType .eq. MolecularDynamics ) then 
-        ! Calculate partners in shells for RDF
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                call CalcRDFforKBI_MD( this%Interaction(i,j), this%BoxLength/this%KBIdr )
-            end do
-        end do
-    else
+    if ( SimulationType .eq. MonteCarlo ) then !for MD inside the traversing -> see RunMDStep -> Force ...
         ! Calculate partners in shells for RDF
         do i= 1, this%NComponents
             do j= i, this%NComponents
@@ -15252,13 +15245,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
         end do
     end do
-    ! Shift RDFcor so that the mean value from rc/2 to rc is unity
+    ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
     do p = 1, this%NComponents*(this%NComponents+1)/2
         meanRDF(p)=0
-        do o=KBINumberShells/2+1, KBINumberShells
+        do o=(3*KBINumberShells/4)+1, KBINumberShells
             meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
         end do
-        meanRDF(p)=meanRDF(p)/(KBINumberShells/2)
+        meanRDF(p)=meanRDF(p)/(KBINumberShells/4)
         RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
     end do
     

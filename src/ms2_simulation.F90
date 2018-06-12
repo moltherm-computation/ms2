@@ -751,6 +751,7 @@ contains
         if( .not. EnsembleType .eq. EnsembleTypeNVT) then 
             call Error( trim( str )//' -> Kirkwood-Buff integration is in the NVT ensemble only defined' )
         else
+            if (SimulationType .eq. MolecularDynamics ) KBIUpdateFrequency=1 !with MD and KBI -> KBISum is calculated while traversing the interaction matrix with RunMDStep            
             write( IOBuffer, '("RDF for KBI will be updated each", T40, I7, " time steps")' ) KBIUpdateFrequency
         end if
       else
