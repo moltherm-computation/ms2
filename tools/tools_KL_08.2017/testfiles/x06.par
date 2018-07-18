@@ -1,0 +1,58 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       58.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       3.0E-4
+Acceptance    =     0.5
+Ensemble    =       NVT
+MCORSteps   =       100
+NVTSteps    =       300000
+RunSteps    =       10000000
+ResultFreq  =       100
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+CorrfunMode  =     yes
+
+#
+# Ensemble 1
+#
+
+Temperature = 298.15
+Pressure    = 0.1
+Density     = 11.89504785
+PistonMass  = 5.0e-4
+NParticles  = 4000
+NComponents = 2
+StepsCorrfun =5
+Corrlength = 20000
+SpanCorrfun = 250
+ViewCorrfun = 50
+ResultFreqCF= 1
+
+
+PotModel    = aceton.pm
+MoleFract   = 0.6
+PartMolEnt  = -40.79076661
+ChemPotMethod= none
+
+PotModel    = CCl4.pm
+MoleFract   = 0.4
+PartMolEnt  = -35.44486661
+ChemPotMethod= none
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 5.0
+Epsilon     = 1.0E10
