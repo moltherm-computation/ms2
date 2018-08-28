@@ -15669,16 +15669,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             this%TDF0(i,2) = -(1/eta0) * c1 * ( c2*G120(i)+c3*G120(i)-c2*G130(i)-c3*G130(i) - c2*G220(i)+c2*G230(i)-c3*G230(i)+c3*G330(i) )
             ! GAMMA21
             helpvar        = c2 * ( c1*G11(i)-c1*G12(i)-c3*G12(i)-c1*G13(i) + c3*G13(i)+c1*G23(i)+c3*G23(i)-c3*G33(i) )
-            this%TDF(i,3)  = -(1/eta) * helpvar
+            this%TDF(i,3)  = (1/eta) * helpvar
             this%dTDF(i,3) = abs(this%TDF(i,3)) * sqrt( ((c2**2) * ( (c1*G11E(i))**2+(c1*G12E(i))**2+(c3*G12E(i))**2 &
 &                                            +(c1*G13E(i))**2+(c3*G13E(i))**2+(c1*G23E(i))**2 + (c3*G23E(i))**2+(c3*G33E(i))**2 ))/helpvar**2 + (deta/eta)**2 )
-            this%TDF0(i,3) = -(1/eta0) * c2 * ( c1*G110(i)-c1*G120(i)-c3*G120(i)-c1*G130(i) + c3*G130(i)+c1*G230(i)+c3*G230(i)-c3*G330(i) )
+            this%TDF0(i,3) = (1/eta0) * c2 * ( c1*G110(i)-c1*G120(i)-c3*G120(i)-c1*G130(i) + c3*G130(i)+c1*G230(i)+c3*G230(i)-c3*G330(i) )
             ! GAMMA22
             helpvar        = c1 * ( c3*G11(i)+1-2*c3*G13(i)+c3*G33(i)+(c3/c1) + c2 * (G11(i)-G12(i)-G13(i)+(1/c1)+G23(i)) )
-            this%TDF(i,4)  = -(1/eta) * helpvar
+            this%TDF(i,4)  = (1/eta) * helpvar
             this%dTDF(i,4) = abs(this%TDF(i,4)) * sqrt( (((c1*c3)**2) * (G11E(i)**2+(2*G13E(i))**2+G33E(i)**2) &
 &                               + ((c1*c2)**2) * (G11E(i)**2+G12E(i)**2+G13E(i)**2+G23E(i)**2))/helpvar**2 + (deta/eta)**2 )
-            this%TDF0(i,4) = -(1/eta0) * c1 * ( c3*G110(i)+1-2*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)+(1/c1)+G230(i)) )
+            this%TDF0(i,4) = (1/eta0) * c1 * ( c3*G110(i)+1-2*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)+(1/c1)+G230(i)) )
        end do
     end if
     
