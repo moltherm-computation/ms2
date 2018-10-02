@@ -5704,7 +5704,7 @@ loop3:    do nc = 1, this%NComponents
       do j = i, this%NComponents
 #if TRANS == 1
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active 
         else
           call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
         endif
