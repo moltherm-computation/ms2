@@ -2985,7 +2985,7 @@ subroutine time_left(time_limit)
 #if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
 !#elif defined ENABLE_OMP   ! comment put by simon -> otherwise omp error
-!      first_time = omp_get_wtime() - first_time		! -"-
+!      first_time = omp_get_wtime() - first_time        ! -"-
 #else
     !time_elapsed = real(time()) - first_time
     call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)

@@ -1413,7 +1413,7 @@ contains
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
-	real(RK), intent(in), optional     :: InvKBIdr
+    real(RK), intent(in), optional     :: InvKBIdr
 
 
     ! Declare local variables
