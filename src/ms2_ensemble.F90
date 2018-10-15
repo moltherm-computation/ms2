@@ -5703,15 +5703,18 @@ loop3:    do nc = 1, this%NComponents
     do i = 1, this%NComponents
       do j = i, this%NComponents
 #if TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active 
+        if(.not. Equilibration) then
+		   if((mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
+		      call Force_Trans( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active 
+			else
+			  call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
+            endif
         else
-          call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength )
+          call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength) 
         endif
 #else
         call Force( this%Interaction( i, j ), EPot, Virial, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
 #endif
-
       end do
     end do
 
@@ -15390,9 +15393,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
                 dN(o,p)=dN(o-1,p)+(4*Pi*dr*(Nj/Vol)*(KBIr(o)**2*(KBIRDF(o,p)-1)+KBIr(o-1)**2*(KBIRDF(o-1,p)-1)))/2
                 if (i == j) then !e.g. combination 11 or 22 or 33 ...
-                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)-dN(o,p)-1))
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4./3.)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4./3.)*Pi*KBIr(o)**3/Vol)-dN(o,p)-1))
                 else
-                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)-dN(o,p)))
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4./3.)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4./3.)*Pi*KBIr(o)**3/Vol)-dN(o,p)))
                 end if
                 p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
             end do
