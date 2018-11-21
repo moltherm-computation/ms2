@@ -769,6 +769,7 @@ contains
         write( IOBuffer, '("RDF for KBI will operate with", I7, " shells")' ) KBINumberShells
         call LogWrite
         KBINumberShellsMax=ceiling(sqrt(3*real(KBINumberShells,RK)**2))
+        KBINShellsCubeEdge=floor(sqrt(2*real(KBINumberShells,RK)**2))
 #if MPI_VER > 0     
         if (SimulationType .eq. MonteCarlo) then 
             BlockSizeKBI=int(BlockSizeKBI/NProcs) !KBIBlockSize per process

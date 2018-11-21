@@ -697,6 +697,7 @@ module ms2_global
   ! Number of KBI shells
   integer :: KBINumberShells
   integer :: KBINumberShellsMax
+  integer :: KBINShellsCubeEdge
 
   ! Number of density profile bins
   integer :: NBinsDen
