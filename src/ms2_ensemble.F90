@@ -13678,7 +13678,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
           !Calculate diffusion coefficients
-          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )         
+          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )         
           D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )        
           D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )       
           D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
@@ -13687,9 +13687,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
           !Obtain error of Diffusion coefficients
-          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
-                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
+          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,1) + &
+                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,2) + &
+                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,3)
 
           err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
                     ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
