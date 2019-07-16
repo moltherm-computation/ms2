@@ -191,6 +191,10 @@ end type TSimulation
   interface KBIClose
     module procedure TSimulation_KBIClose
   end interface
+  
+  interface ALPHA2Update
+    module procedure TSimulation_ALPHA2Update
+  end interface
 
   interface RestartSave
     module procedure TSimulation_RestartSave
@@ -441,6 +445,7 @@ contains
       RDFUpdateFrequency = 0
       KBIUpdateFrequency = 0
       BlockSizeKBI = 0
+      ALPHA2UpdateFrequency = 0
       ! Set cutoff mode
       CutoffMode = CenterofMass
 
@@ -780,6 +785,24 @@ contains
         ! Calculate number of blocks and block sizes for KBI
         NBlocksMaxKBI = ceiling(max( NStepsV, NStepsE, NStepsP, NStepsH, NSteps ) / real(BlockSizeKBI))
         NBlockSizesMaxKBI = int( sqrt( real( NSteps / BlockSizeKBI, RK ) ) )
+      end if
+      call LogWriteBlank
+      
+      ! Read frequency of updating Alpha2 correlation function
+      call FileReadParameter( ALPHA2UpdateFrequency, iounit_params, IdALPHA2UpdateFrequency, .true., 0 )
+      if ( ALPHA2UpdateFrequency > 0 ) then
+        if ( SimulationType .eq. MolecularDynamics ) then 
+            call FileReadParameter( ALPHA2Length, iounit_params, IdALPHA2Length, .true., 10000 )
+            call FileReadParameter( ALPHA2Shift,  iounit_params, IdALPHA2Shift,  .true., 1000  )
+            write( IOBuffer, '("Alpha2 will be updated each", T40, I7, " time steps")' ) ALPHA2UpdateFrequency
+            call LogWrite
+            write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
+            call LogWrite
+            write( IOBuffer, '("Alpha2 correlation shift each", T40, I7, " time steps")' ) ALPHA2Shift
+            call LogWrite           
+        else
+            call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )
+        end if      
       end if
       call LogWriteBlank
       
@@ -1963,6 +1986,7 @@ eqloop: do
       select case( SimulationType )
       case( MolecularDynamics )
         call RunMDStep( this )
+        call ALPHA2Update( this )
       case( MonteCarlo )
         call RunMCStep( this )
       case( SecondVirialCoeff )
@@ -2810,6 +2834,35 @@ eqloop: do
     end do
 
   end subroutine TSimulation_KBIClose
+  
+!==============================================================!
+!  Subroutine TSimulation_ALPHA2Update                         !
+!==============================================================!
+
+  subroutine TSimulation_ALPHA2Update( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ALPHA2UpdateFrequency < 1 ) return
+
+    ! Return if equilibration
+    if( Equilibration ) return
+
+    ! Update ensemble visualisation files
+    if( mod( Step - 1, ALPHA2UpdateFrequency ) == 0 ) then
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+        call ALPHA2Update( this%Ensemble(i) )
+      end do
+    end if
+
+  end subroutine TSimulation_ALPHA2Update
   
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !

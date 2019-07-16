@@ -72,6 +72,9 @@ module ms2_ensemble
     ! I/O unit for KBI file
     integer :: iounit_kbirun
     integer :: iounit_kbirdf
+    
+    ! I/O unit for alpha2 file
+    integer :: iounit_a2rav
 
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
@@ -179,6 +182,17 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: dTDF(:,:)
     real(RK), pointer, contiguous :: TDF0(:,:)
     integer                       :: KBIBlockCount
+    
+    !Alpha2 displacement
+    real(RK), pointer, contiguous :: dispR2(:,:)
+    real(RK), pointer, contiguous :: dispR2inv(:,:)
+    real(RK), pointer, contiguous :: dispR4(:,:)
+    real(RK), pointer, contiguous :: dispR2Ave(:)
+    real(RK), pointer, contiguous :: dispR2invAve(:)
+    real(RK), pointer, contiguous :: dispR4Ave(:)
+    integer,  pointer, contiguous :: alpha2tempstep(:)
+    integer                       :: alpha2aveCount
+    
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -799,6 +813,10 @@ module ms2_ensemble
 
   interface KBIClose
     module procedure TEnsemble_KBIClose
+  end interface
+  
+  interface ALPHA2Update
+    module procedure TEnsemble_ALPHA2Update
   end interface
   
   interface ErrorsUpdate
@@ -1829,6 +1847,7 @@ contains
     this%iounit_dcp       = iounit_dcp       + i
     this%iounit_kbirun    = iounit_kbirun    + i
     this%iounit_kbirdf    = iounit_kbirdf    + i
+    this%iounit_a2rav     = iounit_a2rav     + i
 
     ! Calculate RDF VSchale 
     this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
@@ -3166,6 +3185,15 @@ contains
     nullify( this%TDF )
     nullify( this%dTDF )
     nullify( this%TDF0 )
+    nullify( this%dispR2 )
+    nullify( this%dispR2inv )
+    nullify( this%dispR4 )
+    nullify( this%dispR2Ave )
+    nullify( this%dispR2invAve )
+    nullify( this%dispR4Ave )
+    nullify( this%alpha2tempstep )
+    
+
     
     
     ! Allocate scale coefficients for sigma and epsilon
@@ -3207,6 +3235,26 @@ contains
       allocate( this%SumKBIGij3(this%NComponents*(this%NComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'Sum KBI Gij3', this%NComponents )
     endif
+    
+    if( ALPHA2UpdateFrequency > 0 ) then
+      allocate( this%dispR2(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR2' )          
+      allocate( this%dispR2inv(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR2inv' )
+      allocate( this%dispR4(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR4' )
+      allocate( this%alpha2tempstep(0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) !alpha2tempstep displacement
+      call AllocationError( stat, 'alpha2tempstep' )
+      this%alpha2tempstep(:)=0
+      allocate( this%dispR2Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) !average 
+      call AllocationError( stat, 'dispR2Ave' )           
+      allocate( this%dispR2invAve(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )  
+      call AllocationError( stat, 'dispR2invAve' )
+      allocate( this%dispR4Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) 
+      call AllocationError( stat, 'dispR4Ave' )
+      this%alpha2aveCount=0
+    end if
+    
 
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
@@ -3633,6 +3681,36 @@ contains
     if( associated( this%TDF0 ) ) then
       deallocate( this%TDF0 )
     end if 
+    
+    if( associated( this%dispR2 ) ) then
+      deallocate( this%dispR2 )
+    end if
+    
+    if( associated( this%dispR2inv ) ) then
+      deallocate( this%dispR2inv )
+    end if
+    
+    if( associated( this%dispR4 ) ) then
+      deallocate( this%dispR4 )
+    end if
+    
+    if( associated( this%dispR2Ave ) ) then
+      deallocate( this%dispR2Ave )
+    end if
+    
+    if( associated( this%dispR2invAve ) ) then
+      deallocate( this%dispR2invAve )
+    end if
+    
+    if( associated( this%dispR4Ave ) ) then
+      deallocate( this%dispR4Ave )
+    end if
+    
+    if( associated( this%alpha2tempstep ) ) then
+      deallocate( this%alpha2tempstep )
+    end if
+    
+    
 
     if( associated( this%SumKBIGij1 ) ) then
       deallocate( this%SumKBIGij1 )
@@ -12203,9 +12281,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: Average, Variance
     type(TComponent), pointer :: pc
     integer                   :: i, j, t!, s, o
+    real(RK)                  :: value
 #if  TRANS == 1
     integer                   :: k, m
-    real(RK)                  :: value
     real(RK)                  :: det, inv_det
     real(RK)                  :: x(this%NComponents)
     real(RK)                  :: Inv_x(this%NComponents)
@@ -13187,146 +13265,147 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteBlank( this%iounit_errors )
         else if (this%NComponents == 3) then
             ! RDF standard
-			write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,3), this%TDF0(1,4)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,3), this%TDF0(1,4)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
-			! RDF vdV correction
-			write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,3), this%TDF0(2,4)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,3), this%TDF0(2,4)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
-			! RDF vdV+shf correction
-			write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV+shf correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
-		else if (this%NComponents == 4) then
-			! RDF standard
-			write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWriteBlank( this%iounit_errors )
+        else if (this%NComponents == 4) then
+            ! RDF standard
+            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2), this%TDF(1,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2), this%TDF(1,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,4), this%TDF0(1,5), this%TDF0(1,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,4), this%TDF0(1,5), this%TDF0(1,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,7), this%TDF0(1,8), this%TDF0(1,9)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,7), this%TDF0(1,8), this%TDF0(1,9)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
-			! RDF vdV correction
-			write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2), this%TDF(2,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2), this%TDF(2,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,4), this%TDF0(2,5), this%TDF0(2,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,4), this%TDF0(2,5), this%TDF0(2,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,7), this%TDF0(2,8), this%TDF0(2,9)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,7), this%TDF0(2,8), this%TDF0(2,9)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
-			! RDF vdV+shf correction
-			write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV+shf correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2), this%TDF(3,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2), this%TDF(3,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
-            call FileWrite( this%iounit_errors )			
-			write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,4), this%TDF0(3,5), this%TDF0(3,6)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,4), this%TDF0(3,5), this%TDF0(3,6)
             call FileWrite( this%iounit_errors )
-			write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,7), this%TDF0(3,8), this%TDF0(3,9)
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,7), this%TDF0(3,8), this%TDF0(3,9)
             call FileWrite( this%iounit_errors )
-			call FileWriteBlank( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
         end if
     end if
+    
             
     ! Separator
     write( IOBuffer, '(76("="))' )
@@ -14531,6 +14610,41 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       ! Close final result file
       call FileClose( this%iounit_thermoint)
+    end if
+    
+    if( ALPHA2UpdateFrequency > 0 ) then !write *.a2rav 
+        if (RootProc) then
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_a2rav, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ALPHA2ravFileExtension )
+        write(IOBuffer, '(T8,"t*")')
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T11,"t/fs")')
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T11,"msd/sig^2")') !msd
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T5,"alpha2")') !alpha2
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T5,"gamma")') !gamma
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        call FileWriteBlank( this%iounit_a2rav )
+        do i=1,ALPHA2Length/ALPHA2UpdateFrequency
+            write(IOBuffer, '(T2,F12.4)') i * ALPHA2UpdateFrequency * TimeStep
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T2,F12.4)') i * ALPHA2UpdateFrequency * TimeStep * UnitTime * 1E15_RK
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T4,F10.4)') this%dispR2Ave(i)*this%BoxLength**2 !msd
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T4,F10.4)') 3_RK*this%dispR4Ave(i)/(5_RK*this%dispR2Ave(i)**2) - 1_RK !alpha2
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T4,F10.4)') this%dispR2Ave(i)*this%dispR2invAve(i)/3_RK - 1_RK !gamma
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            call FileWriteBlank( this%iounit_a2rav )
+        end do
+        write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%alpha2aveCount 
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        call FileWriteBlank( this%iounit_a2rav )
+        call FileClose( this%iounit_a2rav )
+        end if
     end if
 
   end subroutine TEnsemble_ErrorsUpdate
@@ -16103,6 +16217,67 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileClose( this%iounit_kbirun )
 
   end subroutine TEnsemble_KBIClose
+  
+!==============================================================!
+!  Subroutine TEnsemble_ALPHA2Update                           !
+!==============================================================!
+
+  subroutine TEnsemble_ALPHA2Update( this ) ! Displacement non-gaussian cf. DOI: 10.1103/PhysRevLett.87.055703
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, k, l, m
+    real(RK) :: dr2, dr4, sum_dr2, sum_dr4
+    
+    ! calculate memory position of ri0(t0)
+    j=mod(INT((Step-1)/ALPHA2Shift),ALPHA2Length/ALPHA2Shift)
+    l=j
+    if (Step .GT. ALPHA2Length) l=INT(ALPHA2Length/ALPHA2Shift)-1
+       
+    do k=0,l    
+        if (this%alpha2tempstep(k) /= 0) then !only calculate alpha2 for t>t0
+            sum_dr2 = 0._RK
+            sum_dr4 = 0._RK
+            do i = 1, this%NComponents
+                do m = 1, this%Component(i)%NPart
+                    dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_x(m,k))**2&
+&                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_y(m,k))**2&
+&                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_z(m,k))**2
+                    dr4 = dr2**2                    
+                    sum_dr2 = sum_dr2 + dr2
+                    sum_dr4 = sum_dr4 + dr4
+                end do
+            end do                  
+            this%dispR2    (this%alpha2tempstep(k),k) = sum_dr2/this%NPart
+            this%dispR4    (this%alpha2tempstep(k),k) = sum_dr4/this%NPart
+            this%dispR2inv (this%alpha2tempstep(k),k) = 1_RK/this%dispR2(this%alpha2tempstep(k),k)         
+        end if      
+        this%alpha2tempstep(k) = this%alpha2tempstep(k)+1   
+    end do
+        
+    if (mod( Step-1, ALPHA2Shift) == 0) then !save ri0(t0) at the beginning/end of new block            
+        if (Step .GT. ALPHA2Length) then  ! calculate alpha2 average at the block end
+            this%alpha2aveCount = this%alpha2aveCount+1 !count number of alpha2 calculations for alpha2average
+            !average calculation            
+            this%dispR2Ave   (:) = ( this%dispR2Ave   (:)*(this%alpha2aveCount-1)+this%dispR2   (:,j) )/this%alpha2aveCount
+            this%dispR4Ave   (:) = ( this%dispR4Ave   (:)*(this%alpha2aveCount-1)+this%dispR4   (:,j) )/this%alpha2aveCount
+            this%dispR2invAve(:) = ( this%dispR2invAve(:)*(this%alpha2aveCount-1)+this%dispR2inv(:,j) )/this%alpha2aveCount            
+            this%alpha2tempstep(j)=1        
+            ! writing of *.a2rav is done with *.res file writing                
+        end if       
+        do i = 1, this%NComponents !save ri0(t0)
+            this%Component(i)%ri0_x(:,j) = this%Component(i)%Disp(:,1)
+            this%Component(i)%ri0_y(:,j) = this%Component(i)%Disp(:,2)
+            this%Component(i)%ri0_z(:,j) = this%Component(i)%Disp(:,3)
+        end do
+    end if
+      
+  end subroutine TEnsemble_ALPHA2Update
+  
 !==============================================================!
 !  Subroutine TEnsemble_RestartSave                            !
 !==============================================================!

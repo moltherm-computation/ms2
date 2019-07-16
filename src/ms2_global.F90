@@ -187,6 +187,9 @@ module ms2_global
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
   character(*), parameter :: KBIrunFileExtension = '.kbirun'
   
+  ! Extension of alpha2 file (displacement correlation function)
+  character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
+  
   ! Extension of ThermoInt filename
   character(*), parameter :: ThermoIntFileExtension = '.thi'
 
@@ -237,6 +240,7 @@ module ms2_global
   integer, parameter :: iounit_dcp       = iounit_start + 14
   integer, parameter :: iounit_kbirdf    = iounit_start + 15
   integer, parameter :: iounit_kbirun    = iounit_start + 16
+  integer, parameter :: iounit_a2rav     = iounit_start + 17
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -291,9 +295,12 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
-  character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kurkwood-Buff Integration
+  character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
   character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
-  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq'
+  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq' 
+  character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
+  character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
+  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Shift' 
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -693,6 +700,11 @@ module ms2_global
   
   ! Frequency of updating KBI file
   integer :: KBIUpdateFrequency
+  
+  ! Frequency of updating Alpha2 displacement
+  integer :: ALPHA2UpdateFrequency
+  integer :: ALPHA2Length
+  integer :: ALPHA2Shift
   
   ! Number of KBI shells
   integer :: KBINumberShells
