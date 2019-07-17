@@ -14636,7 +14636,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_a2rav )
             write(IOBuffer, '(T4,F10.4)') 3_RK*this%dispR4Ave(i)/(5_RK*this%dispR2Ave(i)**2) - 1_RK !alpha2
             call FileWriteNoAdvance( this%iounit_a2rav )
-            write(IOBuffer, '(T4,F10.4)') this%dispR2Ave(i)*this%dispR2invAve(i)/3_RK - 1_RK !gamma
+            write(IOBuffer, '(T8,F10.4)') this%dispR2Ave(i)/this%dispR2invAve(i)/3_RK - 1_RK !gamma
             call FileWriteNoAdvance( this%iounit_a2rav )
             call FileWriteBlank( this%iounit_a2rav )
         end do
@@ -16231,7 +16231,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     integer  :: i, j, k, l, m
-    real(RK) :: dr2, dr4, sum_dr2, sum_dr4
+    real(RK) :: dr2, dr4, sum_dr2, sum_dr4, sum_dr2inv
     
     ! calculate memory position of ri0(t0)
     j=mod(INT((Step-1)/ALPHA2Shift),ALPHA2Length/ALPHA2Shift)
@@ -16240,21 +16240,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        
     do k=0,l    
         if (this%alpha2tempstep(k) /= 0) then !only calculate alpha2 for t>t0
-            sum_dr2 = 0._RK
-            sum_dr4 = 0._RK
+            sum_dr2    = 0._RK
+            sum_dr4    = 0._RK
+            sum_dr2inv = 0._RK
             do i = 1, this%NComponents
                 do m = 1, this%Component(i)%NPart
                     dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_x(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_y(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_z(m,k))**2
-                    dr4 = dr2**2                    
-                    sum_dr2 = sum_dr2 + dr2
-                    sum_dr4 = sum_dr4 + dr4
+                    dr4        = dr2**2                    
+                    sum_dr2    = sum_dr2 + dr2
+                    sum_dr4    = sum_dr4 + dr4
+                    sum_dr2inv = sum_dr2inv + 1_RK/dr2
                 end do
             end do                  
             this%dispR2    (this%alpha2tempstep(k),k) = sum_dr2/this%NPart
             this%dispR4    (this%alpha2tempstep(k),k) = sum_dr4/this%NPart
-            this%dispR2inv (this%alpha2tempstep(k),k) = 1_RK/this%dispR2(this%alpha2tempstep(k),k)         
+            this%dispR2inv (this%alpha2tempstep(k),k) = this%NPart/sum_dr2inv       
         end if      
         this%alpha2tempstep(k) = this%alpha2tempstep(k)+1   
     end do
