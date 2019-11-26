@@ -11,18 +11,18 @@ F90mpi           := $(F90)
 OMPFLAGS          = -h omp
 CPPFLAGS          = -DARCH=2 -DFORTRAN=2003
 ifeq ($(OMP),1)
-F90FLAGS_RELEASE  = -O3 -e m -rm -hvector3
-F90FLAGS_DEBUG    = -O0 -e m -g
+F90FLAGS_RELEASE  = -O3 -e m -rm -hvector3 -hwp
+F90FLAGS_DEBUG    = -O0 -e m -g -hbounds
 F90FLAGS_PROF     = -O3 -e m -g -rm
 else
 # noomp flag to disable OpenMP
-F90FLAGS_RELEASE  = -O3 -e m -h noomp -rm -hvector3
-F90FLAGS_DEBUG    = -O0 -e m -h noomp -g
+F90FLAGS_RELEASE  = -O3 -e m -h noomp -rm -hvector3 -hwp
+F90FLAGS_DEBUG    = -O0 -e m -h noomp -g -hbounds
 F90FLAGS_PROF     = -O3 -e m -h noomp -g -rm
 endif
 PROG              = ms2_CRAY
 
-LDFLAGS_RELEASE   = -O3 -rm
+LDFLAGS_RELEASE   = -O3 -rm -hwp
 LDFLAGS_DEBUG     = -g 
 LDFLAGS_PROF      = -O3 -g -rm
 
