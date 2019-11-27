@@ -3243,15 +3243,15 @@ contains
       call AllocationError( stat, 'dispR2inv' )
       allocate( this%dispR4(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
       call AllocationError( stat, 'dispR4' )
-      allocate( this%alpha2tempstep(0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) !alpha2tempstep displacement
-      call AllocationError( stat, 'alpha2tempstep' )
-      this%alpha2tempstep(:)=0
       allocate( this%dispR2Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) !average 
       call AllocationError( stat, 'dispR2Ave' )           
       allocate( this%dispR2invAve(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )  
       call AllocationError( stat, 'dispR2invAve' )
       allocate( this%dispR4Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) 
       call AllocationError( stat, 'dispR4Ave' )
+	  allocate( this%alpha2tempstep(0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) !alpha2tempstep displacement
+      call AllocationError( stat, 'alpha2tempstep' )
+      this%alpha2tempstep(:)=0
       this%alpha2aveCount=0
     end if
     
@@ -16322,6 +16322,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( iounit_restart, '(ES20.12E3)' ) this%Volume4
             write( iounit_restart, '(ES20.12E3)' ) this%Volume5
           end if
+		  
+		  if( ALPHA2UpdateFrequency > 0 ) then
+		    write( iounit_restart, '(I10)' ) this%alpha2aveCount
+		    do j = 0, ALPHA2Length/ALPHA2Shift-1
+			  write( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
+			end do			  
+	        do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+		      do j = 0, ALPHA2Length/ALPHA2Shift-1
+                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+		      end do
+            end do
+			do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+			  write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+			end do	
+	      end if
 
         else
           write( iounit_restart, '(ES20.12E3)' ) this%DispVol
@@ -16684,6 +16699,21 @@ endif
           read( iounit_restart, '(ES20.12E3)' ) this%Volume4
           read( iounit_restart, '(ES20.12E3)' ) this%Volume5
         end if
+		
+		if( ALPHA2UpdateFrequency > 0 ) then
+		    read( iounit_restart, '(I10)' ) this%alpha2aveCount
+		    do j = 0, ALPHA2Length/ALPHA2Shift-1
+			  read( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
+			end do			  
+	        do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+		      do j = 0, ALPHA2Length/ALPHA2Shift-1
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+		      end do
+            end do
+			do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+			  read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+			end do	
+	    end if
 
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispVol
