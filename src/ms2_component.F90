@@ -1307,8 +1307,8 @@ contains
           call AllocationError( stat, 'particles', np )          
           allocate( this%ri0_z( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
-		  this%ri0_x(:, :) = 0._RK
-		  this%ri0_y(:, :) = 0._RK
+          this%ri0_x(:, :) = 0._RK
+          this%ri0_y(:, :) = 0._RK
           this%ri0_z(:, :) = 0._RK
       end if
 
@@ -4320,21 +4320,21 @@ loop1:do i = 1, this%NPart
           write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end if
-	  
-	  do i = 1, np
+      
+      do i = 1, np
         pos(:) = this%Disp(i,:)
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
-	  
-	  if( ALPHA2UpdateFrequency > 0 ) then
-	    do i = 1, np
-		  do j = 0, ALPHA2Length/ALPHA2Shift-1
+      
+      if( ALPHA2UpdateFrequency > 0 ) then
+        do i = 1, np
+          do j = 0, ALPHA2Length/ALPHA2Shift-1
             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
-		  end do
+          end do
         end do
-	  end if
-	  
-	  
+      end if
+      
+      
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
@@ -4465,21 +4465,21 @@ loop1:do i = 1, this%NPart
 
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, : )
-          end do  	  
+          end do      
         end if
-		
-		do i = 1, np
+        
+        do i = 1, np
           read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
         end do
-		
-		if( ALPHA2UpdateFrequency > 0 ) then
-	      do i = 1, np
-		    do j = 0, ALPHA2Length/ALPHA2Shift-1
+        
+        if( ALPHA2UpdateFrequency > 0 ) then
+          do i = 1, np
+            do j = 0, ALPHA2Length/ALPHA2Shift-1
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
-		    end do
+            end do
           end do
-	    end if
-		
+        end if
+        
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
