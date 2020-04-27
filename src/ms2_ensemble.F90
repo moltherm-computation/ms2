@@ -5320,22 +5320,6 @@ loop3:    do nc = 1, this%NComponents
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
 
-#if ABL
-        vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-        fac = TimeStepSquared2*Gear20
-        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20 ! Michael Sch.: per def = 0, also obsolet...
-        denom2 = denom**2
-        nen = this%PistonMass*fac / (vol * denom2)
-        do i=1,this%NComponents
-          do j=1,this%Component(i)%Molecule%NMIEnm
-            this%AblPS(i,j)   =  this%AblPS(i,j) + this%Interaction(1, 1)%PotMIEnmMIEnm(i, j)%AblSigCorr(i,j)
-            this%AblPE(i,j)   =  this%AblPE(i,j) + this%Interaction(1, 1)%PotMIEnmMIEnm(i, j)%AblEpsCorr(i,j)
-            this%AblRhoS(i,j) = nen * this%AblPS(i,j)
-            this%AblRhoE(i,j) = nen * this%AblPE(i,j)
-          end do
-        end do
-#endif
-
       end if
 #if MPI_VER > 0
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
