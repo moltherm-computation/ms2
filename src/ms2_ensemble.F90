@@ -1679,16 +1679,17 @@ contains
     if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF  / this%NPart
-
     else
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF * NProcs / this%NPart
-
     endif
-
     call LogWrite
-
-    write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
+    
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
+       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
+    else
+       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF * NProcs / this%NPart
+    endif
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -4032,6 +4033,7 @@ contains
           this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
         end do
         this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
+        this%VirialCorrRF = 3_RK * this%EPotCorrRF
 
       else ! Rodgers
         this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
@@ -4087,6 +4089,7 @@ contains
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
         this%EPotCorrRF = this%EPotCorrRF * NProcs
+        this%VirialCorrRF = this%VirialCorrRF * NProcs
       endif
 
       if (LongRange .eq. Rodgers ) then
@@ -4790,6 +4793,7 @@ loop1:do nc = 1, this%NComponents
       end if
     end do
 
+
     ! Calculate potential energy and virial
 #if MPI_VER > 0
     ! in MC simulations we only communicate during common equilibration 
@@ -4810,8 +4814,7 @@ loop1:do nc = 1, this%NComponents
         this%Virial = GetVirial( this )
       endif
 
-    endif  
-
+    endif 
 #else
 
     this%EPot = GetEnergy( this )
@@ -4821,6 +4824,7 @@ loop1:do nc = 1, this%NComponents
     endif
 
 #endif
+
     ! Resize simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
       call Resize( this )
@@ -5725,13 +5729,13 @@ loop3:    do nc = 1, this%NComponents
 #endif
     end do
 
-    ! Zero potential
+    ! potential energy correction
     EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
 
-    ! Zero virial
-    Virial = this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    ! virial correction
+    Virial = this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
 
-    ! Zero d2Epot/dV2
+    ! d2Epot/dV2 correction
     d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE 
 
 !     ! Calculate interactions partners within cutoff sphere
@@ -6651,7 +6655,7 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate potential energy of a particle
     E = 0._RK
     do i = 1, this%NComponents
-      E = E + sum( this%Interaction(i, nc)%EPot(1:this%Component(i)%NPart, np) )
+      E = E + sum( this%Interaction(nc, i)%EPot(np, 1:this%Component(i)%NPart) )
     end do
 
 ! Ewald 
@@ -6692,7 +6696,7 @@ loop2:        do nc = 1, this%NComponents
         V = V + sum( this%Interaction(j, i)%Virial(1:this%Component(j)%NPart, 1:n) )
       end do
     end do
-    V = .5_RK * V + this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    V = .5_RK * V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
 
     if (LongRange .eq. Ewald) then
 !       call EwaldFourierEnergy(this)
@@ -6811,6 +6815,7 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate particle energy at trial position
     MCOverlapDetected = .FALSE.
     call Energy( this, nc, np, EPotNew )
+
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
@@ -6820,8 +6825,9 @@ loop2:        do nc = 1, this%NComponents
           EPotDelta = EPotOld - EPotNew
     endif
 #else
-     EPotDelta = EPotOld - EPotNew
+    EPotDelta = EPotOld - EPotNew
 #endif
+
 
     accepted = EPotDelta > 0._RK
     if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK ) .AND. .NOT. MCOverlapDetected

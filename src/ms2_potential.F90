@@ -12209,7 +12209,6 @@ loop2:  do j = 1, j1
 
 
 
-
   subroutine TPoterfc_approx(this,in,approx_out)
 
   type(TPotChargeCharge)      :: this
