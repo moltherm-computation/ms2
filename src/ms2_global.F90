@@ -187,7 +187,7 @@ module ms2_global
   
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
-  character(*), parameter :: KBIrunFileExtension = '.kbirun'
+  character(*), parameter :: KBIravFileExtension = '.kbirav'
   
   ! Extension of alpha2 file (displacement correlation function)
   character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
@@ -241,7 +241,7 @@ module ms2_global
   integer, parameter :: iounit_visualHB  = iounit_start + 13
   integer, parameter :: iounit_dcp       = iounit_start + 14
   integer, parameter :: iounit_kbirdf    = iounit_start + 15
-  integer, parameter :: iounit_kbirun    = iounit_start + 16
+  integer, parameter :: iounit_kbirav    = iounit_start + 16
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
 
