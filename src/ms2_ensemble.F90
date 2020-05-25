@@ -1173,7 +1173,7 @@ contains
 
       if ( .not. ConstantPressure .and. .not. this%OptPressure) then
           this%OptPressure = .true.
-          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical OptPressure is set to yes")' )
+          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical CalcPressure is set to yes")' )
           call LogWrite
       end if
     end if
@@ -13037,6 +13037,29 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then 
+      ! A00
+      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eq. .true.) then 
+        Average  = 0_RK
+        Variance = 0_RK
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          select case( pc%ChemPotMethod )         
+          case( ChemPotMethodWidom )
+            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
+            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
+          case( ChemPotMethodThermoInt )
+            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
+&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
+            Variance = Variance + pc%SumChemPotV%Variance**2
+          end select          
+        end do
+        Average  = Average - this%SumA01resI%Average - log(this%Density)
+        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
+        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )       
+      end if    
+    
       ! A10
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
@@ -13103,6 +13126,29 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then 
+      ! A00
+      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eq. .true.) then
+        Average  = 0_RK
+        Variance = 0_RK
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          select case( pc%ChemPotMethod )         
+          case( ChemPotMethodWidom )
+            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
+            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
+          case( ChemPotMethodThermoInt )
+            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
+&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
+            Variance = Variance + pc%SumChemPotV%Variance**2
+          end select          
+        end do
+        Average  = Average - this%SumA01resI%Average - log(this%Density)
+        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
+        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )       
+      end if
+      
       ! A10I
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
@@ -15403,7 +15449,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         ! Open running average KBI RDF file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
-		call FileWriteBlank( this%iounit_kbirdf )
+        call FileWriteBlank( this%iounit_kbirdf )
         call FileClose( this%iounit_kbirdf )
         
         ! Open running average KBI file
@@ -15613,40 +15659,40 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     
     !Write running average RDF (center of mass) in *.kbirdf file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )	
-	write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf")')
-	call FileWriteNoAdvance( this%iounit_kbirdf )
-	call FileWriteBlank( this%iounit_kbirdf )
-	write(IOBuffer, '(T5,"   r [A]")')
-	call FileWriteNoAdvance( this%iounit_kbirdf )
-	do p = 1, 3 !Method
-		do i= 1, this%NComponents
-			do j= i, this%NComponents
-				write(IOBuffer, '(I5,I5,","I1)') i, j, p
-				call FileWriteNoAdvance( this%iounit_kbirdf )            
-			end do
-		end do
-	end do
-	call FileWriteBlank( this%iounit_kbirdf )	
+    call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )    
+    write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf")')
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    call FileWriteBlank( this%iounit_kbirdf )
+    write(IOBuffer, '(T5,"   r [A]")')
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    do p = 1, 3 !Method
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                write(IOBuffer, '(I5,I5,","I1)') i, j, p
+                call FileWriteNoAdvance( this%iounit_kbirdf )            
+            end do
+        end do
+    end do
+    call FileWriteBlank( this%iounit_kbirdf )   
     do o = 1, KBINShellsCubeEdge
         write(IOBuffer, '(F12.6)') KBIr(o)
         call FileWriteNoAdvance( this%iounit_kbirdf )
-		do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFextra(o,p) !Standard RDF
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
-		do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFvdVextra(o,p) !RDF vdV corrected
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
-		do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFvdVshfextra(o,p) !RDF vdV+shf corrected
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
-		call FileWriteBlank( this%iounit_kbirdf )
+        call FileWriteBlank( this%iounit_kbirdf )
     end do
     call FileWriteBlank( this%iounit_kbirdf )
-	call FileClose( this%iounit_kbirdf )
+    call FileClose( this%iounit_kbirdf )
             
     ! Start of numerical Kirkwood-Buff Integration
     do o = 1, KBINShellsCubeEdge
