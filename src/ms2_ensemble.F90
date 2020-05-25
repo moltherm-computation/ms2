@@ -13038,7 +13038,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then 
       ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eq. .true.) then 
+      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then 
         Average  = 0_RK
         Variance = 0_RK
         do i = 1, this%NRealComponents
@@ -13127,7 +13127,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then 
       ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eq. .true.) then
+      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
         Average  = 0_RK
         Variance = 0_RK
         do i = 1, this%NRealComponents
