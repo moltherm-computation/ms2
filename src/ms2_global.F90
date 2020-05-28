@@ -770,7 +770,7 @@ module ms2_global
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flag for catched terminate signal
-  logical :: TerminateProgram
+  logical :: TerminateProgram = .false.
 
 ! PGF compiler version < 6.0 seems to need this
 ! #if defined _PGF || defined __PGI
@@ -781,6 +781,7 @@ module ms2_global
 #else
   logical, parameter :: TerminateProgram = .false.
 #endif
+  integer :: TerminateStatus = 0
 
   integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
@@ -1125,8 +1126,11 @@ contains
     call MPI_Comm_size( Communicator_R, NProcs_R, ierror )
     call MPI_Comm_rank( Communicator_R, NProc_R, ierror )
     NRootProc_R = 0
-    RootProc_R = NProc_R == NRootProc_R
-
+    RootProc_R = NProc_R == NRootProc_R	! =RootProc_W
+    
+    !write(IOBuffer, '("after MPI_Comm_Split: NProc_W RootProc_W=",I6,L2," NProc RootProc=",I6,L2," NProc_R RootProc_R=",I6,L2)') NProc_W, RootProc_W, NProc,RootProc, NProc_R,RootProc_R
+    !call LogWrite
+    
   end subroutine Global_SplitCommunicator
 
 #endif
@@ -1851,14 +1855,14 @@ contains
 !     ! Declare local variables
 !     integer, intent(in), optional      :: rank
 !     
-!     integer             :: status(MPI_STATUS_SIZE)
+!     integer             :: mpistatus(MPI_STATUS_SIZE)
 ! 
 !     
 !     if( present( rank ) .and. (rank .ne. NRootProc) ) then
 !       ! transfer IOBuffer to NRootProc
 !       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
 ! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
-! &                        Communicator, status, ierror)
+! &                        Communicator, mpistatus, ierror)
 !       !call MPI_Barrier( Communicator, ierror )
 !     endif
 !     ! execute LogWrite on NRootProc
@@ -2085,11 +2089,11 @@ contains
     implicit none
     include 'mpif.h'
     ! Declare arguments
-    integer             :: status(MPI_STATUS_SIZE)
+    integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
 
 
   end subroutine Global_FileWriteNoAdvance_parallel
