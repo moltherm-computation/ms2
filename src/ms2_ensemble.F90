@@ -19516,6 +19516,7 @@ end if
 !==============================================================!
 !  Subroutine TEnsemble_EinsteinCoef                           !
 !==============================================================!
+
   subroutine TEnsemble_EinsteinCoefProcedure( this )
 
     implicit none
@@ -19529,12 +19530,9 @@ end if
     real(RK) :: dr, sum_dr, helpvar
     real(RK) :: sumX(this%NComponents), sumY(this%NComponents), sumZ(this%NComponents)
     integer :: CorrLength, CorrShift, CorrNumber
-
     integer  :: CFindex, Mindex, StepCorr, nmess, s
 
-
-
-if (RootProc) then
+    if (RootProc) then
     tau = TimeStep*this%NStepCorr
     CorrLength = this%NCorr*this%NStepCorr
     CorrShift = this%NSpanCF*this%NStepCorr
@@ -19545,12 +19543,8 @@ if (RootProc) then
     j=mod(INT((Step-1)/CorrShift),CorrNumber)
     l=j
     if (Step .GT. CorrLength) l=INT(CorrNumber)-1
-
-
     do k=0,l
         if (this%EinsteinCoefTimeStep(k) /= 0) then !only calculate for t>t0
-
-
             !Self diffusion
             do i = 1, this%NComponents
                 sum_dr2    = 0._RK
@@ -19558,14 +19552,10 @@ if (RootProc) then
                     dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_E_x(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_E_y(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_E_z(m,k))**2
-                sum_dr2 = sum_dr2 + dr2
+                    sum_dr2 = sum_dr2 + dr2
                 end do
-
-                this%DselfEinstein    (this%EinsteinCoefTimeStep(k),k, i) = sum_dr2/this%Component(i)%NPart/6.0d0/(this%EinsteinCoefTimeStep(k)*tau)
+                this%DselfEinstein    (this%EinsteinCoefTimeStep(k),k, i) = sum_dr2/(this%Component(i)%NPart*6.0d0*(this%EinsteinCoefTimeStep(k)*tau))
             end do
-
-
-
 
             if (this%NComponents > 1) then
                 !Onsager coefficients
@@ -19582,96 +19572,74 @@ if (RootProc) then
                 end do
 
                 do i = 1, this%NComponents
-                do q = 1, this%NComponents
+                    do q = 1, this%NComponents
                         this%OnsagerEinstein  (this%EinsteinCoefTimeStep(k),k, i, q) = (sumX(i)*sumX(q)+sumY(i)*sumY(q)+sumZ(i)*sumZ(q))/ &
                                                             (this%NPart*6.0d0*(this%EinsteinCoefTimeStep(k)*tau))
-
-                end do
+                    end do
                 end do
             end if
-
-
         end if
         this%EinsteinCoefTimeStep(k) = this%EinsteinCoefTimeStep(k)+1
     end do !end  do k=0,l
 
-
-        do i=1, this%NComponents
-            this%DselfEinsteinCurrent(i) = this%DselfEinstein    (this%EinsteinCoefTimeStep(j)-1,j, i)
-        end do
-
-        if (this%NComponents > 1) then
-            do i = 1, this%NComponents
+    do i=1, this%NComponents
+        this%DselfEinsteinCurrent(i) = this%DselfEinstein    (this%EinsteinCoefTimeStep(j)-1,j, i)
+    end do
+    if (this%NComponents > 1) then
+        do i = 1, this%NComponents
             do q = 1, this%NComponents
                 this%OnsagerEinsteinCurrent(i,q) = this%OnsagerEinstein (this%EinsteinCoefTimeStep(j)-1, j, i, q)
             end do
-            end do
-        end if
+        end do
+    end if
 
-
-
-
-
-if (mod( Step-1, CorrShift) == 0) then  !not sure
+    if (mod( Step-1, CorrShift) == 0) then  
         if (Step .GT. CorrLength) then !Average
+            this%EinsteinCoefAveCount = this%EinsteinCoefAveCount+1
+            this%DselfEinsteinAve(:,:) = ( this%DselfEinsteinAve(:,:)*(this%EinsteinCoefAveCount-1) + this%DselfEinstein(:,j,:) )/this%EinsteinCoefAveCount !(:,:) assign to (:,j,:) is it correct?
+            if (this%NComponents > 1) then
+                this%OnsagerEinsteinAve(:,:,:) = ( this%OnsagerEinsteinAve(:,:,:)*(this%EinsteinCoefAveCount-1) + this%OnsagerEinstein(:,j,:,:) )/this%EinsteinCoefAveCount
+            end if
+            this%EinsteinCoefTimeStep(j)=1
 
 
 
-        this%EinsteinCoefAveCount = this%EinsteinCoefAveCount+1
-        this%DselfEinsteinAve(:,:) = ( this%DselfEinsteinAve(:,:)*(this%EinsteinCoefAveCount-1) + this%DselfEinstein(:,j,:) )/this%EinsteinCoefAveCount !(:,:) assign to (:,j,:) is it correct?
-        if (this%NComponents > 1) then
-            this%OnsagerEinsteinAve(:,:,:) = ( this%OnsagerEinsteinAve(:,:,:)*(this%EinsteinCoefAveCount-1) + this%OnsagerEinstein(:,j,:,:) )/this%EinsteinCoefAveCount
-        end if
-        this%EinsteinCoefTimeStep(j)=1
+            !Shear viscosity
+            StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
+            !Calculate matrix indexes
+            Mindex = mod(StepCorr, this%NCorr )
 
+            if (Mindex .eq. 0) Mindex = this%NCorr
+            CFindex = Mindex + 1
+            if (Mindex .eq. this%NCorr) CFindex = 1
 
-
-!Shear viscosity
-        StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
-        !Calculate matrix indexes
-        Mindex = mod(StepCorr, this%NCorr )
-
-
-        if (Mindex .eq. 0) then
-        Mindex = this%NCorr
-        end if
-        CFindex = Mindex + 1
-        if (Mindex .eq. this%NCorr) then
-        CFindex = 1
-        end if
-
-
-        do nmess = 1, this%NCorr
-            s=CFindex+nmess-1 !-1  !missynchronization with CallCorFun probably
-            if (s > this%NCorr) s = s-this%NCorr
-            this%EinsteinShear(nmess) = (this%vsk(s,1) + this%vsk(s,2) + this%vsk(s,3) + this%vsp(s,1) + this%vsp(s,2) + this%vsp(s,3))
-        end do
-
-
-        this%EinsteinShearInt = simpson2(this%EinsteinShear, tau , this%NCorr)  !it is raised to the power of 2
-        this%EinsteinShearAve(:) = ( this%EinsteinShearAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt(:) )/this%EinsteinCoefAveCount
-
-        helpvar =  0.5/3.0* this%Density /( this%NPart * this%Temperature)
-        this%ShearEinsteinCurrent = this%EinsteinShearInt(this%NCorr)*helpvar
-
-!Update
-        do i=1, this%NComponents
-             call Update( this%EinsteinDSelfAcc(i), this%DselfEinsteinCurrent(i)*(this%BoxLength**2),  this%EinsteinCoefAveCount  )
-        end do
-
-        if (this%NComponents > 1) then
-            do i = 1, this%NComponents
-            do q = 1, this%NComponents
-                call Update(this%EinsteinOnsagerAcc(i,q),this%OnsagerEinsteinCurrent(i,q)*(this%BoxLength**2),this%EinsteinCoefAveCount)
+            do nmess = 1, this%NCorr
+                s=CFindex+nmess-1 
+                if (s > this%NCorr) s = s-this%NCorr
+                this%EinsteinShear(nmess) = (this%vsk(s,1) + this%vsk(s,2) + this%vsk(s,3) + this%vsp(s,1) + this%vsp(s,2) + this%vsp(s,3))
             end do
+
+            this%EinsteinShearInt = simpson2(this%EinsteinShear, tau , this%NCorr)  !it is raised to the power of 2
+            this%EinsteinShearAve(:) = ( this%EinsteinShearAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt(:) )/this%EinsteinCoefAveCount
+
+            helpvar =  0.5/3.0* this%Density /( this%NPart * this%Temperature)
+            this%ShearEinsteinCurrent = this%EinsteinShearInt(this%NCorr)*helpvar
+
+            !Update
+            do i=1, this%NComponents
+                 call Update( this%EinsteinDSelfAcc(i), this%DselfEinsteinCurrent(i)*(this%BoxLength**2),  this%EinsteinCoefAveCount  )
             end do
-        end if
 
+            if (this%NComponents > 1) then
+                do i = 1, this%NComponents
+                    do q = 1, this%NComponents
+                        call Update(this%EinsteinOnsagerAcc(i,q),this%OnsagerEinsteinCurrent(i,q)*(this%BoxLength**2),this%EinsteinCoefAveCount)
+                    end do
+                end do
+            end if
 
-        call Update (this%EinsteinShearAcc, this%ShearEinsteinCurrent, this%EinsteinCoefAveCount)
-   end if ! end Average
-
-
+            call Update (this%EinsteinShearAcc, this%ShearEinsteinCurrent, this%EinsteinCoefAveCount)
+        end if ! end Average
 
         do i = 1, this%NComponents !save ri0_E(t0)
             this%Component(i)%ri0_E_x(:,j) = this%Component(i)%Disp(:,1)
@@ -19680,9 +19648,7 @@ if (mod( Step-1, CorrShift) == 0) then  !not sure
         end do
     end if !end of corr
 
-
-
-endif
+    endif !RootProc
 
 
  contains
@@ -19720,7 +19686,7 @@ endif
       end do
     end function
 
-end subroutine
+  end subroutine
 #endif
 
 !==============================================================!
