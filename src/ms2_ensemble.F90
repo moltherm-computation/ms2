@@ -68,6 +68,9 @@ module ms2_ensemble
 
     ! I/O unit for RDF file
     integer :: iounit_rdf
+    
+    ! I/O unit for ODF file
+    integer :: iounit_odf
 
     ! I/O unit for KBI file
     integer :: iounit_kbirav
@@ -174,6 +177,12 @@ module ms2_ensemble
     real(RK) :: RDFdr
     real(RK), pointer, contiguous :: RDFVSchale(:)
     real(RK), pointer, contiguous :: RDFValue(:)
+    
+    !ODF Hilfsvariable
+    real(RK) :: dPhi
+    real(RK) :: dGamma
+    real(RK) :: dR
+    real(RK), pointer, contiguous :: ODFvalue(:,:,:,:)
 
     !KBI Hilfsvariable
     real(RK) :: KBIdr
@@ -807,6 +816,22 @@ module ms2_ensemble
     module procedure TEnsemble_ResultClose
   end interface
 
+  interface ODFOpen
+    module procedure TEnsemble_ODFOpen
+  end interface
+  
+  interface ODFUpdate
+    module procedure TEnsemble_ODFUpdate
+  end interface
+  
+  interface ODFUpdateBlock
+    module procedure TEnsemble_ODFUpdateBlock
+  end interface
+  
+  interface ODFClose
+    module procedure TEnsemble_ODFClose
+  end interface
+  
   interface RDFOpen
     module procedure TEnsemble_RDFOpen
   end interface
@@ -1885,7 +1910,12 @@ contains
     do i = 1, RDFNumberShells
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
-
+    
+    ! Calculate bin sizes for ODF
+    this%dR = this%RCutoffDipoleDipole / nR
+    this%dPhi = 2._RK / nPhi
+    this%dGamma = pi / nGamma
+    
     ! Calculate KBI VSchale
     this%KBIdr = (0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength) &
 &                / KBINumberShells
@@ -3249,6 +3279,7 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
+    nullify( this%ODFvalue )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
     nullify( this%KBIVSchale )
@@ -3292,6 +3323,12 @@ contains
     allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
     call AllocationError( stat, 'NPartMax', this%NPartMax )
 
+    ! Allocate ODF arrays
+    if( ODFUpdateFrequency > 0 ) then
+      allocate( this%ODFvalue(nPhi,nPhi, nGamma,nR), STAT = stat )
+      call AllocationError( stat, 'components', nPhi*nPhi*nGamma*nR )    
+    endif
+    
     ! Allocate RDF arrays
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFVSchale(RDFNumberShells), STAT = stat )
@@ -3782,6 +3819,10 @@ contains
       deallocate( this%BiasedPartners )
     end if
 
+    if( associated( this%ODFvalue ) ) then
+      deallocate( this%ODFvalue )
+    end if 
+    
     if( associated( this%RDFVSchale ) ) then
       deallocate( this%RDFVSchale )
     end if
@@ -15745,7 +15786,320 @@ end if
   end subroutine TEnsemble_ProfileClose
 #endif
 
+!==============================================================!
+!  Subroutine TEnsemble_ODFOpen                                !
+!==============================================================!
+ subroutine TEnsemble_ODFOpen( this )
 
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j
+
+    if( .not. Restart ) then
+        ! initialize ODFSum and Error Sum
+        do i=1, this%NComponents
+          do j=i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                this%Interaction(i,j)%ODFErrSum = 0
+                this%Interaction(i,j)%ODFSum(:,:,:,:) = 0
+            end if
+          end do
+        end do
+    end if
+
+    ! Open visualization file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
+    call FileWriteBlank( this%iounit_odf )
+    call FileClose( this%iounit_odf )
+
+  end subroutine TEnsemble_ODFOpen
+ 
+!==============================================================!
+!  Subroutine TEnsemble_ODFUpdate                              !
+!==============================================================!
+
+  subroutine TEnsemble_ODFUpdate( this )
+
+    implicit none
+    
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j
+
+    ! Calculate ODFSum with ODFUpdateFrequency 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &
+&           ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+            call Get_ODF( this%Interaction(i,j), this%dPhi, this%dGamma, this%dR/this%BoxLength )
+        end if
+      end do
+    end do
+
+    ! Rewrite ODF file with ODFOutputFrequency
+    if ( mod( Step-1, ODFOutputFrequency ) == 0 .and. Step .gt. 1 ) then
+        call ODFUpdateBlock (this)
+    end if
+    
+  end subroutine TEnsemble_ODFUpdate
+
+  
+!==============================================================!
+!  Subroutine TEnsemble_ODFUpdateBlock                         !
+!==============================================================!
+
+  subroutine TEnsemble_ODFUpdateBlock( this )
+
+    implicit none
+    
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, o, p, q, r, ErrSum_hilf, ErrSum
+    real(RK) :: ODFvalue_hilf, NormValue
+    real(RK) :: ODFNorm_hilf(this%NComponents,this%NComponents,nR)
+
+#if MPI_VER > 0
+    real(RK) :: ODFNorm_out(this%NComponents,this%NComponents,nR)
+    real(RK) :: ODFvalue_norm
+#endif
+    ! write header of *.odf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
+    ErrSum_hilf = 0
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            ErrSum_hilf = ErrSum_hilf + this%Interaction(i,j)%ODFErrSum
+        end do
+    end do
+#if MPI_VER > 0 
+    call MPI_Reduce( ErrSum_hilf, ErrSum, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+#else 
+    ErrSum = ErrSum_hilf
+#endif
+    
+    ! calculate average ODF value for normalization of ODF 
+    ODFNorm_hilf(:,:,:) = 0._RK
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do o = 1, nPhi
+                    do p = 1, nPhi
+                        do q = 1, nGamma
+                            do r=1, nR
+                                ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) &
+&                                 + real(this%Interaction(i,j)%ODFSum(o, p, q, r))
+                            end do
+                        end do
+                    end  do
+                end do
+            end if
+        end do
+    end do
+
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do r= 1, nR
+                    ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) / ( nPhi * nPhi * nGamma) 
+                end do
+            end if
+        end do
+    end do
+
+#if MPI_VER > 0     
+    ODFNorm_out(:,:,:) = 0._RK
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do r= 1, nR
+                    call MPI_Reduce( ODFNorm_hilf(i,j,r), ODFNorm_out(i,j,r), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                end do
+            end if
+        end do
+    end do
+#endif  
+    write(IOBuffer, '("ODF Calculation failed ",I7, " times during simulation")') ErrSum
+    call FileWriteNoAdvance( this%iounit_odf )
+    call FileWriteBlank( this%iounit_odf )
+    write(IOBuffer, '("Normalization values of ODF: ")') 
+    call FileWriteNoAdvance( this%iounit_odf )
+    call FileWriteBlank( this%iounit_odf )
+
+    do i= 1, this%NComponents
+        do j= 1, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                write(IOBuffer, '(I5,I5)') i, j
+                call FileWriteNoAdvance( this%iounit_odf ) 
+            end if  
+        end do
+    end do
+
+    call FileWriteBlank( this%iounit_odf )
+    do r=1, nR
+        write(IOBuffer, '("r = ",F10.6," ")') (r*this%dR-this%dR/2._RK)
+        call FileWriteNoAdvance( this%iounit_odf ) 
+        do i= 1, this%NComponents
+            do j= 1, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+#if MPI_VER > 0 
+                    if (i == j) then
+                        NormValue = 2._RK*ODFNorm_out(i,j,r)
+                    else if(i > j) then
+                        NormValue = ODFNorm_out(j,i,r)
+                    else
+                        NormValue = ODFNorm_out(i,j,r) 
+                    end if
+#else
+                    if (i == j) then
+                        NormValue = 2._RK*ODFNorm_hilf(i,j,r)
+                    else if(i > j) then
+                        NormValue = ODFNorm_hilf(j,i,r)
+                    else
+                        NormValue = ODFNorm_hilf(i,j,r) 
+                    end if
+#endif                  
+                    write(IOBuffer, '(" ",F16.6," ")') NormValue
+                    call FileWriteNoAdvance( this%iounit_odf ) 
+                end if  
+            end do
+        end do
+        call FileWriteBlank( this%iounit_odf )
+    end do
+    
+    call FileWriteBlank( this%iounit_odf )
+    write(IOBuffer, '("cos(phi1)    cos(phi2)   gamma12     r   ")')
+    call FileWriteNoAdvance( this%iounit_odf )
+     
+    do i= 1, this%NComponents
+        do j= 1, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                write(IOBuffer, '(I5,I5)') i,j
+                call FileWriteNoAdvance( this%iounit_odf ) 
+            end if  
+        end do
+    end do
+    call FileWriteBlank( this%iounit_odf )
+    
+#if MPI_VER > 0 
+    do o = 1, nPhi
+        do p = 1, nPhi
+            do q = 1, nGamma
+                do r=1, nR
+                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
+                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
+                    call FileWriteNoAdvance( this%iounit_odf )
+                    do i= 1, this%NComponents
+                        do j= 1, this%NComponents
+                            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                                if (i == j) then ! for i == j the fact that every pair of molecules is only sampled once needs to be made up for by manually adding the value of the missing interaction. this also enforces perfect symmetry
+                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))
+                                else if (i > j) then ! ODF_ij for i > j is not sampled explicitly during simulation. Instead the data of ODF_ji is used to generate output for ODF_ij
+                                    ODFvalue_hilf = real(this%Interaction(j,i)%ODFSum(nPhi &
+&                                     + 1 - p, nPhi + 1 - o, q, r)) 
+                                else
+                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) 
+                                end if
+                                call MPI_Reduce( ODFvalue_hilf, ODFvalue_norm, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror)
+                                if (i == j) then
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / (2._RK*ODFNorm_out(i,j,r)) ! 2*Norm because missing interactions have been added
+                                else if(i > j) then
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(j,i,r)  ! indices i and j are changed here because norm_ij for i > j is not computed but should be identical to norm_ji
+                                else 
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(i,j,r) 
+                                end if
+                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
+                                call FileWriteNoAdvance( this%iounit_odf )
+                                ODFvalue_norm = 0._RK
+                            end if
+                        end do
+                    end do
+                call FileWriteBlank( this%iounit_odf )
+                end do
+            end do
+        end do
+    enddo
+#else
+    do o = 1, nPhi
+        do p = 1, nPhi
+            do q = 1, nGamma
+                do r=1, nR
+                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
+                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
+                    call FileWriteNoAdvance( this%iounit_odf )
+                    do i= 1, this%NComponents
+                        do j= 1, this%NComponents
+                            if (((this%Component(i)%Molecule%NDipole .GE. 1).or.(this%Component(i)%Molecule%NCharge .GE. 2)).and. &
+&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then
+                                if (i == j) then
+                                    this%ODFvalue(o,p,q,r) = (real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))) &
+&                                     / (2._RK*ODFNorm_hilf(i,j,r)) 
+                                else if (i > j) then
+                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(j,i)%ODFSum(nPhi + &
+&                                     1 - p, nPhi + 1 - o, q, r))  / ODFNorm_hilf(j,i,r) 
+                                else 
+                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     / ODFNorm_hilf(i,j,r) 
+                                end if
+                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
+                                call FileWriteNoAdvance( this%iounit_odf )
+                            end if
+                        end do
+                    end do
+                call FileWriteBlank( this%iounit_odf )
+                end do
+            end do
+        end do
+    enddo
+#endif
+    call FileClose( this%iounit_odf )
+    
+
+  end subroutine TEnsemble_ODFUpdateBlock
+  
+
+
+!==============================================================!
+!  Subroutine TEnsemble_ODFClose                               !
+!==============================================================!
+
+  subroutine TEnsemble_ODFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close visualization file
+    write( IOBuffer, '("##")' )
+    call FileWrite( this%iounit_odf )
+    call FileClose( this%iounit_odf )
+
+  end subroutine TEnsemble_ODFClose
+  
 !==============================================================!
 !  Subroutine TEnsemble_RDFOpen                                !
 !==============================================================!
@@ -19707,13 +20061,15 @@ end if
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,s,t,o
+    integer                   :: i,j,r,s,t,o
 #if TRANS ==1
     integer                   :: k, Mindex, StepCorr
 #endif
 #if MPI_VER > 0
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+    integer                   :: ODFSum_hilf(nPhi*NProcs)
+    integer                   :: ODFErrSum_hilf(NProcs)
 #endif
 
 
@@ -19973,13 +20329,63 @@ end if
         end do
     end if
 
+    if (ODFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+#if MPI_VER > 0
+                    call MPI_Gather( this%Interaction(i,j)%ODFErrSum, 1, MPI_INTEGER, &
+&                       ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+                    if( RootProc ) then
+                        do o = 1, NProcs
+                            write(iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
+                        end do
+                    end if
+#else   
+                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
+#endif
+                end if
+            end do
+        end do
+    
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                    do r = 1, nR
+                        do s = 1, nGamma
+                            do t = 1, nPhi
+#if MPI_VER > 0
+                                call MPI_Gather( this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), nPhi, MPI_INTEGER, &
+&                                   ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
+                                if( RootProc ) then
+                                    do o = 1, nPhi*NProcs
+                                        write(iounit_restart, '(I10)' ) ODFSum_hilf(o)
+                                    end do
+                                end if
+#else
+                                do o = 1, nPhi
+                                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
+                                end do
+#endif
+                            end do
+                        end do
+                    end do
+                end if
+            end do
+        end do
+    end if
+        
+    
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
             do j= i, this%NComponents
                 do s=1, this%Component(i)%molecule%NMIEnm
                     do t=1, this%Component(j)%molecule%NMIEnm
 #if MPI_VER > 0
-                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
+                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
+&                           RDFNumberShells, MPI_INTEGER, &
 &                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
                         if( RootProc ) then
                             do o = 1, RDFNumberShells*NProcs
@@ -20179,11 +20585,13 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,r,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
 #if MPI_VER > 0
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+    integer                   :: ODFSum_hilf(nPhi*NProcs)
+    integer                   :: ODFErrSum_hilf(NProcs)
 #endif
 
     if( RootProc ) then
@@ -20466,6 +20874,56 @@ endif
       end if
     end do
 
+    if (ODFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+#if MPI_VER > 0
+                    if( RootProc ) then
+                        do o = 1, NProcs
+                            read( iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
+                        end do
+                    end if      
+                    call MPI_Scatter( ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, &
+&                       this%Interaction(i,j)%ODFErrSum, &
+&                       1, MPI_INTEGER, NRootProc, Communicator, ierror )
+#else                       
+                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
+#endif
+                end if
+            end do
+        end do
+
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                    do r = 1, nR
+                        do s = 1, nGamma
+                            do t = 1, nPhi
+#if MPI_VER > 0
+                                if( RootProc ) then
+                                    do o = 1, nPhi*NProcs
+                                        read( iounit_restart, '(I10)' ) ODFSum_hilf(o)
+                                    end do
+                                end if
+                                call MPI_Scatter( ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, &
+&                                    this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), &
+&                                    nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
+#else                               
+                                do o = 1, nPhi
+                                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
+                                end do
+#endif
+                            end do
+                        end do
+                    end do
+                end if
+            end do
+        end do  
+    end if      
+
 
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
@@ -20479,7 +20937,8 @@ endif
                             end do
                         end if
                         call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
-&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
+&                           RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )   
 #else
                         do o = 1, RDFNumberShells
                             read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)

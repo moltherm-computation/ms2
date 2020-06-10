@@ -186,6 +186,18 @@ end type TSimulation
     module procedure TSimulation_RDFClose
   end interface
 
+  interface ODFOpen
+    module procedure TSimulation_ODFOpen
+  end interface
+
+  interface ODFUpdate
+    module procedure TSimulation_ODFUpdate
+  end interface
+
+  interface ODFClose
+    module procedure TSimulation_ODFClose
+  end interface
+  
   interface KBIOpen
     module procedure TSimulation_KBIOpen
   end interface
@@ -449,6 +461,7 @@ contains
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
       RDFUpdateFrequency = 0
+      ODFUpdateFrequency = 0
       KBIUpdateFrequency = 0
       BlockSizeKBI = 0
       ALPHA2UpdateFrequency = 0
@@ -756,6 +769,30 @@ contains
       end if
       call LogWriteBlank
 
+      call FileReadParameter( ODFUpdateFrequency, iounit_params , IdODFUpdateFrequency, .true., 0 )
+      if( ODFUpdateFrequency > 0 ) then
+        write( IOBuffer, '("ODF files will be updated each", T40, I7, " time steps")' ) ODFUpdateFrequency
+      else
+        write( IOBuffer, '("ODF files will not be created")' )
+      end if
+      call LogWrite
+      
+      if( ODFUpdateFrequency > 0 ) then
+        call FileReadParameter( nR, iounit_params , IdnR, .true., 3 )
+        write( IOBuffer, '("ODF will operate with", I7, " shells")' ) nR
+        call LogWrite
+        call FileReadParameter( nPhi, iounit_params , IdnPhi, .true., 40 )
+        write( IOBuffer, '("ODF will operate with", I7, " angular increments in phi-direction")' ) nPhi
+        call LogWrite
+        call FileReadParameter( nGamma, iounit_params , IdnGamma, .true., 36 )
+        write( IOBuffer, '("ODF will operate with", I7, " angular increments in gamma-direction")' ) nGamma
+        call LogWrite
+        call FileReadParameter( ODFOutputFrequency, iounit_params , IdODFOutputFrequency, .true., 1000000 )
+        write( IOBuffer, '("ODF output will be generated every", I7, " steps")' ) ODFOutputFrequency
+        call LogWrite
+      end if
+      call LogWriteBlank
+      
       ! Read frequency of updating KBI file
       call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
@@ -875,8 +912,8 @@ contains
             call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
-
-!         case( 'PME', 'pme', 'SPME', 'spme')
+#if SPME > 0
+        case( 'PME', 'pme', 'SPME', 'spme')
             LongRange = PME
             LongRangeString = 'Smooth Particle Mesh Ewald Summation'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
@@ -892,7 +929,7 @@ contains
 
             call FileReadParameter( spline_h, iounit_params , IdSpline, .true. )
             write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
-
+#endif
         case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
             LongRange = RField
             LongRangeString = 'Reaction Field'
@@ -1115,6 +1152,7 @@ contains
     call ResultOpen( this )
     call VisualOpen( this )
     call RDFOpen( this )
+    call ODFOpen( this )
     call KBIOpen( this )
 #if OSMOP > 0
     if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
@@ -2099,6 +2137,7 @@ end if
       call ResultUpdate( this )
       call VisualUpdate( this )
       call RDFUpdate ( this )
+      call ODFUpdate ( this )
       call KBIUpdate ( this )
 
       ! Update log and result files
@@ -2791,7 +2830,83 @@ end if
 
   end subroutine TSimulation_RDFClose
 
+!==============================================================!
+!  Subroutine TSimulation_ODFOpen                              !
+!==============================================================!
 
+  subroutine TSimulation_ODFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    ! Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ODFOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ODFOpen
+
+!==============================================================!
+!  Subroutine TSimulation_ODFUpdate                            !
+!==============================================================!
+
+  subroutine TSimulation_ODFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    ! Return if equilibration
+    if( Equilibration ) return
+
+    ! Update ensemble visualisation files
+    if( mod( Step - 1, ODFUpdateFrequency ) == 0 ) then
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+        call ODFUpdate( this%Ensemble(i) )
+      end do
+    end if
+
+  end subroutine TSimulation_ODFUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_ODFClose                             !
+!==============================================================!
+
+  subroutine TSimulation_ODFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ODFClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ODFClose
+  
 !==============================================================!
 !  Subroutine TSimulation_KBIOpen                              !
 !==============================================================!

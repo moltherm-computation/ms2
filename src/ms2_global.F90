@@ -184,6 +184,9 @@ module ms2_global
 
   ! Extension of RDF file
   character(*), parameter :: RDFFileExtension = '.rdf'
+  
+  ! Extension of ODF file 
+  character(*), parameter :: ODFFileExtension = '.odf'
 
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
@@ -301,6 +304,11 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdnR                          = 'NumShellsODF'
+  character(*), parameter :: IdnPhi                        = 'nPhiODF'
+  character(*), parameter :: IdnGamma                      = 'nGammaODF'
+  character(*), parameter :: IdODFUpdateFrequency          = 'ODFRecordingFreq'
+  character(*), parameter :: IdODFOutputFrequency          = 'ODFOutputFreq'
   character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
   character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
   character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq'
@@ -705,6 +713,21 @@ module ms2_global
   ! Number of RDF shells
   integer :: RDFNumberShells
 
+  ! Number of ODF shells
+  integer :: nR
+  
+  ! Discretisation of angle phi for ODF
+  integer :: nPhi
+  
+  ! Discretisation of angle gamma12 for ODF
+  integer :: nGamma
+  
+  ! Frequency of updating ODF file
+  integer :: ODFUpdateFrequency
+  
+  ! Frequency of creating ODF output files
+  integer :: ODFOutputFrequency  
+  
   ! Frequency of updating KBI file
   integer :: KBIUpdateFrequency
 
