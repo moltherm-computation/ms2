@@ -3401,7 +3401,6 @@ contains
 
     end if
     this%EPot1 = EPot
-    
 end subroutine TInteraction_Energy
 
 

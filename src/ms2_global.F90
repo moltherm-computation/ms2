@@ -172,7 +172,16 @@ module ms2_global
 
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
+  
+  !DC NOTE- Extension of cluster related visualisation file.
+  character(*), parameter :: VisualCCFileExtension = '.cvim'
+  
+  !DC NOTE- Extension of cluster criteria info file.
+  character(*), parameter :: CCFileExtension = '.clust'
 
+  !DC NOTE- Extension of cluster criteria grid position file.
+  character(*), parameter :: GridFileExtension = '.grid'
+  
   ! Extension of visualisation of h-bonding file.
   character(*), parameter :: VisualHBFileExtension = '.hbvim'
 
@@ -251,6 +260,10 @@ module ms2_global
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
   integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
+  integer, parameter :: iounit_ccpos     = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_cc        = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_ccgrid    = iounit_start + 22 !DC TODO - this should be changed appropriate to the other output files
+
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
@@ -354,6 +367,16 @@ module ms2_global
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdPermeability                = 'Permeability'
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
+
+  !DC NOTE- cluster criteria relevant global Id
+  character(*), parameter :: IdIsClusterCriteria           = 'ClusterIsCriteria'  
+  character(*), parameter :: IdCCUpdateFrequency           = 'ClusterCriteriaFreq'  
+  character(*), parameter :: IdCcrittype                   = 'ClusterCriteriaType'  
+  character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'  
+  character(*), parameter :: IdCcount                      = 'ClusterMoleculeCount'  
+  character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'  
+  character(*), parameter :: IdIsCvim                      = 'ClusterIsCvim'  
+
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
@@ -490,14 +513,14 @@ module ms2_global
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
-
+  
   ! Walltime settings
   integer :: max_time
   integer :: time_limit
-
+  
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
-
+  
   ! LJ126 or Mie-Potential
   character(16) :: LJorMIE
 
@@ -590,6 +613,10 @@ module ms2_global
   integer, parameter :: WFMethodAuto   = 1
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
+  
+  integer, parameter :: CCritTypeVapor  = 0  
+  integer, parameter :: CCritTypeGridvap = 2
+  integer, parameter :: CCritTypeGridliq = 3
 
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
@@ -631,7 +658,7 @@ module ms2_global
 
   ! Number of gradual insertion initialization steps
   integer :: GradInsInit
-
+  
   ! Number of orientations for second virial coefficient
   integer :: NOrient
 
@@ -684,7 +711,7 @@ module ms2_global
   ! Current number of blocks CF
   integer :: NBlocksCF
 #endif
-
+  
   ! Kirkwood-Buff integration parameters
   ! Maximum number of blocks KBI
   integer :: NBlocksMaxKBI
@@ -707,9 +734,12 @@ module ms2_global
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
+  !DC NOTE- Frequency of updating visualisation file
+  integer :: VisualCCUpdateFrequency
+
   ! Frequency of updating RDF file
   integer :: RDFUpdateFrequency
-
+  
   ! Number of RDF shells
   integer :: RDFNumberShells
 
@@ -730,7 +760,7 @@ module ms2_global
   
   ! Frequency of updating KBI file
   integer :: KBIUpdateFrequency
-
+  
   ! Frequency of updating Alpha2 displacement
   integer :: ALPHA2UpdateFrequency
   integer :: ALPHA2Length
@@ -965,15 +995,15 @@ module ms2_global
   interface strtrim
     module procedure Global_String_TrimR
   end interface
-
+  
   interface strtrimr
     module procedure Global_String_TrimR
   end interface
-
+  
   interface strtriml
     module procedure Global_String_TrimL
   end interface
-
+  
   interface strtrimlr
     module procedure Global_String_TrimLR
   end interface
@@ -1005,7 +1035,7 @@ module ms2_global
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flush of I/O units
   external flush
-
+  
   ! get/set file position
   integer, external :: ftell
 #ifdef __GNUC__
@@ -1013,7 +1043,7 @@ module ms2_global
 #else
   integer, external :: fseek
 #endif
-
+  
   ! change current directory
 #if defined _PGF || defined __PGI
   integer, external :: chdir
@@ -1063,7 +1093,7 @@ contains
 &            , ParameterFileExtension, '] [<OutputPrefix>]', '}'
     end if
   end subroutine Global_printUsage
-
+  
 
 !==============================================================!
 
@@ -1094,7 +1124,7 @@ contains
     end if
     NRootProc = 0
     RootProc = NProc == NRootProc
-
+    
   end subroutine Global_SetCommunicator
 
 !==============================================================!
@@ -1111,18 +1141,18 @@ contains
 
     ! Declare arguments
     integer, intent(in)         :: ngroups
-
+    
     integer :: groupId
     integer :: oldCommunicator,newCommunicator
-
+    
     oldCommunicator=Communicator
-
+    
     if( ngroups > NProcs ) then
       NCommunicators=NProcs
     else
       NCommunicators=ngroups
     endif
-
+    
     write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs, NCommunicators
     call LogWrite
     write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
@@ -1135,17 +1165,17 @@ contains
     call LogWriteBlank
     ! close log file to reopen/open new ones
     call LogClose
-
+    
     !NCommunicator=mod(NProc,NCommunicators)
     NCommunicator=NProc*NCommunicators/NProcs
     ! NCommunicator -> color, NProc -> key (NProc_W also could be used)
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
-    ! (avoiding some internal communication within the MPI library)
+    ! (avoiding some internal communication within the MPI library)    
     call SetCommunicator(newCommunicator)   !   RootProc is now true for the root of the new communicator(s)
     ! (re)open log files
     call LogOpen
-
+    
     ! creating a communicator for all the RootProc (resp. non-RootProc) within the old communicator
     if (RootProc) then
       groupId=0
@@ -1221,7 +1251,7 @@ contains
     RootProc_W = RootProc
     NCommunicators=1
     NCommunicator=0
-
+    
     ! just do something to initialize the communicator between the (root of the) communicators
     !Communicator_R=MPI_COMM_NULL
     if (RootProc) then
@@ -1230,7 +1260,7 @@ contains
       color=1
     endif
     call MPI_Comm_Split(Communicator,color,NProc,Communicator_R,ierror)
-
+    
     ! better define and initialize as parameter...
     if ( RK == 8 ) then
       !MPI_RK = MPI_DOUBLE_PRECISION
@@ -1309,7 +1339,7 @@ contains
       ! next argument should be the input file name
       call getarg( argpos, buffer )
       argpos=argpos+1
-      !
+      ! 
       buffer = trim( buffer )
       ParameterFileName =  trim(buffer)
 
@@ -1317,11 +1347,11 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__
+#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
 #elif defined _CRAYFTN
         call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
-#elif ARCH==3 || defined __GNUC__
+#elif ARCH==3 || defined __GNUC__ 
         call chdir( buffer(:max(i-1,1)), stat )
 #else
         print *, 'chdir not supported!'
@@ -1430,7 +1460,7 @@ contains
 !           __GFORTRAN__
 #if defined _CRAYFTN
     call GET_ENVIRONMENT_VARIABLE('CRAY_CC_VERSION',Version,length,stat,.FALSE.)
-    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version
+    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version 
 #elif defined __GNUC__
     write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
@@ -1649,7 +1679,7 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
 
@@ -1704,7 +1734,7 @@ contains
     character(*), intent(in), optional :: ErrorString
     integer, intent(in), optional :: ErrorCode
     integer :: GlobalErrorCode = IdErrorCodeBase
-
+    
     ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
     call LogWriteBlank
     if( present( ErrorString ) ) then
@@ -1727,7 +1757,7 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
 
@@ -1799,15 +1829,15 @@ contains
 
     ! Declare local variables
     character(FileNameLength) :: filename
-
+    
     ! Check for root process
     if( .not. RootProc ) return
 
-
+  
     ! using <OutputNameTag>.log, if only one communicator exists date_and_time
     ! and   <OutputNameTag>_<CommId>.log for several
     ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
-
+    
     ! generate filename
     if ( NCommunicators .gt. 1 .and. NCommunicator .gt. 0 ) then
       write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator+1,LogFileExtension
@@ -1828,7 +1858,7 @@ contains
 
     call LogWriteTime
     !call LogWriteBlank
-
+      
   end subroutine Global_LogOpen
 
 
@@ -1876,12 +1906,12 @@ contains
 ! !==============================================================!
 ! !  Subroutine Global_LogWrite_MPI                              !
 ! !==============================================================!
-!
+! 
 ! subroutine Global_LogWrite_MPI(rank)
-!
+! 
 !     implicit none
 !     include 'mpif.h'
-!
+!     
 !     ! Declare local variables
 !     integer, intent(in), optional      :: rank
 !
@@ -1897,7 +1927,7 @@ contains
 !     endif
 !     ! execute LogWrite on NRootProc
 !     if( RootProc ) call Global_LogWrite()
-!
+! 
 !   end subroutine Global_LogWrite_MPI
 ! #endif
 
@@ -1935,8 +1965,6 @@ contains
     call FileWriteBlank( iounit_log )
 
   end subroutine Global_LogWriteBlank
-
-
 
 !==============================================================!
 !  Subroutine Global_LogWriteTime                              !
@@ -2042,7 +2070,7 @@ contains
     implicit none
     include 'mpif.h'
     ! Declare arguments
-    integer                       :: iounit
+    integer                       :: iounit 
     character(*), intent(in)      :: filename
 
     if(RootProc) then
@@ -2970,10 +2998,10 @@ contains
 #if MPI_VER > 0
     if( NProcs > 0 ) then
       ! original version 0: last process might get smaller range_size
-      ! The if-statement reads:
+      ! The if-statement reads: 
       ! only do it if we are in the equilibration phase of a MC  simulation
       ! and common equilibration is active. It is a little complicated, but that cannot be helped
-      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then
+      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then 
         range_size = 1 + (overall_size - 1) / NProcs
         first_index = 1 + NProc * range_size
         last_index = min( first_index + range_size - 1, overall_size )
@@ -2983,7 +3011,7 @@ contains
         last_index = overall_size
         range_size=overall_size
       endif
-
+    
     else
       first_index=0
       last_index = -1
@@ -3007,7 +3035,7 @@ subroutine time_left(time_limit)
     implicit none
 
     ! could also use (an extended version of) TStopwatch
-
+    
 #if MPI_VER > 0
     ! Include MPI header
     include 'mpif.h'
@@ -3015,7 +3043,7 @@ subroutine time_left(time_limit)
 
     real(RK) :: time_remaining
     integer  :: time_limit
-
+    
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
     integer  :: err
@@ -3042,7 +3070,7 @@ subroutine time_left(time_limit)
        ! call system_clock(sysclkcount)
        call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
        first_time = real(real(sysclkcount)/sysclkcountrate)
-#endif
+#endif       
        FirstCall = .FALSE.
     end if
 #if MPI_VER > 0
@@ -3053,7 +3081,7 @@ subroutine time_left(time_limit)
     !time_elapsed = real(time()) - first_time
     call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
     time_elapsed = real(sysclkcount)/sysclkcountrate - first_time
-#endif
+#endif       
 
 ! Get CPU time consumed by each task and compute the maximum value
 !    call cpu_time(cputime)
@@ -3100,17 +3128,17 @@ subroutine time_left(time_limit)
 !==============================================================!
 
 subroutine Global_printprocStatus(tag_string)
-
+      
       implicit none
-
+      
 #if MPI_VER > 0
       ! Include MPI header
       include 'mpif.h'
 #endif
-
+      
       ! Declare arguments
       character(*), intent(in), optional :: tag_string
-
+      
       ! Declare local variables
       character(*), parameter   :: procfilename = '/proc/self/status'
       character(IOBufferLength) :: buffer,token,valbuffer
@@ -3125,14 +3153,14 @@ subroutine Global_printprocStatus(tag_string)
 #if MPI_VER > 0
       integer(8) values_minmaxsum(numvalues,3)
 #endif
-
+      
       open(unit=iounit_proc, file=procfilename, action='read', iostat=stat)
       !if ( stat /= 0 ) return  ! dangerous for MPI version if not all ranks do exit...
-
+      
       !linenr = 0
       nvalread = 0
       values=0
-
+      
       do ! endless loop
         read(iounit_proc, '(A)', iostat=stat) buffer
         if (stat /= 0) exit  ! exit if nothing to read (EOF)
@@ -3152,9 +3180,9 @@ subroutine Global_printprocStatus(tag_string)
           end if
         end do
       end do
-
+      
       close(iounit_proc)
-
+      
       call LogWriteBlank
       if( present( tag_string ) ) then
         write( IOBuffer, '("( ",A," ",A)' ) trim(procfilename), trim(tag_string)
@@ -3192,4 +3220,3 @@ subroutine Global_printprocStatus(tag_string)
 
 
 end module ms2_global
-
