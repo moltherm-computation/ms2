@@ -12549,7 +12549,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if (this%NComponents .gt. 1) then
             do j=1,this%NComponents
               value = this%density*this%density*this%Component(j)%Molecule%Mass/(6._RK*this%NPart)
-              write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(j,i)*value
+              write( IOBuffer, '(T5,F12.5)' ) this%average_cf_soret(j,i)*value/this%Mmess
               call FileWriteNoAdvance( this%iounit_rescf )
             end do
           end if
