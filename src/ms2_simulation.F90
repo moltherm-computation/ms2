@@ -864,7 +864,7 @@ contains
             call LogWrite
             write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
             call LogWrite
-            write( IOBuffer, '("Alpha2 correlation shift each", T40, I7, " time steps")' ) ALPHA2Shift
+            write( IOBuffer, '("Alpha2 correlation span", T40, I7, " time steps")' ) ALPHA2Shift
             call LogWrite
         else
             call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )

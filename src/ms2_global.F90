@@ -327,7 +327,7 @@ module ms2_global
   character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq'
   character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
   character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
-  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Shift'
+  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Span'
   character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoef
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
