@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 #ifndef ARCH
@@ -48,7 +48,7 @@ module ms2_component
 
     ! Charged component
     logical           :: charged
-    
+
 #if OSMOP > 0
     ! Permeability
     logical           :: permeable
@@ -85,7 +85,7 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
-    
+
     ! Alpha2 matrix
     real(RK), pointer, contiguous :: ri0_x(:, :)
     real(RK), pointer, contiguous :: ri0_y(:, :)
@@ -254,6 +254,7 @@ module ms2_component
 
     ! Long-range corrections
     real(RK) :: EPotTestCorrMIE
+    real(RK) :: EPotTestCorrTT68
     real(RK) :: EPotTestCorrRF
 
     ! Accumulated sums, averages and errors
@@ -361,7 +362,7 @@ module ms2_component
   interface Atom2Mol
     module procedure TComponent_Atom2Mol
   end interface
-  
+
   interface Atom2Mol1
     module procedure TComponent_Atom2Mol1
   end interface
@@ -369,7 +370,7 @@ module ms2_component
   interface Atom2Mol_Trans
     module procedure TComponent_Atom2Mol_Trans
   end interface
-  
+
 #if OSMOP > 0
   interface DensityProfile
     module procedure TComponent_DensityProfile
@@ -512,7 +513,7 @@ contains
     call LogWrite
 
 #if TRANS==1
- ! Read partial molar enthalpy from the paremeters file     
+ ! Read partial molar enthalpy from the paremeters file
     call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
@@ -601,7 +602,7 @@ contains
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 
-#if MPI_VER>0        
+#if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
            this%NTest = ((this%NTest -1)/NProcs +1)
         endif
@@ -656,7 +657,7 @@ contains
           this%NTest = ((this%NTest-1)/NProcs +1)
         endif
 #endif
-        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
+        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
           write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
           call LogWrite
@@ -1310,9 +1311,9 @@ contains
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
-      
+
       if( ALPHA2UpdateFrequency > 0 ) then
-          ! Alpha2 
+          ! Alpha2
           allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
@@ -1480,6 +1481,29 @@ contains
 #endif
     end do
 
+    do i = 1, this%Molecule%NTT68
+      this%Molecule%SiteTT68(i)%NPartMax => this%NPartMax
+      this%Molecule%SiteTT68(i)%NPart => this%NPart
+      this%Molecule%SiteTT68(i)%NTest => this%NTest
+      this%Molecule%SiteTT68(i)%NPart0 => this%NPart0
+      this%Molecule%SiteTT68(i)%NPart1 => this%NPart1
+      this%Molecule%SiteTT68(i)%NPart2 => this%NPart2
+
+      call Allocate( this%Molecule%SiteTT68(i) )
+      this%Molecule%SiteTT68(i)%PX => this%P0(:, 1)
+      this%Molecule%SiteTT68(i)%PY => this%P0(:, 2)
+      this%Molecule%SiteTT68(i)%PZ => this%P0(:, 3)
+
+      if( ntest > 0 ) then
+        this%Molecule%SiteTT68(i)%PXTest => this%P0Test(:, 1)
+        this%Molecule%SiteTT68(i)%PYTest => this%P0Test(:, 2)
+        this%Molecule%SiteTT68(i)%PZTest => this%P0Test(:, 3)
+      end if
+
+#if TRANS==1
+      this%Molecule%SiteTT68(i)%Q0r => this%Q0
+#endif
+    end do
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
@@ -1847,6 +1871,9 @@ contains
     do i = 1, this%Molecule%NMIEnm
       call Deallocate( this%Molecule%SiteMIEnm(i) )
     end do
+    do i = 1, this%Molecule%NTT68
+      call Deallocate( this%Molecule%SiteTT68(i) )
+    end do
     do i = 1, this%Molecule%NCharge
       call Deallocate( this%Molecule%SiteCharge(i) )
     end do
@@ -2077,7 +2104,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_RemoveNetMomentum                      !
+!  Subroutine TComponent_RemoveNetMomentum                     !
 !==============================================================!
 
   subroutine TComponent_RemoveNetMomentum( this )
@@ -2100,9 +2127,9 @@ contains
     L(:) = 0._RK
     do i = 1, 3
       P(i) = P(i) + this%Molecule%Mass * sum( this%P1(1:this%NPart, i) )
- 
+
       if( i <= this%Molecule%NDFRot ) L(i) = L(i) + this%Molecule%MOI(i) * sum( this%W0(1:this%NPart, i) )
- 
+
     end do
     P(:) = P(:) / this%NPart
     L(:) = L(:) / this%NPart
@@ -2113,7 +2140,7 @@ contains
       do j = 1, this%NPart
         this%P1(j, i) = this%P1(j, i) - Pim
       end do
- 
+
       if( i <= this%Molecule%NDFRot ) then
         Pim = L(i) / this%Molecule%MOI(i)
         do j = 1, this%NPart
@@ -2181,6 +2208,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2251,6 +2279,19 @@ contains
           pMIEnm%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pMIEnm%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pMIEnm%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        r1 = pTT68%r(1) * BoxLengthInv
+        r2 = pTT68%r(2) * BoxLengthInv
+        r3 = pTT68%r(3) * BoxLengthInv
+        do i = 1, l
+          pTT68%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pTT68%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pTT68%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2329,6 +2370,16 @@ contains
         end do
       end do
 
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        do i = 1, l
+          pTT68%RX(i-1+i0) = this%P0(i, 1)
+          pTT68%RY(i-1+i0) = this%P0(i, 2)
+          pTT68%RZ(i-1+i0) = this%P0(i, 3)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -2365,6 +2416,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2416,6 +2468,17 @@ contains
         pMIEnm%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
         pMIEnm%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
         pMIEnm%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do i = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(i)
+        r1 = pTT68%r(1) * BoxLengthInv
+        r2 = pTT68%r(2) * BoxLengthInv
+        r3 = pTT68%r(3) * BoxLengthInv
+        pTT68%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pTT68%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pTT68%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over charge sites in molecule
@@ -2483,6 +2546,14 @@ contains
         pMIEnm%RZ(np) = PZi
       end do
 
+      ! Loop over TT68 sites in molecule
+      do i = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(i)
+        pTT68%RX(np) = PXi
+        pTT68%RY(np) = PYi
+        pTT68%RZ(np) = PZi
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do i = 1, this%Molecule%NCharge
@@ -2520,6 +2591,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2564,6 +2636,19 @@ contains
           pMIEnm%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pMIEnm%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pMIEnm%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        r1 = pTT68%r(1) * BoxLengthInv
+        r2 = pTT68%r(2) * BoxLengthInv
+        r3 = pTT68%r(3) * BoxLengthInv
+        do i = 1, np
+          pTT68%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pTT68%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pTT68%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2642,6 +2727,16 @@ contains
         end do
       end do
 
+      ! Loop over TT68 sites in molecule
+      do i = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(i)
+        do j = 1, np
+          pTT68%RXTest(j) = this%P0Test(j, 1)
+          pTT68%RYTest(j) = this%P0Test(j, 2)
+          pTT68%RZTest(j) = this%P0Test(j, 3)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do i = 1, this%Molecule%NCharge
@@ -2685,13 +2780,14 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i0, i1, i, j
 #if MPI_VER > 0
     real(RK),allocatable           :: OsmoPAll(:)
-    
+
     allocate( OsmoPAll(this%NPart) )
     OsmoPAll(:) = 0._RK
 #endif
@@ -2723,7 +2819,7 @@ contains
     !end if
 #if MPI_VER > 0
     call MPI_Reduce( this%FOsmoticPressure(:), OsmoPAll(:), size( this%FOsmoticPressure), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:) 
+    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:)
 #endif
 #endif
 
@@ -2752,6 +2848,25 @@ contains
           r1x = ( pMIEnm%RX(i-1+i0) - rx(i) ) * BoxLength
           r1y = ( pMIEnm%RY(i-1+i0) - ry(i) ) * BoxLength
           r1z = ( pMIEnm%RZ(i-1+i0) - rz(i) ) * BoxLength
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
+          this%T(i-1+i0, 1) = this%T(i-1+i0, 1) + r1y * fz - r1z * fy
+          this%T(i-1+i0, 2) = this%T(i-1+i0, 2) + r1z * fx - r1x * fz
+          this%T(i-1+i0, 3) = this%T(i-1+i0, 3) + r1x * fy - r1y * fx
+        end do
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        do i = 1, l
+          fx = pTT68%FX(i-1+i0)
+          fy = pTT68%FY(i-1+i0)
+          fz = pTT68%FZ(i-1+i0)
+          r1x = ( pTT68%RX(i-1+i0) - rx(i) ) * BoxLength
+          r1y = ( pTT68%RY(i-1+i0) - ry(i) ) * BoxLength
+          r1z = ( pTT68%RZ(i-1+i0) - rz(i) ) * BoxLength
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
           this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
           this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
@@ -2857,6 +2972,16 @@ contains
         end do
       end do
 
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        do i = 1, l
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT68%FX(i-1+i0)
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pTT68%FY(i-1+i0)
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pTT68%FZ(i-1+i0)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -2905,6 +3030,7 @@ contains
 
   end subroutine TComponent_Atom2Mol
 
+
 !==============================================================!
 !  Subroutine TComponent_Atom2Mol1                             !
 !==============================================================!
@@ -2924,11 +3050,12 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
- 
+
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -2955,6 +3082,23 @@ contains
         r1x = ( pMIEnm%RX(np) - rx ) * BoxLength
         r1y = ( pMIEnm%RY(np) - ry ) * BoxLength
         r1z = ( pMIEnm%RZ(np) - rz ) * BoxLength
+        this%F(np, 1) = this%F(np, 1) + fx
+        this%F(np, 2) = this%F(np, 2) + fy
+        this%F(np, 3) = this%F(np, 3) + fz
+        this%T(np, 1) = this%T(np, 1) + r1y * fz - r1z * fy
+        this%T(np, 2) = this%T(np, 2) + r1z * fx - r1x * fz
+        this%T(np, 3) = this%T(np, 3) + r1x * fy - r1y * fx
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        fx = pTT68%FX(np)
+        fy = pTT68%FY(np)
+        fz = pTT68%FZ(np)
+        r1x = ( pTT68%RX(np) - rx ) * BoxLength
+        r1y = ( pTT68%RY(np) - ry ) * BoxLength
+        r1z = ( pTT68%RZ(np) - rz ) * BoxLength
         this%F(np, 1) = this%F(np, 1) + fx
         this%F(np, 2) = this%F(np, 2) + fy
         this%F(np, 3) = this%F(np, 3) + fz
@@ -3049,6 +3193,14 @@ contains
         this%F(np, 3) = this%F(np, 3) + pMIEnm%FZ(np)
       end do
 
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        this%F(np, 1) = this%F(np, 1) + pTT68%FX(np)
+        this%F(np, 2) = this%F(np, 2) + pTT68%FY(np)
+        this%F(np, 3) = this%F(np, 3) + pTT68%FZ(np)
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -3088,6 +3240,7 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
+    type(TSiteTT68), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -3179,6 +3332,84 @@ contains
           r1x = ( pMIEnm%RX(i) - rx(i) ) * BoxLength
           r1y = ( pMIEnm%RY(i) - ry(i) ) * BoxLength
           r1z = ( pMIEnm%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+#if  TRANS == 1
+          !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+         ! if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+         ! end if
+           !TRANSPORT_END
+#endif
+        end do
+      end do
+
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        do i = 1, np
+          fx = pTT68%FX(i)
+          fy = pTT68%FY(i)
+          fz = pTT68%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          vsx = pTT68%vsTTx(i)
+          vsy = pTT68%vsTTy(i)
+          vsz = pTT68%vsTTz(i)
+          vbx = pTT68%vbTTx(i)
+          vby = pTT68%vbTTy(i)
+          vbz = pTT68%vbTTz(i)
+       !   if (this%Conductivity) then
+            vsux= pTT68%vsuTTx(i)
+            vsuy= pTT68%vsuTTy(i)
+            vsuz= pTT68%vsuTTz(i)
+            cx  = pTT68%cTTx(i)
+            cy  = pTT68%cTTy(i)
+            cz  = pTT68%cTTz(i)
+            tux = pTT68%tuTTx(i)
+            tuy = pTT68%tuTTy(i)
+            tuz = pTT68%tuTTz(i)
+            tlx = pTT68%tlTTx(i)
+            tly = pTT68%tlTTy(i)
+            tlz = pTT68%tlTTz(i)
+            tdx = pTT68%tdTTx(i)
+            tdy = pTT68%tdTTy(i)
+            tdz = pTT68%tdTTz(i)
+       !   end if
+          !TRANSPORT_END
+#endif
+          r1x = ( pTT68%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pTT68%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pTT68%RZ(i) - rz(i) ) * BoxLength
           this%F(i, 1) = this%F(i, 1) + fx
           this%F(i, 2) = this%F(i, 2) + fy
           this%F(i, 3) = this%F(i, 3) + fz
@@ -3539,6 +3770,56 @@ contains
         end do
       end do
 
+      ! Loop over TT68 sites in molecule
+      do j = 1, this%Molecule%NTT68
+        pTT68 => this%Molecule%SiteTT68(j)
+        do i = 1, np
+#if  TRANS == 1
+        !TRANSPORT_start
+          vsx = pTT68%vsTTx(i)
+          vsy = pTT68%vsTTy(i)
+          vsz = pTT68%vsTTz(i)
+          vbx = pTT68%vbTTx(i)
+          vby = pTT68%vbTTy(i)
+          vbz = pTT68%vbTTz(i)
+     !     if (this%Conductivity) then
+            vsux= pTT68%vsuTTx(i)
+            vsuy= pTT68%vsuTTy(i)
+            vsuz= pTT68%vsuTTz(i)
+            cx  = pTT68%cTTx(i)
+            cy  = pTT68%cTTy(i)
+            cz  = pTT68%cTTz(i)
+      !    end if
+          !TRANSPORT_END
+#endif
+          this%F(i, 1) = this%F(i, 1) + pTT68%FX(i)
+          this%F(i, 2) = this%F(i, 2) + pTT68%FY(i)
+          this%F(i, 3) = this%F(i, 3) + pTT68%FZ(i)
+#if  TRANS == 1
+          !TRANSPORT_start
+          this%FS(i, 1) = this%FS(i, 1) + vsx
+          this%FS(i, 2) = this%FS(i, 2) + vsy
+          this%FS(i, 3) = this%FS(i, 3) + vsz
+          this%FB(i, 1) = this%FB(i, 1) + vbx
+          this%FB(i, 2) = this%FB(i, 2) + vby
+          this%FB(i, 3) = this%FB(i, 3) + vbz
+
+       !   if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+        !  end if
+!TRANSPORT_END
+#endif
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -3617,7 +3898,7 @@ contains
     integer             :: i, j
 #if MPI_VER > 0
     integer,allocatable :: DensityN(:)
-    
+
     allocate( DensityN(NBinsDen) )
     DensityN(:) = 0
 #endif
@@ -3625,7 +3906,7 @@ contains
     ! Initialize local arrays
     this%DensityProfileN(:) = 0
 
-    ! Loop over MIEnm sites in molecule
+    ! Loop over MIEnm or TT68 sites in molecule
 #if MPI_VER > 0
 loop1:do i = this%NPart0, this%NPart2
 #else
@@ -4359,12 +4640,12 @@ loop1:do i = 1, this%NPart
           write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end if
-      
+
       do i = 1, np
         pos(:) = this%Disp(i,:)
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
-      
+
       if( ALPHA2UpdateFrequency > 0 ) then
         do i = 1, np
           do j = 0, ALPHA2Length/ALPHA2Shift-1
@@ -4513,13 +4794,13 @@ loop1:do i = 1, this%NPart
 
           do i = 1, np
             read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, : )
-          end do      
+          end do
         end if
-        
+
         do i = 1, np
           read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
         end do
-        
+
         if( ALPHA2UpdateFrequency > 0 ) then
           do i = 1, np
             do j = 0, ALPHA2Length/ALPHA2Shift-1
@@ -4812,4 +5093,3 @@ subroutine TComponent_ForceTransport( this )
 
 
 end module ms2_component
-
