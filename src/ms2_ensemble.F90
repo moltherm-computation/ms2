@@ -13290,8 +13290,9 @@ loop2:        do nc = 1, this%NComponents
     real(RK) :: varmu( this%NComponents ), varv( this%NComponents )
     real(RK) :: vary( this%NComponents - 1 )
     real(RK) :: VarPressure, DeltaHv, VarDeltaHv
+	
 ! Declare local variables for VLE Calculation with the SVC (Denis) delete the ones not needed
-    real(RK) ::  x ( this%NComponents), y(this%NComponents)
+    real(RK) ::  x_vlesvc ( this%NComponents), y_vlesvc (this%NComponents)
 	real(RK) :: f (this%NComponents), Jacobian( this%NComponents, this%NComponents )
 	real(RK) :: VapPressSVC, VapPressSVCErr, VapDensSVC, VapDensSVCErr, dRhoVapdp, VapPressLimSVC
 	real(RK) :: z_calc, z_lim
@@ -13301,7 +13302,8 @@ loop2:        do nc = 1, this%NComponents
      real(RK) :: t_sub
 	 
 	 logical  :: conv 
-	 integer  ::  l, errcode, fehler, s, n, k
+	 !integer  ::  l, errcode, fehler, s, n, k
+	 integer  ::  fehler, n
 
 #if MPI_VER > 0
     integer :: tempVal, tempVal2, color
@@ -14557,41 +14559,41 @@ loop2:        do nc = 1, this%NComponents
 		! NpT + SVC. For the case when a binary mixture in .par file is given by x1 = 1.0 and x2 = 0.0: trick to calculate it as a pure fluid.
 		
 		! Creating the initial guess vector for the nonlinear algorithm later used     
-		x(:) = 0.0  
+		x_vlesvc(:) = 0.0  
         if (this%NComponents == 1) then !initial guess vector for pure fluids x = [0.5]^T, T stands for transposed
-        x(:) = 0.5
+        x_vlesvc(:) = 0.5
         else
-        x(:) = 1/real(this%NComponents)
+        x_vlesvc(:) = 1/real(this%NComponents)
         end if
-		call vlecalcsvc(x, f, conv, this) ! Calling the solver. 
+		call vlecalcsvc(x_vlesvc, f, conv, this) ! Calling the solver. 
 	    
 	   ! Reading the solver results vector, e.g. in a binary mixtures x = [t_sub, y_1]^T, y_2 = 1-y_1
-       t_sub = x(1)
-       y(:) = 0.0
+       t_sub = x_vlesvc(1)
+       y_vlesvc(:) = 0.0
        do i = 1, this%NComponents-1
-       y(i) = x(i+1)
+       y_vlesvc(i) = x_vlesvc(i+1)
        end do
-       y(this%NComponents) = 1-sum(y)
+       y_vlesvc(this%NComponents) = 1-sum(y_vlesvc)
        
        
 	   
 
 	   ! Calculation of the vapor pressure with SVC
         VapPressSVC = (this%RefTemperature*(t_sub-1)) / (4*BmixSVCtemp)
-        x(1) = VapPressSVC ! returning back for calculation of error (Denis) check
+        x_vlesvc(1) = VapPressSVC ! returning back for calculation of error (Denis) check
         fehler = 1 !For calculating the error (Denis) check
-        call jacobi (x, f, Jacobian, fehler) ! (Denis) check
+        call jacobi (x_vlesvc, f, Jacobian, fehler) ! (Denis) check
 		
 		! Reference for the formulas used [Vrabec, Testparticle Method]
 		
-        VapPressSVC = x(1) ! (Denis) Results of the vapor pressure ? (Denis_2) check! error calculation finished, back 
+        VapPressSVC = x_vlesvc(1) ! (Denis) Results of the vapor pressure ? (Denis_2) check! error calculation finished, back 
         VapDensSVC = (SQRT((4*BmixSVCtemp*VapPressSVC/this%RefTemperature)+1) - 1) / (2*BmixSVCtemp) !Result for the    
         
        
 		
-			   ! Reference for the formulas used [Vrabec, Testparticle Method]
-	   dRhoVapdp =1 & /(this%RefTemperature &
-       *((4*BmixSVCtemp*VapPressSVC)/this%RefTemperature + 1)**(1/2)) 
+	   ! Reference for the formulas used [Vrabec, Testparticle Method]
+	   dRhoVapdp = 1 /(this%RefTemperature &
+       & *((4*BmixSVCtemp*VapPressSVC)/this%RefTemperature + 1)**(1/2)) 
 	   
 	   ! Error calculation for the vapor pressure and the vapor mole fraction (taken from ms2 before) / go back to yours for pure components
 	   
@@ -14603,16 +14605,16 @@ loop2:        do nc = 1, this%NComponents
 	   NN = 0._RK
       do i = 1, this%NComponents
 		 if ( this%NComponents .eq. 1 ) then 	
-   		   NN = NN + y(i) * 1/this%SumDensity%Average  
+   		   NN = NN + y_vlesvc(i) * 1/this%SumDensity%Average  
 else
-		       	 NN = NN + y(i) * pc%SumVW%Average
+		       	 NN = NN + y_vlesvc(i) * pc%SumVW%Average
 	       end if
       end do
       NN = NN - this%RefTemperature / VapPressSVC
       do i = 1, this%NComponents
         pc => this%Component(i)
-        dpdmu(i) = -this%RefTemperature * y(i) / NN
-        dpdv(i) = -y(i) * (VapPressSVC-this%RefPressure) / NN
+        dpdmu(i) = -this%RefTemperature * y_vlesvc(i) / NN
+        dpdv(i) = -y_vlesvc(i) * (VapPressSVC-this%RefPressure) / NN
         varmu(i) = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
         if ( this%NComponents .eq. 1) then
 		varv(i) = (this%SumDensity%Variance*this%SumDensity%Average**2)
@@ -14627,13 +14629,13 @@ else
 
 	  do i = 1, this%NComponents
         pc => this%Component(i)
-        yvi = y(i) * ( pc%SumVW%Average / this%RefTemperature - 1 / VapPressSVC )
+        yvi = y_vlesvc(i) * ( pc%SumVW%Average / this%RefTemperature - 1 / VapPressSVC )
         do j = 1, this%NComponents
           dydmu(i, j) = yvi * dpdmu(j)
           dydv(i, j) = yvi * dpdv(j)
         end do
-        dydmu(i, i) = dydmu(i, i) + y(i)
-        dydv(i, i) = dydv(i, i) + y(i) * 1 / this%RefTemperature * ( VapPressSVC - this%RefPressure )
+        dydmu(i, i) = dydmu(i, i) + y_vlesvc(i)
+        dydv(i, i) = dydv(i, i) + y_vlesvc(i) * 1 / this%RefTemperature * ( VapPressSVC - this%RefPressure )
       end do
 
     call infnan(VapPressSVC, flag) !Is VapPressSVC NaN or Infinity? If yes, no results are possible with NpT + SVC.
@@ -14705,14 +14707,14 @@ else
         pc => this%Component(i)
 		vary(i) = sqrt( sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
         write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
-&              trim( pc%Molecule%PotModFileName ), y(i), vary(i)
+&              trim( pc%Molecule%PotModFileName ), y_vlesvc(i), vary(i)
         call FileWrite( this%iounit_errors )
       end do
 
       pc => this%Component( this%NComponents )
       Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
       write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
-&            trim( pc%Molecule%PotModFileName ), y(i), Variance
+&            trim( pc%Molecule%PotModFileName ), y_vlesvc(i), Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
  end if	

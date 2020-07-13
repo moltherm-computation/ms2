@@ -1179,7 +1179,7 @@ contains
 ! preparation of VLE calculation based on SVC  
   if (SimulationType .eq. MolecularDynamics .or. SimulationType .eq. MonteCarlo) then   
      if (EnsembleType .eq. EnsembleTypeNPTSVC) then
-	   if (SVCCalc .eq. .false.) then !if SVC was not calculated until now
+	   if (SVCCalc .eqv. .false.) then !if SVC was not calculated until now
 	       write( IOBuffer, '(72(1H*))')
            call LogWrite
 		   write(IOBuffer, '(T18, "Reading Second Virial Coefficient Parameters")')
@@ -1345,7 +1345,7 @@ contains
     end if
 
 ! Start NPT Simulation if SVC was calculated before NPT start
-	if (SVCCalc .eq. .true.) then
+	if (SVCCalc .eqv. .true.) then
 		call Construct( this )
 		call Run( this )
 		SVCCalc = .false.
