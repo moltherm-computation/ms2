@@ -568,6 +568,9 @@ contains
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
         str = 'no calculation'
+			if (EnsembleType .eq. EnsembleTypeNPTSVC) then
+		this%ChemPotMethod = ChemPotMethodWidom
+		end if
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom
         str = 'Widom''s test particle method'
@@ -601,6 +604,7 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
+
 
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
