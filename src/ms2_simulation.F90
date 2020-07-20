@@ -74,10 +74,11 @@ module ms2_simulation
     integer :: terminate_cc_multiensemble !DC NOTE- the counter that signifies if the simulation is to be terminated in multiensemble case
 
 #if  TRANS == 1
-!TRANSPORT_start
+
     ! I/O unit for correlation function
     integer :: iounit_rescf
-!TRANSPORT_END
+    integer :: iounit_ecoef
+
 #endif
 
 end type TSimulation
@@ -1063,7 +1064,7 @@ contains
     end select
 
 #if  TRANS == 1
-!TRANSPORT_start
+
     ! Read correlation function mode
     if ( parVersionNr .lt. 2.0_RK ) then
       call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
@@ -1086,19 +1087,40 @@ contains
       call LogWrite
     endif
 
+      !Read Transport Method 
+      call FileReadParameter( str, iounit_params , IdTransMethod, .true., "GK" )
+      select case( str )
+        case( 'GK', 'gk', 'GreenKubo', 'GREENKUBO', 'Green-Kubo')
+            TransMethod = GreenKubo
+            TransportString = 'Green-Kubo'
+            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
+            call LogWrite
+        case( 'Einstein', 'EINSTEIN', 'einsein', 'MSD', 'msd')
+            TransMethod = Einstein
+            TransportString = 'Einstein'
+            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
+            call LogWrite
+        case( 'Both', 'all', 'GKEinstein', 'GK-Einstein', 'All', 'ALL','both')
+            TransMethod = GKEinstein
+            TransportString = 'GKEinstein'
+            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
+            call LogWrite
+         case default
+           call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
+      end select
 
      !EinsteinCoef procedure switching
-     call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
-     if (str == 'yes') then
-        EinsteinCoefCalc = .true.
-        write( IOBuffer, '("Einstein formalism procedure is switched on")')
-        call LogWrite
-     else
-        EinsteinCoefCalc = .false.
-        write( IOBuffer, '("Einstein formalism procedure is switched off")')
-        call LogWrite
-     endif
-!TRANSPORT_END
+!    call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
+!     if (str == 'yes') then
+!        EinsteinCoefCalc = .true.
+!        write( IOBuffer, '("Einstein formalism procedure is switched on")')
+!        call LogWrite
+!     else
+!        EinsteinCoefCalc = .false.
+!        write( IOBuffer, '("Einstein formalism procedure is switched off")')
+!        call LogWrite
+!    endif
+
 #endif
 
 #if MPI_VER > 0
@@ -1150,7 +1172,6 @@ contains
 #endif
 
 #if  TRANS == 1
-!TRANSPORT_start
     ! Read correlation function mode
     if ( parVersionNr .ge. 2.0_RK ) then
       if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
@@ -1162,7 +1183,6 @@ contains
         call LogWrite
       endif
     endif
-!TRANSPORT_END
 #endif
 
   GradInsFrequency = BlockSize

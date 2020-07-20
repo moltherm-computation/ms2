@@ -328,7 +328,8 @@ module ms2_global
   character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
   character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
   character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Span'
-  character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoef
+  !character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoefN
+  character(*), parameter :: IdTransMethod                 = 'TransMethod'
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -631,6 +632,13 @@ module ms2_global
   integer, parameter :: Rodgers       = 5
   integer            :: LongRange
 
+  ! Type of Transport Method
+  character(80)      :: TransportString
+  integer, parameter :: GreenKubo     = 1
+  integer, parameter :: Einstein      = 2
+  integer, parameter :: GKEinstein    = 3
+  integer            :: TransMEthod
+
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
   integer, parameter :: ChemPotMethodWidom   = 1
@@ -810,7 +818,7 @@ module ms2_global
   integer :: ALPHA2Shift
 
   !EinsteinCoef variables
-  logical :: EinsteinCoefCalc
+  !logical :: EinsteinCoefCalc
 
   ! Number of KBI shells
   integer :: KBINumberShells
