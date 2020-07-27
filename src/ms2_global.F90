@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -613,7 +613,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPT = 4
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
-  integer, parameter :: EnsembleTypeNPTSVC = 7			   ! NpT + SVC
+  integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
@@ -677,7 +677,7 @@ module ms2_global
 
   ! Number of simulation time steps
   integer :: NSteps
-  integer :: NStepsSVC	
+  integer :: NStepsSVC  
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
@@ -719,15 +719,15 @@ module ms2_global
   logical :: SVCCalc = .false. !If SVC was already calculated
   ! Arrays for SVC and dB/dT 
   
-  real(RK), dimension(:, :), allocatable :: ArrSVC
-  real(RK), dimension(:, :), allocatable :: ArrdBdT
+  real(RK), dimension(:, :, :), allocatable :: ArrSVC
+  real(RK), dimension(:, :, :), allocatable :: ArrdBdT
   real(RK), dimension(:), allocatable :: ArrChemPot
   real(RK), dimension(:), allocatable :: ArrPartMolVol
 
 
   
    real(RK) :: BmixSVCtemp, dBdTmixtemp
-   real(RK) :: StartTemperature, StartPressure, NumberOfComp ! 
+   real(RK) :: StartTemperature, StartPressure, NumberOfComp, EnsembleNum ! 
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
@@ -1471,20 +1471,20 @@ contains
     call LogWrite
     write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
     call LogWrite
-    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,     *")')
+    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,        *")')
     call LogWrite
-    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser, *")')
+    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,      *")')
     call LogWrite
-    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                            *")')
+    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                          *")')
     call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2017)                                 *")')
+    write( IOBuffer, '("* Computer Physics Communications (2020)                                 *")')
     call LogWrite
     write( IOBuffer, '(74("*"))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '(74("*"))')
     call LogWrite
-    write( IOBuffer, '("* (c) by TU Kaiserslautern / U Paderborn                                 *")')
+    write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
     call LogWrite
     write( IOBuffer, '("*     P.O. Box 67653                                                     *")')
     call LogWrite
