@@ -727,7 +727,8 @@ module ms2_global
 
   
    real(RK) :: BmixSVCtemp, dBdTmixtemp
-   real(RK) :: StartTemperature, StartPressure, NumberOfComp, EnsembleNum ! 
+   real(RK) :: StartTemperature, StartPressure
+   integer  :: EnsembleNum  
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
