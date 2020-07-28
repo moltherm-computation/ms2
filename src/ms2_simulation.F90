@@ -163,18 +163,6 @@ end type TSimulation
     module procedure TSimulation_VisualClose
   end interface
 
-  interface VisualCCOpen
-    module procedure TSimulation_VisualCCOpen
-  end interface
-
-  interface VisualCCUpdate
-    module procedure TSimulation_VisualCCUpdate
-  end interface
-
-  interface VisualCCClose
-    module procedure TSimulation_VisualCCClose
-  end interface
-
   interface CCOpen
     module procedure TSimulation_CCOpen
   end interface
@@ -485,7 +473,6 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
-      VisualCCUpdateFrequency = 0 !DC NOTE- initialize the visual CC update frequency
       RDFUpdateFrequency = 0
       ODFUpdateFrequency = 0
       KBIUpdateFrequency = 0
@@ -1108,19 +1095,6 @@ contains
          case default
            call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
       end select
-
-     !EinsteinCoef procedure switching
-!    call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
-!     if (str == 'yes') then
-!        EinsteinCoefCalc = .true.
-!        write( IOBuffer, '("Einstein formalism procedure is switched on")')
-!        call LogWrite
-!     else
-!        EinsteinCoefCalc = .false.
-!        write( IOBuffer, '("Einstein formalism procedure is switched off")')
-!        call LogWrite
-!    endif
-
 #endif
 
 #if MPI_VER > 0
@@ -1309,7 +1283,6 @@ contains
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
-    call VisualCCOpen( this )
     call CCOpen( this )
     call RDFOpen( this )
     call ODFOpen( this )
@@ -1348,7 +1321,6 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-    call VisualCCClose( this )
     call CCClose( this )
     call KBIClose( this )
     !call RDFClose( this ) ! file is closed after updating
@@ -2292,7 +2264,6 @@ end if
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
-      call VisualCCUpdate( this )
       call RDFUpdate ( this )
       call ODFUpdate ( this )
       call KBIUpdate ( this )
@@ -2888,83 +2859,6 @@ end if
 
   end subroutine TSimulation_VisualClose
 
-!==============================================================!
-!  Subroutine TSimulation_VisualCCOpen                         !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Open ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCOpen( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_VisualCCOpen
-
-
-!==============================================================!
-!  Subroutine TSimulation_VisualCCUpdate                       !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Return if equilibration
-    if( Equilibration ) return
-
-    !DC NOTE- Update ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCUpdate( this%Ensemble(i))
-    end do
-
-
-  end subroutine TSimulation_VisualCCUpdate
-
-
-!==============================================================!
-!  Subroutine TSimulation_VisualCCClose                        !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Close ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCClose( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_VisualCCClose
 
 !==============================================================!
 !  Subroutine TSimulation_CCOpen                               !

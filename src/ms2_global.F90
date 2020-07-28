@@ -173,9 +173,6 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
-  !DC NOTE- Extension of cluster related visualisation file.
-  character(*), parameter :: VisualCCFileExtension = '.cvim'
-
   !DC NOTE- Extension of cluster criteria info file.
   character(*), parameter :: CCFileExtension = '.clust'
 
@@ -260,9 +257,8 @@ module ms2_global
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
   integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
-  integer, parameter :: iounit_ccpos     = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_cc        = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_ccgrid    = iounit_start + 22 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -376,7 +372,6 @@ module ms2_global
   character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'
   character(*), parameter :: IdCcount                      = 'ClusterMoleculeCount'
   character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'
-  character(*), parameter :: IdIsCvim                      = 'ClusterIsCvim'
 
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
@@ -651,9 +646,8 @@ module ms2_global
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
 
-  integer, parameter :: CCritTypeVapor  = 0
-  integer, parameter :: CCritTypeGridvap = 2
-  integer, parameter :: CCritTypeGridliq = 3
+  integer, parameter :: CCritTypeGridvap = 1
+  integer, parameter :: CCritTypeGridliq = 2
 
   ! MD time step
   real(RK) :: TimeStep, TimeStep2

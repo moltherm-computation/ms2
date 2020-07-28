@@ -494,8 +494,6 @@ module ms2_ensemble
 #endif
    logical  :: isCCSimulation   !DC NOTE- enable/disable the CC functionality
    logical  :: isStopSimulation !DC NOTE- enable pausing of the ensamble calculation
-   logical  :: isCvim           !DC NOTE- enable cvim output file creation and print
-
    integer  :: CCFrequency      !DC NOTE- the frequency of CC calculation and visualization
    integer  :: Ccrittype        !DC NOTE- type specifier (integer values for easier handling)
    real(RK) :: Ccritdist        !DC NOTE- distance criteria
@@ -928,18 +926,6 @@ module ms2_ensemble
     module procedure TEnsemble_VisualClose
   end interface
 
-  interface VisualCCOpen
-    module procedure TEnsemble_VisualCCOpen
-  end interface
-
-  interface VisualCCUpdate
-    module procedure TEnsemble_VisualCCUpdate
-  end interface
-
-  interface VisualCCClose
-    module procedure TEnsemble_VisualCCClose
-  end interface
-
   interface CCOpen
     module procedure TEnsemble_CCOpen
   end interface
@@ -1073,7 +1059,6 @@ contains
     character( IOBufferLength ) :: str
 
     integer :: counter
-    real(RK), pointer, contiguous :: GP0(:,:) ! positions of the gridpoints
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -1393,10 +1378,6 @@ contains
         !DC NOTE- parse the criteria type
         call FileReadParameter( str, iounit_params , IdCcrittype, .false., 'None' )
         select case( str )
-          case( 'VAP', 'vap', 'Vap', 'Vapor', 'Vapour', 'VAPOR', 'VAPOUR')
-            this%Ccrittype = CCritTypeVapor
-            str = 'Vapor'
-
           case( 'GRIDVAP', 'VAPGRID', 'gridvap', 'vapgrid', 'Gridvap', 'Vapgrid' )
             this%Ccrittype = CCritTypeGridvap
             str = 'Grid vapor'
@@ -1406,7 +1387,7 @@ contains
             str = 'Grid liquid'
 
           case default
-            call Error( 'Invalid cluster criteria type argument: '//trim( str )//NEW_LINE('A')//'       should be one of vap, gridvap, gridliq' )
+            call Error( 'Invalid cluster criteria type argument: '//trim( str )//NEW_LINE('A')//'       should be one of: gridvap, gridliq' )
 
         end select
 
@@ -1440,22 +1421,6 @@ contains
           write( IOBuffer, '("Reading maximal allowed cluster count",T47, E14.4, " %")' ) this%Cmax
           call LogWrite
         end if
-
-        call FileReadParameter( str , iounit_params , IDisCvim, .false. , 'no' )
-        select case( str )
-          case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
-            this%isCvim = .true.
-            write( IOBuffer, '("Criteria position visualization:                  .true.")' )
-            call LogWrite
-
-          case( 'no', 'No', 'NO', 'False', 'false' ,'nein')
-            this%isCvim = .false.
-            write( IOBuffer, '("Criteria position visualization:                  .false.")' )
-            call LogWrite
-
-          case default
-            call Error('Unknown position visualization control option :   '//trim(str))
-        end select
       end if
     end if
 
@@ -2096,7 +2061,6 @@ contains
     this%iounit_kbirdf    = iounit_kbirdf    + i
     this%iounit_a2rav     = iounit_a2rav     + i
     this%iounit_ecoef     = iounit_ecoef     + i  !EinsteinCoef
-    this%iounit_ccpos     = iounit_ccpos     + i !DC edit
     this%iounit_cc        = iounit_cc        + i !DC edit
     this%iounit_ccgrid    = iounit_ccgrid    + i !DC edit
 
@@ -2143,21 +2107,6 @@ contains
       this%Cmax = int(this%NGridPointsAll * (this%Cmax/100.0))
 
       this%NGridPoints1 = ProcRange( this%NGridPointsAll, this%NGridPoints0, this%NGridPoints2 )
-
-      !DC NOTE- allocate the holding arrays only what is required
-      allocate(GP0(this%NGridPoints1, 3), STAT = stat )
-      call AllocationError( stat, 'ccrit Grid position Grid Point array error allocation', Nproc )
-
-      !DC NOTE- assign the grid points
-      counter = 0
-      do i = this%NGridPoints0 - 1 , this%NGridPoints2 - 1
-        !DC BEWARE- correction for i indexation in loop -> C/FORTRAN counting so the modulo operation work as expected
-        counter = counter + 1
-        !DC BEWARE- shift into the <-0.5,0.5) coordinate interval
-        GP0(counter, 1) = -0.5_RK + (this%Ccritdist/this%BoxLength) * MOD(i, this%NGridPoints) ! X coordinate is point within the coresponding line of the corresponding plane
-        GP0(counter, 2) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (MOD(i, this%NGridPoints**2)/ this%NGridPoints) ! Y coordinate is within the plane of corresponding line
-        GP0(counter, 3) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (i / this%NGridPoints**2 ) ! Z coordinate is simply the corresponding plane
-      end do
 
       if (NProc .eq. NRootProc) then
         !DC NOTE- OPEN section for .grid file
@@ -2383,7 +2332,6 @@ contains
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
     this%iounit_visualHB = iounit_visualHB + i
-    this%iounit_ccpos  = iounit_ccpos + i !DC edit
     this%iounit_cc     = iounit_cc    + i !DC edit
     this%iounit_ccgrid = iounit_ccgrid+ i !DC edit
 
@@ -4193,17 +4141,19 @@ contains
     if( associated( this%alpha2tempstep ) ) then
       deallocate( this%alpha2tempstep )
     end if
+    
+    if( KBIUpdateFrequency > 0 ) then
+        if( associated( this%SumKBIGij1 ) ) then
+          deallocate( this%SumKBIGij1 )
+        end if
 
-    if( associated( this%SumKBIGij1 ) ) then
-      deallocate( this%SumKBIGij1 )
-    end if
+        if( associated( this%SumKBIGij2 ) ) then
+          deallocate( this%SumKBIGij2 )
+        end if
 
-    if( associated( this%SumKBIGij2 ) ) then
-      deallocate( this%SumKBIGij2 )
-    end if
-
-    if( associated( this%SumKBIGij3 ) ) then
-      deallocate( this%SumKBIGij3 )
+        if( associated( this%SumKBIGij3 ) ) then
+          deallocate( this%SumKBIGij3 )
+        end if
     end if
 
 
@@ -10834,6 +10784,10 @@ loop2:        do nc = 1, this%NComponents
     integer                   :: k, l, m
 #endif
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                                                                   
     if( Step == 1 ) then
       ! Reset accumulators
       ! 1.) Basic sums
@@ -13315,6 +13269,10 @@ loop2:        do nc = 1, this%NComponents
     endif
 #endif
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                                                          
     ! Calculate averages and errors
     call Error( this%SumPressure )
     call Error( this%SumDensity )
@@ -16737,6 +16695,10 @@ end if
     logical  :: l
     real(RK) :: r(3), q(4)
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                                           
     ! Update visualization file
     write( IOBuffer, '("#", F10.4, "  new Frame")' ) this%BoxLength * UnitLength / Angstroem
     call FileWrite( this%iounit_visual )
@@ -16761,113 +16723,6 @@ end if
 
   end subroutine TEnsemble_VisualUpdate
 
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCOpen                           !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer                   :: i, j
-    type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT68), pointer  :: psTT68
-
-
-    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
-      !DC NOTE- Open visualization file
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_ccpos, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//VisualCCFileExtension )
-      !DC NOTE- Create header
-      write( IOBuffer, '("# Cluster criteria position visualization output file generated by D. Celny into ms2")' )
-      call FileWrite( this%iounit_ccpos )
-
-      do i = 1, this%NComponents
-        if( this%NMIEnmMax > 0 ) then
-          do j = 1, this%Component(i)%Molecule%NMIEnm
-            psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
-            write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
-&              psMIEnm%sig  * UnitLength / Angstroem
-            call FileWrite( this%iounit_ccpos )
-          end do
-        end if
-        if( this%NTT68Max > 0 ) then
-          do j = 1, this%Component(i)%Molecule%NTT68
-            psTT68 => this%Component(i)%Molecule%SiteTT68(j)
-            write( IOBuffer, '("#", I3, " TT", 4F8.4, "  1")' ) i, psTT68%r(:) * UnitLength / Angstroem
-            call FileWrite( this%iounit_ccpos )
-          end do
-        end if
-      end do
-      call FileWriteBlank( this%iounit_ccpos )
-    end if
-
-  end subroutine TEnsemble_VisualCCOpen
-
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCUpdate                         !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j
-    real(RK) :: r(3)
-
-    !DC NOTE- Update visualization file
-    !DC BEWARE work only for uniform substance (with same number of atoms per molecule)
-    if ((this%isCCSimulation .eqv. .true.) .and. &
-    &   (this%isCvim .eqv. .true.) .and. &
-    &   (this%isStopSimulation .eqv. .false.) .and. &
-    &   (mod( Step, this%CCFrequency) .eq. 0) ) then
-
-      write( IOBuffer, '("#", F10.4, "  Step ", I6, " Npart ", I6)' ) this%BoxLength * UnitLength / Angstroem, Step, this%NComponents*this%Component(1)%NPart
-      call FileWrite( this%iounit_ccpos )
-      do i = 1, this%NComponents
-        do j = 1, this%Component(i)%NPart
-          r(:) = this%Component(i)%P0(j, :)
-
-          write( IOBuffer, '(I3, 3F16.10)' ) i, r(:)
-          call FileWrite( this%iounit_ccpos )
-        end do
-      end do
-      call FileWriteBlank( this%iounit_ccpos )
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-      call flush( this%iounit_ccpos )
-#endif
-    end if
-
-  end subroutine TEnsemble_VisualCCUpdate
-
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCClose                            !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
-
-      !DC NOTE- Close visualization file
-      write( IOBuffer, '("##")' )
-      call FileWrite( this%iounit_ccpos )
-      call FileClose( this%iounit_ccpos )
-    end if
-
-  end subroutine TEnsemble_VisualCCClose
 
 !==============================================================!
 !  Subroutine TEnsemble_CCOpen                                 !
@@ -16893,23 +16748,6 @@ end if
       !DC NOTE- Create header
       write( IOBuffer, '("# Cluster criteria data output file generated by D. Celny into ms2")' )
       call FileWrite( this%iounit_cc )
-      do i = 1, this%NComponents
-        if( this%NMIEnmMax > 0 ) then
-          do j = 1, this%Component(i)%Molecule%NMIEnm
-            psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
-            write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
-&              psMIEnm%sig  * UnitLength / Angstroem
-            call FileWrite( this%iounit_ccpos )
-          end do
-        end if
-        if( this%NTT68Max > 0 ) then
-          do j = 1, this%Component(i)%Molecule%NTT68
-            psTT68 => this%Component(i)%Molecule%SiteTT68(j)
-            write( IOBuffer, '("#", I3, " TT", 4F8.4, "  1")' ) i, psTT68%r(:) * UnitLength / Angstroem
-            call FileWrite( this%iounit_ccpos )
-          end do
-        end if
-      end do
       call FileWriteBlank( this%iounit_cc )
     end if
 
@@ -17028,6 +16866,10 @@ end if
     real(RK) :: Variance, Average
     type(TComponent), pointer :: pc
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                                                               
     ! Open profile file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_dcp, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//DCPFileExtension )
@@ -17155,6 +16997,10 @@ end if
     ! Declare local variables
     integer  :: i, j
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif
     ! Calculate ODFSum with ODFUpdateFrequency
     do i= 1, this%NComponents
       do j= i, this%NComponents
@@ -17480,6 +17326,10 @@ end if
     ! Declare local variables
     integer  :: i, j
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                                                                                       
     ! Calculate RDFSum with RDFUpdateFrequency
     do i= 1, this%NComponents
       do j= i, this%NComponents
@@ -17835,6 +17685,10 @@ end if
     ! Declare local variables
     integer  :: i, j, TempStep
 
+    !DC NOTE this prevent update of data on stopped simulations
+    if (this%isStopSimulation .eqv. .true.) then
+      return
+    endif                             
     ! Calculate temporary step in the range of KBIResetFrequency
     TempStep = mod( Step, BlockSizeKBI )
     if (TempStep == 0) TempStep = BlockSizeKBI
@@ -26633,6 +26487,7 @@ contains
     integer              :: stat
     integer              :: i
     integer              :: stride
+    integer              :: sendGridpointCount                                                               
     integer, allocatable :: GPCounter_all(:)
     integer, allocatable :: GPStrides_all(:)
     integer, allocatable :: NeighborCounter_all(:)
@@ -26655,7 +26510,11 @@ contains
 
 #if MPI_VER > 0
   !DC NOTE- gather the allocated grid sizes
-  call MPI_Gather(this%NGridPoints1 , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
+  sendGridpointCount = this%NGridPoints1
+  if (sendGridpointCount<1) then
+    sendGridpointCount = 0
+  endif                                 
+  call MPI_Gather(sendGridpointCount , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
 
   !DC NOTE- gather the strides for the gatherv call
   if (RootProc) then
@@ -26668,7 +26527,7 @@ contains
 
   !DC HELP- on gatherv:
   !    MPI_GATHERV(SENDBUF         , SENDCOUNT         , SENDTYPE, RECVBUF           , RECVCOUNTS   ,DISPLS        , RECVTYPE, ROOT    , COMM        , IERROR)
-  call MPI_Gatherv(NeighborCounter , this%NGridPoints1 , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
+  call MPI_Gatherv(NeighborCounter , sendGridpointCount , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
 
   !DC NOTE- print of the collected information
   if (RootProc) then
@@ -26700,91 +26559,6 @@ contains
 !  Subroutine TEnsemble_ClustCrit                              !
 !==============================================================!
 
-  function TEnsemble_ClustCrit_naive( this, DistCrit ) result(ClusterCounter)
-  ! this function perform simple distance check for each entity
-  ! NOTE impemented in parallel over first molecule loop
-  ! BEWARE works only for vapor type detection
-  ! BEWARE does not allow multiensemble and multicomponent checking
-  ! -> calculation method
-  !   |- for each i molecule iterater over j molecule
-  !   |- check for i==j and skip
-  !   |- calculate distance, account PCB
-  !   |- decide if it is neighbor and increment counter in positive case
-  !   |- check if neighbor counter is above user specified threshold in positive case increment cluster counter
-  ! -> print information header into .clust file
-  ! -> return the ClusterCounter that represent number of suspected clusters found
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    ! Declare arguments
-    type(TEnsemble)           :: this
-    real(RK)                  :: DistCrit
-    ! Declare result
-    integer                   :: ClusterCounter
-    ! Declare local variables
-    type(TComponent), pointer :: pcur, pcom
-    integer             :: i, i0, i1, j
-    real(RK)            :: Distij
-    real(RK)            :: dxyz_ij(3)
-    integer             :: NeighborCounter !DC NOTE- local counter reused for each molecule
-
-    !DC NOTE- Initialize values and arrays
-    ClusterCounter = 0
-
-    !DC TODO- account for the multicomponent system
-    pcur => this%Component(1)
-
-    !DC NOTE- sequetntial distribution of work
-    i0 = 1
-    i1 = pcur%NPart
-#if MPI_VER > 0
-    !DC NOTE- parallel split of outer loop over i accross CPUs
-    if (SimulationType .eq. MolecularDynamics) then
-      i0 = pcur%NPart0
-      i1 = pcur%NPart2
-    end if
-#endif
-    !DC NOTE- Loop over all particles
-    do i = i0, i1
-      NeighborCounter = 0 !DC NOTE- re/initialisation of the Neighbor counter
-      do j = 1,pcur%NPart
-        if (i .eq. j) then
-          cycle !DC NOTE- safeguard that the very molecule is not counted as its neighbour
-        end if
-
-        dxyz_ij(1) = pcur%P0(i, 1) - pcur%P0(j, 1)
-        dxyz_ij(2) = pcur%P0(i, 2) - pcur%P0(j, 2)
-        dxyz_ij(3) = pcur%P0(i, 3) - pcur%P0(j, 3)
-
-        dxyz_ij(1)= dxyz_ij(1) - anint( dxyz_ij(1) )
-        dxyz_ij(2)= dxyz_ij(2) - anint( dxyz_ij(2) )
-        dxyz_ij(3)= dxyz_ij(3) - anint( dxyz_ij(3) )
-
-        Distij = SQRT( DOT_PRODUCT(dxyz_ij,dxyz_ij) )
-
-        if (Distij .le. DistCrit) then
-          !DC NOTE- increment is done only for i molecule to prevent doubling and requirement for intercomunication
-          ! that means it has to be also checked in same way
-          ! variant with least space usage -> all is kept as local incrementers
-          NeighborCounter = NeighborCounter + 1 !DC NOTE- increment of temporarry counter for i entity
-        end if
-      end do
-      !DC NOTE- i entity can be checked if fulfulls given criteria and then forgotten
-      if (NeighborCounter .ge. this%Ccount) then
-        ClusterCounter = ClusterCounter + 1
-      end if
-    end do
-
-#if MPI_VER > 0
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
-#endif
-    call TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
-
-  end function TEnsemble_ClustCrit_naive
 
   function TEnsemble_ClustCrit_vapgrid( this, DistCrit ) result(ClusterCounter)
   ! this fucntion calculate neighbour entities on the regular grid and check if the grid
@@ -26921,13 +26695,6 @@ contains
     DistCrit = this%Ccritdist*(1._RK / this%BoxLength)
 
     select case( this%Ccrittype )
-      case( CCritTypeVapor )
-        ClusterCounter = TEnsemble_ClustCrit_naive(this, DistCrit)
-        if (ClusterCounter .gt. this%Cmax) then
-          this%isStopSimulation = .true.
-          write( IOBuffer, '("!Cluster count limit ", I6, " exceeded with: ", I6, " clusters. ")' ) int(this%Cmax), ClusterCounter
-          call FileWrite (this%iounit_cc)
-        end if
       case( CCritTypeGridvap )
         ClusterCounter = TEnsemble_ClustCrit_vapgrid(this, DistCrit)
         if (ClusterCounter .gt. this%Cmax) then
