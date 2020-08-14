@@ -75,7 +75,7 @@ module ms2_interaction
     integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
 
     ! Total dipole moments of molecules for reaction field
     real(RK), pointer, contiguous :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
@@ -86,7 +86,7 @@ module ms2_interaction
     real(RK), pointer, contiguous :: tRFX2(:,:), tRFY2(:,:), tRFZ2(:,:)
 
     ! Center of mass positions of test particles
-    real(RK), pointer, contiguous :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
+    real(RK), pointer :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
 
     ! Total dipole moments of test particles for reaction field
     real(RK), pointer, contiguous :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
@@ -1900,7 +1900,7 @@ contains
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX2(:, :), PY2(:, :), PZ2(:, :)
+    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -3618,7 +3618,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
 !     real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:)
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -5547,7 +5547,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NPart1*this%NUnit1)
     real(RK)          :: PY1d(this%NPart1*this%NUnit1)
     real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
@@ -5809,7 +5809,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: np
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
     real(RK)          :: PX2d(this%NPart2*this%NUnit2)
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
@@ -5897,7 +5897,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: nu
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: PX2d(this%NPart2*this%NUnit2)
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
@@ -6143,7 +6143,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NPart1*this%NUnit1)
     real(RK)          :: PY1d(this%NPart1*this%NUnit1)
     real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
@@ -6305,7 +6305,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared, RCutoff
     integer           :: i, j, NInCutoff, k, l, m, n
