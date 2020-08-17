@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<name>LJ126_com_mpi</name>
+	<parFile>NVT.par</parFile>
+	<np>3</np>
+</testcase>

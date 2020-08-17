@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testsuite>
+	<tools4ms2version>0.0.072</tools4ms2version>
+	<caseRepositoryHash>8b3fe47e38bb118e4e26c85baea2d088fd1e3634</caseRepositoryHash>
+	<caseList>
+		<case name="LJ126_com" file="LJ126_com.xml" />
+		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
+		<case name="LJ126_site" file="LJ126_site.xml" />
+		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
+	</caseList>
+</testsuite>
