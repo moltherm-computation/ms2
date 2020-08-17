@@ -1,0 +1,9 @@
+/.project
+
+**/.cproject
+**/.project
+**/.settings
+**/*.mod
+**/*.o
+
+**/ms2_GNU*
