@@ -2573,6 +2573,7 @@ contains
       end do
     end if  
 #endif
+
   end subroutine TEnsemble_CreateComponents
 
 
@@ -2909,7 +2910,7 @@ contains
 
       ! KBI sum Gij
       if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
-        do i= 1, this%NComponents*(this%NComponents+1)/2 !Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of comb., e.g. 11 12 22
             call Construct( this%SumKBIGij1(i), .false., .false., .true.)
             call Construct( this%SumKBIGij2(i), .false., .false., .true.)
             call Construct( this%SumKBIGij3(i), .false., .false., .true.)
@@ -3114,7 +3115,7 @@ contains
 
     ! KBI sum Gij
       if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
-        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call Destruct( this%SumKBIGij1(i) )
             call Destruct( this%SumKBIGij2(i) )
             call Destruct( this%SumKBIGij3(i) )
@@ -3592,24 +3593,24 @@ contains
     if( KBIUpdateFrequency > 0 ) then
       allocate( this%KBIVSchale(KBINShellsCubeEdge), STAT = stat )
       call AllocationError( stat, 'KBI shells', KBINShellsCubeEdge )
-      allocate( this%KBIRDFextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      allocate( this%KBIRDFextra(0:KBINShellsCubeEdge, this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'KBI RDF extrap.', KBINShellsCubeEdge )
-      allocate( this%KBIRDFvdVextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      allocate( this%KBIRDFvdVextra(0:KBINShellsCubeEdge, this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'KBI RDFvdV extrap.', KBINShellsCubeEdge )
-      allocate( this%KBIRDFvdVshfextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      allocate( this%KBIRDFvdVshfextra(0:KBINShellsCubeEdge, this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'KBI RDFvdVshf extrap.', KBINShellsCubeEdge )
-      allocate( this%TDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      allocate( this%TDF(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'TDF' )
-      allocate( this%dTDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      allocate( this%dTDF(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'dTDF' )
-      allocate( this%TDF0(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      allocate( this%TDF0(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'TDF0' )
-      allocate( this%SumKBIGij1(this%NComponents*(this%NComponents+1)/2), STAT = stat )
-      call AllocationError( stat, 'Sum KBI Gij1', this%NComponents )
-      allocate( this%SumKBIGij2(this%NComponents*(this%NComponents+1)/2), STAT = stat )
-      call AllocationError( stat, 'Sum KBI Gij2', this%NComponents )
-      allocate( this%SumKBIGij3(this%NComponents*(this%NComponents+1)/2), STAT = stat )
-      call AllocationError( stat, 'Sum KBI Gij3', this%NComponents )
+      allocate( this%SumKBIGij1(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij1', this%NRealComponents )
+      allocate( this%SumKBIGij2(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij2', this%NRealComponents )
+      allocate( this%SumKBIGij3(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij3', this%NRealComponents )
     endif
 
     if( ALPHA2UpdateFrequency > 0 ) then
@@ -14285,7 +14286,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! thermodynamic factors with KBI
     if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then
-        if (this%NComponents == 2) then
+        if (this%NRealComponents == 2) then
             ! RDF standard
             write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
             call FileWrite( this%iounit_errors )
@@ -14304,7 +14305,7 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
-        else if (this%NComponents == 3) then
+        else if (this%NRealComponents == 3) then
             ! RDF standard
             write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
@@ -14365,7 +14366,7 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
-        else if (this%NComponents == 4) then
+        else if (this%NRealComponents == 4) then
             ! RDF standard
             write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
@@ -17617,21 +17618,21 @@ end if
 
     if( .not. Restart ) then
         ! initialize KBISum
-        do i=1, this%NComponents
-          do j=i, this%NComponents
+        do i=1, this%NRealComponents
+          do j=i, this%NRealComponents
                 this%Interaction(i,j)%KBISum(:) = 0
           end do
         end do
 
         ! Reset KBI Accumulator for Gij
-        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call Reset( this%SumKBIGij1(i) )
             call Reset( this%SumKBIGij2(i) )
             call Reset( this%SumKBIGij3(i) )
         end do
 
         this%KBIBlockCount = 0 !Counter for KBI Blocks to calculate RDF over all blocks for extrapolation of Gij
-        do p = 1, this%NComponents*(this%NComponents+1)/2
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
             this%KBIRDFextra(:,p) = 0
             this%KBIRDFvdVextra(:,p) = 0
             this%KBIRDFvdVshfextra(:,p) = 0
@@ -17652,8 +17653,8 @@ end if
         write(IOBuffer, '(T5,"Step")')
         call FileWriteNoAdvance( this%iounit_kbirav )
         do p = 1, 3 !Method
-            do i= 1, this%NComponents
-                do j= i, this%NComponents
+            do i= 1, this%NRealComponents
+                do j= i, this%NRealComponents
                     write(IOBuffer, '(T6,"G",I1,I1,",",I1)') i, j, p
                     call FileWriteNoAdvance( this%iounit_kbirav )
                     write(IOBuffer, '(T5,"dG",I1,I1,",",I1)') i, j, p
@@ -17695,8 +17696,8 @@ end if
 
     if ( SimulationType .eq. MonteCarlo ) then !for MD inside the traversing -> see RunMDStep -> Force ...
         ! Calculate partners in shells for RDF
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 call CalcRDFforKBI( this%Interaction(i,j), this%BoxLength/this%KBIdr )
             end do
         end do
@@ -17732,13 +17733,16 @@ end if
     real(RK) :: KBIRho, KBIRhoLocal,c2x1, Average, Variance
     real(RK) :: fint1, fint2, fint3, fint4, fint5, fint6, dr
     real(RK) :: KBIr(0:KBINShellsCubeEdge), KBIx(0:KBINShellsCubeEdge), KBIw(0:KBINShellsCubeEdge), KBIu2(0:KBINShellsCubeEdge)
-    real(RK) :: KBIRDF(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
-    real(RK) :: dN(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),Vol,Nj,VrNor
-    real(RK) :: RDFvdV(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),meanRDF(this%NComponents*(this%NComponents+1)/2)
-    real(RK) :: RDFvdVshf(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
-    real(RK) :: KBIrGij1(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij2(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
-    real(RK) :: KBIrGij3(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij4(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
-    real(RK) :: KBIrGij5(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij6(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIRDF(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: dN(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2)),Vol,Nj,VrNor
+    real(RK) :: RDFvdV(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2)),meanRDF(this%NRealComponents*(this%NRealComponents+1)/2)
+    real(RK) :: RDFvdVshf(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij1(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij2(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij3(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij4(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij5(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
+    real(RK) :: KBIrGij6(0:KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
     real(RK) :: c1, c2, c3, d12, d13, d23, eta, d120, d130, d230, eta0, dd12, dd13, dd23, deta, helpvar
     real(RK) :: G11(3), G12(3), G13(3), G22(3), G23(3), G33(3) !TDF calculation for N=2 or 3 without linear algebra
     real(RK) :: G11E(3), G12E(3), G13E(3), G22E(3), G23E(3), G33E(3)
@@ -17746,14 +17750,14 @@ end if
     real(RK) :: G(4,4), dG(4,4), G0(4,4), c(4), D(4,4), F(4,4)!TDF calculation for N=4 components with linear algebra
     real(RK) :: Delta1234, D2(4,4,4), F2(4,4,4), F3(4,4,4,4), DdmudxdG(3,3,4,4), SN, TF(3,9)
 #if MPI_VER > 0
-    real(RK) :: KBI_hilf(KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBI_hilf(KBINShellsCubeEdge,(this%NRealComponents*(this%NRealComponents+1)/2))
     integer(KIND=8)  :: KBISum_hilf(KBINShellsCubeEdge)
 #endif
 
 #if MPI_VER > 0
     if ( SimulationType .eq. MolecularDynamics ) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 do o = 1, KBINShellsCubeEdge
                     call MPI_Reduce( this%Interaction(i,j)%KBISum(o), KBISum_hilf(o), 1, MPI_INTEGER8, MPI_SUM, NRootProc, Communicator, ierror )
                     this%Interaction(i,j)%KBISum(o) = KBISum_hilf(o)
@@ -17768,8 +17772,8 @@ end if
     do o = 1, KBINShellsCubeEdge
         p=0 !Number of combinations, e.g. 11 12 22
         KBIr(o)=o*dr
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 KBIRho = this%SumDensity%Average  * this%Component(j)%Fraction
                 if (i == j) then
                     KBIRhoLocal = 2.0 * real(this%Interaction(i,j)%KBISum(o),RK) &
@@ -17787,7 +17791,7 @@ end if
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo ) then
         do o = 1, KBINShellsCubeEdge
-            do p = 1, this%NComponents*(this%NComponents+1)/2
+            do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
                 call MPI_Reduce( KBIRDF(o,p), KBI_hilf(o,p), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
                 KBIRDF(o,p) = KBI_hilf(o,p) / NProcs
             end do
@@ -17804,8 +17808,8 @@ end if
     do o = 1, KBINumberShells
         p=1 !Number of combinations, e.g. 11 12 22
         VrNor=(4_RK/3_RK)*Pi*KBIr(o)**3/Vol
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
                 dN(o,p)=dN(o-1,p)+(4.*Pi*dr*(Nj/Vol)*(KBIr(o)**2*(KBIRDF(o,p)-1.)+KBIr(o-1)**2*(KBIRDF(o-1,p)-1.)))/2.
                 if (i == j) then !e.g. combination 11 or 22 or 33 ...
@@ -17820,8 +17824,8 @@ end if
     do o = KBINumberShells+1, KBINShellsCubeEdge !vdV cor. from L/2 to sqrt(2)L/2
         p=1 !Number of combinations, e.g. 11 12 22
         VrNor=(4_RK/3_RK)*Pi*KBIr(o)**3*(3./(KBIr(o)/KBIr(KBINumberShells))-2.)/Vol
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
                 dN(o,p)=dN(o-1,p)+(4.*Pi*dr*(Nj/Vol)*((1.-3.+3.*KBIr(KBINumberShells)/KBIr(o))*KBIr(o)**2*(KBIRDF(o,p)-1.) &
 &                                                    +(1.-3.+3.*KBIr(KBINumberShells)/KBIr(o-1))*KBIr(o-1)**2*(KBIRDF(o-1,p)-1.)))/2.
@@ -17836,7 +17840,7 @@ end if
     end do
 
     ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
-    do p = 1, this%NComponents*(this%NComponents+1)/2
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
         meanRDF(p)=0.
         do o=(3*KBINShellsCubeEdge/4)+1, KBINShellsCubeEdge
             meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
@@ -17846,7 +17850,7 @@ end if
     end do
 
     ! Calculate mean RDF over the blocks for extrapolation of Gij
-    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
         this%KBIRDFextra(:,p) = (this%KBIRDFextra(:,p)*(this%KBIBlockCount-1)+KBIRDF(:,p))/this%KBIBlockCount
         this%KBIRDFvdVextra(:,p) = (this%KBIRDFvdVextra(:,p)*(this%KBIBlockCount-1)+RDFvdV(:,p))/this%KBIBlockCount
         this%KBIRDFvdVshfextra(:,p) = (this%KBIRDFvdVshfextra(:,p)*(this%KBIBlockCount-1)+RDFvdVshf(:,p))/this%KBIBlockCount
@@ -17861,8 +17865,8 @@ end if
     write(IOBuffer, '(T5,"   r [A]")')
     call FileWriteNoAdvance( this%iounit_kbirdf )
     do p = 1, 3 !Method
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
                 write(IOBuffer, '(I5,I5,","I1)') i, j, p
                 call FileWriteNoAdvance( this%iounit_kbirdf )
             end do
@@ -17872,15 +17876,15 @@ end if
     do o = 1, KBINShellsCubeEdge
         write(IOBuffer, '(F12.6)') KBIr(o)
         call FileWriteNoAdvance( this%iounit_kbirdf )
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFextra(o,p) !Standard RDF
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFvdVextra(o,p) !RDF vdV corrected
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
             write(IOBuffer, '(F12.6)') this%KBIRDFvdVshfextra(o,p) !RDF vdV+shf corrected
             call FileWriteNoAdvance( this%iounit_kbirdf )
         end do
@@ -17891,7 +17895,7 @@ end if
 
     ! Start of numerical Kirkwood-Buff Integration
     do o = 1, KBINShellsCubeEdge
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
             KBIRDF(o,p)=KBIRDF(o,p)-1. !h(r)=g(r)-1 -> standard RDF
             RDFvdV(o,p)=RDFvdV(o,p)-1. !h(r) of corrected RDF
             RDFvdVshf(o,p)=RDFvdVshf(o,p)-1.
@@ -17911,7 +17915,7 @@ end if
     KBIrGij6(0,:)=0.
 
     do o = 1, KBINumberShells !KBI until Sphere in Cube only
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
             !Calculation of the KBI with the common formula ( (2) in the PDF file ->Tomislav)
             KBIrGij1(o,p)=0.
             KBIrGij2(o,p)=0.
@@ -17951,7 +17955,7 @@ end if
     end do
 
     ! Update accumulator for Gij and error calculation
-    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
         call Update( this%SumKBIGij1(p), KBIrGij1(KBINumberShells,p), 0, .true. )
         call Update( this%SumKBIGij2(p), KBIrGij2(KBINumberShells,p), 0, .true. )
         call Update( this%SumKBIGij3(p), KBIrGij3(KBINumberShells,p), 0, .true. )
@@ -17969,19 +17973,19 @@ end if
         write(IOBuffer, '(I8)') Step
     end if
     call FileWriteNoAdvance( this%iounit_kbirav )
-    do p = 1, this%NComponents*(this%NComponents+1)/2
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
         Average = this%SumKBIGij1(p)%Average
         Variance = this%SumKBIGij1(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij4(KBINumberShells,p)
         call FileWriteNoAdvance( this%iounit_kbirav )
     end do
-    do p = 1, this%NComponents*(this%NComponents+1)/2
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
         Average = this%SumKBIGij2(p)%Average
         Variance = this%SumKBIGij2(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij5(KBINumberShells,p)
         call FileWriteNoAdvance( this%iounit_kbirav )
     end do
-    do p = 1, this%NComponents*(this%NComponents+1)/2
+    do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
         Average = this%SumKBIGij3(p)%Average
         Variance = this%SumKBIGij3(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij6(KBINumberShells,p)
@@ -17989,7 +17993,7 @@ end if
     end do
     call FileWriteBlank( this%iounit_kbirav )
 
-    if (this%NComponents == 2) then
+    if (this%NRealComponents == 2) then
        c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components
        ! RDF standard
        this%TDF(1,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))
@@ -18006,7 +18010,7 @@ end if
        this%dTDF(3,1) = (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))**(-2) &
 &                       *c2x1*sqrt(this%SumKBIGij3(1)%Variance**2+(2*this%SumKBIGij3(2)%Variance)**2+this%SumKBIGij3(3)%Variance**2)
        this%TDF0(3,1) = 1.0 / (1.0+c2x1*(KBIrGij6(KBINumberShells,1)-2.0*KBIrGij6(KBINumberShells,2)+KBIrGij6(KBINumberShells,3)))
-    else if (this%NComponents == 3) then
+    else if (this%NRealComponents == 3) then
        c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
        c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
        c3 = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
@@ -18115,7 +18119,7 @@ end if
             this%TDF0(i,4) = (1./eta0) * c1 * ( c3*G110(i)+1.-2.*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)&
 &                            +(1./c1)+G230(i)) )
         end do
-    else if (this%NComponents == 4) then
+    else if (this%NRealComponents == 4) then
         c(1) = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         c(2) = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         c(3) = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
@@ -21052,8 +21056,8 @@ end if
 
 
     ! initialize KBISum for new Block of KBIResetFrequency
-    do i=1, this%NComponents
-        do j=i, this%NComponents
+    do i=1, this%NRealComponents
+        do j=i, this%NRealComponents
             this%Interaction(i,j)%KBISum(:) = 0
         end do
     end do
@@ -21072,7 +21076,6 @@ end if
     type(TEnsemble) :: this
 
     ! Close KBI file
-    call FileClose( this%iounit_kbirdf )
     call FileClose( this%iounit_kbirav )
 
   end subroutine TEnsemble_KBIClose
@@ -21730,8 +21733,8 @@ end if
 
 
     if (KBIUpdateFrequency > 0) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
 #if MPI_VER > 0
                 call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, &
 &                   KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )
@@ -21748,7 +21751,7 @@ end if
             end do
         end do
         if( RootProc ) then    ! Save mean RDF over all blocks for Gij extrapolation
-            do i = 1, this%NComponents*(this%NComponents+1)/2
+            do i = 1, this%NRealComponents*(this%NRealComponents+1)/2
                 do o = 1, KBINShellsCubeEdge
                     write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
                     write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
@@ -21757,7 +21760,7 @@ end if
             end do
             write(iounit_restart, '(I10)' ) this%KBIBlockCount
         end if
-        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartSave( this%SumKBIGij1(i), .false., .true. )
             call RestartSave( this%SumKBIGij2(i), .false., .true. )
             call RestartSave( this%SumKBIGij3(i), .false., .true. )
@@ -22348,8 +22351,8 @@ if( RootProc .and. this%CorrfunMode ) then
 
     ! RestartRead of RDF for KBI
     if (KBIUpdateFrequency > 0) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
 #if MPI_VER > 0
                 if( RootProc ) then
                     do o = 1, KBINShellsCubeEdge*NProcs
@@ -22366,7 +22369,7 @@ if( RootProc .and. this%CorrfunMode ) then
             end do
         end do
         if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation
-            do i = 1, this%NComponents*(this%NComponents+1)/2
+            do i = 1, this%NRealComponents*(this%NRealComponents+1)/2
                 do o = 1, KBINShellsCubeEdge
                     read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
                     read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
@@ -22375,7 +22378,7 @@ if( RootProc .and. this%CorrfunMode ) then
             end do
             read( iounit_restart, '(I10)' ) this%KBIBlockCount
         end if
-        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartRead( this%SumKBIGij1(i), .true. )
             call RestartRead( this%SumKBIGij2(i), .true. )
             call RestartRead( this%SumKBIGij3(i), .true. )

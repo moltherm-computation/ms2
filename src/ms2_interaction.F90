@@ -1443,7 +1443,7 @@ contains
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      if( .not. Equilibration .and. KBIUpdateFrequency > 0 ) then
+      if(.not. Equilibration .and. KBIUpdateFrequency > 0 .and. present(InvKBIdr)) then 
         call CalcRDFforKBI_MD( this, InvKBIdr)!Calc. KBISum while calculating Cutoff partners
       else
         call CalcCutoffPartners( this )
