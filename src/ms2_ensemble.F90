@@ -10961,13 +10961,15 @@ loop2:        do nc = 1, this%NComponents
          fields = 0
          headers = headers + 1
          fields = fields + 7
+         ! Sampling of Dielectric Constant
+         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+         fields = fields + 3
+         endif         
          do i = 1, this%NRealComponents
            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
              fields = fields + 1
              if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then 
                fields = fields + 1
-               
-               
                if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
              end if
            end if
@@ -11025,12 +11027,12 @@ loop2:        do nc = 1, this%NComponents
 
            ! Dielectric Constant
            if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-               write( IOBuffer, '("      EPSILON")' )
+               write( IOBuffer, '("    EPSILON")' )
                call FileWriteNoAdvance_parallel( this%iounit_result )
                call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+           
                ! Dielectric Constant
-               write( IOBuffer, '("      <M>")' )
+               write( IOBuffer, '("        <M>")' )
                call FileWriteNoAdvance_parallel( this%iounit_result )
                call FileWriteNoAdvance_parallel( this%iounit_runave )
 
@@ -11155,12 +11157,12 @@ loop2:        do nc = 1, this%NComponents
 
          ! Dielectric Constant
          if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-             write( IOBuffer, '("      EPSILON")' )
+             write( IOBuffer, '("    EPSILON")' )
              call FileWriteNoAdvance( this%iounit_result )
              call FileWriteNoAdvance( this%iounit_runave )
-
+           
              ! Dielectric Constant
-             write( IOBuffer, '("      <M>")' )
+             write( IOBuffer, '("        <M>")' )
              call FileWriteNoAdvance( this%iounit_result )
              call FileWriteNoAdvance( this%iounit_runave )
 
@@ -11169,6 +11171,7 @@ loop2:        do nc = 1, this%NComponents
              call FileWriteNoAdvance( this%iounit_result )
              call FileWriteNoAdvance( this%iounit_runave )
          endif
+         
          ! Chemical potential
          do i = 1, this%NRealComponents
            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
@@ -11290,12 +11293,12 @@ loop2:        do nc = 1, this%NComponents
 
         ! Dielectric Constant
         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '("      EPSILON")' )
+            write( IOBuffer, '("    EPSILON")' )
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
-
+           
             ! Dielectric Constant
-            write( IOBuffer, '("      <M>")' )
+            write( IOBuffer, '("        <M>")' )
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
 
@@ -12055,23 +12058,25 @@ loop2:        do nc = 1, this%NComponents
               write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              ! Dielectric Constant
+              if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              ! Dielectric Constant
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              ! Dielectric Constant
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+              endif
 
               ! Chemical potential
               do i = 1, this%NRealComponents
@@ -12190,15 +12195,15 @@ loop2:        do nc = 1, this%NComponents
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                 ! Dielectric Constant
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
                 call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                 ! Dielectric Constant
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
                 call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
             endif
 
@@ -12323,15 +12328,15 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
               ! Dielectric Constant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
               call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
               ! Dielectric Constant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
           endif
 
@@ -12502,15 +12507,15 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance( this%iounit_runave )
 
             ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
             call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
             call FileWriteNoAdvance( this%iounit_runave )
 
             ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
             call FileWriteNoAdvance( this%iounit_runave )
         endif
 
@@ -12678,15 +12683,15 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance( this%iounit_runave )
 
             ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
             call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
             call FileWriteNoAdvance( this%iounit_runave )
 
             ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
             call FileWriteNoAdvance( this%iounit_runave )
         endif
 
