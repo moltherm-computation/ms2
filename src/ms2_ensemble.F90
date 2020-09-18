@@ -25580,7 +25580,10 @@ contains
       if (StepCorr .gt. this%NCorr) then
 
        CFindex = Mindex +1
-       this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       end if
 
        if (Mindex .eq. this%NCorr) then
          CFindex = 1                       !index of t = t0
