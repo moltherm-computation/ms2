@@ -13516,7 +13516,13 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NVE equilibration steps", T36, ":", I10)' ) NStepsE
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+    if( EnsembleType .eq. EnsembleTypeHA ) then
+       write( IOBuffer, '("Number of HA equilibration steps", T37, ":", I10)' ) NStepsP
+    elseif( EnsembleType .eq. EnsembleTypeGE ) then
+       write( IOBuffer, '("Number of GE equilibration steps", T37, ":", I10)' ) NStepsP
+    else
+       write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+    endif
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
