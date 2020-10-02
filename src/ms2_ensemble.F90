@@ -10728,10 +10728,10 @@ loop2:        do nc = 1, this%NComponents
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
-      if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
-          write( IOBuffer, '(I16)' ) this%EnsembleNumber
-          call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
-      end if
+      !if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      !    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      !    call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
+      !end if
 #endif
 
     end if
@@ -16324,8 +16324,8 @@ end if
     !EinsteinCoef ecoef output
     if(  (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
        if (RootProc) then
-         !write( IOBuffer, '(I16)' ) this%EnsembleNumber
-         !call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
+         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
          write(IOBuffer, '(T8,"t*")')
          call FileWriteNoAdvance( this%iounit_ecoef )
          write(IOBuffer, '(T12,"t")')
