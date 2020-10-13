@@ -11969,12 +11969,14 @@ loop2:        do nc = 1, this%NComponents
         MZ = 0._RK
         if( LongRange .eq. Rfield ) then
           do i = 1, this%NComponents
-          pc => this%Component(i)
-        do kIndex = 1, pc%NPart
-            MX=MX+pc%MueX(kIndex)
-            MY=MY+pc%MueY(kIndex)
-            MZ=MZ+pc%MueZ(kIndex)
-        end do
+            pc => this%Component(i)
+            if (pc%Molecule%NDipole > 0) then
+              do kIndex = 1, pc%NPart
+                  MX=MX+pc%MueX(kIndex)
+                  MY=MY+pc%MueY(kIndex)
+                  MZ=MZ+pc%MueZ(kIndex)
+              end do
+            endif
           end do
         else ! Ewald
           do i = 1, this%NComponents
