@@ -205,6 +205,9 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: TDF(:,:)
     real(RK), pointer, contiguous :: dTDF(:,:)
     real(RK), pointer, contiguous :: TDF0(:,:)
+    real(RK), pointer, contiguous :: partialmolV(:,:)
+    real(RK), pointer, contiguous :: partialmolV0(:,:)
+    real(RK), pointer, contiguous :: dpartialmolV(:,:)
     integer                       :: KBIBlockCount
 
     !Alpha2 displacement
@@ -3542,6 +3545,9 @@ contains
     nullify( this%TDF )
     nullify( this%dTDF )
     nullify( this%TDF0 )
+    nullify( this%partialmolV )
+    nullify( this%partialmolV0 )
+    nullify( this%dpartialmolV )
     nullify( this%dispR2 )
     nullify( this%dispR2inv )
     nullify( this%dispR4 )
@@ -3604,7 +3610,13 @@ contains
       allocate( this%dTDF(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'dTDF' )
       allocate( this%TDF0(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
-      call AllocationError( stat, 'TDF0' )
+      call AllocationError( stat, 'TDF0' )    
+      allocate( this%partialmolV(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
+      call AllocationError( stat, 'partialmolV' )
+      allocate( this%partialmolV0(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
+      call AllocationError( stat, 'partialmolV0' )
+      allocate( this%dpartialmolV(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
+      call AllocationError( stat, 'dpartialmolV' )    
       allocate( this%SumKBIGij1(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'Sum KBI Gij1', this%NRealComponents )
       allocate( this%SumKBIGij2(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
@@ -4113,6 +4125,18 @@ contains
 
     if( associated( this%TDF0 ) ) then
       deallocate( this%TDF0 )
+    end if
+    
+    if( associated( this%partialmolV ) ) then
+      deallocate( this%partialmolV )
+    end if
+    
+    if( associated( this%partialmolV0 ) ) then
+      deallocate( this%partialmolV0 )
+    end if
+    
+    if( associated( this%dpartialmolV ) ) then
+      deallocate( this%dpartialmolV )
     end if
 
     if( associated( this%dispR2 ) ) then
@@ -14300,6 +14324,7 @@ loop2:        do nc = 1, this%NComponents
     ! thermodynamic factors with KBI
     if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then
         if (this%NRealComponents == 2) then
+            ! Thermodynamic factor through KBI
             ! RDF standard
             write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
             call FileWrite( this%iounit_errors )
@@ -14318,7 +14343,73 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
+            ! Partial molar volumes through KBI
+            ! RDF standard
+            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
+            call FileWrite( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
+            call FileWrite( this%iounit_errors )
+            ! RDF vdV + shf correction
+            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
+            call FileWrite( this%iounit_errors )            
+            call FileWriteBlank( this%iounit_errors )       
         else if (this%NRealComponents == 3) then
+            ! Thermodynamic factor through KBI
             ! RDF standard
             write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
@@ -14377,6 +14468,101 @@ loop2:        do nc = 1, this%NComponents
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! Partial molar volumes through KBI
+            ! RDF standard
+            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 3 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,3),0.001_RK*this%dpartialmolV(1,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 3,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,3),0.001_RK*this%dpartialmolV(1,3)
+            call FileWrite( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 3 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,3),0.001_RK*this%dpartialmolV(2,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,3),0.001_RK*this%dpartialmolV(2,3)
+            call FileWrite( this%iounit_errors )
+            ! RDF vdV + shf correction
+            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
+            call FileWrite( this%iounit_errors )     
+            write( IOBuffer, '("partial molar volume 3 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,3),0.001_RK*this%dpartialmolV(3,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,3)&
+&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,3),0.001_RK*this%dpartialmolV(3,3)
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
         else if (this%NRealComponents == 4) then
@@ -18007,22 +18193,59 @@ end if
     call FileWriteBlank( this%iounit_kbirav )
 
     if (this%NRealComponents == 2) then
-       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components
        ! RDF standard
-       this%TDF(1,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))
-       this%dTDF(1,1) = (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))**(-2) &
-&                       *c2x1*sqrt(this%SumKBIGij1(1)%Variance**2+(2*this%SumKBIGij1(2)%Variance)**2+this%SumKBIGij1(3)%Variance**2)
-       this%TDF0(1,1) = 1.0 / (1.0+c2x1*(KBIrGij4(KBINumberShells,1)-2.0*KBIrGij4(KBINumberShells,2)+KBIrGij4(KBINumberShells,3)))
+       G11(1)=this%SumKBIGij1(1)%Average
+       G12(1)=this%SumKBIGij1(2)%Average      
+       G22(1)=this%SumKBIGij1(3)%Average       
+       G11E(1)=this%SumKBIGij1(1)%Variance
+       G12E(1)=this%SumKBIGij1(2)%Variance      
+       G22E(1)=this%SumKBIGij1(3)%Variance       
+       G110(1)=KBIrGij4(KBINumberShells,1)
+       G120(1)=KBIrGij4(KBINumberShells,2)       
+       G220(1)=KBIrGij4(KBINumberShells,3)      
        ! RDF vdV correction
-       this%TDF(2,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))
-       this%dTDF(2,1) = (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))**(-2) &
-&                       *c2x1*sqrt(this%SumKBIGij2(1)%Variance**2+(2*this%SumKBIGij2(2)%Variance)**2+this%SumKBIGij2(3)%Variance**2)
-       this%TDF0(2,1) = 1.0 / (1.0+c2x1*(KBIrGij5(KBINumberShells,1)-2.0*KBIrGij5(KBINumberShells,2)+KBIrGij5(KBINumberShells,3)))
-       ! RDF vdV shf correction
-       this%TDF(3,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))
-       this%dTDF(3,1) = (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))**(-2) &
-&                       *c2x1*sqrt(this%SumKBIGij3(1)%Variance**2+(2*this%SumKBIGij3(2)%Variance)**2+this%SumKBIGij3(3)%Variance**2)
-       this%TDF0(3,1) = 1.0 / (1.0+c2x1*(KBIrGij6(KBINumberShells,1)-2.0*KBIrGij6(KBINumberShells,2)+KBIrGij6(KBINumberShells,3)))
+       G11(2)=this%SumKBIGij2(1)%Average
+       G12(2)=this%SumKBIGij2(2)%Average       
+       G22(2)=this%SumKBIGij2(3)%Average      
+       G11E(2)=this%SumKBIGij2(1)%Variance
+       G12E(2)=this%SumKBIGij2(2)%Variance      
+       G22E(2)=this%SumKBIGij2(3)%Variance     
+       G110(2)=KBIrGij5(KBINumberShells,1)
+       G120(2)=KBIrGij5(KBINumberShells,2)     
+       G220(2)=KBIrGij5(KBINumberShells,3)     
+       ! RDF vdV + shift correction
+       G11(3)=this%SumKBIGij3(1)%Average
+       G12(3)=this%SumKBIGij3(2)%Average      
+       G22(3)=this%SumKBIGij3(3)%Average     
+       G11E(3)=this%SumKBIGij3(1)%Variance
+       G12E(3)=this%SumKBIGij3(2)%Variance       
+       G22E(3)=this%SumKBIGij3(3)%Variance     
+       G110(3)=KBIrGij6(KBINumberShells,1)
+       G120(3)=KBIrGij6(KBINumberShells,2)       
+       G220(3)=KBIrGij6(KBINumberShells,3)
+       c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components
+       
+       do i=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf       
+          ! Thermodynamic factor
+          this%TDF(i,1)  = 1.0 / (1.0+c2x1*(G11(i)-2.0*G12(i)+G22(i)))
+          this%dTDF(i,1) = (1.0+c2x1*(G11(i)-2.0*G12(i)+G22(i)))**(-2) &
+&                        *c2x1*sqrt(G11E(i)**2+(2*G12E(i))**2+G22E(i)**2)
+          this%TDF0(i,1) = 1.0 / (1.0+c2x1*(G110(i)-2.0*G120(i)+G220(i)))      
+          ! Partial molar volumes v1 and v2 in cm3/mol  
+          eta  = c1+c2+c1*c2*(G11(i) +G22(i) -2*G12(i) )
+          deta = c1*c2*sqrt(G11E(i)**2+(2*G12E(i))**2+G22E(i)**2)
+          eta0 = c1+c2+c1*c2*(G110(i)+G220(i)-2*G120(i))
+          this%partialmolV(i,1)  = (1_RK+c2*(G22(i)-G12(i)))/eta
+          this%dpartialmolV(i,1) = abs(this%partialmolV(i,1)) * sqrt((c2**2)*(G22E(i)**2+G12E(i)**2)/(1_RK+c2*(G22(i)-G12(i)))**2 &
+&                                + (deta/eta)**2)         
+          this%partialmolV0(i,1) = (1_RK+c2*(G220(i)-G120(i)))/eta0       
+          this%partialmolV(i,2)  = (1_RK+c1*(G11(i)-G12(i)))/eta
+          this%dpartialmolV(i,2) = abs(this%partialmolV(i,2)) * sqrt((c1**2)*(G11E(i)**2+G12E(i)**2)/(1_RK+c1*(G11(i)-G12(i)))**2 &
+&                                + (deta/eta)**2)         
+          this%partialmolV0(i,2) = (1_RK+c1*(G110(i)-G120(i)))/eta0
+        end do     
     else if (this%NRealComponents == 3) then
        c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
        c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
@@ -18100,7 +18323,7 @@ end if
             dd23 = sqrt(G22E(i)**2+G33E(i)**2+(2.*G23E(i))**2)
             deta = (c1*c2-0.25_RK*c1*c2*c3*(2.*d12-2.*d13-2.*d23))*dd12 + (c2*c3-0.25_RK*c1*c2*c3*(2.*d23-2.*d13-2.*d12))*dd23 &
 &                  + (c1*c3-0.25_RK*c1*c2*c3*(2.*d13-2.*d23-2.*d12))*dd13
-
+            ! Thermodynamic factor
             ! GAMMA11
             helpvar        = c2 * ( -c3*G22(i)-1.+2.*c3*G23(i)-c3*G33(i)-(c3/c2) + c1 * (G12(i)-G22(i)-(1./c2)+G23(i)-G13(i)) )
             this%TDF(i,1)  = -(1./eta) * helpvar
@@ -18131,6 +18354,39 @@ end if
 &                            + ((c1*c2)**2) * (G11E(i)**2+G12E(i)**2+G13E(i)**2+G23E(i)**2))/helpvar**2 + (deta/eta)**2 )
             this%TDF0(i,4) = (1./eta0) * c1 * ( c3*G110(i)+1.-2.*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)&
 &                            +(1./c1)+G230(i)) )
+            ! Partial molar volumes v1, v2 and v3 in cm3/mol
+            helpvar                = 1_RK+c2*(G22(i)-G12(i))+c3*(G33(i)-G13(i))+c2*c3*(G12(i)*G23(i)+G13(i)*G23(i)+G22(i)*G33(i)&
+&                                    -G13(i)*G22(i)-G12(i)*G33(i)-G23(i)**2)
+            this%partialmolV(i,1)  = helpvar/eta
+            this%dpartialmolV(i,1) = abs(this%partialmolV(i,1)) * sqrt(((c2*sqrt(G22E(i)**2+G12E(i)**2)+c3*sqrt(G33E(i)**2&
+&                                    +G13E(i)**2)+c2*c3*sqrt((G23(i)*G12E(i))**2+(G12(i)*G23E(i))**2+(G23(i)*G13E(i))**2&
+&                                    +(G13(i)*G23E(i))**2+(G33(i)*G22E(i))**2+(G22(i)*G33E(i))**2+(G22(i)*G13E(i))**2&
+&                                    +(G13(i)*G22E(i))**2+(G33(i)*G12E(i))**2+(G12(i)*G33E(i))**2+2.*(G23(i)*G23E(i))**2&
+&                                    ))/helpvar)**2 + (deta/eta)**2)            
+            this%partialmolV0(i,1) = (1_RK+c2*(G220(i)-G120(i))+c3*(G330(i)-G130(i))+c2*c3*(G120(i)*G230(i)+G130(i)*G230(i)&
+&                                    +G220(i)*G330(i)-G130(i)*G220(i)-G120(i)*G330(i)-G230(i)**2))/eta0
+
+            helpvar                = 1_RK+c1*(G11(i)-G12(i))+c3*(G33(i)-G23(i))+c1*c3*(G12(i)*G13(i)+G13(i)*G23(i)+G11(i)*G33(i)&
+&                                    -G11(i)*G23(i)-G12(i)*G33(i)-G13(i)**2)
+            this%partialmolV(i,2)  = helpvar/eta
+            this%dpartialmolV(i,2) = abs(this%partialmolV(i,2)) * sqrt(((c1*sqrt(G11E(i)**2+G12E(i)**2)+c3*sqrt(G33E(i)**2&
+&                                    +G23E(i)**2)+c1*c3*sqrt((G12(i)*G13E(i))**2+(G13(i)*G12E(i))**2+(G13(i)*G23E(i))**2&
+&                                    +(G23(i)*G13E(i))**2+(G11(i)*G33E(i))**2+(G33(i)*G11E(i))**2+(G11(i)*G23E(i))**2&
+&                                    +(G23(i)*G11E(i))**2+(G12(i)*G33E(i))**2+(G33(i)*G12E(i))**2+2.*(G13(i)*G13E(i))**2&
+&                                    ))/helpvar)**2 + (deta/eta)**2)            
+            this%partialmolV0(i,2) = (1_RK+c1*(G110(i)-G120(i))+c3*(G330(i)-G230(i))+c1*c3*(G120(i)*G130(i)+G130(i)*G230(i)&
+                                     +G110(i)*G330(i)-G110(i)*G230(i)-G120(i)*G330(i)-G130(i)**2))/eta0
+  
+            helpvar                = 1_RK+c2*(G22(i)-G23(i))+c1*(G11(i)-G13(i))+c1*c2*(G12(i)*G13(i)+G12(i)*G23(i)+G11(i)*G22(i)&
+&                                    -G11(i)*G23(i)-G13(i)*G22(i)-G12(i)**2)
+            this%partialmolV(i,3)  = helpvar/eta
+            this%dpartialmolV(i,3) = abs(this%partialmolV(i,3)) * sqrt(((c2*sqrt(G22E(i)**2+G23E(i)**2)+c1*sqrt(G11E(i)**2&
+&                                    +G13E(i)**2)+c1*c2*sqrt((G12(i)*G13E(i))**2+(G13(i)*G12E(i))**2+(G12(i)*G23E(i))**2&
+&                                    +(G23(i)*G12E(i))**2+(G11(i)*G22E(i))**2+(G22(i)*G11E(i))**2+(G11(i)*G23E(i))**2&
+&                                    +(G23(i)*G11E(i))**2+(G13(i)*G22E(i))**2+(G22(i)*G13E(i))**2+2.*(G12(i)*G12E(i))**2&
+&                                    ))/helpvar)**2 + (deta/eta)**2)            
+            this%partialmolV0(i,3) = (1_RK+c2*(G220(i)-G230(i))+c1*(G110(i)-G130(i))+c1*c2*(G120(i)*G130(i)+G120(i)*G230(i)&
+                                     +G110(i)*G220(i)-G110(i)*G230(i)-G130(i)*G220(i)-G120(i)**2))/eta0
         end do
     else if (this%NRealComponents == 4) then
         c(1) = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
