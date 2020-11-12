@@ -16786,7 +16786,9 @@ end if
             value = this%Interaction(i, j)%IntFFunction(NSteps) + &
 &               .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
         end if
-        ArrSVC(i, j, this%EnsembleNumber) = value
+        if (EnsembleType .eq. EnsembleTypeNPTSVC) then
+           ArrSVC(i, j, this%EnsembleNumber) = value
+        end if
         write( IOBuffer, '("2. VC of ", A, "-", A, T29, "reduced:", F20.9)' ) &
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              trim( this%Component(j)%Molecule%PotModFileName ), value
@@ -16802,7 +16804,9 @@ end if
       do j = i + 1, this%NComponents, 2
         value = ( this%Interaction(i, j)%IntFFunction2(NSteps) - this%Interaction(i,j)%IntFFunction1(NSteps) ) &
 &               / ( .0002_RK * this%Temperature )
-        ArrdBdT(i, j, this%EnsembleNumber) = value
+        if (EnsembleType .eq. EnsembleTypeNPTSVC) then
+           ArrdBdT(i, j, this%EnsembleNumber) = value
+        end if
         write( IOBuffer, '("dB/dT of ", A, "-", A, T29, "reduced:", F20.9)' ) &
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              trim( this%Component(j)%Molecule%PotModFileName ), value
