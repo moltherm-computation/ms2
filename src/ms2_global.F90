@@ -99,8 +99,8 @@ module ms2_global
 #endif
 
   ! Version of program
-  character(*), parameter :: VersionString = 'v2.0'
-  real(RK)                :: ms2VersionNr = 2.0_RK
+  character(*), parameter :: VersionString = 'v3.0'
+  real(RK)                :: ms2VersionNr = 3.0_RK
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
