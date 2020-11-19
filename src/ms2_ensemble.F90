@@ -10705,10 +10705,6 @@ loop2:        do nc = 1, this%NComponents
 #if TRANS ==1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
-       if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
-         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-         call FileAppend( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
-      end if
 #endif
 
     else
