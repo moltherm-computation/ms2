@@ -289,10 +289,12 @@ module ms2_ensemble
     type(TAccumulator) :: SumDensity
     type(TAccumulator) :: SumTemperature
     type(TAccumulator) :: SumEPot
+    type(TAccumulator) :: SumEPotDeltaSquared
     type(TAccumulator) :: SumEnthalpy
     type(TAccumulator) :: SumConfEnthalpy
     type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
+    type(TAccumulator) :: SumVirialDeltaSquared
 #if OSMOP > 0
     type(TAccumulator) :: SumOsmoticPressure
 #if OSMOP == 2
@@ -322,6 +324,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotSquared
     type(TAccumulator) :: SumEPotV
     type(TAccumulator) :: SumEPotVirial
+    type(TAccumulator) :: SumEPotDeltaVirialDelta
     type(TAccumulator) :: SumEnthalpySquared
     type(TAccumulator) :: SumEnthalpyV
     type(TAccumulator) :: SumVolumeSquared
@@ -360,6 +363,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumdHdP
     type(TAccumulator) :: SumdUdV
     type(TAccumulator) :: SumCV
+    type(TAccumulator) :: SumCorCoefR
     type(TAccumulator) :: SumCP
     type(TAccumulator) :: SumAlphaP
 
@@ -2845,10 +2849,12 @@ contains
       call Construct( this%SumDensity, .false. )
       call Construct( this%SumTemperature, .false. )
       call Construct( this%SumEPot, .false. )
+      call Construct( this%SumEPotDeltaSquared, .false. )
       call Construct( this%SumEnthalpy, .false. )
       call Construct( this%SumConfEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
+      call Construct( this%SumVirialDeltaSquared, .false. )
       call Construct( this%SumdEpotdV, .false. )
       call Construct( this%Sumd2EpotdV2, .false. )
 #if OSMOP > 0
@@ -2887,6 +2893,7 @@ contains
       call Construct( this%SumEPotSquared, .false. )
       call Construct( this%SumEPotV, .false. )
       call Construct( this%SumEPotVirial, .false. )
+      call Construct( this%SumEPotDeltaVirialDelta, .false. )
       call Construct( this%SumEnthalpySquared, .false. )
       call Construct( this%SumEnthalpyV, .false. )
       call Construct( this%SumVolumeSquared, .false. )
@@ -2926,6 +2933,7 @@ contains
       call Construct( this%SumdHdP, .true. )
       call Construct( this%SumdUdV, .true. )
       call Construct( this%SumCV, .true. )
+      call Construct( this%SumCorCoefR, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
       if( LongRange .eq. Rfield) then
@@ -3050,10 +3058,12 @@ contains
     call Destruct( this%SumDensity )
     call Destruct( this%SumTemperature )
     call Destruct( this%SumEPot )
+    call Destruct( this%SumEPotDeltaSquared )
     call Destruct( this%SumEnthalpy )
     call Destruct( this%SumConfEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
+    call Destruct( this%SumVirialDeltaSquared )
     call Destruct( this%SumdEpotdV )
     call Destruct( this%Sumd2EpotdV2 )
 #if OSMOP > 0
@@ -3092,6 +3102,7 @@ contains
     call Destruct( this%SumEPotSquared )
     call Destruct( this%SumEPotV )
     call Destruct( this%SumEPotVirial )
+    call Destruct( this%SumEPotDeltaVirialDelta )
     call Destruct( this%SumEnthalpySquared )
     call Destruct( this%SumEnthalpyV )
     call Destruct( this%SumVolumeSquared )
@@ -3130,6 +3141,7 @@ contains
     call Destruct( this%SumdHdP )
     call Destruct( this%SumdUdV )
     call Destruct( this%SumCV )
+    call Destruct( this%SumCorCoefR )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
     if( LongRange .eq. Rfield) then
@@ -10816,10 +10828,12 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
+      call Reset( this%SumEPotDeltaSquared )
       call Reset( this%SumEnthalpy )
       call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
+      call Reset( this%SumVirialDeltaSquared )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
 #if OSMOP > 0
@@ -10878,6 +10892,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumEPotSquared )
       call Reset( this%SumEPotV )
       call Reset( this%SumEPotVirial )
+      call Reset( this%SumEPotDeltaVirialDelta )
       call Reset( this%SumEnthalpySquared )
       call Reset( this%SumEnthalpyV )
       call Reset( this%SumVolumeSquared )
@@ -10911,6 +10926,7 @@ loop2:        do nc = 1, this%NComponents
       else
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
+        call Reset( this%SumCorCoefR )
       endif
       if( LongRange .eq. Rfield) then
         if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -11531,6 +11547,11 @@ loop2:        do nc = 1, this%NComponents
 
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
+    
+    call Update( this%SumEPotDeltaVirialDelta, (this%EPot/real( this%NPart, RK ) - this%SumEPot%Average)*((-3_RK*this%Virial) - this%SumVirial%Average) )
+    call Update( this%SumEPotDeltaSquared, (this%EPot/real( this%NPart, RK ) - this%SumEPot%Average)**2 )
+    call Update( this%SumVirialDeltaSquared, ((-3_RK*this%Virial) - this%SumVirial%Average)**2 )
+
 #if OSMOP > 0
     call Update( this%SumOsmoticPressure, this%OsmoticPressure )
     do i = 1, this%NComponents
@@ -11626,6 +11647,7 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
+    
 
     if( ConstantPressure ) then
        call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
@@ -11667,6 +11689,10 @@ loop2:        do nc = 1, this%NComponents
 
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
+
+      
+      
+      call Update( this%SumCorCoefR, (-1_RK)*this%SumEPotDeltaVirialDelta%Average/sqrt(this%SumVirialDeltaSquared%Average*this%SumEPotDeltaSquared%Average) )
     endif
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
@@ -13416,6 +13442,7 @@ loop2:        do nc = 1, this%NComponents
       else
         call Error( this%SumdUdV )
         call Error( this%SumCV )
+        call Error( this%SumCorCoefR )
       end if
 
       do i = 1, this%NRealComponents
@@ -14069,6 +14096,13 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
         write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
 &              Variance * kBoltzmann * NAvogadro
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+        
+        ! Correlation coefficient R
+        Average = this%SumCorCoefR%Average
+        Variance = this%SumCorCoefR%Variance
+        write( IOBuffer, '("Correlation coefficient R", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       endif
@@ -21771,7 +21805,7 @@ end if
         call RestartSave( this%SumEnthalpy )
         call RestartSave( this%SumConfEnthalpy )
         call RestartSave( this%SumVolume )
-        call RestartSave( this%SumVirial )
+        call RestartSave( this%SumVirial )      
         call RestartSave( this%SumdEpotdV )
         call RestartSave( this%Sumd2EpotdV2 )
 
@@ -21787,6 +21821,7 @@ end if
         call RestartSave( this%SumEPotSquared )
         call RestartSave( this%SumEPotV )
         call RestartSave( this%SumEPotVirial )
+        call RestartSave( this%SumEPotDeltaVirialDelta )
         call RestartSave( this%SumEnthalpySquared )
         call RestartSave( this%SumEnthalpyV )
         call RestartSave( this%SumVolumeSquared )
@@ -21819,6 +21854,7 @@ end if
         else
           call RestartSave( this%SumdUdV )
           call RestartSave( this%SumCV )
+          call RestartSave( this%SumCorCoefR )
         endif
         if( LongRange .eq. Rfield) then
           if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -22379,7 +22415,7 @@ if( RootProc .and. this%CorrfunMode ) then
     call RestartRead( this%SumEnthalpy )
     call RestartRead( this%SumConfEnthalpy )
     call RestartRead( this%SumVolume )
-    call RestartRead( this%SumVirial )
+    call RestartRead( this%SumVirial )  
     call RestartRead( this%SumdEpotdV )
     call RestartRead( this%Sumd2EpotdV2 )
 
@@ -22395,6 +22431,7 @@ if( RootProc .and. this%CorrfunMode ) then
     call RestartRead( this%SumEPotSquared )
     call RestartRead( this%SumEPotV )
     call RestartRead( this%SumEPotVirial )
+    call RestartRead( this%SumEPotDeltaVirialDelta )
     call RestartRead( this%SumEnthalpySquared )
     call RestartRead( this%SumEnthalpyV )
     call RestartRead( this%SumVolumeSquared )
@@ -22428,6 +22465,7 @@ if( RootProc .and. this%CorrfunMode ) then
     else
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
+      call RestartRead( this%SumCorCoefR )
     endif
     if( LongRange .eq. Rfield) then
       if ( EnsembleType .eq. EnsembleTypeNVT ) then
