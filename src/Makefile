@@ -117,7 +117,8 @@ SRCS =  ms2.F90 \
         ms2_site.F90 \
         ms2_interaction.F90 \
         ms2_potential.F90 \
-        ms2_accumulator.F90
+        ms2_accumulator.F90 \
+        ms2_version.F90
 
 OBJS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).o)
 
@@ -155,6 +156,8 @@ clean:
 # Dependencies for modules
 #
 ms2.o: ms2_simulation.mod ms2_global.mod
+
+ms2_global.mod: ms2_version.mod
 
 ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod \
   ms2_stopwatch.mod
