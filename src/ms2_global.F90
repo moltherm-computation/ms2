@@ -888,7 +888,7 @@ module ms2_global
 #endif
   integer :: TerminateStatus = 0
 
-  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
+  integer, parameter :: IdErrorCodeBase = int(b'1000000000000000')   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
   ! bits might code error type, origin (module&function),...
 
