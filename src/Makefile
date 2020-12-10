@@ -174,6 +174,8 @@ ms2_site.mod: ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
-ms2_potential.mod: ms2_site.mod ms2_global.mod
+ms2_potential.mod: ms2_site.mod ms2_global.mod ms2_molecule.mod
+
+ms2_accumulator.mod: ms2_global.mod
 
 ms2_stopwatch.mod: ms2_global.mod
