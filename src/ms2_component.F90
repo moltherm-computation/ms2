@@ -31,7 +31,16 @@
 !DEC$ MESSAGE:'Compiling ms2_component.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 module ms2_component
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
 
   use ms2_accumulator
   use ms2_global
@@ -472,7 +481,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2194,7 +2203,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2769,7 +2778,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -3230,7 +3239,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -3850,7 +3859,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -4714,7 +4723,7 @@ loop1:do i = 1, this%NPart
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -4899,7 +4908,7 @@ subroutine TComponent_ForceTransport( this )
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -4993,7 +5002,7 @@ subroutine TComponent_ForceTransport( this )
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 

@@ -16,6 +16,8 @@ MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
 #---------------------------------------
+#USE_MPI_MODULE ?= 1
+#---------------------------------------
 #
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
@@ -105,6 +107,11 @@ endif
 ifeq ($(SPME),1)
   CPPFLAGS += -DSPME=1
   PROG     := $(PROG)_spme
+endif
+
+ifdef USE_MPI_MODULE
+  #CPPFLAGS += -DUSE_MPI_MODULE=$(USE_MPI_MODULE)
+  CPPFLAGS += -DUSE_MPI_MODULE
 endif
 
 SRCS =  ms2.F90 \
