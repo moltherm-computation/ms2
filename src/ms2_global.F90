@@ -480,7 +480,6 @@ module ms2_global
   character(*), parameter :: IdCons2                       = 'Constr2'
   character(*), parameter :: IdConsR                       = 'ConstrDist'
 #endif
-  character(*), parameter :: IdOptPressure                 = 'CalcPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
 ! Calculation of residence times
