@@ -1608,7 +1608,7 @@ contains
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Attr_get(Communicator, MPI_HOST, hostrank, flag, ierror)
+      call MPI_Comm_get_attr(Communicator, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
@@ -1621,7 +1621,7 @@ contains
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,NRootProc, Communicator, ierror)
-    call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
+    call MPI_Comm_get_attr(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
 &                  ,NRootProc, Communicator, ierror)
 
