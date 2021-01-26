@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C4H10_OPLS_p3T2_Ring.par</parFile>
+	<np>3</np>
+	<name>OPLS_mpi</name>
+	<relativeTolerance>1e-6</relativeTolerance>
+</testcase>

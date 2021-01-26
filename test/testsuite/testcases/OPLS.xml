@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C4H10_OPLS_p3T2_Ring.par</parFile>
+	<name>OPLS</name>
+</testcase>
