@@ -1,0 +1,113 @@
+# A dot in front of a job disables the job
+
+stages:
+  - version
+  - build
+  - flags
+  - test
+
+Check Version:
+  stage: version
+  script:
+    - chmod +x test/checkVersionUpdate.sh
+    - ./test/checkVersionUpdate.sh
+  only:
+    refs:
+      - master
+  allow_failure: true
+
+GNU:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU
+
+GNU DEBUG:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all COMPILER=GNU TARGET=DEBUG
+
+GNU MPI:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 5 COMPILER=GNU MPI=1
+
+GNU OMP:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 4 COMPILER=GNU OMP=1
+
+GNU MPI OMP:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3  COMPILER=GNU MPI=1 OMP=1
+
+GNU MPI SP:
+  stage: build
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 SP=1
+
+INTEL:
+  stage: build
+  script:
+    - cd src
+    - ifort --version
+    - make all -j 3 COMPILER=INTEL
+  
+
+GNU TRANS MPI:
+  stage: flags
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 TRANS=1
+
+GNU OSMOP1 MPI:
+  stage: flags
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 OSMOP=1
+
+GNU OSMOP2 MPI:
+  stage: flags
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 OSMOP=2
+
+GNU SPME MPI:
+  stage: flags
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 SPME=1
+
+GNU HBOND MPI:
+  stage: flags
+  script:
+    - cd src
+    - gfortran --version
+    - make all -j 3 COMPILER=GNU MPI=1 HBOND=1
+
+INTEL SPME:
+  stage: flags
+  script:
+    - cd src
+    - ifort --version
+    - make all -j 3 COMPILER=INTEL SPME=1
+
+test:
+  script:
+    - echo Test..
