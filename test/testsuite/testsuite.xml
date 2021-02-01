@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.185</tools4ms2version>
-	<caseRepositoryHash>f08bef07c658011d66a9e3ef03fb3b29cf95e613</caseRepositoryHash>
+	<caseRepositoryHash>dc8ced845bc280aec25af0942f6c9a93f6a1600b</caseRepositoryHash>
 	<caseList>
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
