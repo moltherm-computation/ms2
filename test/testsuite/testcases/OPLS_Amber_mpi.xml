@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C3H8_OPLSAmb_p3T2_Ring.par</parFile>
+	<name>OPLS_Amber_mpi</name>
+	<np>3</np>
+	<relativeTolerance>1e-6</relativeTolerance>
+</testcase>
