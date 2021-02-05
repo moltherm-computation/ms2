@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C2H6_OPLS_p3T2_Ring.par</parFile>
+	<name>OPLS_rrs</name>
+	<np>6</np>
+	<reference>
+		<file>C2H6_OPLS_p3T2_Ring_1.res</file>
+		<relativeTolerance>3e-4</relativeTolerance>
+	</reference>
+</testcase>

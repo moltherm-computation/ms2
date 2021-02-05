@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testsuite>
+	<tools4ms2version>0.0.195</tools4ms2version>
+	<caseRepositoryHash>4a0a7b4ec8468a56598f05bcf1c439b0efb2496e</caseRepositoryHash>
+	<caseList>
+		<case name="OPLS_rrs" file="OPLS_rrs.xml" />
+	</caseList>
+</testsuite>
