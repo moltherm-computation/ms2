@@ -1450,12 +1450,13 @@ contains
     ParameterFileName = 'ms2.par'
     OutputNameTag='ms2out'
 #endif
-    RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
+    
+    RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
     ! Open log file
     call LogOpen
@@ -2131,16 +2132,21 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    integer                       :: iounit
+    !integer                       :: iounit
+    integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
+    !integer :: info
 
     if(RootProc) then
       ! open file for writing
       if( iounit /= iounit_log ) then
         write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
         call logwrite
-        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-        close(iounit)
+        ! ? just (re)creating a file?
+        !open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+        !close(iounit)
+        ! ?
+        !MPI_File_delete(filename,info,ierror)
       end if
     end if
     call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
@@ -2164,7 +2170,8 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    !integer, intent(in)           :: iounit
+    integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
 
     ! Declare local variables
@@ -2180,24 +2187,29 @@ contains
         call LogWrite
       end if
 
-      inquire( file = filename, exist = ex )
-      if( ex ) then
-        open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
-      else
-        write( IOBuffer, '("File does not exist. Creating new")' )
-        call LogWrite
-        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-      end if
+      !inquire( file = filename, exist = ex )
+      !if( ex ) then
+      !  open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
+      !else
+      !  write( IOBuffer, '("File does not exist. Creating new")' )
+      !  call LogWrite
+      !  open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+      !end if
+      !!close(iounit)
     endif
-    !!! ERRONEOUS
-    ! don't mix Fortran POSIX IO with mpi IO; Fortran units != MPI units; mpi iounit is intend(out) here...
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
+    ! MB: Fortran POSIX IO != MPI IO; Fortran units != MPI units; mpi iounit is not a prescribed value but returned from MPI_File_Open...
+    !                                                                              + MPI_MODE_APPEND will set initial position of all file pointers to end of file
+    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE                  , MPI_INFO_NULL &
+&                     , iounit, ierror)
+    ! no "Append" in the strict sense!
     if(RootProc) then
       if( ierror /= 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
     end if
+
+! TODO: Rewrite of MPI_IO? binary versions of output files?
 
   end subroutine Global_FileAppend_parallel
 
@@ -2214,11 +2226,12 @@ contains
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
-
+    
     ! Write contents of buffer to file
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
-
-
+    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror)	!write a whole dataset at once with a shared file handle
+    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)	! collective operation to write ranks one after another
+    
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif

@@ -333,16 +333,20 @@ contains
 !    call LogWriteBlank
 
     ! Open parameter file for reading
-    call FileReset( iounit_params, ParameterFileName )
+    call FileReset( iounit_params, trim(ParameterFileName) )
     ! Read parVersionNr
     call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1.0_RK )
-    write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
-    call LogWrite
-    if ( parVersionNr .lt. ms2VersionNr ) then
-      write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
+    if ( parVersionNr .lt. 0 ) then
+      write( IOBuffer, '("Remark: No ms2-version given within your parameter file - unable to check")' )
       call LogWrite
-    endif
-
+    else
+      write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
+      call LogWrite
+      if ( parVersionNr .lt. ms2VersionNr ) then
+        write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
+        call LogWrite
+      endif
+    end if
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')
     call LogWrite
@@ -2268,8 +2272,8 @@ eqloop: do
         NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
       end if
 
-      if (mod(Step,1000)==0) then
-end if
+!      if (mod(Step,1000)==0) then
+!end if
       ! Run simulation step
       select case( SimulationType )
       case( MolecularDynamics )
@@ -3379,6 +3383,8 @@ end if
         write( IOBuffer, '("saving restart data at step",I10," /",I10)' ) Step, StepTotal
         call LogWrite
         write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        write( IOBuffer, '("still to be done: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
+        call LogWrite
 
     end if
 
@@ -3454,6 +3460,8 @@ end if
       write( IOBuffer, '("restarting at step",I10," /",I10)' ) Step, StepTotal
       call LogWrite
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+      write( IOBuffer, '("run: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
+      call LogWrite
 
     end if
 

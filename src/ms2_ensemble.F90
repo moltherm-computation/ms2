@@ -10213,6 +10213,7 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       if (SimulationType .eq. MonteCarlo) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        !    no "append" to, but just "open" an existing file
         call FileAppend_parallel( this%iounit_result,trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
 
         if( .not. SimulationType .eq. SecondVirialCoeff ) then
@@ -10262,7 +10263,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-     else
+      else
         ! Open result file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -10273,7 +10274,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-     endif
+      endif
 #else
 
       ! Open result file
@@ -10353,7 +10354,33 @@ loop2:        do nc = 1, this%NComponents
     !DC NOTE this prevent update of data on stopped simulations
     if (this%isStopSimulation .eqv. .true.) then
       return
-    endif                                                                   
+    endif
+    
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo .and. fields .eq. 0) then
+       headers = headers + 1
+       fields = fields + 7
+       ! Sampling of Dielectric Constant
+       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+       fields = fields + 3
+       endif         
+       do i = 1, this%NRealComponents
+         if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           fields = fields + 1
+           if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then 
+             fields = fields + 1
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
+           end if
+         end if
+       enddo
+       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
+#if CONSTR > 0
+       fields = fields + 2 *  this%NCons
+#endif
+    end if
+#endif
+    
+    !
     if( Step == 1 ) then
       ! Reset accumulators
       ! 1.) Basic sums
@@ -10361,12 +10388,12 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
-      call Reset( this%SumEPotDeltaSquared )                                        
+      call Reset( this%SumEPotDeltaSquared )
       call Reset( this%SumEnthalpy )
       call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
-      call Reset( this%SumVirialDeltaSquared )                                    
+      call Reset( this%SumVirialDeltaSquared )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
 #if OSMOP > 0
@@ -10527,27 +10554,6 @@ loop2:        do nc = 1, this%NComponents
       ! Update result header
       if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-         fields = 0
-         headers = headers + 1
-         fields = fields + 7
-         ! Sampling of Dielectric Constant
-         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-         fields = fields + 3
-         endif         
-         do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-             fields = fields + 1
-             if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then 
-               fields = fields + 1
-               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
-             end if
-           end if
-         enddo
-         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
-#if CONSTR > 0
-         fields = fields + 2 *  this%NCons
-#endif
-
          if (RootProc) then
            if (CommonEqui) then
              offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1
