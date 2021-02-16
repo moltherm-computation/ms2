@@ -2149,7 +2149,7 @@ contains
         !MPI_File_delete(filename,info,ierror)
       end if
     end if
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
+    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
     if(RootProc) then
       if( ierror .ne. 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
@@ -2198,8 +2198,7 @@ contains
       !!close(iounit)
     endif
     ! MB: Fortran POSIX IO != MPI IO; Fortran units != MPI units; mpi iounit is not a prescribed value but returned from MPI_File_Open...
-    !                                                                              + MPI_MODE_APPEND will set initial position of all file pointers to end of file
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE                  , MPI_INFO_NULL &
+    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE + MPI_MODE_APPEND, MPI_INFO_NULL &
 &                     , iounit, ierror)
     ! no "Append" in the strict sense!
     if(RootProc) then
@@ -2229,8 +2228,11 @@ contains
     
     ! Write contents of buffer to file
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
-    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror)	!write a whole dataset at once with a shared file handle
-    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)	! collective operation to write ranks one after another
+    !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
+    !
+    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror)	! write (a whole dataset at once) with a shared file handle
+    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)	! collective operation to write ranks one after another with a shared file handler
+    !
     
   end subroutine Global_FileWriteNoAdvance_parallel
 
