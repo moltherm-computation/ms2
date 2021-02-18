@@ -4,4 +4,5 @@
 	<parFile>NVT.par</parFile>
 	<name>LJ126_site_mpi</name>
 	<np>4</np>
+	<relativeTolerance>1e-6</relativeTolerance>
 </testcase>
