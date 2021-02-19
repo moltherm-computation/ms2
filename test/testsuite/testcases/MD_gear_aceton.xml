@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_gear_aceton.par</parFile>
+	<name>MD_gear_aceton</name>
+	<np>2</np>
+	<reference>
+		<file>MD_gear_aceton.rst</file>
+	</reference>
+</testcase>

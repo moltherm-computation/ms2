@@ -2,12 +2,13 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.207</tools4ms2version>
-	<caseRepositoryHash>0d2ccd8f4f2af1f84653412ab3f0b64c3291323e</caseRepositoryHash>
+	<caseRepositoryHash>2f7aa623abca9b27cc7ce0998dd8a73637d7c849</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
 		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
 		<case name="MC" file="MC.xml" />
+		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 	</caseList>
 </testsuite>
