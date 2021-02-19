@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_leap_meoh.par</parFile>
+	<name>MD_leap_meoh</name>
+	<np>2</np>
+	<reference>
+		<file>MD_leap_meoh.rst</file>
+	</reference>
+	<reference>
+		<file>MD_leap_meoh_1.res</file>
+	</reference>
+</testcase>
