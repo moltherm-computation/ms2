@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.207</tools4ms2version>
-	<caseRepositoryHash>9fbbd9d1d0079f7a04e3db35728f554b0b91576b</caseRepositoryHash>
+	<tools4ms2version>0.0.209</tools4ms2version>
+	<caseRepositoryHash>66ce53a5f70b2987c5ba486c91884f05af8b0473</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
 		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
 		<case name="MC" file="MC.xml" />
+		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
 	</caseList>
