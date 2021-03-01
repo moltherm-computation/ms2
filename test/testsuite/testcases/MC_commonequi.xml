@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_commonequi.par</parFile>
+	<name>MC_commonequi</name>
+	<np>3</np>
+	<reference>
+		<file>MC_commonequi.rst</file>
+	</reference>
+	<reference>
+		<file>MC_commonequi_1.res</file>
+	</reference>
+</testcase>
