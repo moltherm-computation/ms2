@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.209</tools4ms2version>
-	<caseRepositoryHash>97ea1cb4e96ea1b1f5b397829836721a840c829a</caseRepositoryHash>
+	<caseRepositoryHash>81344a205c2b937e71218e3afbcdd4005b9d9d35</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
@@ -15,5 +15,6 @@
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
+		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 	</caseList>
 </testsuite>

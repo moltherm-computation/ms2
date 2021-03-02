@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NPT_4mixT380--MD.par</parFile>
+	<name>NPT_4mixT380--MD</name>
+	<np>2</np>
+	<nThreads>2</nThreads>
+	<reference>
+		<file>NPT_4mixT380--MD.rst</file>
+	</reference>
+</testcase>
