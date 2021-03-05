@@ -1051,7 +1051,7 @@ contains
         
         if ( RootProc) then
           if ( RootProc_R ) then
-            this%TerminateCountdown=NProcs_R	!=NCommunicators
+            this%TerminateCountdown=NProcs_R    !=NCommunicators
             ! RootProc_W subcommunicator root starts receiving a TerminateStatus message
             call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, &
 &                          Communicator_R, this%mpireqmsgTerm, ierror)
@@ -2126,8 +2126,8 @@ eqloop: do
           !do i = 1, this%numMsgTerm_send-max(this%numMsgTerm_recv,1)
           do i = 1, this%numMsgTerm_send-(this%numMsgTerm_recv+1)
             call MPI_Recv(TerminateStatus, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, ierror)
-            if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.	!int(b'1')
-            if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.	!int(b'10')
+            if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.   !int(b'1')
+            if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.   !int(b'10')
           end do
         else ! RootProc.and..not.RootProc_R
           !if ( .not. this%doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
@@ -2171,11 +2171,11 @@ eqloop: do
         end if
       end if    ! RootProc
 
-      if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)	!int(b'1')
-      if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)	!int(b'10')
+      if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)  !int(b'1')
+      if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)  !int(b'10')
       call MPI_Allreduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, MPI_COMM_WORLD, ierror )
-      if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.	!int(b'1')
-      if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.	!int(b'10')
+      if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true. !int(b'1')
+      if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true. !int(b'10')
     end if  ! NCommunicators > 1
 #endif
 
@@ -2272,8 +2272,6 @@ eqloop: do
         NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
       end if
 
-!      if (mod(Step,1000)==0) then
-!end if
       ! Run simulation step
       select case( SimulationType )
       case( MolecularDynamics )
@@ -2364,7 +2362,7 @@ eqloop: do
                 call LogWriteTime
                 this%doneTerminateCountdown=.true.
               end if
-              TerminateStatus=IBCLR(TerminateStatus,2)	!=IEOR(TerminateStatus,int(b'100'))
+              TerminateStatus=IBCLR(TerminateStatus,2)  !=IEOR(TerminateStatus,int(b'100'))
               !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               do i=1,this%TerminateCountdown
                 call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
