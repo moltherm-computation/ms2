@@ -10553,17 +10553,13 @@ loop2:        do nc = 1, this%NComponents
       ! Update result header
       if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-         if (RootProc) then
-           !if (CommonEqui) then
-           !  offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1
-           !else
-           !  offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
-           !endif
-           !call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-           !call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
-           !write( IOBuffer, '(A)' )new_line('a')
-           !call FileWriteNoAdvance_parallel( this%iounit_result )
-           !call FileWriteNoAdvance_parallel( this%iounit_runave )
+         call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header !RFMC
+         call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
+         call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
+         if (RootProc) then        
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
            ! PROC
            write( IOBuffer, '("       PROC")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -10696,6 +10692,7 @@ loop2:        do nc = 1, this%NComponents
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
          endif
+         call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header !RFMC
 #else
          call FileWriteBlank( this%iounit_result )
          call FileWriteBlank( this%iounit_runave )
@@ -11586,32 +11583,15 @@ loop2:        do nc = 1, this%NComponents
     if( mod( Step, BlockSize ) == 0 ) then
       if(SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-        !
-        !call MPI_File_sync(this%iounit_result)
-        !call MPI_File_sync(this%iounit_runave)
-        !
+
         call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header
         offset=0
         call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
         call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
         call MPI_Barrier(Communicator, ierror)  ! wait for seeks before writing (and maybe moving END)
-        !call MPI_File_get_position(this%iounit_result,offset)
-        !call MPI_File_get_position(this%iounit_runave,offset)
-        !
-        !
-        ! MPI_File_sync, MPI_Barrier and MPI_File_seek are avoidable
-        ! the number of steps written (within this run) can be stored and taken into account for the offset calculation
-        ! it might be better to always write a line/row at once
-        ! with this change it's easier to use a shared file pointer (_shared or better the collective _ordered) or a File_view
-        !call MPI_File_seek_shared(this%iounit_result, 0, MPI_SEEK_END, ierr)
-        !call MPI_File_seek_shared(this%iounit_runave, 0, MPI_SEEK_END, ierr)
-        !
-        !
+
         if (Equilibration) then
           if(CommonEqui) then
-            !offset = (accumulate_step/BlockSize+headers) * (11 * fields + 1) + headers
-            !call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-            !call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
             if (RootProc) then
               ! PROC
               write( IOBuffer, '(I11)' ) NProc
@@ -11733,9 +11713,6 @@ loop2:        do nc = 1, this%NComponents
                call FileWriteNoAdvance_parallel( this%iounit_runave )
             endif
           else ! No CommonEqui
-            !offset = (NProc  + ((accumulate_step/BlockSize)) * NProcs +headers) * (11 * fields + 1) + headers
-            !call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-            !call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
             offset = NProc * (11 * fields + 1)
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
@@ -11859,15 +11836,7 @@ loop2:        do nc = 1, this%NComponents
           endif
           accumulate_step = accumulate_step + BlockSize
         else !production starts
-          if (CommonEqui) then
-            !offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs ) * (11 * fields + 1)
-          else
-            !offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+headers) * (11 * fields + 1) + headers
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs ) * (11 * fields + 1)
-          endif
-          !call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-          !call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+          offset = NProc * (11 * fields + 1)
           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
           ! PROC

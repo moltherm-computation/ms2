@@ -2132,21 +2132,16 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    !integer                       :: iounit
     integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
-    !integer :: info
 
     if(RootProc) then
       ! open file for writing
       if( iounit /= iounit_log ) then
         write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
         call logwrite
-        ! ? just (re)creating a file?
-        !open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-        !close(iounit)
-        ! ?
-        !MPI_File_delete(filename,info,ierror)
+        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+        close(iounit)
       end if
     end if
     call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
@@ -2170,7 +2165,6 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    !integer, intent(in)           :: iounit
     integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
 
@@ -2187,15 +2181,6 @@ contains
         call LogWrite
       end if
 
-      !inquire( file = filename, exist = ex )
-      !if( ex ) then
-      !  open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
-      !else
-      !  write( IOBuffer, '("File does not exist. Creating new")' )
-      !  call LogWrite
-      !  open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-      !end if
-      !!close(iounit)
     endif
     ! MB: Fortran POSIX IO != MPI IO; Fortran units != MPI units; mpi iounit is not a prescribed value but returned from MPI_File_Open...
     call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE + MPI_MODE_APPEND, MPI_INFO_NULL &
@@ -2230,8 +2215,8 @@ contains
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
     !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
     !
-    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror)	! write (a whole dataset at once) with a shared file handle
-    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)	! collective operation to write ranks one after another with a shared file handler
+    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
+    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)  ! collective operation to write ranks one after another with a shared file handler
     !
     
   end subroutine Global_FileWriteNoAdvance_parallel
