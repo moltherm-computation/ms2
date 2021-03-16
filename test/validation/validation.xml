@@ -2,10 +2,11 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.227</tools4ms2version>
-	<caseRepositoryHash>6996497e2fce3b884e4809b37cae9e2a5d03b717</caseRepositoryHash>
+	<caseRepositoryHash>580ff272b11c3a624a8cfe32e633b37cfa3ab3e4</caseRepositoryHash>
 	<caseList>
 		<case name="OPLS_rrs" file="OPLS_rrs.xml" />
 		<case name="C2H6_OPLS_p3T2_Ring" file="C2H6_OPLS_p3T2_Ring.xml" />
 		<case name="C3H8_OPLSAmb_p3T2_Ring" file="C3H8_OPLSAmb_p3T2_Ring.xml" />
+		<case name="C4H10_OPLS_p3T2_Ring" file="C4H10_OPLS_p3T2_Ring.xml" />
 	</caseList>
 </testsuite>
