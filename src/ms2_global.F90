@@ -944,11 +944,7 @@ module ms2_global
   end interface
 
   interface LogWrite
-!#if MPI_VER > 0
-!    module procedure Global_LogWrite_MPI
-!#else
     module procedure Global_LogWrite
-!#endif
   end interface
 
   interface LogWriteNoAdvance
@@ -1959,37 +1955,6 @@ contains
 #endif
 
   end subroutine Global_LogWrite
-
-! #if MPI_VER > 0
-! !==============================================================!
-! !  Subroutine Global_LogWrite_MPI                              !
-! !==============================================================!
-!
-! subroutine Global_LogWrite_MPI(rank)
-!
-!     implicit none
-!#if !defined(MPI_USE_MODULE)
-!     include 'mpif.h'
-!#endif
-!
-!     ! Declare local variables
-!     integer, intent(in), optional      :: rank
-!
-!     integer             :: mpistatus(MPI_STATUS_SIZE)
-!
-!
-!     if( present( rank ) .and. (rank .ne. NRootProc) ) then
-!       ! transfer IOBuffer to NRootProc
-!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
-! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
-! &                        Communicator, mpistatus, ierror)
-!       !call MPI_Barrier( Communicator, ierror )
-!     endif
-!     ! execute LogWrite on NRootProc
-!     if( RootProc ) call Global_LogWrite()
-!
-!   end subroutine Global_LogWrite_MPI
-! #endif
 
 
 !==============================================================!
@@ -3126,13 +3091,8 @@ subroutine time_left(time_limit)
     if (FirstCAll)then
 #if MPI_VER > 0
        first_time = MPI_WTIME()
-!#elif defined ENABLE_OMP ! comment put by simon -> otherwise omp error
-!       first_time = omp_get_wtime()   !-"-
+
 #else
-       !first_time = real(time())
-       !!first_time = rtc()
-       ! call system_clock(count_rate=sysclkcountrate,count_max=sysclkcountmax)
-       ! call system_clock(sysclkcount)
        call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
        first_time = real(real(sysclkcount)/sysclkcountrate)
 #endif
@@ -3140,17 +3100,12 @@ subroutine time_left(time_limit)
     end if
 #if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
-!#elif defined ENABLE_OMP   ! comment put by simon -> otherwise omp error
-!      first_time = omp_get_wtime() - first_time        ! -"-
+
 #else
     !time_elapsed = real(time()) - first_time
     call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
     time_elapsed = real(sysclkcount)/sysclkcountrate - first_time
 #endif
-
-! Get CPU time consumed by each task and compute the maximum value
-!    call cpu_time(cputime)
-! CPU time (!= elapsed wallclock time) does not make much sense here! There are also problems with multithreaded programs and "wrap around".
 
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t
