@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.238</tools4ms2version>
-	<caseRepositoryHash>17f5d9fd8797d5a74f5c8eb3b7c707ca57f83918</caseRepositoryHash>
+	<tools4ms2version>0.0.239</tools4ms2version>
+	<caseRepositoryHash>f57648a2fe73496e5d63aa3f01301c7114f57159</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
@@ -16,6 +16,7 @@
 		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
+		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
