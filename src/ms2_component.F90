@@ -3010,15 +3010,7 @@ contains
 
     end if
 
-    ! Add forces and torques by demand
 #if MPI_VER > 0
-!     do i = 1, i0-1
-!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
-!     end do
-!     do i = i1, this%NPart
-!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
-!     end do
-
     ! Reduce forces and torques from all processes
     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
