@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NVT_4mixT380--MD.par</parFile>
+	<name>NVT_4mixT380--MD</name>
+	<np>2</np>
+	<reference>
+		<file>NVT_4mixT380--MD.rst</file>
+	</reference>
+	<reference>
+		<file>NVT_4mixT380--MD_1.rdf</file>
+	</reference>
+	<reference>
+		<file>NVT_4mixT380--MD_1.res</file>
+	</reference>
+	<reference>
+		<file>NVT_4mixT380--MD_1.thi</file>
+	</reference>
+</testcase>

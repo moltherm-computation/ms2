@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>8dac92cc3360b84302ee0e4bb0f0ceb570d55ff7</caseRepositoryHash>
+	<caseRepositoryHash>8bea613389ee224650f639fd83ad5d0d9b29da97</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
@@ -30,5 +30,6 @@
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
+		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 	</caseList>
 </testsuite>
