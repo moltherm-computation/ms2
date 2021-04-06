@@ -5,7 +5,7 @@
 	<caseRepositoryHash>2cd9507e7b571afaa9b37a44c128d5067642db4e</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
-		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
+		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
 		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
 		<case name="MC" file="MC.xml" />
@@ -23,6 +23,7 @@
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
+		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" />
