@@ -1820,7 +1820,7 @@ eqloop: do
           end if
           call LogWriteTime
 
-        else if( EnsembleType .eq. EnsembleTypeNPT ) then
+        else if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
           StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
