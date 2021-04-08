@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>80233333ff4bfec9a8a760fbb27d12473d8b158b</caseRepositoryHash>
+	<caseRepositoryHash>e538c0a17c2eb975d442c15ef6a577f6c9fc85b8</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />

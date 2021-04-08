@@ -8,4 +8,16 @@
 	<reference>
 		<file>NPT_4mixT380--MD.rst</file>
 	</reference>
+	<reference>
+		<file>NPT_4mixT380--MD.24DAT.nrm</file>
+	</reference>
+	<reference>
+		<file>NPT_4mixT380--MD.ClBen5Q1D.nrm</file>
+	</reference>
+	<reference>
+		<file>NPT_4mixT380--MD.HClpc.nrm</file>
+	</reference>
+	<reference>
+		<file>NPT_4mixT380--MD.PhosgenRU.nrm</file>
+	</reference>
 </testcase>
