@@ -5,7 +5,7 @@
 	<caseRepositoryHash>780700a52f9df0f773b21241db880115a6214703</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
-		<case name="LJ126_com" file="LJ126_com.xml" />
+		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
 		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
 		<case name="MC" file="MC.xml" />
