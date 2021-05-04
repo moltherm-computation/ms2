@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_gear_thermoint_meoh.par</parFile>
+	<name>MD_gear_thermoint_meoh</name>
+	<np>40</np>
+	<walltime>00:05:00</walltime>
+	<reference>
+		<file>MD_gear_thermoint_meoh_1.res</file>
+	</reference>
+</testcase>

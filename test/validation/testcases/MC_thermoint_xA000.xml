@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_thermoint_xA000.par</parFile>
+	<name>MC_thermoint_xA000</name>
+	<np>40</np>
+	<walltime>00:05:00</walltime>
+	<reference>
+		<file>MC_thermoint_xA000_1.res</file>
+	</reference>
+</testcase>

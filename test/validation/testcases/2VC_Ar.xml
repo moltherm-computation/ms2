@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>2VC_Ar.par</parFile>
+	<name>2VC_Ar</name>
+	<np>1</np>
+	<walltime>00:05:00</walltime>
+	<reference>
+		<file>2VC_Ar_1.res</file>
+	</reference>
+</testcase>
