@@ -7378,42 +7378,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
   end function TEnsemble_GetVirial
 
-
-!==============================================================!
-!  Function TEnsemble_GetVirialIntra                           !
-!==============================================================!
-
-  function TEnsemble_GetVirialIntra( this ) result(V)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: V
-
-    ! Declare local variables
-    integer :: i, j
-    integer :: n
-    integer :: NUnit, np
-
-    ! Calculate potential energy of a particle
-    V = 0._RK
-    do i = 1, this%NComponents
-      NUnit = this%Component(i)%Molecule%NUnit
-      np = this%Component(i)%NPart
-      n = np*NUnit
-      do j = 1, np
-        V = V + sum( this%Interaction(i, i)% &
-&         Virial((j-1)*NUnit+1:j*NUnit,(j-1)*NUnit+1:j*NUnit) )
-      end do
-    end do
-    V = .5_RK * V
-
-  end function TEnsemble_GetVirialIntra
-
-
 !==============================================================!
 !  Function TEnsemble_Getd2EpotdV2                             !
 !==============================================================!
@@ -21405,6 +21369,41 @@ contains
     end if
 
   end subroutine TEnsemble_MoveMol
+
+
+!==============================================================!
+!  Function TEnsemble_GetVirialIntra                           !
+!==============================================================!
+
+  function TEnsemble_GetVirialIntra( this ) result(V)
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: V
+
+    ! Declare local variables
+    integer :: i, j
+    integer :: n
+    integer :: NUnit, np
+
+    ! Calculate potential energy of a particle
+    V = 0._RK
+    do i = 1, this%NComponents
+      NUnit = this%Component(i)%Molecule%NUnit
+      np = this%Component(i)%NPart
+      n = np*NUnit
+      do j = 1, np
+        V = V + sum( this%Interaction(i, i)% &
+&         Virial((j-1)*NUnit+1:j*NUnit,(j-1)*NUnit+1:j*NUnit) )
+      end do
+    end do
+    V = .5_RK * V
+
+  end function TEnsemble_GetVirialIntra
 
 
 end module ms2_ensemble
