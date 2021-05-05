@@ -5865,43 +5865,6 @@ loop1:do i = 1, this%NPart
 
 
 !==============================================================!
-!  Subroutine TComponent_DuplicateParticle                     !
-!==============================================================!
-
-  subroutine TComponent_DuplicateParticle( comp1, comp2, np)
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)       :: comp1, comp2
-    integer, intent(in)    :: np
-
-    ! Test boundaries of particle arrays
-    if( comp1%NPart > comp1%NPartMax ) then
-      tooManyParticles = .true.
-      return
-    elseif( comp1%NPart == comp1%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    ! Increase NPart
-    comp1%NPart = comp1%NPart + 1
-#if MPI_VER > 0
-    comp1%NPart1 = ProcRange( comp1%NPart, comp1%NPart0, comp1%NPart2 )
-#endif
-
-    ! Set coordinates and orientation of new particle
-    comp1%Pm0(comp1%NPart, :) = comp2%Pm0(np, :)
-    comp1%P0(comp1%NPart, :, :) = comp2%P0(np, :, :)
-    if (comp1%Molecule%isElongated) then
-      comp1%Q0(comp1%NPart, :, :) = comp2%Q0(np, :, :)
-    end if
-
-  end subroutine TComponent_DuplicateParticle
-
-
-!==============================================================!
 !  Subroutine TComponent_RemoveParticle                        !
 !==============================================================!
 
@@ -7197,6 +7160,44 @@ contains
 
 
  end subroutine TComponent_Constraints
+
+
+
+!==============================================================!
+!  Subroutine TComponent_DuplicateParticle                     !
+!==============================================================!
+
+  subroutine TComponent_DuplicateParticle( comp1, comp2, np)
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)       :: comp1, comp2
+    integer, intent(in)    :: np
+
+    ! Test boundaries of particle arrays
+    if( comp1%NPart > comp1%NPartMax ) then
+      tooManyParticles = .true.
+      return
+    elseif( comp1%NPart == comp1%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
+      tooManyParticles = .true.
+      return
+    end if
+
+    ! Increase NPart
+    comp1%NPart = comp1%NPart + 1
+#if MPI_VER > 0
+    comp1%NPart1 = ProcRange( comp1%NPart, comp1%NPart0, comp1%NPart2 )
+#endif
+
+    ! Set coordinates and orientation of new particle
+    comp1%Pm0(comp1%NPart, :) = comp2%Pm0(np, :)
+    comp1%P0(comp1%NPart, :, :) = comp2%P0(np, :, :)
+    if (comp1%Molecule%isElongated) then
+      comp1%Q0(comp1%NPart, :, :) = comp2%Q0(np, :, :)
+    end if
+
+  end subroutine TComponent_DuplicateParticle
 
 
 end module ms2_component
