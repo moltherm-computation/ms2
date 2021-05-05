@@ -6601,62 +6601,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_UpdateEnergy
 
 
-!==============================================================!
-!  Subroutine TEnsemble_UpdateEnergy1Mol                       !
-!==============================================================!
-
-  subroutine TEnsemble_UpdateEnergy1Mol( this, nc, np )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    type(TInteraction), pointer :: pi
-    integer                     :: n
-    integer                     :: i, j
-    integer                     :: NBond, NAngle, NDihedral
-    integer                     :: npu, npu1
-
-    ! Update potential energy and virial matrices for a particle
-    npu = (np-1) * this%Component(nc)%Molecule%NUnit
-
-    do i = 1, this%NComponents
-      pi => this%Interaction(nc, i)
-      n = pi%NPart2 * pi%NUnit2
-      do j=1,pi%NUnit1
-        npu1 = npu + j
-        pi%EPot(npu1, 1:n) = pi%EPotMol(j, 1:n)
-        pi%d2EpotdV2(npu1, 1:n) = pi%d2EpotdV2Mol(j, 1:n)
-
-        if ( this%OptPressure ) then
-          pi%Virial(npu1, 1:n) = pi%VirialMol(j, 1:n)
-        end if
-
-        this%Interaction(i, nc)%EPot(1:n, npu1) = pi%EPotMol(j, 1:n)
-        this%Interaction(i, nc)%d2EpotdV2(1:n, npu1) = pi%d2EpotdV2Mol(j, 1:n)
-
-        if ( this%OptPressure ) then
-          this%Interaction(i, nc)%Virial(1:n, npu1) = pi%VirialMol(j, 1:n)
-        end if
-      end do
-    end do
-
-    if ( UseIntDegFreed ) then
-      pi => this%Interaction(nc,nc)
-      !NBond = pi%NBond
-      NAngle = pi%NAngle
-      NDihedral = pi%NDihedral
-
-      !pi%EPotBond((np-1)*NBond+1:np*NBond) = pi%EPot1Bond(:)
-      pi%EPotAngle((np-1)*NAngle+1:np*NAngle) = pi%EPot1Angle(:)
-      pi%EPotTo((np-1)*NDihedral+1:np*Ndihedral) = pi%EPot1To(:)
-    end if
-
-  end subroutine TEnsemble_UpdateEnergy1Mol
-
 
 !==============================================================!
 !  Subroutine TEnsemble_UpdateEnergy1                          !
@@ -21406,6 +21350,64 @@ contains
     end if
 
   end subroutine TEnsemble_Energy1Mol
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_UpdateEnergy1Mol                       !
+!==============================================================!
+
+  subroutine TEnsemble_UpdateEnergy1Mol( this, nc, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    type(TInteraction), pointer :: pi
+    integer                     :: n
+    integer                     :: i, j
+    integer                     :: NBond, NAngle, NDihedral
+    integer                     :: npu, npu1
+
+    ! Update potential energy and virial matrices for a particle
+    npu = (np-1) * this%Component(nc)%Molecule%NUnit
+
+    do i = 1, this%NComponents
+      pi => this%Interaction(nc, i)
+      n = pi%NPart2 * pi%NUnit2
+      do j=1,pi%NUnit1
+        npu1 = npu + j
+        pi%EPot(npu1, 1:n) = pi%EPotMol(j, 1:n)
+        pi%d2EpotdV2(npu1, 1:n) = pi%d2EpotdV2Mol(j, 1:n)
+
+        if ( this%OptPressure ) then
+          pi%Virial(npu1, 1:n) = pi%VirialMol(j, 1:n)
+        end if
+
+        this%Interaction(i, nc)%EPot(1:n, npu1) = pi%EPotMol(j, 1:n)
+        this%Interaction(i, nc)%d2EpotdV2(1:n, npu1) = pi%d2EpotdV2Mol(j, 1:n)
+
+        if ( this%OptPressure ) then
+          this%Interaction(i, nc)%Virial(1:n, npu1) = pi%VirialMol(j, 1:n)
+        end if
+      end do
+    end do
+
+    if ( UseIntDegFreed ) then
+      pi => this%Interaction(nc,nc)
+      !NBond = pi%NBond
+      NAngle = pi%NAngle
+      NDihedral = pi%NDihedral
+
+      !pi%EPotBond((np-1)*NBond+1:np*NBond) = pi%EPot1Bond(:)
+      pi%EPotAngle((np-1)*NAngle+1:np*NAngle) = pi%EPot1Angle(:)
+      pi%EPotTo((np-1)*NDihedral+1:np*Ndihedral) = pi%EPot1To(:)
+    end if
+
+  end subroutine TEnsemble_UpdateEnergy1Mol
 
 
 end module ms2_ensemble
