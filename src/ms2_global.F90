@@ -2076,36 +2076,6 @@ contains
 
 #endif
 
-
-!==============================================================!
-!  Subroutine Global_FileRewind                                !
-!==============================================================!
-
-  subroutine Global_FileRewind( iounit, filename )
-
-    implicit none  !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
-
-    ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: filename
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-&     trim( filename )
-    call LogWrite
-    rewind( iounit, iostat = stat )
-    if( stat /= 0 ) &
-&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
-
-  end subroutine Global_FileRewind
-
-
 !==============================================================!
 !  Subroutine Global_FileRewrite                               !
 !==============================================================!
@@ -3044,6 +3014,36 @@ contains
 
   end subroutine time_left
 #endif
+
+
+!==============================================================!
+!  Subroutine Global_FileRewind                                !
+!==============================================================!
+
+  subroutine Global_FileRewind( iounit, filename )
+
+    implicit none  !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
+&     trim( filename )
+    call LogWrite
+    rewind( iounit, iostat = stat )
+    if( stat /= 0 ) &
+&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileRewind
+
 
 end module ms2_global
 
