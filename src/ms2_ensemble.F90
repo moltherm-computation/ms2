@@ -6799,66 +6799,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_Energy
 
 
-!==============================================================!
-!  Subroutine TEnsemble_Energy1 (per molecule)                 !
-!==============================================================!
-
-  subroutine TEnsemble_Energy1Mol( this, nc, np, EPotNew )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)       :: this
-    integer, intent(in)   :: nc, np
-    real(RK), intent(out) :: EPotNew
-
-    ! Declare local variables
-    type(TInteraction), pointer :: pi
-    integer                     :: n, nu, nup
-    integer                     :: i
-
-    ! Initialize new energy
-    EPotNew = 0._RK
-    nup = (np-1)*this%Component(nc)%Molecule%NUnit
-
-    ! Loop over components
-    do i = 1, this%NComponents
-      pi => this%Interaction(nc, i)
-      n = pi%NPart2*pi%NUnit2
-      do nu=1, this%Component(nc)%Molecule%NUnit
-          call Energy( pi, np, nu, this%BoxLength )
-          if ( pi%SameComponent .and. UseIntDegFreed ) then
-            call IntraEnergy( pi, np, nu, this%BoxLength )
-            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) ) 
-          end if
-          ! Calculate new energy
-          EPotNew = EPotNew + sum( pi%EPot1(1:n) )  !includes Bond energies
-          pi%EPotMol(nu,:) = pi%Epot1
-          pi%d2EpotdV2Mol(nu, :) = pi%d2EpotdV21
-          if (this%OptPressure) then
-            pi%VirialMol(nu,:) = pi%Virial1
-          end if
-      end do
-    end do
-
-    !Michael Sch.: new form
-    if ( UseIntDegFreed ) then
-      pi => this%Interaction(nc, nc)
-      EPotNew = EPotNew  + ( sum(pi%EPot1Angle) + sum(pi%EPot1To) )
-    end if
-
-    if (LongRange .eq. Ewald) then
-       call EwaldFourierEnergy(this,nc,np)
-       EPotNew = EPotnew + this%UFourier
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-       call PMEFourierTermMC( this )
-       EPotNew = EPotnew + this%UFourier
-#endif
-    end if
-
-  end subroutine TEnsemble_Energy1Mol
-
 
 !==============================================================!
 !  Subroutine TEnsemble_Energy1                                !
@@ -21405,6 +21345,67 @@ contains
     end if
 
   end function TEnsemble_GetEnergy1Mol
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Energy1 (per molecule)                 !
+!==============================================================!
+
+  subroutine TEnsemble_Energy1Mol( this, nc, np, EPotNew )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)       :: this
+    integer, intent(in)   :: nc, np
+    real(RK), intent(out) :: EPotNew
+
+    ! Declare local variables
+    type(TInteraction), pointer :: pi
+    integer                     :: n, nu, nup
+    integer                     :: i
+
+    ! Initialize new energy
+    EPotNew = 0._RK
+    nup = (np-1)*this%Component(nc)%Molecule%NUnit
+
+    ! Loop over components
+    do i = 1, this%NComponents
+      pi => this%Interaction(nc, i)
+      n = pi%NPart2*pi%NUnit2
+      do nu=1, this%Component(nc)%Molecule%NUnit
+          call Energy( pi, np, nu, this%BoxLength )
+          if ( pi%SameComponent .and. UseIntDegFreed ) then
+            call IntraEnergy( pi, np, nu, this%BoxLength )
+            EPotNew = EPotNew - 0.5_RK*sum( pi%EPot1(nup+1:nup+this%Component(nc)%Molecule%NUnit) )
+          end if
+          ! Calculate new energy
+          EPotNew = EPotNew + sum( pi%EPot1(1:n) )  !includes Bond energies
+          pi%EPotMol(nu,:) = pi%Epot1
+          pi%d2EpotdV2Mol(nu, :) = pi%d2EpotdV21
+          if (this%OptPressure) then
+            pi%VirialMol(nu,:) = pi%Virial1
+          end if
+      end do
+    end do
+
+    !Michael Sch.: new form
+    if ( UseIntDegFreed ) then
+      pi => this%Interaction(nc, nc)
+      EPotNew = EPotNew  + ( sum(pi%EPot1Angle) + sum(pi%EPot1To) )
+    end if
+
+    if (LongRange .eq. Ewald) then
+       call EwaldFourierEnergy(this,nc,np)
+       EPotNew = EPotnew + this%UFourier
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+       call PMEFourierTermMC( this )
+       EPotNew = EPotnew + this%UFourier
+#endif
+    end if
+
+  end subroutine TEnsemble_Energy1Mol
 
 
 end module ms2_ensemble
