@@ -1081,164 +1081,6 @@ contains
 
 
 !==============================================================!
-!  Subroutine TInteraction_MDEnergy                            !
-!==============================================================!
-
-  subroutine TInteraction_MDEnergy( this, selected, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)       :: this
-    integer, intent(in)      :: selected
-    integer, intent(in)      :: NUnitX
-    real(RK), intent(in out) :: F(3,NUnitX)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in out) :: EBond
-    real(RK), intent(in out) :: EAngle
-    real(RK), intent(in out) :: EDihedral
-    real(RK), intent(in)     :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    integer        :: i, j, k, jk, unit1
-    real(RK)       :: EBonded
-
-    call CalcCutoffPartners( this, selected )
-
-    ! use MC Energy-Routine instad? possible?
-    ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate point charge forces
-    do i = 1, this%N1Charge
-      if ( .not. this%ReactionField ) then
-        do j = 1, this%N2Charge
-          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
-        end do
-      else
-        do j = 1, this%N2Charge
-          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-        end do
-      end if
-      do j = 1, this%N2Dipole
-        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate dipolar forces
-    do i = 1, this%N1Dipole
-      do j = 1, this%N2Charge
-        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Dipole
-        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate quadrupolar forces
-    do i = 1, this%N1Quadrupole
-      do j = 1, this%N2Charge
-        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Dipole
-        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-
-    ! Inner Degrees of Freedom
-    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
-      if (.not. Shake > 0) then
-        do i = 1, this%NBond
-          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
-        end do
-      end if
-      do i = 1, this%NAngle
-        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
-      end do
-      do i = 1, this%NDihedral
-        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
-      end do
-      EBonded = EBond + EAngle + EDihedral
-      EIntra = EIntra + EBonded
-      E = E + EBonded
-    end if
-
-    ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
-    if ( this%ReactionField .and. LongRange .eq. RField) then
-      do i = 1, this%NUnit1
-        unit1 = (selected-1)*this%NUnit1+i
-
-          do k = 1, this%NInCutoff(unit1)
-            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-              j = this%NUnit2 ! number of unit in molecule
-            else
-              jk = INT(j/this%NUnit2)+1
-              j = mod(j,this%NUnit2)
-            end if
-            E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
-&                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
-          end do
-      end do
-    end if
-
- end subroutine TInteraction_MDEnergy
-
-
-!==============================================================!
-!  Subroutine TInteraction_WholeMDEnergy                       !
-!==============================================================!
-
-  subroutine TInteraction_WholeMDEnergy( this, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)       :: this
-    integer, intent(in)      :: NUnitX
-    real(RK), intent(in out) :: F(3,NUnitX)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in out) :: EBond
-    real(RK), intent(in out) :: EAngle
-    real(RK), intent(in out) :: EDihedral
-    real(RK), intent(in)     :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    integer      :: i, i0, i1
-
-    ! Cutoffpartners not calculated anew (is done in force, chempot)
-    ! for special endeavors should be done manually and problem specific
-
-#if MPI_VER > 0
-    i0 = this%NPart10
-    i1 = this%NPart12
-#else
-    i0 = 1
-    i1 = this%NPart1
-#endif
-    do i = i0, i1
-      call MDEnergy( this, i, NUnitX, F(:,:), E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-    end do
-
- end subroutine TInteraction_WholeMDEnergy
- 
-
-!==============================================================!
 !  Subroutine TInteraction_Force                               !
 !==============================================================!
 #ifndef ABL
@@ -6362,6 +6204,166 @@ end subroutine TInteraction_Energy
 !$OMP END DO
 !$OMP END PARALLEL
   end subroutine TInteraction_CalcPartnersTest
+
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_MDEnergy                            !
+!==============================================================!
+
+  subroutine TInteraction_MDEnergy( this, selected, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    integer, intent(in)      :: selected
+    integer, intent(in)      :: NUnitX
+    real(RK), intent(in out) :: F(3,NUnitX)
+    real(RK), intent(in out) :: E
+    real(RK), intent(in out) :: EIntra
+    real(RK), intent(in out) :: EBond
+    real(RK), intent(in out) :: EAngle
+    real(RK), intent(in out) :: EDihedral
+    real(RK), intent(in)     :: BoxLength
+    logical, intent(in)      :: CompIdent
+
+    ! Declare local variables
+    integer        :: i, j, k, jk, unit1
+    real(RK)       :: EBonded
+
+    call CalcCutoffPartners( this, selected )
+
+    ! use MC Energy-Routine instad? possible?
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate point charge forces
+    do i = 1, this%N1Charge
+      if ( .not. this%ReactionField ) then
+        do j = 1, this%N2Charge
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
+        end do
+      else
+        do j = 1, this%N2Charge
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        end do
+      end if
+      do j = 1, this%N2Dipole
+        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate dipolar forces
+    do i = 1, this%N1Dipole
+      do j = 1, this%N2Charge
+        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Dipole
+        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate quadrupolar forces
+    do i = 1, this%N1Quadrupole
+      do j = 1, this%N2Charge
+        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Dipole
+        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+
+    ! Inner Degrees of Freedom
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+      if (.not. Shake > 0) then
+        do i = 1, this%NBond
+          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
+        end do
+      end if
+      do i = 1, this%NAngle
+        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
+      end do
+      do i = 1, this%NDihedral
+        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
+      end do
+      EBonded = EBond + EAngle + EDihedral
+      EIntra = EIntra + EBonded
+      E = E + EBonded
+    end if
+
+    ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
+    if ( this%ReactionField .and. LongRange .eq. RField) then
+      do i = 1, this%NUnit1
+        unit1 = (selected-1)*this%NUnit1+i
+
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if (mod(j,this%NUnit2)==0) then
+              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
+              j = this%NUnit2 ! number of unit in molecule
+            else
+              jk = INT(j/this%NUnit2)+1
+              j = mod(j,this%NUnit2)
+            end if
+            E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
+&                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
+          end do
+      end do
+    end if
+
+ end subroutine TInteraction_MDEnergy
+
+
+!==============================================================!
+!  Subroutine TInteraction_WholeMDEnergy                       !
+!==============================================================!
+
+  subroutine TInteraction_WholeMDEnergy( this, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    integer, intent(in)      :: NUnitX
+    real(RK), intent(in out) :: F(3,NUnitX)
+    real(RK), intent(in out) :: E
+    real(RK), intent(in out) :: EIntra
+    real(RK), intent(in out) :: EBond
+    real(RK), intent(in out) :: EAngle
+    real(RK), intent(in out) :: EDihedral
+    real(RK), intent(in)     :: BoxLength
+    logical, intent(in)      :: CompIdent
+
+    ! Declare local variables
+    integer      :: i, i0, i1
+
+    ! Cutoffpartners not calculated anew (is done in force, chempot)
+    ! for special endeavors should be done manually and problem specific
+
+#if MPI_VER > 0
+    i0 = this%NPart10
+    i1 = this%NPart12
+#else
+    i0 = 1
+    i1 = this%NPart1
+#endif
+    do i = i0, i1
+      call MDEnergy( this, i, NUnitX, F(:,:), E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+    end do
+
+ end subroutine TInteraction_WholeMDEnergy
 
 
 end module ms2_interaction
