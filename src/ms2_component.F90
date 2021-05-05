@@ -5638,82 +5638,6 @@ loop1:do i = 1, this%NPart
 
 
 !==============================================================!
-!  Subroutine TComponent_ReverseLeapFrog                       !
-!==============================================================!
-
-  subroutine TComponent_ReverseLeapFrog( this, oldF, dLogVolumeThird )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)       :: this
-    real(RK), intent( in ) :: oldF(this%NPart,3,this%Molecule%NUnit)
-    real(RK), intent( in ) :: dLogVolumeThird
-
-    ! Declare local variables
-    integer           :: nu, np
-    integer           :: i, j, k
-    real(RK)          :: r(3), BoxLengthInv
-
-    BoxLengthInv = 1._RK / this%BoxLength
-    np = this%NPart
-    nu = this%Molecule%NUnit
-
-    do k = 1, nu
-      do j = 1, 3
-        do i = 1, np
-          this%P0(i, j, k) = this%P0(i, j, k) - this%P1(i, j, k)
-          this%P1(i, j, k) = this%P1(i, j, k) - 2._RK*this%P2(i, j, k)
-          if (abs(dLogVolumeThird) > 0._RK) then
-            this%P2(i, j, k) = (oldF(i, j, k) * TimeStepSquared2 * BoxLengthInv / this%Molecule%Unit(k)%Mass &
-&                               - this%P2(i, j, k) ) / dLogVolumeThird - this%P1(i, j, k)
-          ! else oldP2 is not needed and new value can correctly be calculated without previous one
-          endif
-        end do
-      end do
-    end do
-
-    do i = 1, np
-      r(:) = 0._RK
-      do k= 1, nu
-        do j = 1, 3
-          ! Check for conservation of particles in primary cell
-#if ARCH == 1
-          if( this%P0(i, j, k) < -.5_RK ) then
-            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          elseif( this%P0(i, j, k) > .5_RK ) then
-            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end if
-#else
-          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
-#endif
-          ! Calculate new positions of COM for molecules from new COM of units
-          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
-        end do
-      end do
-
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
-    end do
-
-    do k = 1, nu
-      if( this%Molecule%Unit(k)%IsElongated ) then
-        do j = 1, 4
-          this%Q0(1:np, j, k) = this%Q0(1:np, j, k) - this%Q1(1:np, j, k)
-        end do
-        do j = 1, this%Molecule%Unit(k)%NDFRot
-          this%W0(1:np, j, k) = this%W0(1:np, j, k) - this%W1(1:np, j, k)
-        end do
-      end if
-    end do
-
-  end subroutine TComponent_ReverseLeapFrog
-
-
-!==============================================================!
 !  Subroutine TComponent_PredictVerlet                         !
 !==============================================================!
 
@@ -7197,6 +7121,82 @@ subroutine TComponent_ForceTransport( this )
     end do
 
   end subroutine TComponent_SlowExceptions
+
+
+!==============================================================!
+!  Subroutine TComponent_ReverseLeapFrog                       !
+!==============================================================!
+
+  subroutine TComponent_ReverseLeapFrog( this, oldF, dLogVolumeThird )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)       :: this
+    real(RK), intent( in ) :: oldF(this%NPart,3,this%Molecule%NUnit)
+    real(RK), intent( in ) :: dLogVolumeThird
+
+    ! Declare local variables
+    integer           :: nu, np
+    integer           :: i, j, k
+    real(RK)          :: r(3), BoxLengthInv
+
+    BoxLengthInv = 1._RK / this%BoxLength
+    np = this%NPart
+    nu = this%Molecule%NUnit
+
+    do k = 1, nu
+      do j = 1, 3
+        do i = 1, np
+          this%P0(i, j, k) = this%P0(i, j, k) - this%P1(i, j, k)
+          this%P1(i, j, k) = this%P1(i, j, k) - 2._RK*this%P2(i, j, k)
+          if (abs(dLogVolumeThird) > 0._RK) then
+            this%P2(i, j, k) = (oldF(i, j, k) * TimeStepSquared2 * BoxLengthInv / this%Molecule%Unit(k)%Mass &
+&                               - this%P2(i, j, k) ) / dLogVolumeThird - this%P1(i, j, k)
+          ! else oldP2 is not needed and new value can correctly be calculated without previous one
+          endif
+        end do
+      end do
+    end do
+
+    do i = 1, np
+      r(:) = 0._RK
+      do k= 1, nu
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
+#if ARCH == 1
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
+#else
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
+#endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
+        end do
+      end do
+
+      this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
+      this%Pm0old(i,:) = this%Pm0(i, :)
+    end do
+
+    do k = 1, nu
+      if( this%Molecule%Unit(k)%IsElongated ) then
+        do j = 1, 4
+          this%Q0(1:np, j, k) = this%Q0(1:np, j, k) - this%Q1(1:np, j, k)
+        end do
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          this%W0(1:np, j, k) = this%W0(1:np, j, k) - this%W1(1:np, j, k)
+        end do
+      end if
+    end do
+
+  end subroutine TComponent_ReverseLeapFrog
 
 
 end module ms2_component
