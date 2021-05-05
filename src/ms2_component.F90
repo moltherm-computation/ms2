@@ -5712,553 +5712,6 @@ loop1:do i = 1, this%NPart
 
 
 !==============================================================!
-!  Subroutine TComponent_Constraints                           !
-!==============================================================!
-
- subroutine TComponent_Constraints( this, VirialShake)
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)        :: this
-    real(RK),intent(in out) :: VirialShake
-
-    ! Declare local variables
-    logical                 :: need
-    type(TIdfBond), pointer :: pBond
-    integer                 :: it, itmax, unstableMol
-    integer                 :: i, i0, i1, j, k
-    integer                 :: np, nu, Unit1, Unit2
-    real(RK)                :: BoxLength, Shake2, Shake002
-    real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
-    real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
-    real(RK)                :: RXij(this%Molecule%NBond), RYij(this%Molecule%NBond), RZij(this%Molecule%NBond)
-    real(RK)                :: R0Xij(this%Molecule%NBond), R0Yij(this%Molecule%NBond), R0Zij(this%Molecule%NBond)
-    real(RK)                :: P0Xij(this%Molecule%NBond), P0Yij(this%Molecule%NBond), P0Zij(this%Molecule%NBond)
-    real(RK)                :: dRmax, dRmaxold, RSquared, R0Sq, dRSquared(this%Molecule%NBond)
-    real(RK)                :: PR1(this%Molecule%NBond,3), PR2(this%Molecule%NBond,3)
-    real(RK)                :: e(this%Molecule%NBond,3), EffM(this%Molecule%NBond)
-    real(RK)                :: fx, fy, fz, Fijconstr, EMass1, EMass2, Coeff, Coeffalt, DotProd
-    real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), intermedQ0(4), addW1(3), addQ1(4)
-    real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit), tempW0(3)
-    real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
-#if MPI_VER > 0
-    integer                 :: itRoot, unstableMolRoot
-
-    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) then
-      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%Q1(:, :, :), size( this%Q1 ), MPI_RK, NRootProc, Communicator, ierror )
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    Shake2 = Shake**2
-    Shake002 = Shake2/100
-    np = this%NPart
-    nu = this%Molecule%NUnit
-    unstableMol = 0
-    itmax = 9999
-
-#if MPI_VER > 0
-    i0 = this%NPart0
-    i1 = this%NPart2
-molloop: do i = i0, i1
-#else
-    i1 = this%NPart
-molloop: do i = 1, i1
-#endif
-!     do i = 1, np
-      ! get/save old site and COM (of unit) positions 
-      tempP0(:,:) = this%P0(i,:,:) - this%P1(i,:,:)
-      tempQ0(:,:) = this%Q0(i,:,:) - this%Q1(i,:,:)
-      need = .true.
-      it = 0
-      dRmax = 0._RK
-
-      do j = 1, this%Molecule%NBond
-        pBond => this%Molecule%IdfBond(j)
-        Unit1 = pBond%UnitId1
-        Unit2 = pBond%UnitId2
-
-        RX1 = pBond%RX1(i)
-        RY1 = pBond%RY1(i)
-        RZ1 = pBond%RZ1(i)
-        RX2 = pBond%RX2(i)
-        RY2 = pBond%RY2(i)
-        RZ2 = pBond%RZ2(i)
-
-        PX1 = tempP0(1,Unit1)
-        PY1 = tempP0(2,Unit1)
-        PZ1 = tempP0(3,Unit1)
-        PX2 = tempP0(1,Unit2)
-        PY2 = tempP0(2,Unit2)
-        PZ2 = tempP0(3,Unit2)
-
-        ! Calculate unit-unit and site-site distance vector at begin of this timestep
-        R0Xij(j) = RX1 - RX2
-        R0Yij(j) = RY1 - RY2
-        R0Zij(j) = RZ1 - RZ2
-        P0Xij(j) = PX1 - PX2
-        P0Yij(j) = PY1 - PY2
-        P0Zij(j) = PZ1 - PZ2
-        R0Xij(j) = (R0Xij(j) - anint( R0Xij(j) )) * BoxLength
-        R0Yij(j) = (R0Yij(j) - anint( R0Yij(j) )) * BoxLength
-        R0Zij(j) = (R0Zij(j) - anint( R0Zij(j) )) * BoxLength
-        P0Xij(j) = (P0Xij(j) - anint( P0Xij(j) )) * BoxLength
-        P0Yij(j) = (P0Yij(j) - anint( P0Yij(j) )) * BoxLength
-        P0Zij(j) = (P0Zij(j) - anint( P0Zij(j) )) * BoxLength
-
-        e(j,1) = R0Xij(j)/pBond%R0
-        e(j,2) = R0Yij(j)/pBond%R0
-        e(j,3) = R0Zij(j)/pBond%R0
-
-        ! Calculate unit-site distance vector's at start of this timestep
-        if (this%Molecule%Unit(Unit1)%IsElongated) then
-         PR1(j,1) = (RX1 - PX1) * BoxLength
-         PR1(j,2) = (RY1 - PY1) * BoxLength
-         PR1(j,3) = (RZ1 - PZ1) * BoxLength
-        endif
-        if (this%Molecule%Unit(Unit2)%IsElongated) then
-         PR2(j,1) = (RX2 - PX2) * BoxLength
-         PR2(j,2) = (RY2 - PY2) * BoxLength
-         PR2(j,3) = (RZ2 - PZ2) * BoxLength
-        endif
-
-        EMass1 = 1._RK/this%Molecule%Unit(Unit1)%Mass
-        EMass2 = 1._RK/this%Molecule%Unit(Unit2)%Mass
-
-        ! Contribution of the units to the effective mass; changing Shake to QShake (Forester & Smith, 1998)
-        ! e_ = d_/d = (RXij/R0, RYij/R0, RZij/R0)
-        ! sA_ = PR1(i,j,:) 
-        ! IA_ = (MOI(1) 0 0; 0 MOI(2) 0; 0 0 MOI(3) )
-        if (this%Molecule%Unit(Unit1)%IsElongated) then
-          MOI(:) = this%Molecule%Unit(Unit1)%MOI(:)
-
-          Term3(1) = PR1(j,2)*e(j,3) - PR1(j,3)*e(j,2)
-          Term3(2) = PR1(j,3)*e(j,1) - PR1(j,1)*e(j,3)
-          Term3(3) = PR1(j,1)*e(j,2) - PR1(j,2)*e(j,1)
-
-          call qTerm( tempQ0(:, Unit1), MOI(:), Term3(:), Term2(:) )
-
-          Term1(1) = Term2(2)*PR1(j,3) - Term2(3)*PR1(j,2)
-          Term1(2) = Term2(3)*PR1(j,1) - Term2(1)*PR1(j,3)
-          Term1(3) = Term2(1)*PR1(j,2) - Term2(2)*PR1(j,1)
-
-          EMass1 = EMass1 + Term1(1)*e(j,1) + Term1(2)*e(j,2) + Term1(3)*e(j,3)
-        endif
-        if (this%Molecule%Unit(Unit2)%IsElongated) then
-          MOI(:) = this%Molecule%Unit(Unit2)%MOI(:)
-
-          Term3(1) = PR2(j,2)*e(j,3) - PR2(j,3)*e(j,2)
-          Term3(2) = PR2(j,3)*e(j,1) - PR2(j,1)*e(j,3)
-          Term3(3) = PR2(j,1)*e(j,2) - PR2(j,2)*e(j,1)
-
-          call qTerm( tempQ0(:, Unit2), MOI(:), Term3(:), Term2(:) )
-
-          Term1(1) = Term2(2)*PR2(j,3) - Term2(3)*PR2(j,2)
-          Term1(2) = Term2(3)*PR2(j,1) - Term2(1)*PR2(j,3)
-          Term1(3) = Term2(1)*PR2(j,2) - Term2(2)*PR2(j,1)
-
-          EMass2 = EMass2 + Term1(1)*e(j,1) + Term1(2)*e(j,2) + Term1(3)*e(j,3)
-        endif
-
-        EffM(j)=1._RK/(EMass1+EMass2)/TimeStepSquared
-
-      end do ! bond loop for t0 calculation
-
-      !calculates site positions of unconstrained timestep
-      call Unit2AtomShake(this, i, this%P0(i,1:3,1:nu), this%Q0(i,1:4,1:nu))
-
-      ! Loop over all bonds in molecule
-      do j = 1, this%Molecule%NBond
-        pBond => this%Molecule%IdfBond(j)
-
-        R0Sq = pBond%R0**2 ! squared equlibrium bond length
-        RX1 = pBond%RX1(i)
-        RY1 = pBond%RY1(i)
-        RZ1 = pBond%RZ1(i)
-        RX2 = pBond%RX2(i)
-        RY2 = pBond%RY2(i)
-        RZ2 = pBond%RZ2(i)
-
-        ! Calculate temporary bond vector
-        RXij(j) = RX1 - RX2
-        RYij(j) = RY1 - RY2
-        RZij(j) = RZ1 - RZ2
-        RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
-        RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
-        RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
-
-        RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
-
-        ! Deviation from equilibrium
-        dRSquared(j) = (R0Sq - RSquared)
-        dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
-      end do
-      if (dRmax < Shake2) then ! molecule already inside of constraints even without QShake
-        need = .false.
-      else
-        dRmaxold = 1.1 * dRmax
-      end if
-
-      do while (need .and. ( it < itmax )) ! calculate shake-force iteratively
-
-        it = it+1
-        tempF(:,:) = 0._RK
-        tempT(:,:) = 0._RK
-
-        do j= 1, this%Molecule%NBond
-          pBond => this%Molecule%IdfBond(j)
-
-          Unit1 = pBond%UnitId1
-          Unit2 = pBond%UnitId2
-          R0Sq = pBond%R0**2
-          DotProd = R0Xij(j)*RXij(j)+R0Yij(j)*RYij(j)+R0Zij(j)*RZij(j)
-          
-          ! firs order equation of QShake
-          ! (not monoton decreasing for all conformations, therefore not used)
-          !Fijconstr = 0.5_RK*EffM(j)*dRSquared(j)/DotProd
-          
-          ! second order equation
-          Coeff = dRSquared(j) + DotProd**2 / R0Sq
-          Coeff = Coeff / R0Sq
-          Fijconstr = - DotProd / R0Sq
-          if ( Coeff > 0._RK ) then
-            Coeff = sqrt(Coeff)
-            Coeffalt  = Fijconstr - Coeff
-            Fijconstr = Fijconstr + Coeff
-            if ( abs(Coeffalt) < abs(Fijconstr) ) Fijconstr = Coeffalt
-          end if
-          Fijconstr = Fijconstr * EffM(j)
-
-          fx = Fijconstr * R0Xij(j)
-          fy = Fijconstr * R0Yij(j)
-          fz = Fijconstr * R0Zij(j)
-
-          VirialShake = VirialShake + ( fx*P0Xij(j) + fy*P0Yij(j) + fz*P0Zij(j) )
-
-          tempF(1,Unit1) = tempF(1,Unit1) + fx
-          tempF(2,Unit1) = tempF(2,Unit1) + fy
-          tempF(3,Unit1) = tempF(3,Unit1) + fz
-          tempF(1,Unit2) = tempF(1,Unit2) - fx
-          tempF(2,Unit2) = tempF(2,Unit2) - fy
-          tempF(3,Unit2) = tempF(3,Unit2) - fz
-          if (this%Molecule%Unit(Unit1)%IsElongated) then
-            ! Torque
-            tempT(1,Unit1) = tempT(1,Unit1) + PR1(j,2)*fz - PR1(j,3)*fy
-            tempT(2,Unit1) = tempT(2,Unit1) + PR1(j,3)*fx - PR1(j,1)*fz
-            tempT(3,Unit1) = tempT(3,Unit1) + PR1(j,1)*fy - PR1(j,2)*fx
-          end if
-          if (this%Molecule%Unit(Unit2)%IsElongated) then
-            ! Torque
-            tempT(1,Unit2) = tempT(1,Unit2) - PR2(j,2)*fz + PR2(j,3)*fy
-            tempT(2,Unit2) = tempT(2,Unit2) - PR2(j,3)*fx + PR2(j,1)*fz
-            tempT(3,Unit2) = tempT(3,Unit2) - PR2(j,1)*fy + PR2(j,2)*fx
-          end if
-
-        end do ! constraint force calculation for all bonds
-
-        do j=1,nu ! displacement of all units due to forces
-          Coeff = TimeStepSquared / BoxLength / this%Molecule%Unit(j)%Mass
-          ! Translational Correction
-          this%P0(i, 1, j) = this%P0(i, 1, j) + Coeff*tempF(1,j)
-          this%P0(i, 2, j) = this%P0(i, 2, j) + Coeff*tempF(2,j)
-          this%P0(i, 3, j) = this%P0(i, 3, j) + Coeff*tempF(3,j)
-          this%F(i,1:3,j) = this%F(i,1:3,j) + tempF(1:3,j)
-
-          ! Rotational Correction
-!           if (this%Molecule%Unit(j)%IsElongated) then ! old term
-!             addW1(:) = 0._RK
-!             ! Changes to Rotational Matrix due to QShake
-!             this%T(i,1:3,j) = this%T(i,1:3,j) + tempT(1:3,j)
-!             addW1(1) = tempT(1,j) / this%Molecule%Unit(j)%MOI(1)
-!             addW1(2) = tempT(2,j) / this%Molecule%Unit(j)%MOI(2)
-!             if( this%Molecule%Unit(j)%is3D ) then
-!               addW1(3) = tempT(3,j) / this%Molecule%Unit(j)%MOI(3)
-!             end if
-!             addQ1(1) = TimeStepSquared2 * ( - this%Q0(i, 2, j) * addW1(1) &
-! &                                       - this%Q0(i, 3, j) * addW1(2) - this%Q0(i, 4, j) * addW1(3))
-!             addQ1(2) = TimeStepSquared2 * ( + this%Q0(i, 1, j) * addW1(1) &
-! &                                       - this%Q0(i, 4, j) * addW1(2) + this%Q0(i, 3, j) * addW1(3))
-!             addQ1(3) = TimeStepSquared2 * ( + this%Q0(i, 4, j) * addW1(1) &
-! &                                       + this%Q0(i, 1, j) * addW1(2) - this%Q0(i, 2, j) * addW1(3))
-!             addQ1(4) = TimeStepSquared2 * ( - this%Q0(i, 3, j) * addW1(1) &
-! &                                       + this%Q0(i, 2, j) * addW1(2) + this%Q0(i, 1, j) * addW1(3))
-!             this%Q0(i, 1:4, j) = this%Q0(i, 1:4, j) + addQ1(1:4)
-!           end if
-          if (this%Molecule%Unit(j)%IsElongated) then ! new term
-            addW1(:) = 0._RK
-            ! Changes to Rotational Matrix due to QShake
-            this%T(i,:,j) = this%T(i,:,j) + tempT(:,j)
-            addW1(1) = tempT(1,j) / this%Molecule%Unit(j)%MOI(1)
-            addW1(2) = tempT(2,j) / this%Molecule%Unit(j)%MOI(2)
-            if( this%Molecule%Unit(j)%is3D ) then
-              addW1(3) = tempT(3,j) / this%Molecule%Unit(j)%MOI(3)
-            end if
-            addW1(:) = 0.5_RK*TimeStep * addW1(:)
-            tempW0(:) = addW1(:) 
-            addQ1(1) = TimeStep2 * ( - this%Q0(i, 2, j) * tempW0(1) &
-&                                    - this%Q0(i, 3, j) * tempW0(2) - this%Q0(i, 4, j) * tempW0(3))
-            addQ1(2) = TimeStep2 * ( + this%Q0(i, 1, j) * tempW0(1) &
-&                                    - this%Q0(i, 4, j) * tempW0(2) + this%Q0(i, 3, j) * tempW0(3))
-            addQ1(3) = TimeStep2 * ( + this%Q0(i, 4, j) * tempW0(1) &
-&                                    + this%Q0(i, 1, j) * tempW0(2) - this%Q0(i, 2, j) * tempW0(3))
-            addQ1(4) = TimeStep2 * ( - this%Q0(i, 3, j) * tempW0(1) &
-&                                    + this%Q0(i, 2, j) * tempW0(2) + this%Q0(i, 1, j) * tempW0(3))
-            intermedQ0(:) = this%Q0(i, :, j) + 0.5_RK*addQ1(:)
-            tempW0(:) = tempW0(:) + addW1(:)
-            addQ1(1) = TimeStep2 * ( - intermedQ0(2) * tempW0(1) &
-&                                    - intermedQ0(3) * tempW0(2) - intermedQ0(4) * tempW0(3))
-            addQ1(2) = TimeStep2 * ( + intermedQ0(1) * tempW0(1) &
-&                                    - intermedQ0(4) * tempW0(2) + intermedQ0(3) * tempW0(3))
-            addQ1(3) = TimeStep2 * ( + intermedQ0(4) * tempW0(1) &
-&                                    + intermedQ0(1) * tempW0(2) - intermedQ0(2) * tempW0(3))
-            addQ1(4) = TimeStep2 * ( - intermedQ0(3) * tempW0(1) &
-&                                    + intermedQ0(2) * tempW0(2) + intermedQ0(1) * tempW0(3))
-            this%Q0(i, :, j) = this%Q0(i, :, j) + addQ1(:)
-          end if
-          
-!           !ref
-!           !correct
-!           nra = this%Molecule%Unit(k)%NDFRot
-!           TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
-!           TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
-! 
-!           if( this%Molecule%Unit(k)%is3D ) then
-!             TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
-!             Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
-!             Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
-!             Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
-!             do i = 1, np
-!               this%W1(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-!               this%W1(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-!               this%W1(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
-!             end do
-!           else
-!             do i = 1, np
-!               this%W1(i, 1, k) = pT(i, 1, k) * TMoi1
-!               this%W1(i, 2, k) = pT(i, 2, k) * TMoi2
-!             end do
-!           end if
-! 
-!           do j = 1, nra
-!             do i = 1, np
-!               this%W0(i, j, k) = this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
-!             end do
-!           end do
-!           do i = 1, np
-!             this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
-!     &                                     - this%Q0(i, 4, k) * this%W0(i, 3, k))
-!             this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
-!     &                                     + this%Q0(i, 3, k) * this%W0(i, 3, k))
-!             this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
-!     &                                     - this%Q0(i, 2, k) * this%W0(i, 3, k))
-!             this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k)  + this%Q0(i, 2, k) * this%W0(i, 2, k) &
-!     &                                     + this%Q0(i, 1, k) * this%W0(i, 3, k))
-!           end do
-!           
-!           !predict
-!           do j = 1, 4
-!             this%Q0tmp(i, j, k) = this%Q0(i, j, k) + .5_RK * this%Q1(i, j, k)
-!           end do
-!           do j = 1, nra
-!             this%W0(i, j, k) = Korr * this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
-!           end do
-!           this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0tmp(i, 2, k) * this%W0(i, 1, k) - this%Q0tmp(i, 3, k) * this%W0(i, 2, k) &
-! &                                       - this%Q0tmp(i, 4, k) * this%W0(i, 3, k))
-!           this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0tmp(i, 1, k) * this%W0(i, 1, k) - this%Q0tmp(i, 4, k) * this%W0(i, 2, k) &
-! &                                       + this%Q0tmp(i, 3, k) * this%W0(i, 3, k))
-!           this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0tmp(i, 4, k) * this%W0(i, 1, k) + this%Q0tmp(i, 1, k) * this%W0(i, 2, k) &
-! &                                       - this%Q0tmp(i, 2, k) * this%W0(i, 3, k))
-!           this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0tmp(i, 3, k) * this%W0(i, 1, k) + this%Q0tmp(i, 2, k) * this%W0(i, 2, k) &
-! &                                       + this%Q0tmp(i, 1, k) * this%W0(i, 3, k))
-!           do j = 1, 4
-!             this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k)
-!           end do
-
-        end do ! unit loop
-
-        call Unit2AtomShake(this, i, this%P0(i,1:3,1:nu), this%Q0(i,1:4,1:nu))
-        dRmaxold = dRmax
-        dRmax = 0._RK
-
-        !Loop over all bonds in molecule
-        do j = 1, this%Molecule%NBond
-          pBond => this%Molecule%IdfBond(j)
-
-          R0Sq = pBond%R0**2
-          RX1 = pBond%RX1(i)
-          RY1 = pBond%RY1(i)
-          RZ1 = pBond%RZ1(i)
-          RX2 = pBond%RX2(i)
-          RY2 = pBond%RY2(i)
-          RZ2 = pBond%RZ2(i)
-
-          ! Calculate temporary bond vector
-          RXij(j) = RX1 - RX2
-          RYij(j) = RY1 - RY2
-          RZij(j) = RZ1 - RZ2
-          RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
-          RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
-          RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
-
-          RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
-
-          ! Deviation from equilibrium
-          dRSquared(j) = (R0Sq - RSquared)
-          dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
-        end do
-
-        if (dRmax < Shake2) then ! constraints inside precision
-          need = .false.
-        elseif ( dRmax >= dRmaxold .or. Shake002 > (dRmaxold - dRmax) ) then
-          dRmax = 0.1_RK*Shake2
-          need = .false.
-          unstableMol = i
-          ! happens for Force*timestep too high; QShake can't resolve constraints if displacements each timestep are very large
-          ! checks to-do: timestep below 10fs and able to display dynamics? Average displacement < sigma?
-          !dRmax = 0._RK
-          exit molloop
-        end if
-
-      end do ! shake-force calculation for molecule i finished
-
-      do j=1,nu
-        do k=1,3
-          this%P0(i,k,j) = tempP0(k,j) + this%P1(i,k,j)
-        end do
-        if (this%Molecule%Unit(j)%IsElongated) then
-          do k=1,4
-            this%Q0(i,k,j) = tempQ0(k,j) + this%Q1(i,k,j)
-          end do
-        endif
-      end do
-
-    end do molloop ! molecule loop
-
-#if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( unstableMol, unstableMolRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    if (RootProc) then
-      it = itRoot
-      unstableMol = unstableMolRoot
-#endif
-
-      if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
-        call FileRewrite( iounit_restart, trim(RestartFileName) )
-        write( iounit_restart, '(A)' ) trim( ParameterFileName )
-        write( iounit_restart, '(2I10)' ) Step, StepTotal
-        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
-        call RestartSave( this )
-        do i = 1, np
-          do k = 1, nu
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
-          end do
-        end do
-        call FileClose( iounit_restart )
-      end if
-
-      if (unstableMol > 0) then 
-        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, &
-&                          " in step", I10, ". Stop at iteration: ", I4)' ) unstableMol, Step, it
-        call LogWrite
-        call Error( 'QShake was not converging. Occuring forces to high for integration.' )
-      end if
-      if ( it >= itmax ) then
-        call Error( 'Initial density to high for QShake. Probably to many overlaps.' )
-      end if
-#if MPI_VER > 0
-    end if
-#endif
-
-
-contains
-
-    subroutine qTerm (q, MOI, term3, term2)
-
-    ! Declare arguments
-    real(RK), intent( in )  :: q(4)
-    real(RK), intent( in )  :: MOI(3)
-    real(RK), intent( in )  :: term3(3)
-    real(RK), intent( out ) :: term2(3)
-
-    ! Declare local variables
-    real(RK)                :: q1, q2, q3, q4, qinv
-    real(RK)                :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    real(RK)                :: M11, M12, M13, M21, M22, M23, M31, M32, M33
-
-    term2(:) = 0._RK
-
-    ! Normalise quaternions
-    q1 = q(1)
-    q2 = q(2)
-    q3 = q(3)
-    q4 = q(4)
-#if ARCH == 3
-    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-    q1 = q1 * qinv
-    q2 = q2 * qinv
-    q3 = q3 * qinv
-    q4 = q4 * qinv
-
-    A11 = q1**2 + q2**2 - q3**2 - q4**2
-    A12 = 2._RK * ( q2 * q3 + q2 * q4)
-    A13 = 2._RK * ( q2 * q4 - q1 * q3)
-    A21 = 2._RK * ( q2 * q3 - q1 * q4)
-    A22 = q1**2 -  q2**2 + q3**2 - q4**2
-    A23 = 2._RK * (q3 * q4 + q1 * q2)
-
-    M11 = A11**2/MOI(1) + A21**2/MOI(2)
-    M12 = A11*A12/MOI(1) + A21*A22/MOI(2)
-    M13 = A11*A13/MOI(1) + A21*A23/MOI(2)
-    M21 = A12*A11/MOI(1) + A22*A21/MOI(2)
-    M22 = A12**2/MOI(1) + A22**2/MOI(2)
-    M23 = A12*A13/MOI(1) + A22*A23/MOI(2)
-    M31 = A13*A11/MOI(1) + A23*A21/MOI(2)
-    M32 = A13*A12/MOI(1) + A23*A22/MOI(2)
-    M33 = A13**2/MOI(1) + A23**2/MOI(2)
-
-    if (MOI(3) > Zero) then
-      A31 = 2._RK * (q2 * q4 + q1 * q3)
-      A32 = 2._RK * (q3 * q4 - q1 * q2)
-      A33 = q1**2 -  q2**2 - q3**2 + q4**2
-      M11 = M11 + A31**2/MOI(3)
-      M12 = M12 + A31*A32/MOI(3)
-      M13 = M13 + A31*A33/MOI(3)
-      M21 = M21 + A32*A31/MOI(3)
-      M22 = M22 + A32**2/MOI(3)
-      M23 = M23 + A32*A33/MOI(3)
-      M31 = M31 + A33*A31/MOI(3)
-      M32 = M32 + A33*A32/MOI(3)
-      M33 = M33 + A33**2/MOI(3)
-    end if
-
-    term2(1) = M11*term3(1) + M12*term3(2) + M13*term3(3)
-    term2(2) = M21*term3(1) + M22*term3(2) + M23*term3(3)
-    term2(3) = M31*term3(1) + M32*term3(2) + M33*term3(3)
-
-    end subroutine qTerm
-
-
- end subroutine TComponent_Constraints
-
-
-!==============================================================!
 !  Subroutine TComponent_ZeroNAttempts                         !
 !==============================================================!
 
@@ -7197,6 +6650,553 @@ subroutine TComponent_ForceTransport( this )
     end do
 
   end subroutine TComponent_ReverseLeapFrog
+
+
+!==============================================================!
+!  Subroutine TComponent_Constraints                           !
+!==============================================================!
+
+ subroutine TComponent_Constraints( this, VirialShake)
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)        :: this
+    real(RK),intent(in out) :: VirialShake
+
+    ! Declare local variables
+    logical                 :: need
+    type(TIdfBond), pointer :: pBond
+    integer                 :: it, itmax, unstableMol
+    integer                 :: i, i0, i1, j, k
+    integer                 :: np, nu, Unit1, Unit2
+    real(RK)                :: BoxLength, Shake2, Shake002
+    real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
+    real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
+    real(RK)                :: RXij(this%Molecule%NBond), RYij(this%Molecule%NBond), RZij(this%Molecule%NBond)
+    real(RK)                :: R0Xij(this%Molecule%NBond), R0Yij(this%Molecule%NBond), R0Zij(this%Molecule%NBond)
+    real(RK)                :: P0Xij(this%Molecule%NBond), P0Yij(this%Molecule%NBond), P0Zij(this%Molecule%NBond)
+    real(RK)                :: dRmax, dRmaxold, RSquared, R0Sq, dRSquared(this%Molecule%NBond)
+    real(RK)                :: PR1(this%Molecule%NBond,3), PR2(this%Molecule%NBond,3)
+    real(RK)                :: e(this%Molecule%NBond,3), EffM(this%Molecule%NBond)
+    real(RK)                :: fx, fy, fz, Fijconstr, EMass1, EMass2, Coeff, Coeffalt, DotProd
+    real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), intermedQ0(4), addW1(3), addQ1(4)
+    real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit), tempW0(3)
+    real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
+#if MPI_VER > 0
+    integer                 :: itRoot, unstableMolRoot
+
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+    call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) then
+      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%Q1(:, :, :), size( this%Q1 ), MPI_RK, NRootProc, Communicator, ierror )
+    end if
+#endif
+
+    ! Assign local variables
+    BoxLength = this%BoxLength
+    Shake2 = Shake**2
+    Shake002 = Shake2/100
+    np = this%NPart
+    nu = this%Molecule%NUnit
+    unstableMol = 0
+    itmax = 9999
+
+#if MPI_VER > 0
+    i0 = this%NPart0
+    i1 = this%NPart2
+molloop: do i = i0, i1
+#else
+    i1 = this%NPart
+molloop: do i = 1, i1
+#endif
+!     do i = 1, np
+      ! get/save old site and COM (of unit) positions
+      tempP0(:,:) = this%P0(i,:,:) - this%P1(i,:,:)
+      tempQ0(:,:) = this%Q0(i,:,:) - this%Q1(i,:,:)
+      need = .true.
+      it = 0
+      dRmax = 0._RK
+
+      do j = 1, this%Molecule%NBond
+        pBond => this%Molecule%IdfBond(j)
+        Unit1 = pBond%UnitId1
+        Unit2 = pBond%UnitId2
+
+        RX1 = pBond%RX1(i)
+        RY1 = pBond%RY1(i)
+        RZ1 = pBond%RZ1(i)
+        RX2 = pBond%RX2(i)
+        RY2 = pBond%RY2(i)
+        RZ2 = pBond%RZ2(i)
+
+        PX1 = tempP0(1,Unit1)
+        PY1 = tempP0(2,Unit1)
+        PZ1 = tempP0(3,Unit1)
+        PX2 = tempP0(1,Unit2)
+        PY2 = tempP0(2,Unit2)
+        PZ2 = tempP0(3,Unit2)
+
+        ! Calculate unit-unit and site-site distance vector at begin of this timestep
+        R0Xij(j) = RX1 - RX2
+        R0Yij(j) = RY1 - RY2
+        R0Zij(j) = RZ1 - RZ2
+        P0Xij(j) = PX1 - PX2
+        P0Yij(j) = PY1 - PY2
+        P0Zij(j) = PZ1 - PZ2
+        R0Xij(j) = (R0Xij(j) - anint( R0Xij(j) )) * BoxLength
+        R0Yij(j) = (R0Yij(j) - anint( R0Yij(j) )) * BoxLength
+        R0Zij(j) = (R0Zij(j) - anint( R0Zij(j) )) * BoxLength
+        P0Xij(j) = (P0Xij(j) - anint( P0Xij(j) )) * BoxLength
+        P0Yij(j) = (P0Yij(j) - anint( P0Yij(j) )) * BoxLength
+        P0Zij(j) = (P0Zij(j) - anint( P0Zij(j) )) * BoxLength
+
+        e(j,1) = R0Xij(j)/pBond%R0
+        e(j,2) = R0Yij(j)/pBond%R0
+        e(j,3) = R0Zij(j)/pBond%R0
+
+        ! Calculate unit-site distance vector's at start of this timestep
+        if (this%Molecule%Unit(Unit1)%IsElongated) then
+         PR1(j,1) = (RX1 - PX1) * BoxLength
+         PR1(j,2) = (RY1 - PY1) * BoxLength
+         PR1(j,3) = (RZ1 - PZ1) * BoxLength
+        endif
+        if (this%Molecule%Unit(Unit2)%IsElongated) then
+         PR2(j,1) = (RX2 - PX2) * BoxLength
+         PR2(j,2) = (RY2 - PY2) * BoxLength
+         PR2(j,3) = (RZ2 - PZ2) * BoxLength
+        endif
+
+        EMass1 = 1._RK/this%Molecule%Unit(Unit1)%Mass
+        EMass2 = 1._RK/this%Molecule%Unit(Unit2)%Mass
+
+        ! Contribution of the units to the effective mass; changing Shake to QShake (Forester & Smith, 1998)
+        ! e_ = d_/d = (RXij/R0, RYij/R0, RZij/R0)
+        ! sA_ = PR1(i,j,:)
+        ! IA_ = (MOI(1) 0 0; 0 MOI(2) 0; 0 0 MOI(3) )
+        if (this%Molecule%Unit(Unit1)%IsElongated) then
+          MOI(:) = this%Molecule%Unit(Unit1)%MOI(:)
+
+          Term3(1) = PR1(j,2)*e(j,3) - PR1(j,3)*e(j,2)
+          Term3(2) = PR1(j,3)*e(j,1) - PR1(j,1)*e(j,3)
+          Term3(3) = PR1(j,1)*e(j,2) - PR1(j,2)*e(j,1)
+
+          call qTerm( tempQ0(:, Unit1), MOI(:), Term3(:), Term2(:) )
+
+          Term1(1) = Term2(2)*PR1(j,3) - Term2(3)*PR1(j,2)
+          Term1(2) = Term2(3)*PR1(j,1) - Term2(1)*PR1(j,3)
+          Term1(3) = Term2(1)*PR1(j,2) - Term2(2)*PR1(j,1)
+
+          EMass1 = EMass1 + Term1(1)*e(j,1) + Term1(2)*e(j,2) + Term1(3)*e(j,3)
+        endif
+        if (this%Molecule%Unit(Unit2)%IsElongated) then
+          MOI(:) = this%Molecule%Unit(Unit2)%MOI(:)
+
+          Term3(1) = PR2(j,2)*e(j,3) - PR2(j,3)*e(j,2)
+          Term3(2) = PR2(j,3)*e(j,1) - PR2(j,1)*e(j,3)
+          Term3(3) = PR2(j,1)*e(j,2) - PR2(j,2)*e(j,1)
+
+          call qTerm( tempQ0(:, Unit2), MOI(:), Term3(:), Term2(:) )
+
+          Term1(1) = Term2(2)*PR2(j,3) - Term2(3)*PR2(j,2)
+          Term1(2) = Term2(3)*PR2(j,1) - Term2(1)*PR2(j,3)
+          Term1(3) = Term2(1)*PR2(j,2) - Term2(2)*PR2(j,1)
+
+          EMass2 = EMass2 + Term1(1)*e(j,1) + Term1(2)*e(j,2) + Term1(3)*e(j,3)
+        endif
+
+        EffM(j)=1._RK/(EMass1+EMass2)/TimeStepSquared
+
+      end do ! bond loop for t0 calculation
+
+      !calculates site positions of unconstrained timestep
+      call Unit2AtomShake(this, i, this%P0(i,1:3,1:nu), this%Q0(i,1:4,1:nu))
+
+      ! Loop over all bonds in molecule
+      do j = 1, this%Molecule%NBond
+        pBond => this%Molecule%IdfBond(j)
+
+        R0Sq = pBond%R0**2 ! squared equlibrium bond length
+        RX1 = pBond%RX1(i)
+        RY1 = pBond%RY1(i)
+        RZ1 = pBond%RZ1(i)
+        RX2 = pBond%RX2(i)
+        RY2 = pBond%RY2(i)
+        RZ2 = pBond%RZ2(i)
+
+        ! Calculate temporary bond vector
+        RXij(j) = RX1 - RX2
+        RYij(j) = RY1 - RY2
+        RZij(j) = RZ1 - RZ2
+        RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
+        RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
+        RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
+
+        RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
+
+        ! Deviation from equilibrium
+        dRSquared(j) = (R0Sq - RSquared)
+        dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
+      end do
+      if (dRmax < Shake2) then ! molecule already inside of constraints even without QShake
+        need = .false.
+      else
+        dRmaxold = 1.1 * dRmax
+      end if
+
+      do while (need .and. ( it < itmax )) ! calculate shake-force iteratively
+
+        it = it+1
+        tempF(:,:) = 0._RK
+        tempT(:,:) = 0._RK
+
+        do j= 1, this%Molecule%NBond
+          pBond => this%Molecule%IdfBond(j)
+
+          Unit1 = pBond%UnitId1
+          Unit2 = pBond%UnitId2
+          R0Sq = pBond%R0**2
+          DotProd = R0Xij(j)*RXij(j)+R0Yij(j)*RYij(j)+R0Zij(j)*RZij(j)
+
+          ! firs order equation of QShake
+          ! (not monoton decreasing for all conformations, therefore not used)
+          !Fijconstr = 0.5_RK*EffM(j)*dRSquared(j)/DotProd
+
+          ! second order equation
+          Coeff = dRSquared(j) + DotProd**2 / R0Sq
+          Coeff = Coeff / R0Sq
+          Fijconstr = - DotProd / R0Sq
+          if ( Coeff > 0._RK ) then
+            Coeff = sqrt(Coeff)
+            Coeffalt  = Fijconstr - Coeff
+            Fijconstr = Fijconstr + Coeff
+            if ( abs(Coeffalt) < abs(Fijconstr) ) Fijconstr = Coeffalt
+          end if
+          Fijconstr = Fijconstr * EffM(j)
+
+          fx = Fijconstr * R0Xij(j)
+          fy = Fijconstr * R0Yij(j)
+          fz = Fijconstr * R0Zij(j)
+
+          VirialShake = VirialShake + ( fx*P0Xij(j) + fy*P0Yij(j) + fz*P0Zij(j) )
+
+          tempF(1,Unit1) = tempF(1,Unit1) + fx
+          tempF(2,Unit1) = tempF(2,Unit1) + fy
+          tempF(3,Unit1) = tempF(3,Unit1) + fz
+          tempF(1,Unit2) = tempF(1,Unit2) - fx
+          tempF(2,Unit2) = tempF(2,Unit2) - fy
+          tempF(3,Unit2) = tempF(3,Unit2) - fz
+          if (this%Molecule%Unit(Unit1)%IsElongated) then
+            ! Torque
+            tempT(1,Unit1) = tempT(1,Unit1) + PR1(j,2)*fz - PR1(j,3)*fy
+            tempT(2,Unit1) = tempT(2,Unit1) + PR1(j,3)*fx - PR1(j,1)*fz
+            tempT(3,Unit1) = tempT(3,Unit1) + PR1(j,1)*fy - PR1(j,2)*fx
+          end if
+          if (this%Molecule%Unit(Unit2)%IsElongated) then
+            ! Torque
+            tempT(1,Unit2) = tempT(1,Unit2) - PR2(j,2)*fz + PR2(j,3)*fy
+            tempT(2,Unit2) = tempT(2,Unit2) - PR2(j,3)*fx + PR2(j,1)*fz
+            tempT(3,Unit2) = tempT(3,Unit2) - PR2(j,1)*fy + PR2(j,2)*fx
+          end if
+
+        end do ! constraint force calculation for all bonds
+
+        do j=1,nu ! displacement of all units due to forces
+          Coeff = TimeStepSquared / BoxLength / this%Molecule%Unit(j)%Mass
+          ! Translational Correction
+          this%P0(i, 1, j) = this%P0(i, 1, j) + Coeff*tempF(1,j)
+          this%P0(i, 2, j) = this%P0(i, 2, j) + Coeff*tempF(2,j)
+          this%P0(i, 3, j) = this%P0(i, 3, j) + Coeff*tempF(3,j)
+          this%F(i,1:3,j) = this%F(i,1:3,j) + tempF(1:3,j)
+
+          ! Rotational Correction
+!           if (this%Molecule%Unit(j)%IsElongated) then ! old term
+!             addW1(:) = 0._RK
+!             ! Changes to Rotational Matrix due to QShake
+!             this%T(i,1:3,j) = this%T(i,1:3,j) + tempT(1:3,j)
+!             addW1(1) = tempT(1,j) / this%Molecule%Unit(j)%MOI(1)
+!             addW1(2) = tempT(2,j) / this%Molecule%Unit(j)%MOI(2)
+!             if( this%Molecule%Unit(j)%is3D ) then
+!               addW1(3) = tempT(3,j) / this%Molecule%Unit(j)%MOI(3)
+!             end if
+!             addQ1(1) = TimeStepSquared2 * ( - this%Q0(i, 2, j) * addW1(1) &
+! &                                       - this%Q0(i, 3, j) * addW1(2) - this%Q0(i, 4, j) * addW1(3))
+!             addQ1(2) = TimeStepSquared2 * ( + this%Q0(i, 1, j) * addW1(1) &
+! &                                       - this%Q0(i, 4, j) * addW1(2) + this%Q0(i, 3, j) * addW1(3))
+!             addQ1(3) = TimeStepSquared2 * ( + this%Q0(i, 4, j) * addW1(1) &
+! &                                       + this%Q0(i, 1, j) * addW1(2) - this%Q0(i, 2, j) * addW1(3))
+!             addQ1(4) = TimeStepSquared2 * ( - this%Q0(i, 3, j) * addW1(1) &
+! &                                       + this%Q0(i, 2, j) * addW1(2) + this%Q0(i, 1, j) * addW1(3))
+!             this%Q0(i, 1:4, j) = this%Q0(i, 1:4, j) + addQ1(1:4)
+!           end if
+          if (this%Molecule%Unit(j)%IsElongated) then ! new term
+            addW1(:) = 0._RK
+            ! Changes to Rotational Matrix due to QShake
+            this%T(i,:,j) = this%T(i,:,j) + tempT(:,j)
+            addW1(1) = tempT(1,j) / this%Molecule%Unit(j)%MOI(1)
+            addW1(2) = tempT(2,j) / this%Molecule%Unit(j)%MOI(2)
+            if( this%Molecule%Unit(j)%is3D ) then
+              addW1(3) = tempT(3,j) / this%Molecule%Unit(j)%MOI(3)
+            end if
+            addW1(:) = 0.5_RK*TimeStep * addW1(:)
+            tempW0(:) = addW1(:)
+            addQ1(1) = TimeStep2 * ( - this%Q0(i, 2, j) * tempW0(1) &
+&                                    - this%Q0(i, 3, j) * tempW0(2) - this%Q0(i, 4, j) * tempW0(3))
+            addQ1(2) = TimeStep2 * ( + this%Q0(i, 1, j) * tempW0(1) &
+&                                    - this%Q0(i, 4, j) * tempW0(2) + this%Q0(i, 3, j) * tempW0(3))
+            addQ1(3) = TimeStep2 * ( + this%Q0(i, 4, j) * tempW0(1) &
+&                                    + this%Q0(i, 1, j) * tempW0(2) - this%Q0(i, 2, j) * tempW0(3))
+            addQ1(4) = TimeStep2 * ( - this%Q0(i, 3, j) * tempW0(1) &
+&                                    + this%Q0(i, 2, j) * tempW0(2) + this%Q0(i, 1, j) * tempW0(3))
+            intermedQ0(:) = this%Q0(i, :, j) + 0.5_RK*addQ1(:)
+            tempW0(:) = tempW0(:) + addW1(:)
+            addQ1(1) = TimeStep2 * ( - intermedQ0(2) * tempW0(1) &
+&                                    - intermedQ0(3) * tempW0(2) - intermedQ0(4) * tempW0(3))
+            addQ1(2) = TimeStep2 * ( + intermedQ0(1) * tempW0(1) &
+&                                    - intermedQ0(4) * tempW0(2) + intermedQ0(3) * tempW0(3))
+            addQ1(3) = TimeStep2 * ( + intermedQ0(4) * tempW0(1) &
+&                                    + intermedQ0(1) * tempW0(2) - intermedQ0(2) * tempW0(3))
+            addQ1(4) = TimeStep2 * ( - intermedQ0(3) * tempW0(1) &
+&                                    + intermedQ0(2) * tempW0(2) + intermedQ0(1) * tempW0(3))
+            this%Q0(i, :, j) = this%Q0(i, :, j) + addQ1(:)
+          end if
+
+!           !ref
+!           !correct
+!           nra = this%Molecule%Unit(k)%NDFRot
+!           TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
+!           TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
+!
+!           if( this%Molecule%Unit(k)%is3D ) then
+!             TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
+!             Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
+!             Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
+!             Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
+!             do i = 1, np
+!               this%W1(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
+!               this%W1(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
+!               this%W1(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+!             end do
+!           else
+!             do i = 1, np
+!               this%W1(i, 1, k) = pT(i, 1, k) * TMoi1
+!               this%W1(i, 2, k) = pT(i, 2, k) * TMoi2
+!             end do
+!           end if
+!
+!           do j = 1, nra
+!             do i = 1, np
+!               this%W0(i, j, k) = this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
+!             end do
+!           end do
+!           do i = 1, np
+!             this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+!     &                                     - this%Q0(i, 4, k) * this%W0(i, 3, k))
+!             this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+!     &                                     + this%Q0(i, 3, k) * this%W0(i, 3, k))
+!             this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+!     &                                     - this%Q0(i, 2, k) * this%W0(i, 3, k))
+!             this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k)  + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+!     &                                     + this%Q0(i, 1, k) * this%W0(i, 3, k))
+!           end do
+!
+!           !predict
+!           do j = 1, 4
+!             this%Q0tmp(i, j, k) = this%Q0(i, j, k) + .5_RK * this%Q1(i, j, k)
+!           end do
+!           do j = 1, nra
+!             this%W0(i, j, k) = Korr * this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
+!           end do
+!           this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0tmp(i, 2, k) * this%W0(i, 1, k) - this%Q0tmp(i, 3, k) * this%W0(i, 2, k) &
+! &                                       - this%Q0tmp(i, 4, k) * this%W0(i, 3, k))
+!           this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0tmp(i, 1, k) * this%W0(i, 1, k) - this%Q0tmp(i, 4, k) * this%W0(i, 2, k) &
+! &                                       + this%Q0tmp(i, 3, k) * this%W0(i, 3, k))
+!           this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0tmp(i, 4, k) * this%W0(i, 1, k) + this%Q0tmp(i, 1, k) * this%W0(i, 2, k) &
+! &                                       - this%Q0tmp(i, 2, k) * this%W0(i, 3, k))
+!           this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0tmp(i, 3, k) * this%W0(i, 1, k) + this%Q0tmp(i, 2, k) * this%W0(i, 2, k) &
+! &                                       + this%Q0tmp(i, 1, k) * this%W0(i, 3, k))
+!           do j = 1, 4
+!             this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k)
+!           end do
+
+        end do ! unit loop
+
+        call Unit2AtomShake(this, i, this%P0(i,1:3,1:nu), this%Q0(i,1:4,1:nu))
+        dRmaxold = dRmax
+        dRmax = 0._RK
+
+        !Loop over all bonds in molecule
+        do j = 1, this%Molecule%NBond
+          pBond => this%Molecule%IdfBond(j)
+
+          R0Sq = pBond%R0**2
+          RX1 = pBond%RX1(i)
+          RY1 = pBond%RY1(i)
+          RZ1 = pBond%RZ1(i)
+          RX2 = pBond%RX2(i)
+          RY2 = pBond%RY2(i)
+          RZ2 = pBond%RZ2(i)
+
+          ! Calculate temporary bond vector
+          RXij(j) = RX1 - RX2
+          RYij(j) = RY1 - RY2
+          RZij(j) = RZ1 - RZ2
+          RXij(j) = (RXij(j) - anint( RXij(j) )) * BoxLength
+          RYij(j) = (RYij(j) - anint( RYij(j) )) * BoxLength
+          RZij(j) = (RZij(j) - anint( RZij(j) )) * BoxLength
+
+          RSquared=RXij(j)**2+RYij(j)**2+RZij(j)**2
+
+          ! Deviation from equilibrium
+          dRSquared(j) = (R0Sq - RSquared)
+          dRmax=max(dRmax,abs(dRSquared(j)/R0Sq))
+        end do
+
+        if (dRmax < Shake2) then ! constraints inside precision
+          need = .false.
+        elseif ( dRmax >= dRmaxold .or. Shake002 > (dRmaxold - dRmax) ) then
+          dRmax = 0.1_RK*Shake2
+          need = .false.
+          unstableMol = i
+          ! happens for Force*timestep too high; QShake can't resolve constraints if displacements each timestep are very large
+          ! checks to-do: timestep below 10fs and able to display dynamics? Average displacement < sigma?
+          !dRmax = 0._RK
+          exit molloop
+        end if
+
+      end do ! shake-force calculation for molecule i finished
+
+      do j=1,nu
+        do k=1,3
+          this%P0(i,k,j) = tempP0(k,j) + this%P1(i,k,j)
+        end do
+        if (this%Molecule%Unit(j)%IsElongated) then
+          do k=1,4
+            this%Q0(i,k,j) = tempQ0(k,j) + this%Q1(i,k,j)
+          end do
+        endif
+      end do
+
+    end do molloop ! molecule loop
+
+#if MPI_VER > 0
+    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
+&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
+    call MPI_Reduce( unstableMol, unstableMolRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
+    if (RootProc) then
+      it = itRoot
+      unstableMol = unstableMolRoot
+#endif
+
+      if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
+        call FileRewrite( iounit_restart, trim(RestartFileName) )
+        write( iounit_restart, '(A)' ) trim( ParameterFileName )
+        write( iounit_restart, '(2I10)' ) Step, StepTotal
+        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        call RestartSave( this )
+        do i = 1, np
+          do k = 1, nu
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
+          end do
+        end do
+        call FileClose( iounit_restart )
+      end if
+
+      if (unstableMol > 0) then
+        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, &
+&                          " in step", I10, ". Stop at iteration: ", I4)' ) unstableMol, Step, it
+        call LogWrite
+        call Error( 'QShake was not converging. Occuring forces to high for integration.' )
+      end if
+      if ( it >= itmax ) then
+        call Error( 'Initial density to high for QShake. Probably to many overlaps.' )
+      end if
+#if MPI_VER > 0
+    end if
+#endif
+
+
+contains
+
+    subroutine qTerm (q, MOI, term3, term2)
+
+    ! Declare arguments
+    real(RK), intent( in )  :: q(4)
+    real(RK), intent( in )  :: MOI(3)
+    real(RK), intent( in )  :: term3(3)
+    real(RK), intent( out ) :: term2(3)
+
+    ! Declare local variables
+    real(RK)                :: q1, q2, q3, q4, qinv
+    real(RK)                :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    real(RK)                :: M11, M12, M13, M21, M22, M23, M31, M32, M33
+
+    term2(:) = 0._RK
+
+    ! Normalise quaternions
+    q1 = q(1)
+    q2 = q(2)
+    q3 = q(3)
+    q4 = q(4)
+#if ARCH == 3
+    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+    q1 = q1 * qinv
+    q2 = q2 * qinv
+    q3 = q3 * qinv
+    q4 = q4 * qinv
+
+    A11 = q1**2 + q2**2 - q3**2 - q4**2
+    A12 = 2._RK * ( q2 * q3 + q2 * q4)
+    A13 = 2._RK * ( q2 * q4 - q1 * q3)
+    A21 = 2._RK * ( q2 * q3 - q1 * q4)
+    A22 = q1**2 -  q2**2 + q3**2 - q4**2
+    A23 = 2._RK * (q3 * q4 + q1 * q2)
+
+    M11 = A11**2/MOI(1) + A21**2/MOI(2)
+    M12 = A11*A12/MOI(1) + A21*A22/MOI(2)
+    M13 = A11*A13/MOI(1) + A21*A23/MOI(2)
+    M21 = A12*A11/MOI(1) + A22*A21/MOI(2)
+    M22 = A12**2/MOI(1) + A22**2/MOI(2)
+    M23 = A12*A13/MOI(1) + A22*A23/MOI(2)
+    M31 = A13*A11/MOI(1) + A23*A21/MOI(2)
+    M32 = A13*A12/MOI(1) + A23*A22/MOI(2)
+    M33 = A13**2/MOI(1) + A23**2/MOI(2)
+
+    if (MOI(3) > Zero) then
+      A31 = 2._RK * (q2 * q4 + q1 * q3)
+      A32 = 2._RK * (q3 * q4 - q1 * q2)
+      A33 = q1**2 -  q2**2 - q3**2 + q4**2
+      M11 = M11 + A31**2/MOI(3)
+      M12 = M12 + A31*A32/MOI(3)
+      M13 = M13 + A31*A33/MOI(3)
+      M21 = M21 + A32*A31/MOI(3)
+      M22 = M22 + A32**2/MOI(3)
+      M23 = M23 + A32*A33/MOI(3)
+      M31 = M31 + A33*A31/MOI(3)
+      M32 = M32 + A33*A32/MOI(3)
+      M33 = M33 + A33**2/MOI(3)
+    end if
+
+    term2(1) = M11*term3(1) + M12*term3(2) + M13*term3(3)
+    term2(2) = M21*term3(1) + M22*term3(2) + M23*term3(3)
+    term2(3) = M31*term3(1) + M32*term3(2) + M33*term3(3)
+
+    end subroutine qTerm
+
+
+ end subroutine TComponent_Constraints
 
 
 end module ms2_component
