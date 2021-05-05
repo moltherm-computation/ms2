@@ -1882,6 +1882,35 @@ contains
   end subroutine Global_LogWriteBlank
 
 
+
+!==============================================================!
+!  Subroutine Global_LogWriteTime                              !
+!==============================================================!
+
+  subroutine Global_LogWriteTime()
+
+    implicit none
+
+    ! Declare local variables
+    character(8)  :: date_string
+    character(10) :: time_string
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Update log file
+    call LogWriteNoAdvance
+    call date_and_time( date_string, time_string )
+    write( IOBuffer, &
+&     '(" on ", A, ".", A, ".", A, " at ", A, ":", A, ":", A)' ) &
+&     date_string(7:8), date_string(5:6), date_string(1:4), &
+&     time_string(1:2), time_string(3:4), time_string(5:6)
+    call LogWrite
+
+  end subroutine Global_LogWriteTime
+
+
+
 #if MPI_VER > 0
 !==============================================================!
 !  Subroutine Global_FileClose_parallel                        !
@@ -2002,31 +2031,6 @@ contains
 
 #endif
 
-!==============================================================!
-!  Subroutine Global_LogWriteTime                              !
-!==============================================================!
-
-  subroutine Global_LogWriteTime()
-
-    implicit none
-
-    ! Declare local variables
-    character(8)  :: date_string
-    character(10) :: time_string
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Update log file
-    call LogWriteNoAdvance
-    call date_and_time( date_string, time_string )
-    write( IOBuffer, &
-&     '(" on ", A, ".", A, ".", A, " at ", A, ":", A, ":", A)' ) &
-&     date_string(7:8), date_string(5:6), date_string(1:4), &
-&     time_string(1:2), time_string(3:4), time_string(5:6)
-    call LogWrite
-
-  end subroutine Global_LogWriteTime
 
 
 !==============================================================!
