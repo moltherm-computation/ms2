@@ -5144,63 +5144,6 @@ loop5:    do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TEnsemble_PredictVol                             !
-!==============================================================!
-
-  subroutine TEnsemble_PredictVol( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    real(RK) :: BoxLengthOld, DelBoxL
-
-    ! Predict volume of simulation box
-    if ( RootProc ) then
-      ! Call predictor
-      select case( IntegratorType )
-      case( IntegratorTypeGear )
-      
-        this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-        this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
-&                    + 4._RK * this%Volume4 + 5._RK * this%Volume5
-        this%Volume2 = this%Volume2 + 3._RK * this%Volume3 + 6._RK * this%Volume4 &
-&                    + 10._RK * this%Volume5
-        this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
-        this%Volume4 = this%Volume4 + 5._RK * this%Volume5
-
-      case( IntegratorTypeLeapFrog )
-        this%Volume1 = this%Volume1 + this%Volume2
-        this%Volume0 = this%Volume0 + this%Volume1
-
-      case( IntegratorTypeVerlet )
-
-      case( IntegratorTypeVV )
-
-      end select
-    end if
-
-#if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-    BoxLengthOld = this%BoxLength
-    call UpdateBoxLength( this )
-
-    DelBoxL = this%BoxLength / BoxLengthOld
-    call ResizeMol(this, DelBoxL)
-
-  end subroutine TEnsemble_PredictVol
-
-
-!==============================================================!
 !  Subroutine TEnsemble_CorrectVol                             !
 !==============================================================!
 
@@ -21408,6 +21351,63 @@ contains
 
   end subroutine TEnsemble_HBonding
 #endif
+
+
+!==============================================================!
+!  Subroutine TEnsemble_PredictVol                             !
+!==============================================================!
+
+  subroutine TEnsemble_PredictVol( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    real(RK) :: BoxLengthOld, DelBoxL
+
+    ! Predict volume of simulation box
+    if ( RootProc ) then
+      ! Call predictor
+      select case( IntegratorType )
+      case( IntegratorTypeGear )
+
+        this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
+        this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
+&                    + 4._RK * this%Volume4 + 5._RK * this%Volume5
+        this%Volume2 = this%Volume2 + 3._RK * this%Volume3 + 6._RK * this%Volume4 &
+&                    + 10._RK * this%Volume5
+        this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
+        this%Volume4 = this%Volume4 + 5._RK * this%Volume5
+
+      case( IntegratorTypeLeapFrog )
+        this%Volume1 = this%Volume1 + this%Volume2
+        this%Volume0 = this%Volume0 + this%Volume1
+
+      case( IntegratorTypeVerlet )
+
+      case( IntegratorTypeVV )
+
+      end select
+    end if
+
+#if MPI_VER > 0
+    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+    BoxLengthOld = this%BoxLength
+    call UpdateBoxLength( this )
+
+    DelBoxL = this%BoxLength / BoxLengthOld
+    call ResizeMol(this, DelBoxL)
+
+  end subroutine TEnsemble_PredictVol
 
 
 end module ms2_ensemble
