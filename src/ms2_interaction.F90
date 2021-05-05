@@ -3790,6 +3790,76 @@ end subroutine TInteraction_Energy
 
 
 
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersTest                    !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersTest( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared, RCutoff
+    integer           :: i, j, NInCutoff, k, l, m, n
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+
+    ! Assign local variables
+    this%NInCutoff(:) = 0
+
+    ! Assign local pointers
+    PX1 => this%PX1Test
+    PY1 => this%PY1Test
+    PZ1 => this%PZ1Test
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
+    ! Calculate partners within cutoff sphere
+!$OMP DO
+    do k = 1, this%NUnit1
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
+      do i = 1, this%NTest1
+#endif
+        m = (i-1)*this%NUnit1+k
+        PXi = PX1(i,k)
+        PYi = PY1(i,k)
+        PZi = PZ1(i,k)
+        NInCutoff = 0
+
+        do l = 1, this%NUnit2
+          do j = 1, this%NPart2
+            n = (j-1)*this%NUnit2+l
+            PXij = PXi - PX2(j,l)
+            PYij = PYi - PY2(j,l)
+            PZij = PZi - PZ2(j,l)
+            PXij = PXij - anint( PXij )
+            PYij = PYij - anint( PYij )
+            PZij = PZij - anint( PZij )
+            RijSquared = PXij**2 + PYij**2 + PZij**2
+
+            if( RijSquared < RCutoff ) then
+              NInCutoff = NInCutoff + 1
+              this%CutoffPartner(NInCutoff, m) = n
+            end if
+          end do
+        end do
+        this%NInCutoff(m) = NInCutoff
+      end do
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+  end subroutine TInteraction_CalcPartnersTest
+
 
 !==============================================================!
 !  Subroutine TInteraction_CalcPartnersRDF                     !
@@ -3951,79 +4021,6 @@ end subroutine TInteraction_Energy
     end if
 
   end subroutine TInteraction_CalcPartnersRDF
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartnersTest                    !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersTest( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Declare local variables
-    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared, RCutoff
-    integer           :: i, j, NInCutoff, k, l, m, n
-
-    ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
-
-    ! Assign local variables
-    this%NInCutoff(:) = 0
-
-    ! Assign local pointers
-    PX1 => this%PX1Test
-    PY1 => this%PY1Test
-    PZ1 => this%PZ1Test
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
-    ! Calculate partners within cutoff sphere
-!$OMP DO
-    do k = 1, this%NUnit1
-#if MPI_VER > 0
-      do i = this%NTest10, this%NTest12
-#else
-      do i = 1, this%NTest1
-#endif
-        m = (i-1)*this%NUnit1+k
-        PXi = PX1(i,k)
-        PYi = PY1(i,k)
-        PZi = PZ1(i,k)
-        NInCutoff = 0
-
-        do l = 1, this%NUnit2
-          do j = 1, this%NPart2
-            n = (j-1)*this%NUnit2+l
-            PXij = PXi - PX2(j,l)
-            PYij = PYi - PY2(j,l)
-            PZij = PZi - PZ2(j,l)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, m) = n
-            end if
-          end do
-        end do
-        this%NInCutoff(m) = NInCutoff
-      end do
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-  end subroutine TInteraction_CalcPartnersTest
-
-
 
 
 !==============================================================!
