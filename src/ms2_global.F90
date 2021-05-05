@@ -1911,6 +1911,25 @@ contains
 
 
 
+!==============================================================!
+!  Subroutine Global_LogWriteStep                              !
+!==============================================================!
+
+  subroutine Global_LogWriteStep()
+
+    implicit none
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Update log file
+    write( IOBuffer, '(I9, " steps completed")' ) Step
+    call LogWriteTime
+
+  end subroutine Global_LogWriteStep
+
+
+
 #if MPI_VER > 0
 !==============================================================!
 !  Subroutine Global_FileClose_parallel                        !
@@ -2032,23 +2051,6 @@ contains
 #endif
 
 
-
-!==============================================================!
-!  Subroutine Global_LogWriteStep                              !
-!==============================================================!
-
-  subroutine Global_LogWriteStep()
-
-    implicit none
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Update log file
-    write( IOBuffer, '(I9, " steps completed")' ) Step
-    call LogWriteTime
-
-  end subroutine Global_LogWriteStep
 
 
 !==============================================================!
