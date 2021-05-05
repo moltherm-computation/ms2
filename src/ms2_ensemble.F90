@@ -7581,141 +7581,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_Move
 
 
-!==============================================================!
-!  Subroutine TEnsemble_MoveMol                                !
-!==============================================================!
-
-  subroutine TEnsemble_MoveMol( this, nc, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    real(RK)                  :: rm(3), trans(3)
-    real(RK)                  :: r(3,this%Component(nc)%Molecule%NUnit)
-    real(RK)                  :: TransMove
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier
-#if SPME > 0
-    real(RK)                  :: EVirial
-#endif
-    real(RK)                  :: EPotDelta
-    type(TComponent), pointer :: pc
-    integer                   :: i, j, NUnit
-    logical                   :: accepted
-
-    ! Assign local variables
-    pc => this%Component(nc)
-    NUnit = pc%Molecule%NUnit
-
-    ! Update number of move attempts
-    pc%NMoveMolAttempts = pc%NMoveMolAttempts + 1
-
-    ! Save current particle position and energy
-    rm(:) = pc%Pm0(np, :)
-    r(:,:) = pc%P0(np,:,:)
-    EPotOld = GetEnergy( this, nc, np )   ! IDF
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial displacement & Apply periodic boundary conditions
-    do i = 1, 3
-      trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
-      pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
-      do j=1, NUnit
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
-      end do
-      pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
-    end do
-    
-    ! Convert molecular coordinates to atom positions and calculate Energies
-    call Unit2Atom1( pc, np )
-
-#if SPME > 0
-    ! Calculate changes in the SPME grid
-    if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy at trial position
-    call Energy( this, nc, np, EPotNew )
-
-    ! Apply Metropolis acceptance criterion
-#if MPI_VER > 0
-    if ( Equilibration .and. CommonEqui ) then
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-      EPotDelta = EPotOld - EPotNew
-    endif
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
-    
-    if( accepted ) then
-      ! Accept move
-      pc%NMoveMolSuccesses = pc%NMoveMolSuccesses + 1
-      call UpdateEnergy( this, nc, np )
-    else
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-          this%UFourier = EFourier
-          DO i=1,pc%Molecule%NCharge
-           this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-          END DO
-          pc%Pm0(np, :) = rm(:)
-          pc%P0(np, :, :) = r(:,:)
-          call Unit2Atom1( pc, np )
-          call EwaldFourierEnergy(this,nc,np)
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-          this%UFourier = EFourier
-          this%EVirial  = EVirial
-          call chargegrid_min(this, nc, np)
-          pc%Pm0(np, :) = rm(:)
-          pc%P0(np, :, :) = r(:,:)
-          call Unit2Atom1( pc, np )
-          call chargegrid_plus(this, nc, np)
-#endif
-      else
-        pc%Pm0(np, :) = rm(:)
-        pc%P0(np, :, :) = r(:,:)
-        call Unit2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_MoveMol
-
 
 !==============================================================!
 !  Subroutine TEnsemble_Rotate                                 !
@@ -21404,6 +21269,142 @@ contains
     end if
 
   end subroutine TEnsemble_RotateMol
+
+
+!==============================================================!
+!  Subroutine TEnsemble_MoveMol                                !
+!==============================================================!
+
+  subroutine TEnsemble_MoveMol( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: rm(3), trans(3)
+    real(RK)                  :: r(3,this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: TransMove
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier
+#if SPME > 0
+    real(RK)                  :: EVirial
+#endif
+    real(RK)                  :: EPotDelta
+    type(TComponent), pointer :: pc
+    integer                   :: i, j, NUnit
+    logical                   :: accepted
+
+    ! Assign local variables
+    pc => this%Component(nc)
+    NUnit = pc%Molecule%NUnit
+
+    ! Update number of move attempts
+    pc%NMoveMolAttempts = pc%NMoveMolAttempts + 1
+
+    ! Save current particle position and energy
+    rm(:) = pc%Pm0(np, :)
+    r(:,:) = pc%P0(np,:,:)
+    EPotOld = GetEnergy( this, nc, np )   ! IDF
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min(this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial displacement & Apply periodic boundary conditions
+    do i = 1, 3
+      trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
+      pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
+      do j=1, NUnit
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
+      end do
+      pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
+    end do
+
+    ! Convert molecular coordinates to atom positions and calculate Energies
+    call Unit2Atom1( pc, np )
+
+#if SPME > 0
+    ! Calculate changes in the SPME grid
+    if (LongRange .eq. PME) then
+      call chargegrid_plus(this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy at trial position
+    call Energy( this, nc, np, EPotNew )
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    accepted = EPotDelta > 0._RK
+    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
+
+    if( accepted ) then
+      ! Accept move
+      pc%NMoveMolSuccesses = pc%NMoveMolSuccesses + 1
+      call UpdateEnergy( this, nc, np )
+    else
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+          this%UFourier = EFourier
+          DO i=1,pc%Molecule%NCharge
+           this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+          END DO
+          pc%Pm0(np, :) = rm(:)
+          pc%P0(np, :, :) = r(:,:)
+          call Unit2Atom1( pc, np )
+          call EwaldFourierEnergy(this,nc,np)
+#if SPME > 0
+      else if (LongRange .eq. PME) then
+          this%UFourier = EFourier
+          this%EVirial  = EVirial
+          call chargegrid_min(this, nc, np)
+          pc%Pm0(np, :) = rm(:)
+          pc%P0(np, :, :) = r(:,:)
+          call Unit2Atom1( pc, np )
+          call chargegrid_plus(this, nc, np)
+#endif
+      else
+        pc%Pm0(np, :) = rm(:)
+        pc%P0(np, :, :) = r(:,:)
+        call Unit2Atom1( pc, np )
+      end if
+
+    end if
+
+  end subroutine TEnsemble_MoveMol
 
 
 end module ms2_ensemble
