@@ -7178,167 +7178,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end function TEnsemble_GetEnergy1
 
 
-!==============================================================!
-!  Function TEnsemble_GetEnergyIntra                           !
-!==============================================================!
-
-  function TEnsemble_GetEnergyIntra( this ) result(E)
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i, j, np, nu
-    real(RK):: Intra
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    if ( UseIntDegFreed ) then
-      Intra = 0._RK
-      do i = 1, this%NComponents
-        nu = this%Component(i)%Molecule%NUnit
-        np = this%Component(i)%NPart
-        do j=1,np
-          E = E + sum( this%Interaction(i, i)%EPot((j-1)*nu+1:j*nu,(j-1)*nu+1:j*nu) )
-        end do
-
-        ! Kein Faktor 2, weil unten einfach aufaddiert wird
-        Intra = Intra + sum(this%Interaction(i,i)%EPotAngle(:)) + sum(this%Interaction(i,i)%EPotTo(:))
-      end do
-      E = .5_RK * E + Intra
-    endif
-
-!! Ewald
-!    if (LongRange .eq. Ewald) then
-!      call EwaldFourierEnergy(this)
-!      E = E + this%UFourier + this%UIntra + this%USelbstTerm
-!#if SPME > 0
-!    else if (LongRange .eq. PME) then
-!      call charge_grid_MCall(this)
-!      call PMEFourierTermMC(this)
-!      E = E + this%UFourier + this%UIntra + this%USelbstTerm
-!#endif
-!    end if
-
-  end function TEnsemble_GetEnergyIntra
-
-
-!==============================================================!
-!  Function TEnsemble_GetEnergyIntra1Mol (per molecule)        !
-!==============================================================!
-
-  function TEnsemble_GetEnergyIntra1Mol( this, nc, np ) result(E)
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: nu
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    if ( UseIntDegFreed ) then
-      nu = this%Component(nc)%Molecule%NUnit
-      E = 0.5_RK * sum( this%Interaction(nc, nc)%EPot((np-1)*nu+1:np*nu,(np-1)*nu+1:np*nu) )
-      if (associated(this%Component(nc)%Molecule%idfangle)) then   !Michael Sch.: assoicated terms only needed here,
-        E = E + this%Interaction(nc,nc)%EPotAngle(np)              !          since : omits '0' entries/empty arrays
-      endif
-      if (associated(this%Component(nc)%Molecule%idfdihedral)) then
-        E = E + this%Interaction(nc,nc)%EPotTo(np)
-      endif
-    endif
-
-  end function TEnsemble_GetEnergyIntra1Mol
-  
-  
- !==============================================================!
- !  Function TEnsemble_GetEnergyIntra_Bond                      !
- !==============================================================!
-
-  function TEnsemble_GetEnergyIntra_Bond( this ) result(E)
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i, j, nu, np
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    do i = 1, this%NComponents
-      nu = this%Component(i)%Molecule%NUnit
-      np = this%Component(i)%NPart
-      do j=1,np
-        E = E + sum( this%Interaction(i, i)%EPot((j-1)*nu+1:j*nu,(j-1)*nu+1:j*nu) )
-      end do
-    end do
-    E = .5_RK * E
-
-  end function TEnsemble_GetEnergyIntra_Bond
-  
-  
- !==============================================================!
- !  Function TEnsemble_GetEnergyIntra_Angle                     !
- !==============================================================!
-
-  function TEnsemble_GetEnergyIntra_Angle( this ) result(E)
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    do i = 1, this%NComponents
-      E = E + sum(this%Interaction(i,i)%EPotAngle(:))
-    end do
-
-  end function TEnsemble_GetEnergyIntra_Angle
-  
-  
- !==============================================================!
- !  Function TEnsemble_GetEnergyIntra_Dihedral                  !
- !==============================================================!
-
-  function TEnsemble_GetEnergyIntra_Dihedral( this ) result(E)
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    do i = 1, this%NComponents
-      E = E + sum(this%Interaction(i,i)%EPotTo(:))
-    end do
-
-  end function TEnsemble_GetEnergyIntra_Dihedral
-  
 
 !==============================================================!
 !  Function TEnsemble_GetVirial                                !
@@ -21404,6 +21243,168 @@ contains
     V = .5_RK * V
 
   end function TEnsemble_GetVirialIntra
+
+
+!==============================================================!
+!  Function TEnsemble_GetEnergyIntra                           !
+!==============================================================!
+
+  function TEnsemble_GetEnergyIntra( this ) result(E)
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: i, j, np, nu
+    real(RK):: Intra
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    if ( UseIntDegFreed ) then
+      Intra = 0._RK
+      do i = 1, this%NComponents
+        nu = this%Component(i)%Molecule%NUnit
+        np = this%Component(i)%NPart
+        do j=1,np
+          E = E + sum( this%Interaction(i, i)%EPot((j-1)*nu+1:j*nu,(j-1)*nu+1:j*nu) )
+        end do
+
+        ! Kein Faktor 2, weil unten einfach aufaddiert wird
+        Intra = Intra + sum(this%Interaction(i,i)%EPotAngle(:)) + sum(this%Interaction(i,i)%EPotTo(:))
+      end do
+      E = .5_RK * E + Intra
+    endif
+
+!! Ewald
+!    if (LongRange .eq. Ewald) then
+!      call EwaldFourierEnergy(this)
+!      E = E + this%UFourier + this%UIntra + this%USelbstTerm
+!#if SPME > 0
+!    else if (LongRange .eq. PME) then
+!      call charge_grid_MCall(this)
+!      call PMEFourierTermMC(this)
+!      E = E + this%UFourier + this%UIntra + this%USelbstTerm
+!#endif
+!    end if
+
+  end function TEnsemble_GetEnergyIntra
+
+
+!==============================================================!
+!  Function TEnsemble_GetEnergyIntra1Mol (per molecule)        !
+!==============================================================!
+
+  function TEnsemble_GetEnergyIntra1Mol( this, nc, np ) result(E)
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: nu
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    if ( UseIntDegFreed ) then
+      nu = this%Component(nc)%Molecule%NUnit
+      E = 0.5_RK * sum( this%Interaction(nc, nc)%EPot((np-1)*nu+1:np*nu,(np-1)*nu+1:np*nu) )
+      if (associated(this%Component(nc)%Molecule%idfangle)) then   !Michael Sch.: assoicated terms only needed here,
+        E = E + this%Interaction(nc,nc)%EPotAngle(np)              !          since : omits '0' entries/empty arrays
+      endif
+      if (associated(this%Component(nc)%Molecule%idfdihedral)) then
+        E = E + this%Interaction(nc,nc)%EPotTo(np)
+      endif
+    endif
+
+  end function TEnsemble_GetEnergyIntra1Mol
+
+
+ !==============================================================!
+ !  Function TEnsemble_GetEnergyIntra_Bond                      !
+ !==============================================================!
+
+  function TEnsemble_GetEnergyIntra_Bond( this ) result(E)
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: i, j, nu, np
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    do i = 1, this%NComponents
+      nu = this%Component(i)%Molecule%NUnit
+      np = this%Component(i)%NPart
+      do j=1,np
+        E = E + sum( this%Interaction(i, i)%EPot((j-1)*nu+1:j*nu,(j-1)*nu+1:j*nu) )
+      end do
+    end do
+    E = .5_RK * E
+
+  end function TEnsemble_GetEnergyIntra_Bond
+
+
+ !==============================================================!
+ !  Function TEnsemble_GetEnergyIntra_Angle                     !
+ !==============================================================!
+
+  function TEnsemble_GetEnergyIntra_Angle( this ) result(E)
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: i
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    do i = 1, this%NComponents
+      E = E + sum(this%Interaction(i,i)%EPotAngle(:))
+    end do
+
+  end function TEnsemble_GetEnergyIntra_Angle
+
+
+ !==============================================================!
+ !  Function TEnsemble_GetEnergyIntra_Dihedral                  !
+ !==============================================================!
+
+  function TEnsemble_GetEnergyIntra_Dihedral( this ) result(E)
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: i
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    do i = 1, this%NComponents
+      E = E + sum(this%Interaction(i,i)%EPotTo(:))
+    end do
+
+  end function TEnsemble_GetEnergyIntra_Dihedral
 
 
 end module ms2_ensemble
