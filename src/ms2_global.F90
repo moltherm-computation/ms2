@@ -1795,6 +1795,28 @@ contains
   end subroutine Global_LogClose
 
 
+
+!==============================================================!
+!  Subroutine Global_LogWrite                                  !
+!==============================================================!
+
+  subroutine Global_LogWrite()
+
+    implicit none
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Write contents of buffer to log file
+    call FileWrite( iounit_log )
+
+    ! Update log file
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+    call flush( iounit_log )
+#endif
+
+  end subroutine Global_LogWrite
+
 ! #if MPI_VER > 0
 ! !==============================================================!
 ! !  Subroutine Global_LogWrite_MPI                              !
@@ -1823,29 +1845,6 @@ contains
 ! 
 !   end subroutine Global_LogWrite_MPI
 ! #endif
-
-
-!==============================================================!
-!  Subroutine Global_LogWrite                                  !
-!==============================================================!
-
-  subroutine Global_LogWrite()
-
-    implicit none
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Write contents of buffer to log file
-    call FileWrite( iounit_log )
-
-    ! Update log file
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-    call flush( iounit_log )
-#endif
-
-  end subroutine Global_LogWrite
-
 
 
 !==============================================================!
