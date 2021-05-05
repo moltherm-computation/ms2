@@ -1760,91 +1760,6 @@ contains
   end subroutine TMolecule_Save
 
 
-  
-!==============================================================!
-!  Subroutine TMolecule_SaveIDF                                !
-!==============================================================!
-
-  subroutine TMolecule_SaveIDF( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TMolecule) :: this
-
-    ! Declare local variables
-    integer                        :: nidftypes
-    integer                        :: i
-
-    ! Save information about Idf
-    ! Save number of potential types
-    call FileWriteBlank( iounit_normal )
-    call FileWriteBlank( iounit_normal )
-    nidftypes = 0
-    if( this%NBond > 0 ) nidftypes = nidftypes + 1
-    if( this%NAngle > 0 ) nidftypes = nidftypes + 1
-    if( this%NDihedral > 0 ) nidftypes = nidftypes + 1
-    write( IOBuffer, '(I2)' ) nidftypes
-    call FileWriteParameter( iounit_normal, IdIdf_ntypes )
-
-    ! Save Bonds
-    if( this%NBond > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Bond'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NBond
-      call FileWriteParameter( iounit_normal, IdIdf_NBond )
-      do i = 1, this%NBond
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfBond(i) )
-      end do
-    end if
-
-   ! Save Angles
-   if( this%NAngle > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Angle'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NAngle
-      call FileWriteParameter( iounit_normal, IdIdf_NAngle )
-      do i = 1, this%NAngle
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfAngle(i) )
-      end do
-   end if
-
-   ! Save Dihedrals
-   if( this%NDihedral > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Dihedral'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NDihedral
-      call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
-      do i = 1, this%NDihedral
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfDihedral(i) )
-      end do
-    end if
-
-   ! Save information about Constraint Units
-   ! Save number of constraint unites
-     call FileWriteBlank( iounit_normal )
-     write( IOBuffer, '(I2)' ) this%NConstraint
-     call FileWriteParameter( iounit_normal, IdUnit_NConstraint )
-     if( this%NConstraint > 0 ) then
-       call FileWriteBlank( iounit_normal )
-       do i = 1, this%NConstraint
-         call FileWriteBlank( iounit_normal )
-         call Save( this%Unit(i) )
-       end do
-     end if
-
-    ! Update log file
-    write( IOBuffer, '("Added IDf to the normalized potential model for ", A)' )trim( this%PotModFileName )
-    call LogWrite
-
-  end subroutine TMolecule_SaveIDF
-
 
 !==============================================================!
 !  Subroutine TMolecule_FindCOM                                !
@@ -2469,6 +2384,90 @@ contains
   end subroutine TMolecule_FindDihedral
 
   
+!==============================================================!
+!  Subroutine TMolecule_SaveIDF                                !
+!==============================================================!
+
+  subroutine TMolecule_SaveIDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    integer                        :: nidftypes
+    integer                        :: i
+
+    ! Save information about Idf
+    ! Save number of potential types
+    call FileWriteBlank( iounit_normal )
+    call FileWriteBlank( iounit_normal )
+    nidftypes = 0
+    if( this%NBond > 0 ) nidftypes = nidftypes + 1
+    if( this%NAngle > 0 ) nidftypes = nidftypes + 1
+    if( this%NDihedral > 0 ) nidftypes = nidftypes + 1
+    write( IOBuffer, '(I2)' ) nidftypes
+    call FileWriteParameter( iounit_normal, IdIdf_ntypes )
+
+    ! Save Bonds
+    if( this%NBond > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Bond'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NBond
+      call FileWriteParameter( iounit_normal, IdIdf_NBond )
+      do i = 1, this%NBond
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfBond(i) )
+      end do
+    end if
+
+   ! Save Angles
+   if( this%NAngle > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Angle'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NAngle
+      call FileWriteParameter( iounit_normal, IdIdf_NAngle )
+      do i = 1, this%NAngle
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfAngle(i) )
+      end do
+   end if
+
+   ! Save Dihedrals
+   if( this%NDihedral > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Dihedral'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NDihedral
+      call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
+      do i = 1, this%NDihedral
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfDihedral(i) )
+      end do
+    end if
+
+   ! Save information about Constraint Units
+   ! Save number of constraint unites
+     call FileWriteBlank( iounit_normal )
+     write( IOBuffer, '(I2)' ) this%NConstraint
+     call FileWriteParameter( iounit_normal, IdUnit_NConstraint )
+     if( this%NConstraint > 0 ) then
+       call FileWriteBlank( iounit_normal )
+       do i = 1, this%NConstraint
+         call FileWriteBlank( iounit_normal )
+         call Save( this%Unit(i) )
+       end do
+     end if
+
+    ! Update log file
+    write( IOBuffer, '("Added IDf to the normalized potential model for ", A)' )trim( this%PotModFileName )
+    call LogWrite
+
+  end subroutine TMolecule_SaveIDF
+
 
 end module ms2_molecule
 
