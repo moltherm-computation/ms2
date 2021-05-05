@@ -3718,93 +3718,6 @@ end subroutine TInteraction_Energy
 
 
 !==============================================================!
-!  Subroutine TInteraction_CalcPartnersMol                     !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersMol( this, np )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)  :: this
-    integer, intent(in) :: np
-
-    ! Declare local variables
-    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared, RCutoffSquaredScaled
-    real(RK)          :: RCutoff
-    integer           :: i, j, k, unit1, NInCutoff
-    integer           :: NU, NU2, N2
-#if MPI_VER > 0
-    integer           :: l, m
-#endif
-
-    ! Assigning local variables
-    RCutoff = this%RCutoffSquaredScaled
-    NU = this%NUnit1
-    N2 = this%NPart2
-    NU2 = this%NUnit2
-
-    do k=1, NU
-      PX1d(k) = this%PX1(np, k)
-      PY1d(k) = this%PY1(np, k)
-      PZ1d(k) = this%PZ1(np, k)
-    end do
-    ! Assign local pointers
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-    do i=1, N2
-      do k=1, NU2
-        j=(i-1)*NU2+k
-        PX2d(j) = PX2(i, k)
-        PY2d(j) = PY2(i, k)
-        PZ2d(j) = PZ2(i, k)
-      end do
-    end do
-
-    ! Calculate partners within cutoff sphere
-    do i=1, NU
-      unit1 = (np-1)*NU + i
-      NInCutoff = 0
-#if MPI_VER > 0
-      if (SimulationType .eq. MonteCarlo) then
-        l = (this%NPart20-1)*this%NUnit2+1
-        m = this%NPart22*this%NUnit2
-      else
-        l = 1
-        m = N2*NU2
-      end if
-      do j = l, m
-#else
-      do j = 1, N2*NU2
-#endif
-        k = CEILING(real(j)/NU2)
-        if( this%SameComponent .and. k == np ) cycle
-        PXij = PX1d(i) - PX2d(j)
-        PYij = PY1d(i) - PY2d(j)
-        PZij = PZ1d(i) - PZ2d(j)
-        PXij = PXij - anint( PXij )
-        PYij = PYij - anint( PYij )
-        PZij = PZij - anint( PZij )
-        RijSquared = PXij**2 + PYij**2 + PZij**2
-        if( RijSquared < RCutoff ) then
-          NInCutoff = NInCutoff + 1
-          this%CutoffPartner(NInCutoff, unit1) = j
-        end if
-      end do
-      this%NInCutoff(unit1) = NInCutoff
-    end do
-
-  end subroutine TInteraction_CalcPartnersMol
-
-
-!==============================================================!
 !  Subroutine TInteraction_CalcPartners1                       !
 !==============================================================!
 
@@ -6366,6 +6279,93 @@ end subroutine TInteraction_Energy
       this%EPot1 => EPot
 
   end subroutine TInteraction_IntraEnergy
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersMol                     !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersMol( this, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)  :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
+    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared, RCutoffSquaredScaled
+    real(RK)          :: RCutoff
+    integer           :: i, j, k, unit1, NInCutoff
+    integer           :: NU, NU2, N2
+#if MPI_VER > 0
+    integer           :: l, m
+#endif
+
+    ! Assigning local variables
+    RCutoff = this%RCutoffSquaredScaled
+    NU = this%NUnit1
+    N2 = this%NPart2
+    NU2 = this%NUnit2
+
+    do k=1, NU
+      PX1d(k) = this%PX1(np, k)
+      PY1d(k) = this%PY1(np, k)
+      PZ1d(k) = this%PZ1(np, k)
+    end do
+    ! Assign local pointers
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+    do i=1, N2
+      do k=1, NU2
+        j=(i-1)*NU2+k
+        PX2d(j) = PX2(i, k)
+        PY2d(j) = PY2(i, k)
+        PZ2d(j) = PZ2(i, k)
+      end do
+    end do
+
+    ! Calculate partners within cutoff sphere
+    do i=1, NU
+      unit1 = (np-1)*NU + i
+      NInCutoff = 0
+#if MPI_VER > 0
+      if (SimulationType .eq. MonteCarlo) then
+        l = (this%NPart20-1)*this%NUnit2+1
+        m = this%NPart22*this%NUnit2
+      else
+        l = 1
+        m = N2*NU2
+      end if
+      do j = l, m
+#else
+      do j = 1, N2*NU2
+#endif
+        k = CEILING(real(j)/NU2)
+        if( this%SameComponent .and. k == np ) cycle
+        PXij = PX1d(i) - PX2d(j)
+        PYij = PY1d(i) - PY2d(j)
+        PZij = PZ1d(i) - PZ2d(j)
+        PXij = PXij - anint( PXij )
+        PYij = PYij - anint( PYij )
+        PZij = PZij - anint( PZij )
+        RijSquared = PXij**2 + PYij**2 + PZij**2
+        if( RijSquared < RCutoff ) then
+          NInCutoff = NInCutoff + 1
+          this%CutoffPartner(NInCutoff, unit1) = j
+        end if
+      end do
+      this%NInCutoff(unit1) = NInCutoff
+    end do
+
+  end subroutine TInteraction_CalcPartnersMol
 
 
 end module ms2_interaction
