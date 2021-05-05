@@ -1930,6 +1930,32 @@ contains
 
 
 
+!==============================================================!
+!  Subroutine Global_FileReset                                 !
+!==============================================================!
+
+  subroutine Global_FileReset( iounit, filename )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
+    call LogWrite
+    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileReset
+
 #if MPI_VER > 0
 !==============================================================!
 !  Subroutine Global_FileClose_parallel                        !
@@ -2049,35 +2075,6 @@ contains
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif
-
-
-
-
-!==============================================================!
-!  Subroutine Global_FileReset                                 !
-!==============================================================!
-
-  subroutine Global_FileReset( iounit, filename )
-
-    implicit none
-
-    ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: filename
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
-    call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
-    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
-
-  end subroutine Global_FileReset
 
 
 !==============================================================!
