@@ -7060,62 +7060,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 
 !==============================================================!
-!  Function TEnsemble_GetEnergy1Mol (per molecule)             !
-!==============================================================!
-
-  function TEnsemble_GetEnergy1Mol( this, nc, np ) result(E)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i, k
-    integer :: NAngle, NDihedral
-    integer :: NAngleNum, NDihedralNum
-    integer :: NUnitPart
-    integer :: nu, nup1
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    nu = this%Component(nc)%Molecule%NUnit
-    nup1 = nu * (np - 1)
-    do i = 1, this%NComponents
-      NUnitPart = this%Component(i)%Molecule%NUnit*this%Component(i)%NPart
-      do k=1, nu
-        E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1+k) )
-      end do
-    end do
-
-    if ( UseIntDegFreed ) then
-      E = E - 0.5_RK*sum( this%Interaction(nc,nc)%EPot(nup1+1:nup1+nu,nup1+1:nup1+nu) )
-      NAngle = this%Interaction(nc,nc)%NAngle
-      NDihedral = this%Interaction(nc,nc)%NDihedral
-      NAngleNum = (np-1)*NAngle
-      NDihedralNum = (np-1)*NDihedral
-      E = E + sum(this%Interaction(nc,nc)%EPotAngle(NAngleNum+1:NAngleNum+NAngle)) + &
-&       sum(this%Interaction(nc,nc)%EPotTo(NDihedralNum +1:NDihedralNum +NDihedral))
-    end if
-
-
-    ! Ewald 
-    if (LongRange .eq. Ewald) then
-      E = E + this%UFourier
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      E = E + this%UFourier
-#endif
-    end if
-
-  end function TEnsemble_GetEnergy1Mol
-
-
-!==============================================================!
 !  Function TEnsemble_GetEnergy1 (per unit)                    !
 !==============================================================!
 
@@ -21405,6 +21349,62 @@ contains
     end do
 
   end function TEnsemble_GetEnergyIntra_Dihedral
+
+
+!==============================================================!
+!  Function TEnsemble_GetEnergy1Mol (per molecule)             !
+!==============================================================!
+
+  function TEnsemble_GetEnergy1Mol( this, nc, np ) result(E)
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare result
+    real(RK) :: E
+
+    ! Declare local variables
+    integer :: i, k
+    integer :: NAngle, NDihedral
+    integer :: NAngleNum, NDihedralNum
+    integer :: NUnitPart
+    integer :: nu, nup1
+
+    ! Calculate potential energy of a particle
+    E = 0._RK
+    nu = this%Component(nc)%Molecule%NUnit
+    nup1 = nu * (np - 1)
+    do i = 1, this%NComponents
+      NUnitPart = this%Component(i)%Molecule%NUnit*this%Component(i)%NPart
+      do k=1, nu
+        E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1+k) )
+      end do
+    end do
+
+    if ( UseIntDegFreed ) then
+      E = E - 0.5_RK*sum( this%Interaction(nc,nc)%EPot(nup1+1:nup1+nu,nup1+1:nup1+nu) )
+      NAngle = this%Interaction(nc,nc)%NAngle
+      NDihedral = this%Interaction(nc,nc)%NDihedral
+      NAngleNum = (np-1)*NAngle
+      NDihedralNum = (np-1)*NDihedral
+      E = E + sum(this%Interaction(nc,nc)%EPotAngle(NAngleNum+1:NAngleNum+NAngle)) + &
+&       sum(this%Interaction(nc,nc)%EPotTo(NDihedralNum +1:NDihedralNum +NDihedral))
+    end if
+
+
+    ! Ewald
+    if (LongRange .eq. Ewald) then
+      E = E + this%UFourier
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+      E = E + this%UFourier
+#endif
+    end if
+
+  end function TEnsemble_GetEnergy1Mol
 
 
 end module ms2_ensemble
