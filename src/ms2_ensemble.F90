@@ -9664,99 +9664,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
   end subroutine TEnsemble_ChangeFluct
 
-
-!==============================================================!
-!  Subroutine TEnsemble_ChangeFluctTI                          !
-!==============================================================!
-
-  subroutine TEnsemble_ChangeFluctTI( this, nt, nc )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)        :: this
-    integer, intent(in)    :: nt
-    integer, intent(in)    :: nc
-
-    ! Declare local variables
-    type(TComponent), pointer   :: pt, pc
-    type(TInteraction), pointer :: pti, pci
-    integer                     :: i, k, n, nu, n1, nu2, nu2k
-    real(RK)                    :: PSave(3)
-    real(RK)                    :: P0Save(3, 1:this%Component(nc)%Molecule%NUnit)
-    real(RK)                    :: Q0Save(4, 1:this%Component(nc)%Molecule%NUnit)
-    real(RK)                    :: ESave(this%NUnitMax,this%NPartMax*this%NUnitMax)
-    real(RK)                    :: VSave(this%NUnitMax,this%NPartMax*this%NUnitMax)
-
-    ! Assign local variables
-    pt => this%Component(nt)
-    pc => this%Component(nc)
-    
-    if ( SimulationType .eq. MonteCarlo .or. (SimulationType .eq. MolecularDynamics .and. RootProc) ) then
-      n1 = rnd(pc%NPart)
-      nu = pc%Molecule%NUnit
-      write( IOBuffer, '("Exchanging fluctuating particle with particle ", I3, " of the corresponding TI component", I3)' ) n1, nc
-      call LogWrite
-
-      ! Copy position and quaternions
-      PSave(:) = pt%Pm0(1, :)
-      pt%Pm0(1, :) = pc%Pm0(n1, :)
-      pc%Pm0(n1, :) = PSave(:)
-      P0Save(:,1:nu) = pt%P0(1,:,1:nu )
-      pt%P0(1,:,1:nu) = pc%P0(n1,:,1:nu)
-      pc%P0(n1,:,1:nu) = P0Save(:,1:nu)
-
-      if( pc%Molecule%IsElongated ) then
-        Q0Save(:, 1:nu) = pt%Q0(1, :, 1:nu)
-        pt%Q0(1, :, 1:nu) = pc%Q0(n1, :, 1:nu)
-        pc%Q0(n1, :, 1:nu) = Q0Save(:, 1:nu)
-      end if
-    end if
-#if MPI_VER > 0
-    if (SimulationType .eq. MolecularDynamics) then
-      call MPI_Bcast( n1, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-    end if
-#endif
-
-    ! Convert molecular coordinates to atom positions
-    call Unit2Atom1( pt, 1 )
-    call Unit2Atom1( pc, n1 )
-
-    ! Copy energies and virial
-    if (SimulationType .eq. MonteCarlo) then
-      do i = 1, this%NRealComponents
-        pti => this%Interaction(nt, i)
-        pci => this%Interaction(nc, i)
-        n = pci%NPart2*pci%NUnit2
-        nu2 = (n1-1)*pci%NUnit1
-        do k=1, pci%NUnit1
-          nu2k = nu2 + k
-          ESave(k,1:n) = pti%EPot(k, :)
-          if ( this%OptPressure ) then
-            VSave(k,1:n) = pti%Virial(k, :)
-          end if
-          pti%EPot(k, :) = pci%EPot(nu2k, :)
-          this%Interaction(i, nt)%EPot(:, k) = pci%EPot(nu2k, :)
-          pci%EPot(nu2k, :) = ESave(k,1:n)
-          this%Interaction(i, nc)%EPot(:, nu2k) = ESave(k,1:n)
-          if ( this%OptPressure ) then
-            pti%Virial(k, :) = pci%Virial(nu2k, :)
-            this%Interaction(i, nt)%Virial(:, k) = pci%Virial(nu2k, :)
-            pci%Virial(nu2k, :) = VSave(k,1:n)
-            this%Interaction(i, nc)%Virial(:, nu2k) = VSave(k,1:n)
-          end if
-        end do
-      end do
-    end if
-
-  end subroutine TEnsemble_ChangeFluctTI
-
-
 !==============================================================!
 !  Subroutine TEnsemble_ScaleInteractionThermoInt              !
 !==============================================================!
@@ -21408,6 +21315,98 @@ contains
     call ResizeMol(this, DelBoxL)
 
   end subroutine TEnsemble_PredictVol
+
+
+!==============================================================!
+!  Subroutine TEnsemble_ChangeFluctTI                          !
+!==============================================================!
+
+  subroutine TEnsemble_ChangeFluctTI( this, nt, nc )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)        :: this
+    integer, intent(in)    :: nt
+    integer, intent(in)    :: nc
+
+    ! Declare local variables
+    type(TComponent), pointer   :: pt, pc
+    type(TInteraction), pointer :: pti, pci
+    integer                     :: i, k, n, nu, n1, nu2, nu2k
+    real(RK)                    :: PSave(3)
+    real(RK)                    :: P0Save(3, 1:this%Component(nc)%Molecule%NUnit)
+    real(RK)                    :: Q0Save(4, 1:this%Component(nc)%Molecule%NUnit)
+    real(RK)                    :: ESave(this%NUnitMax,this%NPartMax*this%NUnitMax)
+    real(RK)                    :: VSave(this%NUnitMax,this%NPartMax*this%NUnitMax)
+
+    ! Assign local variables
+    pt => this%Component(nt)
+    pc => this%Component(nc)
+
+    if ( SimulationType .eq. MonteCarlo .or. (SimulationType .eq. MolecularDynamics .and. RootProc) ) then
+      n1 = rnd(pc%NPart)
+      nu = pc%Molecule%NUnit
+      write( IOBuffer, '("Exchanging fluctuating particle with particle ", I3, " of the corresponding TI component", I3)' ) n1, nc
+      call LogWrite
+
+      ! Copy position and quaternions
+      PSave(:) = pt%Pm0(1, :)
+      pt%Pm0(1, :) = pc%Pm0(n1, :)
+      pc%Pm0(n1, :) = PSave(:)
+      P0Save(:,1:nu) = pt%P0(1,:,1:nu )
+      pt%P0(1,:,1:nu) = pc%P0(n1,:,1:nu)
+      pc%P0(n1,:,1:nu) = P0Save(:,1:nu)
+
+      if( pc%Molecule%IsElongated ) then
+        Q0Save(:, 1:nu) = pt%Q0(1, :, 1:nu)
+        pt%Q0(1, :, 1:nu) = pc%Q0(n1, :, 1:nu)
+        pc%Q0(n1, :, 1:nu) = Q0Save(:, 1:nu)
+      end if
+    end if
+#if MPI_VER > 0
+    if (SimulationType .eq. MolecularDynamics) then
+      call MPI_Bcast( n1, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    end if
+#endif
+
+    ! Convert molecular coordinates to atom positions
+    call Unit2Atom1( pt, 1 )
+    call Unit2Atom1( pc, n1 )
+
+    ! Copy energies and virial
+    if (SimulationType .eq. MonteCarlo) then
+      do i = 1, this%NRealComponents
+        pti => this%Interaction(nt, i)
+        pci => this%Interaction(nc, i)
+        n = pci%NPart2*pci%NUnit2
+        nu2 = (n1-1)*pci%NUnit1
+        do k=1, pci%NUnit1
+          nu2k = nu2 + k
+          ESave(k,1:n) = pti%EPot(k, :)
+          if ( this%OptPressure ) then
+            VSave(k,1:n) = pti%Virial(k, :)
+          end if
+          pti%EPot(k, :) = pci%EPot(nu2k, :)
+          this%Interaction(i, nt)%EPot(:, k) = pci%EPot(nu2k, :)
+          pci%EPot(nu2k, :) = ESave(k,1:n)
+          this%Interaction(i, nc)%EPot(:, nu2k) = ESave(k,1:n)
+          if ( this%OptPressure ) then
+            pti%Virial(k, :) = pci%Virial(nu2k, :)
+            this%Interaction(i, nt)%Virial(:, k) = pci%Virial(nu2k, :)
+            pci%Virial(nu2k, :) = VSave(k,1:n)
+            this%Interaction(i, nc)%Virial(:, nu2k) = VSave(k,1:n)
+          end if
+        end do
+      end do
+    end if
+
+  end subroutine TEnsemble_ChangeFluctTI
 
 
 end module ms2_ensemble
