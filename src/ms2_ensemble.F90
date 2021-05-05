@@ -5509,81 +5509,6 @@ loop5:    do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TEnsemble_QShake                                 !
-!==============================================================!
-
-  subroutine TEnsemble_QShake( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    type(TComponent), pointer :: pc
-    integer                   :: i
-    real(RK)                  :: VirialShake, tempVirial
-    real(RK)                  :: dLogVolumeThird
-    real(RK)                  :: oldF(this%NPartmax,3,this%NUnitmax)
-
-    select case( IntegratorType )
-    case( IntegratorTypeGear )
-      call Error( "QShake only valid for Verlet-Algorithms" )
-      ! QShake could be used with Gear, but precision advantage of Gear (o5) is lost when using QShake (o2)
-      ! also Virial-contribution of Shake can't be accounted for in either correction or prediction step
-    case( IntegratorTypeVerlet )
-      call Error( "QShake only implemented for LeapFrog" )
-    case( IntegratorTypeVV )
-      call Error( "QShake only implemented for LeapFrog" )
-    end select
-
-    VirialShake = 0._RK
-    tempVirial = 0._RK
-    dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
-
-    ! calculate unconstrained and unscaled(T) positions
-    this%scale = 1._RK ! shutoff Thermostat for unconstrained timestep
-    call CorrectLeapFrog( this )
-    call PredictLeapFrog( this )
-    do i =1, this%NComponents
-      pc => this%Component(i)
-      if (RootProc) then
-        oldF(:,:,:) = 0._RK
-#if MPI_VER > 0
-        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%FAll(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
-#else
-        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%F(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
-#endif
-      end if
-      ! calculate new forces and positions due to constraints (bonds)
-      call Constraints( pc, tempVirial )
-      ! reverse unconstrained timestep
-      if (RootProc) then
-        call ReverseLeapFrog( pc, oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit), dLogVolumeThird )
-      end if
-    end do
-
-#if MPI_VER > 0
-    !call MPI_Allreduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    call MPI_Reduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#else
-    VirialShake = tempVirial
-#endif
-
-    VirialShake = Third * VirialShake
-    this%Virial = this%Virial + VirialShake
-    this%VirialIntra = this%VirialIntra + VirialShake
-    this%Pressure = this%Pressure + VirialShake/this%Volume0
-
-  end subroutine TEnsemble_QShake
-
-
-!==============================================================!
 !  Subroutine TEnsemble_Force                                  !
 !==============================================================!
 
@@ -21408,6 +21333,81 @@ contains
     end if
 
   end subroutine TEnsemble_UpdateEnergy1Mol
+
+
+!==============================================================!
+!  Subroutine TEnsemble_QShake                                 !
+!==============================================================!
+
+  subroutine TEnsemble_QShake( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    real(RK)                  :: VirialShake, tempVirial
+    real(RK)                  :: dLogVolumeThird
+    real(RK)                  :: oldF(this%NPartmax,3,this%NUnitmax)
+
+    select case( IntegratorType )
+    case( IntegratorTypeGear )
+      call Error( "QShake only valid for Verlet-Algorithms" )
+      ! QShake could be used with Gear, but precision advantage of Gear (o5) is lost when using QShake (o2)
+      ! also Virial-contribution of Shake can't be accounted for in either correction or prediction step
+    case( IntegratorTypeVerlet )
+      call Error( "QShake only implemented for LeapFrog" )
+    case( IntegratorTypeVV )
+      call Error( "QShake only implemented for LeapFrog" )
+    end select
+
+    VirialShake = 0._RK
+    tempVirial = 0._RK
+    dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
+
+    ! calculate unconstrained and unscaled(T) positions
+    this%scale = 1._RK ! shutoff Thermostat for unconstrained timestep
+    call CorrectLeapFrog( this )
+    call PredictLeapFrog( this )
+    do i =1, this%NComponents
+      pc => this%Component(i)
+      if (RootProc) then
+        oldF(:,:,:) = 0._RK
+#if MPI_VER > 0
+        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%FAll(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
+#else
+        oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit) = pc%F(1:pc%NPart,1:3,1:pc%Molecule%NUnit)
+#endif
+      end if
+      ! calculate new forces and positions due to constraints (bonds)
+      call Constraints( pc, tempVirial )
+      ! reverse unconstrained timestep
+      if (RootProc) then
+        call ReverseLeapFrog( pc, oldF(1:pc%NPart,1:3,1:pc%Molecule%NUnit), dLogVolumeThird )
+      end if
+    end do
+
+#if MPI_VER > 0
+    !call MPI_Allreduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    call MPI_Reduce( tempVirial, VirialShake, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+#else
+    VirialShake = tempVirial
+#endif
+
+    VirialShake = Third * VirialShake
+    this%Virial = this%Virial + VirialShake
+    this%VirialIntra = this%VirialIntra + VirialShake
+    this%Pressure = this%Pressure + VirialShake/this%Volume0
+
+  end subroutine TEnsemble_QShake
 
 
 end module ms2_ensemble
