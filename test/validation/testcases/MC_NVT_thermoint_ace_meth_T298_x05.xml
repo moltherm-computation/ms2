@@ -4,7 +4,7 @@
 	<parFile>MC_NVT_thermoint_ace_meth_T298_x05.par</parFile>
 	<name>MC_NVT_thermoint_ace_meth_T298_x05</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>00:10:00</walltime>
 	<reference>
 		<file>MC_NVT_thermoint_ace_meth_T298_x05_1.res</file>
 	</reference>
