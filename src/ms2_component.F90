@@ -454,12 +454,6 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 
-#if CONSTR > 0
-  interface CorrectGear_Constraint
-    module procedure TComponent_CorrectGear_Constraint
-  end interface
-#endif
-
 #if  TRANS == 1
 !TRANSPORT_start
   interface ForceTransport
@@ -4982,77 +4976,6 @@ subroutine TComponent_ForceTransport( this )
 
   end subroutine TComponent_ForceTransport
 !TRANSPORT_END
-
-
-#if CONSTR > 0
-!==============================================================!
-!  Subroutine TComponent_CorrectGear                           !
-!==============================================================!
-
-  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)         :: this
-    real(RK),intent(in)      :: dLogVolumeThird
-    integer,intent (in)      :: aa
-    real(RK), intent(in out) :: Forc
-    real(RK),intent(in)      :: drx,dry,drz
-
-    ! Declare local variables
-    real(RK)          :: BoxLength
-    real(RK)          :: Mass
-    real(RK)          :: np
-    real(RK)          :: ff
-    real(RK)          :: Corr0,Corr0ff,Corr1
-    real(RK)          :: dr(3)
-    integer           :: i, j
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    Mass = this%Molecule%Mass
-    np = 2
-    dr(1) = drx
-    dr(2) = dry
-    dr(3) = drz
-
-    ! Correct COM positions and their derivatives
-    do j = 1, 3,1
-
-      Corr1 = + dr(j) / Gear20
-      Corr0 = Corr1 + this%P2(aa,j)
-
-      Corr0ff = Corr0
-      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
-
-        ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-        Forc = Forc + ff
-        this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
-
-        ! Check for conservation of particles in primary cell
-
-#if ARCH == 1
-        if( this%P0(aa, j) < -.5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) + 1._RK
-        elseif( this%P0(i, j) > .5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) - 1._RK
-        end if
-#else
-        this%P0(aa, j) = this%P0(aa, j) - anint( this%P0(aa, j) )
-#endif
-        this%P0old(aa, j) = this%P0(aa, j)
-    end do
-
-  end subroutine TComponent_CorrectGear_Constraint
-
-#endif
-
 
 
 end module ms2_component

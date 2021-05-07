@@ -478,19 +478,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumTotalDipoleMomentSquared
     type(TAccumulator) :: SumDielectricConstant
 
-#if CONSTR > 0
-   integer         :: NCons
-   integer,pointer, contiguous :: Cons1Comp(:)
-   integer,pointer, contiguous :: Cons2Comp(:)
-   integer,pointer, contiguous :: Cons1(:)
-   integer,pointer, contiguous :: Cons2(:)
-   real(RK),pointer, contiguous:: ConsR(:)
-   real(RK),pointer, contiguous:: FCons(:)
-   real(RK),pointer, contiguous:: UCons(:)
-   logical         :: consup
-#endif
-
-
 #if HBOND > 0
    integer          :: NHBondCrit
    integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
@@ -1009,12 +996,6 @@ module ms2_ensemble
     module procedure TEnsemble_EinsteinCoefProcedure
   end interface
 
-#endif
-
-#if CONSTR > 0
-  interface Constraints
-    module procedure TEnsemble_Constraints
-  end interface
 #endif
 
 #if HBOND > 0
@@ -1736,68 +1717,6 @@ contains
           end if
         end do
       end if
-
-#endif
-
-#if CONSTR > 0
-    write( IOBuffer, '("CONSTRAINED DYNAMICS")' )
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdNCons )
-    read( IOBuffer, * ) this%NCons
-    write( IOBuffer, '("Number of Constrained Molecules:", I3)' ) this%NCons
-    call LogWrite
-
-    allocate( this%Cons1Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons1Comp'
-    allocate( this%Cons2Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons2Comp'
-    allocate( this%Cons1( this%NCons), STAT = stat )
-           if(stat >0) write(*,*) 'Allocation Error Cons1'
-    allocate( this%Cons2( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error Cons2'
-    allocate( this%ConsR( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error ConsR'
-    allocate( this%FCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error FCons'
-    allocate( this%UCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error UCons'
-
-   DO i=1,this%NCons,1
-    call FileReadParameter( iounit_params , IdCons1Comp )
-    read( IOBuffer, * ) this%Cons1Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 1:", I3)' ) this%Cons1Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons1 )
-    read( IOBuffer, * ) this%Cons1(i)
-    write( IOBuffer, '("Constrained Mol 1:", I3)' ) this%Cons1(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2Comp )
-    read( IOBuffer, * ) this%Cons2Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 2:", I3)' ) this%Cons2Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2 )
-    read( IOBuffer, * ) this%Cons2(i)
-    write( IOBuffer, '("Constrained Mol 2:", I3)' ) this%Cons2(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdConsR )
-    read( IOBuffer, * ) this%ConsR(i)
-    write( IOBuffer, '("Constrained Mol Distance:", F6.3)' ) this%ConsR(i)
-    call LogWrite
-
-    this%ConsR(i) = this%ConsR(i) * Angstroem
-    this%ConsR(i) = this%ConsR(i) / UnitLength
-! Use only squared!
-    this%ConsR(i) = this%ConsR(i) * this%ConsR(i)
-
-   END DO
-
-! REduce the number of degrees of freedom in the system
-    this%NDF = this%NDF - this%NCons
 
 #endif
 
@@ -5184,10 +5103,6 @@ xloop:do i = 1, NCells1dim(1)
     call ChemicalPotential( this )
     call Atom2Mol( this )
     call Correct( this )
-
-#if CONSTR > 0
-    call Constraints(this)
-#endif
 
    if(.not. Equilibration) then
    end if
@@ -10242,9 +10157,7 @@ loop2:        do nc = 1, this%NComponents
          end if
        enddo
        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
-#if CONSTR > 0
-       fields = fields + 2 *  this%NCons
-#endif
+
     end if
 #endif
     
@@ -10538,25 +10451,6 @@ loop2:        do nc = 1, this%NComponents
              end do
            end if
 
-#if CONSTR > 0
-           do i=1, this%NCons
-             if ( i < 10 ) then
-               write( IOBuffer, '("      PMF_", I1)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               write( IOBuffer, '("      MF_",  I1)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             else
-               write( IOBuffer, '("     PMF_", I2)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               write( IOBuffer, '("     MF_",  I2)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end if
-           end do
-#endif
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -10669,21 +10563,6 @@ loop2:        do nc = 1, this%NComponents
            end do
          end if
 
-#if CONSTR > 0
-         do i=1, this%NCons
-           if ( i < 10 ) then
-             write( IOBuffer, '("      PMF_", I1)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-             write( IOBuffer, '("      MF_",  I1)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-           else
-             write( IOBuffer, '("     PMF_", I2)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-             write( IOBuffer, '("     MF_",  I2)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-           end if
-         end do
-#endif
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
 #endif
@@ -10912,21 +10791,6 @@ loop2:        do nc = 1, this%NComponents
           end do
         end if
 
-#if CONSTR > 0
-        do i=1, this%NCons
-          if ( i < 10 ) then
-            write( IOBuffer, '("      PMF_", I1)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-            write( IOBuffer, '("      MF_",  I1)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '("     PMF_", I2)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-            write( IOBuffer, '("     MF_",  I2)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
-#endif
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
       end if
@@ -11560,13 +11424,6 @@ loop2:        do nc = 1, this%NComponents
                 end do
               end if
 
-#if CONSTR == 0
-               write( IOBuffer, '()' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-               this%consup = .true.
-#endif
                write( IOBuffer, '(A)' )new_line('a')
                call FileWriteNoAdvance_parallel( this%iounit_result )
                call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -11682,13 +11539,6 @@ loop2:        do nc = 1, this%NComponents
               end do
             end if
 
-#if CONSTR == 0
-             write( IOBuffer, '()' )
-             call FileWriteNoAdvance_parallel( this%iounit_result )
-             call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-             this%consup = .true.
-#endif
              write( IOBuffer, '(A)' )new_line('a')
              call FileWriteNoAdvance_parallel( this%iounit_result )
              call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -11862,13 +11712,6 @@ loop2:        do nc = 1, this%NComponents
             end do
           end if
 
-#if CONSTR == 0
-           write( IOBuffer, '()' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-          this%consup = .true.
-#endif
           write( IOBuffer, '(A)' )new_line('a')
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -12023,11 +11866,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-#if CONSTR == 0
-        call FileWriteBlank( this%iounit_runave )
-#else
-        this%consup = .true.
-#endif
+
 #if ARCH == 2 && ! MPI_VER > 0
         call flush( this%iounit_result )
         call flush( this%iounit_runave )
@@ -12326,11 +12165,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-#if CONSTR == 0
-        call FileWriteBlank( this%iounit_runave )
-#else
-        this%consup = .true.
-#endif
+
 #if ARCH == 2
         call flush( this%iounit_result )
         call flush( this%iounit_runave )
@@ -23354,115 +23189,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
 
   END subroutine TEnsemble_EwaldFourierAddDel
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Constraints                            !
-!  Calculate part of SHAKE                                     !
-!==============================================================!
-#if CONSTR > 0
-
-  subroutine TEnsemble_Constraints( this)
-
-    implicit none
-
-   type(TEnsemble) :: this
-
-   integer         :: maxit
-   integer         :: i, j, aa, bb
-   integer         :: aacomp, bbcomp
-   real(RK)        :: PX1, PY1, PZ1
-   real(RK)        :: PX2, PY2, PZ2
-   real(RK)        :: dx,dy,dz
-   real(RK)        :: ddx,ddy,ddz
-   real(RK)        :: dist2, dr2, dist
-   real(RK)        :: fac
-   real(RK)        :: Forc
-   real(RK)        :: dLOgVolumeThird
-   real(RK)        :: tol
-
-   logical         :: cont
-
-! Initialization of important variables
-   cont  = .false.
-! Initialization of the max number of iterations for SHAKE
-   maxit = 300
-   tol   = 1e-7
-   dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
-
-
-   if (this%consup .eqv. .true.) then
-     DO j=1,this%NCons,1
-          write( IOBuffer, '(F10.5)' ) this%UCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-          write( IOBuffer, '(F10.5)' ) this%FCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-
-          this%FCons(j) = 0._RK
-          this%UCons(j) = 0._RK
-     END DO
-
-     call FileWriteBlank( this%iounit_runave )
-#if ARCH == 2
-     call flush( this%iounit_runave )
-#endif
-     this%consup = .false.
-   end if
-
-    i=0
-    DO WHILE ((i .le. maxit) .AND. (cont .eq. .false.))
-       cont  = .true.
-       DO j=1,this%NCons,1
-         aacomp  = this%Cons1Comp(j)
-         bbcomp  = this%Cons2Comp(j)
-         aa      = this%Cons1(j)
-         bb      = this%Cons2(j)
-         dr2     = this%ConsR(j)
-
-         PX1 = this%Component(aacomp)%P0(aa,1)
-         PY1 = this%Component(aacomp)%P0(aa,2)
-         PZ1 = this%Component(aacomp)%P0(aa,3)
-         PX2 = this%Component(bbcomp)%P0(bb,1)
-         PY2 = this%Component(bbcomp)%P0(bb,2)
-         PZ2 = this%Component(bbcomp)%P0(bb,3)
-
-         dx  = (PX2 - PX1)
-         dy  = (PY2 - PY1)
-         dz  = (PZ2 - PZ1)
-
-         dx  = (dx - anint(dx))*this%BoxLength
-         dy  = (dy - anint(dy))*this%BoxLength
-         dz  = (dz - anint(dz))*this%BoxLength
-
-         dist2 = dx*dx + dy*dy + dz*dz
-
-         dist  = dist2 - dr2
-
-         if (abs(dist) .gt. tol) then
-            Forc = 0._RK
-            cont = .false.
-            fac = 1 - sqrt(dr2 / dist2)
-
-            ddx = 0.5_RK*fac * dx/this%BoxLength
-            ddy = 0.5_RK*fac * dy/this%BoxLength
-            ddz = 0.5_RK*fac * dz/this%BoxLength
-
-            call CorrectGear_Constraint(this%Component(aacomp),aa,dLogVolumeThird,Forc, ddx,ddy,ddz)
-            call CorrectGear_Constraint(this%Component(bbcomp),bb,dLogVolumeThird,Forc,-ddx,-ddy,-ddz)
-         end if
-
-         this%FCons(j) = this%FCons(j) + Forc
-         this%UCons(j) = this%UCons(j) + Forc*dist
-
-       END DO
-
-    END DO
-
-
-  end subroutine TEnsemble_Constraints
-
-#endif
-
 
 
 !==============================================================!
