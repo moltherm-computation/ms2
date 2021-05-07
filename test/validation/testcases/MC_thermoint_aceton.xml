@@ -4,7 +4,7 @@
 	<parFile>MC_thermoint_aceton.par</parFile>
 	<name>MC_thermoint_aceton</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>03:30:00</walltime>
 	<reference>
 		<file>MC_thermoint_aceton_1.res</file>
 	</reference>

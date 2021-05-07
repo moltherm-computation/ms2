@@ -4,7 +4,7 @@
 	<parFile>MD_widom_xA000.par</parFile>
 	<name>MD_widom_xA000</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>03:10:00</walltime>
 	<reference>
 		<file>MD_widom_xA000_1.res</file>
 	</reference>

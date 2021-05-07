@@ -4,7 +4,7 @@
 	<parFile>MD_NVE_gear_thermoint_methaneCO2_250_x009.par</parFile>
 	<name>MD_NVE_gear_thermoint_methaneCO2_250_x009</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>03:00:00</walltime>
 	<reference>
 		<file>MD_NVE_gear_thermoint_methaneCO2_250_x009_1.res</file>
 	</reference>

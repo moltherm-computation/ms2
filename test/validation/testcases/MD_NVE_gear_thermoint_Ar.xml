@@ -4,7 +4,7 @@
 	<parFile>MD_NVE_gear_thermoint_Ar.par</parFile>
 	<name>MD_NVE_gear_thermoint_Ar</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>01:30:00</walltime>
 	<reference>
 		<file>MD_NVE_gear_thermoint_Ar_1.res</file>
 	</reference>

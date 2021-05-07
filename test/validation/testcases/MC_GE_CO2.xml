@@ -4,7 +4,7 @@
 	<parFile>MC_GE_CO2.par</parFile>
 	<name>MC_GE_CO2</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>03:00:00</walltime>
 	<reference>
 		<file>MC_GE_CO2_1.res</file>
 	</reference>

@@ -4,7 +4,7 @@
 	<parFile>MC_NPH_widom_meoh.par</parFile>
 	<name>MC_NPH_widom_meoh</name>
 	<np>40</np>
-	<walltime>00:15:00</walltime>
+	<walltime>10:00:00</walltime>
 	<reference>
 		<file>MC_NPH_widom_meoh_1.res</file>
 	</reference>

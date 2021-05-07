@@ -4,7 +4,7 @@
 	<parFile>MC_thermoint_o2ace_fl-T400-x008.par</parFile>
 	<name>MC_thermoint_o2ace_fl-T400-x008</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>10:00:00</walltime>
 	<reference>
 		<file>MC_thermoint_o2ace_fl-T400-x008_1.res</file>
 	</reference>

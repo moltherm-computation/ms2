@@ -4,7 +4,7 @@
 	<parFile>MD_NVE_gear_widom_hydrazineH2O_T391-x025.par</parFile>
 	<name>MD_NVE_gear_widom_hydrazineH2O_T391-x025</name>
 	<np>40</np>
-	<walltime>00:05:00</walltime>
+	<walltime>06:30:00</walltime>
 	<reference>
 		<file>MD_NVE_gear_widom_hydrazineH2O_T391-x025_1.res</file>
 	</reference>
