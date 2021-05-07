@@ -28,6 +28,7 @@ module ms2_accumulator
   use ms2_global
 
 
+
 !==============================================================!
 !  Type TAccumulator                                           !
 !==============================================================!
@@ -315,7 +316,7 @@ contains
     real(RK) :: BlockAverage
     real(RK) :: sx1, sx2, sxy
     real(RK) :: TauSum, TauInf
-    integer  :: i, j, m, n
+    integer :: i, j, m, n
 #if MPI_VER > 0
     real(RK) :: ReducedAverage
 #endif
@@ -524,8 +525,8 @@ contains
     implicit none
 
     ! Declare arguments
-    type(TAccumulator)            :: this
-    logical, intent(in), optional :: trans
+    type(TAccumulator)             :: this
+    logical, intent(in), optional  :: trans
 
     ! Declare local variables
     integer :: i, j
@@ -594,6 +595,7 @@ contains
     this%BlockAverage = this%BlockSum(i) / real( this%NBlockSum(i), RK )
 
   end subroutine TAccumulator_RestartRead
+
 
 
 end module ms2_accumulator
