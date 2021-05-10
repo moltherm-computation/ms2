@@ -6809,17 +6809,17 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate new energy
     if( this%NMIEnmMax > 0 ) then
-      E =  E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
+      !selfterm ReactionField contribution to pressure and EPot was turned off for MC
+      !because it does not need selfterm correction
+      E =  E + this%Density * this%EPotCorrMIE !+ this%EPotCorrRF
       d2EdV2 =  d2EdV2 + this%Density * this%d2EpotdV2CorrMIE
-      !selfterm ReactionField contribution to pressure was turned off for MC
-      !because pressure in MC does not need selfterm correction
       V =  V + this%Density * this%VirialCorrMIE !+ Third*this%VirialCorrRF
     endif
     if( this%NTT68Max > 0 ) then
-      E = E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+      !selfterm ReactionField contribution to pressure and EPot was turned off for MC
+      !because it does not need selfterm correction
+      E = E + this%Density * this%EPotCorrTT68 !+ this%EPotCorrRF
       d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
-      !selfterm ReactionField contribution to pressure was turned off for MC
-      !because pressure in MC does not need selfterm correction
       V = V + this%Density * this%VirialCorrTT68 !+ Third*this%VirialCorrRF
     endif
     
