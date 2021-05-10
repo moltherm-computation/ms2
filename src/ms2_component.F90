@@ -40,7 +40,7 @@ module ms2_component
 
     ! Charged component
     logical           :: charged
-
+    
 #if OSMOP > 0
     ! Permeability
     logical           :: permeable
@@ -165,12 +165,13 @@ module ms2_component
 
     ! Maximum number of particles in component
     integer, pointer :: NPartMax
-    
+
     ! Maximum number of units in component
     integer, pointer :: NUnitMax
 
     ! Number of particles in component
     integer, pointer :: NPart
+
     ! Number of particles in process
     ! Starting position, Number of Particles, Endposition
     integer, pointer :: NPart0, NPart1, NPart2
@@ -220,7 +221,7 @@ module ms2_component
     ! IDF
     integer, pointer, contiguous :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
 
-    ! Ewald
+! Ewald
     real(RK) :: EPotTestSelf
 
     ! Fluctuating components and weighting factors
@@ -372,7 +373,7 @@ module ms2_component
   interface Unit2Atom
     module procedure TComponent_Unit2Atom
   end interface
-
+  
   interface Unit2Atom1
     module procedure TComponent_Unit2Atom1Mol
     module procedure TComponent_Unit2Atom1
@@ -742,7 +743,7 @@ contains
         call LogWrite
       case default
         call Error( trim( str )//  '  unknown. Set value to Yes or On.' )
-    end select
+      end select
 #endif
 
     ! Create potential model
@@ -750,7 +751,7 @@ contains
 &     merge(0, -1, this%ChemPotMethod .eq. ChemPotMethodGradIns) )
     this%NFluctMax = this%Molecule%NFluct
     this%NFluctState = 0
-    
+
     ! Set Unit Borders
     this%UnitLJ => this%Molecule%UnitLJ
     this%UnitC  => this%Molecule%UnitC
@@ -853,7 +854,6 @@ contains
 
   end subroutine TComponent_ConstructSVC
 
-
 !==============================================================!
 !  Subroutine TComponent_ConstructThermoInt                    !
 !==============================================================!
@@ -929,7 +929,6 @@ contains
 
   end subroutine TComponent_ConstructThermoInt
 
-
 !==============================================================!
 !  Subroutine TComponent_ConstructFluct                        !
 !==============================================================!
@@ -985,7 +984,7 @@ contains
 
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, state )
-    
+
     ! Set Unit Borders
     this%UnitLJ => this%Molecule%UnitLJ
     this%UnitC  => this%Molecule%UnitC
@@ -1178,6 +1177,7 @@ contains
   end subroutine TComponent_CreateAccumulators
 
 
+
 !==============================================================!
 !  Subroutine TComponent_DestroyAccumulators                   !
 !==============================================================!
@@ -1240,7 +1240,6 @@ contains
 #endif
 
   end subroutine TComponent_DestroyAccumulators
-
 
 !==============================================================!
 !  Subroutine TComponent_Allocate                              !
@@ -1326,7 +1325,7 @@ contains
     nullify( this%FRC1)
     nullify( this%FRC2 )
     nullify( this%FRC3 )
-    
+
 #if OSMOP > 0
     nullify( this%FOsmoticPressure )
     nullify( this%DensityProfileN )
@@ -1382,7 +1381,7 @@ contains
     allocate( this%FRC3( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
-    call AllocationError( stat, 'units*particles', nup )  
+    call AllocationError( stat, 'units*particles', nup )
 
 #if MPI_VER > 0
     allocate( this%FSAll( np, 3 ), STAT = stat )
@@ -1435,7 +1434,6 @@ contains
     ! Centers of mass positions for Units
     allocate( this%P0( np, 3, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )
-
 
     if( SimulationType .eq. MolecularDynamics ) then
 
@@ -1490,7 +1488,7 @@ contains
 ! already been allocated in this subroutine!
       ! Quaternion parameters
       allocate( this%Q0( np, 4, nu ), STAT = stat )
-      call AllocationError( stat, 'units*particles', nup )      
+      call AllocationError( stat, 'units*particles', nup )
 #endif
       allocate( this%Q0Save( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
@@ -2279,8 +2277,7 @@ contains
       this%DihedralCount => this%Molecule%DihedralCount
       this%DihedralPartner => this%Molecule%DihedralPartner
     end if
-    
-    
+
     ! Fluctuating particle states
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
       nf = this%NFluctMax
@@ -2323,7 +2320,6 @@ contains
     ! Update log file
     write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
-
 
   end subroutine TComponent_Allocate
 
@@ -2718,7 +2714,7 @@ contains
 
     ! Declare arguments
     type(TComponent) :: this
-    
+
     ! Local variables
     integer          :: i
     integer          :: nu
@@ -2756,7 +2752,7 @@ contains
 
     ! Declare arguments
     type(TComponent) :: this
-    
+
     ! Local variables
     integer          :: i, nu
     
@@ -2810,7 +2806,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_RemoveNetMomentum                     !
+!  Subroutine TComponent_RemoveNetMomentum                      !
 !==============================================================!
 
   subroutine TComponent_RemoveNetMomentum( this, nu )
@@ -2835,6 +2831,7 @@ contains
       L(:, k) = 0._RK
       do i = 1, 3
         P(i, k) = P(i, k) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
+
         if( i <= this%Molecule%Unit(k)%NDFRot ) then
           L(i, k) = L(i, k) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
         end if
@@ -2848,6 +2845,7 @@ contains
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim(k)
         end do
+ 
         if( i <= this%Molecule%Unit(k)%NDFRot ) then
           Pim(k) = L(i, k) / this%Molecule%Unit(k)%MOI(i)
           do j = 1, this%NPart
@@ -2873,7 +2871,7 @@ contains
 
     ! Declare local variables
     integer :: i, k, nu
-    
+
     nu = this%Molecule%NUnit
     this%EKinTran = 0._RK
     this%EKinRot = 0._RK
@@ -2938,7 +2936,6 @@ contains
       end if
     end if
 #endif
-
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -3066,6 +3063,7 @@ contains
         end if
 
       else ! If unit is not elongated
+
         ! Loop over LJ126 sites in molecule
         do i = 1, this%Molecule%Unit(k)%NLJ126
           pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
@@ -3085,7 +3083,6 @@ contains
             pCharge%RZ(j) = this%P0(j, 3, k)
           end do
         end do
-      
       end if
     end do
 
@@ -3139,7 +3136,7 @@ contains
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
 
-    if ( this%Molecule%Unit(nu)%isElongated ) then
+    if( this%Molecule%Unit(nu)%isElongated ) then
       ! Positions and quaternions of unit k in particle i
       PX = this%P0(np, 1, nu)
       PY = this%P0(np, 2, nu)
@@ -3322,6 +3319,7 @@ contains
     do k = 1, nu
       ! Check number of rotation axes
       if( this%Molecule%Unit(k)%isElongated ) then
+
         ! Loop over molecules
         do i = i0, i1
           ik = (i-i0)*nu+k
@@ -3422,6 +3420,7 @@ contains
             pQuadrupole%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
             pQuadrupole%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
             pQuadrupole%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
+
             pQuadrupole%OXTest(i) = or1 * A11(ik) + or2 * A21(ik) + or3 * A31(ik)
             pQuadrupole%OYTest(i) = or1 * A12(ik) + or2 * A22(ik) + or3 * A32(ik)
             pQuadrupole%OZTest(i) = or1 * A13(ik) + or2 * A23(ik) + or3 * A33(ik)
@@ -3439,8 +3438,9 @@ contains
             this%MueZTest(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
           end do
         end if
-      
+
       else ! If unit is not elongated
+
         ! Loop over LJ126 sites in molecule
         do i = 1, this%Molecule%Unit(k)%NLJ126
           pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
@@ -3460,7 +3460,7 @@ contains
             pCharge%RZTest(j) = this%P0Test(j, 3, k)
           end do
         end do
-      
+
       end if
     end do
 
@@ -3502,6 +3502,7 @@ contains
     allocate( OsmoPAll(this%NPart) )
     OsmoPAll(:) = 0._RK
 #endif
+
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -3672,6 +3673,7 @@ contains
             this%F(i, 3, k) = this%F(i, 3, k) + pCharge%FZ(i)
           end do
         end do
+
       end if
 
     end do
@@ -3907,7 +3909,6 @@ contains
 
     ! Assign local variables
     BoxLength = this%BoxLength
-
 #if  TRANS == 1
     !TRANSPORT_start
     BoxLength_dt = this%BoxLength/TimeStep !TRANSPORT_thisline
@@ -3946,404 +3947,404 @@ contains
       q3(:,k) = this%Q0(:, 3, k)
       q4(:,k) = this%Q0(:, 4, k)
 
-         ! Loop over LJ126 sites in unit
-         do j = 1, this%Molecule%NLJ126
-           pLJ126 => this%Molecule%SiteLJ126(j)
-           do i = 1, np
-             fx = pLJ126%FX(i)
-             fy = pLJ126%FY(i)
-             fz = pLJ126%FZ(i)
+      ! Loop over LJ126 sites in unit
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        do i = 1, np
+          fx = pLJ126%FX(i)
+          fy = pLJ126%FY(i)
+          fz = pLJ126%FZ(i)
 #if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pLJ126%vsLJx(i)
-             vsy = pLJ126%vsLJy(i)
-             vsz = pLJ126%vsLJz(i)
-             vbx = pLJ126%vbLJx(i)
-             vby = pLJ126%vbLJy(i)
-             vbz = pLJ126%vbLJz(i)
-          !   if (this%Conductivity) then
-               vsux= pLJ126%vsuLJx(i)
-               vsuy= pLJ126%vsuLJy(i)
-               vsuz= pLJ126%vsuLJz(i)
-               cx  = pLJ126%cLJx(i)
-               cy  = pLJ126%cLJy(i)
-               cz  = pLJ126%cLJz(i)
-               tux = pLJ126%tuLJx(i)
-               tuy = pLJ126%tuLJy(i)
-               tuz = pLJ126%tuLJz(i)
-               tlx = pLJ126%tlLJx(i)
-               tly = pLJ126%tlLJy(i)
-               tlz = pLJ126%tlLJz(i)
-               tdx = pLJ126%tdLJx(i)
-               tdy = pLJ126%tdLJy(i)
-               tdz = pLJ126%tdLJz(i)
-          !   end if
-             !TRANSPORT_END
+          !TRANSPORT_start
+          vsx = pLJ126%vsLJx(i)
+          vsy = pLJ126%vsLJy(i)
+          vsz = pLJ126%vsLJz(i)
+          vbx = pLJ126%vbLJx(i)
+          vby = pLJ126%vbLJy(i)
+          vbz = pLJ126%vbLJz(i)
+       !   if (this%Conductivity) then
+            vsux= pLJ126%vsuLJx(i)
+            vsuy= pLJ126%vsuLJy(i)
+            vsuz= pLJ126%vsuLJz(i)
+            cx  = pLJ126%cLJx(i)
+            cy  = pLJ126%cLJy(i)
+            cz  = pLJ126%cLJz(i)
+            tux = pLJ126%tuLJx(i)
+            tuy = pLJ126%tuLJy(i)
+            tuz = pLJ126%tuLJz(i)
+            tlx = pLJ126%tlLJx(i)
+            tly = pLJ126%tlLJy(i)
+            tlz = pLJ126%tlLJz(i)
+            tdx = pLJ126%tdLJx(i)
+            tdy = pLJ126%tdLJy(i)
+            tdz = pLJ126%tdLJz(i)
+       !   end if
+          !TRANSPORT_END
 #endif
-             r1x = ( pLJ126%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pLJ126%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pLJ126%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
+          r1x = ( pLJ126%RX(i) - rx(i,k) ) * BoxLength
+          r1y = ( pLJ126%RY(i) - ry(i,k) ) * BoxLength
+          r1z = ( pLJ126%RZ(i) - rz(i,k) ) * BoxLength
+          this%F(i, 1, k) = this%F(i, 1, k) + fx
+          this%F(i, 2, k) = this%F(i, 2, k) + fy
+          this%F(i, 3, k) = this%F(i, 3, k) + fz
+          this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
+          this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
+          this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
 #if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
+          !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-            ! if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+         ! if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-            ! end if
-              !TRANSPORT_END
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+         ! end if
+           !TRANSPORT_END
 #endif
-           end do
-         end do
+        end do
+      end do
 
-         ! Loop over charge sites in unit
-         do j = 1, this%Molecule%NCharge
-           pCharge => this%Molecule%SiteCharge(j)
-           do i = 1, np
-             fx = pCharge%FX(i)
-             fy = pCharge%FY(i)
-             fz = pCharge%FZ(i)
+      ! Loop over charge sites in unit
+      do j = 1, this%Molecule%NCharge
+        pCharge => this%Molecule%SiteCharge(j)
+        do i = 1, np
+          fx = pCharge%FX(i)
+          fy = pCharge%FY(i)
+          fz = pCharge%FZ(i)
 #if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pCharge%vsCx(i)
-             vsy = pCharge%vsCy(i)
-             vsz = pCharge%vsCz(i)
-             vbx = pCharge%vbCx(i)
-             vby = pCharge%vbCy(i)
-             vbz = pCharge%vbCz(i)
-         !    if (this%Conductivity) then
-               vsux= pCharge%vsuCx(i)
-               vsuy= pCharge%vsuCy(i)
-               vsuz= pCharge%vsuCz(i)
-               cx  = pCharge%cCx(i)
-               cy  = pCharge%cCy(i)
-               cz  = pCharge%cCz(i)
-               tux = pCharge%tuCx(i)
-               tuy = pCharge%tuCy(i)
-               tuz = pCharge%tuCz(i)
-               tlx = pCharge%tlCx(i)
-               tly = pCharge%tlCy(i)
-               tlz = pCharge%tlCz(i)
-               tdx = pCharge%tdCx(i)
-               tdy = pCharge%tdCy(i)
-               tdz = pCharge%tdCz(i)
-          !   end if
-             !TRANSPORT_END
+          !TRANSPORT_start
+          vsx = pCharge%vsCx(i)
+          vsy = pCharge%vsCy(i)
+          vsz = pCharge%vsCz(i)
+          vbx = pCharge%vbCx(i)
+          vby = pCharge%vbCy(i)
+          vbz = pCharge%vbCz(i)
+      !    if (this%Conductivity) then
+            vsux= pCharge%vsuCx(i)
+            vsuy= pCharge%vsuCy(i)
+            vsuz= pCharge%vsuCz(i)
+            cx  = pCharge%cCx(i)
+            cy  = pCharge%cCy(i)
+            cz  = pCharge%cCz(i)
+            tux = pCharge%tuCx(i)
+            tuy = pCharge%tuCy(i)
+            tuz = pCharge%tuCz(i)
+            tlx = pCharge%tlCx(i)
+            tly = pCharge%tlCy(i)
+            tlz = pCharge%tlCz(i)
+            tdx = pCharge%tdCx(i)
+            tdy = pCharge%tdCy(i)
+            tdz = pCharge%tdCz(i)
+       !   end if
+          !TRANSPORT_END
 #endif
-             r1x = ( pCharge%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pCharge%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pCharge%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
+          r1x = ( pCharge%RX(i) - rx(i,k) ) * BoxLength
+          r1y = ( pCharge%RY(i) - ry(i,k) ) * BoxLength
+          r1z = ( pCharge%RZ(i) - rz(i,k) ) * BoxLength
+          this%F(i, 1, k) = this%F(i, 1, k) + fx
+          this%F(i, 2, k) = this%F(i, 2, k) + fy
+          this%F(i, 3, k) = this%F(i, 3, k) + fz
+          this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
+          this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
+          this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
 #if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
+          !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-           !  if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+        !  if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-            ! end if
-            !TRANSPORT_END
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+         ! end if
+          !TRANSPORT_END
 #endif
-           end do
-         end do
+        end do
+      end do
 
-         ! Loop over dipole sites in unit
-         do j = 1, this%Molecule%NDipole
-           pDipole => this%Molecule%SiteDipole(j)
-           do i = 1, np
-             fx = pDipole%FX(i)
-             fy = pDipole%FY(i)
-             fz = pDipole%FZ(i)
+      ! Loop over dipole sites in unit
+      do j = 1, this%Molecule%NDipole
+        pDipole => this%Molecule%SiteDipole(j)
+        do i = 1, np
+          fx = pDipole%FX(i)
+          fy = pDipole%FY(i)
+          fz = pDipole%FZ(i)
 #if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pDipole%vsDx(i)
-             vsy = pDipole%vsDy(i)
-             vsz = pDipole%vsDz(i)
-             vbx = pDipole%vbDx(i)
-             vby = pDipole%vbDy(i)
-             vbz = pDipole%vbDz(i)
-            ! if (this%Conductivity) then
-               vsux= pDipole%vsuDx(i)
-               vsuy= pDipole%vsuDy(i)
-               vsuz= pDipole%vsuDz(i)
-               cx  = pDipole%cDx(i)
-               cy  = pDipole%cDy(i)
-               cz  = pDipole%cDz(i)
-               tux = pDipole%tuDx(i)
-               tuy = pDipole%tuDy(i)
-               tuz = pDipole%tuDz(i)
-               tlx = pDipole%tlDx(i)
-               tly = pDipole%tlDy(i)
-               tlz = pDipole%tlDz(i)
-               tdx = pDipole%tdDx(i)
-               tdy = pDipole%tdDy(i)
-               tdz = pDipole%tdDz(i)
-           !  end if
-             !TRANSPORT_END
+          !TRANSPORT_start
+          vsx = pDipole%vsDx(i)
+          vsy = pDipole%vsDy(i)
+          vsz = pDipole%vsDz(i)
+          vbx = pDipole%vbDx(i)
+          vby = pDipole%vbDy(i)
+          vbz = pDipole%vbDz(i)
+         ! if (this%Conductivity) then
+            vsux= pDipole%vsuDx(i)
+            vsuy= pDipole%vsuDy(i)
+            vsuz= pDipole%vsuDz(i)
+            cx  = pDipole%cDx(i)
+            cy  = pDipole%cDy(i)
+            cz  = pDipole%cDz(i)
+            tux = pDipole%tuDx(i)
+            tuy = pDipole%tuDy(i)
+            tuz = pDipole%tuDz(i)
+            tlx = pDipole%tlDx(i)
+            tly = pDipole%tlDy(i)
+            tlz = pDipole%tlDz(i)
+            tdx = pDipole%tdDx(i)
+            tdy = pDipole%tdDy(i)
+            tdz = pDipole%tdDz(i)
+        !  end if
+          !TRANSPORT_END
 #endif
-             r1x = ( pDipole%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pDipole%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pDipole%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + pDipole%OY(i) * pDipole%TZ(i) &
-&                                        - pDipole%OZ(i) * pDipole%TY(i) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + pDipole%OZ(i) * pDipole%TX(i) &
-&                                        - pDipole%OX(i) * pDipole%TZ(i) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + pDipole%OX(i) * pDipole%TY(i) &
-&                                        - pDipole%OY(i) * pDipole%TX(i) + r1x * fy - r1y * fx
+          r1x = ( pDipole%RX(i) - rx(i,k) ) * BoxLength
+          r1y = ( pDipole%RY(i) - ry(i,k) ) * BoxLength
+          r1z = ( pDipole%RZ(i) - rz(i,k) ) * BoxLength
+          this%F(i, 1, k) = this%F(i, 1, k) + fx
+          this%F(i, 2, k) = this%F(i, 2, k) + fy
+          this%F(i, 3, k) = this%F(i, 3, k) + fz
+          this%T(i, 1, k) = this%T(i, 1, k) + pDipole%OY(i) * pDipole%TZ(i) &
+&                                     - pDipole%OZ(i) * pDipole%TY(i) + r1y * fz - r1z * fy
+          this%T(i, 2, k) = this%T(i, 2, k) + pDipole%OZ(i) * pDipole%TX(i) &
+&                                     - pDipole%OX(i) * pDipole%TZ(i) + r1z * fx - r1x * fz
+          this%T(i, 3, k) = this%T(i, 3, k) + pDipole%OX(i) * pDipole%TY(i) &
+&                                     - pDipole%OY(i) * pDipole%TX(i) + r1x * fy - r1y * fx
 #if  TRANS == 1
-            !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
+         !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-          !   if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+       !   if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-           !  end if
-              !TRANSPORT_END
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+        !  end if
+!TRANSPORT_END
 #endif
-           end do
-         end do
+        end do
+      end do
 
-         ! Loop over quadrupole sites in unit
-         do j = 1, this%Molecule%NQuadrupole
-           pQuadrupole => this%Molecule%SiteQuadrupole(j)
-           do i = 1, np
-             fx = pQuadrupole%FX(i)
-             fy = pQuadrupole%FY(i)
-             fz = pQuadrupole%FZ(i)
+      ! Loop over quadrupole sites in unit
+      do j = 1, this%Molecule%NQuadrupole
+        pQuadrupole => this%Molecule%SiteQuadrupole(j)
+        do i = 1, np
+          fx = pQuadrupole%FX(i)
+          fy = pQuadrupole%FY(i)
+          fz = pQuadrupole%FZ(i)
 #if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pQuadrupole%vsQx(i)
-             vsy = pQuadrupole%vsQy(i)
-             vsz = pQuadrupole%vsQz(i)
-             vbx = pQuadrupole%vbQx(i)
-             vby = pQuadrupole%vbQy(i)
-             vbz = pQuadrupole%vbQz(i)
-        !     if (this%Conductivity) then
-               vsux= pQuadrupole%vsuQx(i)
-               vsuy= pQuadrupole%vsuQy(i)
-               vsuz= pQuadrupole%vsuQz(i)
-               cx  = pQuadrupole%cQx(i)
-               cy  = pQuadrupole%cQy(i)
-               cz  = pQuadrupole%cqz(i)
-               tux = pQuadrupole%tuQx(i)
-               tuy = pQuadrupole%tuQy(i)
-               tuz = pQuadrupole%tuQz(i)
-               tlx = pQuadrupole%tlQx(i)
-               tly = pQuadrupole%tlQy(i)
-               tlz = pQuadrupole%tlQz(i)
-               tdx = pQuadrupole%tdQx(i)
-               tdy = pQuadrupole%tdQy(i)
-               tdz = pQuadrupole%tdQz(i)
-         !    end if
-             !TRANSPORT_END
+          !TRANSPORT_start
+          vsx = pQuadrupole%vsQx(i)
+          vsy = pQuadrupole%vsQy(i)
+          vsz = pQuadrupole%vsQz(i)
+          vbx = pQuadrupole%vbQx(i)
+          vby = pQuadrupole%vbQy(i)
+          vbz = pQuadrupole%vbQz(i)
+     !     if (this%Conductivity) then
+            vsux= pQuadrupole%vsuQx(i)
+            vsuy= pQuadrupole%vsuQy(i)
+            vsuz= pQuadrupole%vsuQz(i)
+            cx  = pQuadrupole%cQx(i)
+            cy  = pQuadrupole%cQy(i)
+            cz  = pQuadrupole%cqz(i)
+            tux = pQuadrupole%tuQx(i)
+            tuy = pQuadrupole%tuQy(i)
+            tuz = pQuadrupole%tuQz(i)
+            tlx = pQuadrupole%tlQx(i)
+            tly = pQuadrupole%tlQy(i)
+            tlz = pQuadrupole%tlQz(i)
+            tdx = pQuadrupole%tdQx(i)
+            tdy = pQuadrupole%tdQy(i)
+            tdz = pQuadrupole%tdQz(i)
+      !    end if
+          !TRANSPORT_END
 #endif
-             r1x = ( pQuadrupole%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pQuadrupole%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pQuadrupole%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
-&                                        - pQuadrupole%OZ(i) * pQuadrupole%TY(i) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
-&                                        - pQuadrupole%OX(i) * pQuadrupole%TZ(i)+ r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
-&                                        - pQuadrupole%OY(i) * pQuadrupole%TX(i) + r1x * fy - r1y * fx
+          r1x = ( pQuadrupole%RX(i) - rx(i,k) ) * BoxLength
+          r1y = ( pQuadrupole%RY(i) - ry(i,k) ) * BoxLength
+          r1z = ( pQuadrupole%RZ(i) - rz(i,k) ) * BoxLength
+          this%F(i, 1, k) = this%F(i, 1, k) + fx
+          this%F(i, 2, k) = this%F(i, 2, k) + fy
+          this%F(i, 3, k) = this%F(i, 3, k) + fz
+          this%T(i, 1, k) = this%T(i, 1, k) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
+&                                     - pQuadrupole%OZ(i) * pQuadrupole%TY(i) + r1y * fz - r1z * fy
+          this%T(i, 2, k) = this%T(i, 2, k) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
+&                                     - pQuadrupole%OX(i) * pQuadrupole%TZ(i) + r1z * fx - r1x * fz
+          this%T(i, 3, k) = this%T(i, 3, k) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
+&                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) + r1x * fy - r1y * fx
 #if  TRANS == 1
-            !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
+  !TRANSPORT_start
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
 
-         !    if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+      !    if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
 
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          !   end if
-              !TRANSPORT_END
+            this%FRC1(i,1) = this%FRC1(i,1) + tdx
+            this%FRC1(i,2) = this%FRC1(i,2) + tux
+            this%FRC1(i,3) = this%FRC1(i,3) + tuy
+            this%FRC2(i,1) = this%FRC2(i,1) + tlx
+            this%FRC2(i,2) = this%FRC2(i,2) + tdy
+            this%FRC2(i,3) = this%FRC2(i,3) + tuz
+            this%FRC3(i,1) = this%FRC3(i,1) + tly
+            this%FRC3(i,2) = this%FRC3(i,2) + tlz
+            this%FRC3(i,3) = this%FRC3(i,3) + tdz
+       !   end if
+!TRANSPORT_END
 #endif
-           end do
-         end do
+        end do
+      end do
 
-         do i = 1, np
-           ! Add torques from reaction field
-           tx = this%T(i, 1, k) + this%tRFX(i, k)
-           ty = this%T(i, 2, k) + this%tRFY(i, k)
-           tz = this%T(i, 3, k) + this%tRFZ(i, k)
+      do i = 1, np
+        ! Add torques from reaction field
+        tx = this%T(i, 1, k) + this%tRFX(i, k)
+        ty = this%T(i, 2, k) + this%tRFY(i, k)
+        tz = this%T(i, 3, k) + this%tRFZ(i, k)
 
-           ! Convert torque to body-fixed coordinates
-           A11 = q1(i,k)**2 + q2(i,k)**2 - q3(i,k)**2 - q4(i,k)**2
-           A12 = 2._RK * (q2(i,k) * q3(i,k) + q1(i,k) * q4(i,k))
-           A13 = 2._RK * (q2(i,k) * q4(i,k) - q1(i,k) * q3(i,k))
-           A21 = 2._RK * (q2(i,k) * q3(i,k) - q1(i,k) * q4(i,k))
-           A22 = q1(i,k)**2 - q2(i,k)**2 + q3(i,k)**2 - q4(i,k)**2
-           A23 = 2._RK * (q3(i,k) * q4(i,k) + q1(i,k) * q2(i,k))
-           A31 = 2._RK * (q2(i,k) * q4(i,k) + q1(i,k) * q3(i,k))
-           A32 = 2._RK * (q3(i,k) * q4(i,k) - q1(i,k) * q2(i,k))
-           A33 = q1(i,k)**2 - q2(i,k)**2 - q3(i,k)**2 + q4(i,k)**2
-           this%T(i, 1, k) = A11 * tx + A12 * ty + A13 * tz
-           this%T(i, 2, k) = A21 * tx + A22 * ty + A23 * tz
-           this%T(i, 3, k) = A31 * tx + A32 * ty + A33 * tz
-         end do
+        ! Convert torque to body-fixed coordinates
+        A11 = q1(i,k)**2 + q2(i,k)**2 - q3(i,k)**2 - q4(i,k)**2
+        A12 = 2._RK * (q2(i,k) * q3(i,k) + q1(i,k) * q4(i,k))
+        A13 = 2._RK * (q2(i,k) * q4(i,k) - q1(i,k) * q3(i,k))
+        A21 = 2._RK * (q2(i,k) * q3(i,k) - q1(i,k) * q4(i,k))
+        A22 = q1(i,k)**2 - q2(i,k)**2 + q3(i,k)**2 - q4(i,k)**2
+        A23 = 2._RK * (q3(i,k) * q4(i,k) + q1(i,k) * q2(i,k))
+        A31 = 2._RK * (q2(i,k) * q4(i,k) + q1(i,k) * q3(i,k))
+        A32 = 2._RK * (q3(i,k) * q4(i,k) - q1(i,k) * q2(i,k))
+        A33 = q1(i,k)**2 - q2(i,k)**2 - q3(i,k)**2 + q4(i,k)**2
+        this%T(i, 1, k) = A11 * tx + A12 * ty + A13 * tz
+        this%T(i, 2, k) = A21 * tx + A22 * ty + A23 * tz
+        this%T(i, 3, k) = A31 * tx + A32 * ty + A33 * tz
+      end do
 
-       else
+    else
 
-        ! Loop over LJ126 sites in unit
-         do j = 1, this%Molecule%NLJ126
-           pLJ126 => this%Molecule%SiteLJ126(j)
-           do i = 1, np
+      ! Loop over LJ126 sites in unit
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        do i = 1, np
 #if  TRANS == 1
-           !TRANSPORT_start
-             vsx = pLJ126%vsLJx(i)
-             vsy = pLJ126%vsLJy(i)
-             vsz = pLJ126%vsLJz(i)
-             vbx = pLJ126%vbLJx(i)
-             vby = pLJ126%vbLJy(i)
-             vbz = pLJ126%vbLJz(i)
-        !     if (this%Conductivity) then
-               vsux= pLJ126%vsuLJx(i)
-               vsuy= pLJ126%vsuLJy(i)
-               vsuz= pLJ126%vsuLJz(i)
-               cx  = pLJ126%cLJx(i)
-               cy  = pLJ126%cLJy(i)
-               cz  = pLJ126%cLJz(i)
-         !    end if
-             !TRANSPORT_END
+        !TRANSPORT_start
+          vsx = pLJ126%vsLJx(i)
+          vsy = pLJ126%vsLJy(i)
+          vsz = pLJ126%vsLJz(i)
+          vbx = pLJ126%vbLJx(i)
+          vby = pLJ126%vbLJy(i)
+          vbz = pLJ126%vbLJz(i)
+     !     if (this%Conductivity) then
+            vsux= pLJ126%vsuLJx(i)
+            vsuy= pLJ126%vsuLJy(i)
+            vsuz= pLJ126%vsuLJz(i)
+            cx  = pLJ126%cLJx(i)
+            cy  = pLJ126%cLJy(i)
+            cz  = pLJ126%cLJz(i)
+      !    end if
+          !TRANSPORT_END
 #endif
-             this%F(i, 1, k) = this%F(i, 1, k) + pLJ126%FX(i)
-             this%F(i, 2, k) = this%F(i, 2, k) + pLJ126%FY(i)
-             this%F(i, 3, k) = this%F(i, 3, k) + pLJ126%FZ(i)
+          this%F(i, 1, k) = this%F(i, 1, k) + pLJ126%FX(i)
+          this%F(i, 2, k) = this%F(i, 2, k) + pLJ126%FY(i)
+          this%F(i, 3, k) = this%F(i, 3, k) + pLJ126%FZ(i)
 #if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1) = this%FS(i, 1) + vsx
-             this%FS(i, 2) = this%FS(i, 2) + vsy
-             this%FS(i, 3) = this%FS(i, 3) + vsz
-             this%FB(i, 1) = this%FB(i, 1) + vbx
-             this%FB(i, 2) = this%FB(i, 2) + vby
-             this%FB(i, 3) = this%FB(i, 3) + vbz
+          !TRANSPORT_start
+          this%FS(i, 1) = this%FS(i, 1) + vsx
+          this%FS(i, 2) = this%FS(i, 2) + vsy
+          this%FS(i, 3) = this%FS(i, 3) + vsz
+          this%FB(i, 1) = this%FB(i, 1) + vbx
+          this%FB(i, 2) = this%FB(i, 2) + vby
+          this%FB(i, 3) = this%FB(i, 3) + vbz
 
-          !   if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-           !  end if
-               !TRANSPORT_END
+       !   if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+        !  end if
+!TRANSPORT_END
 #endif
-           end do
-         end do
-         
-        ! Loop over charge sites in molecule
-          do j = 1, this%Molecule%NCharge
-            pCharge => this%Molecule%SiteCharge(j)
-            do i = 1, np
-             this%F(i, 1, k) = this%F(i, 1, k) + pCharge%FX(i)
-             this%F(i, 2, k) = this%F(i, 2, k) + pCharge%FY(i)
-             this%F(i, 3, k) = this%F(i, 3, k) + pCharge%FZ(i)
+        end do
+      end do
+
+      ! Loop over charge sites in molecule
+      do j = 1, this%Molecule%NCharge
+        pCharge => this%Molecule%SiteCharge(j)
+          do i = 1, np
+            this%F(i, 1, k) = this%F(i, 1, k) + pCharge%FX(i)
+            this%F(i, 2, k) = this%F(i, 2, k) + pCharge%FY(i)
+            this%F(i, 3, k) = this%F(i, 3, k) + pCharge%FZ(i)
 #if  TRANS == 1
             !TRANSPORT_start
             vsx = pCharge%vsCx(i)
@@ -4362,7 +4363,6 @@ contains
 #endif
           end do
       end do
-
     end if
 
     ! Reduce forces and torques from all processes
@@ -4377,7 +4377,7 @@ contains
     call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
-  !  if (this%Conductivity) then
+ !   if (this%Conductivity) then
       call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -4385,7 +4385,7 @@ contains
       call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-   ! end if
+  !  end if
 !TRANSPORT_END
 #endif
 #endif
@@ -4459,14 +4459,13 @@ loop1:do i = 1, this%NPart
     type(TComponent) :: this
 
     ! Declare local variables
-    integer  :: np, nu
-    integer  :: i, j, k
+    integer :: np, nu
+    integer :: i, j, k
     real(RK) :: r(3)
 
     ! Assign local variables
     np = this%NPart
     nu = this%Molecule%NUnit
-
 
     ! Predict COM positions and their derivatives
     do k = 1, nu
@@ -4541,7 +4540,6 @@ loop1:do i = 1, this%NPart
 
     end do
 
-
   end subroutine TComponent_PredictGear
 
 
@@ -4579,14 +4577,17 @@ loop1:do i = 1, this%NPart
 #else
     pF => this%F(:, :, :)
 #endif
+
     do k= 1, nu
       MassInv = 1._RK / this%Molecule%Unit(k)%Mass
       do j = 1, 3
         do i = 1, np
           Corr0(j) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv
+
           if( ConstantPressure .and. .not. NVTEquilibration ) then
             Corr0(j) = Corr0(j) - this%P1(i, j, k) * dLogVolumeThird
           end if
+
           Corr1 = Corr0(j) - this%P2(i, j, k)
           this%P0(i, j, k) = this%P0(i, j, k) + Corr1 * Gear20
           this%P1(i, j, k) = this%P1(i, j, k) + Corr1 * Gear21
@@ -4594,6 +4595,7 @@ loop1:do i = 1, this%NPart
           this%P3(i, j, k) = this%P3(i, j, k) + Corr1 * Gear23
           this%P4(i, j, k) = this%P4(i, j, k) + Corr1 * Gear24
           this%P5(i, j, k) = this%P5(i, j, k) + Corr1 * Gear25
+
         end do
       end do
     end do
@@ -4624,7 +4626,8 @@ loop1:do i = 1, this%NPart
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
-    if ( this%Molecule%isElongated ) then
+    if( this%Molecule%isElongated ) then
+
 #if MPI_VER > 0
       pT => this%TAll(:, :, :)
 #else
@@ -4637,13 +4640,17 @@ loop1:do i = 1, this%NPart
       if( this%Molecule%Unit(k)%isElongated ) then
         do i = 1, np
           Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
-&                                          - this%Q0(i, 4, k) * this%W0(i, 3, k))
+&                                  - this%Q0(i, 4, k) * this%W0(i, 3, k))
+
           Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
-&                                          + this%Q0(i, 3, k) * this%W0(i, 3, k))
+&                                  + this%Q0(i, 3, k) * this%W0(i, 3, k))
+
           Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
-&                                          - this%Q0(i, 2, k) * this%W0(i, 3, k))
+&                                  - this%Q0(i, 2, k) * this%W0(i, 3, k))
+
           Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
-&                                          + this%Q0(i, 1, k) * this%W0(i, 3, k))
+&                                  + this%Q0(i, 1, k) * this%W0(i, 3, k))
+
           do j = 1, 4
             Corr1 = Corr0(j) - this%Q1(i, j, k)
             this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
@@ -4657,13 +4664,13 @@ loop1:do i = 1, this%NPart
         ! Correct angular velocities and their derivatives
         TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
         TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
+
         if( this%Molecule%Unit(k)%is3D ) then
           Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
           Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
           Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
           TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
         endif
-
         do i = 1, np
           if( this%Molecule%Unit(k)%is3D ) then
             Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
@@ -4677,7 +4684,7 @@ loop1:do i = 1, this%NPart
           do j = 1, this%Molecule%Unit(k)%NDFRot
             Corr1 = Corr0(j) - this%W1(i, j, k)
             this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
-            this%W1(i, j, k) =                    Corr0(j)
+            this%W1(i, j, k) = Corr0(j)
             this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
             this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
             this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
@@ -4688,6 +4695,7 @@ loop1:do i = 1, this%NPart
     end do
 
   end subroutine TComponent_CorrectGear
+
 
 
 !==============================================================!
@@ -4709,7 +4717,6 @@ loop1:do i = 1, this%NPart
     integer  :: np, nra, nu
     integer  :: i, j, k
     real(RK) :: r(3)
-
 
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
@@ -4760,14 +4767,19 @@ loop1:do i = 1, this%NPart
           do j = 1, nra
             this%W0(i, j, k) = Korr * this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
           end do
+
           this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0tmp(i, 2, k) * this%W0(i, 1, k) - this%Q0tmp(i, 3, k) * this%W0(i, 2, k) &
-&                                       - this%Q0tmp(i, 4, k) * this%W0(i, 3, k))
+&                                          - this%Q0tmp(i, 4, k) * this%W0(i, 3, k))
+
           this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0tmp(i, 1, k) * this%W0(i, 1, k) - this%Q0tmp(i, 4, k) * this%W0(i, 2, k) &
-&                                       + this%Q0tmp(i, 3, k) * this%W0(i, 3, k))
+&                                          + this%Q0tmp(i, 3, k) * this%W0(i, 3, k))
+
           this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0tmp(i, 4, k) * this%W0(i, 1, k) + this%Q0tmp(i, 1, k) * this%W0(i, 2, k) &
-&                                       - this%Q0tmp(i, 2, k) * this%W0(i, 3, k))
+&                                          - this%Q0tmp(i, 2, k) * this%W0(i, 3, k))
+
           this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0tmp(i, 3, k) * this%W0(i, 1, k) + this%Q0tmp(i, 2, k) * this%W0(i, 2, k) &
-&                                       + this%Q0tmp(i, 1, k) * this%W0(i, 3, k))
+&                                          + this%Q0tmp(i, 1, k) * this%W0(i, 3, k))
+
           do j = 1, 4
             this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k)
           end do
@@ -4807,18 +4819,20 @@ loop1:do i = 1, this%NPart
 #else
     pF => this%F(:, :, :)
 #endif
+
     do k = 1, nu
       MassInv = 1._RK / this%Molecule%Unit(k)%Mass
       do j = 1, 3
         do i = 1, np
           this%P2(i, j, k) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv &
 &                        - (this%P1(i, j, k) + this%P2(i, j, k)) * dLogVolumeThird
+
           this%P1(i, j, k) = this%P1(i, j, k) + this%P2(i, j, k)
         end do
       end do
     end do
 
-    if ( this%Molecule%isElongated ) then
+    if( this%Molecule%isElongated ) then
 #if MPI_VER > 0
       pT => this%TAll(:, :, :)
 #else
@@ -4842,6 +4856,7 @@ loop1:do i = 1, this%NPart
             this%W1(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
             this%W1(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
           end do
+
         else
           do i = 1, np
             this%W1(i, 1, k) = pT(i, 1, k) * TMoi1
@@ -4856,18 +4871,20 @@ loop1:do i = 1, this%NPart
         end do
         do i = 1, np
           this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
-  &                                     - this%Q0(i, 4, k) * this%W0(i, 3, k))
-          this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
-  &                                     + this%Q0(i, 3, k) * this%W0(i, 3, k))
-          this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
-  &                                     - this%Q0(i, 2, k) * this%W0(i, 3, k))
-          this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k)  + this%Q0(i, 2, k) * this%W0(i, 2, k) &
-  &                                     + this%Q0(i, 1, k) * this%W0(i, 3, k))
-        end do
+&                                          - this%Q0(i, 4, k) * this%W0(i, 3, k))
 
+          this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 3, k) * this%W0(i, 3, k))
+
+          this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+&                                          - this%Q0(i, 2, k) * this%W0(i, 3, k))
+
+          this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k)  + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 1, k) * this%W0(i, 3, k))
+
+        end do
       end if
     end do
-
 
   end subroutine TComponent_CorrectLeapFrog
 
@@ -5194,8 +5211,8 @@ loop1:do i = 1, this%NPart
       if( this%Molecule%Unit(i)%IsElongated ) this%Q0Save = this%Q0
     end do
 
-
   end subroutine TComponent_SaveState
+
 
 
 !==============================================================!
@@ -5219,8 +5236,8 @@ loop1:do i = 1, this%NPart
     ! Calculate site positions
     call Unit2Atom( this, this%NPart, this%Molecule%NUnit)
 
-
   end subroutine TComponent_RestoreState
+
 
 
 !==============================================================!
@@ -5419,7 +5436,6 @@ loop1:do i = 1, this%NPart
     integer :: i, np, nu, k, j
     real(RK):: r(3)
 
-
     if( RootProc ) then
 
       ! Read contents from restart file
@@ -5599,7 +5615,7 @@ loop1:do i = 1, this%NPart
     if( this%Molecule%isElongated ) then
       call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
     end if
-      
+
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
 
       call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, Communicator, ierror )
@@ -5652,6 +5668,7 @@ loop1:do i = 1, this%NPart
 subroutine TComponent_ForceTransport( this )
 
     implicit none
+
 
     ! Declare arguments
     type(TComponent)  :: this
