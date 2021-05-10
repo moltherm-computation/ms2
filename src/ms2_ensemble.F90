@@ -6811,12 +6811,16 @@ loop2:        do nc = 1, this%NComponents
     if( this%NMIEnmMax > 0 ) then
       E =  E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
       d2EdV2 =  d2EdV2 + this%Density * this%d2EpotdV2CorrMIE
-      V =  V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
+      !selfterm ReactionField contribution to pressure was turned off for MC
+      !because pressure in MC does not need selfterm correction
+      V =  V + this%Density * this%VirialCorrMIE !+ Third*this%VirialCorrRF
     endif
     if( this%NTT68Max > 0 ) then
       E = E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
       d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
-      V = V + this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+      !selfterm ReactionField contribution to pressure was turned off for MC
+      !because pressure in MC does not need selfterm correction
+      V = V + this%Density * this%VirialCorrTT68 !+ Third*this%VirialCorrRF
     endif
     
 
