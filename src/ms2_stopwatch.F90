@@ -107,9 +107,9 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
-! #ifdef USE_MPI
-!   integer :: mpi_defaultCommunicator
-! #endif
+!#ifdef USE_MPI
+!  integer :: mpi_defaultCommunicator
+!#endif
 
 !==============================================================!
 !  Type TStopwatch                                             !
