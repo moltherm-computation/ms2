@@ -51,7 +51,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
-    integer, pointer, contiguous  :: RDFSum(:)
+    integer, pointer, contiguous          :: RDFSum(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -385,7 +385,7 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )
+    allocate( this%RZ( np ), STAT = stat )    
     call AllocationError( stat, 'particles', np )
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
