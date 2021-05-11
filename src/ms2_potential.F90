@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -1868,40 +1868,6 @@ loop2:      do m=1,NBinsDen
           forceTempX(i) = forceTempX(i) - FXij
           forceTempY(i) = forceTempY(i) - FYij
           forceTempZ(i) = forceTempZ(i) - FZij
-
-!#if  TRANS == 1
-!            !TRANSPORT_start  !Michael Sch.: valid for intramolecular Interactions
-!            VSxi   = VSxi + FXij * PYij
-!            VSyi   = VSyi + FXij * PZij
-!            VSzi   = VSzi + FYij * PZij
-!            VBxi   = VBxi + FXij * PXij
-!            VByi   = VByi + FYij * PYij
-!            VBzi   = VBzi + FZij * PZij
-!            VSuxi  = VSuxi+ FYij * PXij
-!            VSuyi  = VSuyi+ FZij * PXij
-!            VSuzi  = VSuzi+ FZij * PYij
-!            RijSInvNorm   = Sqrt(RijSquaredInv)
-!            UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
-!            Cxi    = Cxi  + UU*RXij
-!            Cyi    = Cyi  + UU*RYij
-!            Czi    = Czi  + UU*RZij
-!            txii   = r1y * FZij - r1z * FYij
-!            tyii   = r1z * FXij - r1x * FZij
-!            tzii   = r1x * FYij - r1y * FXij
-!            txi    = A11 * txii + A12 * tyii + A13 * tzii
-!            tyi    = A21 * txii + A22 * tyii + A23 * tzii
-!            tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!            tuxi   = tuxi + PXij*tyi
-!            tuyi   = tuyi + PXij*tzi
-!            tuzi   = tuzi + PYij*tzi
-!            tlxi   = tlxi + PYij*txi
-!            tlyi   = tlyi + PZij*txi
-!            tlzi   = tlzi + PZij*tyi
-!            tdxi   = tdxi + PXij*txi
-!            tdyi   = tdyi + PYij*tyi
-!            tdzi   = tdzi + PZij*tzi
-!            !TRANSPORT_END
-!#endif
         end if
         FX1(i) = FXi
         FY1(i) = FYi
@@ -2060,11 +2026,8 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXi, RYi, RZi
-    !logical           :: SameComponent
     integer           :: i, j, k
     integer           :: nu1, nu2, jk, unit
-    !logical           :: intra15, intra14
-    !real(RK)          :: coeff
 
     ! Assign local variables
     nu1 = this%NUnit1
@@ -3451,37 +3414,7 @@ loop2:  do m=1,NBinsDen
         forceTempY(i) = forceTempY(i) - FYij
         forceTempZ(i) = forceTempZ(i) - FZij
 
-!#if TRANS==1
-!        !TRANSPORT_start vielleicht !Michael Sch.: valid for intramolecular Interactions?
-!        VSxi   = VSxi + FXij * PYij
-!        VSyi   = VSyi + FXij * PZij
-!        VSzi   = VSzi + FYij * PZij
-!        VBxi   = VBxi + FXij * PXij
-!        VByi   = VByi + FYij * PYij
-!        VBzi   = VBzi + FZij * PZij
-!        VSuxi  = VSuxi+ FYij * PXij
-!        VSuyi  = VSuyi+ FZij * PXij
-!        VSuzi  = VSuzi+ FZij * PYij
-!        UU     = EpotLocal1 + this%RFConstant * RijSquared
-!        Cxi    = Cxi  + UU * eX
-!        Cyi    = Cyi  + UU * eY
-!        Czi    = Czi  + UU * eZ
-!        txii   = r1y * FZij - r1z * FYij
-!        tyii   = r1z * FXij - r1x * FZij
-!        tzii   = r1x * FYij - r1y * FXij
-!        txi    = A11 * txii + A12 * tyii + A13 * tzii
-!        tyi    = A21 * txii + A22 * tyii + A23 * tzii
-!        tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!        tuxi   = tuxi + PXij*tyi
-!        tuyi   = tuyi + PXij*tzi
-!        tuzi   = tuzi + PYij*tzi
-!        tlxi   = tlxi + PYij*txi
-!        tlyi   = tlyi + PZij*txi
-!        tlzi   = tlzi + PZij*tyi
-!        tdxi   = tdxi + PXij*txi
-!        tdyi   = tdyi + PYij*tyi
-!        tdzi   = tdzi + PZij*tzi
-!#endif
+
       end if
 
       FX1(i) = FXi
@@ -3872,18 +3805,7 @@ loop2:  do m=1,NBinsDen
         forceTempY(i) = forceTempY(i) - FYij
         forceTempZ(i) = forceTempZ(i) - FZij
 
-!#if TRANS==1
-!        !TRANSPORT_start vielleicht !Michael Sch.: valid for intramolecular Interactions
-!        VSxi   = VSxi + FXij * PYij
-!        VSyi   = VSyi + FXij * PZij
-!        VSzi   = VSzi + FYij * PZij
-!        VBxi   = VBxi + FXij * PXij
-!        VByi   = VByi + FYij * PYij
-!        VBzi   = VBzi + FZij * PZij
-!
-!#endif
       end if
-
       FX1(i) = FXi
       FY1(i) = FYi
       FZ1(i) = FZi
@@ -4139,9 +4061,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
-          !tempF(1) = tempF(1) + ELocal * RijInv * eX
-          !tempF(2) = tempF(2) + ELocal * RijInv * eY
-          !tempF(3) = tempF(3) + ELocal * RijInv * eZ
         end if
         E1  = E1 + ELocal
       end if
@@ -4169,9 +4088,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
       eX = RXij * RijInv
       eY = RYij * RijInv
       eZ = RZij * RijInv
-      !tempF(1) = tempF(1) + ELocal * RijInv * eX
-      !tempF(2) = tempF(2) + ELocal * RijInv * eY
-      !tempF(3) = tempF(3) + ELocal * RijInv * eZ
+
       EIntra1  = EIntra1 + ELocal
     end if
 
@@ -4280,9 +4197,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
           eY = RYij * RijInv
           eZ = RZij * RijInv
           Fij  = (ELocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
-          !tempF(1) = tempF(1) + Fij * eX
-          !tempF(1) = tempF(1) + Fij * eY
-          !tempF(1) = tempF(1) + Fij * eZ
         end if
         E1  = E1 + ELocal
       end if
@@ -4311,9 +4225,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
       eY = RYij * RijInv
       eZ = RZij * RijInv
       Fij  = (ELocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
-      !tempF(1) = tempF(1) + Fij * eX
-      !tempF(1) = tempF(1) + Fij * eY
-      !tempF(1) = tempF(1) + Fij * eZ
+
       EIntra1  = EIntra1 + ELocal
     end if
 
@@ -5020,7 +4932,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           CosTheta3 = 3._RK * CosTheta
           Epsilon1 = Epsilon * RijSquaredInv
           Epsilon2 = Epsilon1 * RijInv
-          EPotlocal1 = Epsilon1 * CosTheta 
+          EPotlocal1 = Epsilon1 * CosTheta              !Define EPotLocal 1 
           EPotLocal  = EPotLocal + EPotlocal1                         ! Uebereinstimmumg mit Price
           EPotLocalInter  = EPotLocalInter + EPotLocal1
           FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
@@ -5078,13 +4990,13 @@ loop2:  do m=1,NBinsDen
         VSuxi  = VSuxi+ FYij * PXij
         VSuyi  = VSuyi+ FZij * PXij
         VSuzi  = VSuzi+ FZij * PYij
-        UU    =  EpotLocal1
+        UU    =  EpotLocal1        !EpotLocal1 not defined
         Uxi   =  UU * eX
         Uyi   =  UU * eY
         Uzi   =  UU * eZ
-        Cxi    = Cxi  + Uxi !Why was this term left out
-        Cyi    = Cyi  + Uyi !Why was this term left out
-        Czi    = Czi  + Uzi !Why was this term left out
+        Cxi    = Cxi  + Uxi !Why was this term left out?
+        Cyi    = Cyi  + Uyi !Why was this term left out?
+        Czi    = Czi  + Uzi !Why was this term left out?
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
@@ -5150,40 +5062,6 @@ loop2:  do m=1,NBinsDen
         momTempY(i) = momTempY(i) - Epsilon1 * eY   
         momTempZ(i) = momTempZ(i) - Epsilon1 * eZ
 
-!#if TRANS==1
-!        !TRANSPORT_start vielleicht  !Michael Sch.: valid for intramolecular Interactions
-!        VSxi   = VSxi + FXij * PYij
-!        VSyi   = VSyi + FXij * PZij
-!        VSzi   = VSzi + FYij * PZij
-!        VBxi   = VBxi + FXij * PXij
-!        VByi   = VByi + FYij * PYij
-!        VBzi   = VBzi + FZij * PZij
-!        VSuxi  = VSuxi+ FYij * PXij
-!        VSuyi  = VSuyi+ FZij * PXij
-!        VSuzi  = VSuzi+ FZij * PYij
-!        UU    =  EpotLocal1
-!        Uxi   =  UU * eX
-!        Uyi   =  UU * eY
-!        Uzi   =  UU * eZ
-!        Cxi    = Cxi  + Uxi !Why was this term left out
-!        Cyi    = Cyi  + Uyi !Why was this term left out
-!        Czi    = Czi  + Uzi !Why was this term left out
-!        txii   = r1y * FZij - r1z * FYij
-!        tyii   = r1z * FXij - r1x * FZij
-!        tzii   = r1x * FYij - r1y * FXij
-!        txi    = A11 * txii + A12 * tyii + A13 * tzii
-!        tyi    = A21 * txii + A22 * tyii + A23 * tzii
-!        tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!        tuxi   = tuxi + PXij*tyi
-!        tuyi   = tuyi + PXij*tzi
-!        tuzi   = tuzi + PYij*tzi
-!        tlxi   = tlxi + PYij*txi
-!        tlyi   = tlyi + PZij*txi
-!        tlzi   = tlzi + PZij*tyi
-!        tdxi   = tdxi + PXij*txi
-!        tdyi   = tdyi + PYij*tyi
-!        tdzi   = tdzi + PZij*tzi
-!#endif
       end if
 
       FX1(i) = FXi
@@ -5637,7 +5515,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
     TX2 => this%Site2%TX
     TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+    TZ2 => this%Site2%TZ    
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -5812,6 +5690,7 @@ loop2:  do m=1,NBinsDen
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+        
         forceTempX(jk) = forceTempX(jk) - FXij
         forceTempY(jk) = forceTempY(jk) - FYij
         forceTempZ(jk) = forceTempZ(jk) - FZij
@@ -6197,7 +6076,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           eZ = RZij * RijInv
           CosTheta  = OXj * ex + OYj * eY + OZj * eZ
           Epsilon1 = Epsilon * RijSquaredInv * RijInv
-          EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third )
+          EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third ) !Gabriela: Definition of EpotLocal1 
           EPotLocal = EPotLocal + EPotlocal1
           EPotLocalInter  = EPotLocalInter + EPotLocal1
           CosTheta2 = 2._RK * CosTheta
@@ -6237,6 +6116,7 @@ loop2:  do m=1,NBinsDen
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
         d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ T
+
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
@@ -6259,13 +6139,13 @@ loop2:  do m=1,NBinsDen
         VSuxi  = VSuxi+ FYij * PXij
         VSuyi  = VSuyi+ FZij * PXij
         VSuzi  = VSuzi+ FZij * PYij
-        UU    =  EpotLocal1  
+        UU    =  EpotLocal1  ! Change: EPotLocal1 was not defined before .... 
         Uxi   =  UU * eX
         Uyi   =  UU * eY
         Uzi   =  UU * eZ   
-        Cxi    = Cxi  + Uxi !Why was this term left out
-        Cyi    = Cyi  + Uyi !Why was this term left out
-        Czi    = Czi  + Uzi !Why was this term left out
+        Cxi    = Cxi  + Uxi !Why was this term left out?
+        Cyi    = Cyi  + Uyi !Why was this term left out?
+        Czi    = Czi  + Uzi !Why was this term left out?
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
@@ -6333,40 +6213,6 @@ loop2:  do m=1,NBinsDen
         momTempY(i) = momTempY(i) - Epsilon1 * CosTheta2 * eY   
         momTempZ(i) = momTempZ(i) - Epsilon1 * CosTheta2 * eZ
 
-!#if TRANS==1
-!        !TRANSPORT_start vielleicht   !Michael Sch.: valid for intramolecular Interactions
-!        VSxi   = VSxi + FXij * PYij
-!        VSyi   = VSyi + FXij * PZij
-!        VSzi   = VSzi + FYij * PZij
-!        VBxi   = VBxi + FXij * PXij
-!        VByi   = VByi + FYij * PYij
-!        VBzi   = VBzi + FZij * PZij
-!        VSuxi  = VSuxi+ FYij * PXij
-!        VSuyi  = VSuyi+ FZij * PXij
-!        VSuzi  = VSuzi+ FZij * PYij
-!        UU    =  EpotLocal1 
-!        Uxi   =  UU * eX
-!        Uyi   =  UU * eY
-!        Uzi   =  UU * eZ   
-!        Cxi    = Cxi  + Uxi !Why was this term left out
-!        Cyi    = Cyi  + Uyi !Why was this term left out
-!        Czi    = Czi  + Uzi !Why was this term left out
-!        txii   = r1y * FZij - r1z * FYij
-!        tyii   = r1z * FXij - r1x * FZij
-!        tzii   = r1x * FYij - r1y * FXij
-!        txi    = A11 * txii + A12 * tyii + A13 * tzii
-!        tyi    = A21 * txii + A22 * tyii + A23 * tzii
-!        tzi    = A31 * txii + A32 * tyii + A33 * tzii
-!        tuxi   = tuxi + PXij*tyi
-!        tuyi   = tuyi + PXij*tzi
-!        tuzi   = tuzi + PYij*tzi
-!        tlxi   = tlxi + PYij*txi
-!        tlyi   = tlyi + PZij*txi
-!        tlzi   = tlzi + PZij*tyi
-!        tdxi   = tdxi + PXij*txi
-!        tdyi   = tdyi + PYij*tyi
-!        tdzi   = tdzi + PZij*tzi
-!#endif
       end if
 
       FX1(i) = FXi
@@ -6592,6 +6438,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -6610,6 +6457,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OZ2 => this%Site2%OZ
 
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
+    ! Loop over molecules
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -6631,7 +6479,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PXij = PXi - PX2(jk)
         PYij = PYi - PY2(jk)
         PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
+        RXij = (RXij - anint( PXij )) * BoxLength                                 ! Abstandsvektor von Q nach C wie bei Price
         RYij = (RYij - anint( PYij )) * BoxLength
         RZij = (RZij - anint( PZij )) * BoxLength
         RijSquared = RXij**2 + RYij**2 + RZij**2
@@ -6644,7 +6492,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
           OXj = OX2(jk)
           OYj = OY2(jk)
           OZj = OZ2(jk)
-          eX = RXij * RijInv
+          eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
           eY = RYij * RijInv
           eZ = RZij * RijInv
           CosTheta  = OXj * ex + OYj * eY + OZj * eZ
@@ -7398,10 +7246,10 @@ loop2:  do m=1,NBinsDen
         TXi = TXi + Epsilon1 * eX   ! Uebereinstimmumg mit Price; Rest bei Atom2Mol in Component
         TYi = TYi + Epsilon1 * eY   ! Reaktionsfeldbeitrag in Interaction
         TZi = TZi + Epsilon1 * eZ
+
         forceTempX(jk) = forceTempX(jk) - FXij
         forceTempY(jk) = forceTempY(jk) - FYij
         forceTempZ(jk) = forceTempZ(jk) - FZij
-
 #if TRANS==1
           !TRANSPORT_start
           VSxi   = VSxi + FXij * PYij
@@ -7413,7 +7261,7 @@ loop2:  do m=1,NBinsDen
           VSuxi  = VSuxi+ FYij * PXij
           VSuyi  = VSuyi+ FZij * PXij
           VSuzi  = VSuzi+ FZij * PYij
-          UU     = EpotLocal1
+          UU     = EpotLocal1  !What is EPotLocal1?
           Uxi     = UU * eX
           Uyi     = UU * eY
           Uzi     = UU * eZ   
@@ -7485,45 +7333,6 @@ loop2:  do m=1,NBinsDen
         forceTempX(i) = forceTempX(i) - FXij
         forceTempY(i) = forceTempY(i) - FYij
         forceTempZ(i) = forceTempZ(i) - FZij
-
-!#if TRANS==1
-!          !TRANSPORT_start     !Michael Sch.: valid for intramolecular Interactions
-!          VSxi   = VSxi + FXij * PYij
-!          VSyi   = VSyi + FXij * PZij
-!          VSzi   = VSzi + FYij * PZij
-!          VBxi   = VBxi + FXij * PXij
-!          VByi   = VByi + FYij * PYij
-!          VBzi   = VBzi + FZij * PZij
-!          VSuxi  = VSuxi+ FYij * PXij
-!          VSuyi  = VSuyi+ FZij * PXij
-!          VSuzi  = VSuzi+ FZij * PYij
-!          UU     = EpotLocal1
-!          Uxi     = UU * eX
-!          Uyi     = UU * eY
-!          Uzi     = UU * eZ   
-!          Cxi    = Cxi  + Uxi
-!          Cyi    = Cyi  + Uyi
-!          Czi    = Czi  + Uzi
-!          FTXi = Epsilon1 * eX       ! Chequear                    
-!          FTYi = Epsilon1 * eY       !Chequear
-!          FTZi = Epsilon1 * eZ       !Chequear
-!          txii   = OYi * FTZi - OZi * FTYi   ! Chequear 
-!          tyii   = OZi * FTXi - OXi * FTZi   ! Chequear 
-!          tzii   = OXi * FTYi - OYi * FTXi   ! Chequear 
-!          txir   = A11 * txii + A12 * tyii + A13 * tzii
-!          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!          tuxi   = tuxi + PXij*tyir
-!          tuyi   = tuyi + PXij*tzir
-!          tuzi   = tuzi + PYij*tzir
-!          tlxi   = tlxi + PYij*txir
-!          tlyi   = tlyi + PZij*txir
-!          tlzi   = tlzi + PZij*tyir
-!          tdxi   = tdxi + PXij*txir
-!          tdyi   = tdyi + PYij*tyir
-!          tdzi   = tdzi + PZij*tzir
-!          !TRANSPORT_END
-!#endif
 
       end if
       FX1(i) = FXi
@@ -7727,8 +7536,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     implicit none
 
     ! Declare arguments
-    type(TPotDipoleCharge)   :: this
-    integer, intent(in)      :: np
+    type(TPotDipoleCharge) :: this
+    integer, intent(in)    :: np
     integer, intent(in)      :: nu
     real(RK), intent(in out) :: F(3,nu)
     real(RK), intent(in out) :: E
@@ -7749,6 +7558,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -7763,6 +7573,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -8912,44 +8723,6 @@ loop2:    do m=1,NBinsDen
           momTempY(i) = momTempY(i) + Rij3Inv * (eY * CosThetai3 - OYi)
           momTempZ(i) = momTempZ(i) + Rij3Inv * (eZ * CosThetai3 - OZi)
 
-!#if TRANS==1
-!            !TRANSPORT_start   !Michael Sch.: valid for intramolecular Interactions?
-!            VSxi   = VSxi + FXij * PYij
-!            VSyi   = VSyi + FXij * PZij
-!            VSzi   = VSzi + FYij * PZij
-!            VBxi   = VBxi + FXij * PXij
-!            VByi   = VByi + FYij * PYij
-!            VBzi   = VBzi + FZij * PZij
-!            VSuxi  = VSuxi+ FYij * PXij
-!            VSuyi  = VSuyi+ FZij * PXij
-!            VSuzi  = VSuzi+ FZij * PYij
-!            UU        = EPotLocal1 - RFConstant2 * CosGammaij
-!            Uxi       = UU * eX
-!            Uyi       = UU * eY
-!            Uzi       = UU * eZ
-!            FTXi   = Rij3Inv * (eX * CosThetaj3 - OXj) + OXj * RFConstant2
-!            FTYi   = Rij3Inv * (eY * CosThetaj3 - OYj) + OYj * RFConstant2
-!            FTZi   = Rij3Inv * (eZ * CosThetaj3 - OZj) + OZj * RFConstant2
-!            Cxi    = Cxi  + Uxi
-!            Cyi    = Cyi  + Uyi
-!            Czi    = Czi  + Uzi
-!            txii   = OYi * FTZi - OZi * FTYi
-!            tyii   = OZi * FTXi - OXi * FTZi
-!            tzii   = OXi * FTYi - OYi * FTXi
-!            txir   = A11 * txii + A12 * tyii + A13 * tzii
-!            tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!            tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!            tuxi   = tuxi + PXij*tyir
-!            tuyi   = tuyi + PXij*tzir
-!            tuzi   = tuzi + PYij*tzir
-!            tlxi   = tlxi + PYij*txir
-!            tlyi   = tlyi + PZij*txir
-!            tlzi   = tlzi + PZij*tyir
-!            tdxi   = tdxi + PXij*txir
-!            tdyi   = tdyi + PYij*tyir
-!            tdzi   = tdzi + PZij*tzir
-!            !TRANSPORT_END
-!#endif
         end if
 
         FX1(i) = FXi
@@ -9394,6 +9167,7 @@ loop2:  do j = 1, j1
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -9411,6 +9185,7 @@ loop2:  do j = 1, j1
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -10604,44 +10379,6 @@ loop2:    do m=1,NBinsDen
           momTempY(i) = momTempY(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
           momTempZ(i) = momTempZ(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
 
-!#if TRANS==1
-!          !TRANSPORT_start     !Michael Sch.: valid for intramolecular Interactions
-!          VSxi   = VSxi + FXij * PYij
-!          VSyi   = VSyi + FXij * PZij
-!          VSzi   = VSzi + FYij * PZij
-!          VBxi   = VBxi + FXij * PXij
-!          VByi   = VByi + FYij * PYij
-!          VBzi   = VBzi + FZij * PZij
-!          VSuxi  = VSuxi+ FYij * PXij
-!          VSuyi  = VSuyi+ FZij * PXij
-!          VSuzi  = VSuzi+ FZij * PYij
-!          UU     =  EpotLocal1
-!          Uxi    =  UU * eX
-!          Uyi    =  UU * eY
-!          Uzi    =  UU * eZ 
-!          Cxi    = Cxi  + Uxi
-!          Cyi    = Cyi  + Uyi
-!          Czi    = Czi  + Uzi
-!          FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
-!          FTYi   = - eY * dCosThetai - OYj * dCosGammaij  
-!          FTZi   = - eZ * dCosThetaj - OZi * dCosGammaij 
-!          txii   = OYi * FTZi - OZi * FTYi
-!          tyii   = OZi * FTXi - OXi * FTZi
-!          tzii   = OXi * FTYi - OYi * FTXi
-!          txir   = A11 * txii + A12 * tyii + A13 * tzii
-!          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!          tuxi   = tuxi + PXij*tyir
-!          tuyi   = tuyi + PXij*tzir
-!          tuzi   = tuzi + PYij*tzir
-!          tlxi   = tlxi + PYij*txir
-!          tlyi   = tlyi + PZij*txir
-!          tlzi   = tlzi + PZij*tyir
-!          tdxi   = tdxi + PXij*txir
-!          tdyi   = tdyi + PYij*tyir
-!          tdzi   = tdzi + PZij*tzir
-!          !TRANSPORT_END
-!#endif
             end if
 
         FX1(i) = FXi
@@ -11085,6 +10822,7 @@ loop2:  do j = 1, j1
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -11102,6 +10840,7 @@ loop2:  do j = 1, j1
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -11510,7 +11249,8 @@ loop2:  do m=1,NBinsDen
           forceTempY(jk) = forceTempY(jk) + FYij
           forceTempZ(jk) = forceTempZ(jk) + FZij
 
-          TXi    = TXi - Epsilon1*CosTheta2*eX  ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
+          TXi    = TXi - Epsilon1*CosTheta2*eX  
+          ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
           TYi    = TYi - Epsilon1*CosTheta2*eY  ! in Atom2Mol von Component
           TZi    = TZi - Epsilon1*CosTheta2*eZ
         end if
@@ -11559,7 +11299,8 @@ loop2:  do m=1,NBinsDen
         forceTempY(i) = forceTempY(i) + FYij
         forceTempZ(i) = forceTempZ(i) + FZij
 
-        TXi    = TXi - Epsilon1*CosTheta2*eX  ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
+        TXi    = TXi - Epsilon1*CosTheta2*eX  
+        ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
         TYi    = TYi - Epsilon1*CosTheta2*eY  ! in Atom2Mol von Component
         TZi    = TZi - Epsilon1*CosTheta2*eZ
       end if
@@ -12024,44 +11765,6 @@ loop2:  do m=1,NBinsDen
         TYi    = TYi - Epsilon1*CosTheta2*eY    ! in Atom2Mol von Component
         TZi    = TZi - Epsilon1*CosTheta2*eZ
 
-!#if  TRANS == 1
-!        !TRANSPORT_start    !Michael Sch.: valid for intramolecular Interactions
-!        VSxi   = VSxi + FXij * PYij
-!        VSyi   = VSyi + FXij * PZij
-!        VSzi   = VSzi + FYij * PZij
-!        VBxi   = VBxi + FXij * PXij
-!        VByi   = VByi + FYij * PYij
-!        VBzi   = VBzi + FZij * PZij
-!        VSuxi  = VSuxi+ FYij * PXij
-!        VSuyi  = VSuyi+ FZij * PXij
-!        VSuzi  = VSuzi+ FZij * PYij
-!        UU     = EpotLocal1  
-!        Uxi    = UU * eX
-!        Uyi    = UU * eY
-!        Uzi    = UU * eZ
-!        Cxi    = Cxi  + Uxi
-!        Cyi    = Cyi  + Uyi
-!        Czi    = Czi  + Uzi
-!        FTXi   = - Epsilon1*CosTheta2*eX 
-!        FTYi   = - Epsilon1*CosTheta2*eY 
-!        FTZi   = - Epsilon1*CosTheta2*eZ 
-!        txii   = OYi * FTZi - OZi * FTYi
-!        tyii   = OZi * FTXi - OXi * FTZi
-!        tzii   = OXi * FTYi - OYi * FTXi
-!        txir   = A11 * txii + A12 * tyii + A13 * tzii
-!        tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!        tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!        tuxi   = tuxi + PXij*tyir
-!        tuyi   = tuyi + PXij*tzir
-!        tuzi   = tuzi + PYij*tzir
-!        tlxi   = tlxi + PYij*txir
-!        tlyi   = tlyi + PZij*txir
-!        tlzi   = tlzi + PZij*tyir
-!        tdxi   = tdxi + PXij*txir
-!        tdyi   = tdyi + PYij*tyir
-!        tdzi   = tdzi + PZij*tzir
-!        !TRANSPORT_END
-!#endif
       end if
 
       FX1(i) = FXi
@@ -12290,6 +11993,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -12304,6 +12008,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -12339,10 +12044,11 @@ loop1:  do k = 1, this%NInCutoff(unit)
         else
           RijSquaredInv = 1._RK / RijSquared
           RijInv = sqrt( RijSquaredInv )
-          eX = - RXij * RijInv
+          eX = - RXij * RijInv        ! Normierter Abstandsvektor nach Price
           eY = - RYij * RijInv
           eZ = - RZij * RijInv
           CosTheta  = OXi * eX + OYi * eY + OZi * eZ  
+          ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
           ELocal = this%Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
         end if
         E1  = E1 + ELocal
@@ -13449,6 +13155,7 @@ loop2:    do m=1,NBinsDen
           dCosThetaj = Rij4Inv * (5._RK * CosThetai2 - 1._RK)
           dCosGammaij = -2._RK * Rij4Inv * CosThetai
           Tmp = -4._RK * RijInv * EPotLocal1
+
           FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                    + (eX * CosThetaj - OXj) * dCosThetaj)
           FXij = FXij * coeff
@@ -13478,44 +13185,6 @@ loop2:    do m=1,NBinsDen
           momTempY(i) = momTempY(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
           momTempZ(i) = momTempZ(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
 
-!#if  TRANS == 1
-!          !TRANSPORT_start     !Michael Sch.: valid for intramolecular Interactions
-!          VSxi   = VSxi + FXij * PYij
-!          VSyi   = VSyi + FXij * PZij
-!          VSzi   = VSzi + FYij * PZij
-!          VBxi   = VBxi + FXij * PXij
-!          VByi   = VByi + FYij * PYij
-!          VBzi   = VBzi + FZij * PZij
-!          VSuxi  = VSuxi+ FYij * PXij
-!          VSuyi  = VSuyi+ FZij * PXij
-!          VSuzi  = VSuzi+ FZij * PYij          
-!          UU     = EpotLocal1 * coeff
-!          Uxi     = UU * eX
-!          Uyi     = UU * eY
-!          Uzi     = UU * eZ
-!          Cxi    = Cxi  + Uxi
-!          Cyi    = Cyi  + Uyi
-!          Czi    = Czi  + Uzi
-!          FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
-!          FTYi   = - eY * dCosThetai - OYj * dCosGammaij
-!          FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
-!          txii   = OYi * FTZi - OZi * FTYi
-!          tyii   = OZi * FTXi - OXi * FTZi
-!          tzii   = OXi * FTYi - OYi * FTXi
-!          txir   = A11 * txii + A12 * tyii + A13 * tzii
-!          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!          tuxi   = tuxi + PXij*tyir
-!          tuyi   = tuyi + PXij*tzir
-!          tuzi   = tuzi + PYij*tzir
-!          tlxi   = tlxi + PYij*txir
-!          tlyi   = tlyi + PZij*txir
-!          tlzi   = tlzi + PZij*tyir
-!          tdxi   = tdxi + PXij*txir
-!          tdyi   = tdyi + PYij*tyir
-!          tdzi   = tdzi + PZij*tzir
-!          !TRANSPORT_END
-!#endif
         end if
 
         FX1(i) = FXi
@@ -13965,6 +13634,7 @@ loop2:  do j = 1, j1
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -13982,6 +13652,7 @@ loop2:  do j = 1, j1
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -14531,12 +14202,15 @@ loop2:    do m=1,NBinsDen
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
+
           forceTempX(i) = forceTempX(i) - FXij
           forceTempY(i) = forceTempY(i) - FYij
           forceTempZ(i) = forceTempZ(i) - FZij
+
           TXi    = TXi    - (eX * dCosThetai + OXj * dCosGammaij) * coeff
           TYi    = TYi    - (eY * dCosThetai + OYj * dCosGammaij) * coeff
           TZi    = TZi    - (eZ * dCosThetai + OZj * dCosGammaij) * coeff
+
           momTempX(i) = momTempX(i) - (eX * dCosThetaj + OXi * dCosGammaij) * coeff
           momTempY(i) = momTempY(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
           momTempZ(i) = momTempZ(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
@@ -15252,43 +14926,6 @@ loop2:    do m=1,NBinsDen
           momTempY(i) = momTempY(i) - (eY * dCosThetaj + OYi * dCosGammaij) * coeff
           momTempZ(i) = momTempZ(i) - (eZ * dCosThetaj + OZi * dCosGammaij) * coeff
 
-!#if  TRANS == 1
-!          !TRANSPORT_start     !Michael Sch.: valid for intramolecular Interactions 
-!          VSxi   = VSxi + FXij * PYij
-!          VSyi   = VSyi + FXij * PZij
-!          VSzi   = VSzi + FYij * PZij
-!          VBxi   = VBxi + FXij * PXij
-!          VByi   = VByi + FYij * PYij
-!          VBzi   = VBzi + FZij * PZij
-!          VSuxi  = VSuxi+ FYij * PXij
-!          VSuyi  = VSuyi+ FZij * PXij
-!          VSuzi  = VSuzi+ FZij * PYij
-!          Uxi     = EPotLocal1 * eX * coeff
-!          Uyi     = EPotLocal1 * eY * coeff
-!          Uzi     = EPotLocal1 * eZ * coeff
-!          FTXi   = - eX * dCosThetai - OXj * dCosGammaij
-!          FTYi   = - eY * dCosThetai - OYj * dCosGammaij
-!          FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
-!          Cxi    = Cxi  + Uxi
-!          Cyi    = Cyi  + Uyi
-!          Czi    = Czi  + Uzi
-!          txii   = OYi * FTZi - OZi * FTYi
-!          tyii   = OZi * FTXi - OXi * FTZi
-!          tzii   = OXi * FTYi - OYi * FTXi
-!          txir   = A11 * txii + A12 * tyii + A13 * tzii
-!          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-!          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-!          tuxi   = tuxi + PXij*tyir
-!          tuyi   = tuyi + PXij*tzir
-!          tuzi   = tuzi + PYij*tzir
-!          tlxi   = tlxi + PYij*txir
-!          tlyi   = tlyi + PZij*txir
-!          tlzi   = tlzi + PZij*tyir
-!          tdxi   = tdxi + PXij*txir
-!          tdyi   = tdyi + PYij*tyir
-!          tdzi   = tdzi + PZij*tzir
-!          !TRANSPORT_END
-!#endif
         end if
 
         FX1(i) = FXi
@@ -15779,6 +15416,7 @@ loop2:  do j = 1, j1
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
+    ! Assign local variables
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleEl14
@@ -15796,6 +15434,7 @@ loop2:  do j = 1, j1
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
+    ! Loop over molecules
     unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -16008,14 +15647,9 @@ loop2:  do j = 1, j1
     integer           :: i, i1
 #if MPI_VER > 0
     integer           :: i0
-!    integer           :: N1, N2, ji
-!    logical           :: EvenN
 #endif
 
 #if MPI_VER > 0
-!    N1 = this%Site2%NPart
-!    N2 = N1 / 2
-!    EvenN = mod( N1, 2 ) == 0
      i0 = this%Bond%NPart0
      i1 = this%Bond%NPart2
 #else
@@ -16277,14 +15911,9 @@ loop2:  do j = 1, j1
     integer           :: i, i1
 #if MPI_VER > 0
     integer           :: i0
-!    integer           :: N1, N2, ji
-!    logical           :: EvenN
 #endif
 
 #if MPI_VER > 0
-!    N1 = this%Site2%NPart
-!    N2 = N1 / 2
-!    EvenN = mod( N1, 2 ) == 0
      i0 = this%Angle%NPart0
      i1 = this%Angle%NPart2
 #else
@@ -16406,7 +16035,6 @@ loop2:  do j = 1, j1
      EPot = EPot + EPotLocal
 
     ! Update potential energy, no contribution to virial!
-!     EPotIntra = EPotIntra + EPotLocal
      EPotIntra_Angle = EPotIntra_Angle + EPotLocal
 
   end subroutine TPotAngle_Force
@@ -16559,9 +16187,7 @@ loop2:  do j = 1, j1
     ! Declare arguments
     type(TPotDihedral)     :: this
     real(RK), intent(in out) :: EPot
-!     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotIntra_Dihedral
-!     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -16583,14 +16209,9 @@ loop2:  do j = 1, j1
     integer           :: i, i1, j
 #if MPI_VER > 0
      integer           :: i0
-!    integer           :: N1, N2, ji
-!    logical           :: EvenN
 #endif
 
 #if MPI_VER > 0
-!    N1 = this%Site2%NPart
-!    N2 = N1 / 2
-!    EvenN = mod( N1, 2 ) == 0
     i0 = this%Dihedral%NPart0
     i1 = this%Dihedral%NPart2
 #else
@@ -16812,7 +16433,6 @@ loop2:  do j = 1, j1
      EPot = EPot +  EPotLocal
 
     ! Update Intra potential energy
-!     EPotIntra = EPotIntra +  EPotLocal
      EPotIntra_Dihedral = EPotIntra_Dihedral +  EPotLocal
 
   end subroutine TPotDihedral_Force
@@ -16908,62 +16528,6 @@ loop2:  do j = 1, j1
           EDihedral = EDihedral + this%ForConst(1)*earg**2
         end if
 
-!         ! Calculate Forces
-!         axb = axb/den*co
-!         bxc = bxc/den*co
-!         de1 = deri/den/si
-! 
-!         ! X components
-!         dnum = cx*bb - bx*bc
-!         dden = ( ab*bx - ax*bb )*bxc
-!         FFI = (dnum - dden) * de1
-!         dnum = ((bx-ax)*bc - ab*cx ) + (2.0*ac*bx - cx*bb)
-!         dden = axb*(bc*cx-bx*cc) + (ax*bb-aa*bx-ab*(bx-ax))*bxc
-!         FFJ = (dnum - dden) * de1
-!         dnum = ab*bx - ax*bb
-!         dden = axb*( bb*cx - bc*bx )
-!         FFL = (dnum - dden) * de1
-!         FFK = -(ffi+ffj+ffl)
-!         ! Forces
-!         FX1(i) = FXi+ffi
-!         FX2(i) = FXj+ffj != F(this%Dihedral%SiteID2,1) = F(this%Dihedral%SiteID2,1)+ffj
-!         FX3(i) = FXk+ffk
-!         FX4(i) = FXl+ffl
-! 
-!         ! Y components
-!         dnum = cy*bb - by*bc
-!         dden = ( ab*by - ay*bb )*bxc
-!         FFI = (dnum - dden) * de1
-!         dnum = ((by-ay)*bc - ab*cy ) + (2.0*ac*by - cy*bb)
-!         dden = axb*(bc*cy-by*cc) + (ay*bb-aa*by-ab*(by-ay))*bxc
-!         FFJ = (dnum - dden) * de1
-!         dnum = ab*by - ay*bb
-!         dden = axb*( bb*cy - bc*by )
-!         FFL = (dnum - dden) * de1
-!         FFK = -(ffi+ffj+ffl)
-!         ! Forces
-!         FY1(i) = FYi+ffi
-!         FY2(i) = FYj+ffj
-!         FY3(i) = FYk+ffk
-!         FY4(i) = FYl+ffl
-! 
-!         ! Z components
-!         dnum = cz*bb - bz*bc
-!         dden = ( ab*bz - az*bb )*bxc
-!         FFI = (dnum - dden) * de1
-!         dnum = ((bz-az)*bc - ab*cz ) + (2.0*ac*bz - cz*bb)
-!         dden = axb*(bc*cz-bz*cc) + (az*bb-aa*bz-ab*(bz-az))*bxc
-!         FFJ = (dnum - dden) * de1
-!         dnum = ab*bz - az*bb
-!         dden = axb*( bb*cz - bc*bz )
-!         FFL = (dnum - dden) * de1
-!         FFK = -(ffi+ffj+ffl)
-!         ! Forces
-!         FZ1(i) = FZi+ffi != F(this%Dihedral%SiteID1,3) = F(this%Dihedral%SiteID1,3)+ffi
-!         FZ1(i) = FZi+ffi
-!         FZ2(i) = FZj+ffj
-!         FZ3(i) = FZk+ffk
-!         FZ4(i) = FZl+ffl
       endif ! den>0
     endif ! nmax/=0
 
