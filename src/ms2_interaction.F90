@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -130,7 +130,7 @@ module ms2_interaction
     ! Cutoff correction to LJ-interaction
     real(RK) :: EPotCorrLJ
 
-    ! Flag for reaction field(s)
+    ! Flag for reaction field
     logical :: ReactionField
 
     ! Extended reaction field
@@ -227,12 +227,6 @@ module ms2_interaction
     module procedure TInteraction_CalcPartnersMol
     module procedure TInteraction_CalcPartners1
   end interface
-  
-!   interface CalcCutoffPartnersIntra
-!     module procedure TInteraction_CalcPartnersIntra
-!     module procedure TInteraction_CalcPartnersIntraMol
-!     module procedure TInteraction_CalcPartnersIntra1
-!   end interface
 
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
@@ -357,6 +351,12 @@ contains
     this%PX2 => Component2%P0(:, 1,:)
     this%PY2 => Component2%P0(:, 2,:)
     this%PZ2 => Component2%P0(:, 3,:)
+!    write(*,*) "after PX1 ",LOC(this%PX1)
+!    write(*,*) "after PY1 ",LOC(this%PY1)
+!    write(*,*) "after PZ1 ",LOC(this%PZ1)
+!    write(*,*) "after PX2 ",LOC(this%PX2)
+!    write(*,*) "after PY2 ",LOC(this%PY2)
+!    write(*,*) "after PZ2 ",LOC(this%PZ2)
 
     ! Total dipole moments of molecules for reaction field
     this%MueX1 => Component1%MueX(:,:)
@@ -804,9 +804,6 @@ contains
     nullify( this%EPot1 )
     nullify( this%EPotNew )
     nullify( this%EPotMol )
-    !nullify( this%EPotBond)
-    !nullify( this%EPot1Bond)
-    !nullify( this%EPotBondNew)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
     nullify( this%EPotAngleNew)
@@ -954,12 +951,6 @@ contains
     if( associated( this%EPotMol ) ) then
       deallocate( this%EPotMol )
     end if
-    !if( associated( this%EPotBond ) ) then
-    !  deallocate( this%EPotBond )
-    !end if
-    !if( associated( this%EPot1Bond ) ) then
-    !  deallocate( this%EPot1Bond )
-    !end if
     if( associated( this%EPotAngle ) ) then
       deallocate( this%EPotAngle )
     end if
@@ -1685,7 +1676,6 @@ contains
           mueYi = MueY1(i, u)
           mueZi = MueZ1(i, u)
           do k = 1, this%NInCutoff(iu)
-!            intra = this%Intra(k, iu)
             j = this%CutoffPartner(k, iu)
             u2 = mod (j, nu2)
             if (u2 == 0) then
@@ -1882,7 +1872,7 @@ contains
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
               d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
-&                          (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+&                          (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
               d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
             end if
           end do
@@ -2018,7 +2008,7 @@ contains
                 RijInv2  =  RijInv*RijInv
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
                 sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
-                d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx1 CC
+                d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
@@ -2029,7 +2019,7 @@ contains
           end do
         end do
        end if ! ReactionField - Ewald-Summation
-
+!
         do s2 = 1, this%N2Dipole
           pcd => this%PotChargeDipole(s1, s2)
           Epsilon = pcd%Epsilon
@@ -2825,12 +2815,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-
+!!!!!!!!!!!!!!!!!!!!!!!!!
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
               if ( mod(j-nu2, this%NUnit2)==0) then
@@ -2903,33 +2890,29 @@ contains
               end if
             end do
 
-        !  else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
-        !    pcc => this%PotChargeCharge(1, 1)
-        !    Epsilon = pcc%Epsilon
-        !    RShieldSquared = pcc%RShieldSquared
-
-        !  ! Assign pointers to site positions
-        !    RX1 => pcc%Site1%RX
-        !    RY1 => pcc%Site1%RY
-        !    RZ1 => pcc%Site1%RZ
-        !    RX2 => pcc%Site2%RX
-        !    RY2 => pcc%Site2%RY
-        !    RZ2 => pcc%Site2%RZ
-        !    do k = 1, this%NInCutoff(unit1)
-        !      j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-        !      ! choose only units, to which our Site2 correspond
-        !      nu2 = pcc%Site2%UnitNumber
-        !      if ( mod(j-nu2, this%NUnit2)==0) then
-        !        jk  = CEILING(real(j)/this%NUnit2)
-        !        RXij = RX2(jk)-RX1(np)
-        !        RYij = RY2(jk)-RY1(np)
-        !        RZij = RZ2(jk)-RZ1(np)
-        !        RXij = (RXij - anint(RXij))*BoxLength
-        !        RYij = (RYij - anint(RYij))*BoxLength
-        !        RZij = (RZij - anint(RZij))*BoxLength
-        !        Rij = (RXij**2+RYij**2+RZij**2)
-        !      end if
-        !    end do
+! This part seems to do nothing, therefore it has been commented out.
+!          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
+!            pcc => this%PotChargeCharge(1, 1)
+!            Epsilon = pcc%Epsilon
+!            RShieldSquared = pcc%RShieldSquared
+!
+!          ! Assign pointers to site positions
+!            RX1 => pcc%Site1%RX
+!            RY1 => pcc%Site1%RY
+!            RZ1 => pcc%Site1%RZ
+!            RX2 => pcc%Site2%RX
+!            RY2 => pcc%Site2%RY
+!            RZ2 => pcc%Site2%RZ
+!            do k = 1, this%NInCutoff(np)
+!              j = this%CutoffPartner(k, np)
+!              RXij = RX2(j)-RX1(np)
+!              RYij = RY2(j)-RY1(np)
+!              RZij = RZ2(j)-RZ1(np)
+!              RXij = (RXij - anint(RXij))*BoxLength
+!              RYij = (RYij - anint(RYij))*BoxLength
+!              RZij = (RZij - anint(RZij))*BoxLength
+!              Rij = (RXij**2+RYij**2+RZij**2)
+!            end do
           end if
         end if 
       end if 
@@ -2999,15 +2982,13 @@ contains
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
             d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
-&                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss LJ
+&                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss2 LJ
             d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
 
-!!!!!!!!!!!!!!!!!!!!!!
       ! No point charges allowed with site-site cutoff
-!!!!!!!!!!!!!!!!!!!!!!
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
@@ -3685,7 +3666,7 @@ end subroutine TInteraction_Energy
         end if
 #endif
       end do
-    else ! not same component
+    else
 
 !$OMP DO      
 #if MPI_VER > 0
@@ -3743,8 +3724,10 @@ end subroutine TInteraction_Energy
     integer           :: i, j, k, NInCutoff
     integer           :: NU2, N2, unit1, nup
 
-    ! Assigning local variables
+    ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
+
+    ! Assigning local variables
     N2    = this%NPart2
     NU2   = this%NUnit2
     unit1 = (np-1)*this%NUnit1 + nu
