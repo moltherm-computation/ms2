@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -263,7 +263,7 @@ contains
     this%NConstraint = 0
     this%NNotConstraint = 0
 
-    ! Zero number of Sites
+    ! Zero number of sites
     this%NSite = 0
     this%NLJ126 = 0
     this%NCharge = 0
@@ -1046,7 +1046,6 @@ contains
        allocate (this%IntCC15(cc-1, 2), STAT = stat)
        call AllocationError( stat, 'this%IntCC15', (cc-1)*2 )
        this%IntCC15 = IntCC15(1:cc-1,:)
-!       print *, "this%IntCC15=", this%IntCC15(:,:)
        if (this%NDipole>0) then
          allocate (this%IntCD15(cd-1, 2), STAT = stat)
          call AllocationError( stat, 'this%IntCD15', (cd-1)*2 )
@@ -1332,22 +1331,18 @@ contains
       ! For Unit Sites as well
       do i = 1, this%NUnit
         do j = 1, this%Unit(i)%NLJ126
-!           this%Unit(i)%SiteLJ126(j)%r   = this%Unit(i)%SiteLJ126(j)%r * scalegeo
           this%Unit(i)%SiteLJ126(j)%sig = this%Unit(i)%SiteLJ126(j)%sig * scalesig
           this%Unit(i)%SiteLJ126(j)%eps = this%Unit(i)%SiteLJ126(j)%eps * scaleeps
         end do
         do j = 1, this%Unit(i)%NCharge
-!           this%Unit(i)%SiteCharge(j)%r      = this%Unit(i)%SiteCharge(j)%r * scalegeo
           this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
           this%Unit(i)%SiteCharge(j)%e      = this%Unit(i)%SiteCharge(j)%e * scaleest
         end do
         do j = 1, this%Unit(i)%NDipole
-!           this%Unit(i)%SiteDipole(j)%r      = this%Unit(i)%SiteDipole(j)%r * scalegeo
           this%Unit(i)%SiteDipole(j)%shield = this%Unit(i)%SiteDipole(j)%shield * scalegeo
           this%Unit(i)%SiteDipole(j)%D      = this%Unit(i)%SiteDipole(j)%D * scaleest
         end do
         do j = 1, this%Unit(i)%NQuadrupole
-!           this%Unit(i)%SiteQuadrupole(j)%r      = this%Unit(i)%SiteQuadrupole(j)%r * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
         end do
@@ -1392,7 +1387,6 @@ contains
       this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
     end do
 
-    ! Michael Sch.: block below not needed anymore(?) - delete it!!!
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
