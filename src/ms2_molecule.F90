@@ -35,6 +35,7 @@ module ms2_molecule
   use ms2_unit
 
 
+
 !==============================================================!
 !  Type TMolecule                                              !
 !==============================================================!
@@ -101,7 +102,7 @@ module ms2_molecule
     
     ! File name for potential model
     character(FileNameLength) :: PotModFileName
-    
+
     ! Bonded Units (IDF-connected)
     integer,pointer, contiguous :: BondCount(:)
     integer,pointer, contiguous :: BoPartner(:,:)
@@ -112,27 +113,24 @@ module ms2_molecule
     integer, allocatable :: BondedUnits(:, :)! Michael Sch. make allocatables contiguous?
 
     ! For intramolecular 1-4, 1-5 nonbonded interactions
-     integer, allocatable :: Int14(:, :)
-     integer, allocatable :: IntLJ14(:, :), IntLJ15(:, :)
-     integer, allocatable :: IntCC14(:, :), IntCC15(:, :)
-     integer, allocatable :: IntCD14(:, :), IntCD15(:, :)
-     integer, allocatable :: IntCQ14(:, :), IntCQ15(:, :)
-     integer, allocatable :: IntDC14(:, :), IntDC15(:, :)
-     integer, allocatable :: IntDD14(:, :), IntDD15(:, :)
-     integer, allocatable :: IntDQ14(:, :), IntDQ15(:, :)
-     integer, allocatable :: IntQC14(:, :), IntQC15(:, :)
-     integer, allocatable :: IntQD14(:, :), IntQD15(:, :)
-     integer, allocatable :: IntQQ14(:, :), IntQQ15(:, :)
+    integer, allocatable :: Int14(:, :)
+    integer, allocatable :: IntLJ14(:, :), IntLJ15(:, :)
+    integer, allocatable :: IntCC14(:, :), IntCC15(:, :)
+    integer, allocatable :: IntCD14(:, :), IntCD15(:, :)
+    integer, allocatable :: IntCQ14(:, :), IntCQ15(:, :)
+    integer, allocatable :: IntDC14(:, :), IntDC15(:, :)
+    integer, allocatable :: IntDD14(:, :), IntDD15(:, :)
+    integer, allocatable :: IntDQ14(:, :), IntDQ15(:, :)
+    integer, allocatable :: IntQC14(:, :), IntQC15(:, :)
+    integer, allocatable :: IntQD14(:, :), IntQD15(:, :)
+    integer, allocatable :: IntQQ14(:, :), IntQQ15(:, :)
 
-
-
-   !Scale Factors for 1-4 nonbonded interactions
+    !Scale Factors for 1-4 nonbonded interactions
     real, allocatable :: ScaleLJ14(:), ScaleCC14(:)
     real, allocatable :: ScaleCD14(:), ScaleCQ14(:)
     real, allocatable :: ScaleDD14(:), ScaleQQ14(:)
     real, allocatable :: ScaleDC14(:), ScaleQC14(:)
     real, allocatable :: ScaleQD14(:), ScaleDQ14(:)
-
 
     ! Body fixed dipole vector for reaction field
     real(RK) :: Mue(3), MueSquared
@@ -156,7 +154,7 @@ module ms2_molecule
   interface Save
     module procedure TMolecule_Save
   end interface
-  
+
   interface SaveIDF
     module procedure TMolecule_SaveIDF
   end interface
@@ -177,7 +175,7 @@ module ms2_molecule
     module procedure TMolecule_FindDihedral
   end interface
 
-  
+
 contains
 
 
@@ -205,7 +203,7 @@ contains
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
-    
+
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
     integer       :: nidftypes  !number of internal degree of freedom types
@@ -234,7 +232,6 @@ contains
     integer                :: Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
 
-    
     ! Nullify pointers.
     nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
@@ -257,15 +254,15 @@ contains
     this%NBond = 0
     this%NAngle = 0
     this%NDihedral = 0
-    
+
     ! Zero number of Units
     allocate( this%NUnit, STAT = stat )
     call AllocationError( stat, 'number of units' )
-    
+
     ! Zero number of constraint and unconstrained Units
     this%NConstraint = 0
     this%NNotConstraint = 0
-    
+
     ! Zero number of Sites
     this%NSite = 0
     this%NLJ126 = 0
@@ -273,10 +270,9 @@ contains
     this%Charge = 0._RK
     this%NDipole = 0
     this%NQuadrupole = 0
-    
+
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
-
 
     ! Loop over potential types
     do i = 1, ntypes
@@ -331,7 +327,7 @@ contains
 
     ! Find center of mass position
     call FindCOM( this )
-    
+
     ! Internal degrees of freedom
     ! Calculate the total number of sites
     this%NSite = this%NLJ126+this%NCharge+this%NDipole+this%NQuadrupole
@@ -1288,7 +1284,6 @@ contains
 
      end if
    end if    ! (Internal Degrees of Freedom)
-    
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
@@ -1415,7 +1410,7 @@ contains
     this%MueSquared = sum( this%Mue(:)**2 )
 
     ! Save used potential model
-    call Save( this, fluctstate ) 
+    call Save( this, fluctstate )
 
     contains
 
@@ -1577,8 +1572,6 @@ contains
 
     end subroutine FindEdgeFrom
 
-    
-
   end subroutine TMolecule_Construct
 
 
@@ -1622,7 +1615,7 @@ contains
       end do
       deallocate( this%SiteQuadrupole )
     end if
-    
+
     if( associated( this%BondCount ) ) then
       deallocate( this%BondCount )
     end if
@@ -1820,6 +1813,7 @@ contains
     end do
 
   end subroutine TMolecule_FindCOM
+
 
 
 !==============================================================!
