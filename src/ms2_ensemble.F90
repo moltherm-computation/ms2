@@ -19,6 +19,7 @@
 #define MPI_VER 0
 #endif
 
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
@@ -163,12 +164,11 @@ module ms2_ensemble
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
 
- 
     !RDF Hilfsvariable
     real(RK) :: RDFdr
     real(RK), pointer, contiguous :: RDFVSchale(:)
-    real(RK), pointer, contiguous :: RDFValue(:) 
-    
+    real(RK), pointer, contiguous :: RDFValue(:)
+
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
 
@@ -197,7 +197,7 @@ module ms2_ensemble
     ! Potential energy
     real(RK) :: EPot
 
-    ! d2EpotdV2
+	! d2EpotdV2
     real(RK) :: d2EpotdV2
 
     ! Intra and inter potential energy
@@ -247,18 +247,18 @@ module ms2_ensemble
     type(TAccumulator) :: SumdEpotdV
     type(TAccumulator) :: Sumd2EpotdV2
 
-    type(TAccumulator) :: SumHmU
-    type(TAccumulator) :: SumHmUm1
-    type(TAccumulator) :: SumHmUm2
-    type(TAccumulator) :: SumHmUm3
-    type(TAccumulator) :: SumHmUm1dUdV
-    type(TAccumulator) :: SumHmUm1dUdV2
-    type(TAccumulator) :: SumHmUm1d2UdV2
-    type(TAccumulator) :: SumHmUm2dUdV
-    type(TAccumulator) :: SumHmUm2dUdV2
-    type(TAccumulator) :: SumHmUm2d2UdV2
-    type(TAccumulator) :: SumHmUm3dUdV
-    type(TAccumulator) :: SumHmUm3dUdV2
+      type(TAccumulator) :: SumHmU
+      type(TAccumulator) :: SumHmUm1
+      type(TAccumulator) :: SumHmUm2
+      type(TAccumulator) :: SumHmUm3
+      type(TAccumulator) :: SumHmUm1dUdV
+      type(TAccumulator) :: SumHmUm1dUdV2
+      type(TAccumulator) :: SumHmUm1d2UdV2
+      type(TAccumulator) :: SumHmUm2dUdV
+      type(TAccumulator) :: SumHmUm2dUdV2
+      type(TAccumulator) :: SumHmUm2d2UdV2
+      type(TAccumulator) :: SumHmUm3dUdV
+      type(TAccumulator) :: SumHmUm3dUdV2
 
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
@@ -273,22 +273,22 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotSquareddEpotdV
     type(TAccumulator) :: SumEPotdEpotdVSquared
     type(TAccumulator) :: SumEPotd2EpotdV2
-    type(TAccumulator) :: SumA10resI
-    type(TAccumulator) :: SumA01resI
-    type(TAccumulator) :: SumA20resI
-    type(TAccumulator) :: SumA11resI
-    type(TAccumulator) :: SumA02resI
-    type(TAccumulator) :: SumA30resI
-    type(TAccumulator) :: SumA21resI
-    type(TAccumulator) :: SumA12resI
-    type(TAccumulator) :: SumA10resII
-    type(TAccumulator) :: SumA01resII
-    type(TAccumulator) :: SumA20resII
-    type(TAccumulator) :: SumA11resII
-    type(TAccumulator) :: SumA02resII
-    type(TAccumulator) :: SumA30resII
-    type(TAccumulator) :: SumA21resII
-    type(TAccumulator) :: SumA12resII
+      type(TAccumulator) :: SumA10resI
+      type(TAccumulator) :: SumA01resI
+      type(TAccumulator) :: SumA20resI
+      type(TAccumulator) :: SumA11resI
+      type(TAccumulator) :: SumA02resI
+      type(TAccumulator) :: SumA30resI
+      type(TAccumulator) :: SumA21resI
+      type(TAccumulator) :: SumA12resI
+      type(TAccumulator) :: SumA10resII
+      type(TAccumulator) :: SumA01resII
+      type(TAccumulator) :: SumA20resII
+      type(TAccumulator) :: SumA11resII
+      type(TAccumulator) :: SumA02resII
+      type(TAccumulator) :: SumA30resII
+      type(TAccumulator) :: SumA21resII
+      type(TAccumulator) :: SumA12resII
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -300,7 +300,7 @@ module ms2_ensemble
 
     ! BiasedPartners
     integer            :: NGradIns
-    integer,pointer, contiguous  :: BiasedPartners(:)
+    integer,pointer, contiguous    :: BiasedPartners(:)
 
     ! Ewald Parameters
     real(RK),pointer, contiguous :: Ewald_Prefac(:)
@@ -311,7 +311,7 @@ module ms2_ensemble
     real(RK)         :: USelbstterm
     real(RK)         :: UIntra
     real(RK)         :: UFourier, EVirial
-    integer,pointer  :: NBox0,NBox1,NBox2
+    integer,pointer ::  NBox0,NBox1,NBox2
     real(RK),pointer, contiguous :: U_fourierLocal(:)
     real(RK),pointer, contiguous :: SSin(:),SCos(:)
     real(RK),pointer, contiguous :: rold(:,:)
@@ -324,12 +324,12 @@ module ms2_ensemble
     integer         :: gridx
     integer         :: gridy
     integer         :: gridz
-    real(RK),pointer, contiguous :: qgrida(:,:), qgrida_old(:,:), qgridb(:,:)
+    real(RK),pointer, contiguous::   qgrida(:,:), qgrida_old(:,:), qgridb(:,:)
     integer*8       :: qgrid_forward, qgrid_backward
-    real(RK),pointer, contiguous :: bbtot(:)
-    real(RK),pointer, contiguous :: bsp_arr(:), bsp_modx(:), bsp_mody(:), bsp_modz(:)
+    real(RK),pointer, contiguous:: bbtot(:)
+    real(RK),pointer, contiguous:: bsp_arr(:), bsp_modx(:), bsp_mody(:), bsp_modz(:)
     real(RK)        :: EVirialIntra
-    real(RK),pointer, contiguous :: EPotPME(:), VirialPME(:), mm2(:)
+    real(RK),pointer, contiguous:: EPotPME(:), VirialPME(:), mm2(:)
 #endif
 
     ! Extended ReactionField Method
@@ -354,6 +354,7 @@ module ms2_ensemble
 !TRANSPORT_start
     ! Correlation functions
     logical  :: CorrFunMode
+    
     integer  :: NStepCorr
     real(RK) :: TimeStepCorr
     integer  :: NCorr,Mmess
@@ -374,7 +375,7 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: average_sinte_c(:), average_sinte_ec(:)
     real(RK), pointer, contiguous :: a(:, :), A_SpanCF(:,:)
     real(RK), pointer, contiguous :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
-    real(RK), pointer, contiguous :: vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK),pointer, contiguous  :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer, contiguous :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
@@ -399,10 +400,10 @@ module ms2_ensemble
 #endif
 
 #ifdef ABL
-   real(RK),pointer, contiguous :: AblPS(:,:)
-   real(RK),pointer, contiguous :: AblPE(:,:)
-   real(RK),pointer, contiguous :: AblRhoS(:,:)
-   real(RK),pointer, contiguous :: AblRhoE(:,:)
+   real(RK),pointer, contiguous:: AblPS(:,:)
+   real(RK),pointer, contiguous:: AblPE(:,:)
+   real(RK),pointer, contiguous:: AblRhoS(:,:)
+   real(RK),pointer, contiguous:: AblRhoE(:,:)
 #endif
 
 #if HBOND > 0
@@ -809,7 +810,7 @@ module ms2_ensemble
   interface ResultClose
     module procedure TEnsemble_ResultClose
   end interface
-  
+
   interface RDFOpen
     module procedure TEnsemble_RDFOpen
   end interface
@@ -821,11 +822,11 @@ module ms2_ensemble
   interface RDFClose
     module procedure TEnsemble_RDFClose
   end interface
-  
+
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
-  
+
   interface ErrorsUpdateThermoInt
     module procedure TEnsemble_ErrorsUpdateThermoInt
   end interface
@@ -933,9 +934,8 @@ module ms2_ensemble
     module procedure TEnsemble_HBonding
   end interface
 #endif
-
+  
 contains
-
 
 !==============================================================!
 !  Subroutine TEnsemble_Construct                              !
@@ -1012,10 +1012,10 @@ contains
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       call FileReadParameter( this%RefEnthalpy, iounit_params , IdRefEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
-        this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro
+        this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro 
       end if
     end if
-
+	
     if( ConstantPressure ) then
       call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
 
@@ -1112,12 +1112,10 @@ contains
 
     write( IOBuffer, '("Density: ", T26, F9.3, " mol/l")' ) this%RefDensity * UnitDensity
     call LogWrite
-
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       write( IOBuffer, '("Enthalpy: ",T26, F9.3, " J/mol")' ) this%RefEnthalpy * UnitEnergy * NAvogadro
       call LogWrite
     end if
-
     write( IOBuffer, '("Reduced temperature: ", T26, F14.8)' ) this%RefTemperature
     call LogWrite
 
@@ -1142,10 +1140,9 @@ contains
 
     write( IOBuffer, '("Reduced density: ",T26, F14.8)' ) this%RefDensity
     call LogWrite
-
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       write( IOBuffer, '("Reduced Enthalpy: ",T26, F12.6)' ) this%RefEnthalpy
-      call LogWrite
+      call LogWrite 
     end if
 
     ! Read mass of piston
@@ -1261,6 +1258,7 @@ contains
       write( ErrorBuffer, '("There must be at least 1 component in ensemble", I2)' ) this%EnsembleNumber
       call Error
     end if
+
     if( this%NComponents > 999 ) call Error( 'Cannot work with more than 999 components on '//Hardware )
 
 #if  TRANS == 1
@@ -1287,7 +1285,7 @@ contains
     endif
 
     ! Read correlation function
-    if ( this%CorrfunMode ) then
+    if( this%CorrfunMode ) then
 
       ! Calculate correlation function every n-th time step
       call FileReadParameter( this%NStepCorr , iounit_params , IdNStepcf )
@@ -1305,7 +1303,6 @@ contains
         this%NCorr = this%NCorr/this%NStepCorr
         write( IOBuffer, '("Correlation Function (CF) is calculated every",I4,"-th time step")') this%NStepCorr
         call LogWrite
-
       else
         this%NStepCorr = 1
         write( IOBuffer, '("Correlation Function (CF) is calculated every time step")')
@@ -1319,7 +1316,6 @@ contains
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
         write( IOBuffer, '("Length of CF:",T26, I5)' ) this%NCorr*this%NStepCorr
         call LogWrite
-
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
         write( IOBuffer, '("Length of CF is extended to:",T40, I7)') this%NCorr*this%NStepCorr
@@ -1356,7 +1352,8 @@ contains
 
       if( BlockSizeCF > 0 ) then
         NBlocksMaxCF = int(this%Mmess / BlockSizeCF)
-        NBlockSizesMaxCF = int( sqrt( real( NBlocksMaxCF, RK ) ) )
+        NBlockSizesMaxCF = int( sqrt( real(NBlocksMaxCF,RK) ) )
+
       else
         NBlocksMaxCF = 0
         NBlockSizesMaxCF = 0
@@ -1364,7 +1361,6 @@ contains
 
       ! Initialization
       this%Mmess = 0
-
     end if
 !TRANSPORT_END
 #endif
@@ -1545,29 +1541,31 @@ contains
 
 ! Initialization of the transport property "Conductivity" and "EConductivity"
 #if TRANS == 1
+      
      this%MolarEnthConduct = .true.
      this%Bulkviscosity = .false.
      this%Conductivity = .false.
      this%EConductivity = .false.
 
-      if (LongRange .eq. Rfield) this%Conductivity = .true.
-      if (EnsembleType .eq. EnsembleTypeNVE) this%Bulkviscosity = .true.
+     if (LongRange .eq. Rfield) this%Conductivity = .true.
+     if (EnsembleType .eq. EnsembleTypeNVE) this%Bulkviscosity = .true.
  
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
-        do i = 1, this%NComponents
-          if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
-            this%Conductivity = .false.
-            this%MolarEnthConduct = .false.
-          end if
-        end do
+       do i = 1, this%NComponents
+            if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
+               this%Conductivity = .false.
+               this%MolarEnthConduct = .false.
+            end if
+       end do
       end if
 
+      
       if (LongRange .eq. Ewald) then
-        do i = 1, this%NComponents
-          if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
-            this%EConductivity = .true.
-          end if
-        end do
+	do i = 1, this%NComponents
+	  if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
+             this%EConductivity = .true.
+	  end if
+	end do
       end if
 #endif
 
@@ -1580,8 +1578,8 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui) )  then
-      write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ / this%NPart
+    if ( SimulationType .eq. MonteCarlo .and. (.not.  CommonEqui))  then
+      write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ  / this%NPart
 
     else
       write( IOBuffer, '("- potential energy from LJ",T44, F12.8)' ) this%EPotCorrLJ * Nprocs/ this%NPart
@@ -1589,8 +1587,8 @@ contains
 
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui) ) then  
-      write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ / this%NPart
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then  
+      write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ  / this%NPart
 
     else
       write( IOBuffer, '("- pressure from LJ ",T44, F12.8)' ) this%VirialCorrLJ * NProcs / this%NPart
@@ -1604,9 +1602,9 @@ contains
       call LogWrite
     end do
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui) ) then 
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
-&       this%EPotCorrRF / this%NPart
+&       this%EPotCorrRF  / this%NPart
 
     else
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
@@ -1685,7 +1683,7 @@ contains
          if(stat >0) write(*,*) 'Allocation Error SSin'
          allocate(this%SCos(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error SCos'
-       allocate(this%rold(5,3),STAT=stat)
+         allocate(this%rold(5,3),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error rold'
          allocate(this%Vec2(this%BoxenAnzahlMax),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error Vec2'
@@ -1697,6 +1695,7 @@ contains
          if (this%KappaL .eq. 0.) then
             this%Kappa = sqrt(PI) * (4.0_RK*this%NPart / this%Volume0**2)**(1._RK/6._RK)
             this%KappaL = this%Kappa*this%BoxLength
+
          else
             this%Kappa = this%KappaL/this%BoxLength   !Boxlength bereits normiert
          end if
@@ -1706,6 +1705,7 @@ contains
              this%Interaction(i,j)%Kappa = this%Kappa
            end do
          end do
+
          allocate(this%bsp_arr(this%gridx+5),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error bsp_arr'
          allocate(this%bsp_modx(this%gridx+5),STAT=stat)
@@ -1714,10 +1714,10 @@ contains
          if(stat >0) write(*,*) 'Allocation Error bsp_mody'
          allocate(this%bsp_modz(this%gridz+5),STAT=stat)
          if(stat >0) write(*,*) 'Allocation Error bsp_modz'
-         ! Setup SPME calculation
-         call PMESetup(this)
-#endif
 
+! Setup SPME calculation
+         call PMESetup (this)
+#endif
       else if (LongRange .eq. ExtRField) then
          do i=1,this%NComponents
            do j=1,this%NComponents
@@ -1793,9 +1793,11 @@ contains
     call LogWrite
 
 #if MPI_VER > 0
-    ! Abortion of simulation run due to wall-time Constraints
+! Abortion of simulation run due to wall-time Constraints
     call time_left(time_limit)
 #endif
+
+
 
   end subroutine TEnsemble_Construct
 
@@ -1970,10 +1972,10 @@ contains
 
     ! Set I/O unit numbers
     i = FilesPerEnsemble * this%EnsembleNumber
-    this%iounit_result   = iounit_result   + i
-    this%iounit_runave   = iounit_runave   + i
-    this%iounit_errors   = iounit_errors   + i
-    this%iounit_visual   = iounit_visual   + i
+    this%iounit_result = iounit_result + i
+    this%iounit_runave = iounit_runave + i
+    this%iounit_errors = iounit_errors + i
+    this%iounit_visual = iounit_visual + i
     this%iounit_visualHB = iounit_visualHB + i
 
   end subroutine TEnsemble_ConstructSVC
@@ -2044,23 +2046,23 @@ contains
 
 #endif
 
-      if ( associated ( this%U_fourierLocal ) ) then
+      if ( associated ( this%U_fourierLocal ) ) then 
          deallocate( this%U_fourierLocal )
       end if
 
-      if ( associated ( this%SSin ) ) then
+      if ( associated ( this%SSin ) ) then 
          deallocate( this%SSin )
       end if
 
-      if ( associated ( this%SCos ) ) then
+      if ( associated ( this%SCos ) ) then 
          deallocate( this%SCos )
       end if
 
-      if ( associated ( this%rold ) ) then
+      if ( associated ( this%rold ) ) then 
          deallocate( this%rold )
       end if
 
-      if ( associated ( this%Vec2 ) ) then
+      if ( associated ( this%Vec2 ) ) then 
          deallocate( this%Vec2 )
       end if
 
@@ -2165,7 +2167,7 @@ contains
       end if
 
       if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        
+
         ! LongRange Check
         do j=1,this%Component(i)%Molecule%NCharge
           q = q + this%Component(i)%Molecule%SiteCharge(j)%e
@@ -2438,7 +2440,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i, j
+    integer   :: i, j
 #if HBOND > 0
     integer   :: k, l,stat
 
@@ -2550,8 +2552,8 @@ contains
       call Construct( this%SumCV, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
-      if (LongRange .eq. Rfield) then
-        if (EnsembleType .eq. EnsembleTypeNVT) then
+      if( LongRange .eq. Rfield) then
+        if ( EnsembleType .eq. EnsembleTypeNVT ) then
           call Construct( this%SumA10resI, .true. )
           call Construct( this%SumA01resI, .true. )
           call Construct( this%SumA20resI, .true. )
@@ -2560,7 +2562,7 @@ contains
           call Construct( this%SumA30resI, .true. )
           call Construct( this%SumA21resI, .true. )
           call Construct( this%SumA12resI, .true. )
-        elseif (EnsembleType .eq. EnsembleTypeNVE) then
+        elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
           call Construct( this%SumA10resI, .true. )
           call Construct( this%SumA01resI, .true. )
           call Construct( this%SumA20resI, .true. )
@@ -2591,19 +2593,20 @@ contains
 !         this%AccClass%Variance    = 0._RK
 
     ! 4.) Transport properties
-    if ( this%CorrfunMode ) then 
+    if( this%CorrfunMode ) then
       do i = 1, this%NComponents
-        call Construct( this%Sumself_i(i), .false., .true. )
+        call Construct( this%Sumself_i(i),  .false., .true. )
         do j = 1, this%NComponents
-          call Construct( this%SumOnsager(i,j), .false., .true. )
+           call Construct( this%SumOnsager(i,j), .false., .true. )
         end do
-      end do
+     end do
 
       call Construct( this%SumVisco_s, .false., .true. )
       call Construct( this%SumVisco_b, .false., .true. )
       call Construct( this%SumConduct, .false., .true. )
       call Construct( this%SumSoret,   .false., .true. )
       call Construct( this%SumEConduct,.false., .true. )
+
     end if
 !TRANSPORT_END
 #endif
@@ -2726,8 +2729,8 @@ contains
     call Destruct( this%SumCV )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
-    if (LongRange .eq. Rfield) then
-      if (EnsembleType .eq. EnsembleTypeNVT) then 
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
         call Destruct( this%SumA10resI )
         call Destruct( this%SumA01resI )
         call Destruct( this%SumA20resI )
@@ -2736,7 +2739,7 @@ contains
         call Destruct( this%SumA30resI )
         call Destruct( this%SumA21resI )
         call Destruct( this%SumA12resI )
-      elseif (EnsembleType .eq. EnsembleTypeNVE) then
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
         call Destruct( this%SumA10resI )
         call Destruct( this%SumA01resI )
         call Destruct( this%SumA20resI )
@@ -2758,7 +2761,7 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
-    if ( this%CorrfunMode ) then
+    if( this%CorrfunMode ) then
 
       do i = 1, this%NComponents
         call Destruct( this%Sumself_i(i) )
@@ -2770,8 +2773,8 @@ contains
       call Destruct( this%SumVisco_s )
       call Destruct( this%SumVisco_b )
       call Destruct( this%SumConduct )
-      call Destruct( this%SumSoret   )
-      call Destruct( this%SumEConduct)
+      call Destruct( this%SumSoret )
+      call Destruct( this%SumEConduct )
 
     end if
 
@@ -2795,6 +2798,7 @@ contains
 #endif
 
   end subroutine TEnsemble_DestroyAccumulators
+
 
 
 !==============================================================!
@@ -2861,7 +2865,7 @@ contains
     t = this%NRealComponents+1
     do i = 1, this%NRealComponents
       pc => this%Component(i)
-      if (pc%ChemPotMethod == ChemPotMethodThermoInt ) then
+      if ( pc%ChemPotMethod == ChemPotMethodThermoInt ) then
         if ( pc%NPart >= 1) then
           pc%NPart = pc%NPart - 1
           this%Component(t)%NPart = 1
@@ -2904,6 +2908,7 @@ contains
     do i = 1, this%NComponents
       pc => this%Component(i)
       pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
+
       this%NTestMax = max( pc%NTest, this%NTestMax )
       this%NFluctMax = max( pc%NFluctMax, this%NFluctMax )
     end do
@@ -2920,6 +2925,7 @@ contains
       call LogWrite
       write( IOBuffer, '(T10,"->  number of particles: ",T36, I11)' ) pc%NPart
       call LogWrite
+
       if( pc%NTest > 0 ) then
         write( IOBuffer, '("Number of test particles:",T36, I11)' ) pc%NTest
         call LogWrite
@@ -2933,6 +2939,7 @@ contains
     end do
 
   end subroutine TEnsemble_CalculateNPart
+
 
 
 !==============================================================!
@@ -3005,7 +3012,7 @@ contains
             this%Interaction(i,j)%Kappa = this%Kappa
           end do
         end do
-        call PMESelfTermMC( this )
+        call PMESelfTermMC ( this )
 #endif
 
       else if (LongRange .eq. Rodgers ) then
@@ -3097,6 +3104,7 @@ contains
   end subroutine TEnsemble_FindNSiteMax
 
 
+
 !==============================================================!
 !  Subroutine TEnsemble_Allocate                               !
 !==============================================================!
@@ -3158,37 +3166,39 @@ contains
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
 &       SimulationType .eq. Gibbs .or. SimulationType .eq. SecondVirialCoeff ) then       
 
-      do i = 1, this%NComponents
-        this%Component(i)%NPartMax => this%NPartMax
-        this%Component(i)%NUnitMax => this%NUnitMax
-        if( this%Component(i)%NTest > 0 ) then
-          this%Component(i)%P0Test => this%P0Test ! wtf Michael Sch.: may lead to errors with 2+ chemPotMethods
-          this%Component(i)%Q0Test => this%Q0Test ! wtf Michael Sch.: like this test particles of all comp with same Pos and Orient
-        end if
+       do i = 1, this%NComponents
+         this%Component(i)%NPartMax => this%NPartMax
+         this%Component(i)%NUnitMax => this%NUnitMax
 
-        this%Component(i)%BoxLength => this%BoxLength
-        call Allocate( this%Component(i) )
-      end do
+         if( this%Component(i)%NTest > 0 ) then
+           this%Component(i)%P0Test => this%P0Test ! wtf Michael Sch.: may lead to errors with 2+ chemPotMethods
+           this%Component(i)%Q0Test => this%Q0Test ! wtf Michael Sch.: like this test particles of all comp with same Pos and Orient
+         end if
+
+         this%Component(i)%BoxLength => this%BoxLength
+         call Allocate( this%Component(i) )
+       end do
 
     else
-      do i = 1, this%NComponents
-        if (i .le. this%NRealComponents) then
-          this%Component(i)%NPartMax => this%Component(i)%NPart
-          this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
-        else 
-          this%Component(i)%NPartMax => this%NPartMaxFluct
-          this%Component(i)%NUnitMax => this%NUnitMax
-        end if
+       do i = 1, this%NComponents
+         if (i .le. this%NRealComponents) then
+           this%Component(i)%NPartMax => this%Component(i)%NPart
+           this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
 
-        if( this%Component(i)%NTest > 0 ) then
-          this%Component(i)%P0Test => this%P0Test
-          this%Component(i)%Q0Test => this%Q0Test
-        end if
+         else 
+           this%Component(i)%NPartMax => this%NPartMaxFluct
+           this%Component(i)%NUnitMax => this%NUnitMax
+         end if
 
-        this%Component(i)%BoxLength => this%BoxLength
-        call Allocate( this%Component(i) )
+         if( this%Component(i)%NTest > 0 ) then
+           this%Component(i)%P0Test => this%P0Test
+           this%Component(i)%Q0Test => this%Q0Test
+         end if
 
-      end do
+         this%Component(i)%BoxLength => this%BoxLength
+         call Allocate( this%Component(i) )
+
+       end do
     end if
 
 
@@ -3239,7 +3249,7 @@ contains
       NComp2 = this%NComponents*this%NComponents
 
     ! Allocate correlation fucntions
-     if ( this%CorrfunMode ) then
+     if( this%CorrfunMode ) then
 
       allocate( this%cf_vs(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
@@ -3303,7 +3313,7 @@ contains
 
       allocate( this%sinte_soret( this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
- 
+
       allocate( this%average_sinte_soret( this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
 
@@ -3311,7 +3321,7 @@ contains
       call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
 
       allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )      
 
       allocate( this%sinte_vs( this%NCorr), STAT = stat )
       call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
@@ -3376,11 +3386,13 @@ contains
       allocate( this%Sumself_i(this%NComponents), STAT = stat  )
       call AllocationError( stat, 'Sumselfd_i', this%NComponents )
 
-      allocate( this%Onsager(this%NComponents,this%NComponents), STAT = stat  )
+       allocate( this%Onsager(this%NComponents,this%NComponents), STAT = stat  )
       call AllocationError( stat, 'Onsager', this%NComponents )
 
       allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
       call AllocationError( stat, 'SumOnsager', this%NComponents )
+
+
 
 
       ! Set correlation-fucntion vectors
@@ -3401,9 +3413,10 @@ contains
       this%average_cf_vb(:)    = 0._RK
       this%average_cf_c(:)     = 0._RK
       this%average_cf_ec(:)    = 0._RK
-
+  
       this%a(:,:)           = 0._RK
       this%A_SpanCF(:,:)    = 0._RK
+      
       this%sinte_i(:,:)     = 0._RK
       this%sinte_lamda(:,:) = 0._RK
       this%sinte_db (:)     = 0._RK
@@ -3412,7 +3425,7 @@ contains
       this%sinte_vb(:)      = 0._RK
       this%sinte_c(:)       = 0._RK
       this%sinte_ec(:)      = 0._RK
-
+      
       this%average_sinte_i(:,:)     = 0._RK
       this%average_sinte_db (:)     = 0._RK
       this%average_sinte_soret(:)   = 0._RK
@@ -3539,7 +3552,6 @@ contains
     if( associated( this%RDFValue ) ) then
       deallocate( this%RDFValue )
     end if    
-    
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -3548,26 +3560,26 @@ contains
     if( associated( this%cf_d  ) )   then
       deallocate( this%cf_d  )
     end if
-
-    if( associated( this%average_cf_d  ) )   then
+   
+     if( associated( this%average_cf_d  ) )   then
       deallocate( this%average_cf_d  )
     end if
 
-    if( associated( this%cf_db  ) )   then
-      deallocate( this%cf_db  )
-    end if
+     if( associated( this%cf_db ) )   then
+       deallocate( this%cf_db )
+     end if
 
-    if( associated( this%average_cf_db  ) )   then
-      deallocate( this%average_cf_db  )
-    end if
+     if( associated( this%average_cf_db ) )   then
+       deallocate( this%average_cf_db )
+     end if
 
-    if( associated( this%cf_soret  ) )   then
-      deallocate( this%cf_soret  )
-    end if
+    if( associated( this%cf_soret ) )   then
+       deallocate( this%cf_soret )
+     end if
 
-    if( associated( this%average_cf_soret  ) )   then
-      deallocate( this%average_cf_soret  )
-    end if
+    if( associated( this%average_cf_soret ) )   then
+       deallocate( this%average_cf_soret )
+     end if
 
     if( associated( this%cf_vs ) )   then
       deallocate( this%cf_vs )
@@ -3617,16 +3629,16 @@ contains
       deallocate( this%average_sinte_i  )
     end if
 
-    if( associated( this%sinte_db) )  then
-      deallocate( this%sinte_db  )
+     if( associated( this%sinte_db) ) then
+       deallocate( this%sinte_db )
     end if
 
-    if( associated( this%average_sinte_db) )  then
-      deallocate( this%average_sinte_db  )
+    if( associated( this%average_sinte_db) ) then
+       deallocate( this%average_sinte_db )
     end if
 
     if( associated( this%average_sinte_soret) ) then
-      deallocate( this%average_sinte_soret )
+       deallocate( this%average_sinte_soret )
     end if
 
     if( associated( this%sinte_vs) ) then
@@ -3636,7 +3648,7 @@ contains
     if( associated( this%average_sinte_vs) ) then
       deallocate( this%average_sinte_vs )
     end if
-
+    
     if( associated( this%sinte_vb) ) then
       deallocate( this%sinte_vb )
     end if
@@ -3645,19 +3657,19 @@ contains
       deallocate( this%average_sinte_vb )
     end if
 
-    if( associated( this%sinte_c)  ) then
-      deallocate( this%sinte_c  )
+    if( associated( this%sinte_c) ) then
+      deallocate( this%sinte_c )
     end if
 
     if( associated( this%average_sinte_c) ) then
       deallocate( this%average_sinte_c )
     end if
 
-    if( associated( this%sinte_ec)  ) then
-      deallocate( this%sinte_ec  )
+    if( associated( this%sinte_ec) ) then
+      deallocate( this%sinte_ec )
     end if
 
-    if( associated( this%average_sinte_c) ) then
+    if( associated( this%average_sinte_c)  ) then
       deallocate( this%average_sinte_c )
     end if
 
@@ -3690,6 +3702,7 @@ contains
     end if
 
     if( associated( this%vckr ) ) then
+
       deallocate( this%vckr )
     end if
 
@@ -3720,6 +3733,7 @@ contains
     if( associated( this%SumOnsager ) ) then
       deallocate( this%SumOnsager )
     end if
+
 !TRANSPORT_END
 #endif
 
@@ -3773,11 +3787,12 @@ contains
 
     ! Assign local variables
     NPartInv = 1._RK / this%NPart
+
     if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*this%RCutoffDipoleDipole
       RFConst = -1._RK / this%RCutoffDipoleDipole**3 * ((this%RFEpsilon - 1._RK)*(1._RK+fac) + 0.5*this%RFEpsilon*(fac)**2) &
-&       / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
-    else 
+&               / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
+    else
       RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
     endif
 
@@ -3884,18 +3899,20 @@ contains
 
 #if MPI_VER >0
   if ( SimulationType .eq. MonteCarlo .and. (.not.(Equilibration .and. CommonEqui)) ) then
-    if( this%NLJ126Max > 0 ) then
-      this%EPotCorrLJ = this%EPotCorrLJ * NProcs
-      this%VirialCorrLJ = this%VirialCorrLJ * NProcs
-      this%d2EpotdV2CorrLJ = this%d2EpotdV2CorrLJ * NProcs
-    endif
-    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-      this%EPotCorrRF = this%EPotCorrRF * NProcs
-    endif
-    if (LongRange .eq. Rodgers ) then
-      this%EPotCorrRFPart = this%EPotCorrRFPart * NProcs
-      this%EPotCorrRFVol  = this%EPotCorrRFVol  * NProcs
-    end if
+      if( this%NLJ126Max > 0 ) then
+        this%EPotCorrLJ = this%EPotCorrLJ * NProcs
+        this%VirialCorrLJ = this%VirialCorrLJ * NProcs
+        this%d2EpotdV2CorrLJ = this%d2EpotdV2CorrLJ * NProcs
+      endif
+
+      if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        this%EPotCorrRF = this%EPotCorrRF * NProcs
+      endif
+
+      if (LongRange .eq. Rodgers ) then
+        this%EPotCorrRFPart = this%EPotCorrRFPart * NProcs
+        this%EPotCorrRFVol  = this%EPotCorrRFVol  * NProcs
+      end if
   endif
 #endif
 
@@ -3979,6 +3996,7 @@ loop:do l = 1, NPartInCell
             pc%Pm0(nm, 2) = xl(2) * (CellY(l) + j - 1)
             pc%Pm0(nm, 3) = xl(3) * (CellZ(l) + k - 1)
             n = n + 1
+
             if( n == this%NPart ) exit loop
           end do
         end do
@@ -4379,26 +4397,22 @@ loop:do l = 1, NPartInCell
       if(ConstantTemperature .or. NVTEquilibration) then
         Reference=this%RefTemperature
       else if (EnsembleType .eq. EnsembleTypeNVE ) then
-        Reference=2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
+        Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
       else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration ) then
-        Reference=2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+        Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK) 
       end if
 
       ! Rescale velocities
       if( rescale ) then
-        scale = sqrt( Reference / this%Temperature )
-
+      scale = sqrt( Reference / this%Temperature )
         do i = 1, this%NComponents
           pc => this%Component(i)
           np = pc%NPart
           pc%P1(:, :, :) = pc%P1(:, :, :) * scale
-
           if( pc%Molecule%isElongated ) then
             pc%W0(:, :, :) = pc%W0(:, :, :) * scale
           end if
-
         end do
-
       else
         scale = 1._RK
       end if
@@ -4491,18 +4505,21 @@ loop:do l = 1, NPartInCell
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, k, nc, np
+    integer :: i, j, k, nc, np
     real(RK) :: diffpressure
 
     ! Zero displacement
     if( Step == 1 ) then
+
       do i = 1, this%NComponents
         this%Component(i)%Disp(:, :) = 0._RK
       end do
+      
       ! Initiate calculation of residence times
       if (this%ResidenceTime .and. .not. Equilibration) then 
         call ResidencePartners ( this )
       end if
+      
     end if
 
     ! Run MD simulation step
@@ -4555,11 +4572,13 @@ loop5:  do nc = 1, this%NComponents
     call Correct( this )
 
 #if  TRANS == 1
+
 !TRANSPORT_start
     if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
       call CalCorrFun( this )  
     end if
 !TRANSPORT_END
+
 #endif
 
     ! Calculation of residence time
@@ -4575,6 +4594,7 @@ loop5:  do nc = 1, this%NComponents
 #endif
 
   end subroutine TEnsemble_RunMDStep
+
 
 
 !==============================================================!
@@ -4632,12 +4652,14 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
           else
             call Rotate_NVE( this, nc, np, nu )
           end if
+            
         else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
           if( mod( s - r, 2 ) .eq. 0 ) then
             call Move_NPH( this, nc, np, nu )
           else
             call Rotate_NPH( this, nc, np, nu )
           end if
+      
         else
           if( mod( s - r, 2 ) .eq. 0 ) then
             call Move( this, nc, np, nu )
@@ -4654,8 +4676,6 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
           call Move( this, nc, np, nu )
         endif
       end if
-
-
     end do
 
     ! Special Moves for the simulation of molecules with internal degrees of freedom
@@ -4715,11 +4735,11 @@ loop3:  do nc = 1, this%NComponents
       endif
       this%EPotInter = this%EPot - this%EPotIntra
       call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-      if ( this%OptPressure ) then
-        call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-        call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-        this%VirialInter = this%Virial - this%VirialIntra
-      endif
+        if ( this%OptPressure ) then
+          call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+          call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+          this%VirialInter = this%Virial - this%VirialIntra
+        endif
 
     else
 
@@ -5020,7 +5040,6 @@ loop5:    do nc = 1, this%NComponents
   end subroutine TEnsemble_Unit2Atom
 
 
-
 !==============================================================!
 !  Subroutine TEnsemble_Atom2Unit                              !
 !==============================================================!
@@ -5033,7 +5052,7 @@ loop5:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i
+    integer   :: i
 #if OSMOP > 0
     integer   :: m
     real(RK)  :: TotalDenProfile(NBinsDen)
@@ -5055,6 +5074,7 @@ loop5:    do nc = 1, this%NComponents
 #else
       call Atom2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
 #endif
+
 #if OSMOP == 0
     end do
 #else
@@ -5225,6 +5245,7 @@ loop5:    do nc = 1, this%NComponents
     end if
 
   end subroutine TEnsemble_PredictGear
+
 
 
 !==============================================================!
@@ -5448,8 +5469,8 @@ loop5:    do nc = 1, this%NComponents
     integer                   :: i, j
     type(TComponent), pointer :: pc
 #ifdef ABL
-    integer                   :: k,l
-    integer                   :: numbi, numbj, numb
+    integer             :: k,l
+    integer             :: numbi, numbj, numb
 #endif
 #if OSMOP == 2
 #if MPI_VER > 0
@@ -5679,7 +5700,7 @@ loop5:    do nc = 1, this%NComponents
     EPotIntra_Nonbonded = 0._RK
 
     ! Zero virial
-    Virial = this%Density * this%VirialCorrLJ + this%VirialCorrRF * this%Volume0
+    Virial = this%Density * this%VirialCorrLJ + this%VirialCorrRF*this%Volume0
     VirialInter = Virial
     VirialIntra = 0._RK
 
@@ -5692,7 +5713,7 @@ loop5:    do nc = 1, this%NComponents
 #if TRANS == 1
 #ifndef ABL
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-          call Force_Trans( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
 &                           EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
 &                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         else
@@ -5704,11 +5725,11 @@ loop5:    do nc = 1, this%NComponents
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-          call Force_Trans( this%Interaction( i, j ),  EPot, Virial, EPotIntra, EPotIntra_Bond,  &
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
 &                           EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
 &                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
         else
-          call Force( this%Interaction( i, j ),  EPot, Virial, EPotIntra, EPotIntra_Bond,  &
+          call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
 &                     EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
 &                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
         endif
@@ -5721,19 +5742,20 @@ loop5:    do nc = 1, this%NComponents
 #else
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
-        call Force( this%Interaction( i, j ),  EPot, Virial, EPotIntra, EPotIntra_Bond,  &
+        call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
 &                   EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
 &                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
 #endif
 #endif
+
       end do
     end do
 
     if (LongRange .eq. Ewald) then
-      call EwaldFourierTerm(this)
+      call EwaldFourierTerm (this)
 #if SPME > 0
     else if (LongRange .eq. PME) then
-      call PMEFourierTerm(this)
+      call PMEFourierTerm (this)
 #endif
     end if
 
@@ -5785,7 +5807,6 @@ loop5:    do nc = 1, this%NComponents
 #endif
       end if
     end if
-
 
     ! constraints bonds due to Shake decrease the ideal gas pressure value
     this%Pressure = ((this%NUnitTotal-this%constrNDF/3._RK) * this%Temperature + this%Virial) / this%Volume0
@@ -5964,7 +5985,6 @@ loop5:    do nc = 1, this%NComponents
     t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
 
     ! Outer loop over components
-
 componentLoop:       do i = 1, this%NRealComponents
       pc => this%Component(i)
       if( Equilibration .and. pc%WFMethod .ne. WFMethodGuess ) cycle
@@ -6044,10 +6064,10 @@ loop2:        do nu = 1, this%Component(nc)%Molecule%NUnit
               end if
 
             else if( r <= (ndfmove + ndfbiased) ) then
-            
+
               nuh2 = 0
               r = (r - ndfmove - 1) / ratio + 1
-              nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) )
+              nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) ) 
 loop3:        do nc = 1, this%NComponents
                 s = s + this%Component(nc)%BiasedPartners
                 if( nuh < s ) exit loop3
@@ -6125,7 +6145,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%ChemPot = 0._RK
         end if
 
-        if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. GradInsInitialization ) then
+         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. GradInsInitialization ) then
           ! Here we sum up the NStateWF over all processes 
           ! dealing with a specific component to improve statistics
 #if MPI_VER > 0
@@ -6190,6 +6210,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%NStateWF(:) = 0
 #endif         
         end if
+
 
       ! Chemical potential by Widom's test particle method
       ! Just applicable for ReactionField Method. 
@@ -6354,20 +6375,22 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%EPotTest = EPotTest
         end if
 #endif
-        factor = pc%LaMin**pc%LambdaExponent
+        factor=pc%LaMin**pc%LambdaExponent
         ExpMinusBetaEnLaMin = sum( exp( -( factor*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 
         ! partial molar enthalpy
-        HW_H_local = this%EPot + ( this%RefPressure / this%Density ) * real( this%NPart, RK )
-        HW_V_local = (1.0 / this%Density) * this%NPart
-        HW_denom_local = 0
-        HW_counter_local = 0
-        do j=1, pc%NTest
+       HW_H_local = this%EPot + ( this%RefPressure / this%Density ) * real( this%NPart, RK )
+       HW_V_local = (1.0 / this%Density) * this%NPart
+       HW_denom_local = 0
+       HW_counter_local = 0
+
+       do j=1, pc%NTest 
           HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + factor*this%EPotTest(j) ) * exp( - factor*this%EPotTest(j) / this%RefTemperature )
           HW_denom_local = HW_denom_local + HW_V_local * exp( - factor*this%EPotTest(j) / this%RefTemperature )
-        end do
-        HW_counter_local = HW_counter_local / pc%NTest
-        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
+       end do
+
+       HW_counter_local = HW_counter_local / pc%NTest
+       HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
 ! #if MPI_VER > 0
 !         if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
@@ -6495,6 +6518,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_UpdateEnergy1
 
 
+
 !==============================================================!
 !  Subroutine TEnsemble_Energy                                 !
 !==============================================================!
@@ -6520,10 +6544,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     Intra = 0._RK
 
     if (LongRange .eq. Ewald) then
-      call EwaldSelfTerm_Energy( this )
+      call EwaldSelfTerm_Energy ( this )
+
 #if SPME > 0
     else if (LongRange .eq. PME) then
-      call PMESelfTermMC( this )
+      call PMESelfTermMC ( this )
 #endif
     end if
 
@@ -6531,7 +6556,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do nc = 1, this%NComponents
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
-        n=pi%NUnit2*pi%NPart2
+        n = pi%NUnit2*pi%NPart2
 
         ! Loop over units
         do np = 1, this%Component(nc)%NPart
@@ -6539,7 +6564,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
             nu1=(np-1)*pi%NUnit1+nu ! global number of unit
 
-            call Energy(pi, np, nu, this%BoxLength)
+            call Energy( pi, np, nu, this%BoxLength )
+
             if ( pi%SameComponent .and. UseIntDegFreed ) then
               call IntraEnergy(pi, np, nu, this%BoxLength)
               pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
@@ -6549,16 +6575,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             ! Save new energy matrix
             pi%EPotNew(nu1, 1:n) = pi%EPot1(1:n)
             pi%d2EpotdV2New(nu1, 1:n) = pi%d2EpotdV21(1:n)
+
             if (this%OptPressure) then
-              pi%VirialNew(nu1, 1:n)= pi%Virial1(1:n)
+              pi%VirialNew(nu1, 1:n) = pi%Virial1(1:n)
             end if
 
             ! Sum energy
             E = E + sum( pi%EPot1(1:n) )
           end do
         end do
-
-        end do
+      end do
       Intra = Intra + sum(this%Interaction(nc,nc)%EPotAngleNew(:)) + &
 &                     sum(this%Interaction(nc,nc)%EPotToNew(:))
     end do
@@ -6573,8 +6599,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
 
     else if (LongRange .eq. PME) then
-      call charge_grid_MCall( this )
-      call PMEFourierTermMC( this )
+      call charge_grid_MCall ( this )
+      call PMEFourierTermMC ( this )
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #endif
     end if
@@ -6610,10 +6636,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       n = pi%NPart2 * pi%NUnit2
 
       call Energy( pi, np, nu, this%BoxLength )
+
       if ( pi%SameComponent .and. UseIntDegFreed ) then
         call IntraEnergy( pi, np,  nu, this%BoxLength )
         EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
       end if
+
       ! Calculate new energy
       EPotNew = EPotNew + sum( pi%EPot1(1:n) ) !includes Bond energies
     end do
@@ -6622,8 +6650,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        call EwaldFourierEnergy(this,nc,np)
        EPotNew = EPotnew + this%UFourier
 #if SPME > 0
+
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC( this )
+       call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -6640,7 +6669,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare arguments
     type(TEnsemble)       :: this
-    integer, intent(in)   :: nc, np, m
+    integer, intent(in)   :: nc, np,m
     real(RK), intent(out) :: EPotNew
 
     ! Declare local variables
@@ -6666,14 +6695,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       end do
     end do
 
-
     if (LongRange .eq. Ewald) then
        call EwaldFourierEnergy(this,nc,np,m)
        EPotNew = EPotnew + this%UFourier
 #if SPME > 0
 
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC( this )
+       call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -6709,11 +6737,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
       do nu = 1,pi%NUnit1
+
         call Energy( pi, np, nu, this%BoxLength )
+
         if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
+
         ! Calculate new energy
         EPotNew = EPotNew + sum( pi%EPot1(1:n) ) ! includes Bond energies
       end do
@@ -6723,8 +6754,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        call EwaldFourierEnergy(this,nc,np,ncold,npold)
        EPotNew = EPotnew + this%UFourier + this%USelbstTerm + this%UIntra
 #if SPME > 0
+
     else if (LongRange .eq. PME) then
-       call PMEFourierTermMC( this )
+       call PMEFourierTermMC ( this )
        EPotNew = EPotnew + this%UFourier
 #endif
     end if
@@ -6766,13 +6798,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end do
     E = .5_RK * E + this%Density * this%EPotCorrLJ + this%EPotCorrRF + Intra
 
-    ! Ewald 
+! Ewald 
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #if SPME > 0
+
     else if (LongRange .eq. PME) then
-      call charge_grid_MCall(this)
+      call charge_grid_MCall (this)
       call PMEFourierTermMC(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
 #endif
@@ -6833,7 +6866,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       end do
     end if
 
-    ! Ewald
+! Ewald
     if (LongRange .eq. Ewald) then
       E = E + this%UFourier
 #if SPME > 0
@@ -6875,17 +6908,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     V = .5_RK * V + this%Density * this%VirialCorrLJ + this%VirialCorrRF*this%Volume0
 
     if (LongRange .eq. Ewald) then
-      V = V + this%EVirial
+       V = V + this%EVirial
 #if SPME > 0
     else if (LongRange .eq. PME) then
-      V = V + this%EVirial
+       V = V + this%EVirial
 #endif
     end if
 
   end function TEnsemble_GetVirial
 
 !==============================================================!
-!  Function TEnsemble_Getd2EpotdV2                             !
+!  Function TEnsemble_Getd2EpotdV2                                !
 !==============================================================!
 
   function TEnsemble_Getd2EpotdV2( this ) result(V)
@@ -6952,7 +6985,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%NMoveAttempts = pc%NMoveAttempts + 1
 
     ! Save current particle position and energy
-    r(:)  = pc%P0(np, :, nu)
+    r(:) = pc%P0(np, :, nu)
     EPotOld = GetEnergy( this, nc, np, nu )
 
     ! Save the Energies and Virials for a faster MoveRejction
@@ -6963,11 +6996,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
+
 #if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -6990,57 +7024,60 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, nu, EPotNew )
-
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+
     else
-      EPotDelta = EPotOld - EPotNew
+          EPotDelta = EPotOld - EPotNew
     endif
 #else
-    EPotDelta = EPotOld - EPotNew
+     EPotDelta = EPotOld - EPotNew
 #endif
 
     accepted = EPotDelta > 0._RK
-
     if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
-
     if( accepted ) then
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+
       ! Calculate new COM
       call Unit2Mol( pc, np )
       pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
     else
+
       ! Reject move
       if (LongRange .eq. Ewald) then
           this%UFourier = EFourier
+
           DO i=1,pc%Molecule%NCharge
             this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
             this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
+
           pc%P0(np, :, nu) = r(:)
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
+
 #if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min(this, nc, np)
+          call chargegrid_min  (this, nc, np)
           pc%P0(np, :, nu) = r(:)
           call Unit2Atom1( pc, np, nu )
-          call chargegrid_plus(this, nc, np)
+          call chargegrid_plus (this, nc, np)
 #endif
       else
           pc%P0(np, :, nu) = r(:)
@@ -7099,11 +7136,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
+
 #if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7112,17 +7150,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       dq(i) = rnd( -pc%DispRot, pc%DispRot )
     end do
     ! rotate unit 
-    pc%Q0(np,1,nu) = q(1) - dq(1)*q(2) - dq(2)*q(3) - dq(3)*q(4)
-    pc%Q0(np,2,nu) = q(2) + dq(1)*q(1) - dq(3)*q(3) + dq(2)*q(4)
-    pc%Q0(np,3,nu) = q(3) + dq(2)*q(1) + dq(3)*q(2) - dq(1)*q(4)
-    pc%Q0(np,4,nu) = q(4) + dq(3)*q(1) - dq(2)*q(2) + dq(1)*q(3)
+    pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
+    pc%Q0(np, 3, nu) = q(3) + dq(2) * q(1) + dq(3) * q(2) - dq(1) * q(4)
+    pc%Q0(np, 4, nu) = q(4) + dq(3) * q(1) - dq(2) * q(2) + dq(1) * q(3)
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
 #if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7136,6 +7174,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else
       EPotDelta = EPotOld - EPotNew
     endif
+
 #else
     EPotDelta = EPotOld - EPotNew
 #endif
@@ -7165,10 +7204,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min(this, nc, np)
+        call chargegrid_min  (this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus(this, nc, np)
+        call chargegrid_plus (this, nc, np)
 #endif
 
       else
@@ -7215,7 +7254,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%NMoveAttempts = pc%NMoveAttempts + 1
 
     ! Save current particle position and energy
-    r(:)  = pc%P0(np, :, nu)
+    r(:) = pc%P0(np, :, nu)
     rm(:) = pc%Pm0(np, :)
     EPotOld = GetEnergy( this, nc, np, nu )
 
@@ -7227,11 +7266,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
+
 #if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7258,23 +7298,23 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, nu, EPotNew )
-
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+
     else
-      EPotDelta = EPotOld - EPotNew
+          EPotDelta = EPotOld - EPotNew
     endif
 #else
-    EPotDelta = EPotOld - EPotNew
+     EPotDelta = EPotOld - EPotNew
 #endif
 
     if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
@@ -7289,28 +7329,32 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
     else
+
       ! Reject move
       if (LongRange .eq. Ewald) then
           this%UFourier = EFourier
+
           DO i=1,pc%Molecule%NCharge
             this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
             this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
+
           pc%P0(np, :, nu) = r(:)
           pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
           call EwaldFourierEnergy(this,nc,np)
           !call Unit2Mol( pc, np ) not needed Michael Sch. (?)
+
 #if SPME > 0
       else if (LongRange .eq. PME) then
           this%UFourier = EFourier
           this%EVirial  = EVirial
-          call chargegrid_min(this, nc, np)
+          call chargegrid_min  (this, nc, np)
           pc%P0(np, :, nu) = r(:)
           pc%Pm0(np, :) = rm(:)
           call Unit2Atom1( pc, np, nu )
-          call chargegrid_plus(this, nc, np)
+          call chargegrid_plus (this, nc, np)
 #endif
       else
           pc%P0(np, :, nu) = r(:)
@@ -7369,11 +7413,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
+
 #if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7386,12 +7431,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
     pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
 
+
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
 #if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7405,6 +7451,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else
       EPotDelta = EPotOld - EPotNew
     endif
+
 #else
     EPotDelta = EPotOld - EPotNew
 #endif
@@ -7439,10 +7486,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min(this, nc, np)
+        call chargegrid_min  (this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus(this, nc, np)
+        call chargegrid_plus (this, nc, np)
 #endif
 
       else
@@ -7453,7 +7500,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_Rotate_NVE
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_Move_NPH                               !
 !==============================================================!
@@ -7504,7 +7551,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7531,7 +7578,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
     ! Calculate changes in the SPME grid
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7541,8 +7588,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
       call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+
     else
-      EPotDelta = EPotOld - EPotNew
+          EPotDelta = EPotOld - EPotNew
     endif
 #else
      EPotDelta = EPotOld - EPotNew
@@ -7552,7 +7600,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( exp(( real (this%NDF, RK) / 2._RK  - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
 
-      ! Accept move
+     ! Accept move
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
@@ -7560,34 +7608,34 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Reject move
       if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        DO i=1,pc%Molecule%NCharge
-          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-        END DO
+          this%UFourier = EFourier
 
-        pc%P0(np, :, nu) = r(:)
-        pc%Pm0(np, :) = rm(:)
-        call Unit2Atom1( pc, np, nu )
-        call EwaldFourierEnergy(this,nc,np)
+          DO i=1,pc%Molecule%NCharge
+            this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+          END DO
+
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
+          call EwaldFourierEnergy(this,nc,np)
 
 #if SPME > 0
       else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        call chargegrid_min(this, nc, np)
-        pc%P0(np, :, nu) = r(:)
-        pc%Pm0(np, :) = rm(:)
-        call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus(this, nc, np)
+          this%UFourier = EFourier
+          this%EVirial  = EVirial
+          call chargegrid_min  (this, nc, np)
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
+          call chargegrid_plus (this, nc, np)
 #endif
       else
-        pc%P0(np, :, nu) = r(:)
-        pc%Pm0(np, :) = rm(:)
-        call Unit2Atom1( pc, np, nu )
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
       end if
-
     end if
 
   end subroutine TEnsemble_Move_NPH
@@ -7641,7 +7689,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
       EVirial  = this%EVirial
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7653,12 +7701,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
     pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
 
+
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
 
 #if SPME > 0
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7681,7 +7730,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
 
-      ! Accept rotation
+     ! Accept rotation
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
@@ -7703,10 +7752,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
-        call chargegrid_min(this, nc, np)
+        call chargegrid_min  (this, nc, np)
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
-        call chargegrid_plus(this, nc, np)
+        call chargegrid_plus (this, nc, np)
 #endif
 
       else
@@ -7782,13 +7831,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
     ! Generate a trial displacement
     do i = 1, 3
-      pc%P0(np,i,nu) = pc%P0(np,i,nu) + rnd( -pc%DispTran, pc%DispTran )
+      pc%P0(np, i,nu) = pc%P0(np, i,nu) + rnd( -pc%DispTran, pc%DispTran )
     end do
 
     ! Calculate new COM
@@ -7814,7 +7863,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7874,6 +7923,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_MoveBiased
+
 
 
 !==============================================================!
@@ -7939,7 +7989,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       EFourier = this%UFourier
       EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
-      call chargegrid_min(this, nc, np)
+      call chargegrid_min  (this, nc, np)
 #endif
     end if
 
@@ -7948,10 +7998,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       dq(i) = rnd( -pc%DispRot, pc%DispRot )
     end do
     ! rotate unit 
-    pc%Q0(np,1,nu) = q(1) - dq(1)*q(2) - dq(2)*q(3) - dq(3)*q(4)
-    pc%Q0(np,2,nu) = q(2) + dq(1)*q(1) - dq(3)*q(3) + dq(2)*q(4)
-    pc%Q0(np,3,nu) = q(3) + dq(2)*q(1) + dq(3)*q(2) - dq(1)*q(4)
-    pc%Q0(np,4,nu) = q(4) + dq(3)*q(1) - dq(2)*q(2) + dq(1)*q(3)
+    pc%Q0(np, 1,nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2,nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
+    pc%Q0(np, 3,nu) = q(3) + dq(2) * q(1) + dq(3) * q(2) - dq(1) * q(4)
+    pc%Q0(np, 4,nu) = q(4) + dq(3) * q(1) - dq(2) * q(2) + dq(1) * q(3)
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -7959,7 +8009,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if SPME > 0
     ! Save Energies, Virials for faster Rejection
     if (LongRange .eq. PME) then
-      call chargegrid_plus(this, nc, np)
+      call chargegrid_plus (this, nc, np)
     end if
 #endif
 
@@ -7995,7 +8045,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
           this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
         END DO
-        pc%Q0(np,:,nu) = q(:)
+        pc%Q0(np, :,nu) = q(:)
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
 
@@ -8006,6 +8056,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
+
 #endif
       else
         pc%Q0(np,:,nu) = q(:)
@@ -8015,6 +8066,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_RotateBiased
+
 
 
 !==============================================================!
@@ -8143,73 +8195,72 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RemoveParticle( pcf, npf )
     npfnew = pcfnew%NPart
 
-    ! Save states for the Ewald Summation and/or derivates
+! Save states for the Ewald Summation and/or derivates
     if (LongRange .eq. Ewald) then     ! Ewald Summation
-      ! Save the initial state
-      EFourier = this%UFourier
-      EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
+       ! Save the initial state
+       EFourier = this%UFourier
+       EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
 
-      if ( this%OptPressure ) then
-        EVirial  = this%EVirial
-      end if
+       if ( this%OptPressure ) then
+         EVirial  = this%EVirial
+       end if
 
-      do i=1,pcf%Molecule%NCharge
-        this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
-        this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
-        this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
-      end do
+       do i=1,pcf%Molecule%NCharge
+         this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
+         this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
+         this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
+       end do
 
-      ! Calculate new energies
-      call EwaldSelfTerm_Energy(this)
+       ! Calculate new energies
+       call EwaldSelfTerm_Energy(this)
 
-      ! Convert unit coordinates to atom positions
-      call Unit2Atom1( pcfnew, npfnew )
+       ! Convert unit coordinates to atom positions
+       call Unit2Atom1( pcfnew, npfnew )
 
-      ! Calculate particle energy at new fluctuating state
-      call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
+       ! Calculate particle energy at new fluctuating state
+       call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
 
-      ! Acceptance Criteria
+       ! Acceptance Criteria
 #if MPI_VER > 0
-      if ( Equilibration .and. CommonEqui ) then
-        call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-        EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
-      else
-        EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
-        EPotDeltaAll = EPotOld - EPotNew
-      end if
+    if ( Equilibration .and. CommonEqui ) then
+       call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+       EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
+    else
+       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
+       EPotDeltaAll = EPotOld - EPotNew
+    end if
 
 #else
-      EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
-      EPotDeltaAll = EPotOld - EPotNew
+       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ )
+       EPotDeltaAll = EPotOld - EPotNew
 #endif
 
-      if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
-        ! Accept
-        pc%NFluctState = newstate
-        ncf = ncfnew
-        npf = npfnew
-        call UpdateEnergy( this, ncf, npf )
-        if( newstate > oldstate ) then
-          pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
-        else
-          pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
-        end if
+       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+         ! Accept
+         pc%NFluctState = newstate
+         ncf = ncfnew
+         npf = npfnew
+         call UpdateEnergy( this, ncf, npf )
+         if( newstate > oldstate ) then
+           pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
+         else
+           pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
+         end if
 
-      else
-        ! Reject
-        call DuplicateParticle( pcf, pcfnew, npf )
-        call RemoveParticle( pcfnew, npfnew )
-        call Unit2Atom1( pcf, npf )
+       else
+         ! Reject
+         call DuplicateParticle( pcf, pcfnew, npf )
+         call RemoveParticle( pcfnew, npfnew )
+         call Unit2Atom1( pcf, npf )
+         call EwaldSelfTerm_Energy(this)
+         do i=1,pcfnew%Molecule%NCharge
+           this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
+           this%rold(i,2) = pcfnew%Molecule%SiteCharge(i)%RY(npfnew)
+           this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
+         end do
+         call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
 
-        call EwaldSelfTerm_Energy(this)
-        do i=1,pcfnew%Molecule%NCharge
-          this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
-          this%rold(i,2) = pcfnew%Molecule%SiteCharge(i)%RY(npfnew)
-          this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
-        end do
-        call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
-
-      end if       ! Acceptance Criteria
+       end if       ! Acceptance Criteria
 
 #if SPME > 0
 ! ----------------------------------------------------------------
@@ -8222,55 +8273,55 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 ! ----------------------------------------------------------------
     else   ! REACTION FIELD
-      ! Convert unit coordinates to atom positions
-      call Unit2Atom1( pcfnew, npfnew )
+       ! Convert unit coordinates to atom positions
+       call Unit2Atom1( pcfnew, npfnew )
 
-      ! Calculate particle energy at new fluctuating state
-      call Energy( this, ncfnew, npfnew, EPotNew )
+       ! Calculate particle energy at new fluctuating state
+       call Energy( this, ncfnew, npfnew, EPotNew )
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
-      if ( Equilibration .and. CommonEqui ) then
-        call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-        EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
-&         + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
+    if ( Equilibration .and. CommonEqui ) then
+       call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+       EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
+&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
 
-      else
-        EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
-&         + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
+    else
+       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
+&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
 
-        EPotDeltaAll = EPotOld - EPotNew
-      end if
+       EPotDeltaAll = EPotOld - EPotNew
+    end if
 #else
-      EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
-&       + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
+       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrLJ - pcfnew%EPotTestCorrLJ ) &
+&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
 
-      EPotDeltaAll = EPotOld - EPotNew
+       EPotDeltaAll = EPotOld - EPotNew
 #endif
-      if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
+       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
 
-        ! Accept
-        pc%NFluctState = newstate
-        ncf = ncfnew
-        npf = npfnew
-        call UpdateEnergy( this, ncf, npf )
+         ! Accept
+         pc%NFluctState = newstate
+         ncf = ncfnew
+         npf = npfnew
+         call UpdateEnergy( this, ncf, npf )
 
-        if( newstate > oldstate ) then
-          pc%NFluctUpSuccesses(newstate) = pc%NFluctUpSuccesses(newstate)+1
-        else
-          pc%NFluctDownSuccesses(oldstate) = pc%NFluctDownSuccesses(oldstate)+1
-        end if
+         if( newstate > oldstate ) then
+           pc%NFluctUpSuccesses(newstate) = pc%NFluctUpSuccesses(newstate)+1
+         else
+           pc%NFluctDownSuccesses(oldstate) = pc%NFluctDownSuccesses(oldstate)+1
+         end if
 
         if ( newstate .eq. 0 ) call BiasedPartners ( this, ncf, npf )
 
-      else
+       else
 
-        ! Reject
-        call DuplicateParticle( pcf, pcfnew, npf )
-        call RemoveParticle( pcfnew, npfnew )
-        call Unit2Atom1( pcf, npf )
+         ! Reject
+         call DuplicateParticle( pcf, pcfnew, npf )
+         call RemoveParticle( pcfnew, npfnew )
+         call Unit2Atom1( pcf, npf )
 
-      end if
+       end if
 
     end if      ! LongRange - Correction
 
@@ -8280,9 +8331,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 !  Subroutine TEnsemble_ScaleInteractionThermoInt              !
 !==============================================================!
 
-  subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
+subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
 
-    implicit none
+   implicit none
 
     ! Declare arguments
     type(TEnsemble)        :: this
@@ -8290,163 +8341,163 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK), intent(in)   :: factor
 
     ! Declare local variables
-    integer                    :: i!, k, l
+    integer                 :: i!, k, l
     !real(RK)                   :: Shield1, Shield2
 
     do i = 1, this%NComponents
       if (nt == i) cycle
 
       if( associated(this%Interaction(nt, i)%PotLJ126LJ126)) then
-        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
-        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
-        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
-        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon          = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon * Factor
-        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4         = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
-        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48        = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon      = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon * Factor
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4     = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+        this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48    = this%Interaction(nt, i)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon      = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4     = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon4 * Factor
+        this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48    = this%Interaction(i, nt)%PotLJ126LJ126(:, :)%Epsilon48 * Factor
       endif
       if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
-        this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
-        this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Charge
-  !               Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Charge
-  !                 Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-  !                 this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !                 this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-  !               enddo
-  !             enddo
+        this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
-        this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
-        this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Charge
-  !               Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Dipole
-  !                 Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-  !                 this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Dipole
-  !               Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Charge
-  !                 Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-  !                 this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Dipole
+        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Charge
+        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
-      if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then           
+      if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then       
         this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Charge
-  !               Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Quadrupole
-  !                 Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-  !                 this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Quadrupole
-  !               Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Charge
-  !                 Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-  !                 this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        !do k=1,this%Interaction(nt,i)%N1Charge
+        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Quadrupole
+        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Charge
+        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
-        this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
-        this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Dipole
-  !               Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Charge
-  !                 Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-  !                 this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Charge
-  !               Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Dipole
-  !                 Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-  !                 this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Charge
+        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Dipole
+        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleDipole)) then
-        this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
-        this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon        = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Dipole
-  !               Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Dipole
-  !                 Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-  !                 this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !                 this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-  !               enddo
-  !             enddo
+        this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
         this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Dipole
-  !               Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Quadrupole
-  !                 Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-  !                 this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Quadrupole
-  !               Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Dipole
-  !                 Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-  !                 this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        !do k=1,this%Interaction(nt,i)%N1Dipole
+        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Quadrupole
+        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Dipole
+        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
         this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Quadrupole
-  !               Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Charge
-  !                 Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-  !                 this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Charge
-  !               Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Quadrupole
-  !                 Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-  !                 this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Charge
+        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Charge
+        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
+        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
         this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Quadrupole
-  !               Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Dipole
-  !                 Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-  !                 this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !               enddo
-  !             enddo
-  !             do k=1,this%Interaction(i,nt)%N1Dipole
-  !               Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-  !               do l=1,this%Interaction(i,nt)%N2Quadrupole
-  !                 Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-  !                 this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-  !               enddo
-  !             enddo
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Dipole
+        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !  enddo
+        !enddo
+        !do k=1,this%Interaction(i,nt)%N1Dipole
+        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
+        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
+        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
+        !  enddo
+        !enddo
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleQuadrupole)) then
         this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
-  !             do k=1,this%Interaction(nt,i)%N1Quadrupole
-  !               Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-  !               do l=1,this%Interaction(nt,i)%N2Quadrupole
-  !                 Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-  !                 this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-  !                 this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-  !               enddo
-  !             enddo
+        !do k=1,this%Interaction(nt,i)%N1Quadrupole
+        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
+        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
+        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
+        !    this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
+        !    this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
+        !  enddo
+        !enddo
       endif
     end do
     if( associated(this%Component(nt)%MueX)) then
@@ -8454,8 +8505,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%Component(nt)%Molecule%Unit(i)%Mue(:) = this%Component(nt)%Molecule%Unit(i)%Mue(:) * Factor
       end do
     endif
-  
-  end subroutine TEnsemble_ScaleInteractionThermoInt
+
+end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
 !==============================================================!
@@ -8489,7 +8540,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     pc => this%Component(nc)
 
     ! Get old energy of fluctuating particle
-    if (SimulationType .ne. MolecularDynamics ) then ! Michael Sch.: MC+TI gets core dump, runs completly though....problem?
+    if (SimulationType .ne. MolecularDynamics) then ! Michael Sch.: MC+TI gets core dump, runs completly though....problem?
       if ( Step .gt. pc%changeLaPart .and. nint(pt%Lambda/pc%deltaLa) .ge. pt%NBins) then
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
@@ -8563,6 +8614,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call MPI_Bcast( pt%Lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) ! Michael Sch.: unneeded !
 #endif
       call ScaleInteractionThermoInt(this, nt, Factor)
+
       call Unit2Atom1( pt, 1 )
       !call Unit2Atom( this )
 
@@ -8649,7 +8701,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Energy ( this, nc, np, EPotIns, 1 )
 
 #if MPI_VER > 0
-        if (Equilibration .and. CommonEqui) then
+        if ( Equilibration .and. CommonEqui ) then
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
           call MPI_Allreduce( EPotIns, EPotInsAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
           EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrLJ + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
@@ -8657,7 +8709,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         else
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrLJ + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif 
-    
+   
         if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) * this%Volume0 / np )) then
 #else
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrLJ + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
@@ -8690,7 +8742,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else if (LongRange .eq. PME) then           ! PME-SUMMATION
         EVirial  = this%EVirial
         this%qgrida_old = this%qgrida
-        call chargegrid_plus(this, nc, np)
+        call chargegrid_plus (this, nc, np)
         call PMESelfTermMC( this )
         write (*,*) 'Insertion and Deletion is not supported for PME!'
         STOP
@@ -8699,7 +8751,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else                                         ! REACTION FIELD
         ! Calculate particle energy at trial position
         if (SimulationType .eq. MonteCarlo) then
-          call Energy ( this, nc, np, EPotIns )
+          call Energy( this, nc, np, EPotIns )
         else
           E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; FIns(:,:) = 0._RK;
           do j = 1, this%NComponents
@@ -8846,6 +8898,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     logical                     :: success
     integer                     :: i, k, n1, n2, nu, nup
     real(RK)                    :: E, EIntra, EBond, EAngle, EDihedral
+
 ! Ewald Parameter
     real(RK)                    :: EFourier, DensityCorr
     !real(RK)                    :: EVirial, EVirialIntra
@@ -9063,6 +9116,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_Delete
 
 
+
 !==============================================================!
 !  Subroutine TEnsemble_Move2End                               !
 !==============================================================!
@@ -9144,7 +9198,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Zero diagonal elements
     do i=1,nu
       this%Interaction(nc, nc)%EPot(nu1+i, nu1+i) = 0._RK
-      if (this%OptPressure) then
+      if ( this%OptPressure ) then
         this%Interaction(nc, nc)%Virial(nu1+i, nu1+i) = 0._RK
       end if
     end do
@@ -9153,6 +9207,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     np = n1
 
   end subroutine TEnsemble_Move2End
+
 
 
 !==============================================================!
@@ -9193,17 +9248,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     EPotOld = this%EPot
     BoxLengthOld = this%BoxLength
     if (LongRange .eq. Ewald) then
-      UFourier= this%UFourier
-      if ( this%OptPressure ) then
-        EVirial = this%EVirial
-      end if
+       UFourier= this%UFourier
+       if ( this%OptPressure ) then
+         EVirial = this%EVirial
+       end if
 
 #if SPME > 0
     else if (LongRange .eq. PME) then
-      UFourier = this%UFourier
-      UIntra = this%UIntra
-      EVirial = this%EVirial
-      EVirialIntra = this%EVirialIntra
+       UFourier = this%UFourier
+       UIntra = this%UIntra
+       EVirial = this%EVirial
+       EVirialIntra = this%EVirialIntra
 #endif
     end if
 
@@ -9223,18 +9278,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Allreduce( EPotNew, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
     else
-      call Energy( this, this%EPot )
+     call Energy( this, this%EPot )
     endif
 #else
     call Energy( this, this%EPot )
 #endif
 
     ! Find potential change
-    if( EnsembleType .eq. EnsembleTypeNPH ) then ! for NPH
-      if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
+	
+	if( EnsembleType .eq. EnsembleTypeNPH ) then ! for NPH
+	  if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + this%NPart * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
 
-        ! Accept volume change
+	    ! Accept volume change
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
         call UpdateEnergy( this )
@@ -9288,8 +9344,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             this%VirialInter = this%Virial - this%VirialIntra
           end if
 #endif
-
-      else
+	  else
         ! Reject volume change
         this%Volume0 = VolumeOld
         call UpdateBoxLength( this )
@@ -9334,6 +9389,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
               this%VirialInter = this%Virial - this%VirialIntra
             end if
           end if
+
 #else
           this%EPot = GetEnergy(this)
           this%EPotIntra   = GetEnergyIntra( this )
@@ -9358,15 +9414,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%EVirialIntra = EVirialIntra
           this%UFourier = UFourier
           this%EVirial = EVirial
-          call charge_grid_MCall( this )
+          call charge_grid_MCall ( this )
 #endif
         end if
       end if
-        
-    else ! potential change for NPT
-
+	
+	else ! potential change for NPT
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
-&                 + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 ) ! changed from this%NUnitTotal, Michael Sch.
+&     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 ) ! changed from this%NUnitTotal, Michael Sch.
 
       accepted = EPotDelta < 0._RK
       if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
@@ -9375,6 +9430,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! Accept volume change
         this%NResizeSuccesses = this%NResizeSuccesses + 1
+
         ! Update energy and virial matrices
         call UpdateEnergy( this )
 
@@ -9474,6 +9530,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
               this%VirialInter = this%Virial - this%VirialIntra
             end if
           end if
+
 #else
           this%EPot = GetEnergy(this)
           this%EPotIntra   = GetEnergyIntra( this )
@@ -9498,15 +9555,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           this%UIntra = UIntra
           this%EVirial = EVirial
           this%EVirialIntra = EVirialIntra
-          call charge_grid_MCall( this )
+          call charge_grid_MCall ( this )
 #endif
         end if
-
       end if
-
     end if
 
   end subroutine TEnsemble_Resize
+
 
 
 !==============================================================!
@@ -9619,7 +9675,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if SPME > 0
       else if (LongRange .eq. PME) then
-        call charge_grid_MCall( this )
+        call charge_grid_MCall ( this )
 #endif
       end if
     end if
@@ -9733,7 +9789,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
          this%UIntra = UIntra
          this%EVirial = EVirial
          this%EVirialIntra = EVirialIntra
-         call charge_grid_MCall( this )
+         call charge_grid_MCall ( this )
 #endif
       end if
 
@@ -9845,11 +9901,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
       this%qgrida_old = this%qgrida
-      call chargegrid_min( this, nc,np )
+      call chargegrid_min ( this, nc,np )
       this%NPart = this%NPart - 1
       this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart - 1
-      call PMESelfTermMC( this )
+      call PMESelfTermMC ( this )
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
@@ -10146,6 +10202,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Update rotational displacement
         if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotUppLimit )) then
           pc%DispRot = pc%DispRot * 1.05_RK
+
         else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispMolRotLowLimit )) then
           pc%DispRot = pc%DispRot * 0.95_RK
         end if
@@ -10183,7 +10240,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc%DispMolRot = pc%DispMolRot * 0.95_RK
         end if
       end if
-
     end do
 
     if( ConstantPressure .and. .not. NVTEquilibration ) then
@@ -10464,10 +10520,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileAppend( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
 #endif
-
 #if TRANS ==1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
+
 #endif
 
     else
@@ -10482,7 +10538,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-      else
+     else
         ! Open result file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -10493,8 +10549,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-      endif
+     endif
 #else
+
       ! Open result file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -10506,7 +10563,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
 #endif
-
 #if  TRANS == 1
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -10519,6 +10575,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_ResultOpen
 
 
+
 !==============================================================!
 !  Subroutine TEnsemble_ResultUpdate                           !
 !==============================================================!
@@ -10529,9 +10586,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if MPI_VER > 0
   include 'mpif.h'
-    integer                       :: fields = 0
-    integer                       :: accumulate_step = 0
-    integer                       :: headers = 0
+    integer         :: fields = 0
+    integer         :: accumulate_step = 0
+    integer         :: headers = 0
     integer(kind=MPI_OFFSET_KIND) :: offset = 0 
     integer                       :: ierr
 #endif
@@ -10541,7 +10598,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i, j, t, err, currentbin
+    integer                   :: i,j,t,err,currentbin
     real(RK)                  :: value, currentdEpotdV, currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3
@@ -10666,8 +10723,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
       endif
-      if (LongRange .eq. Rfield) then
-        if (EnsembleType .eq. EnsembleTypeNVT) then 
+      if( LongRange .eq. Rfield) then
+        if ( EnsembleType .eq. EnsembleTypeNVT ) then
           call Reset( this%SumA10resI )
           call Reset( this%SumA01resI )
           call Reset( this%SumA20resI )
@@ -10676,7 +10733,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Reset( this%SumA30resI )
           call Reset( this%SumA21resI )
           call Reset( this%SumA12resI )
-        elseif (EnsembleType .eq. EnsembleTypeNVE) then
+        elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
           call Reset( this%SumA10resI )
           call Reset( this%SumA01resI )
           call Reset( this%SumA20resI )
@@ -10726,56 +10783,55 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Update result header
       if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-        fields = 0
-        headers = headers + 1
-        fields = fields + 7
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-            fields = fields + 1
-            if ( EnsembleType .eq. EnsembleTypeNPT) then
-              fields = fields + 1
-              if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) fields = fields + 1
-            endif
-          endif
-        enddo
-        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
+         fields = 0
+         headers = headers + 1
+         fields = fields + 7
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then 
+             fields = fields + 1
+             if( EnsembleType .eq. EnsembleTypeNPT) then 
+               fields = fields + 1
+               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) fields = fields + 1
+             end if
+           end if
+         enddo
+         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
 
-        if (RootProc) then
-          if (CommonEqui) then
-            offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
-          else
-            offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
-          endif
-          call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-          call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+         if (RootProc) then
+           if (CommonEqui) then
+             offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
+           else
+             offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
+           endif
+           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
+           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! PROC
+           write( IOBuffer, '("       PROC")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-          write( IOBuffer, '(A)' )new_line('a')
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-          ! PROC
-          write( IOBuffer, '("       PROC")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Number of steps
+           write( IOBuffer, '("         NR")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-          ! Number of steps
-          write( IOBuffer, '("         NR")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-          ! Pressure
-          write( IOBuffer, '("      PRESS")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-          ! Density
-          write( IOBuffer, '("    DENSITY")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-          ! Temperature
-          write( IOBuffer, '("       TEMP")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Pressure
+           write( IOBuffer, '("      PRESS")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+           ! Density
+           write( IOBuffer, '("    DENSITY")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+           ! Temperature
+           write( IOBuffer, '("       TEMP")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
 #if OSMOP > 0
            ! OsmoticPressure
@@ -10784,15 +10840,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
            call FileWriteNoAdvance( this%iounit_runave )
 #endif
 
-          ! Potential energy
-          write( IOBuffer, '("         EPOT")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Potential energy
+           write( IOBuffer, '("         EPOT")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-          ! Enthalpy
-          write( IOBuffer, '("        ENTLP")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Enthalpy
+           write( IOBuffer, '("        ENTLP")' )
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
           if (printIDF) then
             ! Inter Potential energy
@@ -10836,44 +10892,44 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             call FileWriteNoAdvance_parallel( this%iounit_runave )
           end if
 
-          ! Chemical potential
-          do i = 1, this%NRealComponents
-            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-              if( i < 10 ) then
-                write( IOBuffer, '("      MUE_", I1)' ) i
-              else
-                write( IOBuffer, '("     MUE_", I2)' ) i
-              end if
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end if
-          end do
+           ! Chemical potential
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("      MUE_", I1)' ) i
+               else
+                 write( IOBuffer, '("     MUE_", I2)' ) i
+               end if
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+             end if
+           end do
 
-          ! Partial molar volume
-          do i = 1, this%NRealComponents
-            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
-              if( i < 10 ) then
-                write( IOBuffer, '("       VW_", I1)' ) i
-              else
-                write( IOBuffer, '("      VW_", I2)' ) i
-              end if
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end if
-          end do
+           ! Partial molar volume
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("       VW_", I1)' ) i
+               else
+                 write( IOBuffer, '("      VW_", I2)' ) i
+               end if
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+             end if
+           end do
 
-          ! Partial molar enthalpy
-          do i = 1, this%NRealComponents
-            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
-              if( i < 10 ) then
-                write( IOBuffer, '("       HM_", I1)' ) i
-              else
-                write( IOBuffer, '("      HM_", I2)' ) i
-              end if
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end if
-          end do
+           ! Partial molar enthalpy
+           do i = 1, this%NRealComponents
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT ) then
+               if( i < 10 ) then
+                 write( IOBuffer, '("       HM_", I1)' ) i
+               else
+                 write( IOBuffer, '("      HM_", I2)' ) i
+               end if
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+             end if
+           end do
 
 #if HBOND > 0
         do i = 1, this%NComponents
@@ -10964,60 +11020,60 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 #endif
 
-          ! Number of particles in ensemble
-          if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-            write( IOBuffer, '("      NPART")' )
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+           ! Number of particles in ensemble
+           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+             write( IOBuffer, '("      NPART")' )
+             call FileWriteNoAdvance_parallel( this%iounit_result )
+             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-            ! Mole fraction of each component
-            do i = 1, this%NComponents
-              if( i < 10 ) then
-                write( IOBuffer, '("    FRACT_", I1)' ) i
-              else
-                write( IOBuffer, '("   FRACT_", I2)' ) i
-              end if
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end do
-          end if
+             ! Mole fraction of each component
+             do i = 1, this%NComponents
+               if( i < 10 ) then
+                 write( IOBuffer, '("    FRACT_", I1)' ) i
+               else
+                 write( IOBuffer, '("   FRACT_", I2)' ) i
+               end if
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+             end do
+           end if
 
-          write( IOBuffer, '(A)' )new_line('a')
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        endif ! MC-MPI - RootProc ... now MC noMPI (results)
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+         endif ! MC-MPI - RootProc ... now MC noMPI (results)
 #else
-        call FileWriteBlank( this%iounit_result )
-        call FileWriteBlank( this%iounit_runave )
-        ! Number of steps
-        write( IOBuffer, '("     NR")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         call FileWriteBlank( this%iounit_result )
+         call FileWriteBlank( this%iounit_runave )
+         ! Number of steps
+         write( IOBuffer, '("     NR")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-        write( IOBuffer, '("      PRESS")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         ! Pressure
+         write( IOBuffer, '("      PRESS")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Density
-        write( IOBuffer, '("    DENSITY")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         ! Density
+         write( IOBuffer, '("    DENSITY")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Temperature
-        write( IOBuffer, '("       TEMP")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         ! Temperature
+         write( IOBuffer, '("       TEMP")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Potential energy
-        write( IOBuffer, '("         EPOT")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         ! Potential energy
+         write( IOBuffer, '("         EPOT")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Enthalpy
-        write( IOBuffer, '("        ENTLP")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         ! Enthalpy
+         write( IOBuffer, '("        ENTLP")' )
+         call FileWriteNoAdvance( this%iounit_result )
+         call FileWriteNoAdvance( this%iounit_runave )
 
         if (printIDF) then
           ! Inter Potential energy
@@ -11061,62 +11117,62 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWriteNoAdvance( this%iounit_runave )
         end if
 
-        ! Chemical potential
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-            if( i < 10 ) then
-              write( IOBuffer, '("      MUE_", I1)' ) i
-            else
-              write( IOBuffer, '("     MUE_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
+         ! Chemical potential
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+             if( i < 10 ) then
+               write( IOBuffer, '("      MUE_", I1)' ) i
+             else
+               write( IOBuffer, '("     MUE_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
 
-        ! Partial molar volume
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            if( i < 10 ) then
-              write( IOBuffer, '("       VW_", I1)' ) i
-            else
-              write( IOBuffer, '("      VW_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
+         ! Partial molar volume
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+             if( i < 10 ) then
+               write( IOBuffer, '("       VW_", I1)' ) i
+             else
+               write( IOBuffer, '("      VW_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
 
-        ! Partial molar enthalpy
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            if( i < 10 ) then
-              write( IOBuffer, '("       HM_", I1)' ) i
-            else
-              write( IOBuffer, '("      HM_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
+         ! Partial molar enthalpy
+         do i = 1, this%NRealComponents
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+             if( i < 10 ) then
+               write( IOBuffer, '("       HM_", I1)' ) i
+             else
+               write( IOBuffer, '("      HM_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end if
+         end do
 
-        ! Number of particles in ensemble
-        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-          write( IOBuffer, '("      NPART")' )
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
+         ! Number of particles in ensemble
+         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+           write( IOBuffer, '("      NPART")' )
+           call FileWriteNoAdvance( this%iounit_result )
+           call FileWriteNoAdvance( this%iounit_runave )
 
-          ! Mole fraction of each component
-          do i = 1, this%NComponents
-            if( i < 10 ) then
-              write( IOBuffer, '("    FRACT_", I1)' ) i
-            else
-              write( IOBuffer, '("   FRACT_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end if
+           ! Mole fraction of each component
+           do i = 1, this%NComponents
+             if( i < 10 ) then
+               write( IOBuffer, '("    FRACT_", I1)' ) i
+             else
+               write( IOBuffer, '("   FRACT_", I2)' ) i
+             end if
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+           end do
+         end if
 
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
@@ -11124,15 +11180,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       else ! MD results
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
-
         ! Number of steps
         write( IOBuffer, '("     NR")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Displacement
-        write( IOBuffer, '("     DISP")' )
-        call FileWriteNoAdvance( this%iounit_runave )
+          write( IOBuffer, '("     DISP")' )
+          call FileWriteNoAdvance( this%iounit_runave )
 
         ! Pressure
         write( IOBuffer, '("      PRESS")' )
@@ -11261,8 +11316,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
       end if
-
-    end if
+    endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END IF of step ==1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -11388,11 +11442,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( ConstantPressure ) then  ! MichaelGE: fix Enthalpy
        call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                this%RefPressure / this%Density)**2 )
+   
        call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
 &                this%RefPressure / this%Density ) / this%Density )
     else
        call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                this%Pressure / this%Density )**2 )
+   
        call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
 &                this%Pressure / this%Density  ) / this%Density )
     end if
@@ -11417,9 +11473,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     else
 
-      call Update( this%SumdUdV,  (this%NPart / this%RefTemperature &
+      call Update( this%SumdUdV, (this%NPart / this%RefTemperature &
 &                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
 &                + this%SumVirial%Average ) / 3._RK / this%Volume0 )
+
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
     endif
@@ -11473,15 +11530,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       rho2        = rho*rho
       !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because it deteriorates the results considerably.
       !if( SimulationType .eq. MolecularDynamics ) then 
-      !  F = (real(this%NDF-this%constrNDF, RK)- 3._RK)/2._RK
+      ! F = (real(this%NDF-this%constrNDF, RK)- 3._RK)/2._RK
       !else
-        F = real(this%NDF-this%constrNDF, RK)/2._RK
+       F = real(this%NDF-this%constrNDF, RK)/2._RK
       !endif
       invF        = 2._RK/real(this%NDF-this%constrNDF, RK)
       dUdV        = this%SumdEpotdV%Average
       dUdV2       = this%SumdEpotdVSquared%Average
       d2UdV2      = this%Sumd2EpotdV2%Average
-       HmU         =this%SumHmU%Average
+      HmU         =this%SumHmU%Average
       HmUm1       =this%SumHmUm1%Average
       HmUm2       =this%SumHmUm2%Average
       HmUm3       =this%SumHmUm3%Average
@@ -11612,7 +11669,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if(mod((Step-1),this%NStepCorr) .eq. 0) then ! Michael Sch.: this if needed?
+    if( mod((Step-1),this%NStepCorr) .eq. 0 ) then ! Michael Sch.: this if needed?
 
       if( mod( (Step-1)/this%NStepCorr-this%NCorr+1, BlockSizeCF*this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
 
@@ -11626,7 +11683,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end if
           do i = 1, this%NComponents
             do j = 1, this%NComponents
-              call Update( this%SumOnsager(i,j), this%Onsager(i,j), this%Mmess )
+              call Update( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess )
             end do
           end do
         end if
@@ -11634,7 +11691,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Update( this%SumVisco_s, this%visco_s, this%Mmess )
         call Update( this%SumVisco_b, this%visco_b, this%Mmess )
         call Update( this%SumConduct, this%conduct, this%Mmess )
-        call Update( this%SumEConduct,this%econduct,this%Mmess )
+        call Update( this%SumEConduct, this%econduct, this%Mmess )
       end if
     end if
 !TRANSPORT_END
@@ -11665,17 +11722,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           if (.not. Equilibration .and. mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ) then
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
+
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
-            pc%BinsEn(currentbin)     = (                  pc%currentBinsEn                          + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
-            pc%BinsdEndLa(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+            pc%BinsEn(currentbin)     =  (                  pc%currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+            pc%BinsdEndLa(currentbin) =  (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda              + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
             pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
-            pc%BinsdEndLaH(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
+            pc%BinsdEndLaH(currentbin)=(pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH     + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
             !if ( RootProc .and. mod(Step,250)==0 ) write(*,*) this%Component(t)%Lambda, pc%currentBinsEn      ! Michael Sch.: für Minh
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa
             pc%BinsIntHW(0)=(pc%BinsdEndLaH(0)-pc%BinsdEndLa(0)*this%SumConfEnthalpy%Average+pc%BinsdEndLa(0)/this%RefTemperature)*pc%deltaLa
-
             do j = 1, pc%NBins-1
               pc%BinsIntdEndLa(j)=pc%BinsIntdEndLa(j-1)+pc%BinsdEndLa(j)*pc%deltaLa
               pc%BinsIntVW(j)=pc%BinsIntVW(j-1)+(pc%BinsdEndLaV(j)-pc%BinsdEndLa(j)*this%SumVolume%Average)*pc%deltaLa
@@ -11683,7 +11740,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             end do
           end if
 
-            call Update( pc%SumChemPotThermoIntWidom, pc%ExpMinusBetaEnLaMin/this%Density)
+            call Update( pc%SumChemPotThermoIntWidom,  pc%ExpMinusBetaEnLaMin/this%Density)
             call Update( pc%SumChemPotThermoIntWidomV, pc%ExpMinusBetaEnLaMin/this%Density/this%Density)
             call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/(pc%Fraction+1._RK/real( this%NPart, RK ))))
             call Update(pc%SumHW_counter, pc%HW_counter)
@@ -11700,10 +11757,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           case( ChemPotMethodGradIns )
 
 #if MPI_VER > 0
-            ! Per Process we calculate GI only for one component 
-            if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle 
+          ! Per Process we calculate GI only for one component 
+          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle 
 #endif
-            call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
+          call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
             call Update( pc%SumHM, 0._RK )
 
@@ -11711,62 +11768,61 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
 &                      - this%SumVolume%Average ) )
             call Update( pc%SumHM, pc%SumHW_counter%Average / pc%SumHW_denom%Average &
-&                      - this%SumConfEnthalpy%Average * this%NPart - this%RefTemperature )
+&                      - this%SumConfEnthalpy%Average * this%NPart  - this%RefTemperature )
 
           case( ChemPotMethodThermoInt )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotThermoIntWidomV%Average / pc%SumChemPotThermoIntWidom%Average &
-&                                  - this%SumVolume%Average - pc%BinsIntVW(pc%NBins-1)/this%RefTemperature) )
+&                      - this%SumVolume%Average - pc%BinsIntVW(pc%NBins-1)/this%RefTemperature) )
             call Update( pc%SumHM, pc%BinsIntHW(pc%NBins-1)/this%RefTemperature + pc%SumHW_counter%Average / pc%SumHW_denom%Average &
-&                                  - this%SumConfEnthalpy%Average*this%NPart  - this%RefTemperature)
+&                      - this%SumConfEnthalpy%Average*this%NPart  - this%RefTemperature)
 
           end select
         end if
       end do
 
     ! Update result files
-   if( mod( Step, BlockSize ) == 0 ) then
-
-    if(SimulationType .eq. MonteCarlo) then
+    if( mod( Step, BlockSize ) == 0 ) then
+      if(SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-      if (Equilibration) then
-        if(CommonEqui) then
-          offset = (accumulate_step/BlockSize+headers) * (11 * fields + 1) + headers
-          call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-          call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
-          if (RootProc) then
-            ! PROC
-            write( IOBuffer, '(I11)' ) NProc
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+        if (Equilibration) then
+          if(CommonEqui) then
+            offset = (accumulate_step/BlockSize+headers) * (11 * fields + 1) + headers
+            call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
+            call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+            if (RootProc) then
+              ! PROC
+              write( IOBuffer, '(I11)' ) NProc
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
       
-            ! Number of steps
-            write( IOBuffer, '(I11)' ) Step
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      if ( this%OptPressure ) then
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      else
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
- 
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
+              ! Number of steps
+              write( IOBuffer, '(I11)' ) Step
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+              if ( this%OptPressure ) then
+                write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+              else
+                write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+              end if
+      
+              ! Density
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+              ! Temperature
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
 
 #if OSMOP > 0
         ! OsmoticPressure
@@ -11776,18 +11832,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_runave )
 #endif
 
-      ! Potential energy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! Enthalpy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+              ! Potential energy
+              write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+              ! Enthalpy
+              write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
       if (printIDF) then
         ! EPotInter
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
@@ -11837,36 +11893,37 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
- 
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          write( IOBuffer, '(" ",F10.5)' ) 0._RK
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
 
-      ! Partial molar volume
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
-
-      ! Partial molar enthalphy
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
+              ! Chemical potential
+              do i = 1, this%NRealComponents
+                pc => this%Component(i)
+                if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+                    write( IOBuffer, '(" ",F10.5)' ) 0._RK
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                end if
+              end do
+      
+            ! Partial molar volume
+              do i = 1, this%NRealComponents
+                pc => this%Component(i)
+                if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+                    write( IOBuffer, '(" ",F10.4)' ) 0._RK
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+                end if
+              end do
+      
+             ! Partial molar enthalphy 
+              do i = 1, this%NRealComponents
+                pc => this%Component(i)
+                if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+                    write( IOBuffer, '(" ",F10.4)' ) 0._RK
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                end if
+              end do
 
 #if HBOND > 0
         do i = 1, this%NComponents
@@ -11959,27 +12016,28 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #endif
 #endif
 
-      ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end do
-      end if
-
-            write( IOBuffer, '(A)' )new_line('a')
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-          endif ! PROC
-        else ! noCommonEqui
+            ! Number of particles in ensemble
+              if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+                write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+        
+                ! Mole fraction of each component
+                do i = 1, this%NComponents
+                  pc => this%Component(i)
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                end do
+              end if
+        
+              write( IOBuffer, '(A)' )new_line('a')
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            endif ! PROC
+          else ! noCommonEqui
             offset = (NProc  + ((accumulate_step/BlockSize)) * NProcs +headers) * (11 * fields + 1) + headers
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
@@ -11992,42 +12050,42 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             write( IOBuffer, '(I11)' ) ((Step/BlockSize) - 1) * (BlockSize * NProcs)  + (NProc + 1) * BlockSize
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
+    
+            if ( this%OptPressure ) then
+              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end if
+    
+            ! Density
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+    
+            ! Temperature
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      if ( this%OptPressure ) then
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      else
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
- 
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-      ! Potential energy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-      ! Enthalpy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
+            ! Potential energy
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+    
+            ! Enthalpy
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
       if (printIDF) then
         ! EPotInter
@@ -12078,59 +12136,60 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
- 
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          write( IOBuffer, '(" ",F10.5)' ) 0._RK
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
+    
+            ! Chemical potential
+            do i = 1, this%NRealComponents
+              pc => this%Component(i)
+              if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then          
+                  write( IOBuffer, '(" ",F10.5)' ) 0._RK
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  end if
+            end do
+    
+          ! Partial molar volume
+            do i = 1, this%NRealComponents
+              pc => this%Component(i)
+              if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+                  write( IOBuffer, '(" ",F10.4)' ) 0._RK
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+              end if
+            end do
+    
+            ! Partial molar enthalphy
+            do i = 1, this%NRealComponents
+              pc => this%Component(i)
+              if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
+                  write( IOBuffer, '(" ",F10.4)' ) 0._RK
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+              end if
+            end do
 
-      ! Partial molar volume
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
-
-      ! Partial molar enthalphy
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
-
-      ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end do
-      end if
-  
-          write( IOBuffer, '(A)' )new_line('a')
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        endif
-        accumulate_step = accumulate_step + BlockSize
-      else ! noEqui (MC) aka production starts
+          ! Number of particles in ensemble
+            if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+              write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+      
+              ! Mole fraction of each component
+              do i = 1, this%NComponents
+                pc => this%Component(i)
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+              end do
+            end if
+      
+             write( IOBuffer, '(A)' )new_line('a')
+             call FileWriteNoAdvance_parallel( this%iounit_result )
+             call FileWriteNoAdvance_parallel( this%iounit_runave )
+          endif
+          accumulate_step = accumulate_step + BlockSize
+        else ! noEqui (MC) aka production starts
           if (CommonEqui) then
             offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers 
           else
@@ -12147,42 +12206,42 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(I11)' ) ((Step/BlockSize) - 1) * (BlockSize * NProcs)  + (NProc + 1) * BlockSize
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-          
-      if ( this%OptPressure ) then
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      else
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
- 
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
- 
-      ! Potential energy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
+  
+          if ( this%OptPressure ) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+          else
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+          end if
+  
+          ! Density
+          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
+  
+          ! Temperature
+          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-      ! Enthalpy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance_parallel( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance_parallel( this%iounit_runave )
+          ! Potential energy
+          write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
+  
+          ! Enthalpy
+          write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+          call FileWriteNoAdvance_parallel( this%iounit_result )
+          write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+          call FileWriteNoAdvance_parallel( this%iounit_runave )
 
       if (printIDF) then
         ! EPotInter
@@ -12233,136 +12292,355 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
-
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( pc%NPart > 1 ) then
-            select case( pc%ChemPotMethod )
-            case( ChemPotMethodGradIns )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            case( ChemPotMethodWidom )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            case( ChemPotMethodThermoInt )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end select
-          else
-            select case( pc%ChemPotMethod )
-            case( ChemPotMethodGradIns )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            case( ChemPotMethodWidom )
-              write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            case( ChemPotMethodThermoInt )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-            end select
-          end if
-        end if
-      end do
-
-      ! Partial molar volume
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
-
-      ! Partial molar enthalphy
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )     
-          write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end if
-      end do
-
-      ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-        end do
-      end if
   
-        write( IOBuffer, '(A)' )new_line('a')
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      endif
+          ! Chemical potential 
+          do i = 1, this%NRealComponents
+            pc => this%Component(i)
+            if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+                if( pc%NPart > 1 ) then
+                  select case( pc%ChemPotMethod )
+  
+                  case( ChemPotMethodGradIns )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  case( ChemPotMethodWidom )
+                    write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                  case( ChemPotMethodThermoInt )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  end select
+  
+                else
+                  select case( pc%ChemPotMethod )
+  
+                  case( ChemPotMethodGradIns )
+                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+  
+                  case( ChemPotMethodWidom )
+                    write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                  case( ChemPotMethodThermoInt )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                    call FileWriteNoAdvance_parallel( this%iounit_result )
+                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  end select
+                end if
+            end if
+          end do
+  
+        ! Partial molar volume
+          do i = 1, this%NRealComponents
+            pc => this%Component(i)
+            if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end if
+          end do
+  
+          ! Partial molar enthalphy
+          do i = 1, this%NRealComponents
+            pc => this%Component(i)
+            if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )     
+                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end if
+          end do
+
+        ! Number of particles in ensemble
+          if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+    
+            ! Mole fraction of each component
+            do i = 1, this%NComponents
+              pc => this%Component(i)
+              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            end do
+          end if
+    
+           write( IOBuffer, '(A)' )new_line('a')
+           call FileWriteNoAdvance_parallel( this%iounit_result )
+           call FileWriteNoAdvance_parallel( this%iounit_runave )
+         endif
 #else
 !MPI==0
-      ! Number of steps
-      write( IOBuffer, '(I9)' ) Step
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
+        ! Number of steps
+        write( IOBuffer, '(I9)' ) Step
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
 
       ! Pressure
-      if ( this%OptPressure ) then
+        if ( this%OptPressure ) then
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        else
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
+
+        ! Density
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Temperature
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Potential energy
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+      if (printIDF) then
+        ! EPotInter
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra_Bond
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra_Angle
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra_Dihedral
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! EPotIntra_Nonbonded
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialIntra
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! VirialInter
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+      end if
+
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.5)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              if( pc%NPart > 1 ) then
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                end select
+
+              else
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                end select
+              end if
+            end if
+          end if
+        end do
+
+      ! Partial molar volume
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+           end if
+          end if
+        end do
+
+        ! Partial molar enthalphy
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )     
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end if
+          end if
+        end do
+
+      ! Number of particles in ensemble
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+  
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end if
+  
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
+#if ARCH == 2
+        call flush( this%iounit_result )
+        call flush( this%iounit_runave )
+#endif
+#endif
+      else ! not MC but MD
+        ! Number of steps
+        write( IOBuffer, '(I9)' ) Step
+        call FileWriteNoAdvance( this%iounit_result )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Displacement
+        value = 0._RK
+        do i = 1, this%NComponents
+          value = value + sum( this%Component(i)%Disp(:, :)**2 )
+        end do
+        value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
+        write( IOBuffer, '(" ",F8.3)' ) value
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Pressure
         write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
         write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
         call FileWriteNoAdvance( this%iounit_runave )
-      else
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+
+        ! Density
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
+        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
         call FileWriteNoAdvance( this%iounit_runave )
-      end if
- 
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance( this%iounit_runave )
 
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance( this%iounit_runave )
- 
-      ! Potential energy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance( this%iounit_runave )
+        ! Temperature
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
-      ! Enthalpy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance( this%iounit_runave )
+        ! Potential energy
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+
+        ! Enthalpy
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
         ! EPotInter
@@ -12414,324 +12692,130 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWriteNoAdvance( this%iounit_runave )
       end if
 
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.5)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            if( pc%NPart > 1 ) then
-              select case( pc%ChemPotMethod )
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodThermoInt )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.5)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
             else
-              select case( pc%ChemPotMethod )
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodThermoInt )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
+              if( pc%NPart > 1 ) then
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+
+              else
+                select case( pc%ChemPotMethod )
+
+                case( ChemPotMethodGradIns )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodWidom )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
+                  call FileWriteNoAdvance( this%iounit_runave )
+
+                case( ChemPotMethodThermoInt )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end select
+              end if
             end if
           end if
-        end if
-      end do
+        end do
 
       ! Partial molar volume
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end if
-      end do
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
 
-      ! Partial molar enthalphy
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )     
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end if
           end if
-        end if
-      end do
+        end do
+
+        ! Partial molar enthalphy
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+            if( Equilibration ) then
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            else
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )     
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end if
+          end if
+        end do
 
       ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
           call FileWriteNoAdvance( this%iounit_runave )
-        end do
-      end if
   
-      call FileWriteBlank( this%iounit_result )
-      call FileWriteBlank( this%iounit_runave )
+          ! Mole fraction of each component
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end if
+  
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
 #if ARCH == 2
-      call flush( this%iounit_result )
-      call flush( this%iounit_runave )
+        call flush( this%iounit_result )
+        call flush( this%iounit_runave )
 #endif
-#endif
-    else ! not MC but MD
-      ! Number of steps
-      write( IOBuffer, '(I9)' ) Step
-      call FileWriteNoAdvance( this%iounit_result )
-      call FileWriteNoAdvance( this%iounit_runave )
 
-      ! Displacement
-      value = 0._RK
-      do i = 1, this%NComponents
-        value = value + sum( this%Component(i)%Disp(:, :)**2 )
-      end do
-      value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
-      write( IOBuffer, '(" ",F8.3)' ) value
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Pressure
-      write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Density
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Temperature
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Potential energy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      ! Enthalpy
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-      call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-      call FileWriteNoAdvance( this%iounit_runave )
-
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
       end if
-
-      ! Chemical potential
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.5)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            if( pc%NPart > 1 ) then
-              select case( pc%ChemPotMethod )
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodThermoInt )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
-            else
-              select case( pc%ChemPotMethod )
-              case( ChemPotMethodGradIns )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              case( ChemPotMethodThermoInt )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end select
-            end if
-          end if
-        end if
-      end do
-
-      ! Partial molar volume
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end if
-      end do
-
-      ! Partial molar enthalphy
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-          if( Equilibration ) then
-            write( IOBuffer, '(" ",F10.4)' ) 0._RK
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )     
-            write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end if
-      end do
-
-      ! Number of particles in ensemble
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Mole fraction of each component
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-      end if
-
-      call FileWriteBlank( this%iounit_result )
-      call FileWriteBlank( this%iounit_runave )
-#if ARCH == 2
-      call flush( this%iounit_result )
-      call flush( this%iounit_runave )
-#endif
-
     end if
-
-   end if
 
 #if  TRANS == 1
     ! Transport properties !TRANSPORT_start
-    if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 ) &
-&       .and. (mod(Step+this%NStepCorr-1, this%NSpanCF*this%NStepCorr) == 0) ) then
+    if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 )&
+&       .and. (mod(Step + this%NStepCorr -1, this%NSpanCF*this%NStepCorr) == 0) ) then
+
       rewind( this%iounit_rescf )
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
@@ -12767,9 +12851,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       if (this%Conductivity) then
         write( IOBuffer, '(T13,"CO")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-        if (this%NComponents == 2) then
-          write( IOBuffer, '(T10,"Th_Diff")' )
-          call FileWriteNoAdvance( this%iounit_rescf )
+        if(this%NComponents==2)then
+            write( IOBuffer, '(T10,"Th_Diff")' )
+            call FileWriteNoAdvance( this%iounit_rescf )
         end if
       end if
 
@@ -12780,22 +12864,22 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       if( this%Ncomponents > 1 ) then
         do i=1,this%NComponents*this%NComponents
-          if( i < 10 ) then
-            write( IOBuffer, '(T7," Int_Lij_",I1)')i
-          else
-            write( IOBuffer, '(T7,"Int_Lij_",I1)')i
-          end if
-          call FileWriteNoAdvance( this%iounit_rescf )
-        end do
+           if( i < 10 ) then
+             write( IOBuffer, '(T7," Int_Lij_",I1)')i
+           else
+             write( IOBuffer, '(T7,"Int_Lij_",I1)')i
+           end if
+           call FileWriteNoAdvance( this%iounit_rescf )
+       end do
       end if
 
       do i = 1, this%NComponents
-        if( i < 10 ) then
-          write( IOBuffer, '(T7," IntD_i_",I1)' ) i
-        else
-          write( IOBuffer, '(T7,"IntD_i_",I2)' ) i
-        end if
-        call FileWriteNoAdvance( this%iounit_rescf )
+         if( i < 10 ) then
+           write( IOBuffer, '(T7," IntD_i_",I1)' ) i
+         else
+           write( IOBuffer, '(T7,"IntD_i_",I2)' ) i
+         end if
+         call FileWriteNoAdvance( this%iounit_rescf )
       end do
 
       write( IOBuffer, '(T9,"Int VS")' )
@@ -12809,10 +12893,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-        if (this%NComponents == 2) then
+        if (this%NComponents == 2 ) then
           write( IOBuffer, '(T10,"Int Th_Diff")' )
           call FileWriteNoAdvance( this%iounit_rescf )
-        end if
+        end if       
       end if
 
       if (this%EConductivity) then
@@ -12828,11 +12912,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         write( IOBuffer, '(" ",F10.5)' ) (i-1)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
-        ! Onsager Diffusion coefficients
+          ! Onsager Diffusion coefficients
         if(this%Ncomponents>1)then
           do j=1,this%NComponents*this%NComponents
-            write( IOBuffer, '(T5, F10.5)' ) this%average_lamda(j, i)/this%average_lamda(j,1)
-            call FileWriteNoAdvance( this%iounit_rescf )
+              write( IOBuffer, '(T5, F10.5)' )  this%average_lamda(j, i)/this%average_lamda(j,1)
+              call FileWriteNoAdvance( this%iounit_rescf )
           end do
         end if
 
@@ -12854,17 +12938,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! Thermal conductivity and thermal diffusion
         if (this%Conductivity) then
-          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_c(i)/this%average_cf_c(1)
+          write( IOBuffer, '(T5, F10.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance( this%iounit_rescf )
-          if (this%NComponents==2) then
-            write( IOBuffer, '(T5, F10.5)' ) this%average_cf_soret(i)/this%average_cf_soret(1)
-          call FileWriteNoAdvance( this%iounit_rescf )
+          if (this%NComponents==2)then
+            write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(i)/this%average_cf_soret(1)
+            call FileWriteNoAdvance( this%iounit_rescf )
           end if
         end if
 
         ! Electric Conductivity
         if (this%EConductivity) then
-          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_ec(i)/this%average_cf_ec(1)
+          write( IOBuffer, '(T5, F10.5)' )  this%average_cf_ec(i)/this%average_cf_ec(1)
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
@@ -12874,7 +12958,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         ! Onsager diffusion coefficients
         if( this%Ncomponents > 1) then
           do j = 1, this%NComponents*this%NComponents
-             write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_lamda(j,i) * value
+             write( IOBuffer, '(T5, F10.4)' )  this%average_sinte_lamda(j,i)*value
              call FileWriteNoAdvance( this%iounit_rescf )
           end do
         end if
@@ -12889,19 +12973,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
 
        !shear
-        write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vs(i) * value
+        write( IOBuffer, '(T5, F10.5)' )  this%average_sinte_vs(i)* value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! bulk
-        write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i) * value
+        write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! thermal conductivity
         if (this%Conductivity) then
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-          write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_c(i) * value
+          write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_c(i)*value
           call FileWriteNoAdvance( this%iounit_rescf )
-          if (this%NComponents == 2) then
+          if ( this%NComponents == 2) then
             value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
             write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_soret(i)*value
             call FileWriteNoAdvance( this%iounit_rescf )
@@ -12978,19 +13062,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if MPI_VER > 0    
     if (SimulationType .eq. MonteCarlo) then
       if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose_parallel( this%iounit_runave )
-
+  
       call FileClose_parallel( this%iounit_result )
     else
       if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
-
+  
       call FileClose( this%iounit_result )
     endif
 #else
     if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
-
+  
     call FileClose( this%iounit_result )
 #endif
-
   end subroutine TEnsemble_ResultClose
 
 
@@ -13028,12 +13111,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: err_B(this%NComponents-1, this%NComponents-1)
     real(RK)                  :: D_12, D_13, D_14, D_23, D_24, D_34 
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
+    
 #else
 #if HBOND > 0
     integer                   :: k, m
 #endif
 #endif
-
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
 
@@ -13114,6 +13197,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     call Error( this%SumdEpotdV )
     call Error( this%Sumd2EpotdV2 )
+
     call Error( this%SumEPotSquared)
     call Error( this%SumEPotCubic)
     call Error( this%SumdEpotdVSquared)
@@ -13122,8 +13206,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumEPotdEpotdVSquared)
     call Error( this%SumEPotd2EpotdV2)
 
-    if (LongRange .eq. Rfield) then
-      if (EnsembleType .eq. EnsembleTypeNVT) then
+    if ( LongRange .eq. Rfield ) then
+      if(EnsembleType .eq. EnsembleTypeNVT) then
         call Error( this%SumA10resI )
         call Error( this%SumA01resI )
         call Error( this%SumA20resI )
@@ -13132,7 +13216,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Error( this%SumA30resI )
         call Error( this%SumA21resI )
         call Error( this%SumA12resI )
-      elseif (EnsembleType .eq. EnsembleTypeNVE) then
+      elseif (EnsembleType .eq. EnsembleTypeNVE ) then
         call Error( this%SumHmU )
         call Error( this%SumHmUm1)
         call Error( this%SumHmUm2 )
@@ -13145,6 +13229,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Error( this%SumHmUm2d2UdV2 )
         call Error( this%SumHmUm3dUdV )
         call Error( this%SumHmUm3dUdV2 )
+
         call Error( this%SumA10resI )
         call Error( this%SumA01resI )
         call Error( this%SumA20resI )
@@ -13208,7 +13293,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call ErrorGI( pc%SumInvChemPotRho )
           call ErrorGI( pc%SumVW )
           call ErrorGI( pc%SumHM )
-
+            
 #if MPI_VER > 0          
           call SetCommunicator(MPI_COMM_WORLD)
           RootProc = Rootproc_W                          
@@ -13292,8 +13377,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
+	write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
+
 
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
       ! The RootProc receives data from all processes and therefore the # of 
@@ -13549,7 +13635,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     write( IOBuffer, '("Potential energy", T29, "reduced:", 2F20.9)' ) Average, Variance
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&        Variance * UnitEnergy * NAvogadro
+&          Variance * UnitEnergy * NAvogadro
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
@@ -13580,6 +13666,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         select case( pc%ChemPotMethod )
+
         case( ChemPotMethodGradIns )
           Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
           if( pc%NPart > 1 ) then
@@ -13605,10 +13692,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
+
           if( pc%Fraction > 0.0_RK ) then
             Average = log( pc%Fraction / pc%SumChemPotV%Average )
             write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+
           else
             Average = this%Temperature / pc%SumChemPotV%Average
             Variance = this%Temperature * ( pc%SumChemPotV%Variance / (pc%SumChemPotV%Average * pc%SumChemPotV%Average))
@@ -13670,7 +13759,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
 &                Variance * UnitEnergy * NAvogadro
           call FileWrite( this%iounit_errors )
-
         end if
       end do
       if( any(this%Component(:)%ChemPotMethod .ne. ChemPotMethodNone)) call FileWriteBlank( this%iounit_errors )
@@ -14050,6 +14138,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
+        
       if ( this%Mmess > 0 ) then
 
         ! Error update for transport properties
@@ -14087,41 +14176,45 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
               write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
               call FileWrite( this%iounit_errors )
               write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-              call FileWrite( this%iounit_errors )
+              call FileWrite( this%iounit_errors )     
             end do
-          end do
+          end do 
           call FileWriteBlank( this%iounit_errors )
-        end if ! this%NComponents > 1
+        end if !this%NComponents > 1
 
-       !for multicomponent mixtures
+        !for multicomponent mixtures
+
         if( this%NComponents >= 2  ) then
  
-          do i = 1, this%NComponents
-            x(i) = this%Component(i)%Fraction
-            Inv_x(i) = 1._RK/x(i)
-          end do
-
-          do i = 1, this%NComponents
-            do  j = 1, this%NComponents
-              if (i ==j) then
-                L(i,j) = this%SumOnsager(i,j)%Average
-              else
-                L(i,j) = (this%SumOnsager(i,j)%Average + this%SumOnsager(j,i)%Average)/2._RK
-              end if
-            end do
+           do i = 1, this%NComponents
+              x(i) = this%Component(i)%Fraction
+              Inv_x(i) = 1._RK/x(i)
            end do
 
-        end if
+           do i = 1, this%NComponents
+              do  j = 1, this%NComponents
+                 if (i ==j) then
+                  L(i,j) = this%SumOnsager(i,j)%Average
+                 else
+                  L(i,j) = (this%SumOnsager(i,j)%Average + this%SumOnsager(j,i)%Average)/2._RK
+                 end if
+              end do
+           end do
+            
+        end if          
 
-        ! binary diffusion and thermal diffusion
+        
+        
+        
+        !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
+          
           D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
           err_D12 = this%SumOnsager(1,1)%Variance * x(2)*Inv_x(1) + &
 &                   this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
 &                   this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
-
+          
           write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
@@ -14140,8 +14233,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           end if
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if ! this%NComponents == 2
 
+        end if ! this%NComponents == 2
+     
+     
         ! Ternary and Quaternary diffusion
         if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
 
@@ -14150,31 +14245,33 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           delta(:,:) = 0._RK
           do i=1, (this%NComponents-1)
-            do j =1, (this%NComponents-1)
-              delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
-              do k = 1, this%NComponents
-                if (k /= i) then
-                  delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
-                end if
-              end do
-            end do
+             do j =1, (this%NComponents-1)
+                delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
+                do k = 1, this%NComponents
+                   if (k /= i) then
+                    delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
+                   end if
+                end do
+             end do
           end do
 
-          !calculate variance by error propagation
+         !calculate variance by error propagation
           err_delta(:,:) = 0._RK
-          do i=1, (this%NComponents-1)
-            do j =1, (this%NComponents-1)
-              err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%SumOnsager(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%SumOnsager(i,this%NComponents)%Variance
-              do k = 1, this%NComponents
-                if (k /= i) then
-                  err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%SumOnsager(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%SumOnsager(k,this%NComponents)%Variance
-                end if
-              end do
-            end do
+           do i=1, (this%NComponents-1)
+             do j =1, (this%NComponents-1)
+                err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%SumOnsager(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%SumOnsager(i,this%NComponents)%Variance
+                do k = 1, this%NComponents
+                   if (k /= i) then
+                    err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%SumOnsager(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%SumOnsager(k,this%NComponents)%Variance
+                   end if
+                end do
+             end do
           end do
 
         end if 
 
+
+     
         !Ternary diffusion
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
@@ -14191,17 +14288,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
           !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+          
+           err_B(:,:) = 0._RK
 
-          err_B(:,:) = 0._RK
-          do k = 1, (this%NComponents-1)
-            do m = 1, (this%NComponents-1)
-              do i = 1, (this%NComponents-1)
-                do  j = 1, (this%NComponents-1)
-                  err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
-                end do
-              end do
-            end do
-          end do
+           do k = 1, (this%NComponents-1)
+              do m = 1, (this%NComponents-1)
+                 do i = 1, (this%NComponents-1)
+                    do  j = 1, (this%NComponents-1)
+                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
+                    end do
+                 end do
+               end do
+           end do
  
           !Calculate diffusion coefficients
           D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )            
@@ -14235,6 +14333,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         ! Quaternary diffusion
         if ( this%NComponents == 4 ) then
+
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
           ! determinat of matrix [delta]
@@ -14256,8 +14355,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
           !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
+          
           err_B(:,:) = 0._RK
+
            do k = 1, (this%NComponents-1)  
               do m = 1, (this%NComponents-1)  
                  do i = 1, (this%NComponents-1)
@@ -14268,6 +14368,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
                end do
            end do
 
+
           !Calculate diffusion coefficients
           D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )         
           D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )        
@@ -14275,6 +14376,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
           D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
           D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
+
 
           !Obtain error of Diffusion coefficients
           err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
@@ -14300,6 +14402,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           err_D23 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
                     ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
                     ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+
 
           write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
@@ -14334,7 +14437,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         end if !this%NComponents == 4
 
-        ! self-diffusion coefficient
+
+        !self-diffusion coefficient
         do i = 1, this%NComponents
           Average  = this%Sumself_i(i)%Average
           Variance = this%Sumself_i(i)%Variance
@@ -14346,7 +14450,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end do
         call FileWriteBlank( this%iounit_errors )
 
-        ! shear viscosity
+        !shear viscosity
         Average  = this%SumVisco_s%Average
         Variance = this%SumVisco_s%Variance
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
@@ -14356,10 +14460,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        ! bulk viscosity
-        if (this%Bulkviscosity) then
+        !bulk viscosity
+        if (this%Bulkviscosity ) then
           Average  = this%SumVisco_b%Average
-          Variance = this%SumVisco_b%Variance
+           Variance = this%SumVisco_b%Variance
           write( IOBuffer, '("Bulk-Viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in 10E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
@@ -14369,7 +14473,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        ! Thermal conductivity
+        !Thermal conductivity
         Average  = this%SumConduct%Average
         Variance = this%SumConduct%Variance
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
@@ -14385,7 +14489,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
-        ! Electric conductivity
+        !Electric conductivity
         Average  = this%SumEConduct%Average
         Variance = this%SumEConduct%Variance
         value = ElementaryCharge**2 / (dsqrt(UnitEnergy*UnitMass) * UnitLength**2)
@@ -14401,7 +14505,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       else    ! ( this%Mmess > 0 )
 
-        ! Onsager coefficients
+         !Onsager coefficients
         if ( this%NComponents > 1 ) then
            do i = 1, this%NComponents
               do j = 1, this%NComponents
@@ -14423,15 +14527,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           if (this%MolarEnthConduct .eqv. .true.) then
             write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
             call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' )  0._RK
+            write( IOBuffer, '(T21, "in 10E-12 m^2/(K s):", F20.9)' ) 0._RK 
           else
             write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
           end if
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
+          
         end if
 
-        ! ternary diffusion coefficient
+         !ternary diffusion coefficient
         if( this%NComponents == 3 ) then
           write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)') 0._RK
           call FileWrite( this%iounit_errors )
@@ -14448,7 +14553,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if
+        end if    
 
         do i = 1, this%NComponents
           write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
@@ -14477,14 +14582,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
         elseif (this%NComponents==1 .or. this%MolarEnthConduct .eqv. .true.) then
-          write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
+           call FileWrite( this%iounit_errors )
+           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
         else
           write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+      
 
         if (this%EConductivity) then
            write( IOBuffer, '("Electric Conductivity ", T29, "reduced:", F20.9)' )  0._RK
@@ -14503,7 +14609,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-    end if   ! (this%CorrfunMode )
+    end if   ! (this%CorrfunMode)
 #endif
 
     ! Too large cutoff radius
@@ -14545,10 +14651,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       if ( this%OptPressure ) then
          Average = this%SumPressure%Average
          Variance = this%SumPressure%Variance
-       else
+      else
          Average = this%RefPressure
          Variance = 0._RK
-       end if
+      end if
       ! Simulation pressure of liquid phase
       write( IOBuffer, '("Liquid simulation pressure", T29, "reduced:", F20.9)' ) Average
       call FileWrite( this%iounit_errors )
@@ -14571,6 +14677,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         varmu(i) = pc%VarChemPot
         varv(i) = pc%VarPartialMolarVolume
       end do
+
       VarPressure = sqrt( this%SumPressure%Variance**2 + sum( (dpdmu * varmu)**2 ) + sum( (dpdv * varv)**2 ) )
     else
       AvgPressure = this%RefPressure
@@ -14589,96 +14696,100 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       VarPressure = sqrt( sum( (dpdmu * varmu)**2 ) )
     end if
 
-    write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) AvgPressure, VarPressure
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) AvgPressure * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
-
-    ! Mole fractions of vapor phase
-    do i = 1, this%NComponents
-      pc => this%Component(i)
-      yvi = pc%SumFraction%Average * ( pc%PartialMolarVolume / this%Temperature - 1 / Average )
-      do j = 1, this%NComponents
-        dydmu(i, j) = yvi * dpdmu(j)
-        dydv(i, j) = yvi * dpdv(j)
-      end do
-      dydmu(i, i) = dydmu(i, i) + pc%SumFraction%Average
-      dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * 1 / this%Temperature * ( Average - this%RefPressure )
-    end do
-
-    do i = 1, (this%NComponents - 1)
-      pc => this%Component(i)
-      Average = pc%SumFraction%Average
-      vary(i) = sqrt( pc%SumFraction%Variance**2 + sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
-      write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, vary(i)
+      write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) AvgPressure, VarPressure
       call FileWrite( this%iounit_errors )
-    end do
+      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) AvgPressure * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
-    pc => this%Component( this%NComponents )
-    Average = pc%SumFraction%Average
-    Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
-    write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, Variance
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      ! Mole fractions of vapor phase
+      do i = 1, this%NComponents
+        pc => this%Component(i)
+        yvi = pc%SumFraction%Average * ( pc%PartialMolarVolume / this%Temperature - 1 / Average )
+        do j = 1, this%NComponents
+          dydmu(i, j) = yvi * dpdmu(j)
+          dydv(i, j) = yvi * dpdv(j)
+        end do
+        dydmu(i, i) = dydmu(i, i) + pc%SumFraction%Average
+        dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * 1 / this%Temperature * ( Average - this%RefPressure )
+      end do
 
-    ! Saturated liquid density
-    Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( AvgPressure - this%RefPressure)
-    Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( AvgPressure - this%RefPressure )&
-&              + VarPressure * this%LiqBetaT )**2 )
-    write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      do i = 1, (this%NComponents - 1)
+        pc => this%Component(i)
+        Average = pc%SumFraction%Average
+        vary(i) = sqrt( pc%SumFraction%Variance**2 + sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
+        write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, vary(i)
+        call FileWrite( this%iounit_errors )
+      end do
 
-    ! Saturated vapor density
-    Average = this%SumDensity%Average
-    Variance = this%SumDensity%Variance
-    write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) Average, Average * VarPressure / AvgPressure
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
-&          * VarPressure / AvgPressure * UnitDensity
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      pc => this%Component( this%NComponents )
+      Average = pc%SumFraction%Average
+      Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
+      write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, Variance
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
-    ! Saturated liquid enthalpy
-    Average = this%LiqEnthalpy + this%LiqdHdP * ( AvgPressure - this%RefPressure )
-    Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
-&              ( AvgPressure - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
-    write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      ! Saturated liquid density
+      Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( AvgPressure - this%RefPressure)
 
-    DeltaHv = Average
-    VarDeltaHv = Variance
+      Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( AvgPressure - this%RefPressure )&
+&                + VarPressure * this%LiqBetaT )**2 )
 
-    ! Saturated vapor enthalpy
-    Average = this%SumEnthalpy%Average
-    Variance = this%SumEnthalpy%Variance
-    write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
-    DeltaHv = Average - DeltaHv
-    VarDeltaHv = Variance + VarDeltaHv
+      ! Saturated vapor density
+      Average = this%SumDensity%Average
+      Variance = this%SumDensity%Variance
+      write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) Average, Average * VarPressure / AvgPressure
 
-    ! Evaporation enthalpy
-    write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, VarDeltaHv * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
+&            * VarPressure / AvgPressure * UnitDensity
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
 
-    ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+      ! Saturated liquid enthalpy
+      Average = this%LiqEnthalpy + this%LiqdHdP * ( AvgPressure - this%RefPressure )
 
+      Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
+&                ( AvgPressure - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
+
+      write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      DeltaHv = Average
+      VarDeltaHv = Variance
+
+      ! Saturated vapor enthalpy
+      Average = this%SumEnthalpy%Average
+      Variance = this%SumEnthalpy%Variance
+      write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      DeltaHv = Average - DeltaHv
+      VarDeltaHv = Variance + VarDeltaHv
+
+      ! Evaporation enthalpy
+      write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, VarDeltaHv * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      ! Separator
+      write( IOBuffer, '(76("="))' )
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
     end if
 
     if( (SimulationType .eq. MolecularDynamics) .and. (EnsembleType .eq. EnsembleTypeGE) ) then
@@ -14723,9 +14834,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) tempReal
         endif
+
 #else
           write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) this%DispVol  
-#endif
+#endif  
 
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
@@ -14820,9 +14932,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) tempReal
         endif
+
 #else
           write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) pc%DispTran
-#endif
+#endif  
+
         call FileWrite( this%iounit_errors )
         if( this%NDFRot > 0 ) then
 #if MPI_VER > 0
@@ -14830,6 +14944,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if (Nproc == NRootProc) then
           write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) tempReal
         endif
+
 #else
           write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) pc%DispRot
 #endif  
@@ -14912,7 +15027,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #endif
         end if
-
       end do
 
       ! Inserts and deletes acceptance rates
@@ -14988,8 +15102,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, NBlockSizes
         do j = i, NBlocks, i
           if ( sum(this%SumResidenceDuration%NBlockSum(j - i + 1:j)) == 0 ) then
-            this%SumResidenceDuration%NBlockSum(j - i + 1) = 1
-            this%SumResidenceDuration%BlockSum(j - i + 1) = this%SumResidenceDuration%Average
+             this%SumResidenceDuration%NBlockSum(j - i + 1) = 1
+             this%SumResidenceDuration%BlockSum(j - i + 1) = this%SumResidenceDuration%Average
           end if
         end do
       end do
@@ -15004,7 +15118,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Error (this%SumResidenceDuration)
 
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
+         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
 &           this%ResidComp1, this%ResidSite1, this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
@@ -15040,9 +15154,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! For MPI an allreduce is needed here before writing, for binsvisit an reduce! Gabor, Michael
       t = this%NRealComponents+1
       do i=1,this%NRealComponents
-        pc => this%Component(i)
-
+         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
           !first two lines
           if (RootProc) then
             write( IOBuffer, '(" Component:", T15, I3)' ) i
@@ -15075,7 +15189,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           ! Remainder
           call ErrorsUpdateThermoInt( this, i, pc%NBins)
           t = t+1
-        end if 
+        end if
 
       end do
 
@@ -15084,7 +15198,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_ErrorsUpdate
-
 
 !==============================================================!
 !  Subroutine TEnsemble_ErrorsUpdateThermoInt                  !
@@ -15327,8 +15440,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer                    :: i, j, k, num
-    type(TSiteLJ126), pointer  :: psLJ126
+    integer                   :: i, j, k, num
+    type(TSiteLJ126), pointer :: psLJ126
     type(TSiteCharge), pointer :: psCharge
     real(RK)                   :: ch_sig
 
@@ -15375,7 +15488,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_VisualOpen
 
 
-
 !==============================================================!
 !  Subroutine TEnsemble_VisualUpdate                           !
 !==============================================================!
@@ -15401,12 +15513,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         do k = 1, this%Component(i)%Molecule%NUnit
           l = this%Component(i)%Molecule%Unit(k)%isElongated
           r(:) = this%Component(i)%P0(j, :, k) + .5_RK
+
           if( l ) then
             q(:) = this%Component(i)%Q0(j, :, k)
           else
             q(1) = 1._RK
             q(2:4) = .0_RK
           end if
+
           write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
           call FileWrite( this%iounit_visual )
         end do
@@ -15593,7 +15707,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   end subroutine TEnsemble_ProfileClose
 #endif
 
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_RDFOpen                                !
 !==============================================================!
@@ -15710,7 +15824,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFUpdate
-
 
 
 !==============================================================!
@@ -15854,8 +15967,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
-    if (LongRange .eq. Rfield) then
-      if (EnsembleType .eq. EnsembleTypeNVT) then
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
         call RestartSave( this%SumA10resI )
         call RestartSave( this%SumA01resI )
         call RestartSave( this%SumA20resI )
@@ -15864,7 +15977,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call RestartSave( this%SumA30resI )
         call RestartSave( this%SumA21resI )
         call RestartSave( this%SumA12resI )
-      elseif (EnsembleType .eq. EnsembleTypeNVE) then 
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
         call RestartSave( this%SumA10resI )
         call RestartSave( this%SumA01resI )
         call RestartSave( this%SumA20resI )
@@ -15906,7 +16019,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartSave( pc%SumVW )
-        call RestartSave( pc%SumHM )
+       call RestartSave( pc%SumHM )
       end if
     end do
 
@@ -15916,11 +16029,13 @@ if( RootProc .and. this%CorrfunMode ) then
     !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
     !Reduced correlation steps
     StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
+
     !Calculate matrix indexes
     Mindex = mod(StepCorr, this%NCorr )
     if (Mindex .eq. 0) then
       Mindex = this%NCorr
     end if
+
     k=mod(Mindex,this%NSpanCF)
     this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
     !Aenderungen Koester
@@ -15965,10 +16080,10 @@ if( RootProc .and. this%CorrfunMode ) then
         write( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_vb(i)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
     end do
     do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_vs(i)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
     end do
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
@@ -15982,7 +16097,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
     do i = 1, this%NComponents
       do j = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_d(i , j)
+        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
       end do
     end do
 
@@ -16000,7 +16115,7 @@ if( RootProc .and. this%CorrfunMode ) then
       call RestartSave( this%Sumself_i(i), .true. )
     end do
 
-    if (this%NComponents > 1) then
+     if(this%NComponents > 1) then
       do i = 1, this%NComponents
          do j = 1, this%NComponents
            call RestartSave( this%SumOnsager(i,j), .true. )
@@ -16047,9 +16162,9 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i, j, k, t, stat, counter
+    integer                   :: i,j,t,stat,counter,k
 #if TRANS==1
-    integer                   :: Mindex, StepCorr
+    integer                   :: Mindex,StepCorr
 #endif
     real(RK)                  :: dummy, factor
 
@@ -16175,8 +16290,8 @@ endif
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
     endif
-    if (LongRange .eq. Rfield) then
-      if (EnsembleType .eq. EnsembleTypeNVT) then 
+    if( LongRange .eq. Rfield) then
+      if ( EnsembleType .eq. EnsembleTypeNVT ) then
         call RestartRead( this%SumA10resI )
         call RestartRead( this%SumA01resI )
         call RestartRead( this%SumA20resI )
@@ -16185,7 +16300,7 @@ endif
         call RestartRead( this%SumA30resI )
         call RestartRead( this%SumA21resI )
         call RestartRead( this%SumA12resI )
-      elseif (EnsembleType .eq. EnsembleTypeNVE) then
+      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
         call RestartRead( this%SumA10resI )
         call RestartRead( this%SumA01resI )
         call RestartRead( this%SumA20resI )
@@ -16218,11 +16333,13 @@ endif
           if (this%Component(j)%NPart .eq. 1) pc%NFluctState = j-counter+1
         end do
         counter = counter + this%Component(i)%Molecule%NFluct
+
       case( ChemPotMethodWidom )
         call RestartRead( pc%SumChemPotV )
         call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumHW_counter )
         call RestartRead( pc%SumHW_denom )
+
       case( ChemPotMethodThermoInt )
         call RestartRead( pc%SumChemPotV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
@@ -16237,7 +16354,7 @@ endif
     end do
 
 #if TRANS ==1
-    if ( this%CorrfunMode ) then
+    if( this%CorrfunMode ) then
       if( RootProc ) then
         read( iounit_restart, '(I10)' ) this%NCorr
         read( iounit_restart, '(I10)' ) this%Mmess
@@ -16254,11 +16371,13 @@ endif
       !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
       !Reduced correlation steps
       StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
+
       !Calculate matrix indexes
       Mindex = mod(StepCorr, this%NCorr )
       if (Mindex .eq. 0) then
        Mindex = this%NCorr
       end if
+
       k=mod(Mindex,this%NSpanCF)
       !Aenderungen Koester
 
@@ -16303,13 +16422,13 @@ endif
         read( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%average_cf_vb(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%average_cf_vs(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
+        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_ec(i)
       end do
 
       if (this%NComponents==2) then
@@ -16320,13 +16439,13 @@ endif
 
       do i = 1, this%NComponents
         do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' ) this%average_cf_d(i , j)
+          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
         end do
       end do
       if (this%Ncomponents>1) then
         do i = 1, this%NComponents*this%NComponents
           do j = 1, this%NCorr
-            read( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
+            read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
           end do
         end do
       end if
@@ -16334,7 +16453,7 @@ endif
       read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
       do i = 1, this%NComponents
-        call RestartRead( this%Sumself_i(i) )
+      call RestartRead( this%Sumself_i(i) )
       end do
 
       if (this%NComponents > 1) then
@@ -16434,19 +16553,18 @@ endif
     end if
 
     ! Reading and broadcasting thi-file for ThermoInt
-    t = this%NRealComponents+1
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-      call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
-    end if
+      t = this%NRealComponents+1
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+      end if
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
 
-    do i=1,this%NRealComponents
-      pc => this%Component(i)
-      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-
-        call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
-        pc%CalcChemPot = .true.
-        if (RootProc) then
+          call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+          pc%CalcChemPot = .true.
+          if (RootProc) then
           !read empty line
           read( this%iounit_thermoint, * )
 
@@ -16454,14 +16572,13 @@ endif
           do j = 0,pc%NBins-1
             read( this%iounit_thermoint, '(I6," ", F6.3,7(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
           end do
-        end if
-        t = t+1
-      end if 
-    end do
-
-    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-      call FileClose( this%iounit_thermoint )
-    end if
+          end if
+          t = t+1
+        end if 
+      end do
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileClose( this%iounit_thermoint )
+      end if
 
 #if MPI_VER > 0
     if (SimulationType .eq. MonteCarlo) then
@@ -16480,19 +16597,18 @@ endif
           call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
           t = t+1
-        end if
-      end do
+        endif
+      enddo
     end if
 #endif
-
     t = this%NRealComponents+1
     do i=1,this%NRealComponents
       if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
         Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
         call ScaleInteractionThermoInt(this, t, Factor)
         t = t+1
-      end if
-    end do
+      endif
+    enddo
     ! End of reading and broadcasting thi-file for ThermoInt
 
     if( SimulationType .eq. MolecularDynamics ) then
@@ -16576,7 +16692,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_SelfTerm                         !
+!  Subroutine TEnsemble_Ewald_SelfTerm                       !
 !==============================================================!
 
   subroutine TEnsemble_EwaldSelfTerm( this )
@@ -16590,7 +16706,6 @@ endif
 
     ! Declare arguments
     type(TEnsemble)         :: this
-
     ! Declare local variables
     integer :: i,Si,Sj
     integer :: NX,NY,NZ
@@ -16697,13 +16812,12 @@ endif
 #if MPI_VER > 0
     this%NBox1  = ProcRange ( this%BoxenAnzahlMax, this%NBox0, this%NBox2 )
 #endif
-
     end subroutine TEnsemble_EwaldSelfTerm
 
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_FourierTerm                      !
+!  Subroutine TEnsemble_Ewald_FourierTerm                    !
 !==============================================================!
 
    subroutine TEnsemble_EwaldFourierTerm(this)
@@ -16721,10 +16835,10 @@ endif
    integer :: molec
    type(TMolecule), pointer :: mol
 
-   real(RK),pointer, contiguous :: RX(:),RY(:),RZ(:)
-   real(RK),pointer, contiguous :: PX(:),PY(:),PZ(:)
-   real(RK),pointer, contiguous :: FX(:),FY(:),FZ(:)
-   real(RK),pointer :: q(:)
+   real(RK),pointer, contiguous:: RX(:),RY(:),RZ(:)
+   real(RK),pointer, contiguous:: PX(:),PY(:),PZ(:)
+   real(RK),pointer, contiguous:: FX(:),FY(:),FZ(:)
+   real(RK),pointer:: q(:)
    real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
    real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
 
@@ -16751,6 +16865,7 @@ endif
    real(RK),pointer, contiguous :: VBx(:),VBy(:),VBz(:)
    real(RK)        :: multiplicator
    real(RK)        :: Contrib
+  
 #endif
 
    EPotLocal = 0.0_RK
@@ -16771,6 +16886,7 @@ endif
    ! Virial
    this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
    VirIntraLocal = 0._RK
+
    this%SSin=0._RK
    this%SCos=0._RK
 
@@ -16935,7 +17051,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_SelfTerm_Energy                  !
+!  Subroutine TEnsemble_Ewald_SelfTerm_Energy                !
 !==============================================================!
 
   subroutine TEnsemble_EwaldSelf_Energy( this )
@@ -16947,11 +17063,12 @@ endif
 
     ! Declare local variables
     integer  :: processes
-    integer  :: Si,Sj,i
-    real(RK) :: RXi,RYi,RZi,RXj,RYj,RZj
-    real(RK) :: drxij,dryij,drzij,dr
-    real(RK) :: approx
-    real(RK) :: UIntraTermKomp, USelbstTermKomp
+    integer :: Si,Sj,i
+    real(RK):: RXi,RYi,RZi,RXj,RYj,RZj
+    real(RK):: drxij,dryij,drzij,dr
+    real(RK):: approx
+    real(RK):: UIntraTermKomp, USelbstTermKomp
+
 
     ! Setting of the right scaling for MC
     if (Equilibration .and. CommonEqui) then
@@ -16959,6 +17076,7 @@ endif
     else
       processes = 1
     end if
+
 
     ! Selbstterm
     this%USelbstTerm = 0.0_RK
@@ -16971,6 +17089,7 @@ endif
     END DO
 
     this%USelbstTerm = -this%USelbstTerm * this%Kappa / sqrt(Pi) / processes
+
 
 ! intramolecular term
     this%UIntra = 0._RK
@@ -17007,8 +17126,9 @@ endif
     end subroutine TEnsemble_EwaldSelf_Energy
 
 
+
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_FourierTermEnergy                !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergy              !
 !==============================================================!
 
    subroutine TEnsemble_EwaldFourierEnergy(this)
@@ -17031,9 +17151,9 @@ endif
    integer,pointer :: i1
 #endif
 
-   real(RK),pointer, contiguous :: RX(:),RY(:),RZ(:)
-   real(RK),pointer, contiguous :: PX(:),PY(:),PZ(:)
-   real(RK),pointer :: q(:)
+   real(RK),pointer, contiguous:: RX(:),RY(:),RZ(:)
+   real(RK),pointer, contiguous:: PX(:),PY(:),PZ(:)
+   real(RK),pointer:: q(:)
    real(RK) :: RXloc(this%NPartMax),RYloc(this%NPartMax),RZloc(this%NPartMax)
    real(RK) :: PXloc(this%NPartMax),PYloc(this%NPartMax),PZloc(this%NPartMax)
 
@@ -17051,6 +17171,7 @@ endif
    real(RK),allocatable:: qsinfac(:)  !Michael Sch.
    real(RK),allocatable:: qcosfac(:)
    integer :: ChargeNumber
+
 
    EPotLocal = 0._RK
    VirialLocal = 0._RK
@@ -17073,13 +17194,13 @@ endif
 
    this%SSin = 0._RK
    this%SCos = 0._RK
-# if MPI_VER > 0
+#if MPI_VER > 0
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      ChargeNumber = 0
      KVec = this%Ewald_Vec(:,i)
      SSinSum = 0._RK
@@ -17150,6 +17271,7 @@ endif
            PX => this%Component(j)%Molecule%SiteCharge(l)%PX(1:molec)
            PY => this%Component(j)%Molecule%SiteCharge(l)%PY(1:molec)
            PZ => this%Component(j)%Molecule%SiteCharge(l)%PZ(1:molec)
+
            HFac(1:molec) = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
            ! old version: HFac = qsinfac(ChargeNumber+1:ChargeNumber+molec)*SCosSum - qcosfac(ChargeNumber+1:ChargeNumber+molec)*SSinSum
 
@@ -17164,6 +17286,7 @@ endif
        END DO
      end if
    END DO ! Boxenschleife
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 ! Finish Calculation
@@ -17215,7 +17338,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_FourierTermEnergy1               !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergy1             !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierEnergy1(this,nc,np)
 
@@ -17226,21 +17349,23 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)    :: this
+   type(TEnsemble)          :: this
    integer,intent(in) :: nc,np
 
    ! Declare local variables
    type(TMolecule), pointer :: mol
    real(RK):: RX,RY,RZ
    real(RK):: RX2,RY2,RZ2
-   real(RK),pointer :: q(:)
+   real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
    real(RK)::SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
+
    integer :: i,l
+
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
@@ -17250,13 +17375,13 @@ endif
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
 
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
@@ -17320,7 +17445,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_FourierTermEnergyCF              !
+!  Subroutine TEnsemble_Ewald_FourierTermEnergyCF            !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierEnergy_CF(this,nc,np,ncold,npold)
 
@@ -17331,23 +17456,26 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)    :: this
+   type(TEnsemble)          :: this
    integer,intent(in) :: nc,np
    integer,intent(in) :: ncold,npold
 
    ! Declare local variables
    type(TMolecule), pointer :: mol
    type(TMolecule), pointer :: mol2
+
    real(RK):: RX,RY,RZ
-   real(RK),pointer :: q(:)
-   real(RK),pointer :: q2(:)
+   real(RK),pointer:: q(:)
+   real(RK),pointer:: q2(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
    real(RK)::SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK)::Faktor,Faktor2
+
    integer :: i,l
+
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
@@ -17356,13 +17484,13 @@ endif
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
      mol2 => this%Component(ncold)%Molecule
@@ -17432,7 +17560,7 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Ewald_FourierTermAddDel                !
+!  Subroutine TEnsemble_Ewald_FourierTermAddDel              !
 !==============================================================!
    subroutine TEnsemble_EwaldFourierAddDel(this,nc,np,m)
 
@@ -17443,35 +17571,38 @@ endif
 #endif
 
    ! Declare arguments
-   type(TEnsemble)    :: this
+   type(TEnsemble)          :: this
    integer,intent(in) :: nc,np,m
 
    ! Declare local variables
    type(TMolecule), pointer :: mol
    real(RK):: RX,RY,RZ
-   real(RK),pointer :: q(:)
+   real(RK),pointer:: q(:)
    real(RK):: KVec(3)
    real(RK):: EPotLocal
    real(RK):: SSin_Vec,SCos_Vec
    real(RK):: KappaL2
    real(RK):: sinfac,cosfac
    real(RK):: Faktor
+
    integer :: i,l
+
 #if MPI_VER > 0
    integer,pointer :: i0, i1, j
 #endif
+
 
 ! Declarations
    KappaL2 = 1.0_RK/(2._RK*this%KappaL**2)
 
 ! Calculation
-# if MPI_VER > 0
+#if MPI_VER > 0
    i0 => this%NBox0
    i1 => this%NBox2
    DO i=i0,i1,1
-# else
+#else
    DO i=1,this%BoxenAnzahlMax,1
-# endif
+#endif
      KVec = this%Ewald_Vec(:,i)
      mol => this%Component(nc)%Molecule
      q => mol%SiteCharge(1:mol%NCharge)%e
@@ -17528,16 +17659,16 @@ endif
 
 
 !==============================================================!
-!  Subroutine TEnsemble_PME_FourierTerm                        !
+!  Subroutine TEnsemble_PME_FourierTerm                      !
 !==============================================================!
 #if SPME > 0
    subroutine TEnsemble_PMEFourierTerm(this)
 
    implicit none
 
-   include 'fftw3.f'
+    include 'fftw3.f'
 #if MPI_VER > 0
-   include 'mpif.h'
+    include 'mpif.h'
 #endif
 
    ! Declare arguments
@@ -17592,11 +17723,14 @@ endif
 
    integer            :: xxo,yyo,zzo
    integer            :: yo,zo
+
    integer            :: xi,yi,zi
    integer            :: x,y,z
 
    real(RK)           :: err
+
    real(RK)           :: qgrid_safe
+
 
 #if MPI_VER > 0
    integer  :: i0,i1
@@ -17640,7 +17774,6 @@ endif
    mult2 = 0._RK
    i0 = this%NBox0
    i1 = this%NBox2
-
    DO i=i0,i1,1
      if (i==1) cycle
 #else
@@ -17678,6 +17811,7 @@ endif
      struc = qr*qr + qi*qi
 
      EPotLocal = EPotLocal + eterm*struc
+
      VirialLocal = VirialLocal + eterm*struc*(3._RK  + wterm)
 
 #if MPI_VER > 0
@@ -17795,6 +17929,8 @@ endif
        END DO
 !!!!!!!!!1
 
+
+
          FX => pm%SiteCharge(j)%FX(k)
          FY => pm%SiteCharge(j)%FY(k)
          FZ => pm%SiteCharge(j)%FZ(k)
@@ -17859,16 +17995,15 @@ contains
     real(RK) function fillspline(w,spline,dspline)
 
     implicit none
-
     ! Declare Arguments
-    real(RK),intent(in) ::  w
-    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
+      real(RK),intent(in) ::  w
+      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
     ! Declare local variables
-    real(RK)            :: div
-    real(RK)            :: dj,di,dorder
-    integer             :: i,j,order
+      real(RK)            :: div
+      real(RK)            :: dj,di,dorder
+      integer             :: i,j,order
 
       order = this%splineorder
 
@@ -17913,6 +18048,7 @@ contains
     end function fillspline
 
 
+
    end subroutine TEnsemble_PMEFourierTerm
 
 !==============================================================!
@@ -17921,7 +18057,6 @@ contains
    subroutine charge_grid(this)
 
    implicit none
-
    ! Declare Arguments
    type(TEnsemble)    :: this
 
@@ -17954,6 +18089,7 @@ contains
    real(RK)           :: err
    real(RK)           :: fac
 
+
    this%qgrida = 0._RK
 
    NX = this%gridx
@@ -17962,6 +18098,7 @@ contains
 
    boxl  = this%BoxLength
    order = this%splineorder
+
 
 ! Dimensions of charge
    fac = UnitCharge / ElementaryCharge
@@ -18042,16 +18179,15 @@ contains
     real(RK) function fillspline(w,spline,dspline)
 
     implicit none
-
-    ! Declare Arguments
-    real(RK),intent(in) ::  w
-    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
+      ! Declare Arguments
+      real(RK),intent(in) ::  w
+      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
     ! Declare local variables
-    real(RK)            :: div
-    real(RK)            :: dj,di,dorder
-    integer             :: i,j,order
+      real(RK)            :: div
+      real(RK)            :: dj,di,dorder
+      integer             :: i,j,order
 
       order = this%splineorder
 
@@ -18100,12 +18236,12 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Subroutine TEnsemble_PME_Setup                                   !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine TEnsemble_PME_Setup( this ) ! Deublein: SPME for MonteCarlo Simulations 
 
     implicit none
 
     include 'fftw3.f'
-
     ! Declare arguments
     type(TEnsemble)         :: this
 
@@ -18126,16 +18262,17 @@ contains
     NZ = this%gridz
 
     if (SimulationType .eq. MolecularDynamics) then
-      call dfftw_plan_dft_3d(this%qgrid_forward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_FORWARD,FFTW_PATIENT)
-      call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_BACKWARD,FFTW_PATIENT)
+    call dfftw_plan_dft_3d(this%qgrid_forward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_FORWARD,FFTW_PATIENT)
+    call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgrida,FFTW_BACKWARD,FFTW_PATIENT)
+
     else if (SimulationType .eq. MonteCarlo .or. SimulationType .eq. Gibbs ) then
-      call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgridb,FFTW_BACKWARD,FFTW_PATIENT)
+    call dfftw_plan_dft_3d(this%qgrid_backward,NX,NY,NZ,this%qgrida,this%qgridb,FFTW_BACKWARD,FFTW_PATIENT)
     end if
 
     err = pme_bspline(NX,NY,NZ)
 
 ! Self Term
-    call PMESelfTermMC(this )
+    call PMESelfTermMC (this )
 
 
 ! Allocation of bbtot
@@ -18174,7 +18311,7 @@ contains
    END DO
 
 #if MPI_VER > 0
-   this%NBox1 = ProcRange( ngrid, this%NBox0, this%NBox2 )
+    this%NBox1 = ProcRange( ngrid, this%NBox0, this%NBox2 )
 #endif
 
 
@@ -18216,7 +18353,9 @@ contains
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    function pme_dftmod(grid) result(bmod)
+
+
+    function pme_dftmod (grid) result(bmod)
 
     implicit none
 
@@ -18258,14 +18397,14 @@ contains
     implicit none
 
     ! Declare Arguments
-    real(RK),intent(in) :: w
-    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
-    real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
+      real(RK),intent(in) :: w
+      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+      real(RK),dimension(this%splineorder+5),intent(in out) :: dspline
 
     ! Declare local variables
-    real(RK)            :: div
-    real(RK)            :: dj,di,dorder
-    integer             :: i,j,order
+      real(RK)            :: div
+      real(RK)            :: dj,di,dorder
+      integer             :: i,j,order
 
       order = this%splineorder
 
@@ -18375,6 +18514,7 @@ contains
       this%UIntra = this%UIntra + this%component(i)%NPart * UIntraTermKomp
     END DO
 
+
     end subroutine TEnsemble_PMESelfTerm_MC
 
 
@@ -18382,6 +18522,7 @@ contains
 !==============================================================!
 !  Subroutine TEnsemble_PME_FourierTerm MonteCarlo             !
 !==============================================================!
+
    subroutine TEnsemble_PMEFourierTerm_MC(this)
 
    implicit none
@@ -18405,7 +18546,7 @@ contains
    real(RK):: struc
    real(RK):: energ
 !Pointers
-   real(RK),pointer, contiguous :: lad(:,:)
+   real(RK),pointer, contiguous::lad(:,:)
    real(RK):: qr,qi
 !Positioning
    integer :: order
@@ -18416,6 +18557,10 @@ contains
    integer :: index_loc
 
    integer :: i,j,k
+
+
+
+
 #if MPI_VER > 0
    integer:: i0,i1
 #endif
@@ -18933,13 +19078,13 @@ contains
     implicit none
 
     ! Declare arguments
-    real(RK),intent(in) ::  w
-    real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
+      real(RK),intent(in) ::  w
+      real(RK),dimension(this%splineorder+5),intent(in out) ::  spline
 
     ! Declare local variables
-    real(RK)            :: div
-    real(RK)            :: dj,di,dorder
-    integer             :: i,j,order
+      real(RK)            :: div
+      real(RK)            :: dj,di,dorder
+      integer             :: i,j,order
 
       order = this%splineorder
 
@@ -19029,7 +19174,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-         !TODO: Check if this should be changed to ErrorApprox
+           !TODO: Check if this should be changed to ErrorApprox
 !          call erfc_approx(KappaRij,approx)
          !Michael: For SPME correct?
          if (dr .ge. 0.0000001) then
@@ -19067,7 +19212,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-         !TODO: Check if this should be changed to ErrorApprox
+           !TODO: Check if this should be changed to ErrorApprox
 !          call erfc_approx(KappaRij,approx)
          !Michael: For SPME correct?
          if (dr .ge. 0.0000001) then
@@ -19091,6 +19236,7 @@ contains
 !!! Michael Sch.: This routine does nothing...no result transferrred no type/class variable safed/changed!
 
    end subroutine TEnsemble_VirialIntra
+
 #endif
 
 
@@ -19175,38 +19321,38 @@ contains
       pFS => this%Component(i)%FS(:,:)
 #endif
 
-
-      pFTC => this%Component(i)%FTC(:,:)
-      pFRC => this%Component(i)%FRC(:,:)
+   
+        pFTC => this%Component(i)%FTC(:,:)
+        pFRC => this%Component(i)%FRC(:,:)
 
       !Michael Sch.: works only for 1unit per molecule, see also interaction.F90
-      do j = 1, np
-        if ( pc%Molecule%IsElongated ) then
-          KinERot(j)= sum( pc%W0(j,1:3, 1) * pc%W0(j,1:3, 1) * pc%Molecule%Unit(1)%MOI(1:3))*0.5_RK
-        end if
-      end do
+        do j = 1, np
+          if ( pc%Molecule%IsElongated ) then
+            KinERot(j)= sum( pc%W0(j,1:3, 1) * pc%W0(j,1:3, 1) * pc%Molecule%Unit(1)%MOI(1:3))*0.5_RK
+          end if
+        end do
 
       do k =1, 3
         ! Calculate sum of terms of the pressure tensor (kinetic and potential)
-        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k))     ! potential part off-diagonal elements of pressure tensor
-        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k))     ! potential part diagonal elements of the pressure tensor
-        this%vbk(Mindex, k)  = this%vbk(Mindex, k) + pc%KinETranTotal(k) !kinetic part diagonal elements of the pressure tensor
-
+        this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! potential part off-diagonal elements of pressure tensor
+        this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! potential part diagonal elements of the pressure tensor
+        this%vbk(Mindex, k)  = this%vbk(Mindex, k) + pc%KinETranTotal(k)!kinetic part diagonal elements of the pressure tensor
+        
         if (Bulkviscosity) then
           this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
         end if
-
+          
+                  
         if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
-          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1) *  sum( pc%KinETran(:,1:3),2 )  ) * 0.5_RK * BoxLength_dt
-          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1)) * BoxLength_dt
+          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*sum( pc%KinETran(:,1:3),2 ) )*0.5_RK*BoxLength_dt
+          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))*BoxLength_dt 
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt
           end if
         end if
-
       end do
 
       ! kinetic part
@@ -19232,21 +19378,23 @@ contains
       virf(:)   = this%sp(:)/StepCorr
     end if
 
+   
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Calculate Auto Correlation Functions      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Calculate Auto Correlation Functions     !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
     if ( mod(StepCorr, this%NSpanCF) .eq. 0 ) then
-      if (StepCorr .gt. this%NCorr) then
+     if (StepCorr .gt. this%NCorr) then
 
-        CFindex = Mindex +1
-        this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+      CFindex = Mindex +1
+      this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
 
-        if (Mindex .eq. this%NCorr) CFindex = 1      !index of t = t0
+      if (Mindex .eq. this%NCorr) CFindex = 1      !index of t = t0
 
-        ! nullify the autocorrelation functions
-        do i = 1, this%NComponents
-          this%cf_d(i, :) = 0._RK
+     ! nullify the autocorrelation functions
+	do i = 1, this%NComponents
+	  this%cf_d(i, :) = 0._RK
         end do
 
         this%cf_vs(:) = 0._RK
@@ -19258,11 +19406,12 @@ contains
  
         if (this%NComponents .gt. 1) then 
           do k = 1, ncomp2
-            this%lamda(k,:) = 0._RK
+             this%lamda(k,:) = 0._RK
           end do
         end if
 
-        ! Preparation of the Autocorrelation function - safe the Startpoints
+
+       ! Preparation of the Autocorrelation function - safe the Startpoints
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
@@ -19276,102 +19425,103 @@ contains
         Sindex(2)=SYindex(2)*BoxLength_dt 
         Sindex(3)=SZindex(2)*BoxLength_dt 
 
-        ! Calculation of all transport properties 
-        ! s .. matrix index of the corresponding values
-!mn        s = CFindex    Has to be set inside of the loop for OMP parallelisation
-        CFtmp=CFindex
+      ! Calculation of all transport properties 
+      ! s .. matrix index of the corresponding values
+!mn      s = CFindex    Has to be set inside of the loop for OMP parallelisation
+      CFtmp=CFindex
 ! Directive inserted by Cray Reveal.  May be incomplete.
 !$OMP  parallel do default(none)                                         &
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
-!$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp            &
-!$OMP&            BoxLength_dt,Sindex,Bulkviscosity)                     &
+!$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp           &
+!$OMP&            BoxLength_dt,Sindex,Bulkviscosity)           &
 !$OMP&   private (sx,sy,sz,ss)
 
-        do nmess= 1, this%NCorr
-          ! Loop over particles         
-          s=CFtmp+nmess-1
-          if (s > this%NCorr) s = s-this%NCorr
-          j0 = 0
-          do i = 1, this%NComponents
-            np = this%Component(i)%NPart
-            this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , this%a(j0+1: j0+np,s) )          &
-&                                 + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , this%a(j0+NPart +1 : j0+NPart +np,s) ) &
-&                                 + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , this%a(j0+NPart2+1 : j0+NPart2+np,s) )
-            if ( this%NComponents .gt. 1 ) then
-              sx(i)  = sum(this%a(j0       +1:j0+np        , s))
-              sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
-              sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
-            end if
-            j0 = j0 + np
-          end do
-
-          ss(1) = sx(2)* BoxLength_dt 
-          ss(2) = sy(2)* BoxLength_dt 
-          ss(3) = sz(2)* BoxLength_dt  
-
-          ! Just loops over components!
-          if (this%NComponents .gt. 1) then
-            nc = this%NComponents
-            k = 1
-            do i = 1, nc
-              do j = 1,nc
-                this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) + SYindex(i)*sy(j) + SZindex(i)*sz(j)
-                k = k + 1
-              end do
-            end do
+      
+      do nmess= 1, this%NCorr
+         ! Loop over particles      
+        s=CFtmp+nmess-1
+        if (s > this%NCorr) s = s-this%NCorr
+        j0 = 0
+        do i = 1, this%NComponents
+          np = this%Component(i)%NPart
+          this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , this%a(j0+1: j0+np,s) )          &
+&                               + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , this%a(j0+NPart +1 : j0+NPart +np,s) ) &
+&                               + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , this%a(j0+NPart2+1 : j0+NPart2+np,s) )
+          if ( this%NComponents .gt. 1 ) then
+            sx(i)  = sum(this%a(j0       +1:j0+np        , s))
+            sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
+            sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
           end if
+          j0 = j0 + np
+        end do
 
-          ! Calculated in general
-          do k = 1, 3
-            ! shear viscosity (off-diagonal elements)
-            this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
-&                                                   this%vsp(CFindex, k)*this%vsp(s, k) + &
-&                                                   this%vsk(CFindex, k)*this%vsp(s, k) + &
-&                                                   this%vsp(CFindex, k)*this%vsk(s, k)
+        ss(1) = sx(2)* BoxLength_dt 
+        ss(2) = sy(2)* BoxLength_dt 
+        ss(3) = sz(2)* BoxLength_dt  
 
-            ! bulk viscosity
-            if (Bulkviscosity) then
-              do j = 1, 3
-                this%cf_vb(nmess) =   this%cf_vb(nmess) + &
+        ! Just loops over components!
+        if (this%NComponents .gt. 1) then
+          nc = this%NComponents
+          k = 1
+          do i = 1, nc
+            do j = 1,nc
+              this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) + SYindex(i)*sy(j) + SZindex(i)*sz(j)
+              k = k + 1
+            end do
+          end do
+        end if
+
+        ! Calculated in general
+        do k = 1, 3
+          ! shear viscosity (off-diagonal elements)
+          this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
+&                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
+&                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
+&                                                 this%vsp(CFindex, k)*this%vsk(s, k)
+
+          ! bulk viscosity
+          if (Bulkviscosity) then
+            do j = 1, 3 
+              this%cf_vb(nmess) =   this%cf_vb(nmess) + &
 &                               ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
 &                               ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
 &                               ( this%vbk(CFindex, j)-tempf(j))*(this%vbp(s, k)-virf(k) ) + &
 &                               ( this%vbp(CFindex, j)-virf(j))*(this%vbk(s, k)-tempf(k) )
-              end do
-            end if
+            end do
+          end if
 
-            ! conductivity
-              this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
-&                                                    this%vckt(CFindex, k)*this%vcpt(s, k) + &
-&                                                    this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                    this%vckt(CFindex, k)*this%vcpr(s, k) + &
-&                                                    this%vckt(CFindex, k)*this%vcmt(s, k) + &
-&                                                    this%vckr(CFindex, k)*this%vckt(s, k) + &
-&                                                    this%vckr(CFindex, k)*this%vcpt(s, k) + &
-&                                                    this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                    this%vckr(CFindex, k)*this%vcpr(s, k) + &
-&                                                    this%vckr(CFindex, k)*this%vcmt(s, k) + &
-&                                                    this%vcpt(CFindex, k)*this%vckt(s, k) + &
-&                                                    this%vcpt(CFindex, k)*this%vcpt(s, k) + &
-&                                                    this%vcpt(CFindex, k)*this%vckr(s, k) + &
-&                                                    this%vcpt(CFindex, k)*this%vcpr(s, k) + &
-&                                                    this%vcpt(CFindex, k)*this%vcmt(s, k) + &
-&                                                    this%vcpr(CFindex, k)*this%vckt(s, k) + &
-&                                                    this%vcpr(CFindex, k)*this%vcpt(s, k) + &
-&                                                    this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                    this%vcpr(CFindex, k)*this%vcpr(s, k) + &
-&                                                    this%vcpr(CFindex, k)*this%vcmt(s, k) + &
-&                                                    this%vcmt(CFindex, k)*this%vckt(s, k) + &
-&                                                    this%vcmt(CFindex, k)*this%vcpt(s, k) + &
-&                                                    this%vcmt(CFindex, k)*this%vckr(s, k) + &
-&                                                    this%vcmt(CFindex, k)*this%vcpr(s, k) + &
-&                                                    this%vcmt(CFindex, k)*this%vcmt(s, k) 
+          ! conductivity
+            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcmt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcmt(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcmt(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) + &
+&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) + &
+&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) + &
+&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
-          end do
+        end do
 
-          ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
-          this%cf_vs(nmess) = this%cf_vs(nmess)+(1._RK/4._RK)*((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+        ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
+          this%cf_vs(nmess) = this%cf_vs(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
 &                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
 &                                                              (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
 &                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
@@ -19380,48 +19530,49 @@ contains
 &                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
 &                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
 
-          !Thermal diffusivity
-          if (this%Ncomponents==2) then
-            do k = 1, 3
-              this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
-&                                                            this%vckr(CFindex, k)*ss(k) + &
-&                                                            this%vcpt(CFindex, k)*ss(k) + &
-&                                                            this%vcpr(CFindex, k)*ss(k) + &
-&                                                            this%vcmt(CFindex, k)*ss(k) + &
-&                                                            Sindex(k)*this%vckt(s, k) + &
-&                                                            Sindex(k)*this%vckr(s, k) + &
-&                                                            Sindex(k)*this%vcpt(s, k) + &
-&                                                            Sindex(k)*this%vcpr(s, k) + &
-&                                                            Sindex(k)*this%vcmt(s, k) 
-            end do
-          end if
 
-          ! electric conductivity
-          if (EConductivity) then
-            j1 = 0
-            do k = 1, this%NComponents
+         !Thermal diffusivity
+	if (this%Ncomponents==2) then
+           do k = 1, 3
+	     this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
+&	               					    this%vckr(CFindex, k)*ss(k) + &
+&		  					    this%vcpt(CFindex, k)*ss(k) + &
+&							    this%vcpr(CFindex, k)*ss(k) + &
+&							    this%vcmt(CFindex, k)*ss(k) + &
+&							    Sindex(k)*this%vckt(s, k) + &
+&							    Sindex(k)*this%vckr(s, k) + &
+&							    Sindex(k)*this%vcpt(s, k) + &
+&							    Sindex(k)*this%vcpr(s, k) + &
+&							    Sindex(k)*this%vcmt(s, k) 
+            end do
+         end if
+
+        ! electric conductivity
+        if (EConductivity) then
+           j1 = 0
+           do k = 1, this%NComponents
               np1 = this%Component(k)%NPart
               if((this%Component(k)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
-                qi = this%Component(k)%Molecule%Charge*UnitCharge/ElementaryCharge
-                do i = 1, np1
-                  j2 = 0
-                  do l = 1, this%NComponents
-                    np2 = this%Component(l)%NPart
-                    if((this%Component(l)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
-                      qj = this%Component(l)%Molecule%Charge*UnitCharge/ElementaryCharge
-                      do j = 1, np2
-                        this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+i, CFindex) * this%a(j2+j, s)
-                        this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart+i, CFindex) * this%a(j2+NPart+j, s)
-                        this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart2+i, CFindex) * this%a(j2+NPart2+j, s)          
-                      end do
-                    endif
-                    j2 = j2 + np2
-                  end do
-                end do  
+                 qi = this%Component(k)%Molecule%Charge*UnitCharge/ElementaryCharge
+                 do i = 1, np1
+                    j2 = 0
+                    do l = 1, this%NComponents
+                       np2 = this%Component(l)%NPart
+                       if( (this%Component(l)%Molecule%Charge) .ne. 0._RK) then !Electric conductivity only defined for charged particles
+                           qj = this%Component(l)%Molecule%Charge*UnitCharge/ElementaryCharge
+                           do j = 1, np2
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+i, CFindex) * this%a(j2+j, s)
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart+i, CFindex) * this%a(j2+NPart+j, s)
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart2+i, CFindex) * this%a(j2+NPart2+j, s)          
+                           end do
+                       endif
+                       j2 = j2 + np2
+                    end do
+                 end do  
               endif 
               j1 = j1 + np1    
-            end do
-          end if 
+           end do
+        end if 
 
 !mn        if (s == this%NCorr) s = 0
 !mn        s = s+1
@@ -19430,7 +19581,7 @@ contains
       this%Mmess  = this%Mmess +1
 
       do i = 1, this%NComponents
-        this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+	 this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
       end do
 
       this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
@@ -19442,10 +19593,11 @@ contains
 
       if (this%NComponents .gt. 1) then 
         do k = 1, ncomp2
-          this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
+           this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
         end do
       end if
 
+      
       ! Call integration for ACF
       call IntCorrFun ( this )
 
@@ -19478,8 +19630,8 @@ contains
     integer  :: ncomp2
     real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
     real(RK) :: x1, x2, x3, w1, w2, MM
-    !real(RK) :: Inv_x1, Inv_x2, Inv_x3
-    !real(RK) :: B11, B12, B21, B22
+!    real(RK) :: Inv_x1, Inv_x2, Inv_x3
+!    real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
@@ -19488,46 +19640,50 @@ contains
     w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
     w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
+    
+
     do i  = 1, this%NComponents
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
-        this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
-        this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
-        this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
-        this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
+      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then 
+         this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
+         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
+         this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
+         this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
       end if
     end do
+
 
     if ( this%NComponents .gt. 1) then
       helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-15) then
-          this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1), this%TimeStepCorr, this%NCorr)
-          this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
-          this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+        if (abs(this%lamda(k, 1)) .gt. 1e-15) then 
+           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
+           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
+           this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
         end if
       end do
-
+      
       k = 1
-      do i = 1, this%NComponents
-        do j = 1, this%NComponents
-          this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
-          k = k +1
-        end do
-      end do
+       do i = 1, this%NComponents
+         do j = 1, this%NComponents
+             this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
+             k = k +1
+         end do
+      end do   
 
     end if
 
 
-    helpvar =  this%Density /(5._RK * this%NPart * this%Temperature)
+    helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
     this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
     this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
     this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
 
-    helpvar = 5._RK / 3._RK * helpvar 
+
+    helpvar = 5._RK / 3._RK * helpvar
     if (this%Bulkviscosity) then
-      this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1), this%TimeStepCorr, this%NCorr )
+      this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1),this%TimeStepCorr, this%NCorr )
       this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
       this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/(3._RK*this%Mmess)
       this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
@@ -19546,6 +19702,7 @@ contains
       this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*MM*this%Temperature*w1*w2)
       this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*MM*2._RK)
     end if
+
 
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
@@ -19575,6 +19732,7 @@ contains
       ! Initialize result
       integral = 0._RK
 
+      
       ! Calculate integral via trapezoid method
       do i = 2, n
         integral(i) = integral(i-1) + values(i) + values(i-1)
@@ -19608,13 +19766,16 @@ contains
         integral(i) = integral(i-2) + values(i) + 4._RK * values(i-1) + values(i-2)
         integral(i-1) = .5_RK * (integral(i) + integral(i-2))
       end do
+      
       if( mod(n, 2) == 0 .and. n > 2 ) integral(n) = integral(n-1) + .5_RK * values(n) + 2._RK * values(n-1) + .5_RK * values(n-2)
       integral = integral * step / 3._RK
+      
 
     end function
 
   end subroutine TEnsemble_IntCorrFun
 #endif
+
 
 #if HBOND > 0
 !==============================================================!
