@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -307,6 +307,7 @@ module ms2_global
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdPermeability                = 'Permeability'
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
+  !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
@@ -755,7 +756,7 @@ module ms2_global
   logical :: TerminateProgram
 
 ! PGF compiler version < 6.0 seems to need this
-! #ifdef _PGF || defined __PGI
+! #ifdef _PGF
 !   ! External funtion for signal handling
 !   external SetTerminateProgram
 ! #endif
@@ -1004,7 +1005,6 @@ contains
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
-!==============================================================!
 
   subroutine Global_printUsage()
     implicit none
@@ -1303,7 +1303,7 @@ contains
       end if
 
       if( narg .ge. argpos ) then
-        ! if present, the third argument should be the input file name
+        ! if present, the third argument should be the output file name
         call getarg( argpos, buffer )
         OutputNameTagfromCommandline = .true.
       else
@@ -1328,6 +1328,7 @@ contains
     ! Open log file
     call LogOpen
 
+    ! Open log file
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1649,8 +1650,6 @@ contains
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
     integer, intent(in), optional :: ErrorCode
-
-    ! Declare local variables 
     integer :: GlobalErrorCode = IdErrorCodeBase
     
     ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
