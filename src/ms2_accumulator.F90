@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -378,7 +378,7 @@ contains
     Tau = 0._RK
     do i = 1, m
       do j = i, n, i
-        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
+        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK ) ! Michael Sch.: for trans NBlockSum was with i*BlockSizeCF before...
         Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
       end do
 #ifdef _PGF
