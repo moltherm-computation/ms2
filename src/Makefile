@@ -122,7 +122,6 @@ OBJS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).o)
 
 MODS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).mod)
 
-
 ########################################
 # Rules to build the target
 #
