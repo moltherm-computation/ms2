@@ -1107,6 +1107,27 @@ contains
     real(RK)          :: dr2Abl
 #endif        
 
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+
     ! Assign local variables
 #ifdef ABL
     VirAblSig = 0.0_RK
@@ -1151,26 +1172,6 @@ contains
     else
       coeff = 1._RK
     end if
-    
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
 !$OMP PARALLEL DEFAULT(SHARED) & 
 #if MPI_VER > 0
@@ -1192,7 +1193,6 @@ contains
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -1213,6 +1213,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -1489,9 +1492,6 @@ loop3:  do j = j0, j1
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
-    real(RK)          :: forceTempX(1:this%Site2%NPart)
-    real(RK)          :: forceTempY(1:this%Site2%NPart)
-    real(RK)          :: forceTempZ(1:this%Site2%NPart)
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
     integer           :: nu1, nu2, jk, unit
@@ -1507,6 +1507,11 @@ loop3:  do j = j0, j1
     integer           :: Bin1, Bin2
     integer           :: tempMin, tempMax
 #endif
+
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:) 
@@ -1541,6 +1546,12 @@ loop3:  do j = j0, j1
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
     FZ2 => this%Site2%FZ
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
 
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -1584,18 +1595,12 @@ loop3:  do j = j0, j1
     Epsilon4 = this%Epsilon4
     Epsilon48 = this%Epsilon48
     RCutoffSquared = this%RCutoffSquaredScaled
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     intra15 = this%potintra15
     intra14 = this%potintra14
-    d2EpotdV2Local= 0._RK
     nu1 = this%NUnit1
     nu2 = this%NUnit2
 
@@ -1665,7 +1670,6 @@ loop3:  do j = j0, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -1725,6 +1729,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -2043,10 +2050,11 @@ loop3:  do j = j0, j1
 
     ! Loop over molecules
     do i = 1, this%Site1%NPart
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
 loop1:do k = 1, this%NInCutoff(unit)
@@ -2144,7 +2152,6 @@ loop1:do k = 1, this%NInCutoff(unit)
       ! Loop over test particles
 !$OMP DO
       do i = i0, i1
-        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -2152,6 +2159,9 @@ loop1:do k = 1, this%NInCutoff(unit)
         PYi = PY1(i)
         PZi = PZ1(i)
         EPotLocal = 0._RK
+
+        unit = nu1*(i-1)+this%Site1%UnitNumber
+
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
@@ -2259,13 +2269,15 @@ loop2:  do j = 1, N2
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
 
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
+    ! Loop over molecules
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
@@ -2490,6 +2502,50 @@ loop2:  do j = 1, N2
     integer           :: tempMin, tempMax
 #endif
 
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+    ! Assign local variables
+#if MPI_VER > 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+#else
+    i1 = this%Site1%NPart
+#endif
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+    Epsilon = this%Epsilon
+    SameComponent = this%SameComponent
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
+    EPotLocalInter = 0._RK
+    VirialLocalInter = 0._RK
+    EPotLocalIntra = 0._RK
+    VirialLocalIntra = 0._RK
+    intra15 = this%potintra15
+    intra14 = this%potintra14
+
 !$OMP PARALLEL &
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE (i0) &
@@ -2499,56 +2555,12 @@ loop2:  do j = 1, N2
 !$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE (eX, eY, eZ  , RijInv, EPotLocal1,  i, j, k)
-
-    ! Assign local variables
-#if MPI_VER > 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-#else
-    i1 = this%Site1%NPart
-#endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
-    EPotLocalInter = 0._RK
-    VirialLocalInter = 0._RK
-    EPotLocalIntra = 0._RK
-    VirialLocalIntra = 0._RK
-    intra15 = this%potintra15
-    intra14 = this%potintra14
-    d2EpotdV2Local= 0._RK
     
     if (intra14) then
       coeff = this%ScaleEl14
     else
       coeff = 1._RK
     end if
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     ! Loop over molecules
 !$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal,d2EpotdV2Local)    
@@ -2557,7 +2569,6 @@ loop2:  do j = 1, N2
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -2579,6 +2590,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -2780,15 +2794,26 @@ loop2:  do m=1,NBinsDen
     integer           :: tempMin, tempMax
 #endif
 
-!$OMP PARALLEL DEFAULT(SHARED) &
-#if MPI_VER > 0
-!$OMP FIRSTPRIVATE ( i0) &
-#endif
-!$OMP PRIVATE (i1, i2) &
-!$OMP PRIVATE ( approx, Fij,KappaRij,RijSquared) &
-!$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
-!$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k)
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
 
     ! Assign local variables
 #if MPI_VER > 0
@@ -2799,16 +2824,16 @@ loop2:  do m=1,NBinsDen
     i1 = this%Site1%NPart
     i2 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     Faktor = 2._RK/sqrt(Pi) * Kappa
     forceTempX(:)=0._RK
     forceTempY(:)=0._RK
     forceTempZ(:)=0._RK
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    SameComponent = this%SameComponent
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -2816,31 +2841,22 @@ loop2:  do m=1,NBinsDen
     intra15 = this%potintra15
     intra14 = this%potintra14
 
+
+!$OMP PARALLEL DEFAULT(SHARED) &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE ( i0) &
+#endif
+!$OMP PRIVATE (i1, i2) &
+!$OMP PRIVATE ( approx, Fij,KappaRij,RijSquared) &
+!$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
+!$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k)
+
     if (intra14) then
       coeff = this%ScaleEl14
     else
       coeff = 1._RK
     end if
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     ! Loop over molecules
 !$OMP DO REDUCTION(+:forceTempX,forceTempY,forceTempZ,EPotLocal,VirialLocal)    
@@ -2849,7 +2865,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -2871,6 +2886,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
  loop1:do k = 1, this%NInCutoff(unit)
          j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -3059,9 +3077,6 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
-    real(RK)          :: forceTempX(1:this%Site2%NPart)
-    real(RK)          :: forceTempY(1:this%Site2%NPart)
-    real(RK)          :: forceTempZ(1:this%Site2%NPart)
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3075,6 +3090,11 @@ loop2:  do m=1,NBinsDen
     integer           :: Bin1, Bin2
     integer           :: tempMin, tempMax
 #endif
+
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+
 #if  TRANS == 1
     !TRANSPORT_start
     real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
@@ -3103,6 +3123,13 @@ loop2:  do m=1,NBinsDen
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
     FZ2 => this%Site2%FZ
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE(  FX1, FY1, FZ1 ) &
@@ -3131,22 +3158,16 @@ loop2:  do m=1,NBinsDen
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
     intra15 = this%potintra15
     intra14 = this%potintra14
-    d2EpotdV2Local= 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -3155,15 +3176,15 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -3208,7 +3229,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -3267,6 +3287,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -3510,9 +3533,6 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     !real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
-    real(RK)          :: forceTempX(1:this%Site2%NPart)
-    real(RK)          :: forceTempY(1:this%Site2%NPart)
-    real(RK)          :: forceTempZ(1:this%Site2%NPart)
     real(RK)          :: approx, Faktor
     real(RK)          :: Fij,KappaRij
     integer           :: i, j, k, i1, i2
@@ -3528,6 +3548,10 @@ loop2:  do m=1,NBinsDen
     integer           :: Bin1, Bin2
     integer           :: tempMin, tempMax
 #endif
+
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -3552,6 +3576,12 @@ loop2:  do m=1,NBinsDen
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
     FZ2 => this%Site2%FZ
+    forceTempX(:)=0._RK   
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+  
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
@@ -3580,16 +3610,11 @@ loop2:  do m=1,NBinsDen
     i1 = this%Site1%NPart
     i2 = this%Site2%NPart
 #endif
+    Epsilon = this%Epsilon
+    Faktor = 2._RK/sqrt(Pi) * Kappa
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    Faktor = 2._RK/sqrt(Pi) * Kappa
-    forceTempX(:)=0._RK   
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal=0._RK
-    VirialLocal=0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -3604,15 +3629,15 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -3640,7 +3665,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -3672,6 +3696,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
  loop1:do k = 1, this%NInCutoff(unit)
          j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -3743,6 +3770,7 @@ loop2:  do m=1,NBinsDen
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+
         forceTempX(jk) = forceTempX(jk) - FXij
         forceTempY(jk) = forceTempY(jk) - FYij
         forceTempZ(jk) = forceTempZ(jk) - FZij
@@ -3906,7 +3934,6 @@ loop2:  do m=1,NBinsDen
 
    ! Loop over test particles
    do i = i0, i1
-     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -3918,6 +3945,8 @@ loop2:  do m=1,NBinsDen
 #if ARCH == 3
         hit = .false.
 #endif
+
+     unit = nu1*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
@@ -4021,13 +4050,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -4057,10 +4087,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
           RijInv = 1._RK / sqrt( RijSquared )
 #endif
-          ELocal = this%Epsilon * RijInv
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
+          ELocal = this%Epsilon * RijInv
         end if
         E1  = E1 + ELocal
       end if
@@ -4153,13 +4183,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -4184,18 +4215,19 @@ loop1:  do k = 1, this%NInCutoff(unit)
           ELocal = 1E33_RK
           tempF(:,su) = 1E33_RK
         else
+        Rij =  sqrt(RijSquared)
 #if ARCH == 3
           RijInv = rsqrt( RijSquared )
 #else
           RijInv = 1._RK / sqrt( RijSquared )
 #endif
-          Rij =  sqrt(RijSquared)
           KappaRij = Kappa*Rij
           call ErrorApprox(this, KappaRij,approx)
-          ELocal = this%Epsilon * RijInv * approx
+
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
+          ELocal = this%Epsilon * RijInv * approx
           Fij  = (ELocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
         end if
         E1  = E1 + ELocal
@@ -4368,6 +4400,23 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -4389,25 +4438,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK  
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
-    d2EpotdV2Local= 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -4416,24 +4456,18 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -4449,7 +4483,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -4471,6 +4504,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -4594,14 +4630,15 @@ loop2:  do m=1,NBinsDen
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
         FZi    = FZi    + FZij
+
         forceTempX(i) = forceTempX(i) - FXij
         forceTempY(i) = forceTempY(i) - FYij
         forceTempZ(i) = forceTempZ(i) - FZij
         momTempX(i) = momTempX(i) - Epsilon1 * eX   
         momTempY(i) = momTempY(i) - Epsilon1 * eY   
-        momTempZ(i) = momTempZ(i) - Epsilon1 * eZ
-      end if
+        momTempZ(i) = momTempZ(i) - Epsilon1 * eZ   
 
+      end if
       FX1(i) = FXi
       FY1(i) = FYi
       FZ1(i) = FZi
@@ -4719,6 +4756,22 @@ loop2:  do m=1,NBinsDen
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -4750,25 +4803,16 @@ loop2:  do m=1,NBinsDen
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK  
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
-    d2EpotdV2Local= 0._RK
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -4777,25 +4821,18 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
-
 #if  TRANS == 1
     !TRANSPORT_start
     VSx => this%Site1%vsCx
@@ -4840,7 +4877,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -4900,6 +4936,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -5190,7 +5229,6 @@ loop2:  do m=1,NBinsDen
 
    ! Loop over test particles
    do i = i0, i1
-     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -5201,6 +5239,8 @@ loop2:  do m=1,NBinsDen
 #if ARCH == 3
      hit = .false.
 #endif
+
+     unit = nu1*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(unit)
@@ -5308,13 +5348,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OZ2 => this%Site2%OZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -5333,6 +5374,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
         RXij = (RXij - anint( PXij )) * BoxLength
         RYij = (RYij - anint( PYij )) * BoxLength
         RZij = (RZij - anint( PZij )) * BoxLength
+        OXj = OX2(jk)
+        OYj = OY2(jk)
+        OZj = OZ2(jk)
         RijSquared = RXij**2 + RYij**2 + RZij**2
 
         if( RijSquared <= this%RShieldSquared ) then
@@ -5340,9 +5384,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         else
           RijSquaredInv = 1._RK / RijSquared
           RijInv = sqrt( RijSquaredInv )
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -5513,9 +5554,22 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
     TX2 => this%Site2%TX
     TY2 => this%Site2%TY
     TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -5537,23 +5591,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -5564,18 +5609,15 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
@@ -5594,7 +5636,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -5616,6 +5657,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -5867,9 +5911,23 @@ loop2:  do m=1,NBinsDen
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
     TX2 => this%Site2%TX
     TY2 => this%Site2%TY
     TZ2 => this%Site2%TZ    
+
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -5900,23 +5958,14 @@ loop2:  do m=1,NBinsDen
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -5927,18 +5976,15 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
@@ -5987,7 +6033,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -6046,6 +6091,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -6340,7 +6388,6 @@ loop2:  do m=1,NBinsDen
 
    ! Loop over test particles
    do i = i0, i1
-     unit = nu1*(i-1)+this%Site1%UnitNumber
      RXi = RX1(i)
      RYi = RY1(i)
      RZi = RZ1(i)
@@ -6353,6 +6400,9 @@ loop2:  do m=1,NBinsDen
         hit = .false.
 #endif
 !CDIR NODEP
+
+     unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -6456,7 +6506,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
 
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     ! Loop over molecules
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
@@ -6464,6 +6513,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -6482,6 +6533,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
         RXij = (RXij - anint( PXij )) * BoxLength                                 ! Abstandsvektor von Q nach C wie bei Price
         RYij = (RYij - anint( PYij )) * BoxLength
         RZij = (RZij - anint( PZij )) * BoxLength
+        OXj = OX2(jk)
+        OYj = OY2(jk)
+        OZj = OZ2(jk)
         RijSquared = RXij**2 + RYij**2 + RZij**2
 
         if( RijSquared <= this%RShieldSquared ) then
@@ -6489,9 +6543,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         else
           RijSquaredInv = 1._RK / RijSquared
           RijInv = sqrt( RijSquaredInv )
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
           eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -6661,6 +6712,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -6683,20 +6744,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -6707,18 +6762,15 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
@@ -6739,7 +6791,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -6767,6 +6818,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -7004,6 +7058,16 @@ loop2:  do m=1,NBinsDen
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon,Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -7026,20 +7090,14 @@ loop2:  do m=1,NBinsDen
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -7050,18 +7108,15 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     PX1 => this%Site1%PX
     PY1 => this%Site1%PY
     PZ1 => this%Site1%PZ
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
@@ -7112,7 +7167,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -7174,6 +7228,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -7203,7 +7260,7 @@ loop1:do k = 1, this%NInCutoff(unit)
         CosTheta3 = 3._RK * CosTheta
         Epsilon1 = Epsilon * RijSquaredInv
         Epsilon2 = Epsilon1 * RijInv
-        EPotlocal1 = - Epsilon1 * CosTheta
+        EPotlocal1 = -Epsilon1 * CosTheta
         EPotLocal  = EPotLocal + EPotLocal1                          ! Uebereinstimmumg mit Price
         EPotLocalInter  = EPotLocalInter + EPotLocal1
         FXij = Epsilon2 * ( OXi - CosTheta3 * eX )                              ! F1 bei Price
@@ -7459,7 +7516,6 @@ loop2:  do m=1,NBinsDen
 
     ! Loop over test particles
     do i = i0, i1
-      unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -7475,6 +7531,9 @@ loop2:  do m=1,NBinsDen
         hit = .false.
 #endif
 !CDIR NODEP
+
+      unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -7574,7 +7633,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -7584,6 +7642,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OXi = this%Site1%OX(np)
     OYi = this%Site1%OY(np)
     OZi = this%Site1%OZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -7789,6 +7849,22 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -7810,6 +7886,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -7820,25 +7897,15 @@ loop1:  do k = 1, this%NInCutoff(unit)
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RFConstant2 = 2._RK * this%RFConstant
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK 
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -7849,30 +7916,24 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -7890,7 +7951,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -7918,6 +7978,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -8062,20 +8125,22 @@ loop2:    do m=1,NBinsDen
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
           forceTempX(i) = forceTempX(i) - FXij
           forceTempY(i) = forceTempY(i) - FYij
           forceTempZ(i) = forceTempZ(i) - FZij
-          TXi    = TXi  + Rij3Inv * (eX * CosThetaj3 - OXj)
-          TYi    = TYi  + Rij3Inv * (eY * CosThetaj3 - OYj)
-          TZi    = TZi  + Rij3Inv * (eZ * CosThetaj3 - OZj)
+          TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
+          TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
+          TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+          
           momTempX(i) = momTempX(i) + Rij3Inv * (eX * CosThetai3 - OXi) 
           momTempY(i) = momTempY(i) + Rij3Inv * (eY * CosThetai3 - OYi)
           momTempZ(i) = momTempZ(i) + Rij3Inv * (eZ * CosThetai3 - OZi)
-        end if
 
+        end if
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -8332,6 +8397,23 @@ loop3:  do j = j0, j1
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared, RFConstant2) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -8360,6 +8442,7 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (i, j, k, i1, j0, j1)
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -8370,25 +8453,15 @@ loop3:  do j = j0, j1
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RFConstant2 = 2._RK * this%RFConstant
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK 
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -8399,30 +8472,24 @@ loop3:  do j = j0, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -8470,7 +8537,6 @@ loop3:  do j = j0, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -8532,6 +8598,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -8611,6 +8680,7 @@ loop2:    do m=1,NBinsDen
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD T
+
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -8620,6 +8690,7 @@ loop2:    do m=1,NBinsDen
           TXi    = TXi    + Rij3Inv * (eX * CosThetaj3 - OXj)
           TYi    = TYi    + Rij3Inv * (eY * CosThetaj3 - OYj)
           TZi    = TZi    + Rij3Inv * (eZ * CosThetaj3 - OZj)
+          
           momTempX(jk) = momTempX(jk) + Rij3Inv * (eX * CosThetai3 - OXi)  
           momTempY(jk) = momTempY(jk) + Rij3Inv * (eY * CosThetai3 - OYi)  
           momTempZ(jk) = momTempZ(jk) + Rij3Inv * (eZ * CosThetai3 - OZi)  
@@ -8991,7 +9062,6 @@ loop3:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = i0, i1
-        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -9007,6 +9077,9 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+
+        unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -9178,15 +9251,14 @@ loop2:  do j = 1, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -9196,6 +9268,8 @@ loop2:  do j = 1, j1
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -9417,6 +9491,22 @@ loop2:  do j = 1, j1
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -9440,6 +9530,7 @@ loop2:  do j = 1, j1
 
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -9450,24 +9541,14 @@ loop2:  do j = 1, j1
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -9478,30 +9559,24 @@ loop2:  do j = 1, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -9519,7 +9594,6 @@ loop2:  do j = 1, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -9547,6 +9621,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -9965,6 +10042,22 @@ loop3:  do j = j0, j1
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -9997,6 +10090,7 @@ loop3:  do j = j0, j1
 
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -10007,24 +10101,14 @@ loop3:  do j = j0, j1
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -10035,30 +10119,24 @@ loop3:  do j = j0, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -10107,7 +10185,6 @@ loop3:  do j = j0, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -10169,6 +10246,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -10644,7 +10724,6 @@ loop3:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = i0, i1
-        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -10659,6 +10738,8 @@ loop3:  do j = j0, j1
         hit = .false.
 #endif
 !CDIR NODEP
+
+        unit = nu1*(i-1)+this%Site1%UnitNumber
 
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
@@ -10833,15 +10914,14 @@ loop2:  do j = 1, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -10851,6 +10931,8 @@ loop2:  do j = 1, j1
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -11067,6 +11149,17 @@ loop2:  do j = 1, j1
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+  
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK   
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -11089,20 +11182,14 @@ loop2:  do j = 1, j1
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK 
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -11113,24 +11200,21 @@ loop2:  do j = 1, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -11145,7 +11229,7 @@ loop2:  do j = 1, j1
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
+
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -11172,6 +11256,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -11421,6 +11508,17 @@ loop2:  do m=1,NBinsDen
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+  
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK   
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX1, OY1, OZ1, TX1, TY1, TZ1) &
@@ -11452,20 +11550,14 @@ loop2:  do m=1,NBinsDen
 #else
     i1 = this%Site1%NPart
 #endif
+    Epsilon = this%Epsilon
     SameComponent = this%SameComponent
     nu1 = this%NUnit1
     nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK 
-    EPotLocal = 0._RK
-    VirialLocal = 0._RK
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -11476,24 +11568,21 @@ loop2:  do m=1,NBinsDen
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -11538,7 +11627,6 @@ loop2:  do m=1,NBinsDen
 #else
     do i = 1, i1
 #endif
-      unit=nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -11601,6 +11689,9 @@ loop0:do m=1,NBinsDen
         end if
       end do loop0
 #endif
+
+      unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
         if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -11669,18 +11760,18 @@ loop2:  do m=1,NBinsDen
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
           d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC T
-
           FXi    = FXi    - FXij
           FYi    = FYi    - FYij
           FZi    = FZi    - FZij
+
           forceTempX(jk) = forceTempX(jk) + FXij
           forceTempY(jk) = forceTempY(jk) + FYij
           forceTempZ(jk) = forceTempZ(jk) + FZij
+
           TXi    = TXi - Epsilon1*CosTheta2*eX  
           ! Drehmomentanteil auf Quadrupol wegen Punktladung. Kreuzprodukt
           TYi    = TYi - Epsilon1*CosTheta2*eY  ! in Atom2Mol von Component
           TZi    = TZi - Epsilon1*CosTheta2*eZ
-
 #if  TRANS == 1
 !TRANSPORT_start
           VSxi   = VSxi + FXij * PYij
@@ -11893,7 +11984,6 @@ loop2:  do m=1,NBinsDen
 
     ! Loop over test particles
     do i = i0, i1
-      unit = nu1*(i-1)+this%Site1%UnitNumber
       RXi = RX1(i)
       RYi = RY1(i)
       RZi = RZ1(i)
@@ -11909,6 +11999,9 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+
+      unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -12009,7 +12102,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -12019,6 +12111,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     OXi = this%Site1%OX(np)
     OYi = this%Site1%OY(np)
     OZi = this%Site1%OZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -12223,6 +12317,22 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: tempMin, tempMax
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -12245,6 +12355,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -12255,24 +12366,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -12283,30 +12384,24 @@ loop1:  do k = 1, this%NInCutoff(unit)
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ 
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -12324,7 +12419,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -12352,6 +12446,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -12502,6 +12599,7 @@ loop2:    do m=1,NBinsDen
           FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                    + (eZ * CosThetaj - OZj) * dCosThetaj)
           FZij = FZij * coeff
+
           VirialLocal = VirialLocal + FXij * PXij + FYij * PYij + FZij * PZij
           VirialLocalIntra = VirialLocalIntra + FXij * PXij + FYij * PYij + FZij * PZij
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -12772,6 +12870,23 @@ loop3:  do j = j0, j1
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -12804,6 +12919,7 @@ loop3:  do j = j0, j1
 
 
     ! Assign local variables
+    SameComponent = this%SameComponent
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -12814,24 +12930,14 @@ loop3:  do j = j0, j1
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -12842,30 +12948,24 @@ loop3:  do j = j0, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    FX1 => this%Site1%FX
-    FY1 => this%Site1%FY
-    FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     OX1 => this%Site1%OX
     OY1 => this%Site1%OY
     OZ1 => this%Site1%OZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
     TX1 => this%Site1%TX
     TY1 => this%Site1%TY
     TZ1 => this%Site1%TZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ 
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -12912,7 +13012,6 @@ loop3:  do j = j0, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -12975,6 +13074,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -13456,7 +13558,6 @@ loop3:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO
       do i = i0, i1
-        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -13473,6 +13574,8 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+        unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -13645,15 +13748,14 @@ loop2:  do j = 1, j1
     RX2 => this%Site2%RX
     RY2 => this%Site2%RY
     RZ2 => this%Site2%RZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
     OX2 => this%Site2%OX
     OY2 => this%Site2%OY
     OZ2 => this%Site2%OZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -13663,6 +13765,8 @@ loop2:  do j = 1, j1
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
@@ -13890,58 +13994,6 @@ loop2:  do j = 1, j1
     integer           :: tempMin, tempMax
 #endif
 
-!$OMP PARALLEL &
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
-#if MPI_VER > 0
-!$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
-#endif
-!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
-!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
-!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
-!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
-!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
-!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
-!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
-!$OMP PRIVATE (EPotLocal1, Plen2, sitecorr)
-
-    ! Assign local variables
-    i = 0   !why needed here,in QQ, but not in all other force-routines
-    j = 0
-    k = 0
-    j0= 0
-#if MPI_VER > 0
-    N1 = this%Site2%NPart
-    N2 = N1 / 2
-    EvenN = mod( N1, 2 ) == 0
-    i0 = this%Site1%NPart0
-    i1 = this%Site1%NPart2
-    ji = 0
-    j1 = 0
-#else
-    i1 = this%Site1%NPart
-    j1 = this%Site2%NPart
-#endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK 
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
-    EPotLocalInter   = 0._RK
-    VirialLocalInter = 0._RK
-    EPotLocalIntra   = 0._RK
-    VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
-    intra14 = this%potintra14
-    intra15 = this%potintra15
-
     ! Assign pointers
     RX1 => this%Site1%RX
     RY1 => this%Site1%RY
@@ -13974,6 +14026,59 @@ loop2:  do j = 1, j1
     TY2 => this%Site2%TY
     TZ2 => this%Site2%TZ    
 
+    ! Assign local variables
+    SameComponent = this%SameComponent
+    Epsilon = this%Epsilon
+    RCutoffSquared = this%RCutoffSquared
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+    i = 0
+    j = 0
+    k = 0
+    j0= 0
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+    ji = 0
+    j1 = 0
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+
+!$OMP PARALLEL &
+!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+#if MPI_VER > 0
+!$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
+#endif
+!$OMP PRIVATE (RXi, RYi, RZi, OXi, OYi, OZi,  FXi, FYi, FZi) &
+!$OMP PRIVATE (TXi, TYi, TZi, PXi, PYi, PZi,  RXij, RYij, RZij) &
+!$OMP PRIVATE (OXj, OYj, OZj, FXij, FYij, FZij, PXij, PYij, PZij) &
+!$OMP PRIVATE (eX, eY, eZ, RijSquared, RijInv, Rij5Inv) &
+!$OMP PRIVATE (CosThetai, CosThetaj, CosGammaij) &
+!$OMP PRIVATE (CosThetaiSquared, CosThetajSquared) &
+!$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
+!$OMP PRIVATE (EPotLocal1, Plen2, sitecorr) 
+
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
+    EPotLocalInter   = 0._RK
+    VirialLocalInter = 0._RK
+    EPotLocalIntra   = 0._RK
+    VirialLocalIntra = 0._RK
+    intra14 = this%potintra14
+    intra15 = this%potintra15
+
     if (intra14) then
       coeff = this%ScaleEl14
     else
@@ -13990,7 +14095,6 @@ loop2:  do j = 1, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -14018,6 +14122,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -14486,6 +14593,23 @@ loop3:  do j = j0, j1
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+    TX2 => this%Site2%TX
+    TY2 => this%Site2%TY
+    TZ2 => this%Site2%TZ    
+
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    momTempX(:)=0._RK
+    momTempY(:)=0._RK
+    momTempZ(:)=0._RK    
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+
 !$OMP PARALLEL &
 !$OMP PRIVATE (Epsilon,  RCutoffSquared) &
 !$OMP PRIVATE (RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -14515,6 +14639,7 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (i, j, k, i1, j0, j1)
 
     ! Assign local variables
+    SameComponent = this%SameComponent
     i = 0   !why needed here,in QQ, but not in all other force-routines
     j = 0
     k = 0
@@ -14531,24 +14656,14 @@ loop3:  do j = j0, j1
     i1 = this%Site1%NPart
     j1 = this%Site2%NPart
 #endif
-    SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    forceTempX(:)=0._RK
-    forceTempY(:)=0._RK
-    forceTempZ(:)=0._RK
-    momTempX(:)=0._RK
-    momTempY(:)=0._RK
-    momTempZ(:)=0._RK 
-    EPotLocal   = 0._RK
-    VirialLocal = 0._RK
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
-    d2EpotdV2Local= 0._RK
     intra14 = this%potintra14
     intra15 = this%potintra15
 
@@ -14577,12 +14692,6 @@ loop3:  do j = j0, j1
     PX2 => this%Site2%PX
     PY2 => this%Site2%PY
     PZ2 => this%Site2%PZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
-    TX2 => this%Site2%TX
-    TY2 => this%Site2%TY
-    TZ2 => this%Site2%TZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -14630,7 +14739,6 @@ loop3:  do j = j0, j1
 #else
       do i = 1, i1
 #endif
-        unit=nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -14693,6 +14801,9 @@ loop0:  do m=1,NBinsDen
           end if
         end do loop0
 #endif
+
+        unit=nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
@@ -15214,7 +15325,6 @@ loop3:  do j = j0, j1
       ! Loop over test particles
 !$OMP DO 
       do i = i0, i1
-        unit = nu1*(i-1)+this%Site1%UnitNumber
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
@@ -15231,6 +15341,9 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+
+        unit = nu1*(i-1)+this%Site1%UnitNumber
+
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -15435,7 +15548,6 @@ loop2:  do j = 1, j1
     PZ2 => this%Site2%PZ
 
     ! Loop over molecules
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
     RXi = this%Site1%RX(np)
     RYi = this%Site1%RY(np)
     RZi = this%Site1%RZ(np)
@@ -15445,6 +15557,8 @@ loop2:  do j = 1, j1
     PXi = this%Site1%PX(np)
     PYi = this%Site1%PY(np)
     PZi = this%Site1%PZ(np)
+
+    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
 
     do k = 1, this%NInCutoff(unit)
       j = this%CutoffPartner(k, unit)
