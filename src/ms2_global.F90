@@ -257,8 +257,8 @@ module ms2_global
   character(*), parameter :: IdNStepsMCOR                  = 'MCORSteps'
   character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
   character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
-  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
+  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
   character(*), parameter :: IdNStepsH                     = 'NPHSteps'  
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
@@ -613,15 +613,15 @@ module ms2_global
   ! Number of MC overlap reduction steps
   integer :: NStepsMCOR
 
+  ! Number of NVT equilibration time steps
+  integer :: NStepsV
+
   ! Number of energy minimization steps; 1. rigid type, 2. flexible type
   integer :: NStepsrigEmin
   integer :: NStepsflexEmin
 
   ! Number of NVE equilibration time steps
   integer :: NStepsE
-
-  ! Number of NVT equilibration time steps
-  integer :: NStepsV
 
   ! Number of NPT equilibration time steps
   integer :: NStepsP
@@ -840,6 +840,24 @@ module ms2_global
     module procedure Global_FileReset
   end interface
 
+# if MPI_VER > 0 
+  interface FileRewrite_parallel
+    module procedure Global_FileRewrite_parallel
+  end interface
+
+  interface FileWriteNoAdvance_parallel
+    module procedure Global_FileWriteNoAdvance_parallel
+  end interface
+
+  interface FileAppend_parallel
+    module procedure Global_FileAppend_parallel
+  end interface
+
+  interface FileClose_parallel
+    module procedure Global_FileClose_parallel
+  end interface
+#endif
+
   interface FileRewind
    module procedure Global_FileRewind !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
   end interface
@@ -867,24 +885,6 @@ module ms2_global
   interface FileWriteBlank
     module procedure Global_FileWriteBlank
   end interface
-
-# if MPI_VER > 0 
-  interface FileRewrite_parallel
-    module procedure Global_FileRewrite_parallel
-  end interface
-
-  interface FileWriteNoAdvance_parallel
-    module procedure Global_FileWriteNoAdvance_parallel
-  end interface
-
-  interface FileAppend_parallel
-    module procedure Global_FileAppend_parallel
-  end interface
-
-  interface FileClose_parallel
-    module procedure Global_FileClose_parallel
-  end interface
-#endif
 
   ! backward compatible version of FileReadParameter
   interface FileReadParameter_IOBuffer
