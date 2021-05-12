@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -266,7 +266,7 @@ contains
 
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
-    ! Read ms2VersionNr
+    ! Read parVersionNr
     call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1._RK )
     if (.not. parVersionNr .eq. 1.0_RK ) then
       write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
@@ -1447,8 +1447,6 @@ contains
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
       SimulationType = MonteCarlo
-     ! Michael Sch.: to improve energy minimization for flexible systems "UseIntDegFreed" should be set to false.....to be tested
-
       call Timer_setTag(RunStepsTimer,"MC overlap reduction")
       call start_Timer(RunStepsTimer)
       call logwritestart_Timer(RunStepsTimer)
@@ -1563,7 +1561,7 @@ eqloop: do
         call LogWriteTime
         StepStart = 1
       end if
-      ! Run GE, NVE, NPT or NPH equilibration
+      ! Run GE, NpT or NVE equilibration
       if( Equilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
@@ -1801,22 +1799,7 @@ eqloop: do
                 call MPI_Allreduce( pi%Virial(1:n1, 1:n2) ,pi%VirialNew(1:n1, 1:n2), n1*n2 , &
 &                    MPI_RK, MPI_SUM, Communicator, ierror )
                 pi%Virial(1:n1, 1:n2)  =  pi%VirialNew(1:n1, 1:n2)
-              end if
-
-!              if ( pi%SameComponent .and. UseIntDegFreed ) then
-!                n1 = pi%NPart1 * pi%NAngle
-!                n2 = pi%NPart1 * pi%NDihedral
-!                if (n1 .gt. 0) then
-!                  call MPI_Allreduce( pi%EPotAngle(1:n1), pi%EPotAngleNew(1:n1), n1 , &
-!&                      MPI_RK, MPI_SUM, Communicator, ierror )
-!                  pi%EPotAngle(1:n1) =  pi%EPotAngleNew(1:n1)
-!                endif
-!                if (n2 .gt. 0) then
-!                  call MPI_Allreduce( pi%EPotTo(1:n2), pi%EPotToNew(1:n2), n2 , &
-!&                      MPI_RK, MPI_SUM, Communicator, ierror )
-!                  pi%EPotTo(1:n2) =  pi%EPotToNew(1:n2)
-!                endif
-!              endif
+              endif
             end do
           end do
       end do
@@ -1930,7 +1913,7 @@ eqloop: do
        call LogWriteTime
        
        NGradInsInit = 1      
-       do j= 1, this%firstEnsembleIdx, this%lastEnsembleIdx 
+       do j= 1, this%firstEnsembleIdx, this%lastEnsembleIdx  
         do i = 1, this%Ensemble(j)%NComponents
          NGradInsInit = NGradInsInit + this%Ensemble(j)%Component(i)%GradInsInit
         end do 
@@ -2187,11 +2170,11 @@ eqloop: do
       ! Check for too many particles (GE only)
       if ( tooManyParticles ) exit
 
-    end do ! end do simulation steps
+    end do
 
 #if MPI_VER > 0
     if (NCommunicators > 1 ) then
-      ! clean up
+      ! clean up (but don't use MPI_Cancel)
       if ( RootProc ) then
         if ( RootProc_R ) then
           call MPI_Reduce( MPI_IN_PLACE, numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
@@ -2212,9 +2195,10 @@ eqloop: do
             if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
-        else
+        else ! .not.RootProc_R
+          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then	! only works if NRootProc_R.ne.1 (NRootProc_R==0)
           if ( .not. doneMsgTerm ) then
-            ! at least one terminate message should be sent to serve the RootProc_R irecv
+            ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
               call LogWriteTime
