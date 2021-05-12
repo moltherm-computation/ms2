@@ -49,14 +49,10 @@ module ms2_component
     ! Positions and orientations for units of test particles
     real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
 
-    ! Intramolecular energy of test particles
-    real(RK), pointer, contiguous :: EPotTestIntra(:)
-
     ! Centers of mass positions for molecules
     real(RK), pointer, contiguous :: Pm0(:, :)
     real(RK), pointer, contiguous :: P0Save( :, :, :)
     real(RK), pointer, contiguous :: Pm0old(:, :)
-
     ! Centers of mass positions and their derivatives for Units
     real(RK), pointer, contiguous :: P0(:, :, :)
     real(RK), pointer, contiguous :: P1(:, :, :)
@@ -80,6 +76,9 @@ module ms2_component
     real(RK), pointer, contiguous :: W2(:, :, :)
     real(RK), pointer, contiguous :: W3(:, :, :)
     real(RK), pointer, contiguous :: W4(:, :, :)
+
+    ! Intramolecular energy of test particles
+    real(RK), pointer, contiguous :: EPotTestIntra(:)
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
@@ -516,9 +515,6 @@ contains
     character( IOBufferLength ) :: str
     integer                     :: stat
 
-    ! Read file name for potential model
-    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
-
     ! Allocate number of particles in component
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
@@ -541,6 +537,8 @@ contains
     allocate( this%NTest2, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
+    ! Read file name for potential model
+    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
     write( IOBuffer, '(72(1H-))')
@@ -1265,11 +1263,11 @@ contains
     ntest = this%NTest
 
     ! Nullify pointers
+    nullify( this%P0 )
     nullify( this%EPotTestIntra )
     nullify( this%Pm0 )
     nullify( this%P0Save )
     nullify( this%Pm0old )
-    nullify( this%P0 )
     nullify( this%P1 )
     nullify( this%P2 )
     nullify( this%P3 )
@@ -1281,9 +1279,9 @@ contains
     nullify( this%FAll )
     nullify( this%NAdd )
 #endif
+    nullify( this%Q0 )
     nullify( this%Q0Save )
     nullify( this%Q0tmp )
-    nullify( this%Q0 )
     nullify( this%Q1 )
     nullify( this%Q2 )
     nullify( this%Q3 )
@@ -1565,10 +1563,10 @@ contains
     do i = 1, this%Molecule%NLJ126
       this%Molecule%SiteLJ126(i)%NPartMax => this%NPartMax
       this%Molecule%SiteLJ126(i)%NPart => this%NPart
+      this%Molecule%SiteLJ126(i)%NTest => this%NTest
       this%Molecule%SiteLJ126(i)%NPart0 => this%NPart0
       this%Molecule%SiteLJ126(i)%NPart1 => this%NPart1
       this%Molecule%SiteLJ126(i)%NPart2 => this%NPart2
-      this%Molecule%SiteLJ126(i)%NTest => this%NTest
       this%Molecule%SiteLJ126(i)%NTest0 => this%NTest0
       this%Molecule%SiteLJ126(i)%NTest1 => this%NTest1
       this%Molecule%SiteLJ126(i)%NTest2 => this%NTest2
@@ -1586,10 +1584,10 @@ contains
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
+      this%Molecule%SiteCharge(i)%NTest => this%NTest
       this%Molecule%SiteCharge(i)%NPart0 => this%NPart0
       this%Molecule%SiteCharge(i)%NPart1 => this%NPart1
       this%Molecule%SiteCharge(i)%NPart2 => this%NPart2
-      this%Molecule%SiteCharge(i)%NTest => this%NTest
       this%Molecule%SiteCharge(i)%NTest0 => this%NTest0
       this%Molecule%SiteCharge(i)%NTest1 => this%NTest1
       this%Molecule%SiteCharge(i)%NTest2 => this%NTest2
@@ -1607,10 +1605,10 @@ contains
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteDipole(i)%NPart => this%NPart
+      this%Molecule%SiteDipole(i)%NTest => this%NTest
       this%Molecule%SiteDipole(i)%NPart0 => this%NPart0
       this%Molecule%SiteDipole(i)%NPart1 => this%NPart1
       this%Molecule%SiteDipole(i)%NPart2 => this%NPart2
-      this%Molecule%SiteDipole(i)%NTest => this%NTest
       this%Molecule%SiteDipole(i)%NTest0 => this%NTest0
       this%Molecule%SiteDipole(i)%NTest1 => this%NTest1
       this%Molecule%SiteDipole(i)%NTest2 => this%NTest2
@@ -1628,10 +1626,10 @@ contains
     do i = 1, this%Molecule%NQuadrupole
       this%Molecule%SiteQuadrupole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteQuadrupole(i)%NPart => this%NPart
+      this%Molecule%SiteQuadrupole(i)%NTest => this%NTest
       this%Molecule%SiteQuadrupole(i)%NPart0 => this%NPart0
       this%Molecule%SiteQuadrupole(i)%NPart1 => this%NPart1
       this%Molecule%SiteQuadrupole(i)%NPart2 => this%NPart2
-      this%Molecule%SiteQuadrupole(i)%NTest => this%NTest
       this%Molecule%SiteQuadrupole(i)%NTest0 => this%NTest0
       this%Molecule%SiteQuadrupole(i)%NTest1 => this%NTest1
       this%Molecule%SiteQuadrupole(i)%NTest2 => this%NTest2
@@ -2340,6 +2338,9 @@ contains
     end if
 
     ! Centers of mass positions and their derivatives
+    if( associated( this%P0 ) ) then
+      deallocate( this%P0 )
+    end if
     if( associated( this%Pm0 ) ) then
       deallocate( this%Pm0 )
     end if
@@ -2348,9 +2349,6 @@ contains
     end if
     if( associated( this%Pm0old ) ) then
       deallocate( this%Pm0old )
-    end if
-    if( associated( this%P0 ) ) then
-      deallocate( this%P0 )
     end if
     if( associated( this%P1 ) ) then
       deallocate( this%P1 )
@@ -2378,14 +2376,15 @@ contains
       deallocate( this%F )
     end if
 
+    ! Quaternion parameters and their derivatives
+    if( associated( this%Q0 ) ) then
+      deallocate( this%Q0 )
+    end if
     if( associated( this%Q0Save ) ) then
       deallocate( this%Q0Save )
     end if
     if( associated( this%Q0tmp ) ) then
       deallocate( this%Q0tmp )
-    end if
-    if( associated( this%Q0 ) ) then
-      deallocate( this%Q0 )
     end if
     if( associated( this%Q1 ) ) then
       deallocate( this%Q1 )
@@ -2870,7 +2869,6 @@ contains
 
     nu = this%Molecule%NUnit
     this%EKinTran = 0._RK
-    this%EKinRot = 0._RK
 
     ! Calculate translational kinetic energy
     do  k = 1,  nu
@@ -2879,6 +2877,7 @@ contains
     end do
 
     ! Calculate rotational kinetic energy
+    this%EKinRot = 0._RK
     do k = 1, nu
       do i = 1, this%Molecule%Unit(k)%NDFRot
         this%EKinRot = this%EKinRot + this%Molecule%Unit(k)%MOI(i) * .5_RK &
@@ -3144,12 +3143,12 @@ contains
       PX = this%P0(np, 1, nu)
       PY = this%P0(np, 2, nu)
       PZ = this%P0(np, 3, nu)
+
+      ! Normalise quaternions
       q1 = this%Q0(np, 1, nu)
       q2 = this%Q0(np, 2, nu)
       q3 = this%Q0(np, 3, nu)
       q4 = this%Q0(np, 4, nu)
-
-      ! Normalise quaternions
 #if ARCH == 3
       qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
@@ -3231,6 +3230,7 @@ contains
         pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
       end do
 
+      ! Rotate total dipole moment
       if( CutoffMode .eq. CenterofMass ) then
         mue1 = this%Molecule%Unit(nu)%Mue(1)
         mue2 = this%Molecule%Unit(nu)%Mue(2)
@@ -3240,7 +3240,7 @@ contains
         this%MueZ(np, nu) = mue1 * A13 + mue2 * A23 + mue3 * A33
       end if
 
-    else ! If unit is not elongated
+    else
 
       ! Loop over LJ126 sites in molecule
       do i = 1, this%Molecule%Unit(nu)%NLJ126
@@ -4377,8 +4377,8 @@ contains
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#if  TRANS == 1
 
+#if  TRANS == 1
 ! Transport  !TRANSPORT_start
     call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -4634,11 +4634,6 @@ loop1:do i = 1, this%NPart
 
     if( this%Molecule%isElongated ) then
 
-#if MPI_VER > 0
-      pT => this%TAll(:, :, :)
-#else
-      pT => this%T(:, :, :)
-#endif
     end if
 
     ! Correct quaternion parameters and their derivatives
@@ -4668,6 +4663,11 @@ loop1:do i = 1, this%NPart
         end do
 
         ! Correct angular velocities and their derivatives
+#if MPI_VER > 0
+        pT => this%TAll(:, :, :)
+#else
+        pT => this%T(:, :, :)
+#endif
         TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
         TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
 
