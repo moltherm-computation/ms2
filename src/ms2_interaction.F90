@@ -892,14 +892,14 @@ contains
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
+      allocate( this%d2EpotdV21(N2), STAT = stat )
+      call AllocationError( stat, 'particles', N2 )
       allocate( this%EPot1(N2), STAT = stat )
       call AllocationError( stat, 'units*particles', this%NPartMax )
       if ( this%OptPressure ) then
         allocate( this%Virial1(N2), STAT = stat )
         call AllocationError( stat, 'units*particles', this%NPartMax )
       end if
-      allocate( this%d2EpotdV21(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
 
       allocate( this%MayerFFunction(NSteps), STAT = stat )
       call AllocationError( stat, 'Mayer f-function' )
@@ -1762,6 +1762,10 @@ contains
     logical           :: SameComponent
     logical           :: OptPressure
 
+    ! Zero energy
+    EPot => this%EPot1
+    EPot(:) = 0._RK
+    
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this, np, nu )
@@ -1772,7 +1776,6 @@ contains
 
     ! Assign local variables
     SameComponent = this%SameComponent
-    EPot => this%EPot1
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
     OptPressure = this%OptPressure
     if ( OptPressure ) then
@@ -1797,9 +1800,6 @@ contains
 
     ! d2Epot/dV2
     d2EpotdV2(:) = 0._RK
-
-    ! Zero energy
-    EPot(:) = 0._RK
 
     if ( OptPressure ) then
       ! Zero virial
@@ -2863,9 +2863,6 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
