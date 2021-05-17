@@ -3686,10 +3686,9 @@ contains
 
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #if  TRANS == 1
 
 ! Transport  !TRANSPORT_start
@@ -4150,11 +4149,14 @@ contains
           this%F(i, 2, k) = this%F(i, 2, k) + fy
           this%F(i, 3, k) = this%F(i, 3, k) + fz
           this%T(i, 1, k) = this%T(i, 1, k) + pDipole%OY(i) * pDipole%TZ(i) &
-&                                     - pDipole%OZ(i) * pDipole%TY(i) + r1y * fz - r1z * fy
+&                                     - pDipole%OZ(i) * pDipole%TY(i) &
+&                                     + r1y * fz - r1z * fy
           this%T(i, 2, k) = this%T(i, 2, k) + pDipole%OZ(i) * pDipole%TX(i) &
-&                                     - pDipole%OX(i) * pDipole%TZ(i) + r1z * fx - r1x * fz
+&                                     - pDipole%OX(i) * pDipole%TZ(i) &
+&                                     + r1z * fx - r1x * fz
           this%T(i, 3, k) = this%T(i, 3, k) + pDipole%OX(i) * pDipole%TY(i) &
-&                                     - pDipole%OY(i) * pDipole%TX(i) + r1x * fy - r1y * fx
+&                                     - pDipole%OY(i) * pDipole%TX(i) &
+&                                     + r1x * fy - r1y * fx
 #if  TRANS == 1
          !TRANSPORT_start
           this%FS(i, 1)= this%FS(i, 1)+ vsx
@@ -4231,11 +4233,14 @@ contains
           this%F(i, 2, k) = this%F(i, 2, k) + fy
           this%F(i, 3, k) = this%F(i, 3, k) + fz
           this%T(i, 1, k) = this%T(i, 1, k) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
-&                                     - pQuadrupole%OZ(i) * pQuadrupole%TY(i) + r1y * fz - r1z * fy
+&                                     - pQuadrupole%OZ(i) * pQuadrupole%TY(i) &
+&                                     + r1y * fz - r1z * fy
           this%T(i, 2, k) = this%T(i, 2, k) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
-&                                     - pQuadrupole%OX(i) * pQuadrupole%TZ(i) + r1z * fx - r1x * fz
+&                                     - pQuadrupole%OX(i) * pQuadrupole%TZ(i) &
+&                                     + r1z * fx - r1x * fz
           this%T(i, 3, k) = this%T(i, 3, k) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
-&                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) + r1x * fy - r1y * fx
+&                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
+&                                     + r1x * fy - r1y * fx
 #if  TRANS == 1
   !TRANSPORT_start
           this%FS(i, 1)= this%FS(i, 1)+ vsx
@@ -4373,8 +4378,7 @@ contains
 
     ! Reduce forces and torques from all processes
 #if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 
@@ -4477,12 +4481,9 @@ loop1:do i = 1, this%NPart
     do k = 1, nu
       do j = 1, 3
         do i = 1, np
-          this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
-&                          + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
-          this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
-&                          + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
-          this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
-&                          +10._RK * this%P5(i, j, k)
+          this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
+          this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+          this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) + 10._RK * this%P5(i, j, k)
           this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
           this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
         end do
@@ -4521,10 +4522,8 @@ loop1:do i = 1, this%NPart
         ! Predict quaternion parameters and their derivatives
         do j = 1, 4
           do i = 1, np
-            this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
-  &                           + this%Q3(i, j, k) + this%Q4(i, j, k)
-            this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
-  &                           + 4._RK * this%Q4(i, j, k)
+            this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) + this%Q3(i, j, k) + this%Q4(i, j, k)
+            this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
             this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
             this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
           end do
@@ -4533,10 +4532,8 @@ loop1:do i = 1, this%NPart
         ! Predict angular velocities and their derivatives
         do j = 1, this%Molecule%Unit(k)%NDFRot
           do i = 1, np
-            this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
-  &                           + this%W3(i, j, k) + this%W4(i, j, k)
-            this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
-  &                           + 4._RK * this%W4(i, j, k)
+            this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) + this%W3(i, j, k) + this%W4(i, j, k)
+            this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
             this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
             this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
           end do
@@ -4590,9 +4587,8 @@ loop1:do i = 1, this%NPart
         do i = 1, np
           Corr0(j) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv
 
-          if( ConstantPressure .and. .not. NVTEquilibration ) then
-            Corr0(j) = Corr0(j) - this%P1(i, j, k) * dLogVolumeThird
-          end if
+          if( ConstantPressure .and. .not. NVTEquilibration ) Corr0(j) = Corr0(j) &
+&             - this%P1(i, j, k) * dLogVolumeThird
 
           Corr1 = Corr0(j) - this%P2(i, j, k)
           this%P0(i, j, k) = this%P0(i, j, k) + Corr1 * Gear20
@@ -5279,7 +5275,8 @@ loop1:do i = 1, this%NPart
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-      write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
+      write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
+&       this%NMoveBiasedSuccesses
       if ( UseIntDegFreed ) then
         write( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
         write( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
@@ -5580,7 +5577,8 @@ loop1:do i = 1, this%NPart
     call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) then
-      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     end if
 
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
