@@ -424,6 +424,15 @@ module ms2_global
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+
+#if CONSTR > 0
+  character(*), parameter :: IdNCons                       = 'NConstr'
+  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
+  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
+  character(*), parameter :: IdCons1                       = 'Constr1'
+  character(*), parameter :: IdCons2                       = 'Constr2'
+  character(*), parameter :: IdConsR                       = 'ConstrDist'
+#endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
