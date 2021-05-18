@@ -345,10 +345,6 @@ module ms2_component
     module procedure TComponent_RemoveNetMomentum
   end interface
 
-  interface SlowExceptions
-    module procedure TComponent_SlowExceptions
-  end interface
-
   interface CalculateEKin
     module procedure TComponent_CalculateEKin
   end interface
@@ -5786,51 +5782,6 @@ subroutine TComponent_ForceTransport( this )
   end subroutine TComponent_CorrectGear_Constraint
 
 #endif
-
-
-
-!==============================================================!
-!  Subroutine TComponent_SlowExceptions                        !
-!==============================================================!
-
-  subroutine TComponent_SlowExceptions( this, maxmolEkin )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    real(RK),intent(in) :: maxmolEkin
-
-    ! Declare local variables
-    integer  :: i, j, k, nu
-    real(RK) :: Ekin, slowing
-
-    nu = this%Molecule%NUnit
-
-    ! Loop over all molecules
-    do i = 1, this%NPart
-      Ekin = 0._RK
-      do  k = 1, nu
-        ! Calculate translational kinetic energy
-        Ekin = Ekin+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
-&           * sum( this%P1(i, :, k)**2 ) * this%BoxLength**2
-        ! Calculate rotational kinetic energy
-        do j = 1, this%Molecule%Unit(k)%NDFRot
-          Ekin = Ekin + this%Molecule%Unit(k)%MOI(j) * .5_RK &
-&             *  this%W0(i, j, k)**2
-        end do
-      end do
-      ! Check for too fast molecules
-      if (Ekin > maxmolEkin) then
-        slowing = sqrt( 0.7_RK*maxmolEkin / Ekin )
-        !write( IOBuffer, '("Molecule ", I4, " is to fast by a factor of ", F9.6,"; slowing it down.")' ) i, slowing ! Michael DEBUG
-        !call LogWrite
-        this%P1(i, :, :) = this%P1(i, :, :) * slowing
-        if( this%Molecule%isElongated ) this%W0(i, :, :) = this%W0(i, :, :) * slowing
-      end if
-    end do
-
-  end subroutine TComponent_SlowExceptions
 
 
 !==============================================================!
