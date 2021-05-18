@@ -2887,8 +2887,8 @@ contains
     ! Declare local variables
     real(RK)                  :: s
     type(TComponent), pointer :: pc
-    integer                   :: i, j, t
-    integer                   :: k, NUnitMax
+    integer                   :: i,t
+    integer                   :: k, j,  NUnitMax
 
     ! Adjust number of cells to cube of integer
     if( this%NPart < NPartInCell ) this%NPart = NPartInCell
@@ -3192,6 +3192,7 @@ contains
     ! Declare local variables
     integer :: i
     integer :: stat
+    integer :: number
 #if TRANS ==1
     integer :: NPart3
     integer :: NComp2
@@ -4444,9 +4445,9 @@ loop:do l = 1, NPartInCell
     logical         :: rescale
 
     ! Declare local variables
-    integer                   :: i, np
+    integer                   :: i
+    integer                   :: np
     real(RK)                  :: scale, Reference
-    real(RK)                  :: maxmolEkin
     type(TComponent), pointer :: pc
 
     ! Check for root process
@@ -4579,7 +4580,8 @@ loop:do l = 1, NPartInCell
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer :: i, j, k, nc, np
+    integer :: i, k, nc, np
+    integer :: j     !debug
     real(RK) :: diffpressure
 
     ! Zero displacement
@@ -4691,8 +4693,9 @@ loop5:  do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: r, s, t, nc, np, ndf, nu
-    integer  :: i, NPart2
+    integer  :: r, s
+    integer  :: nc, np, ndf
+    integer  :: i, NPart2, t, nu
     real(RK) :: rx, sx
     real(RK) :: diffpressure
 
@@ -5067,8 +5070,7 @@ loop5:    do nc = 1, this%NComponents
     function simpson(values, stepsize, n) result(integral)
 
       ! Declare arguments
-      real(RK), intent(in) :: values(n)
-      real(RK), intent(in) :: stepsize
+      real(RK), intent(in) :: values(n), stepsize
       integer, intent(in)  :: n
 
       ! Declare result
@@ -5542,13 +5544,12 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    real(RK)            :: EPot, Virial
+    real(RK)            :: EPot, Virial, d2EpotdV2
     integer             :: i, j
     real(RK)            :: EPotIntra, VirialIntra
     real(RK)            :: EPotIntra_Bond, EPotIntra_Angle, EPotIntra_Dihedral
     real(RK)            :: EPotIntra_Nonbonded
     real(RK)            :: EPotInter, VirialInter
-    real(RK)            :: d2EpotdV2
 #ifdef ABL
     integer             :: k,l
     integer             :: numbi, numbj, numb
@@ -5947,20 +5948,22 @@ loop5:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK)                  :: ChemPot, F(3,this%NUnitMax), rm(3), ExpMinusBetaEnLaMin, factor, Cutoff
+    real(RK)                  :: ChemPot, F(3,this%NUnitMax), rm(3), ExpMinusBetaEnLaMin, factor
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
-    integer                   :: i, j0, j1, j, t, selected
+    integer                   :: i, j, t
     real(RK)                  :: EPotTest(this%NTestMax)
     real(RK)                  :: EBin, E, EIntra, EBond, EAngle, EDihedral
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
     integer                   :: r, s, nc, np, ncf, npf
-    integer                   :: ratio, sndf
-    integer                   :: nu, nuh, nuh2
+    integer                   :: ewald_h, ratio, sndf, nuh
+    integer                   :: nu, nuh2, j0, j1, selected
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
     integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
+    real(RK)                  :: EPot_h
+    integer                   :: tempVal, tempVal2
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
 #endif
@@ -6640,8 +6643,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: nc, np, nu
-    integer                     :: nu1
+    integer                     :: nc, np
+    integer                     :: nu1, nu
     integer                     :: i, n
     real(RK)                    :: Intra
 
@@ -7342,8 +7345,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np, nu
 
     ! Declare local variables
-    real(RK)                  :: r(3), rm(3), NewOmega
-    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: r(3), rm(3)
+    real(RK)                  :: EPotOld, EPotNew, NewOmega
     real(RK)                  :: EFourier
 #if SPME > 0
     real(RK)                  :: EVirial
@@ -7488,8 +7491,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer, intent(in) :: nc, np, nu
 
     ! Declare local variables
-    real(RK)                  :: q(4), dq(3), NewOmega
-    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: q(4), dq(3)
+    real(RK)                  :: EPotOld, EPotNew, NewOmega
     real(RK)                  :: EFourier
 #if SPME > 0
     real(RK)                  :: EVirial
@@ -7497,6 +7500,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TComponent), pointer :: pc
     integer                   :: i
     real(RK)                  :: EPotDelta
+    logical                   :: accepted
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -8635,10 +8639,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     type(TComponent), pointer  :: pc, pt
-    integer                    :: currentbin
-    real(RK)                   :: LambdaNew, Factor, ChempotDelta
+    type(TInteraction), pointer:: plj
+    integer                    :: i, j, k, l, currentbin
+    real(RK)                   :: Shield1, Shield2
+    real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
     real(RK)                   :: EPotOld, EPotNew
-    real(RK)                   :: EPotDeltaAll
+    real(RK)                   :: EPotDeltaAll, Scale
     real(RK)                   :: EFourier, EVirial
 
     ! Assign local variables
@@ -8747,13 +8753,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer, intent(in) :: nc
 
     ! Declare local variables
-    real(RK)                  :: r(3), q(3), FIns(3,this%NUnitMax)
-    real(RK)                  :: EPotIns, InvDensityCorr
+    real(RK)                  :: r(3)
+    real(RK)                  :: q(3)
+    real(RK)                  :: EPotIns
     type(TComponent), pointer :: pc
-    integer                   :: i, j, np, nu, dummy
+    integer                   :: i, np, nu, dummy, j
     logical                   :: success, barrier
     real(RK)                  :: UIntra, USelbst, EFourier, EVirial
-    real(RK)                  :: E, EIntra, EBond, EAngle, EDihedral
+    real(RK)                  :: E, EIntra, EBond, EAngle, EDihedral, FIns(3,this%NUnitMax), InvDensityCorr
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll
 #endif
@@ -8965,17 +8972,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer, intent(in) :: nc, np
 
     ! Declare local variables
-    real(RK)                    :: EPotDel, FDel(3,this%NUnitMax)
+    real(RK)                    :: EPotDel
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
     logical                     :: success
-    integer                     :: i, k, n1, n2, nu, nup
+    integer                     :: i, n1, n2, nu, nup, k
 !     real(RK)                    :: s
-    real(RK)                    :: E, EIntra, EBond, EAngle, EDihedral
+    real(RK)                    :: E, EIntra, EBond, DensityCorr, EAngle, EDihedral, FDel(3,this%NUnitMax)
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, DensityCorr
+    real(RK)                    :: EFourier, EPotNew
     real(RK)                    :: USelf, UIntra
+    real(RK)                    :: r(3)
+    real(RK)                    :: q(4)
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -9774,7 +9783,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK), intent(in) :: dv
     real(RK), intent(in out) :: EPotDelta
     real(RK) :: VolumeOld, EPotOld
-    real(RK) :: EVirial, UFourier, BoxLengthOld, DelBoxL
+    real(RK) :: EVirial
+    real(RK) :: UFourier, BoxLengthOld, DelBoxL
 #if SPME > 0
     real(RK) :: UIntra, EVirialintra
 #endif
@@ -9927,14 +9937,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     type(TComponent), pointer   :: pc
+    type(TInteraction), pointer :: pi
+    integer                     :: i, n1, n2
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier
+    real(RK)                    :: EFourier, EPotNew
     real(RK)                    :: EVirial
 #if SPME > 0
     real(RK)                    :: EVirialIntra
 #endif
     real(RK)                    :: USelf, UIntra
+    real(RK)                    :: r(3)
+    real(RK)                    :: q(4)
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -10670,16 +10684,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     type(TComponent), pointer :: pc
     integer                   :: i,j,t,err,currentbin
-    real(RK)                  :: value, currentdEpotdV, currentd2EpotdV2
-    real(RK)                  :: dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
-    real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
-    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3
+    real(RK)                  :: value
+    real(RK)                  :: currentdEpotdV,currentd2EpotdV2
+    real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
+    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
     real(RK)                  :: currentHmU, currentHmUm1, currentH
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
-    real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3
-    real(RK)                  :: HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
+    real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
+    real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
 #if HBOND > 0
     integer                   :: k, l
 #endif
@@ -16944,6 +16958,7 @@ endif
     real(RK):: approx
     real(RK):: UIntraTermKomp
     real(RK):: twopi
+    real(RK):: test
 
     twopi = 2._RK*PI
 
@@ -17083,6 +17098,7 @@ endif
 #endif
 
    type(TMolecule), pointer               :: mol
+   integer:: stat
 
    EPotLocal = 0.0_RK
    VirialLocal = 0.0_RK
@@ -17275,6 +17291,8 @@ endif
 
     ! Declare arguments
     type(TEnsemble)            :: this
+    type(TInteraction),pointer :: inter
+    integer        :: np
     integer        :: processes
 
     ! Declare local variables
@@ -17582,7 +17600,7 @@ endif
    integer,intent(in)::nc,np
 
 #if MPI_VER > 0
-   integer,pointer :: i0, i1, j
+   integer,pointer :: i0, i1
 #endif
 
 
@@ -17690,7 +17708,8 @@ endif
    integer,intent(in)::ncold,npold
 
 #if MPI_VER > 0
-   integer,pointer :: i0, i1, j
+   integer,pointer :: i0
+   integer,pointer :: i1
 #endif
 
 ! Declarations
@@ -17800,7 +17819,8 @@ endif
    integer,intent(in)::nc,np,m
 
 #if MPI_VER > 0
-   integer,pointer :: i0, i1, j
+   integer,pointer :: i0
+   integer,pointer :: i1
 #endif
 
 
@@ -19418,7 +19438,7 @@ contains
    real(RK) :: dx,dy,dz,dr
    real(RK) :: ex,ey,ez
    real(RK) :: qj,qjj
-   real(RK) :: Virloc
+   real(RK) :: virloc
    real(RK) :: Kappa
    real(RK) :: kapparij,approx
    real(RK) :: fij
