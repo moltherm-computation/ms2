@@ -4,7 +4,7 @@
 	<parFile>MD_NPH_leap_thermoint_BenzMeth_T298_x03.par</parFile>
 	<name>MD_NPH_leap_thermoint_BenzMeth_T298_x03</name>
 	<np>40</np>
-	<walltime>02:00:00</walltime>
+	<walltime>05:00:00</walltime>
 	<reference>
 		<file>MD_NPH_leap_thermoint_BenzMeth_T298_x03_1.res</file>
 	</reference>

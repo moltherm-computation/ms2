@@ -4,7 +4,7 @@
 	<parFile>MC_optpressure_commonequi.par</parFile>
 	<name>MC_optpressure_commonequi</name>
 	<np>40</np>
-	<walltime>12:00:00</walltime>
+	<walltime>03:00:00</walltime>
 	<reference>
 		<file>MC_optpressure_commonequi_1.res</file>
 	</reference>

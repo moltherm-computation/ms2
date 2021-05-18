@@ -4,7 +4,7 @@
 	<parFile>MD_NVT_gear_thermoint_o2ace_fl-T400-x008.par</parFile>
 	<name>MD_NVT_gear_thermoint_o2ace_fl-T400-x008</name>
 	<np>40</np>
-	<walltime>03:10:00</walltime>
+	<walltime>03:30:00</walltime>
 	<reference>
 		<file>MD_NVT_gear_thermoint_o2ace_fl-T400-x008_1.res</file>
 	</reference>

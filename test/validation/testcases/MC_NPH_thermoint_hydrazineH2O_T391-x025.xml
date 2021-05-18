@@ -3,8 +3,8 @@
 <testcase>
 	<parFile>MC_NPH_thermoint_hydrazineH2O_T391-x025.par</parFile>
 	<name>MC_NPH_thermoint_hydrazineH2O_T391-x025</name>
-	<np>40</np>
-	<walltime>12:00:00</walltime>
+	<np>80</np>
+	<walltime>07:30:00</walltime>
 	<reference>
 		<file>MC_NPH_thermoint_hydrazineH2O_T391-x025_1.res</file>
 	</reference>

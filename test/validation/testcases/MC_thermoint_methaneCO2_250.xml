@@ -4,7 +4,7 @@
 	<parFile>MC_thermoint_methaneCO2_250.par</parFile>
 	<name>MC_thermoint_methaneCO2_250</name>
 	<np>40</np>
-	<walltime>08:00:00</walltime>
+	<walltime>05:30:00</walltime>
 	<reference>
 		<file>MC_thermoint_methaneCO2_250_1.res</file>
 	</reference>

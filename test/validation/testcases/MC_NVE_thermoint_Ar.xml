@@ -3,8 +3,8 @@
 <testcase>
 	<parFile>MC_NVE_thermoint_Ar.par</parFile>
 	<name>MC_NVE_thermoint_Ar</name>
-	<np>80</np>
-	<walltime>05:00:00</walltime>
+	<np>40</np>
+	<walltime>05:30:00</walltime>
 	<reference>
 		<file>MC_NVE_thermoint_Ar_1.res</file>
 	</reference>

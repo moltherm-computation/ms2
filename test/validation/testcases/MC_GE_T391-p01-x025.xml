@@ -4,7 +4,7 @@
 	<parFile>MC_GE_T391-p01-x025.par</parFile>
 	<name>MC_GE_T391-p01-x025</name>
 	<np>40</np>
-	<walltime>04:00:00</walltime>
+	<walltime>02:30:00</walltime>
 	<reference>
 		<file>MC_GE_T391-p01-x025_1.res</file>
 	</reference>

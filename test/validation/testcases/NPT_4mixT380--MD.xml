@@ -3,8 +3,8 @@
 <testcase>
 	<parFile>NPT_4mixT380--MD.par</parFile>
 	<name>NPT_4mixT380--MD</name>
-	<np>40</np>
-	<walltime>10:00:00</walltime>
+	<np>120</np>
+	<walltime>12:00:00</walltime>
 	<reference>
 		<file>NPT_4mixT380--MD_1.res</file>
 	</reference>

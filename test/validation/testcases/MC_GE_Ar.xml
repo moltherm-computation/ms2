@@ -4,7 +4,7 @@
 	<parFile>MC_GE_Ar.par</parFile>
 	<name>MC_GE_Ar</name>
 	<np>40</np>
-	<walltime>02:30:00</walltime>
+	<walltime>01:30:00</walltime>
 	<reference>
 		<file>MC_GE_Ar_1.res</file>
 	</reference>
