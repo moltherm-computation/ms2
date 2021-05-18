@@ -482,6 +482,12 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 
+#if CONSTR > 0
+  interface CorrectGear_Constraint
+    module procedure TComponent_CorrectGear_Constraint
+  end interface
+#endif
+
 #if  TRANS == 1
 !TRANSPORT_start
   interface ForceTransport
