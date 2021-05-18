@@ -239,10 +239,9 @@ module ms2_component
     integer           :: NBins
     integer           :: changeLaFreq, changeLaPart, forfeitLaSampl
     integer, pointer, contiguous  :: BinsVisit(:)
-    real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax
-    real(RK)          :: ExpMinusBetaEnLaMin, currentBinsEn
-    real(RK), pointer, contiguous :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:)
-    real(RK), pointer, contiguous :: BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
+    real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
+    real(RK)          :: currentBinsEn
+    real(RK), pointer, contiguous :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:), BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
 
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
@@ -438,12 +437,12 @@ module ms2_component
     module procedure TComponent_CorrectVV
   end interface
 
-  interface Constraints
-    module procedure TComponent_Constraints
-  end interface
-
   interface ZeroNAttempts
     module procedure TComponent_ZeroNAttempts
+  end interface
+
+  interface Constraints
+    module procedure TComponent_Constraints
   end interface
 
   interface AddParticle
@@ -1250,9 +1249,8 @@ contains
 
     ! Declare local variables
     integer :: np, ntest, nf
-    integer :: nu, nup
-    integer :: i, j
-    integer :: nlj, nch, ndi, nqu
+    integer :: nu, nup, nlj, nch, ndi, nqu, j
+    integer :: i
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
@@ -2666,8 +2664,8 @@ contains
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: i, j, k
-    integer :: nu
+    integer :: i, j
+    integer :: nu, k
 
     nu = this%Molecule%NUnit
 
@@ -2713,8 +2711,7 @@ contains
     type(TComponent) :: this
 
     ! Local variables
-    integer          :: i
-    integer          :: nu
+    integer          :: i, nu
 
     nu = this%Molecule%NUnit
 
@@ -3114,9 +3111,7 @@ contains
     real(RK)                       :: BoxLengthInv
     real(RK)                       :: PX, PY, PZ
     real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteLJ126), pointer      :: pLJ126
@@ -4471,8 +4466,8 @@ loop1:do i = 1, this%NPart
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: np, nu
-    integer :: i, j, k
+    integer :: np, nu, k
+    integer :: i, j
     real(RK) :: r(3)
 
     ! Assign local variables
@@ -4566,8 +4561,8 @@ loop1:do i = 1, this%NPart
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
-    integer           :: np, nu
-    integer           :: i, j, k
+    integer           :: np, nu, k
+    integer           :: i, j
     real(RK)          :: r(3)
     real(RK)          :: Corr0(4), Corr1
 
@@ -4718,8 +4713,8 @@ loop1:do i = 1, this%NPart
 
     ! Declare local variables
     real(RK) :: Korr
-    integer  :: np, nra, nu
-    integer  :: i, j, k
+    integer  :: np, nra, nu, k
+    integer  :: i, j
     real(RK) :: r(3)
 
     Korr = 2._RK - 1._RK / scale
@@ -4812,8 +4807,8 @@ loop1:do i = 1, this%NPart
     real(RK)          :: BoxLengthInv, MassInv
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
-    integer           :: np, nra, nu
-    integer           :: i, j, k
+    integer           :: np, nra, nu, k
+    integer           :: i, j
 
     BoxLengthInv = 1._RK / this%BoxLength
     np = this%NPart
