@@ -2054,8 +2054,10 @@ eqloop: do
               if (mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
                 StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
                 if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                  NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
-                  NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                  NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
+&                                            ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                  NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
+&                                                ( BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
                 else
                   NBlocksCF     = 0
                   NBlockSizesCF = 0
