@@ -47,7 +47,8 @@ module ms2_potential
     real(RK)                  :: Epsilon4, Epsilon48
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     real(RK)                  :: ScaleLJ14
-    integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :), RDFSum(:)
+    integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
     real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
@@ -2103,8 +2104,9 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal
-    integer           :: N2, nu1, nu2, unit
-    integer           :: i, i0, i1, j, k, jk
+    integer           :: N2
+    integer           :: i, j, k
+    integer           :: i0, i1, jk, nu1, nu2, unit
 
     ! Assign local variables
     N2 = this%Site2%NPart
@@ -2235,7 +2237,8 @@ loop2:  do j = 1, N2
     logical, intent(in)      :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
@@ -2243,8 +2246,8 @@ loop2:  do j = 1, N2
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: tempF(3,nu), Fij
     real(RK)          :: E1, EIntra1, ELocal
-    integer           :: j, k, jk
-    integer           :: nu2, unit
+    integer           :: j, k
+    integer           :: nu2, unit, jk
     real(RK)          :: coeff
 
     ! Assign local variables
@@ -2474,7 +2477,7 @@ loop2:  do j = 1, N2
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
-    real(RK)          :: RijInv, RijSquared
+    real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
@@ -2482,6 +2485,7 @@ loop2:  do j = 1, N2
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: RijSquared
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -2765,7 +2769,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ         ! Site-Site-Einheitvektor
-    real(RK)          :: RijInv, Rij, RijSquared
+    real(RK)          :: RijInv, Rij
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
@@ -2774,6 +2778,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    real(RK)          :: RijSquared
     integer           :: i, j, k, i1, i2
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3066,11 +3071,12 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ      ! Site-Site-Einheitvektor
-    real(RK)          :: RijInv, RijSquared
+    real(RK)          :: RijInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
+    real(RK)          :: RijSquared
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3522,13 +3528,14 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: FXij, FYij, FZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ         ! Site-Site-Einheitvektor
-    real(RK)          :: RijInv, Rij, RijSquared
+    real(RK)          :: RijInv, Rij
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     !real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     real(RK)          :: approx, Faktor
     real(RK)          :: Fij,KappaRij
+    real(RK)          :: RijSquared
     integer           :: i, j, k, i1, i2
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3891,8 +3898,8 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijInv, RijSquared
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -4021,8 +4028,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijInv, RijSquared
     real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
-    integer           :: j, k, jk
-    integer           :: nu2, unit, su
+    integer           :: j, k
+    integer           :: nu2, unit, su, jk
     real(RK)          :: coeff
 
     ! Assign local variables
@@ -4148,15 +4155,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: eX, eY, eZ
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: Rij, RijInv, RijSquared, KappaRij
-    real(RK)          :: E1, EIntra1, ELocal
+    real(RK)          :: eX, eY, eZ
+    real(RK)          :: RijInv, RijSquared
+    real(RK)          :: E1, EIntra1, ELocal, coeff
     real(RK)          :: Fij, Faktor, tempF(3,nu)
-    integer           :: j, k, jk
-    integer           :: nu2, unit, su
-    real(RK)          :: coeff, approx
+    integer           :: j, k
+    real(RK)          :: approx
+    integer           :: nu2, unit, su, jk
+    real(RK)          :: Rij, KappaRij
 
     ! Assign local variables
     nu2 = this%NUnit2
@@ -5183,8 +5191,8 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -5315,11 +5323,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXj, OYj, OZj
+    real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijSquared, RijInv, CosTheta
+    real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: ELocal, E1, EIntra1, tempF(3,nu)
+    real(RK)          :: CosTheta
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
 
@@ -6342,8 +6351,8 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -6469,7 +6478,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     logical, intent(in)        :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -6477,7 +6487,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijSquared, RijInv, CosTheta
+    real(RK)          :: RijSquaredInv, RijInv, RijSquared
+    real(RK)          :: CosTheta
     real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
@@ -7470,8 +7481,8 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -7599,14 +7610,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
     logical, intent(in)      :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijSquared, RijInv, CosTheta
+    real(RK)          :: RijSquaredInv, RijInv, RijSquared
+    real(RK)          :: CosTheta
     real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
@@ -7816,7 +7829,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: CosThetai3, CosThetaj3
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -7824,7 +7837,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     integer           :: i, j, k, i1, j0, j1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15
-    real(RK)          :: coeff
+    real(RK)          :: coeff, EPotLocal1
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
@@ -9000,8 +9013,8 @@ loop3:  do j = j0, j1
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk, j1
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1, j1
+    integer           :: nu1, nu2, unit, jk, i0
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -9219,8 +9232,9 @@ loop2:  do j = 1, j1
     logical, intent(in)      :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -9228,8 +9242,9 @@ loop2:  do j = 1, j1
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijInv, RijSquared, Rij3Inv, Tmp
+    real(RK)          :: RijSquared, RijInv, Rij3Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
+    real(RK)          :: Tmp
     real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
     integer           :: j, k, nu2, jk, unit
     real(RK)          :: coeff
@@ -9457,7 +9472,7 @@ loop2:  do j = 1, j1
     real(RK)          :: CosThetai, CosThetaj, CosThetaj2, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -9982,7 +9997,7 @@ loop3:  do j = j0, j1
     real(RK)          :: CosThetai, CosThetaj, CosThetaj2, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -10662,8 +10677,8 @@ loop3:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk, j1
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1, j1
+    integer           :: nu1, nu2, unit, jk, i0
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -10881,8 +10896,9 @@ loop2:  do j = 1, j1
     logical, intent(in)        :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: PXi, PYi, PZi
@@ -11119,14 +11135,14 @@ loop2:  do j = 1, j1
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquaredInv, RijInv
     real(RK)          :: CosTheta, CosTheta2, CosAux
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
-    real(RK)          :: coeff
+    real(RK)          :: EPotLocal1, coeff
 
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -11937,8 +11953,8 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1
+    integer           :: nu1, nu2, unit, jk, i0
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -12066,14 +12082,15 @@ loop1:  do k = 1, this%NInCutoff(unit)
     logical, intent(in)        :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXi, OYi, OZi
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijSquared, RijInv
+    real(RK)          :: RijSquaredInv, RijInv, RijSquared
     real(RK)          :: CosTheta, CosTheta2, CosAux
     real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
     integer           :: j, k, nu2, jk, unit
@@ -12283,7 +12300,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: CosThetai, CosThetaj, CosThetai2, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -12810,7 +12827,7 @@ loop3:  do j = j0, j1
     real(RK)          :: CosThetai, CosThetaj, CosThetai2, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -13495,8 +13512,8 @@ loop3:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij4Inv
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk, j1
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1, j1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -13715,7 +13732,8 @@ loop2:  do j = 1, j1
     logical, intent(in)        :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
@@ -13960,7 +13978,7 @@ loop2:  do j = 1, j1
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -14533,7 +14551,7 @@ loop3:  do j = j0, j1
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp
-    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: EPotLocal1, EPotLocal, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
@@ -15262,8 +15280,8 @@ loop3:  do j = j0, j1
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: Tmp
     real(RK)          :: EPotLocal
-    integer           :: i, i0, i1, j, k, jk, j1
-    integer           :: nu1, nu2, unit
+    integer           :: i, j, k, i1, j1
+    integer           :: nu1, nu2, unit, i0, jk
 #if ARCH == 3
     logical           :: hit
 #endif
@@ -15505,7 +15523,8 @@ loop2:  do j = 1, j1
     logical, intent(in)            :: CompIdent
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
     real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: OXi, OYi, OZi
