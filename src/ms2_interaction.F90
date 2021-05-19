@@ -1721,7 +1721,8 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer, contiguous :: EPot(:), Virial(:)
+    real(RK), pointer, contiguous :: EPot(:)
+    real(RK), pointer, contiguous :: Virial(:)
     real(RK), pointer, contiguous :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
@@ -1732,8 +1733,8 @@ contains
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -3714,8 +3715,8 @@ end subroutine TInteraction_Energy
     real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
-    integer           :: i, j, k, NInCutoff
-    integer           :: NU2, N2, unit1, nup
+    integer           :: j, NInCutoff
+    integer           :: i, k, NU2, N2, unit1, nup
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
@@ -3783,7 +3784,8 @@ end subroutine TInteraction_Energy
     ! Declare local variables
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared, RCutoff
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
     integer           :: i, j, NInCutoff, k, l, m, n
 
     ! Set cutoff radius
@@ -3862,9 +3864,8 @@ end subroutine TInteraction_Energy
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
-    integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
-    integer           :: NU, NU2
-    integer           :: k, m
+    integer           :: i, j, N, N2, NInCutoff
+    integer           :: NU, NU2, ik, NNU, NUm, k, m
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
