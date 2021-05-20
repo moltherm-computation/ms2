@@ -36,6 +36,13 @@
 # endif
 #endif
 
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
+#ifndef HBOND
+#define HBOND 0
+#endif
 
 module ms2_global
 
