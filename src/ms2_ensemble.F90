@@ -20,6 +20,14 @@
 #endif
 
 
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
+#ifndef HBOND
+#define HBOND 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
@@ -10921,13 +10929,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-#if OSMOP > 0
-           ! OsmoticPressure
-           write( IOBuffer, '("      OSPR")' )
-           call FileWriteNoAdvance( this%iounit_result )
-           call FileWriteNoAdvance( this%iounit_runave )
-#endif
-
            ! Potential energy
            write( IOBuffer, '("         EPOT")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11018,95 +11019,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
-
-#if HBOND > 0
-        do i = 1, this%NComponents
-          write( IOBuffer, '("  HB0_(", I1, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              write( IOBuffer, '("  HB2_(", I1, ",", I1, ",", I1, ")")' ) i, j, k
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do  l = k, this%NComponents
-                write( IOBuffer, '("  HB3_(", I1, ",", I1, ",", I1, ",", I1, ")")' ) i, j, k, l
-                call FileWriteNoAdvance( this%iounit_result )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-#endif
-
-#if OSMOP > 0
-        !Density Profile
-        do i = 1, this%NComponents
-          do j = 1, NBinsDen
-            if (j .le. 9) then 
-              write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
-            elseif (j .le. 99) then 
-              write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
-            else
-              write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
-            endif
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-#if OSMOP == 2
-        !Pressure Profile
-        do j = 1, NBinsDen
-          if (j .le. 9) then 
-            write( IOBuffer, '(" PPB00", I1)' ) j
-          elseif (j .le. 99) then 
-            write( IOBuffer, '(" PPB0", I2)' ) j
-          else
-            write( IOBuffer, '(" PPB", I3)' ) j
-          endif
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        !Chemical Potential Profile
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            do j = 1, NBinsDen
-              if (j .le. 9) then 
-                write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
-              elseif (j .le. 99) then 
-                write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
-              else
-                write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
-              endif
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end if
-        end do
-#endif
-#endif
 
            ! Number of particles in ensemble
            if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -11326,6 +11238,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
+#if OSMOP > 0
+           ! OsmoticPressure
+           write( IOBuffer, '("      OSPR")' )
+           call FileWriteNoAdvance( this%iounit_result )
+           call FileWriteNoAdvance( this%iounit_runave )
+#endif
+
         ! Potential energy
         write( IOBuffer, '("         EPOT")' )
         call FileWriteNoAdvance( this%iounit_result )
@@ -11416,6 +11335,95 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end if
         end do
+
+#if HBOND > 0
+        do i = 1, this%NComponents
+          write( IOBuffer, '("  HB0_(", I1, ")")' ) i
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              write( IOBuffer, '("  HB2_(", I1, ",", I1, ",", I1, ")")' ) i, j, k
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            end do
+          end do
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do  l = k, this%NComponents
+                write( IOBuffer, '("  HB3_(", I1, ",", I1, ",", I1, ",", I1, ")")' ) i, j, k, l
+                call FileWriteNoAdvance( this%iounit_result )
+                call FileWriteNoAdvance( this%iounit_runave )
+              end do
+            end do
+          end do
+        end do
+        do i = 1, this%NComponents
+          write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+        end do
+#endif
+
+#if OSMOP > 0
+        !Density Profile
+        do i = 1, this%NComponents
+          do j = 1, NBinsDen
+            if (j .le. 9) then 
+              write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
+            elseif (j .le. 99) then 
+              write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
+            else
+              write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
+            endif
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end do
+
+#if OSMOP == 2
+        !Pressure Profile
+        do j = 1, NBinsDen
+          if (j .le. 9) then 
+            write( IOBuffer, '(" PPB00", I1)' ) j
+          elseif (j .le. 99) then 
+            write( IOBuffer, '(" PPB0", I2)' ) j
+          else
+            write( IOBuffer, '(" PPB", I3)' ) j
+          endif
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+        end do
+
+        !Chemical Potential Profile
+        do i = 1, this%NRealComponents
+          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
+            do j = 1, NBinsDen
+              if (j .le. 9) then 
+                write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
+              elseif (j .le. 99) then 
+                write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
+              else
+                write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
+              endif
+              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_runave )
+            end do
+          end if
+        end do
+#endif
+#endif
 
         ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -11960,14 +11968,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-#if OSMOP > 0
-        ! OsmoticPressure
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-#endif
-
               ! Potential energy
               write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -12060,97 +12060,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                 end if
               end do
-
-#if HBOND > 0
-        do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%Average
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do  l = k, this%NComponents
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%Average
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end do
-          end do
-        end do
-        do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-#endif
-
-#if OSMOP > 0
-        !Density Profile
-        do i = 1, this%NComponents
-          pc => this%Component(i)
-          do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-#if OSMOP == 2
-        !Pressure Profile
-        do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average 
-            call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        !Chemical Potential Profile
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          if( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            if( Equilibration ) then
-              do j = 1, NBinsDen
-                write( IOBuffer, '(F10.5)' ) 0._RK
-                call FileWriteNoAdvance( this%iounit_result )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            else
-              do j = 1, NBinsDen
-                write( IOBuffer, '(F10.5)' ) &
-&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%BlockAverage )
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(F10.5)' ) &
-&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%Average )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end if
-          end if
-        end do
-#endif
-#endif
 
             ! Number of particles in ensemble
               if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -12791,6 +12700,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
+#if OSMOP > 0
+        ! OsmoticPressure
+        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%BlockAverage
+        call FileWriteNoAdvance( this%iounit_result )
+        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%Average
+        call FileWriteNoAdvance( this%iounit_runave )
+#endif
+
         ! Potential energy
         write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
@@ -12944,6 +12861,97 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end if
           end if
         end do
+
+#if HBOND > 0
+        do i = 1, this%NComponents
+          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%BlockAverage
+              call FileWriteNoAdvance( this%iounit_result )
+              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%Average
+              call FileWriteNoAdvance( this%iounit_runave )
+            end do
+          end do
+        end do
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do  l = k, this%NComponents
+                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%BlockAverage
+                call FileWriteNoAdvance( this%iounit_result )
+                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%Average
+                call FileWriteNoAdvance( this%iounit_runave )
+              end do
+            end do
+          end do
+        end do
+        do i = 1, this%NComponents
+          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
+          call FileWriteNoAdvance( this%iounit_result )
+          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%Average
+          call FileWriteNoAdvance( this%iounit_runave )
+        end do
+#endif
+
+#if OSMOP > 0
+        !Density Profile
+        do i = 1, this%NComponents
+          pc => this%Component(i)
+          do j = 1, NBinsDen
+            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          end do
+        end do
+
+#if OSMOP == 2
+        !Pressure Profile
+        do j = 1, NBinsDen
+            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average 
+            call FileWriteNoAdvance( this%iounit_runave )
+        end do
+
+        !Chemical Potential Profile
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          if( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
+            if( Equilibration ) then
+              do j = 1, NBinsDen
+                write( IOBuffer, '(F10.5)' ) 0._RK
+                call FileWriteNoAdvance( this%iounit_result )
+                call FileWriteNoAdvance( this%iounit_runave )
+              end do
+            else
+              do j = 1, NBinsDen
+                write( IOBuffer, '(F10.5)' ) &
+&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%BlockAverage )
+                call FileWriteNoAdvance( this%iounit_result )
+                write( IOBuffer, '(F10.5)' ) &
+&                      log( pc%SumDenProfile(j)%Average / pc%SumChemPotProfile(j)%Average )
+                call FileWriteNoAdvance( this%iounit_runave )
+              end do
+            end if
+          end if
+        end do
+#endif
+#endif
 
       ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
