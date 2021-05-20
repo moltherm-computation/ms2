@@ -42,7 +42,8 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK)          :: r(3)
-    real(RK)          :: sig, eps, mass
+    real(RK)          :: sig, eps
+    real(RK)          :: mass
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -98,7 +99,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK)          :: r(3)
-    real(RK)          :: e, mass, shield
+    real(RK)          :: e
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -154,7 +157,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK)          :: r(3), or(3)
-    real(RK)          :: D, mass, shield
+    real(RK)          :: D
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -213,7 +218,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK)          :: r(3), or(3)
-    real(RK)          :: Q, mass, shield
+    real(RK)          :: Q
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -275,9 +282,6 @@ contains
 
     ! Declare arguments
     type(TSiteLJ126) :: this
-    
-    ! Declare local variables
-    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
@@ -619,9 +623,6 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
-    
-    ! Declare local variables
-    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
@@ -949,7 +950,6 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
-    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
@@ -1356,7 +1356,6 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
-    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
