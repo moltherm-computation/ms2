@@ -1232,10 +1232,11 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j, k, l, m, NGradInsInit
+    integer :: i, j, l, m, s, t, NGradInsInit
     real(RK) :: Shakesave
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
+    integer :: k
 
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
@@ -2014,7 +2015,7 @@ eqloop: do
     integer:: StepCF
 #endif
 
-    integer:: i
+    integer:: o, i, j, t, s
 
 #if MPI_VER > 0
    if (NCommunicators > 1 ) then
@@ -2934,9 +2935,10 @@ eqloop: do
     type(TSimulation)   :: this
 
     ! Declare local variables
-    integer :: i, pos
+    integer :: i
     character(FileNameLength) :: parfilename
     character(IOBufferLength) :: ensemblemarker
+    integer :: pos
 #if MPI_VER > 0
     integer :: filepos
     integer :: stat
