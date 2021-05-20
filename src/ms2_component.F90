@@ -3113,7 +3113,7 @@ contains
 
     ! Declare local variables
     real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PX, PY, PZ
+    real(RK)                       :: PXi, PYi, PZi
     real(RK)                       :: q1, q2, q3, q4, qinv
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     real(RK)                       :: r1, r2, r3, or1, or2, or3
@@ -3122,7 +3122,7 @@ contains
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j
+    integer                        :: i
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
@@ -3141,9 +3141,9 @@ contains
     ! Check number of rotation axes
     if( this%Molecule%Unit(nu)%isElongated ) then
       ! Positions and quaternions of unit k in particle i
-      PX = this%P0(np, 1, nu)
-      PY = this%P0(np, 2, nu)
-      PZ = this%P0(np, 3, nu)
+      PXi = this%P0(np, 1, nu)
+      PYi = this%P0(np, 2, nu)
+      PZi = this%P0(np, 3, nu)
 
       ! Normalise quaternions
       q1 = this%Q0(np, 1, nu)
@@ -3176,56 +3176,56 @@ contains
       A33 = q1**2 - q2**2 - q3**2 + q4**2
 
       ! Loop over LJ126 sites in unit
-      do j = 1, this%Molecule%Unit(nu)%NLJ126
-        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(j)
+      do i = 1, this%Molecule%Unit(nu)%NLJ126
+        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
         r1 = pLJ126%r(1) * BoxLengthInv
         r2 = pLJ126%r(2) * BoxLengthInv
         r3 = pLJ126%r(3) * BoxLengthInv
-        pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pLJ126%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pLJ126%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pLJ126%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over charge sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NCharge
-        pCharge => this%Molecule%Unit(nu)%SiteCharge(j)
+      do i = 1, this%Molecule%Unit(nu)%NCharge
+        pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
         r1 = pCharge%r(1) * BoxLengthInv
         r2 = pCharge%r(2) * BoxLengthInv
         r3 = pCharge%r(3) * BoxLengthInv
-        pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pCharge%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pCharge%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pCharge%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over dipole sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NDipole
-        pDipole => this%Molecule%Unit(nu)%SiteDipole(j)
+      do i = 1, this%Molecule%Unit(nu)%NDipole
+        pDipole => this%Molecule%Unit(nu)%SiteDipole(i)
         r1 = pDipole%r(1) * BoxLengthInv
         r2 = pDipole%r(2) * BoxLengthInv
         r3 = pDipole%r(3) * BoxLengthInv
         or1 = pDipole%or(1)
         or2 = pDipole%or(2)
         or3 = pDipole%or(3)
-        pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pDipole%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pDipole%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pDipole%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
         pDipole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
         pDipole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
         pDipole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
       end do
 
       ! Loop over quadrupole sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NQuadrupole
-        pQuadrupole => this%Molecule%Unit(nu)%SiteQuadrupole(j)
+      do i = 1, this%Molecule%Unit(nu)%NQuadrupole
+        pQuadrupole => this%Molecule%Unit(nu)%SiteQuadrupole(i)
         r1 = pQuadrupole%r(1) * BoxLengthInv
         r2 = pQuadrupole%r(2) * BoxLengthInv
         r3 = pQuadrupole%r(3) * BoxLengthInv
         or1 = pQuadrupole%or(1)
         or2 = pQuadrupole%or(2)
         or3 = pQuadrupole%or(3)
-        pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pQuadrupole%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pQuadrupole%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pQuadrupole%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
         pQuadrupole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
         pQuadrupole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
         pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
