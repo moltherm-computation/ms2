@@ -2489,7 +2489,7 @@ loop2:  do j = 1, N2
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
-    real(RK)          :: RijSquared
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -2615,11 +2615,11 @@ loop1:do k = 1, this%NInCutoff(unit)
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared   = RXij**2 + RYij**2 + RZij**2
+          Rij2   = RXij**2 + RYij**2 + RZij**2
 #if ARCH == 3
-          RijInv = rsqrt( RijSquared )
+          RijInv = rsqrt( Rij2 )
 #else
-          RijInv = 1._RK / sqrt( RijSquared )
+          RijInv = 1._RK / sqrt( Rij2 )
 
 #endif
           eX = RXij * RijInv
@@ -2782,7 +2782,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
-    real(RK)          :: RijSquared
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -2850,7 +2850,7 @@ loop2:  do m=1,NBinsDen
 !$OMP FIRSTPRIVATE ( i0) &
 #endif
 !$OMP PRIVATE (i1, i2) &
-!$OMP PRIVATE ( approx, Fij,KappaRij,RijSquared) &
+!$OMP PRIVATE ( approx, Fij,KappaRij,Rij2) &
 !$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
 !$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE ( eX, eY, eZ  , RijInv,Rij, EPotLocal1,  i, j, k)
@@ -2912,8 +2912,8 @@ loop0:do m=1,NBinsDen
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared   = RXij**2 + RYij**2 + RZij**2
-          Rij =  sqrt(RijSquared)
+          Rij2   = RXij**2 + RYij**2 + RZij**2
+          Rij =  sqrt(Rij2)
 #if ARCH == 3
           RijInv = 1._RK /  Rij 
 #else
@@ -3080,7 +3080,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
-    real(RK)          :: RijSquared
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3314,11 +3314,11 @@ loop1:do k = 1, this%NInCutoff(unit)
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared   = RXij**2 + RYij**2 + RZij**2
+          Rij2   = RXij**2 + RYij**2 + RZij**2
 #if ARCH == 3
-          RijInv = rsqrt( RijSquared )
+          RijInv = rsqrt( Rij2 )
 #else
-          RijInv = 1._RK / sqrt( RijSquared )
+          RijInv = 1._RK / sqrt( Rij2 )
 #endif
           eX = RXij * RijInv
           eY = RYij * RijInv
@@ -3378,7 +3378,7 @@ loop2:  do m=1,NBinsDen
         VSuxi  = VSuxi+ FYij * PXij
         VSuyi  = VSuyi+ FZij * PXij
         VSuzi  = VSuzi+ FZij * PYij
-        UU        = EpotLocal1 + this%RFConstant * RijSquared
+        UU        = EpotLocal1 + this%RFConstant * Rij2
         Cxi    = Cxi  + UU * eX
         Cyi    = Cyi  + UU * eY
         Czi    = Czi  + UU * eZ
@@ -3539,7 +3539,7 @@ loop2:  do m=1,NBinsDen
     !real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
     real(RK)          :: approx, Faktor
     real(RK)          :: Fij,KappaRij
-    real(RK)          :: RijSquared
+    real(RK)          :: Rij2
     integer           :: i, j, k, i1, i2
     integer           :: nu1, nu2, jk, unit
     logical           :: intra14, intra15, SameComponent
@@ -3724,8 +3724,8 @@ loop0:do m=1,NBinsDen
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquared   = RXij**2 + RYij**2 + RZij**2
-          Rij =  sqrt(RijSquared)
+          Rij2   = RXij**2 + RYij**2 + RZij**2
+          Rij =  sqrt(Rij2)
 
 #if ARCH == 3
           RijInv = 1._RK /  Rij 
@@ -4163,7 +4163,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijInv, RijSquared
-    real(RK)          :: E1, EIntra1, ELocal, coeff
+    real(RK)          :: E1, EIntra1, EPotLocal, coeff
     real(RK)          :: Fij, Faktor, tempF(3,nu)
     integer           :: j, k
     real(RK)          :: approx
@@ -4218,7 +4218,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
         RijSquared = RXij**2 + RYij**2 + RZij**2
 
         if( RijSquared <= this%RShieldSquared ) then
-          ELocal = 1E33_RK
+          EPotLocal = 1E33_RK
           tempF(:,su) = 1E33_RK
         else
         Rij =  sqrt(RijSquared)
@@ -4233,10 +4233,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
-          ELocal = this%Epsilon * RijInv * approx
-          Fij  = (ELocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
+          EPotLocal = this%Epsilon * RijInv * approx
+          Fij  = (EPotLocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
         end if
-        E1  = E1 + ELocal
+        E1  = E1 + EPotLocal
       end if
     end do
     ! Include intramolecular interaction if need
@@ -4258,13 +4258,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
       Rij =  sqrt(RijSquared)
       KappaRij = Kappa*Rij
       call ErrorApprox(this, KappaRij,approx)
-      ELocal = this%Epsilon * RijInv * approx*coeff
+      EPotLocal = this%Epsilon * RijInv * approx*coeff
       eX = RXij * RijInv
       eY = RYij * RijInv
       eZ = RZij * RijInv
-      Fij  = (ELocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
+      Fij  = (EPotLocal + Faktor*exp(-KappaRij**2)*this%Epsilon) * RijInv
 
-      EIntra1  = EIntra1 + ELocal
+      EIntra1  = EIntra1 + EPotLocal
     end if
 
     F(:,:) = F(:,:) + tempF(:,:)
