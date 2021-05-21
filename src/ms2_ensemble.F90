@@ -9905,7 +9905,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     real(RK) :: charge
 
-     Charge = 1._RK
+     charge = 1._RK
 
      ! Chose component - exclude charged components
      do while  ( Charge > 0.1_RK )
@@ -13290,7 +13290,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     
 #else
 #if HBOND > 0
-    integer                   :: k, m
+    integer                   :: k, l
 #endif
 #endif
     ! Declare local variables for velocity of sound
@@ -13362,8 +13362,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call Error( this%SumHBond1(i,j) )
         do k = j, this%NComponents
           call Error( this%SumHBond2(i,j,k) )
-          do m = k, this%NComponents
-            call Error( this%SumHBond3(i,j,k,m) )
+          do l = k, this%NComponents
+            call Error( this%SumHBond3(i,j,k,l) )
           end do
         end do
       end do
@@ -14318,10 +14318,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
-          do  m = k, this%NComponents
-            Average = this%SumHBond3(i,j,k,m)%Average
-            Variance = this%SumHBond3(i,j,k,m)%Variance
-            write( IOBuffer, '("HBond3 of [", I2, "] with (", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, m, Average, Variance
+          do  l = k, this%NComponents
+            Average = this%SumHBond3(i,j,k,l)%Average
+            Variance = this%SumHBond3(i,j,k,l)%Variance
+            write( IOBuffer, '("HBond3 of [", I2, "] with (", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, l, Average, Variance
             call FileWrite( this%iounit_errors )
           end do
         end do
@@ -16416,7 +16416,7 @@ endif
 #if TRANS==1
     integer                   :: Mindex,StepCorr
 #endif
-    real(RK)                  :: dummy, factor
+    real(RK)                  :: dummy, Factor
 
     if( RootProc ) then
 
