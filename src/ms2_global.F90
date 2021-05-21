@@ -2967,7 +2967,7 @@ contains
     include 'mpif.h'
 
     real(RK) :: time_remaining
-    real(RK) :: cputime
+    real(RK) :: cputime,max_cpu_time
     integer  :: time_limit
     
 !     integer  :: ierror
