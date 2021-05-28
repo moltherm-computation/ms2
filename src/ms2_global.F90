@@ -627,7 +627,7 @@ module ms2_global
   integer :: NSteps
 
   ! Number of MC overlap reduction steps
-  integer :: NStepsMCOR
+  integer :: NStepsMC
 
   ! Number of NVT equilibration time steps
   integer :: NStepsV

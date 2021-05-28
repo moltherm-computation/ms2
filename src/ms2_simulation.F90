@@ -468,7 +468,7 @@ contains
           if ( parVersionNr .ge. 2.0_RK ) then
             TimeStep = TimeStep / UnitTime
           else
-            write( IOBuffer, '("WARNING: Time step in SI-Units was not implemented at your file version.")' )
+            write( IOBuffer, '("WARNING: Time step in SI-Units was not implemented for your version of the par-file.")' )
             call LogWrite
           endif
         endif
@@ -558,9 +558,9 @@ contains
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter( NStepsMCOR, iounit_params , IdNStepsMC, .true., 0 )
-        if( NStepsMCOR > 0 ) then
-          write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMCOR
+        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
+        if( NStepsMC > 0 ) then
+          write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMC
           call LogWrite
           MCOverlapReduction = .true.
           Acceptance = .5_RK
@@ -1370,7 +1370,7 @@ contains
            
            if (color == 1000000) then
               if (MCOverlapReduction) then
-                NStepsMCOR = 1
+                NStepsMC = 1
               endif
 
               if (NVTEquilibration) then
@@ -1443,7 +1443,7 @@ contains
 
     ! Run MC overlap reduction
     if( MCOverlapReduction .and. .not. TerminateProgram ) then
-      StepEnd = NStepsMCOR
+      StepEnd = NStepsMC
       call LogWriteBlank
       if( Restart ) then
         write( IOBuffer, '("Resuming MC overlap reduction")' )
@@ -1568,8 +1568,8 @@ eqloop: do
       end if
       ! Run GE, NpT or NVE equilibration
       if( Equilibration .and. .not. TerminateProgram ) then
-        StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
+          StepEnd = NStepsP
 
           call LogWriteBlank
           if( Restart ) then
@@ -1591,7 +1591,9 @@ eqloop: do
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
             if (SimulationType .eq. MonteCarlo) then
               call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
-              if ( .not. AnyNPartOk)  NPartsOk = .false.
+              if ( .not. AnyNPartOk) then
+                  NPartsOk = .false.
+              endif
             endif
 #endif
 
@@ -1619,6 +1621,7 @@ eqloop: do
           call LogWriteTime
 
         else if( EnsembleType .eq. EnsembleTypeHA ) then
+          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming HA equilibration")' )
@@ -2350,12 +2353,10 @@ eqloop: do
 
     NTransfer = 100
     ! Simulations Setup Check for Gibbs
-    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) then
-      call Error( 'Gibbs Ensemble only implemented for NVT')
-    end if
-    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) then
-      call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
-    end if
+    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
+&       call Error( 'Gibbs Ensemble only implemented for NVT')
+    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) &
+&       call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
 
     ! Run MC simulation step
     do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
