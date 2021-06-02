@@ -53,7 +53,7 @@ module ms2_potential
     real(RK)                  :: EpsilonMie_a, EpsilonMie_aF
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
-    integer, pointer, contiguous          :: RDFSum(:)
+    integer(KIND=8), pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
     real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
@@ -105,7 +105,7 @@ module ms2_potential
     logical                    :: SameComponent
 
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
-    integer, pointer, contiguous          :: RDFSum(:)
+    integer(KIND=8), pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
     real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
