@@ -199,10 +199,11 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: ntypes, npossPartners
+    integer       :: ntypes
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
+    integer       :: npossPartners
 
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
