@@ -19,6 +19,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #ifndef OSMOP
 #define OSMOP 0
 #endif
@@ -5645,6 +5649,10 @@ subroutine TComponent_ForceTransport( this )
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TComponent)  :: this

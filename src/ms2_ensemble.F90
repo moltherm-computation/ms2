@@ -19,6 +19,9 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
 
 #ifndef OSMOP
 #define OSMOP 0
@@ -5341,6 +5344,11 @@ loop5:    do nc = 1, this%NComponents
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -5366,6 +5374,11 @@ loop5:    do nc = 1, this%NComponents
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -5389,6 +5402,22 @@ loop5:    do nc = 1, this%NComponents
       end do
     end if
 
+#if ABL
+        vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
+        fac = TimeStepSquared2*Gear20
+        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20 ! Michael Sch.: per def = 0, also obsolet...
+        denom2 = denom**2
+        nen = this%PistonMass*fac / (vol * denom2)
+        do i=1,this%NComponents
+          do j=1,this%Component(i)%Molecule%NLJ126
+            this%AblPS(i,j)   =  this%AblPS(i,j) + this%Interaction(1, 1)%PotLJ126LJ126(i, j)%AblSigCorr(i,j)
+            this%AblPE(i,j)   =  this%AblPE(i,j) + this%Interaction(1, 1)%PotLJ126LJ126(i, j)%AblEpsCorr(i,j)
+            this%AblRhoS(i,j) = nen * this%AblPS(i,j)
+            this%AblRhoE(i,j) = nen * this%AblPE(i,j)
+          end do
+        end do
+#endif
+
   end subroutine TEnsemble_CorrectGear
 
 
@@ -5400,6 +5429,11 @@ loop5:    do nc = 1, this%NComponents
   subroutine TEnsemble_PredictLeapFrog( this )
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -8476,6 +8510,11 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
 
    implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TEnsemble)        :: this
     integer, intent(in)    :: nt
@@ -9820,9 +9859,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK) :: VolumeOld, EPotOld
     real(RK) :: EVirial
     real(RK) :: UFourier, BoxLengthOld, DelBoxL
-#if SPME > 0
     real(RK) :: UIntra, EVirialintra
-#endif
 #if MPI_VER > 0
     real(RK) :: EPotNew
 #endif
@@ -10188,6 +10225,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
   subroutine TEnsemble_PartChangeUpdate(this,nc,np,TransferRate,accept)
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble)       :: this
@@ -16940,6 +16982,11 @@ endif
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -18837,6 +18884,10 @@ contains
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
     ! Declare arguments
     type(TEnsemble)         :: this
 
@@ -18909,6 +18960,9 @@ contains
    implicit none
 
     include 'fftw3.f'
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
    ! Declare arguments
 
@@ -19603,6 +19657,11 @@ contains
     subroutine TEnsemble_CalCorrFun( this )
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this

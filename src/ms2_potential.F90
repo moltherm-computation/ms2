@@ -19,6 +19,10 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #ifndef OSMOP
 #define OSMOP 0
 #endif
