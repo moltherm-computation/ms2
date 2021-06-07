@@ -110,6 +110,7 @@ SRCS =  ms2.F90 \
         ms2_simulation.F90 \
         ms2_ensemble.F90 \
         ms2_component.F90 \
+        math_types.F90 \
         ms2_molecule.F90 \
         ms2_unit.F90 \
         ms2_site.F90 \
@@ -167,7 +168,9 @@ ms2_ensemble.mod: ms2_component.mod ms2_interaction.mod \
   ms2_accumulator.mod ms2_global.mod
 
 ms2_component.mod: ms2_molecule.mod ms2_site.mod \
-  ms2_accumulator.mod ms2_global.mod
+  ms2_accumulator.mod ms2_global.mod math_types.mod
+
+math_types.mod: ms2_global.mod
 
 ms2_molecule.mod: ms2_site.mod ms2_unit.mod ms2_idf.mod ms2_global.mod
 
@@ -179,7 +182,7 @@ ms2_idf.mod:  ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
-ms2_potential.mod: ms2_site.mod ms2_global.mod  ms2_molecule.mod
+ms2_potential.mod: ms2_site.mod ms2_global.mod  ms2_molecule.mod math_types.mod
 
 ms2_accumulator.mod: ms2_global.mod
 
