@@ -16288,9 +16288,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call RestartSave( this%SumConfEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
-    call RestartSave( this%SumEPotInter )
-    call RestartSave( this%SumEPotIntra )
     if (printIDF) then
+      call RestartSave( this%SumEPotInter )
+      call RestartSave( this%SumEPotIntra )
       call RestartSave( this%SumEPotIntra_Bond )
       call RestartSave( this%SumEPotIntra_Angle )
       call RestartSave( this%SumEPotIntra_Dihedral )
