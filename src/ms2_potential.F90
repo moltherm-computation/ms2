@@ -526,7 +526,6 @@ contains
     real(RK), intent(in)        :: ScaleSigma, ScaleEpsilon
 
     ! Declare local variables
-    real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
     real(RK) :: Pi2mie_a, Piminus23mie_a, Pi29mie_a
 
