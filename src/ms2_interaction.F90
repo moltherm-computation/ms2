@@ -1685,7 +1685,7 @@ contains
     ! Calculate MIE chemical potential
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
-        call ChemicalPotential( this%PotMIEnmMIEnm( i, j ), EPotTest, BoxLength )
+        call ChemicalPotential( this%PotMIEnmMIEnm( i, j ), EPotTest)
       end do
     end do
 

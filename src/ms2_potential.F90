@@ -1855,14 +1855,13 @@ loop1:do k = 1, this%NInCutoff(i)
 !  Subroutine TPotMIEMIE_ChemicalPotential                     !
 !==============================================================!
 
-  subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest, BoxLength )
+  subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest)
 
     implicit none
 
     ! Declare arguments
     type(TPotMIEnmMIEnm) :: this
     real(RK), pointer, contiguous    :: EPotTest(:)
-    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
