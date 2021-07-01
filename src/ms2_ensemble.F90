@@ -5362,6 +5362,24 @@ loop5:    do nc = 1, this%NComponents
       end do
     end if
 
+    ! Predict volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
+
+        this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
+&                      + 4._RK * this%Volume4 + 5._RK * this%Volume5
+
+        this%Volume2 = this%Volume2 + 3._RK * this%Volume3 + 6._RK * this%Volume4 &
+&                      + 10._RK * this%Volume5
+
+        this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
+
+        this%Volume4 = this%Volume4 + 5._RK * this%Volume5
+
+      end if
+    end if
+
   end subroutine TEnsemble_PredictGear
 
 
@@ -5384,7 +5402,8 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer  :: i
-    real(RK) :: dLogVolumeThird
+    real(RK) :: dLogVolumeThird, Volume2, Corr
+    real(RK) :: BoxLengthOld, DelBoxL
 
 #ifdef ABL
     real(RK) :: vol
@@ -5402,6 +5421,18 @@ loop5:    do nc = 1, this%NComponents
       end do
     end if
 
+    ! Correct volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
+        Corr = Volume2 - this%Volume2
+        this%Volume0 = this%Volume0 + Corr * Gear20
+        this%Volume1 = this%Volume1 + Corr * Gear21
+        this%Volume2 =      Volume2
+        this%Volume3 = this%Volume3 + Corr * Gear23
+        this%Volume4 = this%Volume4 + Corr * Gear24
+        this%Volume5 = this%Volume5 + Corr * Gear25
+
 #if ABL
         vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
         fac = TimeStepSquared2*Gear20
@@ -5417,6 +5448,18 @@ loop5:    do nc = 1, this%NComponents
           end do
         end do
 #endif
+
+      end if
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
+      call ResizeMol(this, DelBoxL)
+    end if
 
   end subroutine TEnsemble_CorrectGear
 
@@ -20485,23 +20528,10 @@ contains
     if ( RootProc ) then
       ! Call predictor
       select case( IntegratorType )
-      case( IntegratorTypeGear )
-
-        this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-        this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
-&                    + 4._RK * this%Volume4 + 5._RK * this%Volume5
-        this%Volume2 = this%Volume2 + 3._RK * this%Volume3 + 6._RK * this%Volume4 &
-&                    + 10._RK * this%Volume5
-        this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
-        this%Volume4 = this%Volume4 + 5._RK * this%Volume5
 
       case( IntegratorTypeLeapFrog )
         this%Volume1 = this%Volume1 + this%Volume2
         this%Volume0 = this%Volume0 + this%Volume1
-
-      case( IntegratorTypeVerlet )
-
-      case( IntegratorTypeVV )
 
       end select
     end if
@@ -21915,70 +21945,19 @@ contains
     ! Declare arguments
     type(TEnsemble) :: this
 
-    ! Declare local variables
-    real(RK) :: Volume2, Corr
-    real(RK) :: BoxLengthOld, DelBoxL
 
-#ifdef ABL
-    real(RK) :: vol
-    real(RK) :: fac
-    real(RK) :: denom,denom2
-    real(RK) :: nen
-    integer  :: j
-#endif
 
     ! Correct volume of simulation box
     if( RootProc ) then
       ! Call corrector
       select case( IntegratorType )
-      case( IntegratorTypeGear )
-
-        Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
-        Corr = Volume2 - this%Volume2
-        this%Volume0 = this%Volume0 + Corr * Gear20
-        this%Volume1 = this%Volume1 + Corr * Gear21
-        this%Volume2 =      Volume2
-        this%Volume3 = this%Volume3 + Corr * Gear23
-        this%Volume4 = this%Volume4 + Corr * Gear24
-        this%Volume5 = this%Volume5 + Corr * Gear25
-
-#if ABL
-        vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-        fac = TimeStepSquared2*Gear20
-        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20 ! Michael Sch.: per def = 0, also obsolet...
-        denom2 = denom**2
-        nen = this%PistonMass*fac / (vol * denom2)
-        do i=1,this%NComponents
-          do j=1,this%Component(i)%Molecule%NLJ126
-            this%AblPS(i,j)   =  this%AblPS(i,j) + this%Interaction(1, 1)%PotLJ126LJ126(i, j)%AblSigCorr(i,j)
-            this%AblPE(i,j)   =  this%AblPE(i,j) + this%Interaction(1, 1)%PotLJ126LJ126(i, j)%AblEpsCorr(i,j)
-            this%AblRhoS(i,j) = nen * this%AblPS(i,j)
-            this%AblRhoE(i,j) = nen * this%AblPE(i,j)
-          end do
-        end do
-#endif
 
       case( IntegratorTypeLeapFrog )
         this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
         this%Volume1 = this%Volume1 + this%Volume2
 
-      case( IntegratorTypeVerlet )
-
-      case( IntegratorTypeVV )
       end select
 
-    end if
-
-    if ( IntegratorType .eq. IntegratorTypeGear ) then
-#if MPI_VER > 0
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-      BoxLengthOld = this%BoxLength
-      call UpdateBoxLength( this )
-
-      DelBoxL = this%BoxLength / BoxLengthOld
-      call ResizeMol(this, DelBoxL)
     end if
 
 
