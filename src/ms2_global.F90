@@ -261,7 +261,7 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
-  character(*), parameter :: IdNStepsMCOR                  = 'MCORSteps'
+  character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
   character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'

@@ -558,7 +558,7 @@ contains
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter( NStepsMCOR, iounit_params , IdNStepsMCOR, .true., 0 )
+        call FileReadParameter( NStepsMCOR, iounit_params , IdNStepsMC, .true., 0 )
         if( NStepsMCOR > 0 ) then
           write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMCOR
           call LogWrite
