@@ -275,11 +275,9 @@ contains
     ! Open parameter file for reading
     call FileReset( iounit_params, ParameterFileName )
     ! Read parVersionNr
-    call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1._RK )
-    if (.not. parVersionNr .eq. 1.0_RK ) then
-      write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
-      call LogWrite
-    endif
+    call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1.0_RK )
+    write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
+    call LogWrite
     if ( parVersionNr .lt. ms2VersionNr ) then
       write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
       call LogWrite
@@ -438,7 +436,7 @@ contains
       if( SimulationType .eq. MolecularDynamics ) then
 
         ! Type of integrator
-        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "LeapFrog" )
+        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "GEAR" )
         select case( str )
 
         case( 'GEAR', 'Gear', 'gear' )
@@ -554,10 +552,10 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-!       if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
-! &         .and. .not. SimulationType .eq. MonteCarlo ) &
-! &         call Error( trim( SimulationTypeString )//" simulation of " &
-! &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
+      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
+&         .and. .not. SimulationType .eq. MonteCarlo ) &
+&         call Error( trim( SimulationTypeString )//" simulation of " &
+&         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
@@ -720,6 +718,7 @@ contains
         if( ErrorsUpdateFrequency < NSteps ) then
           write( IOBuffer, '("Final result files will be updated each ", I8, " time steps")' ) ErrorsUpdateFrequency
         else
+          ErrorsUpdateFrequency = NSteps
           write( IOBuffer, '("Final result files will be created at the end")' )
         end if
 
@@ -807,15 +806,15 @@ contains
             write( IOBuffer, '("Ewald: KappaL:", T23, F8.3)' ) KappaL_h
             call LogWrite
 
-            call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true., 27 )
+            call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true. )
             write( IOBuffer, '("Ewald: NsqMax:",T20, I7)' ) nsqmax_h
             call LogWrite
 
-            call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true., 1000 )
+            call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true. )
             write( IOBuffer, '("Ewald: NVecMax:",T20, I7)' ) nvecmax_h
             call LogWrite
 
-            call FileReadParameter( nmax_h, iounit_params , IdNMax, .true., 5 )
+            call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
 
@@ -1012,11 +1011,11 @@ contains
       call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
       select case( str )
 
-      case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes', 'ok', 'Ok', 'ja', 'Ja' )
+      case( 'yes' , 'ok', 'ja' )
         this%Ensemble(:)%CorrFunMode = .true.
         str = 'Include transport properties for all ensembles'
 
-      case( 'OFF', 'Off', 'off', 'no', 'NO', 'No', 'nein', 'Nein' )
+      case( 'no', 'nein' )
         this%Ensemble(:)%CorrFunMode = .false.
         str = 'No transport properties for any ensemble'
         call Error( 'Use a binary compiled without -DTRANS if you do not &
@@ -1383,7 +1382,6 @@ contains
 
               if (Equilibration) then
                 if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
-                if( EnsembleType .eq. EnsembleTypeHA ) NStepsP = 1
                 if( ConstantPressure ) then 
                   if(EnsembleType .eq. EnsembleTypeNPH ) then
                     NStepsH = 1
@@ -1423,7 +1421,7 @@ contains
       endif
 
       ! adapt procrange for to the given equilibration scheme
-      do j = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+      do j = this%firstEnsembleIdx, this%lastEnsembleIdx
         do i = 1, this%Ensemble(j)%NComponents
            pc => this%Ensemble(j)%Component(i)
            pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
@@ -1470,7 +1468,7 @@ contains
         MCOverlapReduction = .false.
         SimulationType = MolecularDynamics
 
-        do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+        do i = this%firstEnsembleIdx, this%lastEnsembleIdx
           call InitMolecularDynamics( this%Ensemble(i), .true. )
         end do
       else
@@ -1593,11 +1591,9 @@ eqloop: do
           if( .not. TerminateProgram ) then
             call CheckNPart( this, NPartsOk )
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-            if (SimulationType .eq. MonteCarlo) then
-              call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
-              if ( .not. AnyNPartOk) then
-                  NPartsOk = .false.
-              endif
+            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
+            if ( .not. AnyNPartOk) then
+                NPartsOk = .false.
             endif
 #endif
 
@@ -1610,11 +1606,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
-
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1651,10 +1645,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1745,10 +1738,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1796,7 +1788,7 @@ eqloop: do
 #if MPI_VER > 0 
     if (SimulationType .eq. MonteCarlo .and. CommonEqui) then 
       
-      do k = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+      do k = this%firstEnsembleIdx, this%lastEnsembleIdx
           do i = 1, this%Ensemble(k)%NRealComponents
             do j = 1, this%Ensemble(k)%NRealComponents
               pi => this%Ensemble(k)%Interaction(j, i)
@@ -1822,7 +1814,7 @@ eqloop: do
         if (RootProc) then
           if (NProc_W .ne. NRootProc) then
             ! Close all files keeping track of the equilibration
-            do j = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+            do j = this%firstEnsembleIdx, this%lastEnsembleIdx
               call FileClose( this%Ensemble(j)%iounit_runave )
               call FileClose( this%Ensemble(j)%iounit_result )
             enddo
@@ -1842,7 +1834,7 @@ eqloop: do
            
            ! only these processes are involved in the communication
            if  ((NProc_W .ge. NGroups*Proc_Max_Eff) .or. (NProc_W == NRootProc)) then
-             do j = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+             do j = this%firstEnsembleIdx, this%lastEnsembleIdx
                call MPI_Bcast( this%Ensemble(j)%EPot, 1, MPI_RK, NRootProc, Communicator, ierror )
                call MPI_Bcast( this%Ensemble(j)%DispVol, 1, MPI_RK, NRootProc, Communicator, ierror )            
                do i = 1, this%Ensemble(j)%NComponents
@@ -1875,7 +1867,7 @@ eqloop: do
       call Randomize( seed = (5333*(NProc+1)) )
 
       ! adapt procrange such that each simulation calculates all its interactions from now on
-      do j = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+      do j = this%firstEnsembleIdx, this%lastEnsembleIdx
         do i = 1, this%Ensemble(j)%NComponents
           pc => this%Ensemble(j)%Component(i)
           pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
@@ -1899,7 +1891,7 @@ eqloop: do
 #endif
 
      GradInsInitialization = .false.
-     do j = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+     do j = this%firstEnsembleIdx, this%lastEnsembleIdx
        do i = 1, this%Ensemble(j)%NComponents
            if( (this%Ensemble(j)%Component(i)%WFMethod .eq. WFMethodGuess) .and. &
 &              (this%Ensemble(j)%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns) ) then
@@ -1925,21 +1917,18 @@ eqloop: do
        call LogWriteTime
        
        NGradInsInit = 1      
-       do j= 1, this%firstEnsembleIdx, this%lastEnsembleIdx  
+       do j= this%firstEnsembleIdx, this%lastEnsembleIdx  
         do i = 1, this%Ensemble(j)%NComponents
          NGradInsInit = NGradInsInit + this%Ensemble(j)%Component(i)%GradInsInit
         end do 
        end do
       
-       do j= 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+       do j= this%firstEnsembleIdx, this%lastEnsembleIdx
         do Step = StepStart, NGradInsInit
         call ChemicalPotential( this%Ensemble(j) )
         end do 
        end do
              
-       write( IOBuffer, '("Number of GradIns initialization iterations: ",T40, I7)' ) NGradInsInit*this%NEnsembles
-       call LogWrite
-       
        Step = 1
        if( .not. TerminateProgram ) then
          write( IOBuffer, '("GradIns initialization completed")' )
@@ -2061,13 +2050,13 @@ eqloop: do
 #if TRANS==1
       ! Run simulation step
         if ( .not. Equilibration ) then
-          do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+          do i = this%firstEnsembleIdx, this%lastEnsembleIdx
             if ( this%Ensemble(i)%CorrFunMode ) then
               if (mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
                 StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
                 if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                  NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
-&                                            ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                  NBlocksCF = 1 + int(( StepCF - 1 - this%Ensemble(i)%Ncorr ) / &
+&                                            ( BlockSizeCF * this%Ensemble(i)%NSpancf ))
                   NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / &
 &                                                ( BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
                 else
@@ -2211,7 +2200,7 @@ eqloop: do
           end do
         else ! .not.RootProc_R
           !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then	! only works if NRootProc_R.ne.1 (NRootProc_R==0)
-          if ( .not. doneMsgTerm ) then
+          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then	! should work for NProcs_R.gt.1
             ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
@@ -2272,7 +2261,7 @@ eqloop: do
     integer :: i
 
     ! Run MD simulation step
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call RunMDStep( this%Ensemble(i) )
     end do
 
@@ -2295,7 +2284,7 @@ eqloop: do
     integer :: i
 
     ! Run MC simulation step
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call RunMCStep( this%Ensemble(i) )
     end do
 
@@ -2318,7 +2307,7 @@ eqloop: do
     integer :: i
 
     ! Run SVC simulation step
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call RunSVCStep( this%Ensemble(i) )
     end do
 
@@ -2363,7 +2352,7 @@ eqloop: do
 &       call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
 
     ! Run MC simulation step
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call RunMCStep( this%Ensemble(i) )
     end do
 
@@ -2413,7 +2402,7 @@ eqloop: do
 
     ! Check number of particles in ensembles
     NPartsOk = .true.
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call CheckNPart( this%Ensemble(i), NPartsOk )
     end do
 
@@ -2435,7 +2424,7 @@ eqloop: do
     integer :: i
 
     ! Run MC simulation step
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call ResetEnsemble( this%Ensemble(i) )
     end do
 
@@ -2467,7 +2456,7 @@ eqloop: do
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
     ! Open ensemble result files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call ResultOpen( this%Ensemble(i) )
     end do
 
@@ -2500,7 +2489,7 @@ eqloop: do
     if( MCOverlapReduction ) return
 
     ! Update ensemble result files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call ResultUpdate( this%Ensemble(i) )
     end do
 
@@ -2534,7 +2523,7 @@ eqloop: do
     if( BlockSize < 1 .and. .not. SimulationType .eq. SecondVirialCoeff ) return
 
     ! Close ensemble result files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call ResultClose( this%Ensemble(i) )
     end do
 
@@ -2569,7 +2558,7 @@ eqloop: do
     call LogWrite
 
     ! Save ensemble results
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call ErrorsUpdate( this%Ensemble(i) )
     end do
 
@@ -2599,7 +2588,7 @@ eqloop: do
     call LogWrite
 
     ! Save ensemble results
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call SVCOutput( this%Ensemble(i) )
     end do
 
@@ -2627,7 +2616,7 @@ eqloop: do
     if( VisualUpdateFrequency < 1 ) return
 
     ! Open ensemble visualisation files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call VisualOpen( this%Ensemble(i) )
     end do
 
@@ -2659,7 +2648,7 @@ eqloop: do
 
     ! Update ensemble visualisation files
     if( mod( StepTotal - 1, VisualUpdateFrequency ) == 0 ) then
-      do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         call VisualUpdate( this%Ensemble(i) )
       end do
     end if
@@ -2688,7 +2677,7 @@ eqloop: do
     if( VisualUpdateFrequency < 1 ) return
 
     ! Close ensemble visualisation files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call VisualClose( this%Ensemble(i) )
     end do
 
@@ -2799,7 +2788,7 @@ eqloop: do
     if( RDFUpdateFrequency < 1 ) return
 
     ! Open ensemble visualisation files
-    do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call RDFOpen( this%Ensemble(i) )
     end do
 
@@ -2829,8 +2818,8 @@ eqloop: do
     if( Equilibration ) return
 
     ! Update ensemble visualisation files
-    if( mod( StepTotal - 1, RDFUpdateFrequency ) == 0 ) then
-      do i = 1, this%firstEnsembleIdx, this%lastEnsembleIdx
+    if( mod( Step - 1, RDFUpdateFrequency ) == 0 ) then
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         call RDFUpdate( this%Ensemble(i) )
       end do
     end if
