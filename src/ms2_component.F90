@@ -2935,94 +2935,6 @@ contains
 
     end subroutine TComponent_ResizeMol
 
-!==============================================================!
-!  Subroutine TComponent_RotateMol                             !
-!==============================================================!
-
-subroutine TComponent_RotateMol( this, np, dq )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    real(RK),intent(in) :: dq(3)
-
-    ! Declare local variables
-    real(RK)         :: BoxLengthInv
-    real(RK)         :: PX, PY, PZ
-    real(RK)         :: A11, A12, A13
-    real(RK)         :: A21, A22, A23
-    real(RK)         :: A31, A32, A33
-    real(RK)         :: r1, r2, r3
-    real(RK)         :: q1, q2, q3, q4, qinv
-    integer          :: i
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    ! Calculate rotation matrix elements
-    q1 = 1._RK
-    q2 = dq(1)
-    q3 = dq(2)
-    q4 = dq(3)
-    ! Normalise quaternions
-#if ARCH == 3
-    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-    q1 = q1 * qinv
-    q2 = q2 * qinv
-    q3 = q3 * qinv
-    q4 = q4 * qinv
-
-    A11 = q2**2 - q3**2 - q4**2 + q1**2
-    A12 = 2._RK * (q2 * q3 + q4*q1)
-    A13 = 2._RK * (q2 * q4 - q3*q1)
-    A21 = 2._RK * (q2 * q3 - q4*q1)
-    A22 = - q2**2 + q3**2 - q4**2 + q1**2
-    A23 = 2._RK * (q3 * q4 + q2*q1)
-    A31 = 2._RK * (q2 * q4 + q3*q1)
-    A32 = 2._RK * (q3 * q4 - q2*q1)
-    A33 = - q2**2 - q3**2 + q4**2 + q1**2
-
-    do i=1,this%Molecule%NUnit
-      ! Positions and quaternions of unit i in particle np
-      PX = this%P0(np, 1, i)
-      PY = this%P0(np, 2, i)
-      PZ = this%P0(np, 3, i)
-      q1 = this%Q0(np, 1, i)
-      q2 = this%Q0(np, 2, i)
-      q3 = this%Q0(np, 3, i)
-      q4 = this%Q0(np, 4, i)
-
-      ! Distance unit-COM
-      r1 = (PX-this%Pm0(np,1))
-      r2 = (PY-this%Pm0(np,2))
-      r3 = (PZ-this%Pm0(np,3))
-      r1 = r1 - anint(r1)
-      r2 = r2 - anint(r2)
-      r3 = r3 - anint(r3)
-
-      ! Calculating new Positions and quaternions of unit i after rotation
-      this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
-      this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
-      this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
-      this%P0(np,1,i) = this%P0(np,1,i) - anint(this%P0(np,1,i))
-      this%P0(np,2,i) = this%P0(np,2,i) - anint(this%P0(np,2,i))
-      this%P0(np,3,i) = this%P0(np,3,i) - anint(this%P0(np,3,i))
-
-      ! this%Q0*dq
-      this%Q0(np,1,i) = q1 - dq(1)*q2 - dq(2)*q3 - dq(3)*q4
-      this%Q0(np,2,i) = q2 + dq(1)*q1 - dq(3)*q3 + dq(2)*q4
-      this%Q0(np,3,i) = q3 + dq(2)*q1 + dq(3)*q2 - dq(1)*q4
-      this%Q0(np,4,i) = q4 + dq(3)*q1 - dq(2)*q2 + dq(1)*q3
-
-    end do
-
-  end subroutine TComponent_RotateMol
-
 
 !==============================================================!
 !  Subroutine TComponent_Unit2Atom                             !
@@ -7198,6 +7110,95 @@ subroutine TComponent_RotateTest( this, np, dq )
     end do
 
   end subroutine TComponent_RotateTest
+
+
+!==============================================================!
+!  Subroutine TComponent_RotateMol                             !
+!==============================================================!
+
+subroutine TComponent_RotateMol( this, np, dq )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    real(RK),intent(in) :: dq(3)
+
+    ! Declare local variables
+    real(RK)         :: BoxLengthInv
+    real(RK)         :: PX, PY, PZ
+    real(RK)         :: A11, A12, A13
+    real(RK)         :: A21, A22, A23
+    real(RK)         :: A31, A32, A33
+    real(RK)         :: r1, r2, r3
+    real(RK)         :: q1, q2, q3, q4, qinv
+    integer          :: i
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    ! Calculate rotation matrix elements
+    q1 = 1._RK
+    q2 = dq(1)
+    q3 = dq(2)
+    q4 = dq(3)
+    ! Normalise quaternions
+#if ARCH == 3
+    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+    q1 = q1 * qinv
+    q2 = q2 * qinv
+    q3 = q3 * qinv
+    q4 = q4 * qinv
+
+    A11 = q2**2 - q3**2 - q4**2 + q1**2
+    A12 = 2._RK * (q2 * q3 + q4*q1)
+    A13 = 2._RK * (q2 * q4 - q3*q1)
+    A21 = 2._RK * (q2 * q3 - q4*q1)
+    A22 = - q2**2 + q3**2 - q4**2 + q1**2
+    A23 = 2._RK * (q3 * q4 + q2*q1)
+    A31 = 2._RK * (q2 * q4 + q3*q1)
+    A32 = 2._RK * (q3 * q4 - q2*q1)
+    A33 = - q2**2 - q3**2 + q4**2 + q1**2
+
+    do i=1,this%Molecule%NUnit
+      ! Positions and quaternions of unit i in particle np
+      PX = this%P0(np, 1, i)
+      PY = this%P0(np, 2, i)
+      PZ = this%P0(np, 3, i)
+      q1 = this%Q0(np, 1, i)
+      q2 = this%Q0(np, 2, i)
+      q3 = this%Q0(np, 3, i)
+      q4 = this%Q0(np, 4, i)
+
+      ! Distance unit-COM
+      r1 = (PX-this%Pm0(np,1))
+      r2 = (PY-this%Pm0(np,2))
+      r3 = (PZ-this%Pm0(np,3))
+      r1 = r1 - anint(r1)
+      r2 = r2 - anint(r2)
+      r3 = r3 - anint(r3)
+
+      ! Calculating new Positions and quaternions of unit i after rotation
+      this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
+      this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
+      this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
+      this%P0(np,1,i) = this%P0(np,1,i) - anint(this%P0(np,1,i))
+      this%P0(np,2,i) = this%P0(np,2,i) - anint(this%P0(np,2,i))
+      this%P0(np,3,i) = this%P0(np,3,i) - anint(this%P0(np,3,i))
+
+      ! this%Q0*dq
+      this%Q0(np,1,i) = q1 - dq(1)*q2 - dq(2)*q3 - dq(3)*q4
+      this%Q0(np,2,i) = q2 + dq(1)*q1 - dq(3)*q3 + dq(2)*q4
+      this%Q0(np,3,i) = q3 + dq(2)*q1 + dq(3)*q2 - dq(1)*q4
+      this%Q0(np,4,i) = q4 + dq(3)*q1 - dq(2)*q2 + dq(1)*q3
+
+    end do
+
+  end subroutine TComponent_RotateMol
 
 
 end module ms2_component
