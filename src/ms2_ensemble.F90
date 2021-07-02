@@ -16300,20 +16300,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
     call RestartSave( this%SumdEpotdV )
     call RestartSave( this%Sumd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartSave( this%SumHmU )
-      call RestartSave( this%SumHmUm1)
-      call RestartSave( this%SumHmUm2 )
-      call RestartSave( this%SumHmUm3 )
-      call RestartSave( this%SumHmUm1dUdV )
-      call RestartSave( this%SumHmUm1dUdV2 )
-      call RestartSave( this%SumHmUm1d2UdV2 )
-      call RestartSave( this%SumHmUm2dUdV )
-      call RestartSave( this%SumHmUm2dUdV2 )
-      call RestartSave( this%SumHmUm2d2UdV2 )
-      call RestartSave( this%SumHmUm3dUdV )
-      call RestartSave( this%SumHmUm3dUdV2 )
-    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartSave( this%SumNPart )
@@ -16336,7 +16322,20 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call RestartSave( this%SumEPotSquareddEpotdV )
     call RestartSave( this%SumEPotdEpotdVSquared )
     call RestartSave( this%SumEPotd2EpotdV2 )
-
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumHmU )
+      call RestartSave( this%SumHmUm1)
+      call RestartSave( this%SumHmUm2 )
+      call RestartSave( this%SumHmUm3 )
+      call RestartSave( this%SumHmUm1dUdV )
+      call RestartSave( this%SumHmUm1dUdV2 )
+      call RestartSave( this%SumHmUm1d2UdV2 )
+      call RestartSave( this%SumHmUm2dUdV )
+      call RestartSave( this%SumHmUm2dUdV2 )
+      call RestartSave( this%SumHmUm2d2UdV2 )
+      call RestartSave( this%SumHmUm3dUdV )
+      call RestartSave( this%SumHmUm3dUdV2 )
+    end if
     ! 3.) Derived sums
     if( ConstantPressure ) then
       call RestartSave( this%SumBetaT )
@@ -16391,6 +16390,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RestartSave( pc%SumHW_denom )
       case( ChemPotMethodThermoInt )
         call RestartSave( pc%SumChemPotV )
+        call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
         call RestartSave( pc%SumChemPotThermoIntWidomV )
         call RestartSave( pc%SumHW_counter )
@@ -16620,20 +16620,6 @@ endif
     end if
     call RestartRead( this%SumdEpotdV )
     call RestartRead( this%Sumd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartRead( this%SumHmU )
-      call RestartRead( this%SumHmUm1)
-      call RestartRead( this%SumHmUm2 )
-      call RestartRead( this%SumHmUm3 )
-      call RestartRead( this%SumHmUm1dUdV )
-      call RestartRead( this%SumHmUm1dUdV2 )
-      call RestartRead( this%SumHmUm1d2UdV2 )
-      call RestartRead( this%SumHmUm2dUdV )
-      call RestartRead( this%SumHmUm2dUdV2 )
-      call RestartRead( this%SumHmUm2d2UdV2 )
-      call RestartRead( this%SumHmUm3dUdV )
-      call RestartRead( this%SumHmUm3dUdV2 )
-    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartRead( this%SumNPart )
@@ -16656,6 +16642,20 @@ endif
     call RestartRead( this%SumEPotSquareddEpotdV )
     call RestartRead( this%SumEPotdEpotdVSquared )
     call RestartRead( this%SumEPotd2EpotdV2 )
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartRead( this%SumHmU )
+      call RestartRead( this%SumHmUm1)
+      call RestartRead( this%SumHmUm2 )
+      call RestartRead( this%SumHmUm3 )
+      call RestartRead( this%SumHmUm1dUdV )
+      call RestartRead( this%SumHmUm1dUdV2 )
+      call RestartRead( this%SumHmUm1d2UdV2 )
+      call RestartRead( this%SumHmUm2dUdV )
+      call RestartRead( this%SumHmUm2dUdV2 )
+      call RestartRead( this%SumHmUm2d2UdV2 )
+      call RestartRead( this%SumHmUm3dUdV )
+      call RestartRead( this%SumHmUm3dUdV2 )
+    end if
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -16721,6 +16721,7 @@ endif
 
       case( ChemPotMethodThermoInt )
         call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
         call RestartRead( pc%SumChemPotThermoIntWidomV )
         call RestartRead( pc%SumHW_counter )
