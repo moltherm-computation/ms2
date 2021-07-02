@@ -3025,111 +3025,6 @@ subroutine TComponent_RotateMol( this, np, dq )
 
 
 !==============================================================!
-!  Subroutine TComponent_RotateTest                            !
-!==============================================================!
-
-subroutine TComponent_RotateTest( this, np, dq )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    real(RK),intent(in) :: dq(3)
-
-    ! Declare local variables
-    real(RK)         :: BoxLengthInv
-    real(RK)         :: PX, PY, PZ
-    real(RK)         :: A11, A12, A13
-    real(RK)         :: A21, A22, A23
-    real(RK)         :: A31, A32, A33
-    real(RK)         :: r1, r2, r3, rm(3)
-    real(RK)         :: q1, q2, q3, q4, qinv
-    integer          :: i
-
-!     ! Broadcast positions and orientations to all processes
-! #if MPI_VER > 0
-!     ! in MC simulations, we only communicate during common equilibration
-!     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-!       call MPI_Bcast( this%P0Test(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
-!       if( this%Molecule%isElongated ) then
-!         call MPI_Bcast( this%Q0Test(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
-!       end if
-!     end if
-! #endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    ! Calculate rotation matrix elements
-    q1 = 1._RK
-    q2 = dq(1)
-    q3 = dq(2)
-    q4 = dq(3)
-    ! Normalise quaternions
-#if ARCH == 3
-    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-    q1 = q1 * qinv
-    q2 = q2 * qinv
-    q3 = q3 * qinv
-    q4 = q4 * qinv
-
-    A11 = q2**2 - q3**2 - q4**2 + q1**2
-    A12 = 2._RK * (q2 * q3 + q4*q1)
-    A13 = 2._RK * (q2 * q4 - q3*q1)
-    A21 = 2._RK * (q2 * q3 - q4*q1)
-    A22 = - q2**2 + q3**2 - q4**2 + q1**2
-    A23 = 2._RK * (q3 * q4 + q2*q1)
-    A31 = 2._RK * (q2 * q4 + q3*q1)
-    A32 = 2._RK * (q3 * q4 - q2*q1)
-    A33 = - q2**2 - q3**2 + q4**2 + q1**2
-
-    rm(:) = 0._RK
-    do i = 1, this%Molecule%NUnit
-      rm(1:3) = rm(1:3) + this%Molecule%Unit(i)%Mass*this%P0Test(np,1:3,i)
-    end do
-    rm(:) = rm(:)/this%Molecule%Mass
-
-    do i=1,this%Molecule%NUnit
-      ! Positions and quaternions of unit i in particle np
-      PX = this%P0Test(np, 1, i)
-      PY = this%P0Test(np, 2, i)
-      PZ = this%P0Test(np, 3, i)
-      q1 = this%Q0Test(np, 1, i)
-      q2 = this%Q0Test(np, 2, i)
-      q3 = this%Q0Test(np, 3, i)
-      q4 = this%Q0Test(np, 4, i)
-
-      ! Distance unit-COM
-      r1 = (PX-rm(1))
-      r2 = (PY-rm(2))
-      r3 = (PZ-rm(3))
-
-      ! Calculating new Positions and quaternions of unit i after rotation
-      this%P0Test(np,1,i) = rm(1) + r1 * A11 + r2 * A21 + r3 * A31
-      this%P0Test(np,2,i) = rm(2) + r1 * A12 + r2 * A22 + r3 * A32
-      this%P0Test(np,3,i) = rm(3) + r1 * A13 + r2 * A23 + r3 * A33
-
-      ! this%Q0*dq
-      this%Q0Test(np,1,i) = q1 - dq(1)*q2 - dq(2)*q3 - dq(3)*q4
-      this%Q0Test(np,2,i) = q2 + dq(1)*q1 - dq(3)*q3 + dq(2)*q4
-      this%Q0Test(np,3,i) = q3 + dq(2)*q1 + dq(3)*q2 - dq(1)*q4
-      this%Q0Test(np,4,i) = q4 + dq(3)*q1 - dq(2)*q2 + dq(1)*q3
-
-    end do
-
-  end subroutine TComponent_RotateTest
-
-
-!==============================================================!
 !  Subroutine TComponent_Unit2Atom                             !
 !==============================================================!
 
@@ -7198,6 +7093,111 @@ subroutine TComponent_InitUnit( this, np, dq )
 ! #endif
 
   end subroutine TComponent_InitUnit
+
+
+!==============================================================!
+!  Subroutine TComponent_RotateTest                            !
+!==============================================================!
+
+subroutine TComponent_RotateTest( this, np, dq )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    real(RK),intent(in) :: dq(3)
+
+    ! Declare local variables
+    real(RK)         :: BoxLengthInv
+    real(RK)         :: PX, PY, PZ
+    real(RK)         :: A11, A12, A13
+    real(RK)         :: A21, A22, A23
+    real(RK)         :: A31, A32, A33
+    real(RK)         :: r1, r2, r3, rm(3)
+    real(RK)         :: q1, q2, q3, q4, qinv
+    integer          :: i
+
+!     ! Broadcast positions and orientations to all processes
+! #if MPI_VER > 0
+!     ! in MC simulations, we only communicate during common equilibration
+!     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+!       call MPI_Bcast( this%P0Test(np, :, :), this%Molecule%NUnit*3, MPI_RK, NRootProc, Communicator, ierror )
+!       if( this%Molecule%isElongated ) then
+!         call MPI_Bcast( this%Q0Test(np, :, :), this%Molecule%NUnit*4, MPI_RK, NRootProc, Communicator, ierror )
+!       end if
+!     end if
+! #endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    ! Calculate rotation matrix elements
+    q1 = 1._RK
+    q2 = dq(1)
+    q3 = dq(2)
+    q4 = dq(3)
+    ! Normalise quaternions
+#if ARCH == 3
+    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+    q1 = q1 * qinv
+    q2 = q2 * qinv
+    q3 = q3 * qinv
+    q4 = q4 * qinv
+
+    A11 = q2**2 - q3**2 - q4**2 + q1**2
+    A12 = 2._RK * (q2 * q3 + q4*q1)
+    A13 = 2._RK * (q2 * q4 - q3*q1)
+    A21 = 2._RK * (q2 * q3 - q4*q1)
+    A22 = - q2**2 + q3**2 - q4**2 + q1**2
+    A23 = 2._RK * (q3 * q4 + q2*q1)
+    A31 = 2._RK * (q2 * q4 + q3*q1)
+    A32 = 2._RK * (q3 * q4 - q2*q1)
+    A33 = - q2**2 - q3**2 + q4**2 + q1**2
+
+    rm(:) = 0._RK
+    do i = 1, this%Molecule%NUnit
+      rm(1:3) = rm(1:3) + this%Molecule%Unit(i)%Mass*this%P0Test(np,1:3,i)
+    end do
+    rm(:) = rm(:)/this%Molecule%Mass
+
+    do i=1,this%Molecule%NUnit
+      ! Positions and quaternions of unit i in particle np
+      PX = this%P0Test(np, 1, i)
+      PY = this%P0Test(np, 2, i)
+      PZ = this%P0Test(np, 3, i)
+      q1 = this%Q0Test(np, 1, i)
+      q2 = this%Q0Test(np, 2, i)
+      q3 = this%Q0Test(np, 3, i)
+      q4 = this%Q0Test(np, 4, i)
+
+      ! Distance unit-COM
+      r1 = (PX-rm(1))
+      r2 = (PY-rm(2))
+      r3 = (PZ-rm(3))
+
+      ! Calculating new Positions and quaternions of unit i after rotation
+      this%P0Test(np,1,i) = rm(1) + r1 * A11 + r2 * A21 + r3 * A31
+      this%P0Test(np,2,i) = rm(2) + r1 * A12 + r2 * A22 + r3 * A32
+      this%P0Test(np,3,i) = rm(3) + r1 * A13 + r2 * A23 + r3 * A33
+
+      ! this%Q0*dq
+      this%Q0Test(np,1,i) = q1 - dq(1)*q2 - dq(2)*q3 - dq(3)*q4
+      this%Q0Test(np,2,i) = q2 + dq(1)*q1 - dq(3)*q3 + dq(2)*q4
+      this%Q0Test(np,3,i) = q3 + dq(2)*q1 + dq(3)*q2 - dq(1)*q4
+      this%Q0Test(np,4,i) = q4 + dq(3)*q1 - dq(2)*q2 + dq(1)*q3
+
+    end do
+
+  end subroutine TComponent_RotateTest
 
 
 end module ms2_component
