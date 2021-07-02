@@ -2896,47 +2896,6 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_ResizeMol                             !
-!==============================================================!
-
-  subroutine TComponent_ResizeMol( this, DelBoxFrac )
-
-    implicit none
-
-    ! Declare arguments
-    real(RK),intent(in) :: DelBoxFrac
-    type(TComponent)    :: this
-
-    ! Declare local variables
-    real(RK)            :: PXij, PYij,PZij
-    integer             :: nu, np
-    integer             :: i, j
-
-
-    ! Calculate positions of units after global resize
-    nu = this%Molecule%NUnit
-    np = this%NPart
-
-    do i=1, np
-      do j=1,nu
-        PXij = this%P0(i,1,j) - this%Pm0(i,1)
-        PYij = this%P0(i,2,j) - this%Pm0(i,2)
-        PZij = this%P0(i,3,j) - this%Pm0(i,3)
-
-        this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
-        this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
-        this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
-
-        this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
-        this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
-        this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
-      end do
-    end do
-
-    end subroutine TComponent_ResizeMol
-
-
-!==============================================================!
 !  Subroutine TComponent_Unit2Atom                             !
 !==============================================================!
 
@@ -7199,6 +7158,47 @@ subroutine TComponent_RotateMol( this, np, dq )
     end do
 
   end subroutine TComponent_RotateMol
+
+
+!==============================================================!
+!  Subroutine TComponent_ResizeMol                             !
+!==============================================================!
+
+  subroutine TComponent_ResizeMol( this, DelBoxFrac )
+
+    implicit none
+
+    ! Declare arguments
+    real(RK),intent(in) :: DelBoxFrac
+    type(TComponent)    :: this
+
+    ! Declare local variables
+    real(RK)            :: PXij, PYij,PZij
+    integer             :: nu, np
+    integer             :: i, j
+
+
+    ! Calculate positions of units after global resize
+    nu = this%Molecule%NUnit
+    np = this%NPart
+
+    do i=1, np
+      do j=1,nu
+        PXij = this%P0(i,1,j) - this%Pm0(i,1)
+        PYij = this%P0(i,2,j) - this%Pm0(i,2)
+        PZij = this%P0(i,3,j) - this%Pm0(i,3)
+
+        this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
+        this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
+        this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
+
+        this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
+        this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
+        this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
+      end do
+    end do
+
+    end subroutine TComponent_ResizeMol
 
 
 end module ms2_component
