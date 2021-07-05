@@ -4233,109 +4233,6 @@ contains
   end subroutine TComponent_Atom2Unit_Trans
 
 
-!==============================================================!
-!  Subroutine TComponent_Unit2Mol                              !
-!==============================================================!
-
-  subroutine TComponent_Unit2Mol( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)   :: this
-
-    ! Declare local variables
-    real(RK)                 :: mass, avg, dist(this%Molecule%NUnit)
-    real(RK)                 :: PX(this%NPart),PY(this%NPart),PZ(this%NPart)
-    integer                  :: i, j
-    integer                  :: np
-
-    np = this%NPart
-    mass = 0._RK
-    PX(1:np)   = 0._RK
-    PY(1:np)   = 0._RK
-    PZ(1:np)   = 0._RK
-
-    do i=1,this%Molecule%NUnit
-      mass = this%Molecule%Unit(i)%Mass
-      PX(1:np)   = PX(1:np)   + (this%P0(1:np,1,i)-&
-&          anint(this%P0(1:np,1,i)-this%Pm0(1:np,1)) )*mass
-      PY(1:np)   = PY(1:np)   + (this%P0(1:np,2,i)-&
-&          anint(this%P0(1:np,2,i)-this%Pm0(1:np,2)) )*mass
-      PZ(1:np)   = PZ(1:np)   + (this%P0(1:np,3,i)-&
-&          anint(this%P0(1:np,3,i)-this%Pm0(1:np,3)) )*mass
-    end do
-
-    mass = this%Molecule%Mass
-    this%Pm0(1:np,1) = PX / mass
-    this%Pm0(1:np,2) = PY / mass
-    this%Pm0(1:np,3) = PZ / mass
-
-!     do j = 1,np
-!       do i = 1,3
-!         dist(:) = abs(this%P0(np,i,:)-this%Pm0(np,i))
-!         dist(:) = dist(:) - anint(dist(:))
-!         avg = sum(dist(:))/this%Molecule%NUnit
-!         if (avg > 0.25_RK ) then
-!           this%Pm0(j,i) = this%Pm0(j,i) + 0.5_RK
-!         end if
-!         this%Pm0(j,i) = this%Pm0(j,i) - anint(this%Pm0(j,i))
-!       end do
-!     end do
-
-  end subroutine TComponent_Unit2Mol
-
-
-
-!==============================================================!
-!  Subroutine TComponent_Unit2Mol1                             !
-!==============================================================!
-
-  subroutine TComponent_Unit2Mol1( this, np )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)   :: this
-    integer,intent (in) :: np
-
-    ! Declare local variables
-    real(RK)                 :: mass, avg
-    real(RK)                 :: PX,PY,PZ
-    integer                  :: i
-
-    mass = 0._RK
-    PX   = 0._RK
-    PY   = 0._RK
-    PZ   = 0._RK
-
-    do i=1,this%Molecule%NUnit
-      mass = this%Molecule%Unit(i)%Mass
-      PX   = PX   + (this%P0(np,1,i)-&
-&          anint(this%P0(np,1,i)-this%Pm0(np,1)) )*mass
-      PY   = PY   + (this%P0(np,2,i) - &
-&          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*mass
-      PZ   = PZ   + ( this%P0(np,3,i) - &
-&          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*mass
-    end do
-
-    mass = this%Molecule%Mass
-    this%Pm0(np,1) = PX / mass
-    this%Pm0(np,2) = PY / mass
-    this%Pm0(np,3) = PZ / mass
-
-!     do i = 1,3
-!       dist(:) = abs(this%P0(np,i,:)-this%Pm0(np,i))
-!       dist(:) = dist(:) - anint(dist(:))
-!       avg = sum(dist(:))/this%Molecule%NUnit
-!       if (avg > 0.25_RK ) then
-!         this%Pm0(np,i) = this%Pm0(np,i) + 0.5_RK
-!       this%Pm0(np,i) = this%Pm0(np,i) - anint(this%Pm0(np,i))
-!     end do
-
-  end subroutine TComponent_Unit2Mol1
-
-
 #if OSMOP > 0
 !==============================================================!
 !  Subroutine TComponent_DensityProfile                        !
@@ -7199,6 +7096,108 @@ subroutine TComponent_RotateMol( this, np, dq )
 
 
   end subroutine TComponent_Unit2Atom1Mol
+
+
+!==============================================================!
+!  Subroutine TComponent_Unit2Mol                              !
+!==============================================================!
+
+  subroutine TComponent_Unit2Mol( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)   :: this
+
+    ! Declare local variables
+    real(RK)                 :: mass, avg, dist(this%Molecule%NUnit)
+    real(RK)                 :: PX(this%NPart),PY(this%NPart),PZ(this%NPart)
+    integer                  :: i, j
+    integer                  :: np
+
+    np = this%NPart
+    mass = 0._RK
+    PX(1:np)   = 0._RK
+    PY(1:np)   = 0._RK
+    PZ(1:np)   = 0._RK
+
+    do i=1,this%Molecule%NUnit
+      mass = this%Molecule%Unit(i)%Mass
+      PX(1:np)   = PX(1:np)   + (this%P0(1:np,1,i)-&
+&          anint(this%P0(1:np,1,i)-this%Pm0(1:np,1)) )*mass
+      PY(1:np)   = PY(1:np)   + (this%P0(1:np,2,i)-&
+&          anint(this%P0(1:np,2,i)-this%Pm0(1:np,2)) )*mass
+      PZ(1:np)   = PZ(1:np)   + (this%P0(1:np,3,i)-&
+&          anint(this%P0(1:np,3,i)-this%Pm0(1:np,3)) )*mass
+    end do
+
+    mass = this%Molecule%Mass
+    this%Pm0(1:np,1) = PX / mass
+    this%Pm0(1:np,2) = PY / mass
+    this%Pm0(1:np,3) = PZ / mass
+
+!     do j = 1,np
+!       do i = 1,3
+!         dist(:) = abs(this%P0(np,i,:)-this%Pm0(np,i))
+!         dist(:) = dist(:) - anint(dist(:))
+!         avg = sum(dist(:))/this%Molecule%NUnit
+!         if (avg > 0.25_RK ) then
+!           this%Pm0(j,i) = this%Pm0(j,i) + 0.5_RK
+!         end if
+!         this%Pm0(j,i) = this%Pm0(j,i) - anint(this%Pm0(j,i))
+!       end do
+!     end do
+
+  end subroutine TComponent_Unit2Mol
+
+
+!==============================================================!
+!  Subroutine TComponent_Unit2Mol1                             !
+!==============================================================!
+
+  subroutine TComponent_Unit2Mol1( this, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)   :: this
+    integer,intent (in) :: np
+
+    ! Declare local variables
+    real(RK)                 :: mass, avg
+    real(RK)                 :: PX,PY,PZ
+    integer                  :: i
+
+    mass = 0._RK
+    PX   = 0._RK
+    PY   = 0._RK
+    PZ   = 0._RK
+
+    do i=1,this%Molecule%NUnit
+      mass = this%Molecule%Unit(i)%Mass
+      PX   = PX   + (this%P0(np,1,i)-&
+&          anint(this%P0(np,1,i)-this%Pm0(np,1)) )*mass
+      PY   = PY   + (this%P0(np,2,i) - &
+&          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*mass
+      PZ   = PZ   + ( this%P0(np,3,i) - &
+&          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*mass
+    end do
+
+    mass = this%Molecule%Mass
+    this%Pm0(np,1) = PX / mass
+    this%Pm0(np,2) = PY / mass
+    this%Pm0(np,3) = PZ / mass
+
+!     do i = 1,3
+!       dist(:) = abs(this%P0(np,i,:)-this%Pm0(np,i))
+!       dist(:) = dist(:) - anint(dist(:))
+!       avg = sum(dist(:))/this%Molecule%NUnit
+!       if (avg > 0.25_RK ) then
+!         this%Pm0(np,i) = this%Pm0(np,i) + 0.5_RK
+!       this%Pm0(np,i) = this%Pm0(np,i) - anint(this%Pm0(np,i))
+!     end do
+
+  end subroutine TComponent_Unit2Mol1
 
 
 end module ms2_component
