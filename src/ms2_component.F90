@@ -3703,6 +3703,166 @@ contains
 
   end subroutine TComponent_Atom2Unit
 
+#if 0
+!==============================================================!
+!  Subroutine TComponent_Atom2Mol1                             !
+!==============================================================!
+
+  subroutine TComponent_Atom2Mol1( this, np )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK)                       :: BoxLength
+    real(RK)                       :: rx, ry, rz, r1x, r1y, r1z
+    real(RK)                       :: q1, q2, q3, q4
+    real(RK)                       :: fx, fy, fz, tx, ty, tz
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteCharge), pointer     :: pCharge
+    type(TSiteDipole), pointer     :: pDipole
+    type(TSiteQuadrupole), pointer :: pQuadrupole
+    integer                        :: i, j
+ 
+
+    ! Assign local variables
+    BoxLength = this%BoxLength
+
+    ! Check number of rotation axes
+    if( this%Molecule%isElongated ) then
+
+
+      ! Initialize local arrays
+      rx = this%P0(np, 1)
+      ry = this%P0(np, 2)
+      rz = this%P0(np, 3)
+      q1 = this%Q0(np, 1)
+      q2 = this%Q0(np, 2)
+      q3 = this%Q0(np, 3)
+      q4 = this%Q0(np, 4)
+
+      ! Loop over LJ126 sites in molecule
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        fx = pLJ126%FX(np)
+        fy = pLJ126%FY(np)
+        fz = pLJ126%FZ(np)
+        r1x = ( pLJ126%RX(np) - rx ) * BoxLength
+        r1y = ( pLJ126%RY(np) - ry ) * BoxLength
+        r1z = ( pLJ126%RZ(np) - rz ) * BoxLength
+        this%F(np, 1) = this%F(np, 1) + fx
+        this%F(np, 2) = this%F(np, 2) + fy
+        this%F(np, 3) = this%F(np, 3) + fz
+        this%T(np, 1) = this%T(np, 1) + r1y * fz - r1z * fy
+        this%T(np, 2) = this%T(np, 2) + r1z * fx - r1x * fz
+        this%T(np, 3) = this%T(np, 3) + r1x * fy - r1y * fx
+      end do
+
+      ! Loop over charge sites in molecule
+      do j = 1, this%Molecule%NCharge
+        pCharge => this%Molecule%SiteCharge(j)
+        fx = pCharge%FX(np)
+        fy = pCharge%FY(np)
+        fz = pCharge%FZ(np)
+        r1x = ( pCharge%RX(np) - rx ) * BoxLength
+        r1y = ( pCharge%RY(np) - ry ) * BoxLength
+        r1z = ( pCharge%RZ(np) - rz ) * BoxLength
+        this%F(np, 1) = this%F(np, 1) + fx
+        this%F(np, 2) = this%F(np, 2) + fy
+        this%F(np, 3) = this%F(np, 3) + fz
+        this%T(np, 1) = this%T(np, 1) + r1y * fz - r1z * fy
+        this%T(np, 2) = this%T(np, 2) + r1z * fx - r1x * fz
+        this%T(np, 3) = this%T(np, 3) + r1x * fy - r1y * fx
+      end do
+
+      ! Loop over dipole sites in molecule
+      do j = 1, this%Molecule%NDipole
+        pDipole => this%Molecule%SiteDipole(j)
+        fx = pDipole%FX(np)
+        fy = pDipole%FY(np)
+        fz = pDipole%FZ(np)
+        r1x = ( pDipole%RX(np) - rx ) * BoxLength
+        r1y = ( pDipole%RY(np) - ry ) * BoxLength
+        r1z = ( pDipole%RZ(np) - rz ) * BoxLength
+        this%F(np, 1) = this%F(np, 1) + fx
+        this%F(np, 2) = this%F(np, 2) + fy
+        this%F(np, 3) = this%F(np, 3) + fz
+        this%T(np, 1) = this%T(np, 1) + pDipole%OY(np) * pDipole%TZ(np) &
+&                                - pDipole%OZ(np) * pDipole%TY(np) + r1y * fz - r1z * fy
+        this%T(np, 2) = this%T(np, 2) + pDipole%OZ(np) * pDipole%TX(np) &
+&                                - pDipole%OX(np) * pDipole%TZ(np) + r1z * fx - r1x * fz
+        this%T(np, 3) = this%T(np, 3) + pDipole%OX(np) * pDipole%TY(np) &
+&                                - pDipole%OY(np) * pDipole%TX(np) + r1x * fy - r1y * fx
+      end do
+
+      ! Loop over quadrupole sites in molecule
+      do j = 1, this%Molecule%NQuadrupole
+        pQuadrupole => this%Molecule%SiteQuadrupole(j)
+        fx = pQuadrupole%FX(np)
+        fy = pQuadrupole%FY(np)
+        fz = pQuadrupole%FZ(np)
+        r1x = ( pQuadrupole%RX(np) - rx ) * BoxLength
+        r1y = ( pQuadrupole%RY(np) - ry ) * BoxLength
+        r1z = ( pQuadrupole%RZ(np) - rz ) * BoxLength
+        this%F(np, 1) = this%F(np, 1) + fx
+        this%F(np, 2) = this%F(np, 2) + fy
+        this%F(np, 3) = this%F(np, 3) + fz
+        this%T(np, 1) = this%T(np, 1) + pQuadrupole%OY(np) * pQuadrupole%TZ(np) &
+&                                - pQuadrupole%OZ(np) * pQuadrupole%TY(np) + r1y * fz - r1z * fy
+        this%T(np, 2) = this%T(np, 2) + pQuadrupole%OZ(np) * pQuadrupole%TX(np) &
+&                                - pQuadrupole%OX(np) * pQuadrupole%TZ(np) + r1z * fx - r1x * fz
+        this%T(np, 3) = this%T(np, 3) + pQuadrupole%OX(np) * pQuadrupole%TY(np) &
+&                                - pQuadrupole%OY(np) * pQuadrupole%TX(np) + r1x * fy - r1y * fx
+      end do
+
+      ! Add torques from reaction field
+      tx = this%T(np, 1) + this%tRFX(np)
+      ty = this%T(np, 2) + this%tRFY(np)
+      tz = this%T(np, 3) + this%tRFZ(np)
+
+      ! Convert torque to body-fixed coordinates
+      A11 = q1**2 + q2**2 - q3**2 - q4**2
+      A12 = 2._RK * (q2 * q3 + q1 * q4)
+      A13 = 2._RK * (q2 * q4 - q1 * q3)
+      A21 = 2._RK * (q2 * q3 - q1 * q4)
+      A22 = q1**2 - q2**2 + q3**2 - q4**2
+      A23 = 2._RK * (q3 * q4 + q1 * q2)
+      A31 = 2._RK * (q2 * q4 + q1 * q3)
+      A32 = 2._RK * (q3 * q4 - q1 * q2)
+      A33 = q1**2 - q2**2 - q3**2 + q4**2
+      this%T(np, 1) = A11 * tx + A12 * ty + A13 * tz
+      this%T(np, 2) = A21 * tx + A22 * ty + A23 * tz
+      this%T(np, 3) = A31 * tx + A32 * ty + A33 * tz
+
+    else
+
+      ! Loop over LJ126 sites in molecule
+      do j = 1, this%Molecule%NLJ126
+        pLJ126 => this%Molecule%SiteLJ126(j)
+        this%F(np, 1) = this%F(np, 1) + pLJ126%FX(np)
+        this%F(np, 2) = this%F(np, 2) + pLJ126%FY(np)
+        this%F(np, 3) = this%F(np, 3) + pLJ126%FZ(np)
+      end do
+
+      ! Loop over charge sites in molecule
+      if (LongRange .ne. RField) then
+        do j = 1, this%Molecule%NCharge
+          pCharge => this%Molecule%SiteCharge(j)
+          this%F(np, 1) = this%F(np, 1) + pCharge%FX(np)
+          this%F(np, 2) = this%F(np, 2) + pCharge%FY(np)
+          this%F(np, 3) = this%F(np, 3) + pCharge%FZ(np)
+        end do
+      end if
+
+    end if
+
+  end subroutine TComponent_Atom2Mol1
+#endif
+
 
 !==============================================================!
 !  Subroutine TComponent_Atom2Unit_Trans                       !
