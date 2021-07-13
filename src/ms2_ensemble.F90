@@ -5002,7 +5002,7 @@ loop5:    do nc = 1, this%NComponents
     ! Set distance
     do i = 2, this%NComponents, 2
       this%Component(i)%P0(:, 1, :) = this%Component(i)%P0(:, 1, :) + r / this%BoxLength ! (i+1,1:3) and (i,2:3) set to 0.0 in ConstructSVC
-      call Unit2Atom(this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit)
+      call Unit2Atom(this%Component(i), this%Component(i)%NPart)
     end do
 
     ! Loop over components
@@ -5146,7 +5146,7 @@ loop5:    do nc = 1, this%NComponents
 !       i1 = this%Component(i)%NPart1
 ! #endif
 !       call Mol2Atom( this%Component(i), i0, i1-i0+1 )
-      call Unit2Atom( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
+      call Unit2Atom( this%Component(i), this%Component(i)%NPart)
     end do
 
   end subroutine TEnsemble_Unit2Atom
