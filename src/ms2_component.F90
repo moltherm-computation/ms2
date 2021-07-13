@@ -3082,14 +3082,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(iUnit)%NCharge
-          pCharge => this%Molecule%Unit(iUnit)%SiteCharge(i)
-          do j = 1, l
-            pCharge%RX(j) = this%P0(j, 1, iUnit)
-            pCharge%RY(j) = this%P0(j, 2, iUnit)
-            pCharge%RZ(j) = this%P0(j, 3, iUnit)
-          end do
-        end do
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+            do i = 1, this%Molecule%Unit(iUnit)%NCharge
+              pCharge => this%Molecule%Unit(iUnit)%SiteCharge(i)
+              do j = 1, l
+                pCharge%RX(j) = this%P0(j, 1, iUnit)
+                pCharge%RY(j) = this%P0(j, 2, iUnit)
+                pCharge%RZ(j) = this%P0(j, 3, iUnit)
+              end do
+            end do
+        end if
       end if
     end do
 
@@ -3256,12 +3258,14 @@ contains
       end do
 
       ! Loop over charge sites in molecule
-      do i = 1, this%Molecule%Unit(nu)%NCharge
-        pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
-        pCharge%RX(np) = PXi
-        pCharge%RY(np) = PYi
-        pCharge%RZ(np) = PZi
-      end do
+      if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+        do i = 1, this%Molecule%Unit(nu)%NCharge
+          pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
+          pCharge%RX(np) = PXi
+          pCharge%RY(np) = PYi
+          pCharge%RZ(np) = PZi
+        end do
+      end if
 
     end if
 
@@ -3302,8 +3306,13 @@ contains
     integer                        :: i, i0, i1, j, k
 
 #if MPI_VER > 0
-    i0 = this%NTest0
-    i1 = this%NTest2
+    if (UseIntDegFreed) then
+      i0 = this%NTest0
+      i1 = this%NTest2
+    else
+      i0 = 1
+      i1 = this%NTest
+    end if
 #else
     i0 = 1
     i1 = this%NTest
@@ -3444,14 +3453,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NCharge
-          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          do j = i0, i1
-            pCharge%RXTest(j) = this%P0Test(j, 1, k)
-            pCharge%RYTest(j) = this%P0Test(j, 2, k)
-            pCharge%RZTest(j) = this%P0Test(j, 3, k)
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+          do i = 1, this%Molecule%Unit(k)%NCharge
+            pCharge => this%Molecule%Unit(k)%SiteCharge(i)
+            do j = i0, i1
+              pCharge%RXTest(j) = this%P0Test(j, 1, k)
+              pCharge%RYTest(j) = this%P0Test(j, 2, k)
+              pCharge%RZTest(j) = this%P0Test(j, 3, k)
+            end do
           end do
-        end do
+        end if
 
       end if
     end do
@@ -3662,14 +3673,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do j = 1, this%Molecule%Unit(iUnit)%NCharge
-          pCharge => this%Molecule%Unit(iUnit)%SiteCharge(j)
-          do i = 1, l
-            this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + pCharge%FX(i)
-            this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + pCharge%FY(i)
-            this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + pCharge%FZ(i)
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+          do j = 1, this%Molecule%Unit(iUnit)%NCharge
+            pCharge => this%Molecule%Unit(iUnit)%SiteCharge(j)
+            do i = 1, l
+              this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + pCharge%FX(i)
+              this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + pCharge%FY(i)
+              this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + pCharge%FZ(i)
+            end do
           end do
-        end do
+        end if
 
       end if
 
