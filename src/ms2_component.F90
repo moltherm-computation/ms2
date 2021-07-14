@@ -3285,18 +3285,18 @@ contains
 
     ! Declare local variables
     real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PX(nu*np), PY(nu*np), PZ(nu*np)
+    real(RK)                       :: PX(np), PY(np), PZ(np)
     real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11(nu*np), A12(nu*np), A13(nu*np)
-    real(RK)                       :: A21(nu*np), A22(nu*np), A23(nu*np)
-    real(RK)                       :: A31(nu*np), A32(nu*np), A33(nu*np)
+    real(RK)                       :: A11(np), A12(np), A13(np)
+    real(RK)                       :: A21(np), A22(np), A23(np)
+    real(RK)                       :: A31(np), A32(np), A33(np)
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, i0, i1, j, k, ik
+    integer                        :: i, i0, i1, j, k
 
 #if MPI_VER > 0
     i0 = this%NTest0
@@ -3316,11 +3316,10 @@ contains
 
         ! Loop over molecules
         do i = i0, i1
-          ik = (i-i0)*nu+k
           ! Positions and quaternions of test particle i
-          PX(ik) = this%P0Test(i, 1, k)
-          PY(ik) = this%P0Test(i, 2, k)
-          PZ(ik) = this%P0Test(i, 3, k)
+          PX(i) = this%P0Test(i, 1, k)
+          PY(i) = this%P0Test(i, 2, k)
+          PZ(i) = this%P0Test(i, 3, k)
           q1 = this%Q0Test(i, 1, k)
           q2 = this%Q0Test(i, 2, k)
           q3 = this%Q0Test(i, 3, k)
@@ -3342,15 +3341,15 @@ contains
           this%Q0Test(i, 4, k) = q4
 
           ! Calculate rotation matrix elements
-          A11(ik) = q1**2 + q2**2 - q3**2 - q4**2
-          A12(ik) = 2._RK * (q2 * q3 + q1 * q4)
-          A13(ik) = 2._RK * (q2 * q4 - q1 * q3)
-          A21(ik) = 2._RK * (q2 * q3 - q1 * q4)
-          A22(ik) = q1**2 - q2**2 + q3**2 - q4**2
-          A23(ik) = 2._RK * (q3 * q4 + q1 * q2)
-          A31(ik) = 2._RK * (q2 * q4 + q1 * q3)
-          A32(ik) = 2._RK * (q3 * q4 - q1 * q2)
-          A33(ik) = q1**2 - q2**2 - q3**2 + q4**2
+          A11(i) = q1**2 + q2**2 - q3**2 - q4**2
+          A12(i) = 2._RK * (q2 * q3 + q1 * q4)
+          A13(i) = 2._RK * (q2 * q4 - q1 * q3)
+          A21(i) = 2._RK * (q2 * q3 - q1 * q4)
+          A22(i) = q1**2 - q2**2 + q3**2 - q4**2
+          A23(i) = 2._RK * (q3 * q4 + q1 * q2)
+          A31(i) = 2._RK * (q2 * q4 + q1 * q3)
+          A32(i) = 2._RK * (q3 * q4 - q1 * q2)
+          A33(i) = q1**2 - q2**2 - q3**2 + q4**2
         end do
 
         ! Loop over LJ126 sites in unit
@@ -3360,10 +3359,9 @@ contains
           r2 = pLJ126%r(2) * BoxLengthInv
           r3 = pLJ126%r(3) * BoxLengthInv
           do i = i0, i1
-            ik = (i-i0)*nu+k
-            pLJ126%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
-            pLJ126%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
-            pLJ126%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
+            pLJ126%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+            pLJ126%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+            pLJ126%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
           end do
         end do
 
@@ -3374,10 +3372,9 @@ contains
           r2 = pCharge%r(2) * BoxLengthInv
           r3 = pCharge%r(3) * BoxLengthInv
           do i = i0, i1
-            ik = (i-i0)*nu+k
-            pCharge%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
-            pCharge%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
-            pCharge%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
+            pCharge%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+            pCharge%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+            pCharge%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
           end do
         end do
 
@@ -3391,13 +3388,12 @@ contains
           or2 = pDipole%or(2)
           or3 = pDipole%or(3)
           do i = i0, i1
-            ik = (i-i0)*nu+k
-            pDipole%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
-            pDipole%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
-            pDipole%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
-            pDipole%OXTest(i) = or1 * A11(ik) + or2 * A21(ik) + or3 * A31(ik)
-            pDipole%OYTest(i) = or1 * A12(ik) + or2 * A22(ik) + or3 * A32(ik)
-            pDipole%OZTest(i) = or1 * A13(ik) + or2 * A23(ik) + or3 * A33(ik)
+            pDipole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+            pDipole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+            pDipole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+            pDipole%OXTest(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+            pDipole%OYTest(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+            pDipole%OZTest(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
           end do
         end do
 
@@ -3411,14 +3407,13 @@ contains
           or2 = pQuadrupole%or(2)
           or3 = pQuadrupole%or(3)
           do i = i0, i1
-            ik = (i-i0)*nu+k
-            pQuadrupole%RXTest(i) = PX(ik) + r1 * A11(ik) + r2 * A21(ik) + r3 * A31(ik)
-            pQuadrupole%RYTest(i) = PY(ik) + r1 * A12(ik) + r2 * A22(ik) + r3 * A32(ik)
-            pQuadrupole%RZTest(i) = PZ(ik) + r1 * A13(ik) + r2 * A23(ik) + r3 * A33(ik)
+            pQuadrupole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+            pQuadrupole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+            pQuadrupole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
 
-            pQuadrupole%OXTest(i) = or1 * A11(ik) + or2 * A21(ik) + or3 * A31(ik)
-            pQuadrupole%OYTest(i) = or1 * A12(ik) + or2 * A22(ik) + or3 * A32(ik)
-            pQuadrupole%OZTest(i) = or1 * A13(ik) + or2 * A23(ik) + or3 * A33(ik)
+            pQuadrupole%OXTest(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+            pQuadrupole%OYTest(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+            pQuadrupole%OZTest(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
           end do
         end do
 
@@ -3427,10 +3422,9 @@ contains
           mue2 = this%Molecule%Unit(k)%Mue(2)
           mue3 = this%Molecule%Unit(k)%Mue(3)
           do i = i0, i1
-            ik = (i-i0)*nu+k
-            this%MueXTest(i, k) = mue1 * A11(ik) + mue2 * A21(ik) + mue3 * A31(ik)
-            this%MueYTest(i, k) = mue1 * A12(ik) + mue2 * A22(ik) + mue3 * A32(ik)
-            this%MueZTest(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
+            this%MueXTest(i, k) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
+            this%MueYTest(i, k) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
+            this%MueZTest(i, k) = mue1 * A13(i) + mue2 * A23(i) + mue3 * A33(i)
           end do
         end if
 
