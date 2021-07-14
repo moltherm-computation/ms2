@@ -2817,46 +2817,45 @@ contains
 !  Subroutine TComponent_RemoveNetMomentum                      !
 !==============================================================!
 
-  subroutine TComponent_RemoveNetMomentum( this, nu )
+  subroutine TComponent_RemoveNetMomentum( this )
 
     implicit none
 
     ! Declare arguments
     type(TComponent) :: this
-    integer, intent(in) :: nu
 
     ! Declare local variables
-    real(RK) :: P(3, nu), L(3, nu)
+    real(RK) :: P(3), L(3)
     integer :: i, j, k
-    real(RK) :: Pim(nu)
+    real(RK) :: Pim
 
     ! Return if zero particles in component
     if( this%NPart == 0 ) return
 
     ! Calculate net momentum
-    do k = 1, nu
-      P(:, k) = 0._RK
-      L(:, k) = 0._RK
+    do k = 1, this%Molecule%NUnit
+      P(:) = 0._RK
+      L(:) = 0._RK
       do i = 1, 3
-        P(i, k) = P(i, k) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
+        P(i) = P(i) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
  
-        if( i <= this%Molecule%Unit(k)%NDFRot ) L(i, k) = L(i, k) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
+        if( i <= this%Molecule%Unit(k)%NDFRot ) L(i) = L(i) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
  
       end do
-      P(:, k) = P(:, k) / this%NPart
-      L(:, k) = L(:, k) / this%NPart
+      P(:) = P(:) / this%NPart
+      L(:) = L(:) / this%NPart
 
       ! Remove net momentum
       do i = 1, 3
-        Pim(k) = P(i, k) / this%Molecule%Unit(k)%Mass
+        Pim = P(i) / this%Molecule%Unit(k)%Mass
         do j = 1, this%NPart
-          this%P1(j, i, k) = this%P1(j, i, k) - Pim(k)
+          this%P1(j, i, k) = this%P1(j, i, k) - Pim
         end do
  
         if( i <= this%Molecule%Unit(k)%NDFRot ) then
-          Pim(k) = L(i, k) / this%Molecule%Unit(k)%MOI(i)
+          Pim = L(i) / this%Molecule%Unit(k)%MOI(i)
           do j = 1, this%NPart
-            this%W0(j, i, k) = this%W0(j, i, k) - Pim(k)
+            this%W0(j, i, k) = this%W0(j, i, k) - Pim
           end do
         end if
       end do

@@ -4443,7 +4443,7 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Remove net momentum of each component
     do i = 1, this%NComponents
-      call RemoveNetMomentum( this%Component(i), this%Component(i)%Molecule%NUnit )
+      call RemoveNetMomentum( this%Component(i) )
     end do
 
   end subroutine TEnsemble_RemoveNetMomentum
