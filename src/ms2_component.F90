@@ -3461,7 +3461,7 @@ contains
 !==============================================================!
 
 !   subroutine TComponent_Atom2Mol( this, i0, l )
-  subroutine TComponent_Atom2Unit( this, l, nu )
+  subroutine TComponent_Atom2Unit( this, l )
 
     implicit none
 
@@ -3474,12 +3474,11 @@ contains
     type(TComponent)    :: this
 !     integer, intent(in) :: i0
     integer, intent(in) :: l
-    integer, intent(in) :: nu
 
     ! Declare local variables
     real(RK)                       :: BoxLength
-    real(RK)                       :: rx(l, nu), ry(l, nu), rz(l, nu), r1x, r1y, r1z
-    real(RK)                       :: q1(l, nu), q2(l, nu), q3(l, nu), q4(l, nu)
+    real(RK)                       :: rx(l), ry(l), rz(l), r1x, r1y, r1z
+    real(RK)                       :: q1(l), q2(l), q3(l), q4(l)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
@@ -3509,7 +3508,7 @@ contains
       this%FOsmoticPressure(:) = 0._RK
       if ( .not. this%permeable ) then
         do i = i0, i1 ! 1, this%NPart
-          do iUnit = 1, nu
+          do iUnit = 1, this%Molecule%NUnit
             if( this%P0(i, iUnit,1) .ge. 0.25_RK ) then
               this%FOsmoticPressure(i) = kForceOsmoticPressure*( this%P0(i, iUnit,1)-.25_RK)*BoxLength
               this%F(i, iUnit,1) = this%F(i, iUnit,1) - this%FOsmoticPressure(i)
@@ -3528,7 +3527,7 @@ contains
 #endif
 
     ! Loop over all Units in Molecule
-    do iUnit = 1, nu
+    do iUnit = 1, this%Molecule%NUnit
       ! Check number of rotation axes
       if( this%Molecule%Unit(iUnit)%isElongated ) then
 
@@ -3536,13 +3535,13 @@ contains
         this%T(:, :, iUnit) = 0._RK
 
         ! Initialize local arrays
-        rx(:, iUnit) = this%P0(:, 1, iUnit)
-        ry(:, iUnit) = this%P0(:, 2, iUnit)
-        rz(:, iUnit) = this%P0(:, 3, iUnit)
-        q1(:, iUnit) = this%Q0(:, 1, iUnit)
-        q2(:, iUnit) = this%Q0(:, 2, iUnit)
-        q3(:, iUnit) = this%Q0(:, 3, iUnit)
-        q4(:, iUnit) = this%Q0(:, 4, iUnit)
+        rx(:) = this%P0(:, 1, iUnit)
+        ry(:) = this%P0(:, 2, iUnit)
+        rz(:) = this%P0(:, 3, iUnit)
+        q1(:) = this%Q0(:, 1, iUnit)
+        q2(:) = this%Q0(:, 2, iUnit)
+        q3(:) = this%Q0(:, 3, iUnit)
+        q4(:) = this%Q0(:, 4, iUnit)
 
         ! Loop over LJ126 sites in unit
         do j = 1, this%Molecule%Unit(iUnit)%NLJ126
@@ -3551,9 +3550,9 @@ contains
             fx = pLJ126%FX(i-1+i0)
             fy = pLJ126%FY(i-1+i0)
             fz = pLJ126%FZ(i-1+i0)
-            r1x = ( pLJ126%RX(i-1+i0) - rx(i, iUnit) ) * BoxLength
-            r1y = ( pLJ126%RY(i-1+i0) - ry(i, iUnit) ) * BoxLength
-            r1z = ( pLJ126%RZ(i-1+i0) - rz(i, iUnit) ) * BoxLength
+            r1x = ( pLJ126%RX(i-1+i0) - rx(i) ) * BoxLength
+            r1y = ( pLJ126%RY(i-1+i0) - ry(i) ) * BoxLength
+            r1z = ( pLJ126%RZ(i-1+i0) - rz(i) ) * BoxLength
             this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + fx
             this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + fy
             this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + fz
@@ -3570,9 +3569,9 @@ contains
             fx = pCharge%FX(i-1+i0)
             fy = pCharge%FY(i-1+i0)
             fz = pCharge%FZ(i-1+i0)
-            r1x = ( pCharge%RX(i-1+i0) - rx(i, iUnit) ) * BoxLength
-            r1y = ( pCharge%RY(i-1+i0) - ry(i, iUnit) ) * BoxLength
-            r1z = ( pCharge%RZ(i-1+i0) - rz(i, iUnit) ) * BoxLength
+            r1x = ( pCharge%RX(i-1+i0) - rx(i) ) * BoxLength
+            r1y = ( pCharge%RY(i-1+i0) - ry(i) ) * BoxLength
+            r1z = ( pCharge%RZ(i-1+i0) - rz(i) ) * BoxLength
             this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + fx
             this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + fy
             this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + fz
@@ -3589,9 +3588,9 @@ contains
             fx = pDipole%FX(i-1+i0)
             fy = pDipole%FY(i-1+i0)
             fz = pDipole%FZ(i-1+i0)
-            r1x = ( pDipole%RX(i-1+i0) - rx(i, iUnit) ) * BoxLength
-            r1y = ( pDipole%RY(i-1+i0) - ry(i, iUnit) ) * BoxLength
-            r1z = ( pDipole%RZ(i-1+i0) - rz(i, iUnit) ) * BoxLength
+            r1x = ( pDipole%RX(i-1+i0) - rx(i) ) * BoxLength
+            r1y = ( pDipole%RY(i-1+i0) - ry(i) ) * BoxLength
+            r1z = ( pDipole%RZ(i-1+i0) - rz(i) ) * BoxLength
             this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + fx
             this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + fy
             this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + fz
@@ -3611,9 +3610,9 @@ contains
             fx = pQuadrupole%FX(i-1+i0)
             fy = pQuadrupole%FY(i-1+i0)
             fz = pQuadrupole%FZ(i-1+i0)
-            r1x = ( pQuadrupole%RX(i-1+i0) - rx(i, iUnit) ) * BoxLength
-            r1y = ( pQuadrupole%RY(i-1+i0) - ry(i, iUnit) ) * BoxLength
-            r1z = ( pQuadrupole%RZ(i-1+i0) - rz(i, iUnit) ) * BoxLength
+            r1x = ( pQuadrupole%RX(i-1+i0) - rx(i) ) * BoxLength
+            r1y = ( pQuadrupole%RY(i-1+i0) - ry(i) ) * BoxLength
+            r1z = ( pQuadrupole%RZ(i-1+i0) - rz(i) ) * BoxLength
             this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + fx
             this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + fy
             this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + fz
@@ -3633,15 +3632,15 @@ contains
           tz = this%T(i-1+i0, 3, iUnit) + this%tRFZ(i-1+i0, iUnit)
 
           ! Convert torque to body-fixed coordinates
-          A11 = q1(i,iUnit)**2 + q2(i,iUnit)**2 - q3(i,iUnit)**2 - q4(i,iUnit)**2
-          A12 = 2._RK * (q2(i,iUnit) * q3(i,iUnit) + q1(i,iUnit) * q4(i,iUnit))
-          A13 = 2._RK * (q2(i,iUnit) * q4(i,iUnit) - q1(i,iUnit) * q3(i,iUnit))
-          A21 = 2._RK * (q2(i,iUnit) * q3(i,iUnit) - q1(i,iUnit) * q4(i,iUnit))
-          A22 = q1(i,iUnit)**2 - q2(i,iUnit)**2 + q3(i,iUnit)**2 - q4(i,iUnit)**2
-          A23 = 2._RK * (q3(i,iUnit) * q4(i,iUnit) + q1(i,iUnit) * q2(i,iUnit))
-          A31 = 2._RK * (q2(i,iUnit) * q4(i,iUnit) + q1(i,iUnit) * q3(i,iUnit))
-          A32 = 2._RK * (q3(i,iUnit) * q4(i,iUnit) - q1(i,iUnit) * q2(i,iUnit))
-          A33 = q1(i,iUnit)**2 - q2(i,iUnit)**2 - q3(i,iUnit)**2 + q4(i,iUnit)**2
+          A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+          A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+          A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+          A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+          A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+          A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+          A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+          A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+          A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
           this%T(i-1+i0, 1, iUnit) = A11 * tx + A12 * ty + A13 * tz
           this%T(i-1+i0, 2, iUnit) = A21 * tx + A22 * ty + A23 * tz
           this%T(i-1+i0, 3, iUnit) = A31 * tx + A32 * ty + A33 * tz

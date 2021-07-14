@@ -5200,7 +5200,7 @@ loop5:    do nc = 1, this%NComponents
          call Atom2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
       end if
 #else
-      call Atom2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
+      call Atom2Unit( this%Component(i), this%Component(i)%NPart)
 #endif
 
 #if OSMOP == 0
