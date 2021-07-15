@@ -4584,7 +4584,7 @@ loop1:do i = 1, this%NPart
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
     integer           :: np, nra,iUnit
     integer           :: i, j
-    real(RK)          :: r(3)
+    real(RK)          :: r(this%NPart, 3)
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4597,9 +4597,9 @@ loop1:do i = 1, this%NPart
     pF => this%F(:, :, :)
 #endif
 
-    do i = 1, np
-      r(:) = 0._RK
-      do j = 1, 3
+    do j = 1, 3
+      do i = 1, np
+        r(i, j) = 0._RK
         do iUnit= 1, this%Molecule%NUnit
           MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
           this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
@@ -4615,6 +4615,9 @@ loop1:do i = 1, this%NPart
           this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear24
           this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear25
 
+          if (.not. UseIntDegFreed) then ! there should exist only one unit
+              this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+          end if
 
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4627,13 +4630,17 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
         end do
 
-        this%Pm0(i, j) = r(j)/this%Molecule%Mass
-        ! Calculate displacement of molecules
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-        this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
+        if (UseIntDegFreed) then
+            this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
+            ! Calculate displacement of molecules
+            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+            this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
+        else ! there should exist only one unit
+            this%Pm0(i, j) = this%P0(i, j, 1)
+        end if
         this%Pm0old(i, j) = this%Pm0(i, j)
       end do
     end do
