@@ -164,6 +164,10 @@ module ms2_component
     ! Total dipole moment of test particles for reaction field
     real(RK), pointer, contiguous :: MueXTest(:, :), MueYTest(:, :), MueZTest(:, :)
 
+    ! Gear corrector local arrays
+    real(RK), pointer, contiguous :: Corr0(:, :, :)
+    real(RK), pointer, contiguous :: Corr1(:, :, :)
+
     ! Length of simulation box
     real(RK), pointer :: BoxLength
 
@@ -1312,6 +1316,8 @@ contains
     nullify( this%MueXTest )
     nullify( this%MueYTest )
     nullify( this%MueZTest )
+    nullify( this%Corr0 )
+    nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
 #if  TRANS == 1
@@ -1565,6 +1571,14 @@ contains
         end if
       end if
 
+    end if
+
+    ! Gear corrector local arrays
+    if( SimulationType .eq. MolecularDynamics .and. IntegratorType .eq. IntegratorTypeGear ) then
+      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ), nu),STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ), nu),STAT = stat )
+      call AllocationError( stat, 'particles', np )
     end if
 
     ! Site positions, orientations, forces and torques
@@ -2460,6 +2474,14 @@ contains
     end if
     if( associated( this%MueZTest ) ) then
       deallocate( this%MueZTest )
+    end if
+
+    ! Gear corrector local arrays
+    if( associated( this%Corr0 ) ) then
+      deallocate( this%Corr0 )
+    end if
+    if( associated( this%Corr1 ) ) then
+      deallocate( this%Corr1 )
     end if
 
 #if OSMOP > 0
@@ -4553,10 +4575,9 @@ loop1:do i = 1, this%NPart
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
-    integer           :: np, iUnit
+    integer           :: np, nra,iUnit
     integer           :: i, j
     real(RK)          :: r(3)
-    real(RK)          :: Corr0(4), Corr1
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4570,28 +4591,24 @@ loop1:do i = 1, this%NPart
 #endif
 
     do i = 1, np
-      do iUnit= 1, this%Molecule%NUnit
-        MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
-        do j = 1, 3
-          Corr0(j) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
+      r(:) = 0._RK
+      do j = 1, 3
+        do iUnit= 1, this%Molecule%NUnit
+          MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
+          this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
 
-          if( ConstantPressure .and. .not. NVTEquilibration ) Corr0(j) = Corr0(j) &
+          if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j, iUnit) = this%Corr0(i, j, iUnit) &
 &             - this%P1(i, j, iUnit) * dLogVolumeThird
 
-          Corr1 = Corr0(j) - this%P2(i, j, iUnit)
-          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + Corr1 * Gear20
-          this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + Corr1 * Gear21
-          this%P2(i, j, iUnit) =                    Corr0(j)
-          this%P3(i, j, iUnit) = this%P3(i, j, iUnit) + Corr1 * Gear23
-          this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + Corr1 * Gear24
-          this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + Corr1 * Gear25
+          this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%P2(i, j, iUnit)
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear20
+          this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear21
+          this%P2(i, j, iUnit) =                    this%Corr0(i, j, iUnit)
+          this%P3(i, j, iUnit) = this%P3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear23
+          this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear24
+          this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear25
 
-        end do
-      end do
 
-      r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-        do j = 1, 3
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
           if( this%P0(i, j, iUnit) < -.5_RK ) then
@@ -4605,42 +4622,42 @@ loop1:do i = 1, this%NPart
           ! Calculate new positions of COM for molecules from new COM of units
           r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
         end do
-      end do
 
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
+        this%Pm0(i, j) = r(j)/this%Molecule%Mass
+        ! Calculate displacement of molecules
+        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+        this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
+        this%Pm0old(i, j) = this%Pm0(i, j)
+      end do
     end do
 
-    if( this%Molecule%isElongated ) then
-
-    end if
-
-    ! Correct quaternion parameters and their derivatives
     do iUnit = 1, this%Molecule%NUnit
       if( this%Molecule%Unit(iUnit)%isElongated ) then
+      nra = this%Molecule%Unit(iUnit)%NDFRot
+
+    ! Correct quaternion parameters and their derivatives
         do i = 1, np
-          Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 3, iUnit) * this%W0(i, 2, iUnit) &
-&                                  - this%Q0(i, 4, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 1, iUnit) = TimeStep2 * ( - this%Q0(i, 2, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 3, iUnit) * this%W0(i, 2, iUnit) &
+&                                             - this%Q0(i, 4, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 4, iUnit) * this%W0(i, 2, iUnit) &
-&                                  + this%Q0(i, 3, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 2, iUnit) = TimeStep2 * ( + this%Q0(i, 1, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 4, iUnit) * this%W0(i, 2, iUnit) &
+&                                             + this%Q0(i, 3, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 1, iUnit) * this%W0(i, 2, iUnit) &
-&                                  - this%Q0(i, 2, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 3, iUnit) = TimeStep2 * ( + this%Q0(i, 4, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 1, iUnit) * this%W0(i, 2, iUnit) &
+&                                             - this%Q0(i, 2, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 2, iUnit) * this%W0(i, 2, iUnit) &
-&                                  + this%Q0(i, 1, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 4, iUnit) = TimeStep2 * ( - this%Q0(i, 3, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 2, iUnit) * this%W0(i, 2, iUnit) &
+&                                             + this%Q0(i, 1, iUnit) * this%W0(i, 3, iUnit))
 
-          do j = 1, 4
-            Corr1 = Corr0(j) - this%Q1(i, j, iUnit)
-            this%Q0(i, j, iUnit) = this%Q0(i, j, iUnit) + Corr1 * Gear10
-            this%Q1(i, j, iUnit) =                    Corr0(j)
-            this%Q2(i, j, iUnit) = this%Q2(i, j, iUnit) + Corr1 * Gear12
-            this%Q3(i, j, iUnit) = this%Q3(i, j, iUnit) + Corr1 * Gear13
-            this%Q4(i, j, iUnit) = this%Q4(i, j, iUnit) + Corr1 * Gear14
+        end do
+        do j = 1, 4
+          do i = 1, np
+            this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%Q1(i, j, iUnit)
+            this%Q0(i, j, iUnit) = this%Q0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear10
+            this%Q1(i, j, iUnit) =                    this%Corr0(i, j, iUnit)
+            this%Q2(i, j, iUnit) = this%Q2(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear12
+            this%Q3(i, j, iUnit) = this%Q3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear13
+            this%Q4(i, j, iUnit) = this%Q4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear14
           end do
         end do
 
@@ -4658,24 +4675,26 @@ loop1:do i = 1, this%NPart
           Moi31 = this%Molecule%Unit(iUnit)%MOI(3) - this%Molecule%Unit(iUnit)%MOI(1)
           Moi12 = this%Molecule%Unit(iUnit)%MOI(1) - this%Molecule%Unit(iUnit)%MOI(2)
           TMoi3 = TimeStep / this%Molecule%Unit(iUnit)%MOI(3)
-        endif
-        do i = 1, np
-          if( this%Molecule%Unit(iUnit)%is3D ) then
-            Corr0(1) = (pT(i, 1, iUnit) + this%W0(i, 2, iUnit) * this%W0(i, 3, iUnit) * Moi23) * TMoi1
-            Corr0(2) = (pT(i, 2, iUnit) + this%W0(i, 3, iUnit) * this%W0(i, 1, iUnit) * Moi31) * TMoi2
-            Corr0(3) = (pT(i, 3, iUnit) + this%W0(i, 1, iUnit) * this%W0(i, 2, iUnit) * Moi12) * TMoi3
-          else
-            Corr0(1) = pT(i, 1, iUnit) * TMoi1
-            Corr0(2) = pT(i, 2, iUnit) * TMoi2
-          end if
+          do i = 1, np
+            this%Corr0(i, 1, iUnit) = (pT(i, 1, iUnit) + this%W0(i, 2, iUnit) * this%W0(i, 3, iUnit) * Moi23) * TMoi1
+            this%Corr0(i, 2, iUnit) = (pT(i, 2, iUnit) + this%W0(i, 3, iUnit) * this%W0(i, 1, iUnit) * Moi31) * TMoi2
+            this%Corr0(i, 3, iUnit) = (pT(i, 3, iUnit) + this%W0(i, 1, iUnit) * this%W0(i, 2, iUnit) * Moi12) * TMoi3
+          end do
+        else
+          do i = 1, np
+            this%Corr0(i, 1, iUnit) = pT(i, 1, iUnit) * TMoi1
+            this%Corr0(i, 2, iUnit) = pT(i, 2, iUnit) * TMoi2
+          end do
+        end if
 
-          do j = 1, this%Molecule%Unit(iUnit)%NDFRot
-            Corr1 = Corr0(j) - this%W1(i, j, iUnit)
-            this%W0(i, j, iUnit) = this%W0(i, j, iUnit) + Corr1 * Gear10
-            this%W1(i, j, iUnit) = Corr0(j)
-            this%W2(i, j, iUnit) = this%W2(i, j, iUnit) + Corr1 * Gear12
-            this%W3(i, j, iUnit) = this%W3(i, j, iUnit) + Corr1 * Gear13
-            this%W4(i, j, iUnit) = this%W4(i, j, iUnit) + Corr1 * Gear14
+        do j = 1, nra
+          do i = 1, np
+            this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%W1(i, j, iUnit)
+            this%W0(i, j, iUnit) = this%W0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear10
+            this%W1(i, j, iUnit) = this%Corr0(i, j, iUnit)
+            this%W2(i, j, iUnit) = this%W2(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear12
+            this%W3(i, j, iUnit) = this%W3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear13
+            this%W4(i, j, iUnit) = this%W4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear14
           end do
         end do
 
