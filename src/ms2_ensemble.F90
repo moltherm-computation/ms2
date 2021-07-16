@@ -3880,10 +3880,9 @@ contains
 
           else ! charged
             do j1 = 1, pc%Molecule%NUnit
-              this%EPotCorrRFPart = this%EPotCorrRFPart - &
-&                   fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart / NProcs
-              this%VirialCorrRF   = this%VirialCorrRF - fac_neutral / (4._RK*PI) * &
-&                                 this%RefTemperature * (1._RK-1._RK/this%RFEpsilon) / NProcs
+              this%EPotCorrRFPart = this%EPotCorrRFPart - fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart / NProcs
+              this%VirialCorrRF   = this%VirialCorrRF - fac_neutral / (4._RK*PI) * this%RefTemperature * &
+&                       (1._RK-1._RK/this%RFEpsilon) / NProcs 
             end do
           end if
 
@@ -7508,8 +7507,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       NewOmega = 1._RK
     end if
 
-    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
-&         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
+    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
@@ -14522,7 +14520,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           Average  = this%Sumself_i(i)%Average
           Variance = this%Sumself_i(i)%Variance
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          write( IOBuffer, '("Self-diff. coeff.",A ,T29, "reduced:", 2F20.9)' )  &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T21, "in 10E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
           call FileWrite( this%iounit_errors )
@@ -14797,14 +14796,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         pc => this%Component(i)
         Average = pc%SumFraction%Average
         vary(i) = sqrt( pc%SumFraction%Variance**2 + sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
-        write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, vary(i)
+        write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
+&              trim( pc%Molecule%PotModFileName ), Average, vary(i)
         call FileWrite( this%iounit_errors )
       end do
 
       pc => this%Component( this%NComponents )
       Average = pc%SumFraction%Average
       Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
-      write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) trim( pc%Molecule%PotModFileName ), Average, Variance
+      write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
+&            trim( pc%Molecule%PotModFileName ), Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -14823,7 +14824,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Saturated vapor density
       Average = this%SumDensity%Average
       Variance = this%SumDensity%Variance
-      write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) Average, Average * VarPressure / AvgPressure
+      write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
+&            Average, Average * VarPressure / AvgPressure
 
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
@@ -14839,7 +14841,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&            Variance * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -14851,7 +14854,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Variance = this%SumEnthalpy%Variance
       write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, Variance * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&            Variance * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -14861,7 +14865,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Evaporation enthalpy
       write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, VarDeltaHv * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
+&            VarDeltaHv * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -15007,7 +15012,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         ! Maximum translational and rotational displacements
 #if MPI_VER > 0
-        call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
+        call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, &
+&            NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement trans.", T33, "r`d:", F20.9)' ) tempReal
         endif
@@ -15019,7 +15025,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWrite( this%iounit_errors )
         if( this%NDFRot > 0 ) then
 #if MPI_VER > 0
-        call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
+        call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, &
+&            NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '(T22, "rotational", T33, "r`d:", F20.9)' ) tempReal
         endif
@@ -15189,8 +15196,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       write(IOBuffer, '("Average pairs between")' )
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5)' ) &
-&           this%ResidComp1, this%ResidSite1, this%ResidComp2, this%ResidSite2, &
-&           this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, this%SumResidencePairs%Average/this%Component(this%ResidComp1)%NPart
       call FileWrite( this%iounit_errors )
       write(IOBuffer, '("Average residence time between")' )
       call FileWrite( this%iounit_errors )
@@ -15198,24 +15205,28 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
          write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
-&           this%ResidComp1, this%ResidSite1, this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
+&           this%ResidComp1, this%ResidSite1, &
+&           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
 
       else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ) &
-&           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2, this%ResidenceDuration*UnitTime*1E15_RK
+&           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
+&           this%ResidenceDuration*UnitTime*1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No pairing between the two components observed")' )
 
       else
         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ) &
-&           this%ResidComp1,this%ResidSite1, this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK , &
-&           this%SumResidenceDuration%Variance*UnitTime*1E15_RK
+&         this%ResidComp1,this%ResidSite1, &
+&         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
+&         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
       end if
 
       call FileWrite( this%iounit_errors )
-      write(IOBuffer, '("Critical distance: ",F10.5," A")' ) this%ResidLength*UnitLength/Angstroem
+      write(IOBuffer, '("Critical distance: ",F10.5," A")' ) &
+&           this%ResidLength*UnitLength/Angstroem
       call FileWrite( this%iounit_errors )
     end if
     call FileWriteBlank( this%iounit_errors )
@@ -15468,7 +15479,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Second virial coefficient
     do i = 1, this%NComponents, 2
       do j = i + 1, this%NComponents, 2
-        value = this%Interaction(i,j)%IntFFunction(NSteps) + .5_RK * this%Interaction(i,j)%EPotCorrLJ / this%Temperature
+        value = this%Interaction(i, j)%IntFFunction(NSteps) + &
+&               .5_RK * this%Interaction(i, j)%EPotCorrLJ / this%Temperature
         write( IOBuffer, '("2. VC of ", A, "-", A, T29, "reduced:", F20.9)' ) &
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              trim( this%Component(j)%Molecule%PotModFileName ), value
@@ -15482,7 +15494,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Temperature deviation of second virial coefficient
     do i = 1, this%NComponents, 2
       do j = i + 1, this%NComponents, 2
-        value = ( this%Interaction(i,j)%IntFFunction2(NSteps) - this%Interaction(i,j)%IntFFunction1(NSteps) ) / ( .0002_RK * this%Temperature )
+        value = ( this%Interaction(i, j)%IntFFunction2(NSteps) - this%Interaction(i,j)%IntFFunction1(NSteps) ) &
+&               / ( .0002_RK * this%Temperature )
         write( IOBuffer, '("dB/dT of ", A, "-", A, T29, "reduced:", F20.9)' ) &
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              trim( this%Component(j)%Molecule%PotModFileName ), value
@@ -15533,9 +15546,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (this%Component(i)%Molecule%Unit(k)%NLJ126 > 0) then
           do j = 1, this%Component(i)%Molecule%Unit(k)%NLJ126
             psLJ126 => this%Component(i)%Molecule%Unit(k)%SiteLJ126(j)
-            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), &
-&             psLJ126%r(:) * UnitLength / Angstroem, &
-&             psLJ126%sig  * UnitLength / Angstroem
+            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), psLJ126%r(:) * UnitLength / Angstroem, &
+&                  psLJ126%sig  * UnitLength / Angstroem
             call FileWrite( this%iounit_visual )
           end do
         else  ! For visualisation of Units with no LJ sites
@@ -19463,9 +19475,13 @@ contains
         j0 = 0
         do i = 1, this%NComponents
           np = this%Component(i)%NPart
-          this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , this%a(j0+1: j0+np,s) )          &
-&                               + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , this%a(j0+NPart +1 : j0+NPart +np,s) ) &
-&                               + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , this%a(j0+NPart2+1 : j0+NPart2+np,s) )
+          this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , &
+&                                                     this%a(j0+1: j0+np,s) ) &
+&                             + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
+&                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
+&                             + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
+&                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
+
           if ( this%NComponents .gt. 1 ) then
             sx(i)  = sum(this%a(j0       +1:j0+np        , s))
             sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
@@ -19484,7 +19500,9 @@ contains
           k = 1
           do i = 1, nc
             do j = 1,nc
-              this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) + SYindex(i)*sy(j) + SZindex(i)*sz(j)
+              this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
+&                                                         + SYindex(i)*sy(j) &
+&                                                         + SZindex(i)*sz(j)
               k = k + 1
             end do
           end do
