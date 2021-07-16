@@ -3442,62 +3442,29 @@ end subroutine TInteraction_Energy
 
     ! Declare local variables
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff
-    integer           :: NU, NU2
-    integer           :: k, l, m, o
- 
+    integer           :: l, m, iUnitMol1, iUnitMol2, iUnitGlobalMol1, iUnitGlobalMol2
+
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
     this%NInCutoff(:) = 0
-    NU = this%NUnit1
-    N2 = this%NPart2
-    NU2 = this%NUnit2
 
-!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, k, l, m, o, NInCutoff, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, l, m, NInCutoff, N2, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
     ! Assign local pointers
     PX1 => this%PX1
     PY1 => this%PY1
     PZ1 => this%PZ1
-    do i=1, N
-      do k=1, NU
-        j = (i-1)*NU+k
-        PX1d(j) = PX1(i, k)
-        PY1d(j) = PY1(i, k)
-        PZ1d(j) = PZ1(i, k)
-      end do
-    end do
-    if ( this%SameComponent ) then
-      PX2d = PX1d
-      PY2d = PY1d
-      PZ2d = PZ1d
-    else
-      ! Assigning second local pointer
-      PX2 => this%PX2
-      PY2 => this%PY2
-      PZ2 => this%PZ2
-      do i=1, N2
-        do k=1, NU2
-          j=(i-1)*NU2+k
-          PX2d(j) = PX2(i, k)
-          PY2d(j) = PY2(i, k)
-          PZ2d(j) = PZ2(i, k)
-        end do
-      end do
-    end if
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
 
     ! Calculate partners within cutoff sphere
     if( this%SameComponent ) then
-      do k = 1, NU
+      do iUnitMol1 = 1, this%NUnit1
 #if MPI_VER > 0
         if( this%NPart10 <= (N+1)/2 ) then
           if( this%NPart12 > (N+1)/2 ) then
@@ -3507,17 +3474,16 @@ end subroutine TInteraction_Energy
 !$OMP DO        
         do i = 1, (N+1) / 2
 #endif
-          m = k+(i-1)*NU
-          PXi = PX1d(m)
-          PYi = PY1d(m)
-          PZi = PZ1d(m)
+          PXi = PX1(i, iUnitMol1)
+          PYi = PY1(i, iUnitMol1)
+          PZi = PZ1(i, iUnitMol1)
+          m = (i - 1) * this%NUnit1 + iUnitMol1
           NInCutoff = this%NInCutoff(m)
-          do l = 1, NU
+          do l = 1, this%NUnit1
             do j = i + 1, (N/2) + i
-              o = l+(j-1)*NU
-              PXij = PXi - PX2d(o)
-              PYij = PYi - PY2d(o)
-              PZij = PZi - PZ2d(o)
+              PXij = PXi - PX2(j, l)
+              PYij = PYi - PY2(j, l)
+              PZij = PZi - PZ2(j, l)
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
@@ -3525,7 +3491,8 @@ end subroutine TInteraction_Energy
 
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
-                this%CutoffPartner(NInCutoff, m) = o
+                iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
               end if
             end do
           end do
@@ -3539,17 +3506,16 @@ end subroutine TInteraction_Energy
 #else
       do i = (N+1) / 2 + 1, N
 #endif
-          m = k+(i-1)*NU
-          PXi = PX1d(m)
-          PYi = PY1d(m)
-          PZi = PZ1d(m)
+          m = iUnitMol1 + (i - 1) * this%NUnit1
+          PXi = PX1(i, iUnitMol1)
+          PYi = PY1(i, iUnitMol1)
+          PZi = PZ1(i, iUnitMol1)
           NInCutoff = this%NInCutoff(m)
-          do l = 1, NU
+          do l = 1, this%NUnit1
             do j = 1, i - N/2 - 1
-              o = l+(j-1)*NU
-              PXij = PXi - PX2d(o)
-              PYij = PYi - PY2d(o)
-              PZij = PZi - PZ2d(o)
+              PXij = PXi - PX2(j, l)
+              PYij = PYi - PY2(j, l)
+              PZij = PZi - PZ2(j, l)
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
@@ -3557,21 +3523,22 @@ end subroutine TInteraction_Energy
 
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
-                this%CutoffPartner(NInCutoff, m) = o
+                iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
               end if
             end do
             do j = i + 1, N
-              o = l+(j-1)*NU
-              PXij = PXi - PX2d(o)
-              PYij = PYi - PY2d(o)
-              PZij = PZi - PZ2d(o)
+              PXij = PXi - PX2(j, l)
+              PYij = PYi - PY2(j, l)
+              PZij = PZi - PZ2(j, l)
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
               RijSquared = PXij**2 + PYij**2 + PZij**2
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
-                this%CutoffPartner(NInCutoff, m) = o
+                iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
               end if
             end do
           end do
@@ -3583,17 +3550,16 @@ end subroutine TInteraction_Energy
           else
   !$OMP DO
             do i = this%NPart10, this%NPart12
-              m = k+(i-1)*NU
-              PXi = PX1d(m)
-              PYi = PY1d(m)
-              PZi = PZ1d(m)
+              m = iUnitMol1 + (i - 1) * this%NUnit1
+              PXi = PX1(i, iUnitMol1)
+              PYi = PY1(i, iUnitMol1)
+              PZi = PZ1(i, iUnitMol1)
               NInCutoff = this%NInCutoff(m)
-              do l = 1, NU
+              do l = 1, this%NUnit1
                 do j = i + 1, N/2 + i
-                  o = l+(j-1)*NU
-                  PXij = PXi - PX2d(o)
-                  PYij = PYi - PY2d(o)
-                  PZij = PZi - PZ2d(o)
+                  PXij = PXi - PX2(j, l)
+                  PYij = PYi - PY2(j, l)
+                  PZij = PZi - PZ2(j, l)
                   PXij = PXij - anint( PXij )
                   PYij = PYij - anint( PYij )
                   PZij = PZij - anint( PZij )
@@ -3601,7 +3567,8 @@ end subroutine TInteraction_Energy
 
                   if( RijSquared < RCutoff ) then
                     NInCutoff = NInCutoff + 1
-                    this%CutoffPartner(NInCutoff, m) = o
+                    iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                    this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
                   end if
                 end do
               end do
@@ -3613,17 +3580,16 @@ end subroutine TInteraction_Energy
         else
   !$OMP DO
           do i = this%NPart10, this%NPart12
-            m = k+(i-1)*NU
-            PXi = PX1d(m)
-            PYi = PY1d(m)
-            PZi = PZ1d(m)
+            m = iUnitMol1+(i-1)*this%NUnit1
+            PXi = PX1(i, iUnitMol1)
+            PYi = PY1(i, iUnitMol1)
+            PZi = PZ1(i, iUnitMol1)
             NInCutoff = this%NInCutoff(m)
-            do l = 1, NU
+            do l = 1, this%NUnit1
               do j = 1, i - N/2 - 1
-                o = l+(j-1)*NU
-                PXij = PXi - PX2d(o)
-                PYij = PYi - PY2d(o)
-                PZij = PZi - PZ2d(o)
+                PXij = PXi - PX2(j, l)
+                PYij = PYi - PY2(j, l)
+                PZij = PZi - PZ2(j, l)
                 PXij = PXij - anint( PXij )
                 PYij = PYij - anint( PYij )
                 PZij = PZij - anint( PZij )
@@ -3631,21 +3597,22 @@ end subroutine TInteraction_Energy
 
                 if( RijSquared < RCutoff ) then
                   NInCutoff = NInCutoff + 1
-                  this%CutoffPartner(NInCutoff, m) = o
+                  iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                  this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
                 end if
               end do
               do j = i + 1, N
-                o = l+(j-1)*NU
-                PXij = PXi - PX2d(o)
-                PYij = PYi - PY2d(o)
-                PZij = PZi - PZ2d(o)
+                PXij = PXi - PX2(j, l)
+                PYij = PYi - PY2(j, l)
+                PZij = PZi - PZ2(j, l)
                 PXij = PXij - anint( PXij )
                 PYij = PYij - anint( PYij )
                 PZij = PZij - anint( PZij )
                 RijSquared = PXij**2 + PYij**2 + PZij**2
                 if( RijSquared < RCutoff ) then
                   NInCutoff = NInCutoff + 1
-                  this%CutoffPartner(NInCutoff, m) = o
+                  iUnitGlobalMol1 = l + (j - 1) * this%NUnit1
+                  this%CutoffPartner(NInCutoff, m) = iUnitGlobalMol1
                 end if
               end do
             end do
@@ -3657,32 +3624,39 @@ end subroutine TInteraction_Energy
 #endif
       end do
     else
+      N2 = this%NPart2
 
 !$OMP DO      
 #if MPI_VER > 0
-      do i = (this%NPart10-1)*NU+1, this%NPart12*NU
+      do i = this%NPart10, this%NPart12
 #else
-      do i = 1, N*NU
+      do i = 1, N
 #endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        do j = 1, N2*NU2
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+        do iUnitMol1 = 1, this%NUnit1
+            PXi = PX1(i, iUnitMol1)
+            PYi = PY1(i, iUnitMol1)
+            PZi = PZ1(i, iUnitMol1)
+            iUnitGlobalMol1 = (i - 1) * this%NUnit1 + iUnitMol1
+            NInCutoff = this%NInCutoff(iUnitGlobalMol1)
+            do j = 1, N2
+              do iUnitMol2 = 1, this%NUnit2
+                  PXij = PXi - PX2(j, iUnitMol2)
+                  PYij = PYi - PY2(j, iUnitMol2)
+                  PZij = PZi - PZ2(j, iUnitMol2)
+                  PXij = PXij - anint( PXij )
+                  PYij = PYij - anint( PYij )
+                  PZij = PZij - anint( PZij )
+                  RijSquared = PXij**2 + PYij**2 + PZij**2
 
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
+                  if( RijSquared < RCutoff ) then
+                    NInCutoff = NInCutoff + 1
+                    iUnitGlobalMol2 = (j - 1) * this%NUnit2 + iUnitMol2
+                    this%CutoffPartner(NInCutoff, iUnitGlobalMol1) = iUnitGlobalMol2
+                  end if
+              end do
+            end do
+            this%NInCutoff(iUnitGlobalMol1) = NInCutoff
         end do
-        this%NInCutoff(i) = NInCutoff
       end do
 !$OMP END DO      
     end if
