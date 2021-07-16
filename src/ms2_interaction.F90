@@ -1906,6 +1906,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -1970,6 +1971,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2053,6 +2055,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2114,6 +2117,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
 !DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
@@ -2185,6 +2189,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
 !DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
@@ -2259,6 +2264,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2339,6 +2345,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2414,6 +2421,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2501,6 +2509,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2593,6 +2602,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2671,6 +2681,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2762,6 +2773,7 @@ contains
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -2998,9 +3010,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3068,9 +3082,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3168,9 +3184,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3263,9 +3281,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3367,9 +3387,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3466,9 +3488,11 @@ contains
           ! Loop over molecules
 #if MPI_VER > 0
 !CDIR NODEP
+!NEC$ ivdep
           do j = this%NPart20, this%NPart22
 #else
 !CDIR NODEP
+!NEC$ ivdep
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
@@ -3676,6 +3700,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -3726,6 +3751,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -3789,6 +3815,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -3839,6 +3866,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
 !DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
@@ -3894,6 +3922,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
 !DIR$ IVDEP,VECTOR
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
@@ -3951,6 +3980,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4013,6 +4043,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4073,6 +4104,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4140,6 +4172,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4209,6 +4242,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4269,6 +4303,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4337,6 +4372,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)

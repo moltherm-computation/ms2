@@ -1011,6 +1011,7 @@ contains
         PYi = PY1(i)
         PZi = PZ1(i)
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -1486,6 +1487,7 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -1829,6 +1831,7 @@ loop3:  do j = j0, j1
       RZi = RZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -1919,6 +1922,7 @@ loop1:do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -1949,6 +1953,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         RZi = RZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, N2
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -2461,6 +2466,7 @@ loop2:  do j = 1, N2
         PYi = PY1(i)
         PZi = PZ1(i)
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -2972,6 +2978,7 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -3360,6 +3367,7 @@ loop3:  do j = j0, j1
       RZi = RZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -3456,6 +3464,7 @@ loop1:do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -3528,6 +3537,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         RZi = RZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, N2
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -3719,6 +3729,7 @@ loop2:  do j = 1, N2
       PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -3930,6 +3941,7 @@ loop2:  do m=1,NBinsDen
       PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -4307,6 +4319,7 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -4707,6 +4720,7 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -4904,6 +4918,7 @@ loop2:  do m=1,NBinsDen
 
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -5110,6 +5125,7 @@ loop1:  do k = 1, this%NInCutoff(i)
       PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -5510,6 +5526,7 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -5798,6 +5815,7 @@ loop2:  do m=1,NBinsDen
 
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -6009,6 +6027,7 @@ loop1:  do k = 1, this%NInCutoff(i)
       PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -6411,6 +6430,7 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -6692,6 +6712,7 @@ loop2:  do m=1,NBinsDen
      EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -6904,6 +6925,7 @@ loop1:  do k = 1, this%NInCutoff(i)
       TZi = TZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -7283,6 +7305,7 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -7571,6 +7594,7 @@ loop2:  do m=1,NBinsDen
       EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -7819,6 +7843,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -8387,6 +8412,7 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -8829,6 +8855,7 @@ loop3:  do j = j0, j1
         EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -8881,6 +8908,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -9125,6 +9153,7 @@ loop2:  do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -9690,6 +9719,7 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -10132,6 +10162,7 @@ loop3:  do j = j0, j1
         EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -10182,6 +10213,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -10394,6 +10426,7 @@ loop2:  do j = 1, j1
       TYi = TY1(i)
       TZi = TZ1(i)
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -10758,6 +10791,7 @@ loop2:  do m=1,NBinsDen
       TZi = TZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi = VSx1(i)
@@ -11087,6 +11121,7 @@ loop2:  do m=1,NBinsDen
       EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -11332,6 +11367,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -11475,12 +11511,14 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -11860,6 +11898,7 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx1(i)
@@ -12126,11 +12165,13 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -12346,6 +12387,7 @@ loop3:  do j = j0, j1
 
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -12395,6 +12437,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -12639,6 +12682,7 @@ loop2:  do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -12797,11 +12841,13 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
 
@@ -13202,6 +13248,7 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
+!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx1(i)
@@ -13484,11 +13531,13 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
+!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -13719,6 +13768,7 @@ loop3:  do j = j0, j1
 
 
 !CDIR NODEP
+!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -13778,6 +13828,7 @@ loop1:  do k = 1, this%NInCutoff(i)
         OZi = OZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
+!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)

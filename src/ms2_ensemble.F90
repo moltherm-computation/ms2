@@ -1057,7 +1057,7 @@ contains
     EnsembleNum = ne
     end if  
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -1985,7 +1985,7 @@ contains
 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   if (this%isCCSimulation .eqv. .true.) then
@@ -2077,7 +2077,7 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -5134,10 +5134,10 @@ xloop:do i = 1, NCells1dim(1)
 #endif
 
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
-  if ((this%isCCSimulation .eqv. .true.) .and. &
-  &   (this%isStopSimulation .eqv. .false.) .and. &
-  &   (Equilibration .eqv. .false.) .and. &
-  &   (mod( Step, this%CCFrequency ) .eq. 0) ) then
+  if ((      this%isCCSimulation  ) .and. &
+  &   (.not. this%isStopSimulation) .and. &
+  &   (.not. Equilibration        ) .and. &
+  &   (mod( Step, this%CCFrequency) .eq. 0) ) then
 
     !DC DEBUG - validating that the conditions are fulfulled as prescribed
     ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
@@ -15530,21 +15530,21 @@ end if
       call Error (this%SumResidenceDuration)
 
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
-         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
+         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F20.5," fs")' ) &
 &           this%ResidComp1, this%ResidSite1, &
 &           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
 
       else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ) &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5," fs")' ) &
 &           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
 &           this%ResidenceDuration*UnitTime*1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No pairing between the two components observed")' )
 
       else
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ) &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5," fs +-",F10.5)' ) &
 &         this%ResidComp1,this%ResidSite1, &
 &         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
 &         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
@@ -17208,7 +17208,7 @@ end if
     do p = 1, 3 !Method
         do i= 1, this%NRealComponents
             do j= i, this%NRealComponents
-                write(IOBuffer, '(I5,I5,","I1)') i, j, p
+                write(IOBuffer, '(I5,I5,",",I1)') i, j, p
                 call FileWriteNoAdvance( this%iounit_kbirdf )
             end do
         end do
@@ -21470,11 +21470,11 @@ if( RootProc .and. this%CorrfunMode ) then
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               do j = 0, ALPHA2Length/ALPHA2Shift-1
-                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+                read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
               end do
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
             end do
         end if
 
