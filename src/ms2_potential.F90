@@ -1290,13 +1290,13 @@ loop3:  do j = j0, j1
     CTempZ(:)   = 0._RK
     tuTempX(:)  = 0._RK
     tuTempY(:)  = 0._RK
-    tuTempz(:)  = 0._RK
+    tuTempZ(:)  = 0._RK
     tlTempX(:)  = 0._RK
     tlTempY(:)  = 0._RK
-    tlTempz(:)  = 0._RK
+    tlTempZ(:)  = 0._RK
     tdTempX(:)  = 0._RK
     tdTempY(:)  = 0._RK
-    tdTempz(:)  = 0._RK
+    tdTempZ(:)  = 0._RK
 #endif
 
 
@@ -4132,13 +4132,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
+    tuTempZ(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
+    tlTempZ(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    tdTempZ(:) = 0._RK
 
     !TRANSPORT_END
 #endif
@@ -4242,9 +4242,9 @@ loop2:  do m=1,NBinsDen
     tdx1 => this%Site1%tdCx
     tdy1 => this%Site1%tdCy
     tdz1 => this%Site1%tdCz
-    tdx2 => this%Site1%tdCx
-    tdy2 => this%Site1%tdCy
-    tdz2 => this%Site1%tdCz
+    tdx2 => this%Site2%tdCx
+    tdy2 => this%Site2%tdCy
+    tdz2 => this%Site2%tdCz
     q1  => this%Site1%Q0r(:, 1)
     q2  => this%Site1%Q0r(:, 2)
     q3  => this%Site1%Q0r(:, 3)
@@ -5338,13 +5338,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
+    tuTempZ(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
+    tlTempZ(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    tdTempZ(:) = 0._RK
 #endif
 
 
@@ -5415,7 +5415,7 @@ loop2:  do m=1,NBinsDen
     VBz1 => this%Site1%vbCz
     VBx2 => this%Site2%vbDx
     VBy2 => this%Site2%vbDy
-    VBz2 => this%Site2%vbdz
+    VBz2 => this%Site2%vbDz
     VSux1=> this%Site1%vsuCx
     VSuy1=> this%Site1%vsuCy
     VSuz1=> this%Site1%vsuCz
@@ -5546,7 +5546,7 @@ loop1:do k = 1, this%NInCutoff(i)
         CosTheta3 = 3._RK * CosTheta
         Epsilon1 = Epsilon * RijSquaredInv
         Epsilon2 = Epsilon1 * RijInv
-        EPotlocal1 = Epsilon1 * CosTheta             !Define EPotLocal 1
+        EPotLocal1 = Epsilon1 * CosTheta             !Define EPotLocal 1
         EPotLocal  = EPotLocal + EPotlocal1                         ! Uebereinstimmumg mit Price
         FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
         FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
@@ -6241,13 +6241,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
+    tuTempZ(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
+    tlTempZ(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    tdTempZ(:) = 0._RK
 #endif
 
 !$OMP PARALLEL &
@@ -6443,7 +6443,7 @@ loop1:do k = 1, this%NInCutoff(i)
         eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
         eY = RYij * RijInv
         eZ = RZij * RijInv
-        CosTheta  = OXj * ex + OYj * eY + OZj * eZ
+        CosTheta  = OXj * eX + OYj * eY + OZj * eZ
         Epsilon1 = Epsilon * RijSquaredInv * RijInv
         EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third ) !Gabriela: Definition of EpotLocal1
         EPotLocal = EPotLocal + EPotlocal1
@@ -6457,7 +6457,7 @@ loop1:do k = 1, this%NInCutoff(i)
 #if OSMOP == 2
 loop2:  do m=1,NBinsDen
           if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
-            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+	            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
               Bin2=m
               exit loop2
             end if
@@ -6540,6 +6540,15 @@ loop2:  do m=1,NBinsDen
         tdxi   = tdxi + 0.5 * PXij* txi
         tdyi   = tdyi + 0.5 * PYij* tyi
         tdzi   = tdzi + 0.5 * PZij* tzi
+		 tuTempX(j)= tuTempX(j) + 0.5 * PXij* tyi
+         tuTempY(j)= tuTempY(j) + 0.5 * PXij* tzi
+         tuTempZ(j)= tuTempZ(j) + 0.5 * PYij* tzi
+         tlTempX(j)= tlTempX(j) + 0.5 * PYij* txi
+         tlTempY(j)= tlTempY(j) + 0.5 * PZij* txi
+         tlTempZ(j)= tlTempZ(j) + 0.5 * PZij* tyi
+         tdTempX(j)= tdTempX(j) + 0.5 * PXij* txi
+         tdTempY(j)= tdTempY(j) + 0.5 * PYij* tyi
+         tdTempZ(j)= tdTempZ(j) + 0.5 * PZij* tzi
 #endif
 
       end do loop1
@@ -6584,17 +6593,17 @@ loop2:  do m=1,NBinsDen
     TZ2 = TZ2 + momTempZ
 
 #if  TRANS == 1
-   VSx2 = VSx2 + VSTempX*BoxLength
-   VSy2 = VSy2 + VSTempY*BoxLength
-   VSz2 = VSz2 + VSTempZ*BoxLength
+   VSx2 = VSx2 + VSTempX
+   VSy2 = VSy2 + VSTempY
+   VSz2 = VSz2 + VSTempZ
 
-   VSux2 = VSux2 + VSuTempX*BoxLength
-   VSuy2 = VSuy2 + VSuTempY*BoxLength
-   VSuz2 = VSuz2 + VSuTempZ*BoxLength
+   VSux2 = VSux2 + VSuTempX
+   VSuy2 = VSuy2 + VSuTempY
+   VSuz2 = VSuz2 + VSuTempZ
 
-   VBx2 = VBx2 + VBTempX*BoxLength
-   VBy2 = VBy2 + VBTempY*BoxLength
-   VBz2 = VBz2 + VBTempZ*BoxLength
+   VBx2 = VBx2 + VBTempX
+   VBy2 = VBy2 + VBTempY
+   VBz2 = VBz2 + VBTempZ
 
    Cx2 = Cx2 + CTempX
    Cy2 = Cy2 + CTempY
@@ -7409,15 +7418,15 @@ loop2:  do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
 #endif
 
       end do loop1
@@ -8177,13 +8186,13 @@ loop3:  do j = j0, j1
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
+    tuTempZ(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
+    tlTempZ(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    tdTempZ(:) = 0._RK
 #endif
 
 
@@ -8530,15 +8539,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
+          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyir
+          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzir
           !TRANSPORT_END
 #endif
         end do loop1
@@ -8702,17 +8711,17 @@ loop3:  do j = j0, j1
     TZ2 = TZ2 + momTempZ
 
 #if  TRANS == 1
-   VSx2 = VSx2 + VSTempX*BoxLength
-   VSy2 = VSy2 + VSTempY*BoxLength
-   VSz2 = VSz2 + VSTempZ*BoxLength
+   VSx2 = VSx2 + VSTempX
+   VSy2 = VSy2 + VSTempY
+   VSz2 = VSz2 + VSTempZ
 
-   VSux2 = VSux2 + VSuTempX*BoxLength
-   VSuy2 = VSuy2 + VSuTempY*BoxLength
-   VSuz2 = VSuz2 + VSuTempZ*BoxLength
+   VSux2 = VSux2 + VSuTempX
+   VSuy2 = VSuy2 + VSuTempY
+   VSuz2 = VSuz2 + VSuTempZ
 
-   VBx2 = VBx2 + VBTempX*BoxLength
-   VBy2 = VBy2 + VBTempY*BoxLength
-   VBz2 = VBz2 + VBTempZ*BoxLength
+   VBx2 = VBx2 + VBTempX
+   VBy2 = VBy2 + VBTempY
+   VBz2 = VBz2 + VBTempZ
 
    Cx2 = Cx2 + CTempX
    Cy2 = Cy2 + CTempY
@@ -9835,15 +9844,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij*txir
           tdyi   = tdyi + 0.5 * PYij*tyir
           tdzi   = tdzi + 0.5 * PZij*tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
           !TRANSPORT_END
 #endif
         end do loop1
@@ -10921,15 +10930,15 @@ loop2:  do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij *txir
           tdyi   = tdyi + 0.5 * PYij *tyir
           tdzi   = tdzi + 0.5 * PZij *tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
           !TRANSPORT_END
 #endif
       end do loop1
@@ -11684,13 +11693,13 @@ loop3:  do j = j0, j1
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
+    tuTempZ(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
+    tlTempZ(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    tdTempZ(:) = 0._RK
 #endif
 
     FX2 => this%Site2%FX
@@ -12032,24 +12041,24 @@ loop2:    do m=1,NBinsDen
           txir   = A11 * txii + A12 * tyii + A13 * tzii
           tyir   = A21 * txii + A22 * tyii + A23 * tzii
           tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + PXij*tyir
-          tuyi   = tuyi + PXij*tzir
-          tuzi   = tuzi + PYij*tzir
-          tlxi   = tlxi + PYij*txir
-          tlyi   = tlyi + PZij*txir
-          tlzi   = tlzi + PZij*tyir
-          tdxi   = tdxi + PXij*txir
-          tdyi   = tdyi + PYij*tyir
-          tdzi   = tdzi + PZij*tzir
-          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
+          tuxi   = tuxi + 0.5*PXij*tyir 
+          tuyi   = tuyi + 0.5*PXij*tzir
+          tuzi   = tuzi + 0.5*PYij*tzir
+          tlxi   = tlxi + 0.5*PYij*txir
+          tlyi   = tlyi + 0.5*PZij*txir
+          tlzi   = tlzi + 0.5*PZij*tyir
+          tdxi   = tdxi + 0.5*PXij*txir
+          tdyi   = tdyi + 0.5*PYij*tyir
+          tdzi   = tdzi + 0.5*PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyir 
+          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzir
 
           !TRANSPORT_END
 #endif
@@ -13396,15 +13405,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
 
 
           !TRANSPORT_END
