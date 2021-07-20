@@ -171,6 +171,10 @@ module ms2_molecule
     module procedure TMolecule_ReadMOI
   end interface
 
+  interface FindNDF
+    module procedure TMolecule_FindNDF
+  end interface
+
   interface FindBondR
     module procedure TMolecule_FindBondR
   end interface
@@ -715,10 +719,7 @@ contains
     call FindMOI(this) ! if NDFRot < 0
     call ReadMOI(this) ! if NDFRot >= 0
 
-    do i = 1, this%NUnit
-      call FindNDF( this%Unit(i) )
-      this%NDF = this%NDF + this%Unit(i)%NDF
-    end do
+    call FindNDF(this)
 
     ! check for elongation of rigid molecules
     this%isElongated = .false.
@@ -2121,6 +2122,69 @@ contains
     end do
 
   end subroutine TMolecule_ReadMOI
+
+
+
+!==============================================================!
+!  Subroutine TMolecule_FindNDF                                !
+!==============================================================!
+
+  subroutine TMolecule_FindNDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    type(TUnit), pointer :: unit
+    logical :: disoriented
+    integer :: i, iUnit
+
+    do iUnit = 1, this%NUnit
+
+        unit => this%Unit(iUnit)
+
+        ! Calculate number of rotation axes
+        if( unit%NDFRot < 0 ) then
+          if( maxval( abs( unit%MOI(:) ) ) > Zero ) then
+            if( abs( unit%MOI(3) ) > Zero ) then
+              unit%NDFRot = 3
+            else
+              unit%NDFRot = 2
+              unit%MOI(3) = 0._RK
+            end if
+          else
+            unit%NDFRot = 0
+            unit%MOI(:) = 0._RK
+          end if
+        end if
+
+        ! Check orientation of dipoles and quadrupoles
+        if( unit%NDFRot < 3 ) then
+          disoriented = unit%NDFRot < 2 .and. (unit%NDipole > 0 .or. unit%NQuadrupole > 0)
+
+          do i = 1, unit%NDipole
+            disoriented = disoriented .or. ( maxval( abs( unit%SiteDipole(i)%or(1:2) ) ) > Zero )
+          end do
+
+          do i = 1, unit%NQuadrupole
+            disoriented = disoriented .or. ( maxval( abs( unit%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
+          end do
+
+          if( disoriented ) call Error( 'Must specify moments of inertia manually' )
+        end if
+
+        ! Calculate total number of degrees of freedom
+        unit%NDF = 3 + unit%NDFRot
+
+        ! Set logical flags according to the number of rotation axes
+        unit%isElongated = unit%NDFRot > 0
+        unit%is3D = unit%NDFRot == 3
+
+        this%NDF = this%NDF + unit%NDF
+    end do
+  end subroutine TMolecule_FindNDF
 
 
 
