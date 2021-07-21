@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_optpressure_site.par</parFile>
+	<name>MD_optpressure_site</name>
+	<np>2</np>
+	<reference>
+		<file>MD_optpressure_site.rst</file>
+	</reference>
+	<reference>
+		<file>MD_optpressure_site_1.res</file>
+	</reference>
+</testcase>

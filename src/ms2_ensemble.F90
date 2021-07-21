@@ -4149,6 +4149,9 @@ xloop:do i = 1, NCells1dim(1)
     ! Save old positions
     do i = 1, this%NComponents
       this%Component(i)%Pm0old = this%Component(i)%Pm0
+      if (.not. UseIntDegFreed) then
+          this%Component(i)%P0(:,:,1) = this%Component(i)%Pm0old(:,:)
+      end if
     end do
 
   contains
@@ -4202,7 +4205,7 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare local variables
     integer                   :: i, j, k
-    real(RK)                  :: dq(3), pm(3)
+    real(RK)                  :: dq(3), pm(3), r
     type(TComponent), pointer :: pc
 
     ! Set random orientations of particles
@@ -4210,16 +4213,27 @@ xloop:do i = 1, NCells1dim(1)
       pc => this%Component(i)
       if(pc%Molecule%isElongated ) then
         do j = 1, pc%NPart
-          pm(:) = pc%Pm0(j,:)
-          do k = 1, 3
-            dq(k) = rnd( -1._RK, 1._RK )
-          end do
-          call InitUnit(pc,j,dq)
-          call Unit2Mol( pc, j )
-          do k = 1, pc%Molecule%NUnit
-            pc%P0(j,:,k) = pc%P0(j,:,k) + pm(:) - pc%Pm0(j,:)
-          end do
-          pc%Pm0(j,:) = pm(:)
+          if (.not. UseIntDegFreed) then
+              do
+                do k = 1, 4
+                  pc%Q0(j, k, 1) = rnd( -1._RK, 1._RK )
+                end do
+                r = sum( pc%Q0(j, :, 1)**2 )
+                if( r <= 1._RK ) exit
+              end do
+              pc%Q0(j, :, 1) = pc%Q0(j, :, 1) / sqrt( r )
+          else
+              pm(:) = pc%Pm0(j,:)
+              do k = 1, 3
+                dq(k) = rnd( -1._RK, 1._RK )
+              end do
+              call InitUnit(pc,j,dq)
+              call Unit2Mol( pc, j )
+              do k = 1, pc%Molecule%NUnit
+                pc%P0(j,:,k) = pc%P0(j,:,k) + pm(:) - pc%Pm0(j,:)
+              end do
+              pc%Pm0(j,:) = pm(:)
+          end if
         end do
       else
         pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
