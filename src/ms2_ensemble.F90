@@ -581,10 +581,6 @@ module ms2_ensemble
     module procedure TEnsemble_Atom2Unit
   end interface
 
-  interface Unit2Mol
-    module procedure TEnsemble_Unit2Mol
-  end interface
-
   interface PredictVol
     module procedure TEnsemble_PredictVol
   end interface
@@ -5223,28 +5219,6 @@ loop5:    do nc = 1, this%NComponents
 #endif
 
   end subroutine TEnsemble_Atom2Unit
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Unit2Mol                               !
-!==============================================================!
-
-  subroutine TEnsemble_Unit2Mol( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer      :: i
-
-    ! Call Unit2Mol for each component
-    do i = 1, this%NComponents
-      call Unit2Mol( this%Component(i) )
-    end do
-
-  end subroutine TEnsemble_Unit2Mol
 
 
 !==============================================================!
