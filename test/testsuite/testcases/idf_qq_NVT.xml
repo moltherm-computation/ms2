@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>idf_qq_NVT.par</parFile>
+	<np>1</np>
+	<name>idf_qq_NVT</name>
+	<reference>
+		<file>idf_qq_NVT.rst</file>
+	</reference>
+	<reference>
+		<file>idf_qq_NVT_1.rav</file>
+	</reference>
+	<reference>
+		<file>idf_qq_NVT_1.res</file>
+	</reference>
+	<reference>
+		<file>idf_qq_NVT_1.run</file>
+	</reference>
+	<reference>
+		<file>idf_qq_NVT_1.vim</file>
+	</reference>
+</testcase>

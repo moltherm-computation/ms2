@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>idf_dc_NPT_2comp.par</parFile>
+	<np>1</np>
+	<name>idf_dc_NPT_2comp</name>
+	<reference>
+		<file>idf_dc_NPT_2comp.rst</file>
+	</reference>
+	<reference>
+		<file>idf_dc_NPT_2comp_1.rav</file>
+	</reference>
+	<reference>
+		<file>idf_dc_NPT_2comp_1.res</file>
+	</reference>
+	<reference>
+		<file>idf_dc_NPT_2comp_1.run</file>
+	</reference>
+	<reference>
+		<file>idf_dc_NPT_2comp_1.vim</file>
+	</reference>
+</testcase>
