@@ -4728,19 +4728,17 @@ loop1:do i = 1, this%NPart
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
 
-    do iUnit = 1, this%Molecule%NUnit
+    do i = 1, np
       do j = 1, 3
-        do i = 1, np
+        do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
         end do
       end do
-    end do
 
-    do i = 1, np
       r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-        do j = 1, 3
+      do j = 1, 3
+        do iUnit= 1, this%Molecule%NUnit
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
           if( this%P0(i, j, iUnit) < -.5_RK ) then
@@ -4753,14 +4751,14 @@ loop1:do i = 1, this%NPart
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
           r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+
+          this%Pm0(i, j) = r(j)/this%Molecule%Mass
+          ! Calculate displacement of molecules
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
+          this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
-
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
     do iUnit = 1, this%Molecule%NUnit
@@ -4770,6 +4768,7 @@ loop1:do i = 1, this%NPart
           do j = 1, 4
             this%Q0tmp(i, j, iUnit) = this%Q0(i, j, iUnit) + .5_RK * this%Q1(i, j, iUnit)
           end do
+
           do j = 1, nra
             this%W0(i, j, iUnit) = Korr * this%W0(i, j, iUnit) + .5_RK * this%W1(i, j, iUnit)
           end do
