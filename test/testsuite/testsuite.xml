@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.185</tools4ms2version>
-	<caseRepositoryHash>4c07d89317779c22d014d06b1ee8e06b446f4d73</caseRepositoryHash>
+	<tools4ms2version>0.0.239</tools4ms2version>
+	<caseRepositoryHash>8e5ba0debb94ed186dc4dba0a9e893942203da88</caseRepositoryHash>
 	<caseList>
+		<case name="energyMinimization" file="energyMinimization.xml" />
+		<case name="idf_cc_NPT" file="idf_cc_NPT.xml" />
+		<case name="idf_cc_NPT_rodgers" file="idf_cc_NPT_rodgers.xml" />
+		<case name="idf_dc_NPT" file="idf_dc_NPT.xml" />
+		<case name="idf_dc_NPT_2comp" file="idf_dc_NPT_2comp.xml" />
+		<case name="idf_dq_NPT" file="idf_dq_NPT.xml" />
+		<case name="idf_qq_NVT" file="idf_qq_NVT.xml" />
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
 		<case name="OPLS_Amber" file="OPLS_Amber.xml" />
 		<case name="OPLS_Amber_mpi" file="OPLS_Amber_mpi.xml" />
+		<case name="OPLS_Amber_mpi_gear" file="OPLS_Amber_mpi_gear.xml" />
+		<case name="OPLS_Amber_site" file="OPLS_Amber_site.xml" />
+		<case name="OPLS_Amber_site_mpi" file="OPLS_Amber_site_mpi.xml" />
+		<case name="OPLS_site" file="OPLS_site.xml" />
+		<case name="OPLS_site_mpi" file="OPLS_site_mpi.xml" />
+		<case name="pentan_NPT" file="pentan_NPT.xml" />
+		<case name="pentan_NPT_site" file="pentan_NPT_site.xml" />
 	</caseList>
 </testsuite>

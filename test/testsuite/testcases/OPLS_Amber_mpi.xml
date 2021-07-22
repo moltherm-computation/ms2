@@ -4,5 +4,18 @@
 	<parFile>C3H8_OPLSAmb_p3T2_Ring.par</parFile>
 	<name>OPLS_Amber_mpi</name>
 	<np>3</np>
-	<relativeTolerance>1e-6</relativeTolerance>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.rav</file>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.res</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.run</file>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
 </testcase>
