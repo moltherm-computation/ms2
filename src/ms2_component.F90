@@ -4737,21 +4737,25 @@ loop1:do i = 1, this%NPart
     real(RK) :: Korr
     integer  :: np, nra, iUnit
     integer  :: i, j
-    real(RK) :: r(3)
+    real(RK) :: r(this%NPart, 3)
 
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
 
-    do i = 1, np
-      do j = 1, 3
+    do j = 1, 3
+      do i = 1, np
         do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
         end do
-      end do
 
-      r(:) = 0._RK
-      do j = 1, 3
+        if (.not. UseIntDegFreed) then
+            ! Calculate displacement
+            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+        end if
+
+        r(i, j) = 0._RK
+
         do iUnit= 1, this%Molecule%NUnit
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4764,12 +4768,16 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
 
-          this%Pm0(i, j) = r(j)/this%Molecule%Mass
-          ! Calculate displacement of molecules
-          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-          this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
+          if (UseIntDegFreed) then
+              this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
+              ! Calculate displacement of molecules
+              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+              this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
+          else
+              this%Pm0(i, j) = this%P0(i,j,1)
+          end if
           this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
