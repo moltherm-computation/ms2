@@ -654,6 +654,12 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
+
+#if MPI_VER > 0
+        if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
+           this%NTest = ((this%NTest -1)/NProcs +1)
+        endif
+#endif
       end if
 
       ! Read weighting factors method
@@ -3339,18 +3345,18 @@ contains
 
           ! Normalise quaternions
 #if ARCH == 3
-          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+!          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+!          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-          q1 = q1 * qinv
-          q2 = q2 * qinv
-          q3 = q3 * qinv
-          q4 = q4 * qinv
-          this%Q0Test(i, 1, k) = q1
-          this%Q0Test(i, 2, k) = q2
-          this%Q0Test(i, 3, k) = q3
-          this%Q0Test(i, 4, k) = q4
+!          q1 = q1 * qinv
+!          q2 = q2 * qinv
+!          q3 = q3 * qinv
+!          q4 = q4 * qinv
+!          this%Q0Test(i, 1, k) = q1
+!          this%Q0Test(i, 2, k) = q2
+!          this%Q0Test(i, 3, k) = q3
+!          this%Q0Test(i, 4, k) = q4
 
           ! Calculate rotation matrix elements
           A11(i) = q1**2 + q2**2 - q3**2 - q4**2

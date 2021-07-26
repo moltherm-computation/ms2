@@ -6092,7 +6092,7 @@ loop5:    do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK)                  :: ChemPot, F(3,this%NUnitMax), rm(3), ExpMinusBetaEnLaMin, factor
+    real(RK)                  :: ChemPot, qsum, F(3,this%NUnitMax), rm(3), ExpMinusBetaEnLaMin, factor
     real(RK)                  :: HW_H_local, HW_V_local, HW_counter_local, HW_denom_local
     integer                   :: i, j, t
     real(RK)                  :: EPotTest(this%NTestMax)
@@ -6121,17 +6121,21 @@ loop5:    do nc = 1, this%NComponents
 
     ! No calculation of chemical potential in equilibration
     if( Equilibration ) then
-      if (Step == 1) then
+      if (Step == 1 .or. (.not. UseIntDegFreed)) then
         do i = 1, this%NRealComponents
           this%Component(i)%CalcChemPot = .false.
           this%Component(i)%ChemPot = 0._RK
+          if (.not. UseIntDegFreed) then
+              this%Component(i)%ChemPot1 = 0._RK
+              this%Component(i)%ChemPot2 = 0._RK
+          end if
         end do
       end if
       return
     end if
 
     if( Equilibration ) return
-    if (this%NTestMax == 0) return
+    if (this%NTestMax == 0 .and. (.not. UseIntDegFreed)) return
 
     if (Step == 1) then
       do i = 1, this%NComponents
@@ -6149,78 +6153,98 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Throw test particles
-    if( mod( Step, BlockSize ) == 1 ) then
-      do i = 1, this%NComponents
-        if (this%Component(i)%NTest > 0) then
-          pc => this%Component(i)
-          pc%EPotTestIntra(:) = 0._RK
-#if MPI_VER > 0
-          if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
-            j0 = pc%NTest0
-            j1 = pc%NTest2
-          else
-            j0 = 1
-            j1 = pc%NTest
-          end if
+    if (.not. UseIntDegFreed) then
+        do i = 1, this%NTestMax
+          do j = 1, 3
+            this%P0Test( i, j , 1) = tprnd( -.5_RK, .5_RK )
+          end do
+          do
+            qsum = 0._RK
+            do j = 1, 4
+              this%Q0Test(i, j, 1) = tprnd( -1._RK, 1._RK )
+            end do
+            qsum = sum( this%Q0Test(i, :, 1)**2 )
+            if( qsum <= 1._RK ) exit
+          end do
+#if ARCH == 3
+          this%Q0Test(i, :,1) = this%Q0Test(i, :, 1) * rsqrt( qsum )
 #else
-          j0 = 1
-          j1 = pc%NTest
+          this%Q0Test(i, :, 1) = this%Q0Test(i, :, 1) / sqrt( qsum )
 #endif
-          if (pc%NPart == 0) then ! for Henry NPart==0
-            do j = j0, j1
-              do t = 1, 3
-                rm(t) = rnd( -.5_RK, .5_RK )
-              end do
-              do r = 1, pc%Molecule%NUnit
-                pc%P0Test(j,:,r) = pc%Molecule%Unit(r)%P0(:) + rm(:)
-              end do
-              if (pc%Molecule%isElongated) then
-                do r = 1, pc%Molecule%NUnit
-                  pc%Q0Test(j,:,r) = pc%Molecule%Unit(r)%Q0(:)
-                end do
-                do t = 1, 3
-                  rm(t) = rnd( -1._RK, 1._RK )
-                end do
-                call RotateTest( pc, j, rm)
-              end if 
-            end do
-            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
-
-          else ! not Henry or Fraction > 0
-            call Unit2Mol(pc) ! needed? Michael Sch.
-            do j = j0, j1
-              do t = 1, 3
-                rm(t) = rnd( -.5_RK, .5_RK )
-              end do
-              selected = rnd( pc%NPart )
-              do r = 1, pc%Molecule%NUnit
-                pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
-              end do
-              do r = 1, pc%Molecule%NUnit
-                pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - pc%Pm0(selected,1:3)
-              end do
-
-              if (pc%Molecule%isElongated) then
-                pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
-                do t = 1, 3
-                  rm(t) = rnd( -1._RK, 1._RK )
-                end do
-                call RotateTest( pc, j, rm)
-              end if
-              if (SimulationType .eq. MolecularDynamics) then
-                E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; F(:,:) = 0._RK
-                t = this%Component(i)%Molecule%NUnit
-                call MDEnergy( this%Interaction(i,i), selected, t, F(:,1:t), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
-                pc%EPotTestIntra(j) = pc%EPotTestIntra(j) + EIntra
+        end do
+    else
+        if( mod( Step, BlockSize ) == 1 ) then
+          do i = 1, this%NComponents
+            if (this%Component(i)%NTest > 0) then
+              pc => this%Component(i)
+              pc%EPotTestIntra(:) = 0._RK
+#if MPI_VER > 0
+              if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+                j0 = pc%NTest0
+                j1 = pc%NTest2
               else
-                pc%EPotTestIntra(j) = pc%EPotTestIntra(j) + GetEnergyIntra(this, i, selected)
+                j0 = 1
+                j1 = pc%NTest
               end if
-            end do
-            call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
-          end if
-        end if
-      end do
+#else
+              j0 = 1
+              j1 = pc%NTest
+#endif
+              if (pc%NPart == 0) then ! for Henry NPart==0
+                do j = j0, j1
+                  do t = 1, 3
+                    rm(t) = rnd( -.5_RK, .5_RK )
+                  end do
+                  do r = 1, pc%Molecule%NUnit
+                    pc%P0Test(j,:,r) = pc%Molecule%Unit(r)%P0(:) + rm(:)
+                  end do
+                  if (pc%Molecule%isElongated) then
+                    do r = 1, pc%Molecule%NUnit
+                      pc%Q0Test(j,:,r) = pc%Molecule%Unit(r)%Q0(:)
+                    end do
+                    do t = 1, 3
+                      rm(t) = rnd( -1._RK, 1._RK )
+                    end do
+                    call RotateTest( pc, j, rm)
+                  end if
+                end do
+                call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
 
+              else ! not Henry or Fraction > 0
+                call Unit2Mol(pc) ! needed? Michael Sch.
+                do j = j0, j1
+                  do t = 1, 3
+                    rm(t) = rnd( -.5_RK, .5_RK )
+                  end do
+                  selected = rnd( pc%NPart )
+                  do r = 1, pc%Molecule%NUnit
+                    pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
+                  end do
+                  do r = 1, pc%Molecule%NUnit
+                    pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - pc%Pm0(selected,1:3)
+                  end do
+
+                  if (pc%Molecule%isElongated) then
+                    pc%Q0Test(j,:,:) = pc%Q0(selected,:,:)
+                    do t = 1, 3
+                      rm(t) = rnd( -1._RK, 1._RK )
+                    end do
+                    call RotateTest( pc, j, rm)
+                  end if
+                  if (SimulationType .eq. MolecularDynamics) then
+                    E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; F(:,:) = 0._RK
+                    t = this%Component(i)%Molecule%NUnit
+                    call MDEnergy( this%Interaction(i,i), selected, t, F(:,1:t), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
+                    pc%EPotTestIntra(j) = pc%EPotTestIntra(j) + EIntra
+                  else
+                    pc%EPotTestIntra(j) = pc%EPotTestIntra(j) + GetEnergyIntra(this, i, selected)
+                  end if
+                end do
+                call Unit2AtomTest( pc, pc%Ntest, pc%Molecule%NUnit )
+              end if
+            end if
+          end do
+       end if
     end if
 
 #if MPI_VER > 0
@@ -6467,7 +6491,7 @@ loop2:        do nc = 1, this%NComponents
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
 
 #if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        if (UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           this%EPotTest(:) = 0._RK
           this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
         else
@@ -6476,12 +6500,14 @@ loop2:        do nc = 1, this%NComponents
 #else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
 #endif
-        this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
+        if (UseIntDegFreed) then
+            this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
+        end if
         do j = 1, this%NRealComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
 #if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        if (UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           call MPI_Reduce( this%EPotTest, EPotTest, this%NTestMax, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           this%EPotTest = EPotTest
         end if
@@ -6512,25 +6538,25 @@ loop2:        do nc = 1, this%NComponents
        HW_counter_local = HW_V_local * HW_counter_local / pc%NTest
        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
-! #if MPI_VER > 0
-!         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-!           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-!           call MPI_Reduce( ChemPot, pc%ChemPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!           call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!             pc%ChemPot = pc%ChemPot/NProcs
-!             pc%HW_counter = pc%HW_counter/NProcs
-!             pc%HW_denom = pc%HW_denom/NProcs 
-!         else
-!             pc%ChemPot = ChemPot
-!             pc%HW_counter = HW_counter_local
-!             pc%HW_denom = HW_denom_local
-!         endif
-! #else
+#if MPI_VER > 0
+        if ((.not. UseIntDegFreed) .and. (SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui))) then
+          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+          call MPI_Reduce( ChemPot, pc%ChemPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+            pc%ChemPot = pc%ChemPot/NProcs
+            pc%HW_counter = pc%HW_counter/NProcs
+            pc%HW_denom = pc%HW_denom/NProcs 
+        else
+            pc%ChemPot = ChemPot
+            pc%HW_counter = HW_counter_local
+            pc%HW_denom = HW_denom_local
+        endif
+#else
         pc%ChemPot = ChemPot
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
-! #endif
+#endif
 
 #if OSMOP == 2
         ! Profile of  the chemical potential 

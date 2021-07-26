@@ -2120,6 +2120,10 @@ loop1:do k = 1, this%NInCutoff(unit)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -9075,6 +9079,10 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -10732,6 +10740,10 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -13573,6 +13585,10 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -15348,6 +15364,10 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest

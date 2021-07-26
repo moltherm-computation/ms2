@@ -1659,11 +1659,11 @@ contains
       MueY2 => this%MueY2
       MueZ2 => this%MueZ2
 
-#if MPI_VER > 0
-      do i = this%NTest10, this%NTest12
-#else
+!#if MPI_VER > 0
+!      do i = this%NTest10, this%NTest12
+!#else
       do i = 1, this%NTest1
-#endif
+!#endif
         do u = 1, this%NUnit1
           EPotLocal = 0._RK
           iu = (i-1)*nu1+u ! unit's number
@@ -3789,11 +3789,11 @@ end subroutine TInteraction_Energy
     ! Calculate partners within cutoff sphere
 !$OMP DO
     do k = 1, this%NUnit1
-#if MPI_VER > 0
-      do i = this%NTest10, this%NTest12
-#else
+!#if MPI_VER > 0
+!      do i = this%NTest10, this%NTest12
+!#else
       do i = 1, this%NTest1
-#endif
+!#endif
         m = (i-1)*this%NUnit1+k
         PXi = PX1(i,k)
         PYi = PY1(i,k)
