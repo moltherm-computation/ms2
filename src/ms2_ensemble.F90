@@ -4794,7 +4794,7 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
       
         else
           ! Move or rotate for constant temperature ensembles
-          if( mod( s - r, 2 ) .eq. 0 ) then
+          if( (mod( s - r, ndf ) < 3 .and. .not. UseIntDegFreed) .or. (mod( s - r, 2 ) .eq. 0 .and. UseIntDegFreed)) then
             call Move( this, nc, np, nu )
           else
             call Rotate( this, nc, np, nu )
