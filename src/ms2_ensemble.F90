@@ -9728,7 +9728,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
             endif
             this%EPotInter   = this%EPot - this%EPotIntra
-            this%d2EpotdV2 = Getd2EpotdV2( this )
+            if (UseIntDegFreed) then
+                this%d2EpotdV2 = Getd2EpotdV2( this )
+            end if
             if ( this%OptPressure ) then
               this%Virial = GetVirial( this )
               this%VirialIntra = GetVirialIntra( this )

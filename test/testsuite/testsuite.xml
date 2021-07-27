@@ -16,6 +16,7 @@
 		<case name="idf_dq_NPT" file="idf_dq_NPT.xml" />
 		<case name="idf_qq_NVT" file="idf_qq_NVT.xml" />
 		<case name="MC" file="MC.xml" />
+		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
