@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_leap_aceton.par</parFile>
+	<name>MC_leap_aceton</name>
+	<np>2</np>
+	<reference>
+		<file>MC_leap_aceton.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+</testcase>
