@@ -12236,15 +12236,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
               ! Potential energy
-              write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
       
               ! Enthalpy
-              write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
       
       if (printIDF) then
@@ -12395,15 +12395,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
             ! Potential energy
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
     
             ! Enthalpy
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
       if (printIDF) then
@@ -12558,15 +12558,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
           ! Potential energy
-          write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
   
           ! Enthalpy
-          write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
       if (printIDF) then
