@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_gear_methaneCO2_250_x009.par</parFile>
+	<name>MD_gear_methaneCO2_250_x009_osmop2</name>
+	<np>1</np>
+	<compilerOption>
+		<name>OSMOP</name>
+		<value>2</value>
+	</compilerOption>
+	<reference>
+		<file>MD_gear_methaneCO2_250_x009_1.dcp</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_x009_1.res</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_x009_1.run</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_x009.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+</testcase>

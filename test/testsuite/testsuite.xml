@@ -18,6 +18,7 @@
 		<case name="MC" file="MC.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
+		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
