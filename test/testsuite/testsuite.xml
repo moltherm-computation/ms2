@@ -20,6 +20,7 @@
 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
+		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />

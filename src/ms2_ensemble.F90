@@ -7854,11 +7854,17 @@ loop2:        do nc = 1, this%NComponents
     ! 3. move all atoms which are connected to the displaced atom in any number of chains
     
     ! Calculate new COM
-    call Unit2Mol( pc, np )
+    if (UseIntDegFreed) then
+        call Unit2Mol( pc, np )
+    end if
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
-    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+    if (UseIntDegFreed) then
+        pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+    else
+        pc%Pm0(np, :) = pc%P0(np, :, 1)
+    end if
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -7893,6 +7899,21 @@ loop2:        do nc = 1, this%NComponents
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration 
+      if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&         MPI_RK, MPI_SUM, Communicator, ierror )
+      else if (.not. UseIntDegFreed) then
+        this%EPot = this%EPot - EPotDelta
+      endif  
+#else
+      if (.not. UseIntDegFreed) then
+          this%EPot = this%EPot - EPotDelta
+      end if
+#endif	  
+
+
     else
 
       ! Reject move
@@ -9562,9 +9583,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
         call UpdateEnergy( this )
-
+        if ( this%OptPressure .or. UseIntDegFreed) then
 #if MPI_VER > 0
-          if ( Equilibration .and. CommonEqui ) then         !Michael Sch.: move to after if clause!
+          if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then
             ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if (printIDF) then
@@ -9612,6 +9633,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             this%VirialInter = this%Virial - this%VirialIntra
           end if
 #endif
+        end if
+    
+#if MPI_VER > 0
+        ! in MC simulations we only communicate during common equilibration 
+        if (Equilibration .and. CommonEqui .and. .not. UseIntDegFreed) then
+          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&           MPI_RK, MPI_SUM, Communicator, ierror )
+        else if (.not. UseIntDegFreed) then
+          this%EPot = GetEnergy( this )
+        endif  
+#else
+        if (.not. UseIntDegFreed) then
+            this%EPot = GetEnergy( this )
+        end if
+#endif	  
+
 	  else
         ! Reject volume change
         this%Volume0 = VolumeOld
@@ -9624,7 +9661,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Energy(this,this%Epot)
 
 #if MPI_VER > 0
-          if ( Equilibration .and. CommonEqui ) then
+          if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed).or. (Equilibration .and. CommonEqui) ) then
             call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if (printIDF) then
@@ -9701,9 +9738,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         ! Update energy and virial matrices
         call UpdateEnergy( this )
-
+        if ( this%OptPressure .or. UseIntDegFreed) then
 #if MPI_VER > 0
-          if ( Equilibration .and. CommonEqui ) then         !Michael Sch.: move to after if clause!
+          if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then         !Michael Sch.: move to after if clause!
             ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if (printIDF) then
@@ -9753,6 +9790,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             this%VirialInter = this%Virial - this%VirialIntra
           end if
 #endif
+        end if
 
       else
 
@@ -9767,7 +9805,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Energy(this,this%Epot)
 
 #if MPI_VER > 0
-          if ( Equilibration .and. CommonEqui ) then
+          if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then
             call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if (printIDF) then
@@ -11249,7 +11287,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          call FileWriteBlank( this%iounit_result )
          call FileWriteBlank( this%iounit_runave )
          ! Number of steps
-         write( IOBuffer, '("     NR")' )
+         if (.not. UseIntDegFreed) then
+             write( IOBuffer, '("       NR")' )
+         else
+             write( IOBuffer, '("     NR")' )
+         end if
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
 
@@ -11269,12 +11311,20 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          call FileWriteNoAdvance( this%iounit_runave )
 
          ! Potential energy
-         write( IOBuffer, '("         EPOT")' )
+         if (.not. UseIntDegFreed) then
+             write( IOBuffer, '("       EPOT")' )
+         else
+             write( IOBuffer, '("         EPOT")' )
+         end if
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
 
          ! Enthalpy
-         write( IOBuffer, '("        ENTLP")' )
+         if (.not. UseIntDegFreed) then
+             write( IOBuffer, '("      ENTLP")' )
+         else
+             write( IOBuffer, '("        ENTLP")' )
+         end if
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
 
