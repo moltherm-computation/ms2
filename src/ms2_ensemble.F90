@@ -4778,7 +4778,7 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
       if ( this%Component(nc)%Molecule%Unit(nu)%isElongated ) then
         if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
           ! Move or rotate for NVE ensemble
-          if( mod( s - r, 2 ) .eq. 0 ) then
+          if( (mod( s - r, ndf ) < 3 .and. .not. UseIntDegFreed) .or. (mod( s - r, 2 ) .eq. 0 .and. UseIntDegFreed)) then
             call Move_NVE( this, nc, np, nu )
           else
             call Rotate_NVE( this, nc, np, nu )
@@ -7579,11 +7579,17 @@ loop2:        do nc = 1, this%NComponents
     ! 3. move all atoms which are connected to the displaced atom in any number of chains
     
     ! Calculate new COM
-    call Unit2Mol( pc, np )
+    if (UseIntDegFreed) then
+        call Unit2Mol( pc, np )
+    end if
 
     ! Apply periodic boundary conditions
     pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
-    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+    if (.not. UseIntDegFreed ) then
+        pc%Pm0(np, :)    = pc%P0(np, :, 1)
+    else
+        pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+    end if
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -7618,8 +7624,24 @@ loop2:        do nc = 1, this%NComponents
     if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
 &         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
       ! Accept move
+      if (.not. UseIntDegFreed) then
+          this%Temperature = 2._RK * (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) / real (this%NDF, RK)
+      end if
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration 
+      if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&         MPI_RK, MPI_SUM, Communicator, ierror )
+      else if (.not. UseIntDegFreed ) then
+        this%EPot = this%EPot - EPotDelta
+      endif  
+#else
+      if (.not. UseIntDegFreed ) then
+          this%EPot = this%EPot - EPotDelta
+      end if
+#endif	  
     else
 
       ! Reject move
@@ -7753,8 +7775,24 @@ loop2:        do nc = 1, this%NComponents
 
     if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
       ! Accept rotation
+      if (.not. UseIntDegFreed) then
+          this%Temperature = 2._RK * (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) / real (this%NDF, RK)
+      end if
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration 
+      if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
+        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
+&         MPI_RK, MPI_SUM, Communicator, ierror )
+      else if (.not. UseIntDegFreed) then
+        this%EPot = this%EPot - EPotDelta
+      endif  
+#else
+      if (.not. UseIntDegFreed) then
+          this%EPot = this%EPot - EPotDelta
+      end if
+#endif
 
     else
 
@@ -16289,8 +16327,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (this%Component(i)%Molecule%Unit(k)%NLJ126 > 0) then
           do j = 1, this%Component(i)%Molecule%Unit(k)%NLJ126
             psLJ126 => this%Component(i)%Molecule%Unit(k)%SiteLJ126(j)
-            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), psLJ126%r(:) * UnitLength / Angstroem, &
-&                  psLJ126%sig  * UnitLength / Angstroem
+            if (.not. UseIntDegFreed) then
+                write( IOBuffer, '("~", I3, " LJ", 4F8.4, "  1")' ) (num+k), psLJ126%r(:) * UnitLength / Angstroem, &
+&                      psLJ126%sig  * UnitLength / Angstroem
+            else
+                write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), psLJ126%r(:) * UnitLength / Angstroem, &
+&                      psLJ126%sig  * UnitLength / Angstroem
+            end if
             call FileWrite( this%iounit_visual )
           end do
         else  ! For visualisation of Units with no LJ sites
@@ -16352,8 +16395,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             q(1) = 1._RK
             q(2:4) = .0_RK
           end if
-
-          write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
+          if (.not. UseIntDegFreed) then
+              write( IOBuffer, '("!", I3,  3I4, 4I5)' ) (num+k),  nint( r(:) * 999 ), nint( q(:) * 999 )
+          else
+              write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
+          end if
           call FileWrite( this%iounit_visual )
         end do
       end do

@@ -18,6 +18,7 @@
 		<case name="MC" file="MC.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
+		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
