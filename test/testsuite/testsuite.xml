@@ -25,6 +25,7 @@
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
+		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
 		<case name="OPLS_Amber" file="OPLS_Amber.xml" />
@@ -36,5 +37,6 @@
 		<case name="OPLS_site_mpi" file="OPLS_site_mpi.xml" />
 		<case name="pentan_NPT" file="pentan_NPT.xml" />
 		<case name="pentan_NPT_site" file="pentan_NPT_site.xml" />
+		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
 	</caseList>
 </testsuite>

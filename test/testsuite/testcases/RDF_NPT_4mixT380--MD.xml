@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>RDF_NPT_4mixT380--MD.par</parFile>
+	<name>RDF_NPT_4mixT380--MD</name>
+	<np>3</np>
+	<reference>
+		<file>RDF_NPT_4mixT380--MD.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>RDF_NPT_4mixT380--MD_1.rdf</file>
+	</reference>
+	<reference>
+		<file>RDF_NPT_4mixT380--MD_1.res</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>RDF_NPT_4mixT380--MD_1.run</file>
+	</reference>
+</testcase>
