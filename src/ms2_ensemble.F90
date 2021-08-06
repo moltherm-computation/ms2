@@ -3004,6 +3004,7 @@ contains
       pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
 
 !      if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
+      pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
       this%NFluctMax = max( pc%NFluctMax, this%NFluctMax )
     end do
@@ -14043,7 +14044,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '("Chemical potential calculated by gradual insertion")' )
           call FileWrite( this%iounit_errors )
         case( ChemPotMethodWidom )
-          write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTest
+          if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
+            write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTestAll
+          else
+            write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTest
+          end if
           call FileWrite( this%iounit_errors )
         end select
       end do

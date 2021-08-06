@@ -192,6 +192,7 @@ module ms2_component
 
     ! Number of test particles
     integer, pointer :: NTest
+    integer          :: NTestAll
     integer, pointer :: NTest0, NTest1, NTest2
 
     ! Number of degrees of freedom
