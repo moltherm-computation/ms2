@@ -15772,7 +15772,12 @@ loop2:  do j = 1, j1
   C5 =  1.061405429
   P  =  0.3275911
 
-  argu = 1._RK / (1._RK + P*in)
+  if (.not. UseIntDegFreed) then
+      argu = real(1._RK / (1._RK + P*in))
+  else
+      argu = 1._RK / (1._RK + P*in)
+  end if
+
   approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
 
   end subroutine TPoterfc_approx
