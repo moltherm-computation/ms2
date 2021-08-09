@@ -684,7 +684,11 @@ contains
         call LogWrite
       end if
       if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
+        if (UseIntDegFreed) then
+            call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
+        else
+            call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        end if
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -707,7 +711,11 @@ contains
         call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
+        if (UseIntDegFreed) then
+            call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
+        else
+            call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 100 )
+        end if
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
 
@@ -917,7 +925,11 @@ contains
     this%Fraction = 0._RK
     this%NBins = 0
 
-    this%Lambda = 1.0_RK !- Zero ! test Minh
+    if (UseIntDegFreed) then
+        this%Lambda = 1.0_RK !- Zero ! test Minh
+    else
+        this%Lambda = 1.0_RK - Zero ! test Minh
+    end if
 
     ! Set fluctuating state (for GradIns)
     this%FluctState = 0
@@ -1170,6 +1182,7 @@ contains
       call Construct( this%SumHM, .true. )
     case( ChemPotMethodThermoInt )
       call Construct( this%SumChemPotV, .true. )
+      call Construct( this%SumChemPotVV, .false. )
       call Construct( this%SumChemPotThermoIntWidom, .false. )
       call Construct( this%SumChemPotThermoIntWidomV, .false. )
       call Construct( this%SumHW_counter, .false. )

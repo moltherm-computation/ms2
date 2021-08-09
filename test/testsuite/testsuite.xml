@@ -22,6 +22,7 @@
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
+		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />

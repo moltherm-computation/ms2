@@ -6609,11 +6609,11 @@ loop2:        do nc = 1, this%NComponents
           pc%CalcChemPot= .true.
         end if
 
-        if ( mod(Step,pc%changeLaFreq)==0 ) then
+        if (.not. UseIntDegFreed .or. (UseIntDegFreed .and. mod(Step,pc%changeLaFreq)==0)) then
           call ChangeLambda( this, t, i )
         end if
         ! Calculating the energy of the fluctuating particle
-        if (mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ) then
+        if (UseIntDegFreed  .and. (mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl)) then
           pc%currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
           if (SimulationType .ne. MolecularDynamics ) then
             pc%currentBinsEn = pc%currentBinsEn + GetEnergy( this, t, 1 ) - GetEnergyIntra( this, t, 1 )
@@ -8925,7 +8925,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Change state of lambda
       LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
 
-      if (LambdaNew>=pc%LaMin .and. LambdaNew<=pc%LaMax) then 
+      if (LambdaNew>=pc%LaMin .and. ((.not. UseIntDegFreed .and. LambdaNew<pc%LaMax) .or. (UseIntDegFreed .and. LambdaNew<=pc%LaMax) )) then 
         
         currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
         ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
@@ -8939,8 +8939,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           ! Accept
           ! Apply scaling factors
           call ScaleInteractionThermoInt(this, nt, Factor)
-          !call Unit2Atom( this )
-          call Unit2Atom1( this%Component(nt), 1 )
+          if (UseIntDegFreed) then
+              call Unit2Atom1( this%Component(nt), 1 )
+          else
+              call Unit2Atom( this )
+          end if
           call Energy( this, nt, 1, EPotNew )
           call UpdateEnergy( this, nt, 1 )
           pt%Lambda=LambdaNew
@@ -10952,6 +10955,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     type(TComponent), pointer :: pc
     integer                   :: i,j,t,err,currentbin
     real(RK)                  :: value
+    real(RK)                  :: currentBinsEn
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
@@ -11118,6 +11122,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Reset( this%Component(i)%SumHW_denom )
         case( ChemPotMethodThermoInt )
           call Reset( this%Component(i)%SumChemPotV )
+          call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumChemPotThermoIntWidom )
           call Reset( this%Component(i)%SumChemPotThermoIntWidomV )
           call Reset( this%Component(i)%SumHW_counter )
@@ -12218,15 +12223,27 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update(pc%SumHW_counter, pc%HW_counter)
           call Update(pc%SumHW_denom, pc%HW_denom)
         case( ChemPotMethodThermoInt )
-          if( .not. Equilibration .and. mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ) then
+          if( .not. Equilibration .and. (.not. UseIntDegFreed .or. (mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl ))) then
             currentbin=int((this%Component(t)%Lambda-pc%LaMin)/pc%deltaLa)
             pc%BinsVisit(currentbin)=pc%BinsVisit(currentbin)+1
-
+            if (.not. UseIntDegFreed) then
+                currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+                if (SimulationType .ne. MolecularDynamics ) then
+                   currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 )
+                end if
+            end if
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density
-            pc%BinsEn(currentbin)     =  (                  pc%currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
-            pc%BinsdEndLa(currentbin) =  (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda              + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
-            pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
-            pc%BinsdEndLaH(currentbin)=(pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH     + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
+            if (.not. UseIntDegFreed) then
+                pc%BinsEn(currentbin)     =  (                  currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+                pc%BinsdEndLa(currentbin) =  (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda              + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+                pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
+                pc%BinsdEndLaH(currentbin)=(pc%LambdaExponent*currentBinsEn/this%Component(t)%Lambda*currentH     + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
+            else
+                pc%BinsEn(currentbin)     =  (                  pc%currentBinsEn                                       + (pc%BinsVisit(currentbin)-1)*pc%BinsEn(currentbin)    )/pc%BinsVisit(currentbin)
+                pc%BinsdEndLa(currentbin) =  (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda              + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLa(currentbin))/pc%BinsVisit(currentbin)
+                pc%BinsdEndLaV(currentbin) = (pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda/this%Density + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaV(currentbin))/pc%BinsVisit(currentbin)
+                pc%BinsdEndLaH(currentbin)=(pc%LambdaExponent*pc%currentBinsEn/this%Component(t)%Lambda*currentH     + (pc%BinsVisit(currentbin)-1)*pc%BinsdEndLaH(currentbin))/pc%BinsVisit(currentbin)
+            end if
 
             pc%BinsIntdEndLa(0)=pc%BinsdEndLa(0)*pc%deltaLa
             pc%BinsIntVW(0)=(pc%BinsdEndLaV(0)-pc%BinsdEndLa(0)*this%SumVolume%Average)*pc%deltaLa
@@ -12237,13 +12254,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               pc%BinsIntHW(j)=pc%BinsIntHW(j-1)+(pc%BinsdEndLaH(j)-pc%BinsdEndLa(j)*this%SumConfEnthalpy%Average+pc%BinsdEndLa(j)/this%RefTemperature)*pc%deltaLa
             end do
           end if
-
+          if( .not. Equilibration .or. UseIntDegFreed) then
             call Update( pc%SumChemPotThermoIntWidom,  pc%ExpMinusBetaEnLaMin/this%Density)
             call Update( pc%SumChemPotThermoIntWidomV, pc%ExpMinusBetaEnLaMin/this%Density/this%Density)
             call Update( pc%SumChemPotV, pc%BinsIntdEndLa(pc%NBins-1)/this%Temperature-log(pc%SumChemPotThermoIntWidom%Average/(pc%Fraction+1._RK/real( this%NPart, RK ))))
             call Update(pc%SumHW_counter, pc%HW_counter)
             call Update(pc%SumHW_denom, pc%HW_denom)
             t=t+1
+          end if
         end select
       end if
     end do
@@ -16033,7 +16051,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if (RootProc) then
             write( IOBuffer, '(" Component:", T15, I3)' ) i
             call FileWrite( this%iounit_thermoint )
-            write( IOBuffer, '("currentlambda =", T20, F8.5)' ) this%Component(t)%lambda
+            if (UseIntDegFreed) then
+                write( IOBuffer, '("currentlambda =", T20, F8.5)' ) this%Component(t)%lambda
+            else
+                write( IOBuffer, '("currentlambda =", T20, F7.5)' ) this%Component(t)%lambda
+            end if
             call FileWrite( this%iounit_thermoint )
             write( IOBuffer, '(" BINID")' )
             call FileWriteNoAdvance( this%iounit_thermoint )
