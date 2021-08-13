@@ -38,6 +38,7 @@
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
+		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
 		<case name="OPLS_Amber" file="OPLS_Amber.xml" />

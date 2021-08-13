@@ -5235,6 +5235,10 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -6404,6 +6408,10 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -7541,6 +7549,10 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -12018,6 +12030,10 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
+    if (.not. UseIntDegFreed) then
+        i0 = 1
+        i1 = this%Site1%NTest
+    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest

@@ -6645,7 +6645,7 @@ loop2:        do nc = 1, this%NComponents
         ! chemPot with LambdaMin by Widom
         call Unit2AtomTest( pc, pc%NTest, pc%Molecule%NUnit )
 #if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        if ( UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           this%EPotTest(:) = 0._RK
           this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
         else
@@ -6654,12 +6654,12 @@ loop2:        do nc = 1, this%NComponents
 #else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
 #endif
-        this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
+        if (UseIntDegFreed) this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
         do j = 1, this%NComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
 #if MPI_VER > 0
-        if ( (SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui) ) then
+        if (UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           call MPI_Reduce( this%EPotTest, EPotTest, this%NTestMax, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           this%EPotTest = EPotTest
         end if
@@ -6681,25 +6681,25 @@ loop2:        do nc = 1, this%NComponents
        HW_counter_local = HW_counter_local / pc%NTest
        HW_denom_local = HW_V_local * HW_denom_local / pc%NTest
 
-! #if MPI_VER > 0
-!         if ( SimulationType .eq. MolecularDynamics  ) then
-!           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-!           call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!           call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-!           pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
-!           pc%HW_counter = pc%HW_counter/NProcs
-!           pc%HW_denom = pc%HW_denom/NProcs
-!         else
-!           pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
-!           pc%HW_counter = HW_counter_local
-!           pc%HW_denom = HW_denom_local
-!         endif
-! #else
+#if MPI_VER > 0
+        if (.not. UseIntDegFreed .and. SimulationType .eq. MolecularDynamics  ) then
+          ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+          call MPI_Reduce( ExpMinusBetaEnLaMin, pc%ExpMinusBetaEnLaMin, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_counter_local, pc%HW_counter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+          pc%ExpMinusBetaEnLaMin = pc%ExpMinusBetaEnLaMin/NProcs
+          pc%HW_counter = pc%HW_counter/NProcs
+          pc%HW_denom = pc%HW_denom/NProcs
+        else
+          pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
+          pc%HW_counter = HW_counter_local
+          pc%HW_denom = HW_denom_local
+        endif
+#else
         pc%ExpMinusBetaEnLaMin = ExpMinusBetaEnLaMin
         pc%HW_counter = HW_counter_local
         pc%HW_denom = HW_denom_local
-! #endif
+#endif
         ! end of Widom for ThermoInt with LambdaMin
 
         t=t+1 ! end of ThermoInt
@@ -8863,6 +8863,7 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
     if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
       do i=1,this%Component(nt)%Molecule%NUnit
         this%Component(nt)%Molecule%Unit(i)%Mue(:) = this%Component(nt)%Molecule%Unit(i)%Mue(:) * Factor
+        this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
       end do
       !this%Component(nt)%Molecule%MueY(:) = this%Component(nt)%Molecule%MueY(:) * Factor
       !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
@@ -8905,7 +8906,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Get old energy of fluctuating particle
     if (SimulationType .ne. MolecularDynamics) then
-      if ( Step .gt. pc%changeLaPart .and. nint(pt%Lambda/pc%deltaLa) .ge. pt%NBins) then
+      if (UseIntDegFreed .and. Step .gt. pc%changeLaPart .and. nint(pt%Lambda/pc%deltaLa) .ge. pt%NBins) then
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
       end if
@@ -8964,16 +8965,28 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     else ! MolecularDynamics
 
-      if ( Step .gt. pc%changeLaPart .and. pt%Lambda+pc%LaStepMax > pc%LaMax) then
+      if ( UseIntDegFreed .and. Step .gt. pc%changeLaPart .and. pt%Lambda+pc%LaStepMax > pc%LaMax) then
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
       end if
       if (RootProc) then
-        LambdaNew=pt%Lambda+pc%LaStepMax
+        if (.not. UseIntDegFreed) then
+            LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
+        else
+             LambdaNew=pt%Lambda+pc%LaStepMax
+        end if
         ! should be 1/10 of MC-stepwidth for equl distribution (estimation by Gabor and Michael)
-        if (LambdaNew<pc%LaMin .or. LambdaNew>pc%LaMax) then
-          pc%LaStepMax = -pc%LaStepMax
-          LambdaNew = pt%Lambda ! +pc%LaStepMax ! Minh test
+        if (.not. UseIntDegFreed) then
+            if (LambdaNew<pc%LaMin) then
+              LambdaNew = pc%LaMin
+            elseif (LambdaNew>=pc%LaMax) then
+              LambdaNew = pc%LaMax - Zero
+            end if
+        else
+            if (LambdaNew<pc%LaMin .or. LambdaNew>pc%LaMax) then
+              pc%LaStepMax = -pc%LaStepMax
+              LambdaNew = pt%Lambda ! +pc%LaStepMax ! Minh test
+            end if
         end if
         Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
         pt%Lambda=LambdaNew
@@ -8985,7 +8998,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
       call ScaleInteractionThermoInt(this, nt, Factor)
 
-      call Unit2Atom1( pt, 1 )
+      call Unit2Atom( this )
 
     end if
 
@@ -10970,6 +10983,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
+    real(RK)                   :: a1, a3, a4, a5! dummy arguments
+    type(idfPotentialEnergies):: a2
 #if HBOND > 0
     integer                   :: k, l
 #endif
@@ -12234,7 +12249,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             if (.not. UseIntDegFreed) then
                 currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
                 if (SimulationType .ne. MolecularDynamics ) then
-                   currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 )
+                    currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 )
+                else
+                    do j = 1, this%NRealComponents
+                        call Force( this%Interaction( t, j ), currentBinsEn, a1, a2, a3, a4, a5, this%BoxLength )
+                    end do
                 end if
             end if
             currentH=this%EPot + this%RefPressure * real( this%NPart, RK ) / this%Density

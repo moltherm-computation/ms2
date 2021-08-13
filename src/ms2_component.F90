@@ -698,10 +698,14 @@ contains
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-          write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
-          call LogWrite
-          this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
-          this%deltaLa = -this%LaStepMax
+            if (.not. UseIntDegFreed) then
+                call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+            else
+                write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
+                call LogWrite
+                this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
+                this%deltaLa = -this%LaStepMax
+            end if
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
           this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
@@ -719,27 +723,29 @@ contains
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
 
-        ! Michael Sch.: new for enhanced possibilites for E(la) sampling
-        if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
-        else
-          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+        if (UseIntDegFreed) then
+            ! Michael Sch.: new for enhanced possibilites for E(la) sampling
+            if (SimulationType .eq. MolecularDynamics) then
+              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+            else
+              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+            end if
+            write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
+            call LogWrite
+            this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
+            if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
+            ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
+            call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
+            write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
+            call LogWrite
+            if (SimulationType .eq. MolecularDynamics) then
+              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+            else
+              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+            end if
+            write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
+            call LogWrite
         end if
-        write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
-        call LogWrite
-        this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
-        if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
-        ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
-        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
-        write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
-        call LogWrite
-        if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
-        else
-          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
-        end if
-        write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
-        call LogWrite
 
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
@@ -748,9 +754,14 @@ contains
 #endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
-          write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
+          if (.not. UseIntDegFreed) then
+              write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
+          else
+              write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
+          end if
           call LogWrite
         endif
+        if (.not. UseIntDegFreed) this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
       end if
 
     end if
