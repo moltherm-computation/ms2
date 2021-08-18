@@ -26,9 +26,12 @@
 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
+		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
-		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
+		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" />
+		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" />
+		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />

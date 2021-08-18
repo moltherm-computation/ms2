@@ -3079,9 +3079,15 @@ contains
 
       ! Rotate total dipole moment
         if( CutoffMode .eq. CenterofMass ) then
-          mue1 = this%Molecule%Unit(iUnit)%Mue(1)
-          mue2 = this%Molecule%Unit(iUnit)%Mue(2)
-          mue3 = this%Molecule%Unit(iUnit)%Mue(3)
+          if (.not. UseIntDegFreed .and. ( SimulationType .ne. MonteCarlo )) then
+              mue1 = this%Molecule%Mue(1)
+              mue2 = this%Molecule%Mue(2)
+              mue3 = this%Molecule%Mue(3)
+          else
+              mue1 = this%Molecule%Unit(iUnit)%Mue(1)
+              mue2 = this%Molecule%Unit(iUnit)%Mue(2)
+              mue3 = this%Molecule%Unit(iUnit)%Mue(3)
+          end if
           do i = 1, l
             this%MueX(i, iUnit) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
             this%MueY(i, iUnit) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
