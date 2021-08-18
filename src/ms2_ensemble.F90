@@ -3941,8 +3941,13 @@ contains
           pc => this%Component(i1)
           pc%EPotTestCorrRF = 0._RK
           do j1 = 1, pc%Molecule%NUnit
-            this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%Unit(j1)%MueSquared * pc%NPart
-            pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%Unit(j1)%MueSquared * 2._RK * RFConst
+            if (.not. UseIntDegFreed) then
+                this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
+                pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%MueSquared * 2._RK * RFConst
+            else
+                this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%Unit(j1)%MueSquared * pc%NPart
+                pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%Unit(j1)%MueSquared * 2._RK * RFConst
+            end if
           end do
         end do
         this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
