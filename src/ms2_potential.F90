@@ -2560,7 +2560,7 @@ loop2:  do j = 1, N2
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE (i0) &
 #endif
-!$OMP PRIVATE(i1) &
+!$OMP FIRSTPRIVATE(i1) &
 !$OMP PRIVATE (Plen2,sitecorr) &
 !$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -14145,7 +14145,7 @@ loop2:  do j = 1, j1
 #endif
 
 !$OMP PARALLEL &
-!$OMP PRIVATE (i, j, k, i1, j0, j1) &
+!$OMP FIRSTPRIVATE (i, j, k, i1, j0, j1) &
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
 #endif

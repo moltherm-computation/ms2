@@ -1736,11 +1736,33 @@ contains
       end do
     end if
 
-    ! Save total mass of the molecule
+    ! Save number of rotation axes
     call FileWriteBlank( iounit_normal )
+    write( IOBuffer, '(I2)' ) this%Unit(1)%NDFRot
+    call FileWriteParameter( iounit_normal, IdSite_NDFRot )
+
+    ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
+
+    ! Save moments of inertia
+    if( this%Unit(1)%NDFRot > 0 ) then
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(1)
+
+      call FileWriteParameter( iounit_normal, IdSite_MOI1 )
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(2)
+
+      call FileWriteParameter( iounit_normal, IdSite_MOI2 )
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(3)
+      call FileWriteParameter( iounit_normal, IdSite_MOI3 )
+    end if
 
     if (UseIntDegFreed) then
       ! Save used potential model with IDF
