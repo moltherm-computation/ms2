@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_gradins_methaneCO2_250.par</parFile>
+	<name>MC_gradins_methaneCO2_250_serial</name>
+	<reference>
+		<file>MC_gradins_methaneCO2_250.rst</file>
+	</reference>
+	<reference>
+		<file>MC_gradins_methaneCO2_250_1.run</file>
+	</reference>
+	<reference>
+		<file>MC_gradins_methaneCO2_250_1.res</file>
+	</reference>
+</testcase>

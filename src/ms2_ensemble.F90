@@ -6141,7 +6141,7 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     if( Equilibration ) return
-    if (this%NTestMax == 0 .and. (.not. UseIntDegFreed)) return
+    if (this%NTestMax == 0 .and. UseIntDegFreed) return
 
     if (Step == 1) then
       do i = 1, this%NComponents
@@ -8673,7 +8673,7 @@ loop2:        do nc = 1, this%NComponents
        else
 
          ! Reject
-         call DuplicateParticle( pcf, pcfnew, npf )
+         call DuplicateParticle( pcf, pcfnew, npfnew )
          call RemoveParticle( pcfnew, npfnew )
          call Unit2Atom1( pcf, npf )
 
@@ -12283,7 +12283,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
           call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
-            call Update( pc%SumHM, 0._RK )
 
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
@@ -13907,7 +13906,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           
           call ErrorGI( pc%SumInvChemPotRho )
           call ErrorGI( pc%SumVW )
-          call ErrorGI( pc%SumHM )
             
 #if MPI_VER > 0          
           call SetCommunicator(MPI_COMM_WORLD)
