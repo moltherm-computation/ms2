@@ -6384,9 +6384,9 @@ loop2:        do nc = 1, this%NComponents
 
               ! Move or rotate fluctuating particle
               if( mod( r, ndf ) < 3 ) then
-                call Move( this, ncf, npf, nu )
+                call Move( this, ncf, npf, 1 )
               else
-                call Rotate( this, ncf, npf, nu )
+                call Rotate( this, ncf, npf, 1 )
               end if
 
             else
@@ -8675,7 +8675,7 @@ loop2:        do nc = 1, this%NComponents
          ! Reject
          call DuplicateParticle( pcf, pcfnew, npfnew )
          call RemoveParticle( pcfnew, npfnew )
-         call Unit2Atom1( pcf, npf )
+         !call Unit2Atom1( pcf, npf )
 
        end if
 
