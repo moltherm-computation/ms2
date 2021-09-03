@@ -9024,11 +9024,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(3)
+    real(RK)                  :: q(4)
     real(RK)                  :: EPotIns
     type(TComponent), pointer :: pc
     integer                   :: i, np, nu, dummy, j
     logical                   :: success, barrier
+    real(RK)                  :: s
     real(RK)                  :: UIntra, USelbst, EFourier, EVirial
     real(RK)                  :: E, EIntra, EBond, EAngle, EDihedral, FIns(3,this%NUnitMax), InvDensityCorr
 #if MPI_VER > 0
@@ -9041,7 +9042,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     success = .true.
     barrier = .true.
 
-    do dummy = 1, 1
+
     if ( (SimulationType .eq. MonteCarlo) .or. ( (SimulationType .eq. MolecularDynamics) .and. RootProc ) ) then
 
       success = .false.
@@ -9052,15 +9053,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       do i = 1, 3
         r(i) = rnd( -.5_RK, .5_RK )
       end do
-      do i = 1, 3
+    do
+      s = 0._RK
+      do i = 1, 4
         q(i) = rnd( -1._RK, 1._RK )
       end do
       !  Michael Sch.: Rotation problematic with IDF, especially for MD since velocities are not changed alongside rotation
       ! Instead of just duplicating and moving a particle, a velocity spin could replace the rotation....
       if (Shake > 0) q(:) = 0._RK 
 
+      s = sum( q**2 )
+      if( s <= 1._RK ) exit
+    end do
+#if ARCH == 3
+    q = q * rsqrt( s )
+#else
+    q = q / sqrt( s )
+#endif
+
       call AddParticle( pc, r, q )
-      if ( tooManyParticles ) exit
+      if ( tooManyParticles ) return
       np = pc%NPart
       this%NPart = this%NPart + 1
       this%NUnitTotal = this%NUnitTotal + nu
@@ -9070,6 +9082,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! 3.57_RK * sqrt((3 * PI - 8._RK )/ PI) + sqrt(8/PI) ..= 4.0
       ! Currently Forces only implemented/calculated for LJ, bond, angle and dihedral potential!!!
       !Fbarrier(:) = 4._RK * sqrt( this%Temperature * this%Component(nc)%Molecule%Unit(:)%Mass )
+
+      ! Convert molecular coordinates to atom positions
+      if (.not. UseIntDegFreed) call Unit2Atom1( pc, np )
 
       if (LongRange .eq. Ewald) then           ! EWALD-SUMMATION
         UIntra   = this%UIntra
@@ -9192,7 +9207,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end if
 
     end if
-    end do
 
     if (SimulationType .ne. MonteCarlo) then
 #if MPI_VER > 0
@@ -10319,7 +10333,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(3)
+    real(RK)                  :: q(4)
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: EPotIns
@@ -15557,9 +15571,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          Variance = 0._RK
       end if
       ! Simulation pressure of liquid phase
-      write( IOBuffer, '("Liquid simulation pressure", T29, "reduced:", F20.9)' ) Average
+      write( IOBuffer, '("Liquid simulation pressure", T29, "reduced:", F20.9)' ) this%RefPressure
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T30, "in MPa:", F20.9)' ) Average * UnitPressure * 1e-6_RK
+      write( IOBuffer, '(T30, "in MPa:", F20.9)' ) this%RefPressure * UnitPressure * 1e-6_RK
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 

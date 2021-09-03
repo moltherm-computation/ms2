@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_GE_aceton.par</parFile>
+	<name>MC_GE_aceton</name>
+	<np>2</np>
+	<reference>
+		<file>MC_GE_aceton.rst</file>
+	</reference>
+	<reference>
+		<file>MC_GE_aceton_1.res</file>
+	</reference>
+</testcase>

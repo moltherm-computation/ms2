@@ -5104,7 +5104,7 @@ loop1:do i = 1, this%NPart
     ! Declare arguments
     type(TComponent)               :: this
     real(RK), intent(in)           :: r(3)
-    real(RK), intent(in), optional :: q(3)
+    real(RK), intent(in), optional :: q(4)
 
     ! Declare local variables
     integer            :: selected, i
@@ -5119,7 +5119,7 @@ loop1:do i = 1, this%NPart
     end if
 
     ! Increase NPart
-    selected = rnd( this%NPart )
+    if (UseIntDegFreed) selected = rnd( this%NPart )
     !IOBuffer = '' ! Michael DEBUG
     !write( IOBuffer, '("Duplicating particle number " I4," for insertion at end. ")' ) selected
     this%NPart = this%NPart + 1
@@ -5129,8 +5129,13 @@ loop1:do i = 1, this%NPart
 
     ! Set coordinates and orientation of new particle by an representative of the configuration
     do i = 1, this%Molecule%NUnit
-      this%P0(this%NPart,1:3,i) = this%P0(selected,1:3,i) + r(1:3)
-      this%P0(this%NPart,1:3,i) = this%P0(this%NPart,1:3,i) - anint(this%P0(this%NPart,1:3,i))
+        if (.not. UseIntDegFreed) then
+            this%P0(this%NPart,1:3,i) = r(1:3)
+            this%Pm0(this%NPart,1:3) = this%P0(this%NPart,1:3,i)
+        else
+            this%P0(this%NPart,1:3,i) = this%P0(selected,1:3,i) + r(1:3)
+            this%P0(this%NPart,1:3,i) = this%P0(this%NPart,1:3,i) - anint(this%P0(this%NPart,1:3,i))
+        end if
     end do
 
     if (SimulationType .eq. MolecularDynamics ) then
@@ -5156,14 +5161,20 @@ loop1:do i = 1, this%NPart
       end if
     end if
 
-    this%Pm0(this%NPart,:) = 0._RK
-    call Unit2Mol(this, this%NPart) 
+    if (UseIntDegFreed) then
+        this%Pm0(this%NPart,:) = 0._RK
+        call Unit2Mol(this, this%NPart) 
+    end if
 
     if (this%Molecule%isElongated) then
-      this%Q0(this%NPart,:,:) = this%Q0(selected,:,:)
-      call RotateMol( this, this%NPart, q)
+        if (.not. UseIntDegFreed) then
+            this%Q0(this%NPart,:,1) = q(:)
+        else
+            this%Q0(this%NPart,:,:) = this%Q0(selected,:,:)
+            call RotateMol( this, this%NPart, q)
+        end if
     end if
-    call Unit2Atom1( this, this%NPart, RootProc )
+    if (UseIntDegFreed) call Unit2Atom1( this, this%NPart, RootProc )
 
   end subroutine TComponent_AddParticle
 
