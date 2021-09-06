@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>8e5ba0debb94ed186dc4dba0a9e893942203da88</caseRepositoryHash>
+	<caseRepositoryHash>c58ece441609f154a3424ec3423b55cad03c6b05</caseRepositoryHash>
 	<caseList>
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -19,6 +19,7 @@
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
+		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
