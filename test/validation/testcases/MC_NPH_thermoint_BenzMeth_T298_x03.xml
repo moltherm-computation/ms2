@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NPH_thermoint_BenzMeth_T298_x03.par</parFile>
+	<name>MC_NPH_thermoint_BenzMeth_T298_x03</name>
+	<np>40</np>
+	<walltime>09:00:00</walltime>
+	<reference>
+		<file>MC_NPH_thermoint_BenzMeth_T298_x03_1.res</file>
+	</reference>
+</testcase>

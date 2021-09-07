@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NVE_widom_meoh.par</parFile>
+	<name>MC_NVE_widom_meoh</name>
+	<np>40</np>
+	<walltime>05:30:00</walltime>
+	<reference>
+		<file>MC_NVE_widom_meoh_1.res</file>
+	</reference>
+</testcase>

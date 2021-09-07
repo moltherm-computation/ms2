@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NPH_gear_widom_aceton.par</parFile>
+	<name>MD_NPH_gear_widom_aceton</name>
+	<np>40</np>
+	<walltime>07:00:00</walltime>
+	<reference>
+		<file>MD_NPH_gear_widom_aceton_1.res</file>
+	</reference>
+</testcase>

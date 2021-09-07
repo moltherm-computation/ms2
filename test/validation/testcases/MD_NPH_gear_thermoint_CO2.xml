@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NPH_gear_thermoint_CO2.par</parFile>
+	<name>MD_NPH_gear_thermoint_CO2</name>
+	<np>40</np>
+	<walltime>04:00:00</walltime>
+	<reference>
+		<file>MD_NPH_gear_thermoint_CO2_1.res</file>
+	</reference>
+</testcase>

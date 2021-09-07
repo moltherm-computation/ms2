@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NVT_thermoint_methaneCO2_250_x009.par</parFile>
+	<name>MC_NVT_thermoint_methaneCO2_250_x009</name>
+	<np>40</np>
+	<walltime>03:00:00</walltime>
+	<reference>
+		<file>MC_NVT_thermoint_methaneCO2_250_x009_1.res</file>
+	</reference>
+</testcase>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NPT_4mixT380--MD.par</parFile>
+	<name>NPT_4mixT380--MD</name>
+	<np>40</np>
+	<walltime>2-15:00:00</walltime>
+	<reference>
+		<file>NPT_4mixT380--MD_1.res</file>
+	</reference>
+</testcase>
