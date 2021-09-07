@@ -7,6 +7,7 @@
 		<case name="C2H6_OPLS_p3T2_Ring" file="C2H6_OPLS_p3T2_Ring.xml" />
 		<case name="C2H6_OPLS_p3T2_Ring_NVT" file="C2H6_OPLS_p3T2_Ring_NVT.xml" />
 		<case name="C3H8_OPLSAmb_p3T2_Ring" file="C3H8_OPLSAmb_p3T2_Ring.xml" />
+		<case name="C3H8_OPLSAmb_p3T2_RingNVT" file="C3H8_OPLSAmb_p3T2_RingNVT.xml" />
 		<case name="C4H10_OPLS_p3T2_Ring" file="C4H10_OPLS_p3T2_Ring.xml" />
 		<case name="C4H10_OPLSAmb_p3T2_Ring" file="C4H10_OPLSAmb_p3T2_Ring.xml" />
 		<case name="isoC4H10_OPLSAmb_p3T2_Ring" file="isoC4H10_OPLSAmb_p3T2_Ring.xml" />

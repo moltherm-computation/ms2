@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C3H8_OPLSAmb_p3T2_Ring.par</parFile>
+	<name>C3H8_OPLSAmb_p3T2_RingNVT</name>
+	<np>40</np>
+	<walltime>10:30:00</walltime>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.res</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+</testcase>
