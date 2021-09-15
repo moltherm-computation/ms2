@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>780700a52f9df0f773b21241db880115a6214703</caseRepositoryHash>
+	<caseRepositoryHash>72cdc24f04659757cf31ba5c0be34bf0058e3946</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
@@ -12,6 +12,7 @@
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
+		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
