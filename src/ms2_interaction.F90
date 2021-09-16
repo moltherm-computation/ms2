@@ -42,7 +42,7 @@ module ms2_interaction
   type TInteraction
 
     ! Site-site potentials
-    type(TPotLJ126LJ126), pointer, contiguous           :: PotLJ126LJ126(:, :)
+    type(TPotMIEnmMIEnm), pointer, contiguous           :: PotMIEnmMIEnm(:, :)
     type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
     type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
     type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
@@ -101,7 +101,7 @@ module ms2_interaction
     integer :: NTest1
 
     ! Numbers of sites
-    integer :: N1LJ126, N2LJ126
+    integer :: N1MIEnm, N2MIEnm
     integer :: N1Charge, N2Charge
     integer :: N1Dipole, N2Dipole
     integer :: N1Quadrupole, N2Quadrupole
@@ -109,8 +109,8 @@ module ms2_interaction
     ! Squared cutoff radius
     real(RK) :: RCutoffSquared, RCutoffSquaredScaled
 
-    ! Cutoff correction to LJ-interaction
-    real(RK) :: EPotCorrLJ
+    ! Cutoff correction to MIE-interaction
+    real(RK) :: EPotCorrMIE
 
     ! Flag for reaction field
     logical :: ReactionField
@@ -128,12 +128,6 @@ module ms2_interaction
     real(RK) :: Kappa
     real(RK) :: lad1,lad2
 
-#ifdef ABL
-    real(RK),pointer, contiguous :: AblS(:)
-    real(RK),pointer, contiguous :: AblE(:)
-    real(RK),pointer, contiguous :: AblPS(:,:)
-    real(RK),pointer, contiguous :: AblPE(:,:)
-#endif
 
   end type TInteraction
 
@@ -203,7 +197,7 @@ contains
 
   subroutine TInteraction_Construct( this, i1, i2, &
 &                                    Component1, Component2, &
-&                                    RCutoffLJ126LJ126, &
+&                                    RCutoffMIEnmMIEnm, &
 &                                    RCutoffDipoleDipole, &
 &                                    RCutoffDipoleQuadrupole, &
 &                                    RCutoffQuadrupoleQuadrupole, &
@@ -216,7 +210,7 @@ contains
     type(TInteraction)           :: this
     integer, intent(in)          :: i1, i2
     type(TComponent), intent(in) :: Component1, Component2
-    real(RK), intent(in)         :: RCutoffLJ126LJ126
+    real(RK), intent(in)         :: RCutoffMIEnmMIEnm
     real(RK), intent(in)         :: RCutoffDipoleDipole
     real(RK), intent(in)         :: RCutoffDipoleQuadrupole
     real(RK), intent(in)         :: RCutoffQuadrupoleQuadrupole
@@ -227,6 +221,7 @@ contains
     integer :: j1, j2
     integer :: stat
     real    :: fac
+
 
     ! RFConst2
     if (LongRange .eq. ExtRField) then
@@ -254,8 +249,8 @@ contains
     this%NTest1 = Component1%NTest
 
     ! Set number of sites
-    this%N1LJ126 = Component1%Molecule%NLJ126
-    this%N2LJ126 = Component2%Molecule%NLJ126
+    this%N1MIEnm = Component1%Molecule%NMIEnm
+    this%N2MIEnm = Component2%Molecule%NMIEnm
     this%N1Charge = Component1%Molecule%NCharge
     this%N2Charge = Component2%Molecule%NCharge
     this%N1Dipole = Component1%Molecule%NDipole
@@ -324,7 +319,7 @@ contains
     end if
 
     ! Set squared cutoff radius
-    this%RCutoffSquared = RCutoffLJ126LJ126**2
+    this%RCutoffSquared = RCutoffMIEnmMIEnm**2
 
     ! Create arrays
     call Allocate( this )
@@ -338,7 +333,7 @@ contains
     end if
 
     ! Nullify pointers
-    nullify( this%PotLJ126LJ126 )
+    nullify( this%PotMIEnmMIEnm )
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
@@ -349,21 +344,21 @@ contains
     nullify( this%PotQuadrupoleDipole )
     nullify( this%PotQuadrupoleQuadrupole )
 
-    ! Construct Lennard-Jones potentials
-    if( this%N1LJ126 > 0 .and. this%N2LJ126 > 0 ) then
-      allocate( this%PotLJ126LJ126(this%N1LJ126, this%N2LJ126), STAT = stat )
-      call AllocationError( stat, 'sites', this%N1LJ126 + this%N2LJ126 )
-      do j1 = 1, this%N1LJ126
-        do j2 = 1, this%N2LJ126
-          call Construct( this%PotLJ126LJ126(j1, j2), &
+    ! Construct MIE potentials
+    if( this%N1MIEnm > 0 .and. this%N2MIEnm > 0 ) then
+      allocate( this%PotMIEnmMIEnm(this%N1MIEnm, this%N2MIEnm), STAT = stat )
+      call AllocationError( stat, 'sites', this%N1MIEnm + this%N2MIEnm )
+      do j1 = 1, this%N1MIEnm
+        do j2 = 1, this%N2MIEnm
+          call Construct( this%PotMIEnmMIEnm(j1, j2), &
 &              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&              RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
+&              RCutoffMIEnmMIEnm, ScaleSigma, ScaleEpsilon )
         
-          this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
-          this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
+          this%PotMIEnmMIEnm(j1, j2)%NInCutoff => this%NInCutoff
+          this%PotMIEnmMIEnm(j1, j2)%CutoffPartner => this%CutoffPartner
 
           if( RDFUpdateFrequency > 0 ) then
-            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
+            allocate( this%PotMIEnmMIEnm(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
             call AllocationError( stat, 'RDFSum', RDFNumberShells)
           end if
         end do
@@ -544,14 +539,14 @@ contains
     ! Declare local variables
     integer :: i, j
 
-    ! Destroy Lennard-Jones potentials
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Destruct( this%PotLJ126LJ126(i, j) )
+    ! Destroy MIE potentials
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call Destruct( this%PotMIEnmMIEnm(i, j) )
       end do
     end do
-    if( associated( this%PotLJ126LJ126 ) ) then
-      deallocate( this%PotLJ126LJ126 )
+    if( associated( this%PotMIEnmMIEnm ) ) then
+      deallocate( this%PotMIEnmMIEnm )
     end if
 
     ! Destroy charge-charge potentials
@@ -871,10 +866,10 @@ contains
     ! Calculate interactions partners within cutoff sphere
       call CalcCutoffPartnersRDF( this )
 
-    ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Get_RDF( this%PotLJ126LJ126( i, j ), RDFdr )
+    ! Calculate MIE forces
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call Get_RDF( this%PotMIEnmMIEnm( i, j ), RDFdr )
       end do
     end do
 
@@ -884,11 +879,8 @@ contains
 !==============================================================!
 !  Subroutine TInteraction_Force                               !
 !==============================================================!
-#ifndef ABL
+
   subroutine TInteraction_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
-#else
-  subroutine TInteraction_Force( this, EPot, Virial, d2EpotdV2, BoxLength,C1,C2)
-#endif
 
     implicit none
 
@@ -898,9 +890,7 @@ contains
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
-#ifdef ABL
-    integer, intent(in)      :: C1,C2
-#endif
+
 
     ! Declare local variables
     real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
@@ -913,34 +903,17 @@ contains
 #if MPI_VER > 0
     integer           :: i0
 #endif
-#ifdef ABL
-    real(RK)          :: AblSig, AblEps
-    real(RK)          :: eps1,eps2,fac
-#endif
+
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
-    ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-#ifndef ABL
-       call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#else
-       call Force( this%PotLJ126LJ126( i, j ), &
-&           EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
-        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
-        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
-        else
-          fac = 2._RK*sqrt(eps1*eps2)
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
-          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
-        end if
-#endif
+    ! Calculate MIE forces
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+       call Force( this%PotMIEnmMIEnm( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1060,11 +1033,9 @@ contains
 !==============================================================!
 !  Subroutine TInteraction_Force_Trans                         !
 !==============================================================!
-#ifndef ABL
+
   subroutine TInteraction_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength )
-#else
-  subroutine TInteraction_Force_Trans( this, EPot, Virial, d2EpotdV2, BoxLength,C1,C2)
-#endif
+
 
     implicit none
 
@@ -1074,9 +1045,7 @@ contains
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
-#ifdef ABL
-    integer, intent(in)      :: C1,C2
-#endif
+
 
     ! Declare local variables
     real(RK), pointer, contiguous :: MueX1(:), MueY1(:), MueZ1(:)
@@ -1089,34 +1058,19 @@ contains
 #if MPI_VER > 0
     integer           :: i0
 #endif
-#ifdef ABL
-    real(RK)          :: AblSig, AblEps
-    real(RK)          :: eps1,eps2,fac
-#endif
+
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
-    ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-#ifndef ABL
-       call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-#else
-       call Force_Trans( this%PotLJ126LJ126( i, j ), &
-&           EPot, Virial, d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
-        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
-        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
-        else
-          fac = 2._RK*sqrt(eps1*eps2)
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
-          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
-        end if
-#endif
+    ! Calculate MIE forces
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+
+       call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+
       end do
     end do
 
@@ -1257,10 +1211,10 @@ contains
       call CalcCutoffPartnersTest( this )
     end if
 
-    ! Calculate Lennard-Jones chemical potential
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call ChemicalPotential( this%PotLJ126LJ126( i, j ), EPotTest, BoxLength )
+    ! Calculate MIE chemical potential
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call ChemicalPotential( this%PotMIEnmMIEnm( i, j ), EPotTest, BoxLength )
       end do
     end do
 
@@ -1343,7 +1297,7 @@ contains
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
-    type(TPotLJ126LJ126), pointer           :: plj
+    type(TPotMIEnmMIEnm), pointer           :: pmie
     type(TPotChargeCharge), pointer         :: pcc
     type(TPotChargeDipole), pointer         :: pcd
     type(TPotChargeQuadrupole), pointer     :: pcq
@@ -1359,9 +1313,9 @@ contains
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
-
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
+    real(RK)          :: Epsilon, Epsilon2, EpsilonMie_a, EpsilonMie_aF
+	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
@@ -1375,9 +1329,9 @@ contains
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijInv, RijSquaredInv, Rij3Inv
+    real(RK)          :: RijSquared, RijInv, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: RijInv2
-    real(RK)          :: Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv
+    real(RK)          :: Rij3Inv, Rij4Inv, Rij4Inv3, Rij5Inv
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: CosAux, CosGammaij
@@ -1441,26 +1395,32 @@ contains
     if( CutoffMode .eq. CenterofMass ) then
 
 
-      ! Calculate Lennard-Jones energy
-      do s1 = 1, this%N1LJ126
-        do s2 = 1, this%N2LJ126
+      ! Calculate MIE energy
+      do s1 = 1, this%N1MIEnm
+        do s2 = 1, this%N2MIEnm
 
           ! Set site specific variables
-          plj => this%PotLJ126LJ126(s1, s2)
-          SigmaSquared = plj%SigmaSquared
-          Epsilon4 = plj%Epsilon4
+          pmie => this%PotMIEnmMIEnm(s1, s2)
+          SigmaSquared = pmie%SigmaSquared
+          EpsilonMie_a = pmie%EpsilonMie_a
+		  Mie_n = pmie%Mie_n
+	      Mie_m = pmie%Mie_m
+		  Mie_n1 = Mie_n+1._RK
+	      Mie_m1 = Mie_m+1._RK
+	      Mie_nHalf = pmie%Mie_nHalf
+	      Mie_mHalf = pmie%Mie_mHalf
 
           if ( OptPressure ) then
-            Epsilon48 = plj%Epsilon48
+            EpsilonMie_aF = pmie%EpsilonMie_aF
           end if
 
           ! Assign pointers to site positions
-          RX1 => plj%Site1%RX
-          RY1 => plj%Site1%RY
-          RZ1 => plj%Site1%RZ
-          RX2 => plj%Site2%RX
-          RY2 => plj%Site2%RY
-          RZ2 => plj%Site2%RZ
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -1482,21 +1442,23 @@ contains
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+			RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            Mie_nRijMie_n = Mie_n * RijMie_nInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
+            EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
             if ( OptPressure ) then
-              Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+              Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+		    d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+			              + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
           end do
         end do
       end do
@@ -1538,7 +1500,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1600,7 +1562,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1623,7 +1585,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
-              d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
+              d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Ninth !xxxx2 CC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -1674,7 +1636,7 @@ contains
             OXj = OX2(j)
             OYj = OY2(j)
             OZj = OZ2(j)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1698,7 +1660,7 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
+              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth !xxxx2 CD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -1747,7 +1709,7 @@ contains
             OXj = OX2(j)
             OYj = OY2(j)
             OZj = OZ2(j)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
               VirialLocal = 1E33_RK
@@ -1772,7 +1734,7 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth !xxxx3 CQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -1824,7 +1786,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1848,7 +1810,7 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
+              d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth !xxxx4 DC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -1899,7 +1861,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1910,11 +1872,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
@@ -1937,7 +1897,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Third*Third !xxxx5 DD
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Ninth !xxxx5 DD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -1988,7 +1948,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -1999,11 +1959,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
@@ -2031,7 +1989,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx6 DQ
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxx6 DQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2083,7 +2041,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -2111,7 +2069,7 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx7 QC
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth !xxxx7 QC
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2162,7 +2120,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -2173,11 +2131,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
@@ -2204,7 +2160,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Third*Third !xxxx8 QD
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxx8 QD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2256,7 +2212,7 @@ contains
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -2267,11 +2223,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
@@ -2309,7 +2263,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
+              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)*Ninth !xxxx9 QQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2460,25 +2414,31 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     else ! Site-site cutoff
 
-      ! Calculate Lennard-Jones energy
-      do s1 = 1, this%N1LJ126
-        do s2 = 1, this%N2LJ126
+      ! Calculate MIE energy
+      do s1 = 1, this%N1MIEnm
+        do s2 = 1, this%N2MIEnm
 
           ! Set site specific variables
-          plj => this%PotLJ126LJ126(s1, s2)
-          SigmaSquared = plj%SigmaSquared
-          Epsilon4 = plj%Epsilon4
+          pmie => this%PotMIEnmMIEnm(s1, s2)
+          SigmaSquared = pmie%SigmaSquared
+          EpsilonMie_a = pmie%EpsilonMie_a
+		  Mie_n = pmie%Mie_n
+	      Mie_m = pmie%Mie_m
+		  Mie_n1 = Mie_n+1._RK
+	      Mie_m1 = Mie_m+1._RK
+	      Mie_nHalf = pmie%Mie_nHalf
+	      Mie_mHalf = pmie%Mie_mHalf
           if ( OptPressure ) then
-            Epsilon48 = plj%Epsilon48
+            EpsilonMie_aF = pmie%EpsilonMie_aF
           end if
 
           ! Assign pointers to site positions
-          RX1 => plj%Site1%RX
-          RY1 => plj%Site1%RY
-          RZ1 => plj%Site1%RZ
-          RX2 => plj%Site2%RX
-          RY2 => plj%Site2%RY
-          RZ2 => plj%Site2%RZ
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -2505,22 +2465,24 @@ contains
             RXij = RXij - anint( RXij )
             RYij = RYij - anint( RYij )
             RZij = RZij - anint( RZij )
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             if( RijSquared >= RCutoffSquaredScaled ) cycle
             RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+			RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            Mie_nRijMie_n = Mie_n * RijMie_nInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
+            EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
             if ( OptPressure ) then
-              Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+              Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
               Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss2 LJ
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+		    d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+			               + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
           end do
         end do
       end do
@@ -2577,7 +2539,7 @@ contains
             RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -2589,11 +2551,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv
@@ -2616,7 +2576,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
+              d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Ninth !xxxxss5 DD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2673,7 +2633,7 @@ contains
             RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -2716,7 +2676,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxxss6 DQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2776,7 +2736,7 @@ contains
             RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -2818,7 +2778,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
+              d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxxss8 QD
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2874,7 +2834,7 @@ contains
             RXij = (RXij - anint( RXij )) * BoxLength
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -2929,7 +2889,7 @@ contains
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
-              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
+              d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)*Ninth !xxxxss9 QQ
             end if
             EPot(j) = EPot(j) + EPotLocal
             if ( OptPressure ) then
@@ -2965,9 +2925,9 @@ end subroutine TInteraction_Energy
     this%RCutoffSquaredScaled = this%RCutoffSquared / BoxLength**2
 
     ! Update BoxLength in Potentials
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call UpdateBoxLength( this%PotLJ126LJ126( i, j ), BoxLength )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call UpdateBoxLength( this%PotMIEnmMIEnm( i, j ), BoxLength )
       end do
     end do
 
@@ -3029,7 +2989,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3057,7 +3017,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3071,7 +3031,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3097,7 +3057,7 @@ end subroutine TInteraction_Energy
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
-              RijSquared = PXij**2 + PYij**2 + PZij**2
+              RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
@@ -3123,7 +3083,7 @@ end subroutine TInteraction_Energy
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
+            RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
             if( RijSquared < RCutoff ) then
               NInCutoff = NInCutoff + 1
@@ -3137,7 +3097,7 @@ end subroutine TInteraction_Energy
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
+            RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
             if( RijSquared < RCutoff ) then
               NInCutoff = NInCutoff + 1
               this%CutoffPartner(NInCutoff, i) = j
@@ -3169,7 +3129,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3228,7 +3188,7 @@ end subroutine TInteraction_Energy
       PXij = PXij - anint( PXij )
       PYij = PYij - anint( PYij )
       PZij = PZij - anint( PZij )
-      RijSquared = PXij**2 + PYij**2 + PZij**2
+      RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
       if( RijSquared < RCutoffSquaredScaled ) then
         NInCutoff = NInCutoff + 1
@@ -3286,7 +3246,7 @@ end subroutine TInteraction_Energy
         PXij = PXij - anint( PXij )
         PYij = PYij - anint( PYij )
         PZij = PZij - anint( PZij )
-        RijSquared = PXij**2 + PYij**2 + PZij**2
+        RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
         if( RijSquared < RCutoff ) then
           NInCutoff = NInCutoff + 1
@@ -3348,7 +3308,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3371,7 +3331,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
 
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
@@ -3386,7 +3346,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
@@ -3411,7 +3371,7 @@ end subroutine TInteraction_Energy
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
           if( RijSquared < RCutoff ) then
             NInCutoff = NInCutoff + 1
             this%CutoffPartner(NInCutoff, i) = j
