@@ -4,8 +4,14 @@
 	<parFile>MD_NVT_leap_thermoint_methaneCO2_250_x009.par</parFile>
 	<name>MD_NVT_leap_thermoint_methaneCO2_250_x009</name>
 	<np>40</np>
-	<walltime>03:10:00</walltime>
+	<walltime>03:22:47</walltime>
 	<reference>
 		<file>MD_NVT_leap_thermoint_methaneCO2_250_x009_1.res</file>
+		<relativeTolerance>
+			<pressure>1.5e-2</pressure>
+			<temperature>3e-8</temperature>
+			<potentialEnergy>3e-4</potentialEnergy>
+			<enthalpy>5e-5</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>

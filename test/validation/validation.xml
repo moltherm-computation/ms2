@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.227</tools4ms2version>
+	<tools4ms2version>0.0.286</tools4ms2version>
 	<caseRepositoryHash>db8f31cda958170b71271e07ed194efc8af0500d</caseRepositoryHash>
 	<caseList>
-		<case name="2VC_aceton" file="2VC_aceton.xml" />
-		<case name="2VC_Ar" file="2VC_Ar.xml" />
-		<case name="2VC_CO2" file="2VC_CO2.xml" />
-		<case name="2VC_meoh" file="2VC_meoh.xml" />
+<!-- 		<case name="2VC_aceton" file="2VC_aceton.xml" /> -->
+<!-- 		<case name="2VC_Ar" file="2VC_Ar.xml" /> -->
+<!-- 		<case name="2VC_CO2" file="2VC_CO2.xml" /> -->
+<!-- 		<case name="2VC_meoh" file="2VC_meoh.xml" /> -->
 		<case name="C2H6_OPLS_p3T2_Ring" file="C2H6_OPLS_p3T2_Ring.xml" />
 		<case name="C2H6_OPLS_p3T2_Ring_NVT" file="C2H6_OPLS_p3T2_Ring_NVT.xml" />
 		<case name="C3H8_OPLSAmb_p3T2_Ring" file="C3H8_OPLSAmb_p3T2_Ring.xml" />

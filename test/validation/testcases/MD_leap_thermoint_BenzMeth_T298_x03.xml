@@ -4,8 +4,15 @@
 	<parFile>MD_leap_thermoint_BenzMeth_T298_x03.par</parFile>
 	<name>MD_leap_thermoint_BenzMeth_T298_x03</name>
 	<np>40</np>
-	<walltime>05:00:00</walltime>
+	<walltime>05:18:33</walltime>
 	<reference>
 		<file>MD_leap_thermoint_BenzMeth_T298_x03_1.res</file>
+		<relativeTolerance>
+			<pressure>3e-2</pressure>
+			<temperature>4e-9</temperature>
+			<concentration>5e-4</concentration>
+			<potentialEnergy>7e-5</potentialEnergy>
+			<enthalpy>7e-5</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>

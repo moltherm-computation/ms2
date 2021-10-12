@@ -7,6 +7,5 @@
 	<walltime>16:20:00</walltime>
 	<reference>
 		<file>isoC4H10_OPLSAmb_p3T2_Ring_1.res</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>

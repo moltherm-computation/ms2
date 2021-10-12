@@ -4,8 +4,9 @@
 	<parFile>MC_widom_hydrazineH2O_T391-x025.par</parFile>
 	<name>MC_widom_hydrazineH2O_T391-x025</name>
 	<np>40</np>
-	<walltime>09:00:00</walltime>
+	<walltime>2-16:10:36</walltime>
 	<reference>
 		<file>MC_widom_hydrazineH2O_T391-x025_1.res</file>
+		<relativeTolerance>1e-100</relativeTolerance>
 	</reference>
 </testcase>

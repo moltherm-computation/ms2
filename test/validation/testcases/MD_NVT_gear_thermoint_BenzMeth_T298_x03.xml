@@ -4,7 +4,7 @@
 	<parFile>MD_NVT_gear_thermoint_BenzMeth_T298_x03.par</parFile>
 	<name>MD_NVT_gear_thermoint_BenzMeth_T298_x03</name>
 	<np>40</np>
-	<walltime>08:20:00</walltime>
+	<walltime>12:20:00</walltime>
 	<reference>
 		<file>MD_NVT_gear_thermoint_BenzMeth_T298_x03_1.res</file>
 	</reference>

@@ -4,8 +4,14 @@
 	<parFile>MC_NPH_thermoint_hydrazineH2O_T391-x025.par</parFile>
 	<name>MC_NPH_thermoint_hydrazineH2O_T391-x025</name>
 	<np>40</np>
-	<walltime>14:00:00</walltime>
+	<walltime>1-14:00:00</walltime>
 	<reference>
 		<file>MC_NPH_thermoint_hydrazineH2O_T391-x025_1.res</file>
+		<relativeTolerance>
+			<temperature>6e-4</temperature>
+			<concentration>7e-5</concentration>
+			<potentialEnergy>2e-4</potentialEnergy>
+			<enthalpy>2e-4</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>

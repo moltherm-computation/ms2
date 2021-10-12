@@ -4,7 +4,7 @@
 	<parFile>MD_NVE_leap_widom_ace_meth_T298_x05.par</parFile>
 	<name>MD_NVE_leap_widom_ace_meth_T298_x05</name>
 	<np>40</np>
-	<walltime>04:30:00</walltime>
+	<walltime>05:45:04</walltime>
 	<reference>
 		<file>MD_NVE_leap_widom_ace_meth_T298_x05_1.res</file>
 	</reference>

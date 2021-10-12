@@ -7,5 +7,11 @@
 	<walltime>3:00:00</walltime>
 	<reference>
 		<file>MC_NPH_widom_methaneCO2_250_x009_1.res</file>
+		<relativeTolerance>
+			<temperature>8e-5</temperature>
+			<concentration>3e-4</concentration>
+			<potentialEnergy>4e-5</potentialEnergy>
+			<enthalpy>4e-5</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>

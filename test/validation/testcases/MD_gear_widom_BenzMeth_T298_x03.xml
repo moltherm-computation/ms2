@@ -4,7 +4,7 @@
 	<parFile>MD_gear_widom_BenzMeth_T298_x03.par</parFile>
 	<name>MD_gear_widom_BenzMeth_T298_x03</name>
 	<np>40</np>
-	<walltime>04:30:00</walltime>
+	<walltime>05:30:00</walltime>
 	<reference>
 		<file>MD_gear_widom_BenzMeth_T298_x03_1.res</file>
 	</reference>

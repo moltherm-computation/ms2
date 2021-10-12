@@ -4,8 +4,14 @@
 	<parFile>MC_NPH_thermoint_BenzMeth_T298_x03.par</parFile>
 	<name>MC_NPH_thermoint_BenzMeth_T298_x03</name>
 	<np>40</np>
-	<walltime>09:00:00</walltime>
+	<walltime>1-00:00:00</walltime>
 	<reference>
 		<file>MC_NPH_thermoint_BenzMeth_T298_x03_1.res</file>
+		<relativeTolerance>
+			<temperature>2e-4</temperature>
+			<concentration>8e-5</concentration>
+			<potentialEnergy>4e-5</potentialEnergy>
+			<enthalpy>4e-5</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>

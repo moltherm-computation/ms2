@@ -4,8 +4,14 @@
 	<parFile>MC_NPH_thermoint_ace_meth_T298_x05.par</parFile>
 	<name>MC_NPH_thermoint_ace_meth_T298_x05</name>
 	<np>40</np>
-	<walltime>04:00:00</walltime>
+	<walltime>10:00:00</walltime>
 	<reference>
 		<file>MC_NPH_thermoint_ace_meth_T298_x05_1.res</file>
+		<relativeTolerance>
+			<temperature>7e-4</temperature>
+			<concentration>1e-4</concentration>
+			<potentialEnergy>2e-4</potentialEnergy>
+			<enthalpy>2e-4</enthalpy>
+		</relativeTolerance>
 	</reference>
 </testcase>
