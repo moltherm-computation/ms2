@@ -287,7 +287,7 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
+        call FileReadParameter( this%SiteId, iounit_potmod, IdMIE_SiteId, .false. )
     end if
 
       select case( LJorMIE )
@@ -609,7 +609,7 @@ contains
     ! Save site parameters
     if( UseIntDegFreed ) then 
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdLJ126_SiteId )
+        call FileWriteParameter( iounit_normal, IdMIE_SiteId )
     end if
 	write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
     call FileWriteParameter( iounit_normal, IdMIE_n )

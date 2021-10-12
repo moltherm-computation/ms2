@@ -5904,7 +5904,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Zero potential
     EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
-    idfEPot%EPotInter = this%Density * this%EPotCorrLJ + this%EPotCorrRF
+    idfEPot%EPotInter = this%Density * this%EPotCorrMIE + this%EPotCorrRF
     idfEPot%EPotIntra = 0._RK
     idfEPot%EPotIntra_Bond = 0._RK
     idfEPot%EPotIntra_Angle = 0._RK
@@ -6446,9 +6446,9 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
         if (UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           this%EPotTest(:) = 0._RK
-          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         else
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         end if
 #else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
@@ -6566,7 +6566,7 @@ loop2:        do nc = 1, this%NComponents
         end if
         ! Calculating the energy of the fluctuating particle
         if (UseIntDegFreed  .and. (mod(Step,pc%changeLaFreq) .ge. pc%forfeitLaSampl)) then
-          pc%currentBinsEn = (this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+          pc%currentBinsEn = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
           if (SimulationType .ne. MolecularDynamics ) then
             pc%currentBinsEn = pc%currentBinsEn + GetEnergy( this, t, 1 ) - GetEnergyIntra( this, t, 1 )
           else
@@ -6594,9 +6594,9 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
         if ( UseIntDegFreed .and. ((SimulationType .ne. MonteCarlo) .or. (Equilibration .and. CommonEqui))) then
           this%EPotTest(:) = 0._RK
-          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+          this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         else
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrLJ + pc%EPotTestCorrRF
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         end if
 #else
         this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
@@ -16309,7 +16309,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     num = 0
     do i = 1, this%NComponents
       do k = 1, this%Component(i)%Molecule%NUnit
-        if (this%Component(i)%Molecule%Unit(k)%NLJ126 > 0) then
+        if (this%Component(i)%Molecule%Unit(k)%NMIEnm > 0) then
           do j = 1, this%Component(i)%Molecule%Unit(k)%NMIEnm
             psMIEnm => this%Component(i)%Molecule%Unit(k)%SiteMIEnm(j)
             if (.not. UseIntDegFreed) then
