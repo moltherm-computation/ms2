@@ -9,13 +9,11 @@
 	</reference>
 	<reference>
 		<file>MD_gear_o2ace_fl-T400-x008_1.res</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MD_gear_o2ace_fl-T400-x008_1.run</file>
 	</reference>
 	<reference>
 		<file>MD_gear_o2ace_fl-T400-x008.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>

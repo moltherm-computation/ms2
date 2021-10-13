@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>286db5812d0ef7e6da33dd293e26771a2d4b2304</caseRepositoryHash>
+	<tools4ms2version>0.0.276</tools4ms2version>
+	<caseRepositoryHash>2fb95e9efd769a2fd51c1384fcdf3cffd78bcd88</caseRepositoryHash>
 	<caseList>
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -29,6 +29,8 @@
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
+		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
+		<case name="Mie_site_mpi" file="Mie_site_mpi.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
@@ -39,7 +41,7 @@
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
-		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
+<!-- 		<case name="NPT_4mixT380-MD" file="NPT_4mixT380-MD.xml" /> -->
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
 		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 		<case name="OPLS" file="OPLS.xml" />

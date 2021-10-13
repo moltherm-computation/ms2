@@ -6,6 +6,5 @@
 	<np>2</np>
 	<reference>
 		<file>MD_gear_aceton.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>
