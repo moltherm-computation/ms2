@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NpT.par</parFile>
+	<name>Mie_MC_CO2</name>
+	<np>40</np>
+	<walltime>12:00:00</walltime>
+	<reference>
+		<file>NpT_1.res</file>
+	</reference>
+</testcase>
