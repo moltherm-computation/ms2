@@ -11125,7 +11125,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
              fields = fields + 1
              if( EnsembleType .eq. EnsembleTypeNPT) then 
                fields = fields + 1
-               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) fields = fields + 1
+               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
              end if
            end if
          enddo
