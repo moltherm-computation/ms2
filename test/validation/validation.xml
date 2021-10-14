@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.227</tools4ms2version>
-	<caseRepositoryHash>4e95b962ef3d628036b7b437fafda57376067b57</caseRepositoryHash>
+	<caseRepositoryHash>86c410e63ecd3dbfd1dff29b94ef4d2c91d784cc</caseRepositoryHash>
 	<caseList>
 		<case name="2VC_aceton" file="2VC_aceton.xml" />
 		<case name="2VC_Ar" file="2VC_Ar.xml" />
@@ -213,6 +213,7 @@
 		<case name="MD_widom_xA060" file="MD_widom_xA060.xml" />
 		<case name="MD_widom_xA080" file="MD_widom_xA080.xml" />
 		<case name="MD_widom_xA100" file="MD_widom_xA100.xml" />
+		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 	</caseList>
 </testsuite>
