@@ -2915,7 +2915,7 @@ contains
 			RijMie_nInv = RijSquaredInv**Mie_nHalf
 		    RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
-            Mie_mRijMie_m = Mie_n * RijMie_mInv
+            Mie_mRijMie_m = Mie_m * RijMie_mInv
             jk = (j-1)*this%NUnit2 + pmie%Site2%UnitNumber
             EPot(jk) = EPot(jk) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
             if ( OptPressure ) then
