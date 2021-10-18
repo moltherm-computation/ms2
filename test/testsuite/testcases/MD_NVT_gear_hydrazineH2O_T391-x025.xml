@@ -6,6 +6,5 @@
 	<np>3</np>
 	<reference>
 		<file>MD_NVT_gear_hydrazineH2O_T391-x025.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>
