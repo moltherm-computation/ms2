@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
-!  (c) 2014 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
+!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -1416,7 +1416,7 @@ contains
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
       if (LongRange .ne. Ewald) then
-        if (LongRange .ne. SPME) then
+        if (LongRange .ne. PME) then
           do i =1, this%NCharge
             this%Mue(:) = this%Mue(:) + this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
           end do
@@ -1701,7 +1701,7 @@ contains
     ! Save MIE sites
     if( this%NMIEnm > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'MIEnm'
+      write( IOBuffer, '(1X, A)' ) LJorMIE !'MIEnm'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NMIEnm
       call FileWriteParameter( iounit_normal, IdSite_NMIEnm )
