@@ -5193,7 +5193,7 @@ loop5:    do nc = 1, this%NComponents
          if (this%Component(i)%Molecule%NUnit .ne. 1)  call Error( "!!!!!!Transportproperties only implemented for rigid molecules!!!!!!!" )
          call Atom2Unit_Trans( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
       else
-         call Atom2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
+         call Atom2Unit( this%Component(i), this%Component(i)%NPart)
       end if
 #else
       call Atom2Unit( this%Component(i), this%Component(i)%NPart)
@@ -5943,10 +5943,10 @@ loop5:    do nc = 1, this%NComponents
       do j = i, this%NComponents
 #if TRANS == 1
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot &
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot, &
 &                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         else
-          call Force( this%Interaction( i, j ), EPot, Virial, idfEPot &
+          call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
 &                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         endif
 #else

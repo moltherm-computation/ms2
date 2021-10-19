@@ -1293,8 +1293,7 @@ contains
 !  Subroutine TInteraction_Force_Trans                         !
 !==============================================================!
 
-  subroutine TInteraction_Force_Trans( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
-&            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+  subroutine TInteraction_Force_Trans( this, EPot, Virial, idfEPot, &
 &            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
 
 
@@ -1304,12 +1303,7 @@ contains
     type(TInteraction)       :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
-    real(RK), intent(in out) :: EPotIntra
-    real(RK), intent(in out) :: EPotIntra_Bond
-    real(RK), intent(in out) :: EPotIntra_Angle
-    real(RK), intent(in out) :: EPotIntra_Dihedral
-    real(RK), intent(in out) :: EPotIntra_Nonbonded
-    real(RK), intent(in out) :: EPotInter
+    type(idfPotentialEnergies) :: idfEPot
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: d2EpotdV2
@@ -1341,7 +1335,7 @@ contains
       do j = 1, this%N2MIEnm
 
         call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&              idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
 
       end do
@@ -1352,27 +1346,27 @@ contains
       if ( .not. this%ReactionField ) then
         do j = 1, this%N2Charge
           call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength, this%Kappa )
         end do
 
       else
         do j = 1, this%N2Charge
           call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
         end do
       end if
 
       do j = 1, this%N2Dipole
         call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
         call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
     end do
@@ -1382,19 +1376,19 @@ contains
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
         call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Dipole
         call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
         call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
     end do
@@ -1404,20 +1398,20 @@ contains
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
         call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
 
       end do
 
       do j = 1, this%N2Dipole
         call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
 
       do j = 1, this%N2Quadrupole
         call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               idfEPot%EPotInter, VirialInter, idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
       end do
     end do
@@ -1428,23 +1422,23 @@ contains
       ! Calculate bond forces
       if (.not. Shake > 0) then
         do i = 1, this%NBond
-          call Force( this%PotBond(i), EPot, Virial, EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength)
+          call Force( this%PotBond(i), EPot, Virial, idfEPot%EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength)
         end do
       end if
 
       ! Calculate angle forces
       do i = 1, this%NAngle
-        call Force( this%PotAngle(i), EPot, EPotIntra_Angle, BoxLength)
+        call Force( this%PotAngle(i), EPot, idfEPot%EPotIntra_Angle, BoxLength)
       end do
 
       ! Calculate dihedral forces
       do i = 1, this%NDihedral
-        call Force( this%PotDihedral(i), EPot, EPotIntra_Dihedral, BoxLength)
+        call Force( this%PotDihedral(i), EPot, idfEPot%EPotIntra_Dihedral, BoxLength)
       end do
 
     end if
 
-    EPotIntra = EPotIntra_Bond + EPotIntra_Angle + EPotIntra_Dihedral + EPotIntra_Nonbonded
+    idfEPot%EPotIntra = idfEPot%EPotIntra_Bond + idfEPot%EPotIntra_Angle + idfEPot%EPotIntra_Dihedral + idfEPot%EPotIntra_Nonbonded
 
     ! Explicit reaction field contribution
     if ( this%ReactionField ) then
@@ -1511,7 +1505,7 @@ contains
       end do
 
       EPot = EPot + this%RFConst2 * EPotLocal
-      EPotInter = EPotInter + this%RFConst2 * EPotLocal
+      idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
   end subroutine TInteraction_Force_Trans
