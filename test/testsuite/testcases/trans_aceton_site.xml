@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>trans_aceton_site.par</parFile>
+	<name>trans_aceton_site</name>
+	<np>3</np>
+	<compilerOption>
+		<name>TRANS</name>
+	</compilerOption>
+	<reference>
+		<file>trans_aceton_site_1.res</file>
+	</reference>
+	<reference>
+		<file>trans_aceton_site_1.rtr</file>
+	</reference>
+	<reference>
+		<file>trans_aceton_site.rst</file>
+	</reference>
+	<reference>
+		<file>trans_aceton_site_1.run</file>
+	</reference>
+	<reference>
+		<file>trans_aceton_site_1.rav</file>
+	</reference>
+</testcase>
