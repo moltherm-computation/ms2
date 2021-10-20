@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>a12c050914c67a873f43a791a73a3c4d6a733b0e</caseRepositoryHash>
+	<caseRepositoryHash>f3dd570fc40f2c29e60166aa89437dfe5ede422b</caseRepositoryHash>
 	<caseList>
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -57,5 +57,7 @@
 		<case name="pentan_NPT" file="pentan_NPT.xml" />
 		<case name="pentan_NPT_site" file="pentan_NPT_site.xml" />
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
+		<case name="trans_24DAT" file="trans_24DAT.xml" />
+		<case name="trans_aceton_site" file="trans_aceton_site.xml" />
 	</caseList>
 </testsuite>
