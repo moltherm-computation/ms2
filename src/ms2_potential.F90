@@ -8572,7 +8572,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             OYj = OY2(jk)
             OZj = OZ2(jk)
 
-            RijInv = 1._RK / ( RXij*RXij + RYij*RYij + RZij*RZij )
+            RijInv = 1._RK / sqrt( RXij*RXij + RYij*RYij + RZij*RZij )
 
             eX = RXij * RijInv
             eY = RYij * RijInv
@@ -14981,7 +14981,7 @@ loop3:  do j = j0, j1
 
     end if
 !$OMP END PARALLEL
-
+    FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
     TX2 = TX2 + momTempX                                 
