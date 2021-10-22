@@ -12,7 +12,6 @@
 !* Updates and auxiliary routines are available from            *   
 !* http://www.ms-2.de                                           *   
 !****************************************************************
-
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
@@ -69,6 +68,10 @@ module ms2_ensemble
 
     ! I/O unit for RDF file
     integer :: iounit_rdf
+    
+    ! I/O unit for KBI file
+    integer :: iounit_kbirun
+    integer :: iounit_kbirdf
 
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
@@ -165,6 +168,17 @@ module ms2_ensemble
     real(RK) :: RDFdr
     real(RK), pointer, contiguous :: RDFVSchale(:)
     real(RK), pointer, contiguous :: RDFValue(:)
+    
+    !KBI Hilfsvariable
+    real(RK) :: KBIdr
+    real(RK), pointer, contiguous :: KBIVSchale(:)
+    real(RK), pointer, contiguous :: KBIRDFextra(:,:)
+    real(RK), pointer, contiguous :: KBIRDFvdVextra(:,:)
+    real(RK), pointer, contiguous :: KBIRDFvdVshfextra(:,:)
+    real(RK), pointer, contiguous :: TDF(:,:)
+    real(RK), pointer, contiguous :: dTDF(:,:)
+    real(RK), pointer, contiguous :: TDF0(:,:)
+    integer                       :: KBIBlockCount
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -272,6 +286,11 @@ module ms2_ensemble
       type(TAccumulator) :: SumA21resII
       type(TAccumulator) :: SumA12resII
     !end if
+    
+    ! KBI sums Gij
+    type(TAccumulator),pointer, contiguous :: SumKBIGij1(:)
+    type(TAccumulator),pointer, contiguous :: SumKBIGij2(:)
+    type(TAccumulator),pointer, contiguous :: SumKBIGij3(:)
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -399,11 +418,13 @@ module ms2_ensemble
    integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
    integer,pointer, contiguous  :: DonComp(:), DonAccSite(:), DonDonSite(:)
    real(RK),pointer, contiguous :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
-   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
+   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:)
+   integer,pointer, contiguous  :: NHBond3(:,:,:,:), NHBond4(:,:,:,:,:), NHBondN(:)
    type(TAccumulator),pointer, contiguous :: SumHBond0(:)
    type(TAccumulator),pointer, contiguous :: SumHBond1(:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond2(:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond3(:,:,:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBond4(:,:,:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
 
@@ -755,11 +776,31 @@ module ms2_ensemble
   interface RDFUpdate
     module procedure TEnsemble_RDFUpdate
   end interface
+  
+  interface RDFUpdateBlock
+    module procedure TEnsemble_RDFUpdateBlock
+  end interface
 
   interface RDFClose
     module procedure TEnsemble_RDFClose
   end interface
 
+  interface KBIOpen
+    module procedure TEnsemble_KBIOpen
+  end interface
+
+  interface KBIUpdate
+    module procedure TEnsemble_KBIUpdate
+  end interface
+  
+  interface KBIUpdateBlock
+    module procedure TEnsemble_KBIUpdateBlock
+  end interface
+
+  interface KBIClose
+    module procedure TEnsemble_KBIClose
+  end interface
+  
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
@@ -1744,12 +1785,12 @@ contains
            end do
          end do
       end if
-     
+   
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
 
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
-
+ 
       else
 
         ! Set temperature
@@ -1760,6 +1801,7 @@ contains
 
         ! Set all potential energy matrices
         call Energy( this, this%EPot )
+
         call UpdateEnergy( this )
 
         ! Set initial values of maximum allowed MC displacements
@@ -1785,13 +1827,22 @@ contains
     this%iounit_rescf     = iounit_rescf     + i
     this%iounit_visualHB  = iounit_visualHB  + i
     this%iounit_dcp       = iounit_dcp       + i
+    this%iounit_kbirun    = iounit_kbirun    + i
+    this%iounit_kbirdf    = iounit_kbirdf    + i
 
     ! Calculate RDF VSchale 
     this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
     do i = 1, RDFNumberShells
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
-
+  
+    ! Calculate KBI VSchale bis L/2
+    this%KBIdr = (0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength) &
+&                / KBINumberShells
+    do i = 1, KBINumberShells
+      this%KBIVSchale(i) = 4./3.*pi* this%KBIdr**3 *(i**3 - (i-1)**3)
+    end do
+ 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
     write( IOBuffer, '(72(1H-))')
@@ -2429,7 +2480,7 @@ contains
     ! Declare local variables
     integer   :: i, j
 #if HBOND > 0
-    integer   :: k, l,stat
+    integer   :: k, l, m, stat
 
     allocate( this%SumHBond0(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -2439,6 +2490,8 @@ contains
     call AllocationError( stat, 'components', (this%NComponents**2)*this%NComponents )
     allocate( this%SumHBond3(this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2) )
+    allocate( this%SumHBond4(this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents), STAT = stat )
+    call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2)*this%NComponents )
     allocate( this%SumHBondN(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -2483,6 +2536,9 @@ contains
             call Construct( this%SumHBond2(i,j,k), .false. )
             do l = k, this%NComponents
               call Construct( this%SumHBond3(i,j,k,l), .false. )
+              do m = l, this%NComponents
+                call Construct( this%SumHBond4(i,j,k,l,m), .false. )
+              end do
             end do
           end do
         end do
@@ -2521,6 +2577,16 @@ contains
         call Construct( this%SumHmUm3dUdV, .false. )
         call Construct( this%SumHmUm3dUdV2, .false. )
       end if
+      
+      ! KBI sum Gij
+      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+        do i= 1, this%NComponents*(this%NComponents+1)/2 !Number of comb., e.g. 11 12 22
+            call Construct( this%SumKBIGij1(i), .false., .false., .true.)
+            call Construct( this%SumKBIGij2(i), .false., .false., .true.)
+            call Construct( this%SumKBIGij3(i), .false., .false., .true.)
+        end do
+      end if
+                
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -2612,7 +2678,7 @@ contains
     ! Declare local variables
     integer :: i, j
 #if HBOND > 0
-    integer :: k, l
+    integer :: k, l, m
 #endif
 
     ! Destruct accumulators
@@ -2645,6 +2711,9 @@ contains
             call Destruct( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Destruct( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Destruct( this%SumHBond4(i,j,k,l,m) )
+              end do
             end do
           end do
         end do
@@ -2683,6 +2752,15 @@ contains
       call Destruct( this%SumHmUm3dUdV )
       call Destruct( this%SumHmUm3dUdV2 )
     end if
+    
+    ! KBI sum Gij
+      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call Destruct( this%SumKBIGij1(i) )
+            call Destruct( this%SumKBIGij2(i) )
+            call Destruct( this%SumKBIGij3(i) )
+        end do
+      end if
 
     ! 3.) Derived sums
     call Destruct( this%SumBetaT )
@@ -3069,7 +3147,15 @@ contains
     nullify( this%BiasedPartners )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
-
+    nullify( this%KBIVSchale )
+    nullify( this%KBIRDFextra )
+    nullify( this%KBIRDFvdVextra )
+    nullify( this%KBIRDFvdVshfextra )
+    nullify( this%TDF )
+    nullify( this%dTDF )
+    nullify( this%TDF0 )
+    
+    
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -3084,6 +3170,30 @@ contains
       call AllocationError( stat, 'components', RDFNumberShells )
       allocate( this%RDFValue(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )    
+    endif
+    
+    ! Allocate KBI arrays
+    if( KBIUpdateFrequency > 0 ) then
+      allocate( this%KBIVSchale(KBINumberShells), STAT = stat )
+      call AllocationError( stat, 'KBI shells', KBINumberShells )         
+      allocate( this%KBIRDFextra(0:KBINumberShells, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDF extrap.', KBINumberShells )
+      allocate( this%KBIRDFvdVextra(0:KBINumberShells, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDFvdV extrap.', KBINumberShells )
+      allocate( this%KBIRDFvdVshfextra(0:KBINumberShells, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDFvdVshf extrap.', KBINumberShells )      
+      allocate( this%TDF(3, 4), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; max. 4 TDFs if 3 components
+      call AllocationError( stat, 'TDF' )
+      allocate( this%dTDF(3, 4), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; max. 4 TDFs if 3 components
+      call AllocationError( stat, 'dTDF' )
+      allocate( this%TDF0(3, 4), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; max. 4 TDFs if 3 components
+      call AllocationError( stat, 'TDF0' )  
+      allocate( this%SumKBIGij1(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij1', this%NComponents )
+      allocate( this%SumKBIGij2(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij2', this%NComponents )
+      allocate( this%SumKBIGij3(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij3', this%NComponents )
     endif
 
     ! Allocate test particles
@@ -3153,6 +3263,8 @@ contains
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents )
     allocate( this%NHBond3( this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2 )
+    allocate( this%NHBond4( this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
+    call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2*this%NComponents )
     allocate( this%NHBondN( this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -3475,8 +3587,49 @@ contains
 
     if( associated( this%RDFValue ) ) then
       deallocate( this%RDFValue )
-    end if    
+    end if  
 
+    if( associated( this%KBIVSchale ) ) then
+      deallocate( this%KBIVSchale )
+    end if
+    
+    if( associated( this%KBIRDFextra ) ) then
+      deallocate( this%KBIRDFextra )
+    end if 
+    
+    if( associated( this%KBIRDFvdVextra ) ) then
+      deallocate( this%KBIRDFvdVextra )
+    end if 
+    
+    if( associated( this%KBIRDFvdVshfextra ) ) then
+      deallocate( this%KBIRDFvdVshfextra )
+    end if 
+    
+    if( associated( this%TDF ) ) then
+      deallocate( this%TDF )
+    end if 
+    
+    if( associated( this%dTDF ) ) then
+      deallocate( this%dTDF )
+    end if 
+    
+    if( associated( this%TDF0 ) ) then
+      deallocate( this%TDF0 )
+    end if 
+
+    if( associated( this%SumKBIGij1 ) ) then
+      deallocate( this%SumKBIGij1 )
+    end if
+    
+    if( associated( this%SumKBIGij2 ) ) then
+      deallocate( this%SumKBIGij2 )
+    end if
+    
+    if( associated( this%SumKBIGij3 ) ) then
+      deallocate( this%SumKBIGij3 )
+    end if
+
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Deallocate arrays for correlation fucntions
@@ -4895,7 +5048,7 @@ loop3:    do nc = 1, this%NComponents
        this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
     end do
 
-    if ((LongRange .eq. Ewald) then
+    if (LongRange .eq. Ewald) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
 #if SPME > 0
     else if (LongRange .eq. PME) then
@@ -6172,19 +6325,15 @@ loop2:        do nc = 1, this%NComponents
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
         n = pi%NPart2
-
         ! Loop over particles
         do np = 1, this%Component(nc)%NPart
           call Energy( pi, np, this%BoxLength )
-
           ! Save new energy matrix
           pi%EPotNew(np, 1:n) = pi%EPot1(1:n)
           pi%d2EpotdV2New(np, 1:n) = pi%d2EpotdV21(1:n)
-
           if ( this%OptPressure ) then
             pi%VirialNew(np, 1:n) = pi%Virial1(1:n)
           end if
-
           ! Sum energy
           E = E + sum( pi%EPot1(1:n) )
         end do
@@ -9805,7 +9954,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
     real(RK)                   :: a1, a2 ! dummy arguments
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
 
     if( Step == 1 ) then
@@ -9849,6 +9998,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call Reset( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Reset( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Reset( this%SumHBond4(i,j,k,l,m) )
+              end do 
             end do
           end do
         end do
@@ -10308,6 +10460,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
@@ -10315,6 +10468,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -10324,6 +10478,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -10335,6 +10490,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("  HB4_(", I1, ",", I1, ",", I1, ",", I1,",", I1, ")")' ) i, j, k, l, m
+                  call FileWriteNoAdvance( this%iounit_result )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
           call FileWriteNoAdvance( this%iounit_result )
@@ -10476,6 +10646,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update( this%SumHBond2(i,j,k), real(this%NHBond2(i,j,k),RK) )
           do l = k, this%NComponents
             call Update( this%SumHBond3(i,j,k,l), real(this%NHBond3(i,j,k,l),RK) )
+            do m = l, this%NComponents
+              call Update( this%SumHBond4(i,j,k,l,m), real(this%NHBond4(i,j,k,l,m),RK) )
+            end do
           end do
         end do
       end do
@@ -11581,6 +11754,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
@@ -11589,6 +11763,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11599,6 +11774,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11611,6 +11787,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
@@ -11987,7 +12179,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
 #endif
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
@@ -12049,6 +12241,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Error( this%SumHBond2(i,j,k) )
           do l = k, this%NComponents
             call Error( this%SumHBond3(i,j,k,l) )
+            do m = l, this%NComponents
+              call Error( this%SumHBond4(i,j,k,l,m) )
+            end do
           end do
         end do
       end do
@@ -12924,7 +13119,107 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
-
+    
+    ! thermodynamic factors with KBI
+    if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then 
+        if (this%NComponents == 2) then         
+            ! RDF standard
+            write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )                       
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV + shf correction
+            write( IOBuffer, '("GAMMA11 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,1), this%dTDF(3,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+        else if (this%NComponents == 3) then
+            ! RDF standard
+            ! GAMMA11
+            write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA12
+            write( IOBuffer, '("GAMMA12 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,2), this%dTDF(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA12,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,2)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA21
+            write( IOBuffer, '("GAMMA21 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,3), this%dTDF(1,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA21,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,3)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA22
+            write( IOBuffer, '("GAMMA22 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,4), this%dTDF(1,4)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA22,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV correction
+            ! GAMMA11
+            write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA12
+            write( IOBuffer, '("GAMMA12 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,2), this%dTDF(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA12,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,2)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA21
+            write( IOBuffer, '("GAMMA21 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,3), this%dTDF(2,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA21,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,3)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA22
+            write( IOBuffer, '("GAMMA22 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,4), this%dTDF(2,4)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA22,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV + shf correction
+            ! GAMMA11
+            write( IOBuffer, '("GAMMA11 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,1), this%dTDF(3,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA12
+            write( IOBuffer, '("GAMMA12 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,2), this%dTDF(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA12,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,2)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA21
+            write( IOBuffer, '("GAMMA21 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,3), this%dTDF(3,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA21,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,3)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! GAMMA22
+            write( IOBuffer, '("GAMMA22 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,4), this%dTDF(3,4)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA22,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )           
+        end if
+    end if
+            
     ! Separator
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
@@ -12937,6 +13232,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       write( IOBuffer, '("HBond0 of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         Average = this%SumHBond1(i,j)%Average
@@ -12945,6 +13241,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWrite( this%iounit_errors )
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -12955,6 +13252,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -12967,10 +13265,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+     
+    do i = 1, this%NComponents
+      do  j = 1, this%NComponents
+        do k = j, this%NComponents
+          do l = k, this%NComponents
+            do m = l, this%NComponents
+              Average = this%SumHBond4(i,j,k,l,m)%Average
+              Variance = this%SumHBond4(i,j,k,l,m)%Variance
+              write( IOBuffer, '("HBond4 of [", I2, "] with (", I2, ",", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, l, m, Average, Variance
+              call FileWrite( this%iounit_errors )
+            end do
+          end do
+        end do
+      end do
+    end do
+
     do i = 1, this%NComponents
       Average = this%SumHBondN(i)%Average
       Variance = this%SumHBondN(i)%Variance
-      write( IOBuffer, '("HBond4+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
+      write( IOBuffer, '("HBond5+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
     call FileWriteBlank( this%iounit_errors )
@@ -14506,16 +14820,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     integer                   :: i, j, s, t
 
-    ! initialize RDFSum
-    do i=1, this%NComponents
-      do j=i, this%NComponents
-        do s=1, this%component(i)%molecule%NMIEnm
-          do t=1, this%component(j)%molecule%NMIEnm
-            this%Interaction(i,j)%PotMIEnmMIEnm(s, t)%RDFSum(:) = 0
+    if( .not. Restart ) then
+        ! initialize RDFSum
+        do i=1, this%NComponents
+          do j=i, this%NComponents
+            do s=1, this%component(i)%molecule%NMIEnm
+              do t=1, this%component(j)%molecule%NMIEnm
+                this%Interaction(i,j)%PotMIEnmMIEnm(s, t)%RDFSum(:) = 0
+              end do
+            end do
           end do
         end do
-      end do
-    end do
+    end if
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -14533,6 +14849,40 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
   subroutine TEnsemble_RDFUpdate( this )
 
     implicit none
+    
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j
+
+    ! Calculate RDFSum with RDFUpdateFrequency 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
+      end do
+    end do
+
+    ! Rewrite RDF file with ErrorsUpdateFrequency
+    if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .and. Step .gt. 1 ) then
+        call RDFUpdateBlock (this)
+    end if
+    
+  end subroutine TEnsemble_RDFUpdate
+  
+  
+!==============================================================!
+!  Subroutine TEnsemble_RDFUpdateBlock                         !
+!==============================================================!
+
+  subroutine TEnsemble_RDFUpdateBlock( this )
+
+    implicit none
+    
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -14540,23 +14890,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     integer  :: i, j, s, t, o
     real(RK) :: RDFRho, RDFRhoLocal
+#if MPI_VER > 0
+    real(RK) :: RDF_hilf(RDFNumberShells)
+    integer  :: RDFSum_hilf(RDFNumberShells)
+    integer  :: RDFSum_out(RDFNumberShells)
+#endif
 
-    ! Calculate RDF
+    ! write header of *.rdf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_rdf )
     do i= 1, this%NComponents
-      do j= i, this%NComponents
-        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
-      end do
-    end do
-
-    ! Rewrite RDF file
-    ! if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
-    ! RDF files are updated with RDFUpdateFrequence, see ms2_simulation
-
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-      write(IOBuffer, '(T5," r [A]")')
-      call FileWriteNoAdvance( this%iounit_rdf )
-      do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
             do t=1, this%Component(j)%molecule%NMIEnm
@@ -14565,12 +14910,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do            
         end do
-      end do
-      call FileWriteBlank( this%iounit_rdf )
-      write(IOBuffer, '(T5,"______")')
-      call FileWriteNoAdvance( this%iounit_rdf )
-
-      do i= 1, this%NComponents
+    end do
+    call FileWriteBlank( this%iounit_rdf )
+    write(IOBuffer, '(T5,"______")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+    do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
             do t=1, this%Component(j)%molecule%NMIEnm 
@@ -14579,39 +14923,98 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
-      end do
-      call FileWriteBlank( this%iounit_rdf )
-
-    do o = 1, RDFNumberShells
-      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
-      call FileWriteNoAdvance( this%iounit_rdf )
-      do i= 1, this%NComponents
-        do j= i, this%NComponents
-          do s=1, this%Component(i)%molecule%NMIEnm
-            do t=1, this%Component(j)%molecule%NMIEnm
-              RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-              if (i == j) then
-                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+    end do
+    call FileWriteBlank( this%iounit_rdf )  
+    
+    ! Calculate RDF
+#if MPI_VER > 0
+    if ( SimulationType .eq. MonteCarlo ) then 
+        do o = 1, RDFNumberShells
+            write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+            call FileWriteNoAdvance( this%iounit_rdf )
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    do s=1, this%Component(i)%molecule%NMIEnm
+                        do t=1, this%Component(j)%molecule%NMIEnm
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                            if (i == j) then
+                                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
-              else
-               RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
-&                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
-              end if
-              this%RDFValue(o) = RDFRhoLocal / RDFRho  
-              write(IOBuffer, '(F10.4)') this%RDFValue(o)
-              call FileWriteNoAdvance( this%iounit_rdf )
+                            else
+                                RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            end if
+                            this%RDFValue(o) = RDFRhoLocal / RDFRho
+                            ! Calculate average over all prozesses with MPI_Reduce
+                            call MPI_Reduce( this%RDFValue(o), RDF_hilf(o), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                            this%RDFValue(o) = RDF_hilf(o) / NProcs
+                            write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                            call FileWriteNoAdvance( this%iounit_rdf )
+                        end do
+                    end do
+                end do
             end do
-          end do
+            call FileWriteBlank( this%iounit_rdf )
+        enddo
+    else
+        do o = 1, RDFNumberShells
+            write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+            call FileWriteNoAdvance( this%iounit_rdf )
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    do s=1, this%Component(i)%molecule%NMIEnm
+                        do t=1, this%Component(j)%molecule%NMIEnm
+                            RDFSum_hilf(o) = this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o) 
+                            call MPI_Reduce( RDFSum_hilf(o), RDFSum_out(o), 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                            if (i == j) then
+                                RDFRhoLocal = 2.0 * real(RDFSum_out(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            else
+                                RDFRhoLocal = real(RDFSum_out(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            end if
+                            this%RDFValue(o) = RDFRhoLocal / RDFRho
+                            write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                            call FileWriteNoAdvance( this%iounit_rdf )
+                        end do
+                    end do
+                end do
+            end do
+            call FileWriteBlank( this%iounit_rdf )
+        enddo
+    end if
+#else
+    do o = 1, RDFNumberShells
+        write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+        call FileWriteNoAdvance( this%iounit_rdf )
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+                        RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                        if (i == j) then
+                            RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                        else
+                            RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                        end if
+                        this%RDFValue(o) = RDFRhoLocal / RDFRho
+                        write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                        call FileWriteNoAdvance( this%iounit_rdf )
+                    end do
+                end do
+            end do
         end do
-      end do
-     call FileWriteBlank( this%iounit_rdf )
+        call FileWriteBlank( this%iounit_rdf )
     enddo
-
-    ! Close RDF file
+#endif
     call FileClose( this%iounit_rdf )
+    
 
-  end subroutine TEnsemble_RDFUpdate
-
+  end subroutine TEnsemble_RDFUpdateBlock
+  
 
 !==============================================================!
 !  Subroutine TEnsemble_RDFClose                               !
@@ -14633,10 +15036,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
 !==============================================================!
-!  Subroutine TEnsemble_RestartSave                            !
+!  Subroutine TEnsemble_KBIOpen                                !
 !==============================================================!
 
-  subroutine TEnsemble_RestartSave( this )
+  subroutine TEnsemble_KBIOpen( this )
 
     implicit none
 
@@ -14644,162 +15047,757 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     type(TEnsemble) :: this
 
     ! Declare local variables
-    type(TComponent), pointer :: pc
-    integer                   :: i
-#if TRANS ==1
-    integer                   :: j, k, Mindex, StepCorr
+    integer                   :: i, j, p !Component indexes (p: combinations)
+    
+    if( .not. Restart ) then
+        ! initialize KBISum
+        do i=1, this%NComponents
+          do j=i, this%NComponents
+                this%Interaction(i,j)%KBISum(:) = 0   
+          end do
+        end do
+        
+        ! Reset KBI Accumulator for Gij
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call Reset( this%SumKBIGij1(i) )
+            call Reset( this%SumKBIGij2(i) )
+            call Reset( this%SumKBIGij3(i) )
+        end do
+        
+        this%KBIBlockCount = 0 !Counter for KBI Blocks to calculate RDF over all blocks for extrapolation of Gij
+        do p = 1, this%NComponents*(this%NComponents+1)/2
+            this%KBIRDFextra(:,p) = 0
+            this%KBIRDFvdVextra(:,p) = 0
+            this%KBIRDFvdVshfextra(:,p) = 0
+        end do
+        
+        ! Open running KBI RDF file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+        call FileWriteBlank( this%iounit_kbirdf )
+        call FileClose( this%iounit_kbirdf )
+        
+        ! Open running KBI file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )   
+        write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf; 0: extrapolated Gij")')
+        call FileWriteNoAdvance( this%iounit_kbirun )
+        call FileWriteBlank( this%iounit_kbirun )
+        write(IOBuffer, '(T5,"Step")')
+        call FileWriteNoAdvance( this%iounit_kbirun )
+        do p = 1, 3 !Method
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    write(IOBuffer, '(T6,"G",I1,I1,",",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )   
+                    write(IOBuffer, '(T5,"dG",I1,I1,",",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )
+                    write(IOBuffer, '(T6,"G",I1,I1,",0,",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )
+                end do
+            end do
+        end do
+        call FileWriteBlank( this%iounit_kbirun )
+        call FileClose( this%iounit_kbirun )        
+            
+    end if
+    
+  end subroutine TEnsemble_KBIOpen
+
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIUpdate                              !
+!==============================================================!
+
+  subroutine TEnsemble_KBIUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, TempStep
+
+    ! Calculate temporary step in the range of KBIResetFrequency
+    TempStep = mod( Step, BlockSizeKBI ) 
+    if (TempStep == 0) TempStep = BlockSizeKBI
+    
+    if ( SimulationType .eq. MolecularDynamics ) then 
+        ! Calculate partners in shells for RDF
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                call CalcRDFforKBI_MD( this%Interaction(i,j), this%BoxLength/this%KBIdr )
+            end do
+        end do
+    else
+        ! Calculate partners in shells for RDF
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                call CalcRDFforKBI( this%Interaction(i,j), this%BoxLength/this%KBIdr )
+            end do
+        end do
+    end if
+    
+    !End of Block is reached => Gij accumulator
+    if (TempStep+KBIUpdateFrequency > BlockSizeKBI) then 
+        this%KBIBlockCount = this%KBIBlockCount + 1
+        call KBIUpdateBlock( this, TempStep )
+    end if
+    
+  end subroutine TEnsemble_KBIUpdate
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIUpdateBlock                         !
+!==============================================================!  
+
+  subroutine TEnsemble_KBIUpdateBlock( this, TempStep )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
 #endif
 
-    if( SimulationType .eq. MonteCarlo ) then
-      if( NProc /= NRootProc ) return
-    endif 
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: TempStep
 
-    ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) this%NPart
-    write( iounit_restart, '(ES20.12E3)' ) this%Volume0
-
-    if( SimulationType .eq. MolecularDynamics ) then
-      write( iounit_restart, '(ES20.12E3)' ) this%Volume1
-      write( iounit_restart, '(ES20.12E3)' ) this%Volume2
-
-      if( IntegratorType .eq. IntegratorTypeGear ) then
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume3
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume4
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume5
-      end if
-
-    else
-      write( iounit_restart, '(ES20.12E3)' ) this%DispVol
-      write(iounit_restart, '(2I10)' ) this%NResizeAttempts, this%NResizeSuccesses
-
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
-        write(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
-        write(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
-      end if
+    ! Declare local variables
+    integer  :: i, j, o, p, s  
+    real(RK) :: KBIRho, KBIRhoLocal,c2x1, Average, Variance
+    real(RK) :: fint1, fint2, fint3, fint4, fint5, fint6, dr
+    real(RK) :: KBIr(0:KBINumberShells), KBIx(0:KBINumberShells), KBIw(0:KBINumberShells) 
+    real(RK) :: KBIRDF(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: dN(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2)),Vol,Nj
+    real(RK) :: RDFvdV(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2)),meanRDF(this%NComponents*(this%NComponents+1)/2)
+    real(RK) :: RDFvdVshf(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij1(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2)), KBIrGij2(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij3(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2)), KBIrGij4(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij5(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2)), KBIrGij6(0:KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: G04(KBINumberShells,(this%NComponents*(this%NComponents+1)/2)),G05(KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: G06(KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: c1, c2, c3, d12, d13, d23, eta, d120, d130, d230, eta0, dd12, dd13, dd23, deta, helpvar 
+    real(RK) :: G11(3), G12(3), G13(3), G22(3), G23(3), G33(3), G11E(3), G12E(3), G13E(3), G22E(3), G23E(3), G33E(3) 
+    real(RK) :: G110(3), G120(3), G130(3), G220(3), G230(3), G330(3)
+#if MPI_VER > 0
+    real(RK) :: KBI_hilf(KBINumberShells,(this%NComponents*(this%NComponents+1)/2))
+    integer(KIND=8)  :: KBISum_hilf(KBINumberShells)
+#endif
+    
+#if MPI_VER > 0
+    if ( SimulationType .eq. MolecularDynamics ) then 
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do o = 1, KBINumberShells
+                    call MPI_Reduce( this%Interaction(i,j)%KBISum(o), KBISum_hilf(o), 1, MPI_INTEGER8, MPI_SUM, NRootProc, Communicator, ierror )
+                    this%Interaction(i,j)%KBISum(o) = KBISum_hilf(o)
+                end do
+            end do
+        end do
     end if
+#endif
+    
+    ! Calculate RDF for center of mass only
+    dr=this%KBIdr*UnitLength/Angstroem
+    do o = 1, KBINumberShells
+        p=0 !Number of combinations, e.g. 11 12 22
+        KBIr(o)=o*dr
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                KBIRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                if (i == j) then
+                    KBIRhoLocal = 2.0 * real(this%Interaction(i,j)%KBISum(o),RK) & 
+&                                       / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
+                else
+                    KBIRhoLocal = real(this%Interaction(i,j)%KBISum(o),RK) & 
+&                                 / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
+                end if
+                p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
+                KBIRDF(o,p) = KBIRhoLocal / KBIRho  
+            end do
+        end do
+    end do
+    
+#if MPI_VER > 0
+    if ( SimulationType .eq. MonteCarlo ) then 
+        do o = 1, KBINumberShells
+            do p = 1, this%NComponents*(this%NComponents+1)/2
+                call MPI_Reduce( KBIRDF(o,p), KBI_hilf(o,p), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                KBIRDF(o,p) = KBI_hilf(o,p) / NProcs
+            end do
+        end do
+    end if
+#endif      
 
-    write( iounit_restart, '(I10)' ) this%NRCutoffMax
-
-    ! Save components
-    do i = 1, this%NComponents
-      call RestartSave( this%Component(i) )
+    ! Calculate RDF correction via van der Vegt + shift
+    ! Van der Vegt correction
+    Vol=(2*KBIr(KBINumberShells))**3 !V=L^3
+    dN(0,:)=0
+    KBIRDF(0,:)=0
+    RDFvdV(0,:)=0
+    do o = 1, KBINumberShells
+        p=1 !Number of combinations, e.g. 11 12 22
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
+                dN(o,p)=dN(o-1,p)+(4*Pi*dr*(Nj/Vol)*(KBIr(o)**2*(KBIRDF(o,p)-1)+KBIr(o-1)**2*(KBIRDF(o-1,p)-1)))/2
+                if (i == j) then !e.g. combination 11 or 22 or 33 ...
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)-dN(o,p)-1))
+                else
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)/(Nj*(1-(4/3)*Pi*KBIr(o)**3/Vol)-dN(o,p)))
+                end if
+                p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
+            end do
+        end do
+    end do
+    ! Shift RDFcor so that the mean value from rc/2 to rc is unity
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        meanRDF(p)=0
+        do o=KBINumberShells/2+1, KBINumberShells
+            meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
+        end do
+        meanRDF(p)=meanRDF(p)/(KBINumberShells/2)
+        RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
+    end do
+    
+    ! Calculate mean RDF over the blocks for extrapolation of Gij
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        this%KBIRDFextra(:,p) = (this%KBIRDFextra(:,p)*(this%KBIBlockCount-1)+KBIRDF(:,p))/this%KBIBlockCount
+        this%KBIRDFvdVextra(:,p) = (this%KBIRDFvdVextra(:,p)*(this%KBIBlockCount-1)+RDFvdV(:,p))/this%KBIBlockCount
+        this%KBIRDFvdVshfextra(:,p) = (this%KBIRDFvdVshfextra(:,p)*(this%KBIBlockCount-1)+RDFvdVshf(:,p))/this%KBIBlockCount
     end do
 
-    ! Save accumulators
-    ! 1.) Basic sums
-    call RestartSave( this%SumPressure )
-    call RestartSave( this%SumDensity )
-    call RestartSave( this%SumTemperature )
-    call RestartSave( this%SumEPot )
-    call RestartSave( this%SumEnthalpy )
-    call RestartSave( this%SumConfEnthalpy )
-    call RestartSave( this%SumVolume )
-    call RestartSave( this%SumVirial )
-    call RestartSave( this%SumdEpotdV )
-    call RestartSave( this%Sumd2EpotdV2 )
-
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
-      call RestartSave( this%SumNPart )
-      do i = 1, this%NComponents
-        pc => this%Component(i)
-        call RestartSave( pc%SumFraction )
-      end do
-    end if
-
-    ! 2.) Combined sums
-    call RestartSave( this%SumEPotSquared )
-    call RestartSave( this%SumEPotV )
-    call RestartSave( this%SumEPotVirial )
-    call RestartSave( this%SumEnthalpySquared )
-    call RestartSave( this%SumEnthalpyV )
-    call RestartSave( this%SumVolumeSquared )
-    call RestartSave( this%SumEPotCubic )
-    call RestartSave( this%SumdEpotdVSquared )
-    call RestartSave( this%SumEPotdEpotdV )
-    call RestartSave( this%SumEPotSquareddEpotdV )
-    call RestartSave( this%SumEPotdEpotdVSquared )
-    call RestartSave( this%SumEPotd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartSave( this%SumHmU )
-      call RestartSave( this%SumHmUm1)
-      call RestartSave( this%SumHmUm2 )
-      call RestartSave( this%SumHmUm3 )
-      call RestartSave( this%SumHmUm1dUdV )
-      call RestartSave( this%SumHmUm1dUdV2 )
-      call RestartSave( this%SumHmUm1d2UdV2 )
-      call RestartSave( this%SumHmUm2dUdV )
-      call RestartSave( this%SumHmUm2dUdV2 )
-      call RestartSave( this%SumHmUm2d2UdV2 )
-      call RestartSave( this%SumHmUm3dUdV )
-      call RestartSave( this%SumHmUm3dUdV2 )
-    end if
-    ! 3.) Derived sums
-    if( ConstantPressure ) then
-      call RestartSave( this%SumBetaT )
-      call RestartSave( this%SumdHdP )
-      call RestartSave( this%SumCP )
-      call RestartSave( this%SumAlphaP )
+    
+    !Write running RDF (center of mass) in *.kbirdf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileAppend( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+    if ( SimulationType .eq. MonteCarlo ) then
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') NProcs*(Step-TempStep), NProcs*Step
     else
-      call RestartSave( this%SumdUdV )
-      call RestartSave( this%SumCV )
-    endif
-    if( LongRange .eq. Rfield) then
-      if ( EnsembleType .eq. EnsembleTypeNVT ) then
-        call RestartSave( this%SumA10resI )
-        call RestartSave( this%SumA01resI )
-        call RestartSave( this%SumA20resI )
-        call RestartSave( this%SumA11resI )
-        call RestartSave( this%SumA02resI )
-        call RestartSave( this%SumA30resI )
-        call RestartSave( this%SumA21resI )
-        call RestartSave( this%SumA12resI )
-      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
-        call RestartSave( this%SumA10resI )
-        call RestartSave( this%SumA01resI )
-        call RestartSave( this%SumA20resI )
-        call RestartSave( this%SumA11resI )
-        call RestartSave( this%SumA02resI )
-        call RestartSave( this%SumA30resI )
-        call RestartSave( this%SumA21resI )
-        call RestartSave( this%SumA12resI )
-        call RestartSave( this%SumA10resII )
-        call RestartSave( this%SumA01resII )
-        call RestartSave( this%SumA20resII )
-        call RestartSave( this%SumA11resII )
-        call RestartSave( this%SumA02resII )
-        call RestartSave( this%SumA30resII )
-        call RestartSave( this%SumA21resII )
-        call RestartSave( this%SumA12resII )
-      end if
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') (Step-TempStep), Step
     end if
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    call FileWriteBlank( this%iounit_kbirdf )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            write(IOBuffer, '(I5,I5)') i, j
+            call FileWriteNoAdvance( this%iounit_kbirdf )            
+        end do
+    end do
+    call FileWriteBlank( this%iounit_kbirdf )
+    do o = 1, KBINumberShells
+        p=0 !Number of combinations, e.g. 11 12 22
+        write(IOBuffer, '(F10.4)') KBIr(o)
+        call FileWriteNoAdvance( this%iounit_kbirdf )
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                p=p+1 
+                write(IOBuffer, '(F10.4)') KBIRDF(o,p)  
+                call FileWriteNoAdvance( this%iounit_kbirdf )
+            end do
+        end do
+        call FileWriteBlank( this%iounit_kbirdf )
+    end do
+    write( IOBuffer, '(76("-"))' )
+    call FileWrite( this%iounit_kbirdf )
+            
+    ! Start of numerical Kirkwood-Buff Integration
+    do o = 1, KBINumberShells
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+            KBIRDF(o,p)=KBIRDF(o,p)-1 !h(r)=g(r)-1 -> standard RDF
+            RDFvdV(o,p)=RDFvdV(o,p)-1 !h(r) of corrected RDF
+            RDFvdVshf(o,p)=RDFvdVshf(o,p)-1
+        end do
+    end do
+    KBIr(0)=0 !start values = 0
+    KBIx(0)=0
+    KBIw(0)=0
+    KBIRDF(0,:)=0
+    KBIrGij1(0,:)=0
+    KBIrGij2(0,:)=0
+    KBIrGij3(0,:)=0
+    KBIrGij4(0,:)=0
+    KBIrGij5(0,:)=0
+    KBIrGij6(0,:)=0   
 
-    ! 4.) Chemical potential and partial molar volumes
-    do i = 1, this%NRealComponents
-      pc => this%Component(i)
-      select case( pc%ChemPotMethod )
-      case( ChemPotMethodGradIns )
-        call RestartSave( pc%SumInvChemPotRho )
-        call RestartSave( pc%SumInvChemPot )
-      case( ChemPotMethodWidom )
-        call RestartSave( pc%SumChemPotV )
-        call RestartSave( pc%SumChemPotVV )
-        call RestartSave( pc%SumHW_counter )
-        call RestartSave( pc%SumHW_denom )
-      case( ChemPotMethodThermoInt )
-        call RestartSave( pc%SumChemPotV )
-        call RestartSave( pc%SumChemPotVV )
-        call RestartSave( pc%SumChemPotThermoIntWidom )
-        call RestartSave( pc%SumChemPotThermoIntWidomV )
-        call RestartSave( pc%SumHW_counter )
-        call RestartSave( pc%SumHW_denom )
-      end select
+    do o = 1, KBINumberShells
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22        
+            !Calculation of the KBI with the common formula ( (2) in the PDF file ->Tomislav)
+            KBIrGij1(o,p)=0
+            KBIrGij2(o,p)=0
+            KBIrGij3(o,p)=0
+            KBIrGij4(o,p)=0
+            KBIrGij5(o,p)=0 
+            KBIrGij6(o,p)=0
+            
+            !Double loop for other two formulae
+            do j=1, o
+                !Function x defined in PDF
+                KBIx(j)=KBIr(j)/KBIr(o)
+                
+                !Functions w(r) => Jean-Marc Simon linear rGij
+                KBIw(j)=4*Pi*KBIr(j)**2*(1-3*KBIx(j)/2+KBIx(j)**3/2)
+                                                
+                !Functions under integrals for trapeze formula
+                fint1=(KBIRDF(j,p)*KBIw(j)+KBIRDF(j-1,p)*KBIw(j-1))/2
+                fint2=(RDFvdV(j,p)*KBIw(j)+RDFvdV(j-1,p)*KBIw(j-1))/2
+                fint3=(RDFvdVshf(j,p)*KBIw(j)+RDFvdVshf(j-1,p)*KBIw(j-1))/2
+                fint4=((this%KBIRDFextra(j,p)-1)*KBIw(j)+(this%KBIRDFextra(j-1,p)-1)*KBIw(j-1))/2
+                fint5=((this%KBIRDFvdVextra(j,p)-1)*KBIw(j)+(this%KBIRDFvdVextra(j-1,p)-1)*KBIw(j-1))/2
+                fint6=((this%KBIRDFvdVshfextra(j,p)-1)*KBIw(j)+(this%KBIRDFvdVshfextra(j-1,p)-1)*KBIw(j-1))/2
 
-      if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
-        call RestartSave( pc%SumVW )
-       call RestartSave( pc%SumHM )
-      end if
+                !Numerical integration via trapeze              
+                KBIrGij1(o,p)=KBIrGij1(o,p)+dr*fint1*0.6022 !Note:0.6022=NAvogadro*10^-24cm^3 to convert Gij in the unit [cm3/mol]
+                KBIrGij2(o,p)=KBIrGij2(o,p)+dr*fint2*0.6022
+                KBIrGij3(o,p)=KBIrGij3(o,p)+dr*fint3*0.6022         
+                KBIrGij4(o,p)=KBIrGij4(o,p)+dr*fint4*0.6022
+                KBIrGij5(o,p)=KBIrGij5(o,p)+dr*fint5*0.6022
+                KBIrGij6(o,p)=KBIrGij6(o,p)+dr*fint6*0.6022
+            end do
+        end do
+    end do
+          
+    !Linear extrapolation of Gij to 1/r=0
+    s=10
+    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do o=s+1, KBINumberShells
+            G04(o,p)=KBIrGij4(o-s,p)
+            G04(o,p)=G04(o,p)+(KBIrGij4(o,p)-KBIrGij4(o-s,p))*(-1/KBIr(o-s))/(1/KBIr(o)-1/KBIr(o-s))
+            G05(o,p)=KBIrGij5(o-s,p)
+            G05(o,p)=G05(o,p)+(KBIrGij5(o,p)-KBIrGij5(o-s,p))*(-1/KBIr(o-s))/(1/KBIr(o)-1/KBIr(o-s))
+            G06(o,p)=KBIrGij6(o-s,p)
+            G06(o,p)=G06(o,p)+(KBIrGij6(o,p)-KBIrGij6(o-s,p))*(-1/KBIr(o-s))/(1/KBIr(o)-1/KBIr(o-s))            
+        end do
+    end do          
+    
+    ! Update accumulator for Gij and error calculation  
+    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        call Update( this%SumKBIGij1(p), KBIrGij1(KBINumberShells,p), 0, .true. )
+        call Update( this%SumKBIGij2(p), KBIrGij2(KBINumberShells,p), 0, .true. )
+        call Update( this%SumKBIGij3(p), KBIrGij3(KBINumberShells,p), 0, .true. )
+        call Error( this%SumKBIGij1(p), .false., .true. )
+        call Error( this%SumKBIGij2(p), .false., .true. )
+        call Error( this%SumKBIGij3(p), .false., .true. )
     end do
 
+    !Write running Gij from Accumulator in *.kbirun file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileAppend( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )
+    if ( SimulationType .eq. MonteCarlo ) then
+        write(IOBuffer, '(I8)') Step*NProcs
+    else
+        write(IOBuffer, '(I8)') Step
+    end if
+    call FileWriteNoAdvance( this%iounit_kbirun )
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij1(p)%Average
+        Variance = this%SumKBIGij1(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, G04(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij2(p)%Average
+        Variance = this%SumKBIGij2(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, G05(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij3(p)%Average
+        Variance = this%SumKBIGij3(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, G06(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    call FileWriteBlank( this%iounit_kbirun )
+
+    
+    
+    if (this%NComponents == 2) then
+       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components     
+       ! RDF standard
+       this%TDF(1,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))
+       this%dTDF(1,1) = (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij1(1)%Variance**2+(2*this%SumKBIGij1(2)%Variance)**2+this%SumKBIGij1(3)%Variance**2)
+       this%TDF0(1,1) = 1.0 / (1.0+c2x1*(G04(KBINumberShells,1)-2.0*G04(KBINumberShells,2)+G04(KBINumberShells,3)))
+       ! RDF vdV correction
+       this%TDF(2,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))
+       this%dTDF(2,1) = (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij2(1)%Variance**2+(2*this%SumKBIGij2(2)%Variance)**2+this%SumKBIGij2(3)%Variance**2)
+       this%TDF0(2,1) = 1.0 / (1.0+c2x1*(G05(KBINumberShells,1)-2.0*G05(KBINumberShells,2)+G05(KBINumberShells,3)))
+       ! RDF vdV shf correction
+       this%TDF(3,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))
+       this%dTDF(3,1) = (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij3(1)%Variance**2+(2*this%SumKBIGij3(2)%Variance)**2+this%SumKBIGij3(3)%Variance**2)
+       this%TDF0(3,1) = 1.0 / (1.0+c2x1*(G06(KBINumberShells,1)-2.0*G06(KBINumberShells,2)+G06(KBINumberShells,3)))
+    else if (this%NComponents == 3) then 
+       c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c3 = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       ! RDF standard
+       G11(1)=this%SumKBIGij1(1)%Average
+       G12(1)=this%SumKBIGij1(2)%Average
+       G13(1)=this%SumKBIGij1(3)%Average
+       G22(1)=this%SumKBIGij1(4)%Average
+       G23(1)=this%SumKBIGij1(5)%Average
+       G33(1)=this%SumKBIGij1(6)%Average
+       G11E(1)=this%SumKBIGij1(1)%Variance
+       G12E(1)=this%SumKBIGij1(2)%Variance
+       G13E(1)=this%SumKBIGij1(3)%Variance
+       G22E(1)=this%SumKBIGij1(4)%Variance
+       G23E(1)=this%SumKBIGij1(5)%Variance
+       G33E(1)=this%SumKBIGij1(6)%Variance
+       G110(1)=G04(KBINumberShells,1)
+       G120(1)=G04(KBINumberShells,2)
+       G130(1)=G04(KBINumberShells,3)
+       G220(1)=G04(KBINumberShells,4)
+       G230(1)=G04(KBINumberShells,5)
+       G330(1)=G04(KBINumberShells,6)
+       ! RDF vdV correction
+       G11(2)=this%SumKBIGij2(1)%Average
+       G12(2)=this%SumKBIGij2(2)%Average
+       G13(2)=this%SumKBIGij2(3)%Average
+       G22(2)=this%SumKBIGij2(4)%Average
+       G23(2)=this%SumKBIGij2(5)%Average
+       G33(2)=this%SumKBIGij2(6)%Average
+       G11E(2)=this%SumKBIGij2(1)%Variance
+       G12E(2)=this%SumKBIGij2(2)%Variance
+       G13E(2)=this%SumKBIGij2(3)%Variance
+       G22E(2)=this%SumKBIGij2(4)%Variance
+       G23E(2)=this%SumKBIGij2(5)%Variance
+       G33E(2)=this%SumKBIGij2(6)%Variance
+       G110(2)=G05(KBINumberShells,1)
+       G120(2)=G05(KBINumberShells,2)
+       G130(2)=G05(KBINumberShells,3)
+       G220(2)=G05(KBINumberShells,4)
+       G230(2)=G05(KBINumberShells,5)
+       G330(2)=G05(KBINumberShells,6)
+       ! RDF vdV + shift correction
+       G11(3)=this%SumKBIGij3(1)%Average
+       G12(3)=this%SumKBIGij3(2)%Average
+       G13(3)=this%SumKBIGij3(3)%Average
+       G22(3)=this%SumKBIGij3(4)%Average
+       G23(3)=this%SumKBIGij3(5)%Average
+       G33(3)=this%SumKBIGij3(6)%Average
+       G11E(3)=this%SumKBIGij3(1)%Variance
+       G12E(3)=this%SumKBIGij3(2)%Variance
+       G13E(3)=this%SumKBIGij3(3)%Variance
+       G22E(3)=this%SumKBIGij3(4)%Variance
+       G23E(3)=this%SumKBIGij3(5)%Variance
+       G33E(3)=this%SumKBIGij3(6)%Variance
+       G110(3)=G06(KBINumberShells,1)
+       G120(3)=G06(KBINumberShells,2)
+       G130(3)=G06(KBINumberShells,3)
+       G220(3)=G06(KBINumberShells,4)
+       G230(3)=G06(KBINumberShells,5)
+       G330(3)=G06(KBINumberShells,6)
+       
+       do i=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf
+            d12  = G11(i)-2*G12(i)+G22(i)
+            d13  = G11(i)-2*G13(i)+G33(i)
+            d23  = G22(i)-2*G23(i)+G33(i)
+            eta  = c1+c2+c3+c1*c2*d12+c2*c3*d23+c1*c3*d13-0.25_RK*c1*c2*c3*(d12**2+d23**2+d13**2-2*d13*d23-2*d12*d13-2*d12*d23)
+            d120  = G110(i)-2*G120(i)+G220(i)
+            d130  = G110(i)-2*G130(i)+G330(i)
+            d230  = G220(i)-2*G230(i)+G330(i)
+            eta0  = c1+c2+c3+c1*c2*d120+c2*c3*d230+c1*c3*d130-0.25_RK*c1*c2*c3*(d120**2+d230**2+d130**2-2*d130*d230-2*d120*d130-2*d120*d230)
+            dd12 = sqrt(G11E(i)**2+G22E(i)**2+(2*G12E(i))**2)
+            dd13 = sqrt(G11E(i)**2+G33E(i)**2+(2*G13E(i))**2)
+            dd23 = sqrt(G22E(i)**2+G33E(i)**2+(2*G23E(i))**2)
+            deta = (c1*c2-0.25_RK*c1*c2*c3*(2*d12-2*d13-2*d23))*dd12 + (c2*c3-0.25_RK*c1*c2*c3*(2*d23-2*d13-2*d12))*dd23 &
+&                     + (c1*c3-0.25_RK*c1*c2*c3*(2*d13-2*d23-2*d12))*dd13
+            
+            ! GAMMA11
+            helpvar        = c2 * ( -c3*G22(i)-1+2*c3*G23(i)-c3*G33(i)-(c3/c2) + c1 * (G12(i)-G22(i)-(1/c2)+G23(i)-G13(i)) )
+            this%TDF(i,1)  = -(1/eta) * helpvar
+            this%dTDF(i,1) = abs(this%TDF(i,1)) * sqrt( (((c2*c3)**2) * (G22E(i)**2+(2*G23E(i))**2+G33E(i)**2) &
+&                               + ((c1*c2)**2) * (G12E(i)**2+G22E(i)**2+G23E(i)**2+G13E(i)**2))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,1) = -(1/eta0) * c2 * ( -c3*G220(i)-1+2*c3*G230(i)-c3*G330(i)-(c3/c2) + c1 * (G120(i)-G220(i)-(1/c2)+G230(i)-G130(i)) )
+            ! GAMMA12
+            helpvar        = c1 * ( c2*G12(i)+c3*G12(i)-c2*G13(i)-c3*G13(i) - c2*G22(i)+c2*G23(i)-c3*G23(i)+c3*G33(i) )
+            this%TDF(i,2)  = -(1/eta) * helpvar
+            this%dTDF(i,2) = abs(this%TDF(i,2)) * sqrt( ((c1**2) * ( (c2*G12E(i))**2+(c3*G12E(i))**2+(c2*G13E(i))**2 &
+&                                            +(c3*G13E(i))**2+(c2*G22E(i))**2+(c2*G23E(i))**2 + (c3*G23E(i))**2+(c3*G33E(i))**2 ))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,2) = -(1/eta0) * c1 * ( c2*G120(i)+c3*G120(i)-c2*G130(i)-c3*G130(i) - c2*G220(i)+c2*G230(i)-c3*G230(i)+c3*G330(i) )
+            ! GAMMA21
+            helpvar        = c2 * ( c1*G11(i)-c1*G12(i)-c3*G12(i)-c1*G13(i) + c3*G13(i)+c1*G23(i)+c3*G23(i)-c3*G33(i) )
+            this%TDF(i,3)  = -(1/eta) * helpvar
+            this%dTDF(i,3) = abs(this%TDF(i,3)) * sqrt( ((c2**2) * ( (c1*G11E(i))**2+(c1*G12E(i))**2+(c3*G12E(i))**2 &
+&                                            +(c1*G13E(i))**2+(c3*G13E(i))**2+(c1*G23E(i))**2 + (c3*G23E(i))**2+(c3*G33E(i))**2 ))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,3) = -(1/eta0) * c2 * ( c1*G110(i)-c1*G120(i)-c3*G120(i)-c1*G130(i) + c3*G130(i)+c1*G230(i)+c3*G230(i)-c3*G330(i) )
+            ! GAMMA22
+            helpvar        = c1 * ( c3*G11(i)+1-2*c3*G13(i)+c3*G33(i)+(c3/c1) + c2 * (G11(i)-G12(i)-G13(i)+(1/c1)+G23(i)) )
+            this%TDF(i,4)  = -(1/eta) * helpvar
+            this%dTDF(i,4) = abs(this%TDF(i,4)) * sqrt( (((c1*c3)**2) * (G11E(i)**2+(2*G13E(i))**2+G33E(i)**2) &
+&                               + ((c1*c2)**2) * (G11E(i)**2+G12E(i)**2+G13E(i)**2+G23E(i)**2))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,4) = -(1/eta0) * c1 * ( c3*G110(i)+1-2*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)+(1/c1)+G230(i)) )
+       end do
+    end if
+    
+
+    ! initialize KBISum for new Block of KBIResetFrequency
+    do i=1, this%NComponents
+        do j=i, this%NComponents
+            this%Interaction(i,j)%KBISum(:) = 0   
+        end do
+    end do
+    
+  end subroutine TEnsemble_KBIUpdateBlock
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIClose                               !
+!==============================================================!
+
+  subroutine TEnsemble_KBIClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close KBI file
+    call FileClose( this%iounit_kbirdf )
+    call FileClose( this%iounit_kbirun )
+
+  end subroutine TEnsemble_KBIClose
+!==============================================================!
+!  Subroutine TEnsemble_RestartSave                            !
+!==============================================================!
+
+  subroutine TEnsemble_RestartSave( this )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    type(TComponent), pointer :: pc
+    integer                   :: i,j,s,t,o
+#if TRANS ==1
+    integer                   :: k, Mindex, StepCorr
+#endif
+#if MPI_VER > 0 
+    integer(KIND=8)           :: KBISum_hilf(KBINumberShells*NProcs)
+    integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+#endif
+    
+
+    if( RootProc ) then
+        ! Save contents to restart file
+        write( iounit_restart, '(I10)' ) this%NPart
+        write( iounit_restart, '(ES20.12E3)' ) this%Volume0
+
+        if( SimulationType .eq. MolecularDynamics ) then
+          write( iounit_restart, '(ES20.12E3)' ) this%Volume1
+          write( iounit_restart, '(ES20.12E3)' ) this%Volume2
+
+          if( IntegratorType .eq. IntegratorTypeGear ) then
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume3
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume4
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume5
+          end if
+
+        else
+          write( iounit_restart, '(ES20.12E3)' ) this%DispVol
+          write(iounit_restart, '(2I10)' ) this%NResizeAttempts, this%NResizeSuccesses
+
+          if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
+            write(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
+            write(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
+          end if
+        end if
+
+        write( iounit_restart, '(I10)' ) this%NRCutoffMax
+
+        ! Save components
+        do i = 1, this%NComponents
+          call RestartSave( this%Component(i) )
+        end do
+
+        ! Save accumulators
+        ! 1.) Basic sums
+        call RestartSave( this%SumPressure )
+        call RestartSave( this%SumDensity )
+        call RestartSave( this%SumTemperature )
+        call RestartSave( this%SumEPot )
+        call RestartSave( this%SumEnthalpy )
+        call RestartSave( this%SumConfEnthalpy )
+        call RestartSave( this%SumVolume )
+        call RestartSave( this%SumVirial )
+        call RestartSave( this%SumdEpotdV )
+        call RestartSave( this%Sumd2EpotdV2 )
+
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
+          call RestartSave( this%SumNPart )
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            call RestartSave( pc%SumFraction )
+          end do
+        end if
+
+        ! 2.) Combined sums
+        call RestartSave( this%SumEPotSquared )
+        call RestartSave( this%SumEPotV )
+        call RestartSave( this%SumEPotVirial )
+        call RestartSave( this%SumEnthalpySquared )
+        call RestartSave( this%SumEnthalpyV )
+        call RestartSave( this%SumVolumeSquared )
+        call RestartSave( this%SumEPotCubic )
+        call RestartSave( this%SumdEpotdVSquared )
+        call RestartSave( this%SumEPotdEpotdV )
+        call RestartSave( this%SumEPotSquareddEpotdV )
+        call RestartSave( this%SumEPotdEpotdVSquared )
+        call RestartSave( this%SumEPotd2EpotdV2 )
+        if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+          call RestartSave( this%SumHmU )
+          call RestartSave( this%SumHmUm1)
+          call RestartSave( this%SumHmUm2 )
+          call RestartSave( this%SumHmUm3 )
+          call RestartSave( this%SumHmUm1dUdV )
+          call RestartSave( this%SumHmUm1dUdV2 )
+          call RestartSave( this%SumHmUm1d2UdV2 )
+          call RestartSave( this%SumHmUm2dUdV )
+          call RestartSave( this%SumHmUm2dUdV2 )
+          call RestartSave( this%SumHmUm2d2UdV2 )
+          call RestartSave( this%SumHmUm3dUdV )
+          call RestartSave( this%SumHmUm3dUdV2 )
+        end if
+        ! 3.) Derived sums
+        if( ConstantPressure ) then
+          call RestartSave( this%SumBetaT )
+          call RestartSave( this%SumdHdP )
+          call RestartSave( this%SumCP )
+          call RestartSave( this%SumAlphaP )
+        else
+          call RestartSave( this%SumdUdV )
+          call RestartSave( this%SumCV )
+        endif
+        if( LongRange .eq. Rfield) then
+          if ( EnsembleType .eq. EnsembleTypeNVT ) then
+            call RestartSave( this%SumA10resI )
+            call RestartSave( this%SumA01resI )
+            call RestartSave( this%SumA20resI )
+            call RestartSave( this%SumA11resI )
+            call RestartSave( this%SumA02resI )
+            call RestartSave( this%SumA30resI )
+            call RestartSave( this%SumA21resI )
+            call RestartSave( this%SumA12resI )
+          elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+            call RestartSave( this%SumA10resI )
+            call RestartSave( this%SumA01resI )
+            call RestartSave( this%SumA20resI )
+            call RestartSave( this%SumA11resI )
+            call RestartSave( this%SumA02resI )
+            call RestartSave( this%SumA30resI )
+            call RestartSave( this%SumA21resI )
+            call RestartSave( this%SumA12resI )
+            call RestartSave( this%SumA10resII )
+            call RestartSave( this%SumA01resII )
+            call RestartSave( this%SumA20resII )
+            call RestartSave( this%SumA11resII )
+            call RestartSave( this%SumA02resII )
+            call RestartSave( this%SumA30resII )
+            call RestartSave( this%SumA21resII )
+            call RestartSave( this%SumA12resII )
+          end if
+        end if
+
+        ! 4.) Chemical potential and partial molar volumes
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          select case( pc%ChemPotMethod )
+          case( ChemPotMethodGradIns )
+            call RestartSave( pc%SumInvChemPotRho )
+            call RestartSave( pc%SumInvChemPot )
+          case( ChemPotMethodWidom )
+            call RestartSave( pc%SumChemPotV )
+            call RestartSave( pc%SumChemPotVV )
+            call RestartSave( pc%SumHW_counter )
+            call RestartSave( pc%SumHW_denom )
+          case( ChemPotMethodThermoInt )
+            call RestartSave( pc%SumChemPotV )
+            call RestartSave( pc%SumChemPotVV )
+            call RestartSave( pc%SumChemPotThermoIntWidom )
+            call RestartSave( pc%SumChemPotThermoIntWidomV )
+            call RestartSave( pc%SumHW_counter )
+            call RestartSave( pc%SumHW_denom )
+          end select
+
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
+            call RestartSave( pc%SumVW )
+           call RestartSave( pc%SumHM )
+          end if
+        end do
+    end if
+    
+    if (RDFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+#if MPI_VER > 0     
+                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
+&                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
+                        if( RootProc ) then
+                            do o = 1, RDFNumberShells*NProcs
+                                write(iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                            end do
+                        end if
+#else 
+                        do o = 1, RDFNumberShells
+                            write(iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                        end do
+#endif                
+                    end do
+                end do
+            end do
+        end do
+    end if
+
+        
+    if (KBIUpdateFrequency > 0) then            
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+#if MPI_VER > 0     
+                call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER8, &
+&                   KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER8, NRootProc, Communicator, ierror )
+                if( RootProc ) then
+                    do o = 1, KBINumberShells*NProcs
+                        write(iounit_restart, '(I10)' ) KBISum_hilf(o)
+                    end do
+                end if
+#else 
+                do o = 1, KBINumberShells
+                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
+                end do
+#endif              
+            end do
+        end do
+        if( RootProc ) then    ! Save mean RDF over all blocks for Gij extrapolation 
+            do i = 1, this%NComponents*(this%NComponents+1)/2
+                do o = 1, KBINumberShells
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVshfextra(o,i)
+                end do
+            end do
+            write(iounit_restart, '(I10)' ) this%KBIBlockCount
+        end if          
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call RestartSave( this%SumKBIGij1(i), .false., .true. )
+            call RestartSave( this%SumKBIGij2(i), .false., .true. )
+            call RestartSave( this%SumKBIGij3(i), .false., .true. )
+        end do
+    end if
+    
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
 
@@ -14899,6 +15897,7 @@ if( RootProc .and. this%CorrfunMode ) then
          end do
       end do
     end if
+    
 
     call RestartSave( this%SumVisco_s, .true. )
     call RestartSave( this%SumVisco_b, .true. )
@@ -14939,9 +15938,13 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,t,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
-
+#if MPI_VER > 0 
+    integer(KIND=8)           :: KBISum_hilf(KBINumberShells*NProcs)
+    integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+#endif
+    
     if( RootProc ) then
 
       ! Read contents from restart file
@@ -15119,6 +16122,68 @@ endif
         call RestartRead( pc%SumHM )
       end if
     end do
+    
+
+    if (RDFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+#if MPI_VER > 0     
+                        if( RootProc ) then
+                            do o = 1, RDFNumberShells*NProcs
+                                read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                            end do
+                        end if
+                        call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )         
+#else 
+                        do o = 1, RDFNumberShells
+                            read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                        end do
+#endif  
+                    end do
+                end do
+            end do
+        end do
+    end if
+    
+    ! RestartRead of RDF for KBI
+    if (KBIUpdateFrequency > 0) then            
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+#if MPI_VER > 0     
+                if( RootProc ) then
+                    do o = 1, KBINumberShells*NProcs
+                        read( iounit_restart, '(I10)' ) KBISum_hilf(o)
+                    end do
+                end if
+                call MPI_Scatter( KBISum_hilf(1:KBINumberShells*NProcs), KBINumberShells, MPI_INTEGER8, &
+&                   this%Interaction(i,j)%KBISum(1:KBINumberShells), KBINumberShells, MPI_INTEGER8, NRootProc, Communicator, ierror )            
+#else 
+                do o = 1, KBINumberShells
+                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
+                end do
+#endif              
+            end do
+        end do
+        if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation 
+            do i = 1, this%NComponents*(this%NComponents+1)/2
+                do o = 1, KBINumberShells
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVshfextra(o,i)
+                end do
+            end do
+            read( iounit_restart, '(I10)' ) this%KBIBlockCount
+        end if  
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call RestartRead( this%SumKBIGij1(i), .true. )
+            call RestartRead( this%SumKBIGij2(i), .true. )
+            call RestartRead( this%SumKBIGij3(i), .true. )
+        end do
+    end if
+ 
 
 #if TRANS ==1
     if( this%CorrfunMode ) then
@@ -18615,7 +19680,7 @@ contains
     type(TComponent), pointer :: pacc, pdon
     type(TSiteCharge), pointer :: paccacc, pdonacc, pmixdon
     logical             :: MixTerm
-    integer             :: h, i, i0, i1, j, k ,l, m
+    integer             :: h, i, i0, i1, j, k ,l, m, n
     real(RK)            :: BoxLengthInv
     real(RK)            :: LAA, LAD, LintraAD, CosAngle
     real(RK)            :: AngleCrit, DistCrit1, DistCrit2
@@ -18624,11 +19689,12 @@ contains
     integer,allocatable :: Counter(:,:), NHBAll(:)
 
     ! Initialize arrays
-    this%NHBond0(:)       = 0
-    this%NHBond1(:,:)     = 0
-    this%NHBond2(:,:,:)   = 0
-    this%NHBond3(:,:,:,:) = 0
-    this%NHBondN(:)       = 0
+    this%NHBond0(:)         = 0
+    this%NHBond1(:,:)       = 0
+    this%NHBond2(:,:,:)     = 0
+    this%NHBond3(:,:,:,:)   = 0
+    this%NHBond4(:,:,:,:,:) = 0
+    this%NHBondN(:)         = 0
 
     allocate( Counter(this%NComponents,this%NPart) )
     Counter(:,:) = 0
@@ -18718,8 +19784,10 @@ contains
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*100
                 elseif ( Counter(this%AccComp(h),i) < 10000 ) then
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*10000
+                elseif ( Counter(this%AccComp(h),i) < 1000000 ) then
+                  Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*1000000
                 else
-                  Counter(this%AccComp(h),i) = 1000000
+                  Counter(this%AccComp(h),i) = 100000000
                 end if
               end if
 
@@ -18745,7 +19813,7 @@ contains
         m = 0
         if ( Counter(h,i) == 0 ) then
           this%NHBond0(h)=this%NHBond0(h) + 1
-        elseif ( Counter(h,i) == 1000000 ) then
+        elseif ( Counter(h,i) == 100000000 ) then
           this%NHBondN(h)=this%NHBondN(h) + 1
         elseif ( Counter(h,i) < 100 ) then
           do while (Counter(h,i) > 0 )
@@ -18772,7 +19840,7 @@ contains
             j = m
           end if
           this%NHBond2(h,j,k)=this%NHBond2(h,j,k) + 1
-        else
+        elseif (Counter(h,i) < 1000000 ) then
           do while (Counter(h,i) > 10000 )
             m = m + 1
             Counter(h,i) = Counter(h,i) - 10000
@@ -18806,6 +19874,61 @@ contains
             end if
           end if
           this%NHBond3(h,j,k,l)=this%NHBond3(h,j,k,l) + 1
+        else
+          do while (Counter(h,i) > 1000000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1000000
+          end do
+          j = m
+          m = 0
+          do while (Counter(h,i) > 10000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 10000
+          end do
+          if (j .le. m) then
+            k = m
+          else
+            k = j
+            j = m
+          end if
+          m = 0
+          do while (Counter(h,i) > 100 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 100
+          end do
+          if (k .le. m) then
+            l = m
+          else
+            l = k
+            if (j .le. m) then
+              k = m
+            else
+              k = j
+              j = m
+            end if
+          end if
+          m = 0
+          do while (Counter(h,i) > 0 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1
+          end do
+          if (l .le. m) then
+            n = m
+          else
+            n = l
+            if (k .le. m) then
+              l = m
+            else
+              l = k
+              if (j .le. m) then
+                k = m
+              else
+                k = j
+                j = m
+              end if
+            end if
+          end if
+          this%NHBond4(h,j,k,l,n)=this%NHBond4(h,j,k,l,n) + 1
         end if
 
       end do
@@ -18824,6 +19947,10 @@ contains
           do l = k, this%NComponents
             call MPI_Reduce( this%NHBond3(:,j,k,l), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
             if (RootProc) this%NHBond3(:,j,k,l) = NHBAll(:)
+            do n = l, this%NComponents
+              call MPI_Reduce( this%NHBond4(:,j,k,l,n), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+              if (RootProc) this%NHBond4(:,j,k,l,n) = NHBAll(:)
+            end do 
           end do
         end do
       end do
@@ -18831,7 +19958,7 @@ contains
       if (RootProc) this%NHBondN(:) = NHBAll(:)
     end if
 #endif
-    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)
+    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)-this%NHBond4(1,1,1,1,1)
 
 !      !Output of the H-bonded Molecules
 !      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then  

@@ -183,6 +183,10 @@ module ms2_global
   ! Extension of RDF file 
   character(*), parameter :: RDFFileExtension = '.rdf'
   
+  ! Extension of KBI file (Kirkwood-Buff Integration)
+  character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
+  character(*), parameter :: KBIrunFileExtension = '.kbirun'
+  
   ! Extension of ThermoInt filename
   character(*), parameter :: ThermoIntFileExtension = '.thi'
 
@@ -231,6 +235,8 @@ module ms2_global
   integer, parameter :: iounit_rescf     = iounit_start + 12
   integer, parameter :: iounit_visualHB  = iounit_start + 13
   integer, parameter :: iounit_dcp       = iounit_start + 14
+  integer, parameter :: iounit_kbirdf    = iounit_start + 15
+  integer, parameter :: iounit_kbirun    = iounit_start + 16
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -285,6 +291,9 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kurkwood-Buff Integration
+  character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
+  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq'
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -653,6 +662,22 @@ module ms2_global
   ! Current number of blocks CF
   integer :: NBlocksCF
 #endif
+  
+  ! Kirkwood-Buff integration parameters
+  ! Maximum number of blocks KBI
+  integer :: NBlocksMaxKBI
+
+  ! Frequency of updating result file KBI
+  integer :: BlockSizeKBI
+
+  ! Maximum number of block sizes for error calculation KBI
+  integer :: NBlockSizesMaxKBI
+
+  ! Number of block sizes for error calculation KBI
+  integer :: NBlockSizesKBI
+
+  ! Current number of blocks KBI
+  integer :: NBlocksKBI
 
   ! Frequency of updating final result file
   integer :: ErrorsUpdateFrequency
@@ -665,6 +690,13 @@ module ms2_global
   
   ! Number of RDF shells
   integer :: RDFNumberShells
+  
+  ! Frequency of updating KBI file
+  integer :: KBIUpdateFrequency
+  
+  ! Number of KBI shells
+  integer :: KBINumberShells
+  integer :: KBINumberShellsMax
 
   ! Number of density profile bins
   integer :: NBinsDen
@@ -2907,7 +2939,7 @@ contains
 !  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
 
-  subroutine time_left(time_limit)
+subroutine time_left(time_limit)
 
     implicit none
 
@@ -2929,7 +2961,7 @@ contains
     character*10 string_max_time
 #endif
 
-    real(RK) :: time_elapsed	! [sec]
+    real(RK) :: time_elapsed    ! [sec]
     real(RK), save :: first_time
     logical, save :: FirstCAll =.TRUE.
     !integer :: time
@@ -2938,8 +2970,8 @@ contains
     if (FirstCAll)then
 #if MPI_VER > 0
        first_time = MPI_WTIME()
-#elif defined ENABLE_OMP
-       first_time = omp_get_wtime()
+!#elif defined ENABLE_OMP ! comment put by simon -> otherwise omp error
+!       first_time = omp_get_wtime()   !-"-
 #else
        !first_time = real(time())
        !!first_time = rtc()
@@ -2952,8 +2984,8 @@ contains
     end if
 #if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
-#elif defined ENABLE_OMP
-       first_time = omp_get_wtime() - first_time
+!#elif defined ENABLE_OMP   ! comment put by simon -> otherwise omp error
+!      first_time = omp_get_wtime() - first_time		! -"-
 #else
     !time_elapsed = real(time()) - first_time
     call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
