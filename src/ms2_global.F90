@@ -2907,16 +2907,18 @@ contains
 !  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
 
-#if MPI_VER > 0
   subroutine time_left(time_limit)
 
     implicit none
 
+    ! could also use (an extended version of) TStopwatch
+    
+#if MPI_VER > 0
     ! Include MPI header
     include 'mpif.h'
+#endif
 
     real(RK) :: time_remaining
-    real(RK) :: cputime,max_cpu_time
     integer  :: time_limit
     
 !     integer  :: ierror
@@ -2927,23 +2929,40 @@ contains
     character*10 string_max_time
 #endif
 
-#ifdef SMUC
-    real(RK) :: time_elapsed
+    real(RK) :: time_elapsed	! [sec]
     real(RK), save :: first_time
     logical, save :: FirstCAll =.TRUE.
-#endif
+    !integer :: time
+    integer(4) :: sysclkcount, sysclkcountrate, sysclkcountmax
 
-#ifdef SMUC 
     if (FirstCAll)then
+#if MPI_VER > 0
        first_time = MPI_WTIME()
+#elif defined ENABLE_OMP
+       first_time = omp_get_wtime()
+#else
+       !first_time = real(time())
+       !!first_time = rtc()
+       ! call system_clock(count_rate=sysclkcountrate,count_max=sysclkcountmax)
+       ! call system_clock(sysclkcount)
+       call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
+       first_time = real(real(sysclkcount)/sysclkcountrate)
+#endif       
        FirstCall = .FALSE.
     end if
+#if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
+#elif defined ENABLE_OMP
+       first_time = omp_get_wtime() - first_time
+#else
+    !time_elapsed = real(time()) - first_time
+    call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
+    time_elapsed = real(sysclkcount)/sysclkcountrate - first_time
+#endif       
 
-#else 
 ! Get CPU time consumed by each task and compute the maximum value
-    call cpu_time(cputime)
-#endif
+!    call cpu_time(cputime)
+! CPU time (!= elapsed wallclock time) does not make much sense here! There are also problems with multithreaded programs and "wrap around".
 
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t
@@ -2959,16 +2978,11 @@ contains
     read(string_max_time,*) max_time
 #endif
 
-! Compute the remaining CPU time
-
-#ifdef SMUC
+! Compute the remaining walltime
     time_remaining = max_time - real(time_elapsed)/60.
-#else
-    time_remaining = max_time - real(cputime)/60.
-#endif
 
     if (time_remaining .le. time_limit) then
-       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster")' )
+       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster (time remaining=",G8.1,"<",G8.1," min)")' ) time_remaining, real(time_elapsed)/60.
        call LogWrite
        call LogWriteBlank
 
@@ -2977,10 +2991,12 @@ contains
 #else
          call SetTerminateProgram
 #endif
+    !else
+    !   write( IOBuffer, '("time remaining [min]: ",I5)' ) time_remaining
+    !   call LogWrite
     end if
 
   end subroutine time_left
-#endif
 
 end module ms2_global
 
