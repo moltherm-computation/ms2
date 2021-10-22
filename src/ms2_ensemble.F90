@@ -208,7 +208,7 @@ module ms2_ensemble
     ! Potential energy
     real(RK) :: EPot
 
-	! d2EpotdV2
+    ! d2EpotdV2
     real(RK) :: d2EpotdV2
 
     ! Intra and inter potential energy
@@ -1030,7 +1030,7 @@ contains
         this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro 
       end if
     end if
-	
+    
     if( ConstantPressure ) then
       call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
 
@@ -1668,7 +1668,7 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-	
+    
     if ( SimulationType .eq. MonteCarlo .and. (.not.  CommonEqui))  then
       write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) LJorMIE, this%EPotCorrMIE  / this%NPart
 
@@ -1683,7 +1683,7 @@ contains
     else
       write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) LJorMIE, this%VirialCorrMIE * NProcs / this%NPart
     endif
-	
+    
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -7582,7 +7582,7 @@ loop2:        do nc = 1, this%NComponents
       if (.not. UseIntDegFreed ) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif	  
+#endif    
     else
 
       ! Reject move
@@ -7888,8 +7888,7 @@ loop2:        do nc = 1, this%NComponents
       if (.not. UseIntDegFreed) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif	  
-
+#endif    
 
     else
 
@@ -9575,13 +9574,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
     ! Find potential change
-	
-	! NPH
+    
+    ! NPH
     if( EnsembleType .eq. EnsembleTypeNPH ) then
-	  if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
+      if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + this%NPart * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
 
-	    ! Accept volume change
+        ! Accept volume change
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
         call UpdateEnergy( this )
@@ -9649,7 +9648,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 #endif  
 
-	  else
+      else
         ! Reject volume change
         this%Volume0 = VolumeOld
         call UpdateBoxLength( this )
@@ -9723,8 +9722,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
         end if
       end if
-	
-	else !NPT
+    
+    else !NPT
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
 
@@ -13946,7 +13945,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
     call FileWrite( this%iounit_errors )
-	write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
+    write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
 
 
@@ -20274,8 +20273,8 @@ contains
       end if
 
      ! nullify the autocorrelation functions
-	do i = 1, this%NComponents
-	  this%cf_d(i, :) = 0._RK
+    do i = 1, this%NComponents
+      this%cf_d(i, :) = 0._RK
         end do
 
         this%cf_vs(:) = 0._RK
@@ -20284,7 +20283,7 @@ contains
         this%cf_ec(:) = 0._RK
 
         if (this%NComponents == 2) then
-	  this%cf_soret = 0._RK
+      this%cf_soret = 0._RK
         end if
  
         if (this%NComponents .gt. 1) then 
@@ -20421,18 +20420,18 @@ contains
 
 
          !Thermal diffusivity
-	if (this%Ncomponents==2) then
+    if (this%Ncomponents==2) then
            do k = 1, 3
-	     this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
-&	               					    this%vckr(CFindex, k)*ss(k) + &
-&		  					    this%vcpt(CFindex, k)*ss(k) + &
-&							    this%vcpr(CFindex, k)*ss(k) + &
-&							    this%vcmt(CFindex, k)*ss(k) + &
-&							    Sindex(k)*this%vckt(s, k) + &
-&							    Sindex(k)*this%vckr(s, k) + &
-&							    Sindex(k)*this%vcpt(s, k) + &
-&							    Sindex(k)*this%vcpr(s, k) + &
-&							    Sindex(k)*this%vcmt(s, k) 
+         this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
+&                                       this%vckr(CFindex, k)*ss(k) + &
+&                               this%vcpt(CFindex, k)*ss(k) + &
+&                               this%vcpr(CFindex, k)*ss(k) + &
+&                               this%vcmt(CFindex, k)*ss(k) + &
+&                               Sindex(k)*this%vckt(s, k) + &
+&                               Sindex(k)*this%vckr(s, k) + &
+&                               Sindex(k)*this%vcpt(s, k) + &
+&                               Sindex(k)*this%vcpr(s, k) + &
+&                               Sindex(k)*this%vcmt(s, k) 
             end do
          end if
 
@@ -20471,7 +20470,7 @@ contains
       this%Mmess  = this%Mmess +1
 
       do i = 1, this%NComponents
-	 this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+     this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
       end do
 
       this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
@@ -20480,7 +20479,7 @@ contains
       this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
 
       if (this%NComponents == 2) then 
-	this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
+    this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
       end if
 
       if (this%NComponents .gt. 1) then 

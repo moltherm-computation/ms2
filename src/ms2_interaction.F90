@@ -975,7 +975,7 @@ contains
       deallocate( this%d2EpotdV21 )
     end if
     if( associated( this%d2EpotdV2New ) ) then
-      deallocate( this%d2EpotdV2New )	  
+      deallocate( this%d2EpotdV2New )     
     end if
     if( associated( this%d2EpotdV2Mol ) ) then
       deallocate( this%d2EpotdV2Mol )	  
@@ -1666,7 +1666,7 @@ contains
     real(RK)          :: d2EpotdV2Local
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, EpsilonMie_a, EpsilonMie_aF
-	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+    real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
@@ -1759,12 +1759,12 @@ contains
           pmie => this%PotMIEnmMIEnm(s1, s2)
           SigmaSquared = pmie%SigmaSquared
           EpsilonMie_a = pmie%EpsilonMie_a
-		  Mie_n = pmie%Mie_n
-	      Mie_m = pmie%Mie_m
-		  Mie_n1 = Mie_n+1._RK
-	      Mie_m1 = Mie_m+1._RK
-	      Mie_nHalf = pmie%Mie_nHalf
-	      Mie_mHalf = pmie%Mie_mHalf
+          Mie_n = pmie%Mie_n
+          Mie_m = pmie%Mie_m
+          Mie_n1 = Mie_n+1._RK
+          Mie_m1 = Mie_m+1._RK
+          Mie_nHalf = pmie%Mie_nHalf
+          Mie_mHalf = pmie%Mie_mHalf
 
           if ( OptPressure ) then
             EpsilonMie_aF = pmie%EpsilonMie_aF
@@ -1803,10 +1803,10 @@ contains
               PZij = PZij - anint( PZij )
               RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
               RijSquaredInv = SigmaSquared / RijSquared
-			  RijMie_nInv = RijSquaredInv**Mie_nHalf
-		      RijMie_mInv = RijSquaredInv**Mie_mHalf
+              RijMie_nInv = RijSquaredInv**Mie_nHalf
+              RijMie_mInv = RijSquaredInv**Mie_mHalf
               Mie_nRijMie_n = Mie_n * RijMie_nInv
-		      Mie_mRijMie_m = Mie_m * RijMie_mInv
+              Mie_mRijMie_m = Mie_m * RijMie_mInv
               EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
               if ( OptPressure ) then
                 Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
@@ -1816,8 +1816,8 @@ contains
                 Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
               end if
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-		      d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-			                + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
+              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+                            + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
             end if
           end do
         end do
@@ -2860,12 +2860,12 @@ contains
           pmie => this%PotMIEnmMIEnm(s1, s2)
           SigmaSquared = pmie%SigmaSquared
           EpsilonMie_a = pmie%EpsilonMie_a
-		  Mie_n = pmie%Mie_n
-	      Mie_m = pmie%Mie_m
-		  Mie_n1 = Mie_n+1._RK
-	      Mie_m1 = Mie_m+1._RK
-	      Mie_nHalf = pmie%Mie_nHalf
-	      Mie_mHalf = pmie%Mie_mHalf
+          Mie_n = pmie%Mie_n
+          Mie_m = pmie%Mie_m
+          Mie_n1 = Mie_n+1._RK
+          Mie_m1 = Mie_m+1._RK
+          Mie_nHalf = pmie%Mie_nHalf
+          Mie_mHalf = pmie%Mie_mHalf
           if ( OptPressure ) then
             EpsilonMie_aF = pmie%EpsilonMie_aF
           end if
@@ -2906,8 +2906,8 @@ contains
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             if( RijSquared >= RCutoffSquaredScaled ) cycle
             RijSquaredInv = SigmaSquared / RijSquared
-			RijMie_nInv = RijSquaredInv**Mie_nHalf
-		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
             jk = (j-1)*this%NUnit2 + pmie%Site2%UnitNumber
@@ -2920,8 +2920,8 @@ contains
               Virial(jk) = Virial(jk) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-		    d2EpotdV2(jk) = d2EpotdV2(jk) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-			               + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
+            d2EpotdV2(jk) = d2EpotdV2(jk) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
           end do
         end do
       end do
