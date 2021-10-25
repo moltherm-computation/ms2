@@ -1108,7 +1108,7 @@ contains
     real(RK), intent(in)     :: InvKBIdr
     
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: PX1(:, :), PY1(:, :), PZ1(:, :), PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: Rij
     integer           :: i, j, N, N2
@@ -1129,14 +1129,14 @@ contains
 
       do i = 1, (N+1) / 2
 
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
 
         do j = i + 1, (N/2) + i
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1148,13 +1148,13 @@ contains
 
       do i = (N+1) / 2 + 1, N
 
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
         do j = 1, i - N/2 - 1
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1164,9 +1164,9 @@ contains
         end do
 
         do j = i + 1, N
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1181,13 +1181,13 @@ contains
 
       do i = 1, N
 
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
         do j = 1, N2
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1217,7 +1217,7 @@ contains
     real(RK), intent(in)     :: InvKBIdr
     
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: PX1(:, :), PY1(:, :), PZ1(:, :), PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: Rij
     integer           :: i, j, N, N2
@@ -1246,14 +1246,14 @@ contains
 !$OMP DO        
       do i = 1, (N+1) / 2
 #endif
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
 
         do j = i + 1, (N/2) + i
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1270,14 +1270,14 @@ contains
 #else
       do i = (N+1) / 2 + 1, N
 #endif
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
 
         do j = 1, i - N/2 - 1
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1286,9 +1286,9 @@ contains
           this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
         end do
         do j = i + 1, N
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -1303,14 +1303,14 @@ contains
         else
 !$OMP DO         
           do i = this%NPart10, this%NPart12
-            PXi = PX1(i)
-            PYi = PY1(i)
-            PZi = PZ1(i)
+            PXi = PX1(i, 1)
+            PYi = PY1(i, 1)
+            PZi = PZ1(i, 1)
 
             do j = i + 1, N/2 + i
-              PXij = PXi - PX2(j)
-              PYij = PYi - PY2(j)
-              PZij = PZi - PZ2(j)
+              PXij = PXi - PX2(j, 1)
+              PYij = PYi - PY2(j, 1)
+              PZij = PZi - PZ2(j, 1)
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
@@ -1325,14 +1325,14 @@ contains
       else
 !$OMP DO       
         do i = this%NPart10, this%NPart12
-          PXi = PX1(i)
-          PYi = PY1(i)
-          PZi = PZ1(i)
+          PXi = PX1(i, 1)
+          PYi = PY1(i, 1)
+          PZi = PZ1(i, 1)
 
           do j = 1, i - N/2 - 1
-            PXij = PXi - PX2(j)
-            PYij = PYi - PY2(j)
-            PZij = PZi - PZ2(j)
+            PXij = PXi - PX2(j, 1)
+            PYij = PYi - PY2(j, 1)
+            PZij = PZi - PZ2(j, 1)
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
@@ -1341,9 +1341,9 @@ contains
             this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
           end do
           do j = i + 1, N
-            PXij = PXi - PX2(j)
-            PYij = PYi - PY2(j)
-            PZij = PZi - PZ2(j)
+            PXij = PXi - PX2(j, 1)
+            PYij = PYi - PY2(j, 1)
+            PZij = PZi - PZ2(j, 1)
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
@@ -1365,14 +1365,14 @@ contains
 #else
       do i = 1, N
 #endif
-        PXi = PX1(i)
-        PYi = PY1(i)
-        PZi = PZ1(i)
+        PXi = PX1(i, 1)
+        PYi = PY1(i, 1)
+        PZi = PZ1(i, 1)
 
         do j = 1, N2
-          PXij = PXi - PX2(j)
-          PYij = PYi - PY2(j)
-          PZij = PZi - PZ2(j)
+          PXij = PXi - PX2(j, 1)
+          PYij = PYi - PY2(j, 1)
+          PZij = PZi - PZ2(j, 1)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
