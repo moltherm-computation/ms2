@@ -223,7 +223,7 @@ module ms2_component
     integer  :: FluctState
     integer  :: GradInsInit
     real(RK) :: ChemPot, WidomContribution
-	real (RK) :: HW_counter, HW_denom
+    real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG
