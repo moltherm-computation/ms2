@@ -125,6 +125,7 @@ module ms2_component
 #if  TRANS == 1
 !TRANSPORT_start
     real(RK), pointer, contiguous :: KinETran(:,:)
+    real(RK), pointer, contiguous :: KinEPart(:)
     real(RK) :: KinETranTotal(3)
     real(RK) :: PartialMolarEnthalpy
 
@@ -1357,6 +1358,7 @@ contains
 #if  TRANS == 1
 !  Transport  !TRANSPORT_start
     nullify(this%KinETran)
+    nullify(this%KinEPart)
     nullify( this%FS )
     nullify( this%FB )
     nullify( this%FRC )
@@ -1401,29 +1403,31 @@ contains
 
     ! Transport
     allocate( this%KinETran( np, 3 ), STAT = stat )
+    call AllocationError( stat, '3*particles', np )
+    allocate( this%KinEPart( np), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%FS( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FB( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FTC( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FRC( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FTC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FTC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FTC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FRC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FRC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%FRC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
+    call AllocationError( stat, '3*particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
-    call AllocationError( stat, 'units*particles', nup )
+    call AllocationError( stat, 'units*4*particles', nup )
 
 #if MPI_VER > 0
     allocate( this%FSAll( np, 3 ), STAT = stat )
@@ -2539,6 +2543,9 @@ contains
 ! Transport !TRANSPORT_start
     if( associated( this%KinETran) ) then
       deallocate( this%KinETran )
+    end if
+    if( associated( this%KinEPart) ) then
+      deallocate( this%KinEPart )
     end if
     if( associated( this%FS ) ) then
       deallocate( this%FS )
@@ -5752,6 +5759,7 @@ subroutine TComponent_ForceTransport( this )
     this%FTC(:,:) = 0._RK
     this%FRC(:,:) = 0._RK
     this%KinETran(:,:) = 0._RK
+    this%KinEPart(:) = 0._RK
 
     if (RootProc) then
 
@@ -5800,6 +5808,10 @@ subroutine TComponent_ForceTransport( this )
         end do
 
         this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
+
+        do j = 1,3
+          this%KinEPart(:) = this%KinEPart(:) + this%KinETran(:,j)
+        end do
 
         this%KinETranTotal(1) = sum(this%KinETran(:,1))
         this%KinETranTotal(2) = sum(this%KinETran(:,2))

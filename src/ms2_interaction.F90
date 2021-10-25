@@ -1099,7 +1099,7 @@ contains
 !  Subroutine TInteraction_KBI                                 !
 !==============================================================!
 
-  subroutine TInteraction_KBI( this, InvKBIdr )
+  subroutine TInteraction_KBI( this, InvKBIdr ) !for MC
 
     implicit none
 
@@ -1200,8 +1200,8 @@ contains
 
  end subroutine TInteraction_KBI
  
- !==============================================================!
-!  Subroutine TInteraction_KBI _MD                                !
+!==============================================================!
+!  Subroutine TInteraction_KBI_MD                              !
 !==============================================================!
 
   subroutine TInteraction_KBI_MD( this, InvKBIdr )
@@ -1219,13 +1219,16 @@ contains
     ! Declare local variables
     real(RK), pointer :: PX1(:, :), PY1(:, :), PZ1(:, :), PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: Rij
-    integer           :: i, j, N, N2
+    real(RK)          :: Rij, RijSquared, RCutoff
+    integer           :: i, j, N, N2, NInCutoff
     integer           :: KBISchalenIndex
     
-!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, N2, KBISchalenIndex, Rij,PXi, PYi, PZi, PXij, PYij, PZij)
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, N2, KBISchalenIndex, Rij, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
     
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
+    this%NInCutoff(:) = 0
 
     ! Assign local pointers
     PX1 => this%PX1
@@ -1249,7 +1252,7 @@ contains
         PXi = PX1(i, 1)
         PYi = PY1(i, 1)
         PZi = PZ1(i, 1)
-
+        NInCutoff = this%NInCutoff(i)
         do j = i + 1, (N/2) + i
           PXij = PXi - PX2(j, 1)
           PYij = PYi - PY2(j, 1)
@@ -1257,10 +1260,16 @@ contains
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+          Rij = sqrt (RijSquared)
           KBISchalenIndex = INT(Rij*InvKBIdr) + 1
           this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
         end do
+        this%NInCutoff(i) = NInCutoff
       end do
 !$OMP END DO      
 
@@ -1273,7 +1282,7 @@ contains
         PXi = PX1(i, 1)
         PYi = PY1(i, 1)
         PZi = PZ1(i, 1)
-
+        NInCutoff = this%NInCutoff(i)
         do j = 1, i - N/2 - 1
           PXij = PXi - PX2(j, 1)
           PYij = PYi - PY2(j, 1)
@@ -1281,7 +1290,12 @@ contains
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if          
+          Rij = sqrt (RijSquared)
           KBISchalenIndex = INT(Rij*InvKBIdr) + 1
           this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
         end do
@@ -1292,10 +1306,16 @@ contains
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if          
+          Rij = sqrt (RijSquared)
           KBISchalenIndex = INT(Rij*InvKBIdr) + 1
           this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
         end do
+        this%NInCutoff(i) = NInCutoff
       end do
 !$OMP END DO      
 
@@ -1306,7 +1326,7 @@ contains
             PXi = PX1(i, 1)
             PYi = PY1(i, 1)
             PZi = PZ1(i, 1)
-
+            NInCutoff = this%NInCutoff(i)
             do j = i + 1, N/2 + i
               PXij = PXi - PX2(j, 1)
               PYij = PYi - PY2(j, 1)
@@ -1314,10 +1334,17 @@ contains
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
-              Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+              RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, i) = j
+              end if
+              
+              Rij = sqrt (RijSquared)
               KBISchalenIndex = INT(Rij*InvKBIdr) + 1
               this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
             end do
+            this%NInCutoff(i) = NInCutoff
           end do
 !$OMP END DO          
         end if
@@ -1328,7 +1355,7 @@ contains
           PXi = PX1(i, 1)
           PYi = PY1(i, 1)
           PZi = PZ1(i, 1)
-
+          NInCutoff = this%NInCutoff(i)
           do j = 1, i - N/2 - 1
             PXij = PXi - PX2(j, 1)
             PYij = PYi - PY2(j, 1)
@@ -1336,7 +1363,13 @@ contains
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+            RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+            if( RijSquared < RCutoff ) then
+              NInCutoff = NInCutoff + 1
+              this%CutoffPartner(NInCutoff, i) = j
+            end if
+            
+            Rij = sqrt (RijSquared)
             KBISchalenIndex = INT(Rij*InvKBIdr) + 1
             this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
           end do
@@ -1347,10 +1380,17 @@ contains
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+            RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+            if( RijSquared < RCutoff ) then
+              NInCutoff = NInCutoff + 1
+              this%CutoffPartner(NInCutoff, i) = j
+            end if
+            
+            Rij = sqrt (RijSquared)
             KBISchalenIndex = INT(Rij*InvKBIdr) + 1
             this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
           end do
+          this%NInCutoff(i) = NInCutoff
         end do
 !$OMP END DO        
         
@@ -1368,7 +1408,7 @@ contains
         PXi = PX1(i, 1)
         PYi = PY1(i, 1)
         PZi = PZ1(i, 1)
-
+        NInCutoff = this%NInCutoff(i)
         do j = 1, N2
           PXij = PXi - PX2(j, 1)
           PYij = PYi - PY2(j, 1)
@@ -1376,10 +1416,17 @@ contains
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
-          Rij = sqrt (PXij*PXij+ PYij*PYij + PZij*PZij)
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+          
+          Rij = sqrt (RijSquared)
           KBISchalenIndex = INT(Rij*InvKBIdr) + 1
           this%KBISum(KBISchalenIndex) = this%KBISum(KBISchalenIndex) + 1
         end do
+        this%NInCutoff(i) = NInCutoff
       end do
 !$OMP END DO      
     end if
@@ -1392,7 +1439,7 @@ contains
 !==============================================================!
 
   subroutine TInteraction_Force( this, EPot, Virial, idfEPot, &
-&            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
+&            VirialIntra, VirialInter, d2EpotdV2, BoxLength, InvKBIdr)
 
     implicit none
 
@@ -1405,6 +1452,7 @@ contains
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
+    real(RK), intent(in), optional     :: InvKBIdr
 
 
     ! Declare local variables
@@ -1424,7 +1472,11 @@ contains
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      call CalcCutoffPartners( this )
+      if( .not. Equilibration .and. KBIUpdateFrequency > 0 ) then 
+        call CalcRDFforKBI_MD( this, InvKBIdr)!Calc. KBISum while calculating Cutoff partners
+      else
+        call CalcCutoffPartners( this )
+      end if
     end if
 
     ! Calculate MIE forces

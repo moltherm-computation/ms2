@@ -86,7 +86,7 @@ module ms2_ensemble
     integer :: iounit_dcp
 
 #if  TRANS == 1
-    logical :: Conductivity   !TRANSPORT_thisline
+    !logical :: Conductivity   !TRANSPORT_thisline
     logical :: EConductivity
     logical :: MolarEnthConduct
     logical :: Bulkviscosity
@@ -1600,7 +1600,7 @@ contains
       
      this%Bulkviscosity = .true.
      this%MolarEnthConduct = .true.
-     this%Conductivity = .true.
+!     this%Conductivity = .true.
      this%EConductivity = .false.
 
      if (EnsembleType .eq. EnsembleTypeNVE) then
@@ -1610,17 +1610,17 @@ contains
      end if
 
 
-      if (LongRange .eq. Rfield) then
-         this%Conductivity = .true.
-      else
-         this%Conductivity = .false.
-      end if
+!      if (LongRange .eq. Rfield) then
+!         this%Conductivity = .true.
+!      else
+!         this%Conductivity = .false.
+!      end if
 
  
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
        do i = 1, this%NComponents
             if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
-               this%Conductivity = .false.
+!               this%Conductivity = .false.
                this%MolarEnthConduct = .false.
             end if
        end do
@@ -6104,7 +6104,7 @@ loop5:    do nc = 1, this%NComponents
         endif
 #else
         call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
-&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
+&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
 #endif
 
       end do
@@ -13599,14 +13599,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if (this%Conductivity) then
+!      if (this%Conductivity) then
         write( IOBuffer, '(T13,"CO")' )
         call FileWriteNoAdvance( this%iounit_rescf )
         if(this%Ncomponents==2)then
             write( IOBuffer, '(T10,"Th_Diff")' )
             call FileWriteNoAdvance( this%iounit_rescf )
         end if
-      end if
+!      end if
 
       if (this%EConductivity) then
         write( IOBuffer, '(T13,"EC")' )
@@ -13645,14 +13645,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if (this%Conductivity) then
+ !     if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
         call FileWriteNoAdvance( this%iounit_rescf )
         if (this%NComponents == 2 ) then
           write( IOBuffer, '(T10,"Int Th_Diff")' )
           call FileWriteNoAdvance( this%iounit_rescf )
         end if       
-      end if
+ !     end if
 
       if (this%EConductivity) then
         write( IOBuffer, '(T9,"Int EC")' )
@@ -13696,14 +13696,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 
         ! Thermal conductivity and thermal diffusion
-        if (this%Conductivity) then
+ !       if (this%Conductivity) then
           write( IOBuffer, '(T5, F10.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance( this%iounit_rescf )
           if (this%NComponents==2)then
-            write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(i)/this%average_cf_soret(1)
+            value = this%density*this%density*this%Component(1)%Molecule%Mass/(6._RK*this%NPart)
+            write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(i)*value
             call FileWriteNoAdvance( this%iounit_rescf )
           end if
-        end if
+!        end if
 
         ! Electric Conductivity
         if (this%EConductivity) then
@@ -13742,7 +13743,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if 
 
        ! thermal conductivity
-        if (this%Conductivity) then
+  !      if (this%Conductivity) then
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
           write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_c(i)*value !this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
           call FileWriteNoAdvance( this%iounit_rescf )
@@ -13751,7 +13752,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_soret(i)*value !/ this%average_sinte_soret(this%NCorr) * this%soret * value
             call FileWriteNoAdvance( this%iounit_rescf )
           end if
-        end if
+   !     end if
 
         ! electric conductivity
         if (this%EConductivity) then
@@ -13879,6 +13880,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #if HBOND > 0
     integer                   :: k, l, m
 #endif
+
+#if TRANS == 1
+    real(RK) :: mw,w1,w2,nc,factor
+#endif
+
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
 
@@ -15272,9 +15278,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do 
           end if
           if( this%NComponents == 2  ) then
-            if (this%MolarEnthConduct .eqv. .true.) then
+          !  if (this%MolarEnthConduct .eqv. .true.) then
               call Error(this%SumSoret, .true.)
-            end if
+          !  end if
           end if
           do i = 1, this%NComponents
             call Error(this%Sumself_i(i), .true.)
@@ -15341,21 +15347,27 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          !...Calculation of Thermal diff. coeff. does not work yet...
-          !if (this%MolarEnthConduct .eqv. .true.) then
-          !  Average  = this%SumSoret%Average
-          !  Variance = this%SumSoret%Variance
-          !  value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
-          !  write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
-          !  call FileWrite( this%iounit_errors )
-          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", 2F20.9)' ) Average*value, Variance*value
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !else
-          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !end if  !this%MolarEnthConduct
+          if (this%MolarEnthConduct) then
+
+            mw = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+            w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/mw
+            w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/mw
+            nc = this%density*mw
+
+            Average  = this%SumSoret%Average
+            Variance = this%SumSoret%Variance
+            factor = 1._RK/(this%temperature*this%temperature*w1*w2*nc)
+            value = dsqrt(UnitEnergy/UnitMass)*UnitLength/(UnitTemperature*1E-12_RK)
+            write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), Average*factor, Variance*factor
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", 2F20.9)' ) Average*value*factor, Variance*value*factor
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
 
         end if !this components = 2
      
@@ -15602,21 +15614,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         !Thermal conductivity
         Average  = this%SumConduct%Average
         Variance = this%SumConduct%Variance
+        factor = 1._RK/(this%Temperature*this%Temperature)
         value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
-           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
+        else!if (this%NComponents==1) then
+           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
            call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eqv. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
-               call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-          else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
-          end if
+           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+        !elseif (this%NComponents .gt. 1) then
+           if (this%NComponents .gt. 1 .and. this%MolarEnthConduct .eqv. .false.) then
+!               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
+!               call FileWrite( this%iounit_errors )
+!               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+!          else
+               write( IOBuffer, '("Note: Thermal conductivity was calculated without the enthalpic contribution")' )
+           end if
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
@@ -15634,6 +15647,61 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+ 
+         ! Onsager coefficients
+        if ( this%NComponents > 1 ) then
+          do i = 1, this%NComponents
+              Average  = this%SumOnsager(i,i)%Average
+              Variance = this%SumOnsager(i,i)%Variance
+              factor = this%density*this%Component(i)%Molecule%Mass* this%Component(i)%Molecule%Mass
+              value = UnitTemperature*UnitMass*UnitTime/(1E-10_RK*UnitLength**3)
+              write( IOBuffer, '("Mass coefficient L11",2I2,T29, "reduced:", 2F20.9)' ) i,i,Average*factor, Variance*factor
+              call FileWrite( this%iounit_errors )
+              write( IOBuffer, '(T20, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) Average*factor*value, Variance*factor*value
+              call FileWrite( this%iounit_errors )
+          end do
+          call FileWriteBlank( this%iounit_errors )
+
+
+          Average  = this%SumConduct%Average
+          Variance = this%SumConduct%Variance
+          value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann*UnitTemperature*UnitTemperature/UnitLength**2
+          if (this%MolarEnthConduct) then
+             write( IOBuffer, '("Energy coefficient LQQ ", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T22, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+
+             Average  = this%SumSoret%Average
+             Variance = this%SumSoret%Variance
+             value = dsqrt(UnitEnergy/UnitMass)*UnitMass*UnitTemperature/(1E-8_RK*UnitLength**2)
+             write( IOBuffer, '("Cross coefficient L1Q", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T16, "in 10E-8 Kg K/(m s) :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+          else
+             write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T22, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+
+             Average  = this%SumSoret%Average
+             Variance = this%SumSoret%Variance
+             value = dsqrt(UnitEnergy/UnitMass)*UnitMass*UnitTemperature/(1E-8_RK*UnitLength**2)
+             write( IOBuffer, '("Cross coefficient L1E", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T16, "in 10E-8 Kg K/(m s) :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '("LEE and L1E do not include the enthalpic contribution")' )
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
+
+        end if !this%NComponents
+
 
       else    ! ( this%Mmess > 0 )
 
@@ -15658,17 +15726,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteBlank( this%iounit_errors )
 
           !...Calculation of Thermal diff. coeff. does not work yet...
-          !if (this%MolarEnthConduct .eqv. .true.) then
-          !  write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
-          !  call FileWrite( this%iounit_errors )
-          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !else
-          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !end if
+          if (this%MolarEnthConduct) then
+            
+            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if
           
         end if
 
@@ -15717,17 +15786,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         if (LongRange .eq. Ewald) then
           write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
+        else!if (this%NComponents==1) then
            write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eqv. .true.) then
+        !elseif (this%NComponents .gt. 1) then
+          if ( this%NComponents .gt. 1 .and. this%MolarEnthConduct .eqv. .false.) then
                write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
                call FileWrite( this%iounit_errors )
                write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
           else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
+               write( IOBuffer, '("Thermal conductivity was calculated without the  enthalpic contribution")' )
           end if
         end if
         call FileWrite( this%iounit_errors )
@@ -15735,14 +15804,49 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       
 
         if (this%EConductivity) then
-           write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
-           call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
+          write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
         else
           write( IOBuffer, '("Electric conductivity only defined for pure charged particles")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+        
+        
+        if ( this%NComponents > 1 ) then
+          write( IOBuffer, '("Mass coefficient L11",2I2,T29, "reduced:", 2F20.9)' ) i,i, 0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T21, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+
+          if (this%MolarEnthConduct) then
+            write( IOBuffer, '("Energy coefficient LQQ ", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T23, "in W K/ m:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            write( IOBuffer, '("Cross coefficient L1Q", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T18, "in 10E-12 Kg K/(m s):", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T23, "in W K/ m:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            write( IOBuffer, '("Cross coefficient L1E", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T18, "in 10E-8 Kg K/(m s):", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("LEE and L1E do not include the enthalpic term")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
+        end if !This component > 1
 
       end if
 !TRANSPORT_END
@@ -17143,14 +17247,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     TempStep = mod( Step, BlockSizeKBI ) 
     if (TempStep == 0) TempStep = BlockSizeKBI
     
-    if ( SimulationType .eq. MolecularDynamics ) then 
-        ! Calculate partners in shells for RDF
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                call CalcRDFforKBI_MD( this%Interaction(i,j), this%BoxLength/this%KBIdr )
-            end do
-        end do
-    else
+    if ( SimulationType .eq. MonteCarlo ) then !for MD inside the traversing -> see RunMDStep -> Force ...
         ! Calculate partners in shells for RDF
         do i= 1, this%NComponents
             do j= i, this%NComponents
@@ -17272,13 +17369,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
         end do
     end do
-    ! Shift RDFcor so that the mean value from rc/2 to rc is unity
+    ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
     do p = 1, this%NComponents*(this%NComponents+1)/2
         meanRDF(p)=0
-        do o=KBINumberShells/2+1, KBINumberShells
+        do o=(3*KBINumberShells/4)+1, KBINumberShells
             meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
         end do
-        meanRDF(p)=meanRDF(p)/(KBINumberShells/2)
+        meanRDF(p)=meanRDF(p)/(KBINumberShells/4)
         RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
     end do
     
@@ -21210,15 +21307,17 @@ contains
     real(RK) :: Mass
     real(RK), pointer, contiguous :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
-    logical  :: Conductivity, EConductivity, Bulkviscosity
+    logical  :: EConductivity, Bulkviscosity, MolarEnthConduct
+!   logical  :: Conductivity
 
     NPart  = this%NPart
     NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
-    Conductivity = this%Conductivity
+  !  Conductivity = this%Conductivity
     EConductivity = this%EConductivity
     Bulkviscosity = this%Bulkviscosity
+    MolarEnthConduct = this%MolarEnthConduct
     ncomp2 = this%NComponents*this%NComponents
 
 
@@ -21287,15 +21386,17 @@ contains
         end if
           
                   
-        if (Conductivity) then
+ !      if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
-          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*sum( pc%KinETran(:,1:3),2 ) )*0.5_RK*BoxLength_dt
-          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))*BoxLength_dt 
+          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k)*pc%KinEPart(:) )*0.5_RK*BoxLength_dt
+          if (MolarEnthConduct) then
+            this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k))* BoxLength_dt
+          end if 
           if ( pc%Molecule%IsElongated ) then
-            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt
+            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k) * KinERot(:) ) *BoxLength_dt
           end if
-        end if
+        !end if
       end do !k =1, 3
 
       ! kinetic part
@@ -21368,9 +21469,9 @@ contains
           j0 = j0 + np
         end do
 
-        Sindex(1)=SXindex(2)*BoxLength_dt  !mass flux for thermal diffusion
-        Sindex(2)=SYindex(2)*BoxLength_dt 
-        Sindex(3)=SZindex(2)*BoxLength_dt 
+        Sindex(1)=SXindex(1)*BoxLength_dt  !mass flux for thermal diffusion
+        Sindex(2)=SYindex(1)*BoxLength_dt 
+        Sindex(3)=SZindex(1)*BoxLength_dt 
 
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
@@ -21407,9 +21508,9 @@ contains
           j0 = j0 + np
         end do
 
-        ss(1) = sx(2)* BoxLength_dt 
-        ss(2) = sy(2)* BoxLength_dt 
-        ss(3) = sz(2)* BoxLength_dt  
+        ss(1) = sx(1)* BoxLength_dt 
+        ss(2) = sy(1)* BoxLength_dt 
+        ss(3) = sz(1)* BoxLength_dt  
 
         ! Just loops over components!
         if (this%NComponents .gt. 1) then
@@ -21448,26 +21549,26 @@ contains
             this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckt(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vckt(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vckr(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vcpt(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) - &
+&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) - &
 &                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
 &                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
@@ -21485,19 +21586,19 @@ contains
 
 
          !Thermal diffusivity
-    if (this%Ncomponents==2) then
+         if (this%Ncomponents .gt. 1) then
            do k = 1, 3
-         this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
-&                                       this%vckr(CFindex, k)*ss(k) + &
-&                               this%vcpt(CFindex, k)*ss(k) + &
-&                               this%vcpr(CFindex, k)*ss(k) + &
-&                               this%vcmt(CFindex, k)*ss(k) + &
-&                               Sindex(k)*this%vckt(s, k) + &
-&                               Sindex(k)*this%vckr(s, k) + &
-&                               Sindex(k)*this%vcpt(s, k) + &
-&                               Sindex(k)*this%vcpr(s, k) + &
-&                               Sindex(k)*this%vcmt(s, k) 
-            end do
+              this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
+&                                                            this%vckr(CFindex, k)*ss(k) + &
+&                                                            this%vcpt(CFindex, k)*ss(k) + &
+&                                                            this%vcpr(CFindex, k)*ss(k) - &
+&                                                            this%vcmt(CFindex, k)*ss(k) + &
+&                                                            Sindex(k)*this%vckt(s, k) + &
+&                                                            Sindex(k)*this%vckr(s, k) + &
+&                                                            Sindex(k)*this%vcpt(s, k) + &
+&                                                            Sindex(k)*this%vcpr(s, k) - &
+&                                                            Sindex(k)*this%vcmt(s, k) 
+           end do
          end if
 
         ! electric conductivity
@@ -21543,11 +21644,8 @@ contains
       this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
       this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
 
-      if (this%NComponents == 2) then 
-    this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
-      end if
-
-      if (this%NComponents .gt. 1) then 
+      if (this%NComponents .gt. 1) then
+        this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:)) 
         do k = 1, ncomp2
            this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
         end do
@@ -21585,16 +21683,16 @@ contains
     integer  :: i, j, k
     integer  :: ncomp2
     real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3, w1, w2, MM
+    real(RK) :: x1, x2, x3 !, w1, w2, MM
 !    real(RK) :: Inv_x1, Inv_x2, Inv_x3
 !    real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
-    MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
-    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
-    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
+    !MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+    !w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
+    !w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
     
 
@@ -21610,7 +21708,7 @@ contains
 
 
     if ( this%NComponents .gt. 1) then
-      helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
+      helpvar =  Third /(this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
         if (abs(this%lamda(k, 1)) .gt. 1e-15) then 
            this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
@@ -21637,31 +21735,32 @@ contains
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
 
 
-    helpvar =  this%Density /(3._RK *this%NPart * this%Temperature)
+    helpvar =  this%Density*Ninth/(this%NPart * this%Temperature)
     if (this%Bulkviscosity) then
       this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1),this%TimeStepCorr, this%NCorr )
       this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
-      this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/(3._RK*this%Mmess)
-      this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
+      this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/this%Mmess
+      this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * helpvar
     end if
 
-    if (this%Conductivity) then
+    helpvar = this%Density*Third/this%NPart
+ !   if (this%Conductivity) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
-      this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/(this%Temperature*this%Mmess))
-      this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
-    end if
+      this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/this%Mmess)
+      this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
+ !   end if
 
-     if ( this%NComponents == 2 ) then
+     if ( this%NComponents .gt. 1 ) then
       if (abs(this%cf_soret(1)) .gt. 1e-15) then
          this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
          this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
-         this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*MM*this%Temperature*w1*w2)
-         this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*MM*2._RK)
+         this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(1)%Molecule%Mass/(2._RK*this%Mmess)
+         this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(1)%Molecule%Mass*helpvar/2._RK
       end if
     end if
 
-
+     helpvar = this%Density*Third /(this%NPart * this%Temperature)  
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
