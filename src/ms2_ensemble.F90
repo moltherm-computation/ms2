@@ -21389,12 +21389,12 @@ contains
  !      if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
-          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k)*pc%KinEPart(:) )*0.5_RK*BoxLength_dt
+          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*pc%KinEPart(:) )*0.5_RK*BoxLength_dt
           if (MolarEnthConduct) then
-            this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k))* BoxLength_dt
+            this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))* BoxLength_dt
           end if 
           if ( pc%Molecule%IsElongated ) then
-            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k) * KinERot(:) ) *BoxLength_dt
+            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) *BoxLength_dt
           end if
         !end if
       end do !k =1, 3
