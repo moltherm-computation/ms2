@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<name>MD_leap_aceton_MeOH_KBI</name>
+	<parFile>MD_leap_aceton_MeOH_KBI.par</parFile>
+	<np>3</np>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI.rst</file>
+	</reference>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI_1.kbirdf</file>
+	</reference>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI_1.kbirun</file>
+	</reference>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI_1.rav</file>
+	</reference>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI_1.res</file>
+	</reference>
+	<reference>
+		<file>MD_leap_aceton_MeOH_KBI_1.run</file>
+	</reference>
+</testcase>
