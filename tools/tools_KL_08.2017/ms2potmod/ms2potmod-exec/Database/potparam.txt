@@ -1,0 +1,2148 @@
+
+! Begin with "&xyz" a new Site and end with"/"
+
+! Here (site) just one kind of potential is possible.
+
+ &site
+   site_type        = 'CH3-OPLS-Amber'
+   sigma            = 3.905
+   epsilon          = 88.060
+   mass             = 15.03
+/
+
+ &site
+   site_type        = 'CH2-OPLS-Amber'
+   sigma            = 3.905
+   epsilon          = 59.380
+   mass             = 14.03
+/
+
+ &site
+   site_type        = 'CH-OPLS-Amber'
+   sigma            = 3.85
+   epsilon          = 40.260
+   mass             = 13.03
+/
+
+ &site
+   site_type        = 'CH3-OPLS-Amber-ethan'
+   sigma            = 3.775
+   epsilon          = 104.167
+   mass             = 15.03
+/
+
+
+!Ref. 1,2
+ &site
+   site_type        = 'CH3-AUA'
+   sigma            = 3.6072
+   epsilon          = 120.15
+   mass             = 15.03
+/
+
+!Ref. 1,2
+ &site
+   site_type        = 'CH2-AUA'
+   sigma            = 3.4612
+   epsilon          = 86.29
+   mass             = 14.03
+
+!Ref. 1
+ &site
+   site_type        = 'CH-AUA'
+   sigma            = 3.3625
+   epsilon          = 50.98
+   mass             = 13.03
+/
+
+
+!Ref. 4
+ &site
+   site_type        = 'CH3-OPLS-ethan'
+   sigma            = 3.775
+   epsilon          = 104.1
+   mass             = 15.017
+/   
+
+!Ref. 3,5
+ &site
+   site_type        = 'CH3-OPLS'
+   sigma            = 3.905
+   epsilon          = 88.07
+   mass             = 15.017
+/   
+
+!Ref. 3,5
+ &site
+   site_type        = 'CH2-OPLS'
+   sigma            = 3.905
+   epsilon          = 59.38
+   mass             = 14.017
+/   
+
+!Ref. 5
+ &site
+   site_type        = 'CH-OPLS'
+   sigma            = 3.85
+   epsilon          = 40.26
+   mass             = 13.017
+/   
+
+!Ref. 3,4
+ &site
+  site_type             = 'CH3-TraPPE-UA'
+  sigma                 = 3.75
+  epsilon               = 98.0
+  mass                  = 15.03
+/
+
+!Ref. 3,4
+&site
+  site_type             = 'CH2-TraPPE-UA'
+  sigma                 = 3.95
+  epsilon               = 46.0
+  mass                  = 14.03
+/
+
+!Ref. 4
+ &site
+  site_type             = 'CH-TraPPE-UA'
+  sigma                 = 4.68
+  epsilon               = 10.0
+  mass                  = 13.03
+/
+
+!Ref. 6
+ &site
+  site_type             = 'O-ROR-TraPPE-UA'
+  sigma                 = 2.8
+  epsilon               = 55.0
+  mass                  = 16.0
+/
+
+!Ref. 7
+ &site
+  site_type             = 'CH2dop-TraPPE-UA'
+  sigma                 = 3.675
+  epsilon               = 85.0
+  mass                  = 14.0
+/
+
+!Ref. 7
+ &site
+  site_type             = 'CHdop-TraPPE-UA'
+  sigma                 = 3.730
+  epsilon               = 47.0
+  mass                  = 13.0
+/
+
+!Ref. 7
+ &site
+  site_type             = 'C-TraPPE-UA'
+  sigma                 = 3.850
+  epsilon               = 20.0
+  mass                  = 12.0
+/
+
+!Ref. 9
+ &site
+  site_type             = 'CHx-[O]-H-TraPPE-UA'
+  sigma                 = 3.02
+  epsilon               = 93.0
+  mass                  = 17.0
+/
+
+!Ref. 9
+ &site
+  site_type             = 'O-[H]-TraPPE-UA'
+  sigma                 = 0.0
+  epsilon               = 0.0
+  mass                  = 1.0
+/
+
+!Ref. 10, 11
+ &site
+  site_type             = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  sigma                 = 4.33
+  epsilon               = 10.0
+  mass                  = 13.0
+/
+
+!Ref. 10
+ &site
+  site_type             = '(CHx)3-[C]-O-H-TraPPE-UA'
+  sigma                 = 5.8
+  epsilon               = 0.5
+  mass                  = 12.0
+/
+
+
+&site
+   site_type        = 'CH2-Hessian'
+   sigma            = 3.841
+   epsilon          = 40.0
+   mass             = 14.027
+/   
+
+&site
+  site_type        = 'O-ROR-Hessian'
+  sigma            =  3.40
+  epsilon          =  48.2
+  mass             =  15.9994
+/  
+
+&site
+   site_type        = 'CH3-Hessian'
+   sigma            = 3.841
+   epsilon          = 39.84
+   mass             = 15.035
+/   
+
+
+
+! Here (bond) two types of potential are possible. One with a constant (flexible), the other without (rigid).
+
+ &bond
+   cf1_type    = 'CH3-OPLS-Amber'
+   cf2_type    = 'CH3-OPLS-Amber'
+   bond_length = 1.507
+   bond_constant = 159627.5
+ /
+
+ &bond
+   cf1_type    = 'CH3-OPLS-Amber'
+   cf2_type    = 'CH2-OPLS-Amber'
+   bond_length = 1.507
+   bonding_constant = 159627.5
+ /
+
+ &bond
+   cf1_type    = 'CH2-OPLS-Amber'
+   cf2_type    = 'CH2-OPLS-Amber'
+   bond_length = 1.507
+   bonding_constant = 159627.5
+ /
+
+ &bond
+   cf1_type    = 'CH3-OPLS-Amber'
+   cf2_type    = 'CH-OPLS-Amber'
+   bond_length = 1.507
+   bonding_constant = 159627.5
+ /
+
+
+ &bond
+   cf1_type    = 'CH2-OPLS-Amber'
+   cf2_type    = 'CH-OPLS-Amber'
+   bond_length = 1.507
+   bonding_constant = 159627.5
+ /
+
+ &bond
+   cf1_type    = 'CH3-OPLS-Amber-ethan'
+   cf2_type    = 'CH3-OPLS-Amber-ethan'
+   bond_length = 1.507
+   bonding_constant = 159627.5
+ /
+
+ &bond
+   cf1_type    = 'CH3-Hessian'
+   cf2_type    = 'O-ROR-Hessian'
+   bond_length = 1.4
+ /
+
+ &bond
+   cf1_type    = 'CH3-Hessian'
+   cf2_type    = 'CH2-Hessian'
+   bond_length = 1.4
+ /
+
+
+ &bond
+   cf1_type    = 'CH2-Hessian'
+   cf2_type    = 'O-ROR-Hessian'
+   bond_length = 1.41
+ /
+
+!Ref.6
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'O-ROR-TraPPE-UA'
+   bond_length = 1.41
+ /
+
+!Ref.6
+ &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'O-ROR-TraPPE-UA'
+   bond_length = 1.41
+ /
+
+
+!Ref.9
+ &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'OH-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref.9
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'OH-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref.9
+ &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = 'OH-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref.6
+ &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = 'O-ROR-TraPPE-UA'
+   bond_length = 1.41
+ /
+
+
+!Ref. 1
+ &bond
+   cf1_type    = 'CH3-AUA'
+   cf2_type    = 'CH3-AUA'
+   bond_length = 1.535
+ /
+ 
+!Ref. 1
+ &bond
+   cf1_type    = 'CH3-AUA'
+   cf2_type    = 'CH2-AUA'
+   bond_length = 1.535
+ /
+ 
+!Ref. 1,2
+ &bond
+   cf1_type    = 'CH3-AUA'
+   cf2_type    = 'CH-AUA'
+   bond_length = 1.535
+ /
+
+!Ref. 1,2
+ &bond
+   cf1_type    = 'CH2-AUA'
+   cf2_type    = 'CH2-AUA'
+   bond_length = 1.535
+ /
+ 
+!Ref. 1,2
+ &bond
+   cf1_type    = 'CH2-AUA'
+   cf2_type    = 'CH-AUA'
+   bond_length = 1.535
+ /
+
+!Ref. 1,2
+ &bond
+   cf1_type    = 'CH-AUA'
+   cf2_type    = 'CH-AUA'
+   bond_length = 1.535
+ /
+ 
+!Ref. 3,5
+  &bond
+   cf1_type    = 'CH3-OPLS'
+   cf2_type    = 'CH3-OPLS'
+   bond_length = 1.53
+ /
+
+
+!Ref. 3,5
+  &bond
+   cf1_type    = 'CH3-OPLS'
+   cf2_type    = 'CH2-OPLS'
+   bond_length = 1.53
+ /
+ 
+
+!Ref. 3,5
+  &bond
+   cf1_type    = 'CH3-OPLS'
+   cf2_type    = 'CH-OPLS'
+   bond_length = 1.53
+ /
+
+
+
+!Ref. 3,5
+ &bond
+   cf1_type    = 'CH2-OPLS'
+   cf2_type    = 'CH2-OPLS'
+   bond_length = 1.53
+ /
+
+
+!Ref. 3,5
+ &bond
+   cf1_type    = 'CH2-OPLS'
+   cf2_type    = 'CH-OPLS'
+   bond_length = 1.53
+ /
+
+
+!Ref. 3,5
+  &bond
+   cf1_type    = 'CH-OPLS'
+   cf2_type    = 'CH-OPLS'
+   bond_length = 1.53
+ /
+
+!Ref. 3
+&bond
+   cf1_type    = 'CH3-OPLS-ethan'
+   cf2_type    = 'CH3-OPLS-ethan'
+   bond_length = 1.53
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'C-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH2dop-TraPPE-UA'
+   cf2_type    = 'C-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CHdop-TraPPE-UA'
+   cf2_type    = 'C-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'C-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH2dop-TraPPE-UA'
+   cf2_type    = 'CH2dop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CHdop-TraPPE-UA'
+   cf2_type    = 'CHdop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CHdop-TraPPE-UA'
+   cf2_type    = 'CH2dop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'CH2dop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'CH2dop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'CHdop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+!Ref.7 
+ &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = 'CHdop-TraPPE-UA'
+   bond_length = 1.33
+ /
+
+
+
+!Ref. 3
+ &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'CH3-TraPPE-UA'
+   bond_length = 1.54
+ /
+ 
+!Ref. 3
+  &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'CH2-TraPPE-UA'
+   bond_length = 1.54
+ /
+ 
+!Ref. 3
+   &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'CH2-TraPPE-UA'
+   bond_length = 1.54
+ /
+ 
+!Ref. 3
+  &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'CH-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 3
+   &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'CH-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 3
+   &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = 'CH-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 9
+   &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = 'CHx-[O]-H-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref. 9
+   &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = 'CHx-[O]-H-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref. 9
+   &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = 'CHx-[O]-H-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref. 10
+   &bond
+   cf1_type    = 'CH3-TraPPE-UA'
+   cf2_type    = '(CHx)3-[C]-O-H-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10
+   &bond
+   cf1_type    = 'CH2-TraPPE-UA'
+   cf2_type    = '(CHx)3-[C]-O-H-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10
+   &bond
+   cf1_type    = 'CH-TraPPE-UA'
+   cf2_type    = '(CHx)3-[C]-O-H-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10
+   &bond
+   cf1_type    = 'CHx-[O]-H-TraPPE-UA'
+   cf2_type    = '(CHx)3-[C]-O-H-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+
+
+!Ref. 9
+   &bond
+   cf1_type    = 'CHx-[O]-H-TraPPE-UA'
+   cf2_type    = 'O-[H]-TraPPE-UA'
+   bond_length = 0.945
+ /
+
+!Ref. 10,11
+   &bond
+   cf1_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   cf2_type    = 'CHx-[O]-H-TraPPE-UA'
+   bond_length = 1.43
+ /
+
+!Ref. 10,11
+   &bond
+   cf1_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   cf2_type    = 'CH3-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10,11
+   &bond
+   cf1_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   cf2_type    = 'CH2-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10,11
+   &bond
+   cf1_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   cf2_type    = 'CH-TraPPE-UA'
+   bond_length = 1.54
+ /
+
+!Ref. 10,11
+   &bond
+   cf1_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   cf2_type    = '(CHx)2-[CH]-O-H-TraPPE-UA'
+   bond_length = 1.54
+ /
+ 
+! Ahsan: Here (bending) is just one kind of potential possible
+
+ &bending
+  cf1_type         = 'CH3-OPLS-Amber'
+  cf2_type         = 'CH2-OPLS-Amber' 
+  cf3_type         = 'CH3-OPLS-Amber'
+  bending_angle    =    112 
+  bending_constant =    31250
+ /
+
+ &bending
+  cf1_type         = 'CH3-OPLS-Amber'
+  cf2_type         = 'CH2-OPLS-Amber' 
+  cf3_type         = 'CH2-OPLS-Amber'
+  bending_angle    =    112 
+  bending_constant =    31250
+ /
+
+ &bending
+  cf1_type         = 'CH3-OPLS-Amber'
+  cf2_type         = 'CH-OPLS-Amber' 
+  cf3_type         = 'CH3-OPLS-Amber'
+  bending_angle    =    112 
+  bending_constant =    31250
+ /
+
+ &bending
+  cf1_type         = 'CH2-OPLS-Amber'
+  cf2_type         = 'CH2-OPLS-Amber' 
+  cf3_type         = 'CH2-OPLS-Amber'
+  bending_angle    =    112 
+  bending_constant =    31250
+ /
+
+
+ &bending
+  cf1_type         = 'CH3-Hessian'
+  cf2_type         = 'O-ROR-Hessian' 
+  cf3_type         = 'CH3-Hessian'
+  bending_angle    =    108.9  
+  bending_constant =    61525
+ /
+
+ &bending
+  cf1_type         = 'CH3-Hessian'
+  cf2_type         = 'O-ROR-Hessian' 
+  cf3_type         = 'CH2-Hessian'
+  bending_angle    =   108.9  
+  bending_constant =   61525
+ /
+
+&bending
+  cf1_type         = 'CH2-Hessian'
+  cf2_type         = 'O-ROR-Hessian' 
+  cf3_type         = 'CH2-Hessian'
+  bending_angle    =   108.9  
+  bending_constant =   61525
+/
+ 
+ &bending
+  cf1_type         = 'O-ROR-Hessian'
+  cf2_type         = 'CH2-Hessian'
+  cf3_type         = 'O-ROR-Hessian'
+  bending_angle    =    114
+  bending_constant =   115475 
+  flexible_bending =   1
+  bendcos          =  T
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'CHdop-TraPPE-UA' 
+  cf3_type         = 'CH2dop-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'C-TraPPE-UA' 
+  cf3_type         = 'CH2dop-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'C-TraPPE-UA' 
+  cf3_type         = 'CHdop-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH2dop-TraPPE-UA'
+  cf2_type         = 'CHdop-TraPPE-UA' 
+  cf3_type         = 'C-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'C-TraPPE-UA' 
+  cf3_type         = 'CH3-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH2dop-TraPPE-UA'
+  cf2_type         = 'CHdop-TraPPE-UA' 
+  cf3_type         = 'CH2-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CHdop-TraPPE-UA'
+  cf2_type         = 'CH2-TraPPE-UA' 
+  cf3_type         = 'CH3-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH2dop-TraPPE-UA'
+  cf2_type         = 'CHdop-TraPPE-UA' 
+  cf3_type         = 'CHdop-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.7
+ &bending
+  cf1_type         = 'CH3=TraPPE-UA'
+  cf2_type         = 'CHdop-TraPPE-UA' 
+  cf3_type         = 'CHdop-TraPPE-UA'
+  bending_angle    =    119.7  
+  bending_constant =    35210
+ /
+
+!Ref.6
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'O-ROR-TraPPE-UA' 
+  cf3_type         = 'CH2-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    30200
+ /
+
+!Ref.6
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA'
+  cf2_type         = 'O-ROR-TraPPE-UA' 
+  cf3_type         = 'CH3-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    30200
+/
+
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH2-TraPPE-UA' 
+  cf3_type         = 'CH2-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH-TraPPE-UA' 
+  cf3_type         = 'CH2-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+
+
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH2-TraPPE-UA' 
+  cf3_type         = 'CH3-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH-TraPPE-UA' 
+  cf3_type         = 'CH3-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+
+
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH-TraPPE-UA' 
+  cf3_type         = 'CH-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA'
+  cf2_type         = 'CH2-TraPPE-UA' 
+  cf3_type         = 'CH-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    25150
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA'
+  cf2_type         = 'O-ROR-TraPPE-UA' 
+  cf3_type         = 'CH2-TraPPE-UA'
+  bending_angle    =    112  
+  bending_constant =    30200
+ /
+
+!Ref.6
+ &bending
+  cf1_type         = 'O-ROR-TraPPE-UA' 
+  cf2_type         = 'CH2-TraPPE-UA'
+  cf3_type         = 'O-ROR-TraPPE-UA' 
+  bending_angle    =    112  
+  bending_constant =    56682.5
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = 'CH2-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = 'CH-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = 'CH2-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = 'CH-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = 'CH-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CHx-[O]-H-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    25200
+ /
+
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH3-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH2-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH2-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type         = 'CH-TraPPE-UA' 
+  bending_angle    =    109.47  
+  bending_constant =    31250
+ /
+
+!Ref.10
+ &bending
+  cf1_type         = '(CHx)3-[C]-O-H-TraPPE-UA' 
+  cf2_type         = 'CHx-[O]-H-TraPPE-UA'
+  cf3_type         = 'O-[H]-TraPPE-UA' 
+  bending_angle    =    108.5  
+  bending_constant =    27200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = '(CHx)2-[CH]-O-H-TraPPE-UA' 
+  cf2_type         = 'CHx-[O]-H-TraPPE-UA'
+  cf3_type         = 'O-[H]-TraPPE-UA' 
+  bending_angle    =    108.5  
+  bending_constant =    27200
+ /
+
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = 'CHx-[O]-H-TraPPE-UA'
+  cf3_type         = 'O-[H]-TraPPE-UA' 
+  bending_angle    =    108.5  
+  bending_constant =    27200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = 'CHx-[O]-H-TraPPE-UA'
+  cf3_type         = 'O-[H]-TraPPE-UA' 
+  bending_angle    =    108.5  
+  bending_constant =    27200
+ /
+
+!Ref.9
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = 'CHx-[O]-H-TraPPE-UA'
+  cf3_type         = 'O-[H]-TraPPE-UA' 
+  bending_angle    =    108.5  
+  bending_constant =    27200
+ /
+
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CH3-TraPPE-UA' 
+  bending_angle    =    112.0 
+  bending_constant =    31250
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH3-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CH2-TraPPE-UA' 
+  bending_angle    =    112.0 
+  bending_constant =    31250
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CH2-TraPPE-UA' 
+  bending_angle    =    112.0 
+  bending_constant =    31250
+ /
+
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH2-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CH-TraPPE-UA' 
+  bending_angle    =    112.0 
+  bending_constant =    31250
+ /
+
+!Ref.10,11
+ &bending
+  cf1_type         = 'CH-TraPPE-UA' 
+  cf2_type         = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type         = 'CH-TraPPE-UA' 
+  bending_angle    =    112.0 
+  bending_constant =    31250
+ /
+
+!Ref. 2
+ &bending
+ cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH3-AUA'
+   bending_angle    = 112.0   
+   bending_constant = 31250
+/
+ 
+!Ref. 2
+ &bending
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH2-AUA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 2
+ &bending
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH-AUA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 2
+ &bending
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH-AUA'
+   cf3_type         = 'CH2-AUA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 2
+ &bending
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH-AUA'
+   cf3_type         = 'CH3-AUA'
+   bending_angle    = 110.8   
+   bending_constant = 31250
+ /
+
+!Ref. 2
+ &bending
+   cf1_type         = 'CH2-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH2-AUA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3,4
+ &bending
+   cf1_type         = 'CH3-TraPPE-UA'
+   cf2_type         = 'CH2-TraPPE-UA'
+   cf3_type         = 'CH3-TraPPE-UA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3,4
+ &bending
+   cf1_type         = 'CH3-TraPPE-UA'
+   cf2_type         = 'CH2-TraPPE-UA'
+   cf3_type         = 'CH2-TraPPE-UA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3,4
+ &bending
+   cf1_type         = 'CH3-TraPPE-UA'
+   cf2_type         = 'CH2-TraPPE-UA'
+   cf3_type         = 'CH-TraPPE-UA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 4
+ &bending
+   cf1_type         = 'CH3-TraPPE-UA'
+   cf2_type         = 'CH-TraPPE-UA'
+   cf3_type         = 'CH3-TraPPE-UA'
+   bending_angle    = 112.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3,4
+ &bending
+   cf1_type         = 'CH2-TraPPE-UA'
+   cf2_type         = 'CH2-TraPPE-UA'
+   cf3_type         = 'CH2-TraPPE-UA'
+   bending_angle    = 114.0   
+   bending_constant = 31250
+ /
+
+ !Ref. 3
+ &bending
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH3-OPLS'
+   bending_angle    = 112.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3
+ &bending
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH2-OPLS'
+   bending_angle    = 112.0   
+   bending_constant = 31250
+ / 
+
+!Ref. 3  
+ &bending
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH-OPLS'
+   bending_angle    = 112.0   
+   bending_constant = 31250
+ /
+ 
+!Ref. 3
+ &bending
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH-OPLS'
+   cf3_type         = 'CH3-OPLS'
+   bending_angle    = 112.0   
+   bending_constant = 31250   
+ /
+ 
+!Ref. 3
+ &bending
+   cf1_type         = 'CH2-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH2-OPLS'
+   bending_angle    = 112.0   
+   bending_constant = 62500.0
+ /
+
+ 
+! If no gamma (ci) is specified for the torsion
+! potential it is 0.0. So 2 types of input are possible.
+
+&torsion
+   cf1_type         = 'CH3-OPLS-Amber'
+   cf2_type         = 'CH2-OPLS-Amber' 
+   cf3_type         = 'CH2-OPLS-Amber'
+   cf4_type         = 'CH3-OPLS-Amber' 
+   torsion_c0       = 1031.36
+   torsion_c1       = 2037.82
+   torsion_c2       = 158.52
+   torsion_c3       = -3227.7
+ /
+
+&torsion
+   cf1_type         = 'CH3-Hessian'
+   cf2_type         = 'O-ROR-Hessian' 
+   cf3_type         = 'CH2-Hessian'
+   cf4_type         = 'O-ROR-Hessian' 
+   torsion_c0       = -0.5
+   torsion_c1       = -371.6
+   torsion_c2       = 1238.2
+   torsion_c3       = 811.7
+   torsion_c4       = -21.1
+   torsion_c5       = 109.3
+   torsion_c6       = -56.4
+ /
+
+&torsion
+   cf1_type         = 'CH2-Hessian'
+   cf2_type         = 'O-ROR-Hessian' 
+   cf3_type         = 'CH2-Hessian'
+   cf4_type         = 'O-ROR-Hessian' 
+   torsion_c0       = -0.5
+   torsion_c1       = -371.6
+   torsion_c2       = 1238.2
+   torsion_c3       = 811.7
+   torsion_c4       = -21.1
+   torsion_c5       = 109.3
+   torsion_c6       = -56.4
+ /
+
+!Ref.6
+&torsion
+   cf1_type         = 'CH3-TraPPE-UA'
+   cf2_type         = 'O-ROR-TraPPE-UA'
+   cf3_type         = 'CH2-TraPPE-UA'
+   cf4_type         = 'O-ROR-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+ /
+
+!Ref.6
+&torsion
+   cf1_type         = 'CH2-TraPPE-UA'
+   cf2_type         = 'O-ROR-TraPPE-UA'
+   cf3_type         = 'CH2-TraPPE-UA'
+   cf4_type         = 'O-ROR-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+ /
+
+!Ref. 2
+ &torsion
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH2-AUA'
+   cf4_type         = 'CH3-AUA'
+   torsion_c0       = 1001.35
+   torsion_c1       = 2129.52
+   torsion_c2       = -303.06
+   torsion_c3       = -3612.27
+   torsion_c4       = 2226.71
+   torsion_c5       = 1965.93
+   torsion_c6       = -4489.34
+   torsion_c7       = -1736.22
+   torsion_c8       = 2817.37
+ /
+
+!Ref. 2
+ &torsion
+   cf1_type         = 'CH3-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH2-AUA'
+   cf4_type         = 'CH2-AUA'
+   torsion_c0       = 2104.5942
+   torsion_c1       = -300.471
+   torsion_c2       = 90.046
+   torsion_c3       = -858.411
+   torsion_c4       = 52.887
+   torsion_c5       = -67.028
+   torsion_c6       = 35.793
+   torsion_c7       = -27.128
+   torsion_c8       = 22.010
+ /
+ 
+!Ref. 2
+ &torsion
+   cf1_type         = 'CH2-AUA'
+   cf2_type         = 'CH2-AUA'
+   cf3_type         = 'CH2-AUA'
+   cf4_type         = 'CH2-AUA'
+   torsion_c0       = 2104.5942
+   torsion_c1       = -300.471
+   torsion_c2       = 90.046
+   torsion_c3       = -858.411
+   torsion_c4       = 52.887
+   torsion_c5       = -67.028
+   torsion_c6       = 35.793
+   torsion_c7       = -27.128
+   torsion_c8       = 22.010
+ /
+
+!Ref. 5
+ &torsion
+   cf1_type         = 'CH2-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH2-OPLS'
+   cf4_type         = 'CH2-OPLS'
+   torsion_c0       = 2156.35
+   torsion_c1       = -355.03
+   torsion_c2       = 68.19
+   torsion_c3       = -791.33
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+ /
+
+!Ref. 5
+ &torsion
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH2-OPLS'
+   cf4_type         = 'CH3-OPLS'
+   torsion_c0       = 2221.24
+   torsion_c1       = -382.96
+   torsion_c2       = 79.26
+   torsion_c3       = -806.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+ /
+
+!Ref. 5
+ &torsion
+   cf1_type         = 'CH3-OPLS'
+   cf2_type         = 'CH2-OPLS'
+   cf3_type         = 'CH2-OPLS'
+   cf4_type         = 'CH2-OPLS'
+   torsion_c0       = 2156.35
+   torsion_c1       = -355.03
+   torsion_c2       = 68.19
+   torsion_c3       = -791.33
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref. 9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+  torsion_c0        = -163.75
+  torsion_c1        = 725.35
+  gamma_c1          = 0.0
+  torsion_c2        = 163.75
+  gamma_c2          = 0.0
+  torsion_c3        = 558.20
+  gamma_c3          = 0.0
+
+ /
+
+!Ref. 3
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+  torsion_c0        = -163.75
+  torsion_c1        = 725.35
+  gamma_c1          = 0.0
+  torsion_c2        = 163.75
+  gamma_c2          = 0.0
+  torsion_c3        = 558.20
+  gamma_c3          = 0.0
+
+ /
+ 
+!Ref. 3
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+  torsion_c0        = -163.75
+  torsion_c1        = 725.35
+  gamma_c1          = 0.0
+  torsion_c2        = 163.75
+  gamma_c2          = 0.0
+  torsion_c3        = 558.20
+  gamma_c3          = 0.0
+  torsion_c4        = 0.0
+  gamma_c4          = 0.0
+  torsion_c5        = 0.0
+  gamma_c5          = 0.0
+  torsion_c6        = 0.0
+  gamma_c6          = 0.0
+  torsion_c7        = 0.0
+  gamma_c7          = 0.0
+  torsion_c8        = 0.0
+  gamma_c8          = 0.0
+ /
+
+
+
+!Ref. 3
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+  torsion_c0        = -163.75
+  torsion_c1        = 725.35
+  gamma_c1          = 0.0
+  torsion_c2        = 163.75
+  gamma_c2          = 0.0
+  torsion_c3        = 558.20
+  gamma_c3          = 0.0
+  torsion_c4        = 0.0
+  gamma_c4          = 0.0
+  torsion_c5        = 0.0
+  gamma_c5          = 0.0
+  torsion_c6        = 0.0
+  gamma_c6          = 0.0
+  torsion_c7        = 0.0
+  gamma_c7          = 0.0
+  torsion_c8        = 0.0
+  gamma_c8          = 0.0
+ /
+
+!Ref. 8
+ &torsion
+  cf1_type          = 'CH2dop-TraPPE-UA'
+  cf2_type          = 'CHdop-TraPPE-UA'
+  cf3_type          = 'CHdop-TraPPE-UA'
+  cf4_type          = 'CH2dop-TraPPE-UA'
+   torsion_c0       = -25.68
+   torsion_c1       = 531.57
+   torsion_c2       = 1239.35
+   torsion_c3       = 460.04
+   torsion_c4       = -196.38
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref. 8
+ &torsion
+  cf1_type          = 'CH2dop-TraPPE-UA'
+  cf2_type          = 'CHdop-TraPPE-UA'
+  cf3_type          = 'C-TraPPE-UA'
+  cf4_type          = 'CH2dop-TraPPE-UA'
+   torsion_c0       = -0.15
+   torsion_c1       = -349.97
+   torsion_c2       = 1048.7
+   torsion_c3       = -580.54
+   torsion_c4       = -117.92
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+!Ref. 8
+ &torsion
+  cf1_type          = 'CH2dop-TraPPE-UA'
+  cf2_type          = 'CHdop-TraPPE-UA'
+  cf3_type          = 'C-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -0.15
+   torsion_c1       = -349.97
+   torsion_c2       = 1048.7
+   torsion_c3       = -580.54
+   torsion_c4       = -117.92
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref. 7
+ &torsion
+  cf1_type          = 'CH2dop-TraPPE-UA'
+  cf2_type          = 'CHdop-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = 468.96
+   torsion_c1       = 86.36
+   torsion_c2       = 109.77
+   torsion_c3       = -282.74
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+!Ref. 7
+ &torsion
+  cf1_type          = 'CH2dop-TraPPE-UA'
+  cf2_type          = 'CHdop-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = 468.96
+   torsion_c1       = 86.36
+   torsion_c2       = 109.77
+   torsion_c3       = -282.74
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+!Ref.9
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = -29.17
+   torsion_c1       = 209.82
+   torsion_c2       = 29.17
+   torsion_c3       = 187.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+!Ref.9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = -29.17
+   torsion_c1       = 209.82
+   torsion_c2       = 29.17
+   torsion_c3       = 187.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+!Ref.9
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = -29.17
+   torsion_c1       = 209.82
+   torsion_c2       = 29.17
+   torsion_c3       = 187.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CHx-[O]-H-TraPPE-UA'
+   torsion_c0       = 0
+   torsion_c1       = 0
+   torsion_c2       = 251.62
+   torsion_c3       = 1006.47
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'O-ROR-TraPPE-UA'
+   torsion_c0       = 0
+   torsion_c1       = 0
+   torsion_c2       = 251.62
+   torsion_c3       = 1006.47
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CHx-[O]-H-TraPPE-UA'
+   torsion_c0       = -53.34
+   torsion_c1       = 176.62
+   torsion_c2       = 53.34
+   torsion_c3       = 769.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CHx-[O]-H-TraPPE-UA'
+   torsion_c0       = -53.34
+   torsion_c1       = 176.62
+   torsion_c2       = 53.34
+   torsion_c3       = 769.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'CH2-TraPPE-UA'
+  cf4_type          = 'CHx-[O]-H-TraPPE-UA'
+   torsion_c0       = -53.34
+   torsion_c1       = 176.62
+   torsion_c2       = 53.34
+   torsion_c3       = 769.93
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.9
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = 'O-ROR-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -163.75
+   torsion_c1       = 725.35
+   torsion_c2       = 163.75
+   torsion_c3       = 558.2
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 139.405
+   torsion_c1       = 197.33
+   torsion_c2       = -31.46
+   torsion_c3       = -173.92
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 139.405
+   torsion_c1       = 197.33
+   torsion_c2       = -31.46
+   torsion_c3       = -173.92
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 139.405
+   torsion_c1       = 197.33
+   torsion_c2       = -31.46
+   torsion_c3       = -173.92
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH2-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+!Ref.10,11
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = 'CH2-TraPPE-UA'
+  cf3_type          = '(CHx)2-[CH]-O-H-TraPPE-UA'
+  cf4_type          = 'CH3-TraPPE-UA'
+   torsion_c0       = -237.38	
+   torsion_c1       = 428.73
+   torsion_c2       = 111.85
+   torsion_c3       = 441.27
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH3-TraPPE-UA'
+  cf2_type          = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 0.
+   torsion_c1       = 0.
+   torsion_c2       = 0.
+   torsion_c3       = 163.56
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH2-TraPPE-UA'
+  cf2_type          = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 0.
+   torsion_c1       = 0.
+   torsion_c2       = 0.
+   torsion_c3       = 163.56
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+!Ref.10
+ &torsion
+  cf1_type          = 'CH-TraPPE-UA'
+  cf2_type          = '(CHx)3-[C]-O-H-TraPPE-UA'
+  cf3_type          = 'CHx-[O]-H-TraPPE-UA'
+  cf4_type          = 'O-[H]-TraPPE-UA'
+   torsion_c0       = 0.
+   torsion_c1       = 0.
+   torsion_c2       = 0.
+   torsion_c3       = 163.56
+   torsion_c4       = 0.
+   torsion_c5       = 0.
+   torsion_c6       = 0.
+   torsion_c7       = 0.
+   torsion_c8       = 0.
+/
+
+
+! Ahsan, here come the References to state where the
+! parameters came from. The reference should be cited at the
+! specific parameter entry.
+  
+! REFERENCES 
+! 1. C. Nieto-Draghi, P. Ungerer, B. Rousseau: Optimization of the anisotropic united atoms
+!   intermolecular potential for n-alkanes: Improvement of transport properties, The Journal
+!   of Chemical Physics 125 044517.
+! 2. P. Ungerer, C. Beauvais, J. Delhommelle, A. Boutin, B. Rousseau, A. H. Fuchs: Optimization
+!    of the anisotropic united atoms intermolecular potential for n-alkanes, The Journal
+!    of Chemical Physics 112 (2000) 5499–5510.
+! 3. M. G. Martin, J. I. Siepmann: Transferable Potentials for Phase Equilibria. 1. United-
+!     Atom Description of n-Alkanes, The Journal of Physical Chemistry B 102 (1998) 2569–
+!     2577.
+! 4. P.M. G. Martin, J. I. Siepmann: Novel Configurational-Bias Monte Carlo Method for Branched
+!    Molecules. Transferable Potentials for Phase Equilibria. 2. United-Atom Description
+!    of Branched Alkanes, The Journal of Physical Chemistry B 103 (1999) 4508–4517.(2000) 
+! 5. D. K. Dysthe, A. H. Fuchs, B. Rousseau: Fluid transport properties by equilibrium molecular
+!    dynamics. III. Evaluation of united atom interaction potential models for pure
+!    alkanes, The Journal of Chemical Physics 112 (2000) 7581–7590.
+! 6. J.M. Stubbs, J.J. Potoff, and J.I. Siepmann: Transferable potentials for phase equilibria. 6. United-atom description for ethers, glycols, ketones and aldehydes
+!    J. Phys. Chem. B, 108, 17596-17605 (2004).
+! 7. Collin D. Wick,Marcus G. Martin and J. Ilja Siepmann: Transferable Potentials for Phase Equilibria. 4. United-Atom Description of Linear and
+!     Branched Alkenes and Alkylbenzenes, J. Phys. Chem. B 2000, 104, 8008-8016
+! 8. Katie A. Maerzke, Nathan E. Schultz, Richard B. Ross and J. Ilja Siepmann: TraPPE-UA Force Field for Acrylates 
+!    and Monte Carlo Simulations for Their Mixtures with Alkanes and Alcohols
+! 9. J.M. Stubbs, J.J. Potoff, and J.I. Siepmann:
+!    "Transferable potentials for phase equilibria. 6. United-atom description for ethers, glycols, ketones and aldehydes"
+!    J. Phys. Chem. B, 108, 17596-17605 (2004).
+!10. B. Chen, J.J. Potoff, and J.I. Siepmann,
+!    Monte Carlo calculations for alcohols and their mixtures with alkanes. Transferable potentials for phase equilibria. 5. United-atom description of primary, secondary and tertiary alcohols
+!    J. Phys. Chem. B, 105, 3093-3104 (2001).
+!11. B.L. Eggimann, P. Bai, A.P. Bliss, Q.P. Chen, T.F. Chen, A.D. Cortes-Morales, E. Fetisov, E. Haldoupis, D.B. Harwood, R.K. Lindsey, T. Liyana Arachchi, M.S. Shah, H.D. Stern, K.N. Struk, J. Sung, A.J. Sunnarborg, B. Xue, and J.I. Siepmann
+!    "T-UA No. 61 2-butanol"
+!    TraPPE Validation Database, University of Minnesota: Minneapolis, MN

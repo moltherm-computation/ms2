@@ -1662,7 +1662,7 @@ contains
 !==============================================================!
 
   subroutine TInteraction_Force_Trans( this, EPot, Virial, idfEPot, &
-&            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
+&            VirialIntra, VirialInter, d2EpotdV2, BoxLength, InvKBIdr)
 
 
     implicit none
@@ -1676,6 +1676,7 @@ contains
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
+	real(RK), intent(in), optional     :: InvKBIdr
 
 
     ! Declare local variables
@@ -1695,7 +1696,11 @@ contains
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      call CalcCutoffPartners( this )
+      if( KBIUpdateFrequency > 0 ) then 
+        call CalcRDFforKBI_MD( this, InvKBIdr)!Calc. KBISum while calculating Cutoff partners
+      else
+        call CalcCutoffPartners( this )
+      end if
     end if
 
     ! Calculate MIE forces
