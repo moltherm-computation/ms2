@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>6848a05f4fe192ea603cf1612d704884358c02e4</caseRepositoryHash>
+	<caseRepositoryHash>3aa92392d551a146e402485f9e7768676af86c2d</caseRepositoryHash>
 	<caseList>
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
@@ -41,6 +41,8 @@
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
+		<case name="SVC_aceton" file="SVC_aceton.xml" />
+		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
 		<case name="trans_aceton_site" file="trans_aceton_site.xml" />
 	</caseList>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<name>SVC_meoh_CO2_Ar</name>
+	<parFile>SVC_meoh_CO2_Ar.par</parFile>
+	<reference>
+		<file>SVC_meoh_CO2_Ar_1.res</file>
+	</reference>
+	<reference>
+		<file>SVC_meoh_CO2_Ar_1.run</file>
+	</reference>
+</testcase>
