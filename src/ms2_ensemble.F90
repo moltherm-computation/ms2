@@ -5173,7 +5173,8 @@ loop5:    do nc = 1, this%NComponents
 
     ! Set distance
     do i = 2, this%NComponents, 2
-      this%Component(i)%P0(:, 1, :) = this%Component(i)%P0(:, 1, :) + r / this%BoxLength ! (i+1,1:3) and (i,2:3) set to 0.0 in ConstructSVC
+      this%Component(i)%P0(:, 1, :) = r / this%BoxLength
+!       call Mol2Atom( this%Component(i), 1, this%Component(i)%NPart )
       call Unit2Atom(this%Component(i), this%Component(i)%NPart)
     end do
 
@@ -5218,7 +5219,7 @@ loop5:    do nc = 1, this%NComponents
       call FileWriteBlank( this%iounit_result )
 
       ! Number of steps
-      write( IOBuffer, '("     NR")' )
+      write( IOBuffer, '("       NR")' )
       call FileWriteNoAdvance( this%iounit_result )
 
       ! Radius
@@ -16591,7 +16592,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* G. Rutkai, A. KÃ¶ster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
+    write( IOBuffer, '("* G. Rutkai, A. Köster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
