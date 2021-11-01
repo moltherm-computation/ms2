@@ -85,6 +85,11 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
+    
+    ! Alpha2 matrix
+    real(RK), pointer, contiguous :: ri0_x(:, :)
+    real(RK), pointer, contiguous :: ri0_y(:, :)
+    real(RK), pointer, contiguous :: ri0_z(:, :)
 
     ! Total forces
     real(RK), pointer, contiguous :: F(:, :)
@@ -1116,6 +1121,9 @@ contains
     nullify( this%P4 )
     nullify( this%P5 )
     nullify( this%Disp )
+    nullify( this%ri0_x )
+    nullify( this%ri0_y )
+    nullify( this%ri0_z )
     nullify( this%F )
 #if MPI_VER > 0
     nullify( this%FAll )
@@ -1290,6 +1298,19 @@ contains
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
+      
+      if( ALPHA2UpdateFrequency > 0 ) then
+          ! Alpha2 
+          allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          this%ri0_x(:, :) = 0._RK
+          allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          this%ri0_y(:, :) = 0._RK
+          allocate( this%ri0_z( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          this%ri0_z(:, :) = 0._RK
+      end if
 
       ! Total forces
       allocate( this%F( np, 3 ), STAT = stat )
@@ -1594,6 +1615,16 @@ contains
     ! Displacement
     if( associated( this%Disp ) ) then
       deallocate( this%Disp )
+    end if
+    ! Alpha2
+    if( associated( this%ri0_x ) ) then
+      deallocate( this%ri0_x )
+    end if
+    if( associated( this%ri0_y ) ) then
+      deallocate( this%ri0_y )
+    end if
+    if( associated( this%ri0_z ) ) then
+      deallocate( this%ri0_z )
     end if
 
     ! Total forces
