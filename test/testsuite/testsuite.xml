@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>6f53064eb4576b20debcfc516b8990bffe2294fd</caseRepositoryHash>
+	<caseRepositoryHash>27c592b7870a5aaa961c6511d9519b44c3436330</caseRepositoryHash>
 	<caseList>
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -43,6 +43,7 @@
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
+		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />

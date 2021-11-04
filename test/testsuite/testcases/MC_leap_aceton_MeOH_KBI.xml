@@ -12,6 +12,7 @@
 	</reference>
 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.kbirun</file>
+		<relativeTolerance>7.5e-3</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.rav</file>
