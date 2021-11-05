@@ -20958,7 +20958,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( iounit_restart, '(ES20.12E3)' ) this%Volume5
           end if
           
-          if( ALPHA2UpdateFrequency > 0 ) then
+          if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
             write( iounit_restart, '(I10)' ) this%alpha2aveCount
             do j = 0, ALPHA2Length/ALPHA2Shift-1
               write( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
@@ -21345,7 +21345,7 @@ endif
           read( iounit_restart, '(ES20.12E3)' ) this%Volume5
         end if
         
-        if( ALPHA2UpdateFrequency > 0 ) then
+        if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
             read( iounit_restart, '(I10)' ) this%alpha2aveCount
             do j = 0, ALPHA2Length/ALPHA2Shift-1
               read( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
