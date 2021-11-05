@@ -1101,6 +1101,10 @@ contains
     if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
 #endif
 
+#ifdef USE_PRINTPROCSTATUS
+    call printProcStatus("end of Construct")
+#endif
+
   end subroutine TSimulation_Construct
 
 
@@ -1118,6 +1122,10 @@ contains
 
     ! Declare local variables
     integer :: i
+
+#ifdef USE_PRINTPROCSTATUS
+    call printProcStatus("beginning of Destruct")
+#endif
 
     ! Close result and visualisation files
     call LogWriteBlank
@@ -1224,6 +1232,10 @@ contains
     logical :: multNodes
     logical :: AnyNPartOk = .false.
 #endif 
+
+#ifdef USE_PRINTPROCSTATUS
+    call printProcStatus("beginning of Run")
+#endif
 
     tooManyParticles = .false.
     call Construct(RunTimer,"TSimulation_Run",CStopwatch_doMPIStartBarrier)
@@ -2024,6 +2036,7 @@ eqloop: do
           call MPI_Reduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, NRootProc, Communicator, ierror )
           if ( .not. doneMsgTerm ) then
             if ( RootProc_W ) then
+              !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               call MPI_Test(mpireqmsgTerm, doneMsgTerm, mpistatus, ierror)
               if ( doneMsgTerm ) then
                 write( IOBuffer, '("received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
@@ -2118,6 +2131,7 @@ eqloop: do
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
               call LogWriteTime
+              !    MPI_Bsend should also work and doesn't require the MPI_Wait
               call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, mpireqmsgTerm, ierror)
               doneMsgTerm=.true.
               numMsgTerm_send = numMsgTerm_send + 1
