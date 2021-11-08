@@ -4,7 +4,7 @@
 	<parFile>MC_thermoint_meoh.par</parFile>
 	<name>MC_thermoint_meoh</name>
 	<np>40</np>
-	<walltime>03:30:00</walltime>
+	<walltime>08:45:00</walltime>
 	<reference>
 		<file>MC_thermoint_meoh_1.res</file>
 	</reference>

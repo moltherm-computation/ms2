@@ -4,7 +4,7 @@
 	<parFile>MC.par</parFile>
 	<name>MC</name>
 	<np>40</np>
-	<walltime>03:00:00</walltime>
+	<walltime>8:00:00</walltime>
 	<reference>
 		<file>MC_1.res</file>
 	</reference>
