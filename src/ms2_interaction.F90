@@ -4328,6 +4328,7 @@ end subroutine TInteraction_Energy
     real(RK), intent(in)     :: BoxLength
     logical, intent(in)      :: CompIdent
 
+#if 0
     ! Declare local variables
     integer        :: i, j, k, jk, unit1
     real(RK)       :: EBonded
@@ -4338,7 +4339,7 @@ end subroutine TInteraction_Energy
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
-        call Energy( this%PotMIEnmMIEnm( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        !call Energy( this%PotMIEnmMIEnm( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate point charge forces
@@ -4421,7 +4422,7 @@ end subroutine TInteraction_Energy
           end do
       end do
     end if
-
+# endif
  end subroutine TInteraction_MDEnergy
 
 
