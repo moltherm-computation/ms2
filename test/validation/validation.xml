@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.286</tools4ms2version>
-	<caseRepositoryHash>7b2cb7992816ffbeac0da19bc41aff56aa20cbe4</caseRepositoryHash>
+	<caseRepositoryHash>e8bcd9b8669cb76014e5d90e228bcf010bd96c90</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="2VC_aceton" file="2VC_aceton.xml" /> -->
 <!-- 		<case name="2VC_Ar" file="2VC_Ar.xml" /> -->
@@ -15,7 +15,7 @@
 		<case name="C4H10_OPLS_p3T2_Ring" file="C4H10_OPLS_p3T2_Ring.xml" />
 		<case name="C4H10_OPLSAmb_p3T2_Ring" file="C4H10_OPLSAmb_p3T2_Ring.xml" />
 		<case name="isoC4H10_OPLSAmb_p3T2_Ring" file="isoC4H10_OPLSAmb_p3T2_Ring.xml" />
-		<case name="MC" file="MC.xml" />
+<!-- 		<case name="MC" file="MC.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
 		<case name="MC_GE_Ar" file="MC_GE_Ar.xml" />
@@ -221,6 +221,6 @@
 		<case name="MD_widom_xA080" file="MD_widom_xA080.xml" />
 		<case name="MD_widom_xA100" file="MD_widom_xA100.xml" />
 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
-		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
+		<case name="NPT_4mixT380-MD" file="NPT_4mixT380-MD.xml" /> -->
 	</caseList>
 </testsuite>
