@@ -1391,7 +1391,8 @@ contains
         TZ1(i) = TZ1(i) + TZi
       end do
 
-      EPot = EPot + this%RFConst2 * EPotlocal
+      EPot = EPot + this%RFConst2 * EPotLocal
+      Virial = Virial + this%RFConst2* EPotLocal
     end if
 
   end subroutine TInteraction_Force
@@ -1553,7 +1554,8 @@ contains
         TZ1(i) = TZ1(i) + TZi
       end do
 
-      EPot = EPot + this%RFConst2 * EPotlocal
+      EPot = EPot + this%RFConst2 * EPotLocal
+      Virial = Virial + this%RFConst2* EPotLocal
     end if
 
   end subroutine TInteraction_Force_Trans
@@ -2661,6 +2663,9 @@ contains
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             EPot(j) = EPot(j) + this%RFConst2 * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+            end if 
           end do
 
         else         ! Extended ReactionField
@@ -3276,6 +3281,7 @@ contains
 
     end if
     this%EPot1 = EPot
+    
 end subroutine TInteraction_Energy
 
 
