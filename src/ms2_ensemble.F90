@@ -1754,16 +1754,17 @@ contains
     if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF  / this%NPart
-
     else
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF * NProcs / this%NPart
-
     endif
-
     call LogWrite
-
-    write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
+    
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
+       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
+    else
+       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF * NProcs / this%NPart
+    endif
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -4188,6 +4189,7 @@ contains
           end do
         end do
         this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
+        this%VirialCorrRF = 3_RK * this%EPotCorrRF
 
       else ! Rodgers
         this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
@@ -4245,6 +4247,7 @@ contains
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
         this%EPotCorrRF = this%EPotCorrRF * NProcs
+        this%VirialCorrRF = this%VirialCorrRF * NProcs
       endif
 
       if (LongRange .eq. Rodgers ) then
@@ -5080,6 +5083,7 @@ loop3:  do nc = 1, this%NComponents
       end do
     end if
 
+
     ! Calculate potential energy and virial
 #if MPI_VER > 0
     ! in MC simulations we only communicate during common equilibration 
@@ -5120,8 +5124,7 @@ loop3:  do nc = 1, this%NComponents
         this%VirialInter = this%Virial - this%VirialIntra
       endif
 
-    endif  
-
+    endif 
 #else
 
     this%EPot = GetEnergy( this )
@@ -5141,6 +5144,7 @@ loop3:  do nc = 1, this%NComponents
     endif
 
 #endif
+
     ! Resize simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
       call Resize( this )
@@ -6133,7 +6137,7 @@ loop5:    do nc = 1, this%NComponents
 #endif
     end do
 
-    ! Zero potential
+    ! potential energy correction
     EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
     idfEPot%EPotInter = this%Density * this%EPotCorrMIE + this%EPotCorrRF
     idfEPot%EPotIntra = 0._RK
@@ -6142,12 +6146,12 @@ loop5:    do nc = 1, this%NComponents
     idfEPot%EPotIntra_Dihedral = 0._RK
     idfEPot%EPotIntra_Nonbonded = 0._RK
 
-    ! Zero virial
-    Virial = this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    ! virial correction
+    Virial = this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
     VirialInter = Virial
     VirialIntra = 0._RK
 
-    ! Zero d2Epot/dV2
+    ! d2Epot/dV2 correction
     d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE 
 
 !     ! Calculate interactions partners within cutoff sphere
@@ -7325,7 +7329,7 @@ loop2:        do nc = 1, this%NComponents
     nup1= this%Component(nc)%Molecule%NUnit * (np - 1) + nu
     do i = 1, this%NComponents
       NUnitPart = this%Component(i)%Molecule%NUnit * this%Component(i)%NPart
-      E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1) )
+      E = E + sum( this%Interaction(nc, i)%EPot(nup1, 1:NUnitPart) )
     end do
 
     if ( UseIntDegFreed ) then
@@ -7387,7 +7391,7 @@ loop2:        do nc = 1, this%NComponents
         V = V + sum( this%Interaction(j, i)%Virial(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
       end do
     end do
-    V = .5_RK * V + this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    V = .5_RK * V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
 
     if (LongRange .eq. Ewald) then
 !       call EwaldFourierEnergy(this)
@@ -7510,6 +7514,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, nu, EPotNew )
+
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
@@ -7519,8 +7524,9 @@ loop2:        do nc = 1, this%NComponents
           EPotDelta = EPotOld - EPotNew
     endif
 #else
-     EPotDelta = EPotOld - EPotNew
+    EPotDelta = EPotOld - EPotNew
 #endif
+
 
     accepted = EPotDelta > 0._RK
     if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )

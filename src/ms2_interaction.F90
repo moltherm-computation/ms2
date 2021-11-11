@@ -1649,7 +1649,8 @@ contains
         end do
       end do
 
-      EPot = EPot + this%RFConst2 * EPotlocal
+      EPot = EPot + this%RFConst2 * EPotLocal
+      Virial = Virial + this%RFConst2* EPotLocal
       idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
@@ -1878,6 +1879,7 @@ contains
       end do
 
       EPot = EPot + this%RFConst2 * EPotLocal
+      Virial = Virial + this%RFConst2* EPotLocal
       idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
@@ -3069,6 +3071,9 @@ contains
             end if
             EPot(j) = EPot(j) + this%RFConst2 * &
 &                   ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
+            if ( OptPressure ) then
+              Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+            end if 
           end do
 
         else         ! Extended ReactionField
@@ -3716,6 +3721,7 @@ contains
 
     end if
     this%EPot1 = EPot
+    
 end subroutine TInteraction_Energy
 
 
