@@ -4189,7 +4189,9 @@ contains
           end do
         end do
         this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
-        this%VirialCorrRF = 3_RK * this%EPotCorrRF
+        if (.not. UseIntDegFreed) then
+            this%VirialCorrRF = 3_RK * this%EPotCorrRF
+        endif
 
       else ! Rodgers
         this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
@@ -7329,7 +7331,11 @@ loop2:        do nc = 1, this%NComponents
     nup1= this%Component(nc)%Molecule%NUnit * (np - 1) + nu
     do i = 1, this%NComponents
       NUnitPart = this%Component(i)%Molecule%NUnit * this%Component(i)%NPart
-      E = E + sum( this%Interaction(nc, i)%EPot(nup1, 1:NUnitPart) )
+      if (UseIntDegFreed) then
+          E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1) )
+      else
+          E = E + sum( this%Interaction(nc, i)%EPot(nup1, 1:NUnitPart) )
+      end if
     end do
 
     if ( UseIntDegFreed ) then
