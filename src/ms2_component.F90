@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 #ifndef ARCH
@@ -51,7 +51,7 @@ module ms2_component
 
     ! Charged component
     logical           :: charged
-    
+
 #if OSMOP > 0
     ! Permeability
     logical           :: permeable
@@ -93,12 +93,19 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
-    
+
     ! Alpha2 matrix
     real(RK), pointer, contiguous :: ri0_x(:, :)
     real(RK), pointer, contiguous :: ri0_y(:, :)
     real(RK), pointer, contiguous :: ri0_z(:, :)
 
+#if TRANS==1
+    !EinsteinCoef  ri0_E Component
+    real(RK), pointer, contiguous :: ri0_E_x(:, :)
+    real(RK), pointer, contiguous :: ri0_E_y(:, :)
+    real(RK), pointer, contiguous :: ri0_E_z(:, :)
+    integer :: NEinstein !  NCorr / NSpanCF
+#endif
     ! Total forces acting on units
     real(RK), pointer, contiguous :: F(:, :, :)
 #if MPI_VER > 0
@@ -407,7 +414,7 @@ module ms2_component
   interface Atom2Unit
     module procedure TComponent_Atom2Unit
   end interface
-  
+
   interface Atom2Unit_Trans
     module procedure TComponent_Atom2Unit_Trans
   end interface
@@ -573,7 +580,7 @@ contains
     call LogWrite
 
 #if TRANS==1
- ! Read partial molar enthalpy from the paremeters file     
+ ! Read partial molar enthalpy from the paremeters file
     call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
@@ -758,7 +765,7 @@ contains
           this%NTest = ((this%NTest-1)/NProcs +1)
         endif
 #endif
-        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
+        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
           if (.not. UseIntDegFreed) then
               write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
@@ -1378,6 +1385,10 @@ contains
     nullify( this%FRC2 )
     nullify( this%FRC3 )
 
+    nullify( this%ri0_E_x ) !EinsteinCoef ri0_E nullify
+    nullify( this%ri0_E_y )
+    nullify( this%ri0_E_z )
+
 #if OSMOP > 0
     nullify( this%FOsmoticPressure )
     nullify( this%DensityProfileN )
@@ -1510,19 +1521,34 @@ contains
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
-      
+
       if( ALPHA2UpdateFrequency > 0 ) then
-          ! Alpha2 
+          ! Alpha2
           allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )          
+          call AllocationError( stat, 'particles', np )
           allocate( this%ri0_z( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           this%ri0_x(:, :) = 0._RK
           this%ri0_y(:, :) = 0._RK
           this%ri0_z(:, :) = 0._RK
       end if
+
+#if TRANS==1
+      !EinsteinCoef allocate ri0_E
+      if( EinsteinCoefCalc) then
+          allocate( this%ri0_E_x( np, 0:this%NEinstein-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          allocate( this%ri0_E_y( np, 0:this%NEinstein-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          allocate( this%ri0_E_z( np, 0:this%NEinstein-1 ), STAT = stat )
+          call AllocationError( stat, 'particles', np )
+          this%ri0_E_x(:, :) = 0._RK
+          this%ri0_E_y(:, :) = 0._RK
+          this%ri0_E_z(:, :) = 0._RK
+      end if
+#endif
 
       ! Total forces
       allocate( this%F( np, 3, nu ), STAT = stat )
@@ -2572,6 +2598,18 @@ contains
 
 #if  TRANS == 1
 ! Transport !TRANSPORT_start
+    !EinsteinCoef ri0_E deallocate
+    if( associated( this%ri0_E_x ) ) then
+      deallocate( this%ri0_E_x )
+    end if
+    if( associated( this%ri0_E_y ) ) then
+      deallocate( this%ri0_E_y )
+    end if
+    if( associated( this%ri0_E_z ) ) then
+      deallocate( this%ri0_E_z )
+    end if
+
+
     if( associated( this%KinETran) ) then
       deallocate( this%KinETran )
     end if
@@ -2911,9 +2949,9 @@ contains
       L(:) = 0._RK
       do i = 1, 3
         P(i) = P(i) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
- 
+
         if( i <= this%Molecule%Unit(k)%NDFRot ) L(i) = L(i) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
- 
+
       end do
       P(:) = P(:) / this%NPart
       L(:) = L(:) / this%NPart
@@ -2924,7 +2962,7 @@ contains
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim
         end do
- 
+
         if( i <= this%Molecule%Unit(k)%NDFRot ) then
           Pim = L(i) / this%Molecule%Unit(k)%MOI(i)
           do j = 1, this%NPart
@@ -3570,7 +3608,7 @@ contains
     integer                        :: i0, i1, i, j, iUnit
 #if MPI_VER > 0
     real(RK),allocatable           :: OsmoPAll(:)
-    
+
     allocate( OsmoPAll(this%NPart) )
     OsmoPAll(:) = 0._RK
 #endif
@@ -3604,7 +3642,7 @@ contains
     !end if
 #if MPI_VER > 0
     call MPI_Reduce( this%FOsmoticPressure(:), OsmoPAll(:), size( this%FOsmoticPressure), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:) 
+    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:)
 #endif
 #endif
 
@@ -3814,7 +3852,7 @@ contains
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
- 
+
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -4504,7 +4542,7 @@ contains
     integer             :: i, j
 #if MPI_VER > 0
     integer,allocatable :: DensityN(:)
-    
+
     allocate( DensityN(NBinsDen) )
     DensityN(:) = 0
 #endif
@@ -5408,7 +5446,7 @@ loop1:do i = 1, this%NPart
           end do
         end do
       end if
-      
+
       if (.not. printIDF) then
           do i = 1, np
             pos(:) = this%Disp(i,:)
@@ -5423,7 +5461,17 @@ loop1:do i = 1, this%NPart
             end do
           end if
       end if
-      
+
+#if TRANS == 1
+      if( EinsteinCoefCalc ) then  !EinsteinCoef ri0_E rest write
+            do i = 1, np
+              do j = 0, this%NEinstein-1
+                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
+              end do
+            end do
+       end if
+#endif
+
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
@@ -5619,7 +5667,7 @@ loop1:do i = 1, this%NPart
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
             end do
-          end do      
+          end do
         end if
 
         if (.not. printIDF) then
@@ -5635,7 +5683,16 @@ loop1:do i = 1, this%NPart
               end do
             end if
         end if
-        
+#if TRANS==1
+        !EinsteinCoef rest read ri0_E_x
+         if( EinsteinCoefCalc ) then
+              do i = 1, np
+                do j = 0, this%NEinstein-1
+                  read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
+                end do
+              end do
+         end if
+#endif
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
