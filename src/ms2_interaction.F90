@@ -3072,7 +3072,7 @@ contains
             EPot(j) = EPot(j) + this%RFConst2 * &
 &                   ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
             if ( OptPressure ) then
-              Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j) + mueYi * MueY2(j) + mueZi * MueZ2(j) )
+              Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j, nu2) + mueYi * MueY2(j, nu2) + mueZi * MueZ2(j, nu2) )
             end if 
           end do
 
