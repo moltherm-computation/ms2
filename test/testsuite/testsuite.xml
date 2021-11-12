@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>6c3d62ddbce4e7b0bde9392ec5e96a439b2b1023</caseRepositoryHash>
+	<caseRepositoryHash>69143f82fd0003708ad23fc04e28a50dad396535</caseRepositoryHash>
 	<caseList>
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
