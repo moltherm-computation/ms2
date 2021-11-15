@@ -2,8 +2,9 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>1134355b66127de93bc422d9d418b28be6508914</caseRepositoryHash>
+	<caseRepositoryHash>eab299a7e60954e3bc9cb580e8e84fd76611961a</caseRepositoryHash>
 	<caseList>
+		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
