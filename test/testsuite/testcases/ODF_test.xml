@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>ODF_test.par</parFile>
+	<name>ODF_test</name>
+	<np>3</np>
+	<reference>
+		<file>ODF_test.rst</file>
+	</reference>
+	<reference>
+		<file>ODF_test_1.run</file>
+	</reference>
+	<reference>
+		<file>ODF_test_1.res</file>
+	</reference>
+	<reference>
+		<file>ODF_test_1.rav</file>
+	</reference>
+	<reference>
+		<file>ODF_test_1.odf</file>
+	</reference>
+</testcase>
