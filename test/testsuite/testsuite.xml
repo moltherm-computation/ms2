@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>d33efe668e2dd4b4bbc896abd7b391777433724f</caseRepositoryHash>
+	<caseRepositoryHash>6a7f0a970fdf2669de5ffe2925117698623aa846</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -49,6 +49,7 @@
 		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 		<case name="ODF_test" file="ODF_test.xml" />
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
+		<case name="spme_NpT_NaCl+SPCE" file="spme_NpT_NaCl+SPCE.xml" />
 <!-- 		<case name="SVC_aceton" file="SVC_aceton.xml" /> -->
 <!-- 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" /> -->
 		<case name="TangToennies_com" file="TangToennies_com.xml" />
