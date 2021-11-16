@@ -173,6 +173,15 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
+  !DC NOTE- Extension of cluster related visualisation file.
+  character(*), parameter :: VisualCCFileExtension = '.cvim'
+  
+  !DC NOTE- Extension of cluster criteria info file.
+  character(*), parameter :: CCFileExtension = '.clust'
+
+  !DC NOTE- Extension of cluster criteria grid position file.
+  character(*), parameter :: GridFileExtension = '.grid'
+  
   ! Extension of visualisation of h-bonding file.
   character(*), parameter :: VisualHBFileExtension = '.hbvim'
 
@@ -185,6 +194,9 @@ module ms2_global
   ! Extension of RDF file 
   character(*), parameter :: RDFFileExtension = '.rdf'
   
+  ! Extension of ODF file 
+  character(*), parameter :: ODFFileExtension = '.odf'
+
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
   character(*), parameter :: KBIravFileExtension = '.kbirav'
@@ -248,6 +260,10 @@ module ms2_global
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
   integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
+  integer, parameter :: iounit_ccpos     = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_cc        = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_ccgrid    = iounit_start + 22 !DC TODO - this should be changed appropriate to the other output files
+
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
@@ -303,6 +319,11 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdnR                          = 'NumShellsODF'
+  character(*), parameter :: IdnPhi                        = 'nPhiODF'
+  character(*), parameter :: IdnGamma                      = 'nGammaODF'
+  character(*), parameter :: IdODFUpdateFrequency          = 'ODFRecordingFreq'
+  character(*), parameter :: IdODFOutputFrequency          = 'ODFOutputFreq'
   character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
   character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
   character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq' 
@@ -348,6 +369,16 @@ module ms2_global
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdPermeability                = 'Permeability'
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
+
+  !DC NOTE- cluster criteria relevant global Id
+  character(*), parameter :: IdIsClusterCriteria           = 'ClusterIsCriteria'  
+  character(*), parameter :: IdCCUpdateFrequency           = 'ClusterCriteriaFreq'  
+  character(*), parameter :: IdCcrittype                   = 'ClusterCriteriaType'  
+  character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'  
+  character(*), parameter :: IdCcount                      = 'ClusterMoleculeCount'  
+  character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'  
+  character(*), parameter :: IdIsCvim                      = 'ClusterIsCvim'  
+
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
@@ -635,6 +666,10 @@ module ms2_global
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
 
+  integer, parameter :: CCritTypeVapor  = 0  
+  integer, parameter :: CCritTypeGridvap = 2
+  integer, parameter :: CCritTypeGridliq = 3
+
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
   real(RK) :: TimeStepSquared, TimeStepSquared2, TimeStepSquaredInv2
@@ -764,11 +799,29 @@ module ms2_global
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
+  !DC NOTE- Frequency of updating visualisation file
+  integer :: VisualCCUpdateFrequency
+
   ! Frequency of updating RDF file
   integer :: RDFUpdateFrequency
   
   ! Number of RDF shells
   integer :: RDFNumberShells
+  
+  ! Number of ODF shells
+  integer :: nR
+  
+  ! Discretisation of angle phi for ODF
+  integer :: nPhi
+  
+  ! Discretisation of angle gamma12 for ODF
+  integer :: nGamma
+  
+  ! Frequency of updating ODF file
+  integer :: ODFUpdateFrequency
+  
+  ! Frequency of creating ODF output files
+  integer :: ODFOutputFrequency  
   
   ! Frequency of updating KBI file
   integer :: KBIUpdateFrequency

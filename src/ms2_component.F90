@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *
-!* http://www.ms-2.de                                           *
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
 !****************************************************************
 
 #ifndef ARCH
@@ -51,7 +51,7 @@ module ms2_component
 
     ! Charged component
     logical           :: charged
-
+    
 #if OSMOP > 0
     ! Permeability
     logical           :: permeable
@@ -93,7 +93,7 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
-
+    
     ! Alpha2 matrix
     real(RK), pointer, contiguous :: ri0_x(:, :)
     real(RK), pointer, contiguous :: ri0_y(:, :)
@@ -410,7 +410,7 @@ module ms2_component
   interface Unit2AtomTest
     module procedure TComponent_Unit2AtomTest
   end interface
-
+  
   interface Atom2Unit
     module procedure TComponent_Atom2Unit
   end interface
@@ -418,12 +418,12 @@ module ms2_component
   interface Atom2Unit_Trans
     module procedure TComponent_Atom2Unit_Trans
   end interface
-
+  
   interface Unit2Mol
     module procedure TComponent_Unit2Mol
     module procedure TComponent_Unit2Mol1
   end interface
-
+  
 #if OSMOP > 0
   interface DensityProfile
     module procedure TComponent_DensityProfile
@@ -580,7 +580,7 @@ contains
     call LogWrite
 
 #if TRANS==1
- ! Read partial molar enthalpy from the paremeters file
+ ! Read partial molar enthalpy from the paremeters file     
     call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
@@ -669,7 +669,7 @@ contains
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 
-#if MPI_VER > 0
+#if MPI_VER > 0        
         if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
            this%NTest = ((this%NTest -1)/NProcs +1)
         endif
@@ -765,7 +765,7 @@ contains
           this%NTest = ((this%NTest-1)/NProcs +1)
         endif
 #endif
-        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then
+        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
           if (.not. UseIntDegFreed) then
               write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
@@ -1521,9 +1521,9 @@ contains
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
-
+      
       if( ALPHA2UpdateFrequency > 0 ) then
-          ! Alpha2
+          ! Alpha2 
           allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
@@ -2949,13 +2949,13 @@ contains
       L(:) = 0._RK
       do i = 1, 3
         P(i) = P(i) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
-
+ 
         if( i <= this%Molecule%Unit(k)%NDFRot ) L(i) = L(i) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
-
+ 
       end do
       P(:) = P(:) / this%NPart
       L(:) = L(:) / this%NPart
-
+ 
       ! Remove net momentum
       do i = 1, 3
         Pim = P(i) / this%Molecule%Unit(k)%Mass
@@ -3608,7 +3608,7 @@ contains
     integer                        :: i0, i1, i, j, iUnit
 #if MPI_VER > 0
     real(RK),allocatable           :: OsmoPAll(:)
-
+    
     allocate( OsmoPAll(this%NPart) )
     OsmoPAll(:) = 0._RK
 #endif
@@ -3642,7 +3642,7 @@ contains
     !end if
 #if MPI_VER > 0
     call MPI_Reduce( this%FOsmoticPressure(:), OsmoPAll(:), size( this%FOsmoticPressure), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:)
+    if (RootProc) this%FOsmoticPressure(:) = OsmoPAll(:) 
 #endif
 #endif
 
@@ -3852,7 +3852,7 @@ contains
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
     integer                        :: i, j
-
+ 
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -4542,7 +4542,7 @@ contains
     integer             :: i, j
 #if MPI_VER > 0
     integer,allocatable :: DensityN(:)
-
+    
     allocate( DensityN(NBinsDen) )
     DensityN(:) = 0
 #endif
@@ -5446,13 +5446,13 @@ loop1:do i = 1, this%NPart
           end do
         end do
       end if
-
+      
       if (.not. printIDF) then
           do i = 1, np
             pos(:) = this%Disp(i,:)
             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
-
+      
           if( ALPHA2UpdateFrequency > 0 ) then
             do i = 1, np
               do j = 0, ALPHA2Length/ALPHA2Shift-1
@@ -5667,14 +5667,14 @@ loop1:do i = 1, this%NPart
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
             end do
-          end do
+          end do      
         end if
-
+        
         if (.not. printIDF) then
             do i = 1, np
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
             end do
-
+        
             if( ALPHA2UpdateFrequency > 0 ) then
               do i = 1, np
                 do j = 0, ALPHA2Length/ALPHA2Shift-1
