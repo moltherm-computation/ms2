@@ -624,7 +624,24 @@ contains
         this%Unit(1)%SiteQuadrupole(j) = this%SiteQuadrupole(j)
         this%SiteQuadrupole(j)%UnitNumber = 1
       end do
-      this%Unit(1)%NDFRot = -1
+
+        if (.not. UseIntDegFreed) then
+            ! Read number of rotation axes
+            call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+            select case( stype )
+            case( '0' )
+              this%Unit(1)%NDFRot = 0
+            case( '2' )
+              this%Unit(1)%NDFRot = 2
+            case( '3' )
+              this%Unit(1)%NDFRot = 3
+            case( 'AUTO', 'Auto', 'auto' )
+              this%Unit(1)%NDFRot = -1
+            case default
+              call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+            end select
+        end if
+
     end if
 
     !sort_sitetypes
