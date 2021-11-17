@@ -1096,8 +1096,8 @@ contains
     integer           :: iPhi1, iPhi2, iGamma12, iR 
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer :: RX1(:, :), RY1(:, :), RZ1(:, :), RX2(:, :), RY2(:, :), RZ2(:, :)
+    real(RK), pointer, contiguous :: OX1(:, :), OY1(:, :), OZ1(:, :), OX2(:, :), OY2(:, :), OZ2(:, :)
     real(RK)          :: Rij(3), Ri(3), Oi(3), Oj(3,this%NPart2), rejOi(3), rejOj(3)
     integer           :: i, j, k, i0, i1
 
@@ -1116,13 +1116,13 @@ contains
     OY2 => this%MueY2
     OZ2 => this%MueZ2
     
-    Normi = SQRT(OX1(1)*OX1(1)+OY1(1)*OY1(1)+OZ1(1)*OZ1(1))
-    Normj = SQRT(OX2(1)*OX2(1)+OY2(1)*OY2(1)+OZ2(1)*OZ2(1))
+    Normi = SQRT(OX1(1, 1)*OX1(1, 1)+OY1(1, 1)*OY1(1, 1)+OZ1(1, 1)*OZ1(1, 1))
+    Normj = SQRT(OX2(1, 1)*OX2(1, 1)+OY2(1, 1)*OY2(1, 1)+OZ2(1, 1)*OZ2(1, 1))
     
     do i = 1, this%NPart2
-        Oj(1,i) = OX2(i) / Normj
-        Oj(2,i) = OY2(i) / Normj
-        Oj(3,i) = OZ2(i) / Normj
+        Oj(1,i) = OX2(i, 1) / Normj
+        Oj(2,i) = OY2(i, 1) / Normj
+        Oj(3,i) = OZ2(i, 1) / Normj
     end do
 
 #if MPI_VER > 0
@@ -1137,17 +1137,17 @@ contains
       !position coordinates
 
       !orientation vectors
-      Oi(1) = OX1(i) / Normi
-      Oi(2) = OY1(i) / Normi
-      Oi(3) = OZ1(i) / Normi
+      Oi(1) = OX1(i, 1) / Normi
+      Oi(2) = OY1(i, 1) / Normi
+      Oi(3) = OZ1(i, 1) / Normi
 
       do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         
         ! 1D distances
-        Rij(1) = RX1(i) - RX2(j) 
-        Rij(2) = RY1(i) - RY2(j)
-        Rij(3) = RZ1(i) - RZ2(j)
+        Rij(1) = RX1(i, 1) - RX2(j, 1)
+        Rij(2) = RY1(i, 1) - RY2(j, 1)
+        Rij(3) = RZ1(i, 1) - RZ2(j, 1)
         ! minimum image convention
         Rij(1) = Rij(1) - anint( Rij(1) )
         Rij(2) = Rij(2) - anint( Rij(2) )

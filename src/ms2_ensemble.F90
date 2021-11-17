@@ -17963,7 +17963,7 @@ end if
       call FileWrite( this%iounit_ccpos )
       do i = 1, this%NComponents
         do j = 1, this%Component(i)%NPart
-          r(:) = this%Component(i)%P0(j, :)
+          r(:) = this%Component(i)%P0(j, :, 1)
 
           write( IOBuffer, '(I3, 3F16.10)' ) i, r(:)
           call FileWrite( this%iounit_ccpos )
@@ -27237,13 +27237,13 @@ contains
     end do
 
     do j = 1, pcur%NPart                 
-      x_edge = int((pcur%P0(j, 1) - grid_center)/rim_radius)
-      y_edge = int((pcur%P0(j, 2) - grid_center)/rim_radius)
-      z_edge = int((pcur%P0(j, 3) - grid_center)/rim_radius)
+      x_edge = int((pcur%P0(j, 1, 1) - grid_center)/rim_radius)
+      y_edge = int((pcur%P0(j, 2, 1) - grid_center)/rim_radius)
+      z_edge = int((pcur%P0(j, 3, 1) - grid_center)/rim_radius)
 
-      x_ind = floor( (0.5_RK + pcur%P0(j, 1))/DistCrit )       
-      y_ind = floor( (0.5_RK + pcur%P0(j, 2))/DistCrit )       
-      z_ind = floor( (0.5_RK + pcur%P0(j, 3))/DistCrit )
+      x_ind = floor( (0.5_RK + pcur%P0(j, 1, 1))/DistCrit )
+      y_ind = floor( (0.5_RK + pcur%P0(j, 2, 1))/DistCrit )
+      z_ind = floor( (0.5_RK + pcur%P0(j, 3, 1))/DistCrit )
       
       !DC DEBUG- message below help with bug hunt in counitng method
       ! write( IOBuffer, '("DEBUG da3:",I4," edge:",3I3," ind:",3I3)')j, x_edge,y_edge,z_edge, x_ind,y_ind,z_ind
@@ -27496,9 +27496,9 @@ contains
           cycle !DC NOTE- safeguard that the very molecule is not counted as its neighbour
         end if 
         
-        dxyz_ij(1) = pcur%P0(i, 1) - pcur%P0(j, 1)
-        dxyz_ij(2) = pcur%P0(i, 2) - pcur%P0(j, 2)
-        dxyz_ij(3) = pcur%P0(i, 3) - pcur%P0(j, 3)
+        dxyz_ij(1) = pcur%P0(i, 1, 1) - pcur%P0(j, 1, 1)
+        dxyz_ij(2) = pcur%P0(i, 2, 1) - pcur%P0(j, 2, 1)
+        dxyz_ij(3) = pcur%P0(i, 3, 1) - pcur%P0(j, 3, 1)
         
         dxyz_ij(1)= dxyz_ij(1) - anint( dxyz_ij(1) )
         dxyz_ij(2)= dxyz_ij(2) - anint( dxyz_ij(2) )
