@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>eab299a7e60954e3bc9cb580e8e84fd76611961a</caseRepositoryHash>
+	<caseRepositoryHash>b32d1fca8294df01d146797388d07549a52d7125</caseRepositoryHash>
 	<caseList>
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 		<case name="energyMinimization" file="energyMinimization.xml" />
@@ -36,6 +36,7 @@
 		<case name="Mie_site_mpi" file="Mie_site_mpi.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 <!-- 		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" /> -->
+		<case name="MD_gear_methaneCO2_250_cluster" file="MD_gear_methaneCO2_250_cluster.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
 		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" />
@@ -49,6 +50,7 @@
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
 		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
+		<case name="ODF_test" file="ODF_test.xml" />
 		<case name="OPLS" file="OPLS.xml" />
 		<case name="OPLS_mpi" file="OPLS_mpi.xml" />
 		<case name="OPLS_Amber" file="OPLS_Amber.xml" />

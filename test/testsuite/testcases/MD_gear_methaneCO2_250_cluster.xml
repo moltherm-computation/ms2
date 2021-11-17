@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_gear_methaneCO2_250.par</parFile>
+	<name>MD_gear_methaneCO2_250_cluster</name>
+	<np>2</np>
+	<reference>
+		<file>MD_gear_methaneCO2_250.rst</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_1.rav</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_1.res</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_1.run</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_2.rav</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_2.res</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_2.run</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_CC_1.clust</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_CC_1.cvim</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_CC_1.grid</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_CC_2.clust</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250_CC_2.grid</file>
+	</reference>
+	<reference>
+		<file>MD_gear_methaneCO2_250.rst</file>
+	</reference>
+</testcase>
