@@ -1091,7 +1091,7 @@ contains
       call Destruct( this%SumHM )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
