@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>ODF_test.par</parFile>
+	<name>ms2_ODF_test</name>
+	<np>16</np>
+	<walltime>11:00:00</walltime>
+	<reference>
+		<file>ODF_test_1.res</file>
+		<relativeTolerance>4e-4</relativeTolerance>
+	</reference>
+	<reference>
+		<file>ODF_test_1.odf</file>
+		<relativeTolerance>5e-2</relativeTolerance>
+	</reference>
+</testcase>
