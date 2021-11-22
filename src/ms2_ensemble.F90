@@ -10,7 +10,7 @@
 
 !****************************************************************
 !* Updates and auxiliary routines are available from            *
-!* http://www.ms-2.de                                           *
+!* http://www.ms-2.de                                            *
 !****************************************************************
 #ifndef ARCH
 #define ARCH    0
@@ -180,6 +180,10 @@ module ms2_ensemble
 
     ! Virial
     real(RK) :: Virial
+    
+    ! Sampling of Dielectric Constant
+    real(RK) :: DielectricConstant
+    real(RK) :: TotalDipoleMoment,TotalDipoleMomentSquared
 
     ! Inter und Intra(Bond) Virial
     real(RK) :: VirialInter
@@ -487,6 +491,11 @@ module ms2_ensemble
     type(TAccumulator)         :: SumEConduct
 !TRANSPORT_END
 #endif
+
+    ! 5.) Sampling of Dielectric Constant
+    type(TAccumulator) :: SumTotalDipoleMoment
+    type(TAccumulator) :: SumTotalDipoleMomentSquared
+    type(TAccumulator) :: SumDielectricConstant
 
 #if CONSTR > 0
    integer         :: NCons
@@ -3072,6 +3081,11 @@ contains
 !TRANSPORT_END
 #endif
 
+! 5.) Sampling of Dielectric Constant
+    call Construct( this%SumTotalDipoleMoment, .false. )
+    call Construct( this%SumTotalDipoleMomentSquared, .false. )
+    call Construct( this%SumDielectricConstant, .false. )
+    
 ! Calculation of residence times
      if (this%ResidenceTime) then
       call Construct( this%SumResidenceDuration, .false. )
@@ -3276,6 +3290,11 @@ contains
     end if
 !TRANSPORT_END
 #endif
+
+    ! 5.) Sampling of Dielectric Constant
+    call Destruct( this%SumTotalDipoleMoment )
+    call Destruct( this%SumTotalDipoleMomentSquared )
+    call Destruct( this%SumDielectricConstant )
 
 ! Calculation of residence times
     if ( this%ResidenceTime ) then
@@ -11677,6 +11696,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
     real(RK)                   :: a1, a3, a4, a5! dummy arguments
     type(idfPotentialEnergies):: a2
+    ! Sampling of Dielectric Constant
+    real(RK)                  :: MX, MY, MZ
+    integer                   :: kIndex, lIndex
+    type(TMolecule), pointer  :: pm
+    type(TSiteCharge), pointer:: pCharge
+    
 #if HBOND > 0
     integer                   :: k, l, m
 #endif
@@ -11844,7 +11869,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Reset( this%Component(i)%SumHW_denom )
         end select
       end do
-
+      
+      ! 5.) Sampling of Dielectric Constant
+        call Reset( this%SumTotalDipoleMoment )
+        call Reset( this%SumTotalDipoleMomentSquared )
+        call Reset( this%SumDielectricConstant )
+      
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
             call Reset( this%Component(i)%SumVW )
@@ -11919,7 +11949,24 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            if (.not. UseIntDegFreed) write( IOBuffer, '("      ENTLP")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+           
+           ! Dielectric Constant 
+           if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+               write( IOBuffer, '("      EPSILON")' )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+               
+               ! Dielectric Constant 
+               write( IOBuffer, '("      <M>")' )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+               
+               ! Dielectric Constant 
+               write( IOBuffer, '("      <M^2>")' )
+               call FileWriteNoAdvance_parallel( this%iounit_result )
+               call FileWriteNoAdvance_parallel( this%iounit_runave )
+           endif
+           
           if (printIDF) then
             ! Inter Potential energy
             write( IOBuffer, '("     EP_Inter")' )
@@ -12086,7 +12133,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          end if
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
-
+         
+         ! Dielectric Constant 
+         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+             write( IOBuffer, '("      EPSILON")' )
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+             
+             ! Dielectric Constant 
+             write( IOBuffer, '("      <M>")' )
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+              
+             ! Dielectric Constant 
+             write( IOBuffer, '("      <M^2>")' )
+             call FileWriteNoAdvance( this%iounit_result )
+             call FileWriteNoAdvance( this%iounit_runave )
+         endif
         if (printIDF) then
           ! Inter Potential energy
           write( IOBuffer, '("     EP_Inter")' )
@@ -12253,6 +12316,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (.not. UseIntDegFreed .and. (.not. EMinimizationIDF)) write( IOBuffer, '("      ENTLP")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
+        
+        ! Dielectric Constant
+        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+            write( IOBuffer, '("      EPSILON")' )
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+            
+            ! Dielectric Constant 
+            write( IOBuffer, '("      <M>")' )
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+               
+            ! Dielectric Constant 
+            write( IOBuffer, '("      <M^2>")' )
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+        endif
 
         if (printIDF) then
           ! Inter Potential energy
@@ -13036,6 +13116,45 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
       end do
 
+    ! 5.) Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        MX = 0._RK
+        MY = 0._RK
+        MZ = 0._RK
+        if( LongRange .eq. Rfield ) then
+          do i = 1, this%NComponents
+          pc => this%Component(i)
+        do kIndex = 1, pc%NPart
+            MX=MX+pc%MueX(kIndex)
+            MY=MY+pc%MueY(kIndex)
+            MZ=MZ+pc%MueZ(kIndex)
+        end do
+          end do
+        else ! Ewald
+          do i = 1, this%NComponents
+          pc => this%Component(i)
+        do kIndex = 1, pc%NPart
+        pm => pc%Molecule
+          do lIndex = 1, pm%NCharge
+            pCharge => pm%SiteCharge(lIndex)
+            MX=MX+pCharge%e*(pCharge%RX(kIndex)-pc%P0(kIndex,1))*this%BoxLength
+            MY=MY+pCharge%e*(pCharge%RY(kIndex)-pc%P0(kIndex,2))*this%BoxLength
+            MZ=MZ+pCharge%e*(pCharge%RZ(kIndex)-pc%P0(kIndex,3))*this%BoxLength
+          end do
+        end do
+          end do
+        endif
+        
+        this%TotalDipoleMomentSquared=MX**2+MY**2+MZ**2
+        this%TotalDipoleMoment=sqrt(this%TotalDipoleMomentSquared)
+        
+        call Update( this%SumTotalDipoleMoment, this%TotalDipoleMoment )
+        call Update( this%SumTotalDipoleMomentSquared, this%TotalDipoleMomentSquared )
+        
+        this%DielectricConstant=(4._RK*Pi*this%TotalDipoleMomentSquared)/(3._RK*this%NPart/this%Density*this%Temperature)+1._RK
+        call Update( this%SumDielectricConstant, this%DielectricConstant)
+    endif
+      
     ! Update result files
     if( mod( Step, BlockSize ) == 0 ) then
       if(SimulationType .eq. MonteCarlo) then
@@ -13090,6 +13209,24 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              
+              ! DielectricConstant
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              
+              ! DielectricConstant
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              
+              ! DielectricConstant
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
 
       if (printIDF) then
@@ -13250,6 +13387,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
+            
+            ! Dielectric Constant
+            if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                
+                ! Dielectric Constant
+                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  
+                ! Dielectric Constant
+                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+                call FileWriteNoAdvance_parallel( this%iounit_result )
+                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+                call FileWriteNoAdvance_parallel( this%iounit_runave )
+            endif
 
       if (printIDF) then
         ! EPotInter
@@ -13413,7 +13570,27 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance_parallel( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+          
+          ! Dielectric Constant
+          if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              
+              ! Dielectric Constant
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  
+              ! Dielectric Constant
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+          endif
+          
       if (printIDF) then
         ! EPotInter
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
@@ -13638,6 +13815,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
         end if
         call FileWriteNoAdvance( this%iounit_runave )
+        
+        ! Dielectric Constant
+        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+
+            ! Dielectric Constant
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+                  
+            ! Dielectric Constant
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+        endif
 
       if (printIDF) then
         ! EPotInter
@@ -13878,6 +14075,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
         end if
         call FileWriteNoAdvance( this%iounit_runave )
+        
+        ! Dielectric Constant
+        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+            
+            ! Dielectric Constant
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+                  
+            ! Dielectric Constant
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+        endif
 
       if (printIDF) then
         ! EPotInter
@@ -14310,7 +14527,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if (this%NComponents .gt. 1) then
             do j=1,this%NComponents
               value = this%density*this%density*this%Component(j)%Molecule%Mass/(6._RK*this%NPart)
-              write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(j,i)*value
+              write( IOBuffer, '(T5,F12.5)' ) this%average_cf_soret(j,i)*value/this%Mmess
               call FileWriteNoAdvance( this%iounit_rescf )
             end do
           end if
@@ -14698,6 +14915,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end do
     end if
 
+    ! Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        call Error( this%SumTotalDipoleMoment )
+        call Error( this%SumTotalDipoleMomentSquared )
+        call Error( this%SumDielectricConstant )
+    endif
 
 #if MPI_VER >0
     if ( SimulationType .eq. MonteCarlo) then
@@ -15120,6 +15343,29 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &          Variance * UnitEnergy * NAvogadro
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
+    
+    ! Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        Average = this%SumDielectricConstant%Average
+        Variance = this%SumDielectricConstant%Variance
+        write( IOBuffer, '("Dielectric Constant", T29, "SI:", 2F20.9)' ) Average, Variance
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+        
+        ! Sampling of Dielectric Constant
+        Average = this%SumTotalDipoleMoment%Average
+        Variance = this%SumTotalDipoleMoment%Variance
+        write( IOBuffer, '("<M>", T29, "red:", 2F20.9)' ) Average, Variance
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+        
+        ! Sampling of Dielectric Constant
+        Average = this%SumTotalDipoleMomentSquared%Average
+        Variance = this%SumTotalDipoleMomentSquared%Variance
+        write( IOBuffer, '("<M^2>", T29, "red:", 2F20.9)' ) Average, Variance
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
+    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       ! Mole fraction
@@ -22778,6 +23024,14 @@ end if
            call RestartSave( pc%SumHM )
           end if
         end do
+        
+        ! 5.) Sampling of Dielectric Constant
+        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+            call RestartSave( this%SumTotalDipoleMoment )
+            call RestartSave( this%SumTotalDipoleMomentSquared )
+            call RestartSave( this%SumDielectricConstant )
+        endif
+        
     end if
 
     if (ODFUpdateFrequency > 0) then
@@ -23247,6 +23501,13 @@ endif
         call RestartRead( pc%SumHM )
       end if
     end do
+    
+    ! 5.) Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        call RestartRead( this%SumTotalDipoleMoment )
+        call RestartRead( this%SumTotalDipoleMomentSquared )
+        call RestartRead( this%SumDielectricConstant )
+    endif
 
     if (ODFUpdateFrequency > 0) then
         do i= 1, this%NComponents

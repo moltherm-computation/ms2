@@ -1521,8 +1521,10 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE( tux1 , tuy1 , tuz1, tlx1 , tly1 , tlz1, tdx1 , tdy1, tdz1) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEpsMie_a, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
@@ -3084,12 +3086,14 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU , r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -8149,7 +8153,7 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   UU,  FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -14027,12 +14031,14 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
 !$OMP PRIVATE (EPotLocal1, SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( UU, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
