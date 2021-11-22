@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>permittivity.par</parFile>
+	<name>permittivity</name>
+	<np>40</np>
+	<walltime>1-14:00:00</walltime>
+	<reference>
+		<file>permittivity_1.res</file>
+		<relativeTolerance>
+			<dielectricConstant>7e-2</dielectricConstant>
+		</relativeTolerance>
+	</reference>
+	<reference>
+		<file>permittivity_2.res</file>
+		<relativeTolerance>
+			<dielectricConstant>3e-4</dielectricConstant>
+		</relativeTolerance>
+	</reference>
+	<reference>
+		<file>permittivity_3.res</file>
+		<relativeTolerance>
+			<dielectricConstant>7e-2</dielectricConstant>
+		</relativeTolerance>
+	</reference>
+	<reference>
+		<file>permittivity_4.res</file>
+		<relativeTolerance>
+			<dielectricConstant>5.5e-2</dielectricConstant>
+		</relativeTolerance>
+	</reference>
+</testcase>

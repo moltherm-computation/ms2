@@ -216,5 +216,6 @@
 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
 		<case name="ms2_ODF_test" file="ms2_ODF_test.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
+		<case name="permittivity" file="permittivity.xml" />
 	</caseList>
 </testsuite>
