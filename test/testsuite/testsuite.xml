@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>0e82349adee012925a3b4354842b90201e998e66</caseRepositoryHash>
+	<caseRepositoryHash>8f3b0f1dbfaaa0b21abfc0e281e45ca3be4147d3</caseRepositoryHash>
 	<caseList>
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -15,14 +15,14 @@
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
 		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
-		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
+<!-- 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" /> -->
 		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" />
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
-		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
+<!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
-		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
+<!-- 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" /> -->
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
@@ -40,7 +40,7 @@
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 <!-- 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" /> -->
 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" />
-		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
+<!-- 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" /> -->
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NVT_4mixT380--MD" file="NVT_4mixT380--MD.xml" />
 		<case name="ODF_test" file="ODF_test.xml" />
@@ -48,6 +48,6 @@
 		<case name="SVC_aceton" file="SVC_aceton.xml" />
 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
-		<case name="trans_aceton_site" file="trans_aceton_site.xml" />
+<!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
 	</caseList>
 </testsuite>
