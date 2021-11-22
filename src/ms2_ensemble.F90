@@ -13125,9 +13125,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           do i = 1, this%NComponents
           pc => this%Component(i)
         do kIndex = 1, pc%NPart
-            MX=MX+pc%MueX(kIndex)
-            MY=MY+pc%MueY(kIndex)
-            MZ=MZ+pc%MueZ(kIndex)
+            MX=MX+pc%MueX(kIndex, 1)
+            MY=MY+pc%MueY(kIndex, 1)
+            MZ=MZ+pc%MueZ(kIndex, 1)
         end do
           end do
         else ! Ewald
@@ -13137,9 +13137,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         pm => pc%Molecule
           do lIndex = 1, pm%NCharge
             pCharge => pm%SiteCharge(lIndex)
-            MX=MX+pCharge%e*(pCharge%RX(kIndex)-pc%P0(kIndex,1))*this%BoxLength
-            MY=MY+pCharge%e*(pCharge%RY(kIndex)-pc%P0(kIndex,2))*this%BoxLength
-            MZ=MZ+pCharge%e*(pCharge%RZ(kIndex)-pc%P0(kIndex,3))*this%BoxLength
+            MX=MX+pCharge%e*(pCharge%RX(kIndex)-pc%P0(kIndex,1, 1))*this%BoxLength
+            MY=MY+pCharge%e*(pCharge%RY(kIndex)-pc%P0(kIndex,2, 1))*this%BoxLength
+            MZ=MZ+pCharge%e*(pCharge%RZ(kIndex)-pc%P0(kIndex,3, 1))*this%BoxLength
           end do
         end do
           end do
