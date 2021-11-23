@@ -10,10 +10,10 @@
 	<reference>
 		<file>MC_commonequi_1.res</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>MC_commonequi_1.rav</file>
 	</reference>
 	<reference>
 		<file>MC_commonequi_1.run</file>
-	</reference>
+	</reference> -->
 </testcase>
