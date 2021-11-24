@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 #ifndef ARCH
@@ -55,6 +55,10 @@ module ms2_molecule
     ! MIE sites
     integer :: NMIEnm
     type(TSiteMIEnm), pointer, contiguous :: SiteMIEnm(:)
+
+    ! TT68 sites
+    integer :: NTT68
+    type(TSiteTT68), pointer, contiguous :: SiteTT68(:)
 
     ! Coulomb sites
     integer :: NCharge
@@ -141,6 +145,7 @@ contains
 
     ! Nullify pointers.
     nullify( this%SiteMIEnm )
+    nullify( this%SiteTT68 )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
@@ -154,13 +159,14 @@ contains
 
     ! Zero number of sites
     this%NMIEnm = 0
+    this%NTT68 = 0
     this%NCharge = 0
     this%Charge = 0._RK
     this%NDipole = 0
     this%NQuadrupole = 0
 
 
-    
+
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
@@ -175,7 +181,7 @@ contains
             call Construct( this%SiteMIEnm(j) )
           end do
         end if
-        
+
       case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
       LJorMIE = 'LJ'
         call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
@@ -184,6 +190,16 @@ contains
           call AllocationError( stat, 'LJ sites', this%NMIEnm )
           do j = 1, this%NMIEnm
             call Construct( this%SiteMIEnm(j) )
+          end do
+        end if
+
+      case( 'TT68', 'tt68', 'tt' )
+        call FileReadParameter( this%NTT68, iounit_potmod, IdSite_NTT68, .false. )
+        if( this%NTT68 > 0 ) then
+          allocate( this%SiteTT68(this%NTT68), STAT = stat )
+          call AllocationError( stat, 'TT sites', this%NTT68 )
+          do j = 1, this%NTT68
+            call Construct( this%SiteTT68(j) )
           end do
         end if
 
@@ -278,6 +294,11 @@ contains
         this%SiteMIEnm(i)%eps = this%SiteMIEnm(i)%eps * scaleeps
       end do
 
+      do i = 1, this%NTT68
+        this%SiteTT68(i)%r = this%SiteTT68(i)%r * scalegeo
+        this%SiteTT68(i)%shield = this%SiteTT68(i)%shield * scalegeo
+      end do
+
       do i = 1, this%NCharge
         this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
         this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
@@ -353,6 +374,12 @@ contains
       end do
       deallocate( this%SiteMIEnm )
     end if
+    if( associated( this%SiteTT68 ) ) then
+      do i = 1, this%NTT68
+        call Destruct( this%SiteTT68(i) )
+      end do
+      deallocate( this%SiteTT68 )
+    end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
         call Destruct( this%SiteCharge(i) )
@@ -410,6 +437,7 @@ contains
     ! Save number of potential types
     ntypes = 0
     if( this%NMIEnm > 0 ) ntypes = ntypes + 1
+    if( this%NTT68 > 0 ) ntypes = ntypes + 1
     if( this%NCharge > 0 ) ntypes = ntypes + 1
     if( this%NDipole > 0 ) ntypes = ntypes + 1
     if( this%NQuadrupole > 0 ) ntypes = ntypes + 1
@@ -426,6 +454,19 @@ contains
       do i = 1, this%NMIEnm
         call FileWriteBlank( iounit_normal )
         call Save( this%SiteMIEnm(i) )
+      end do
+    end if
+
+    ! Save TT68 sites
+    if( this%NTT68 > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'TT68'
+      call FileWriteParameter( iounit_normal, IdSite_stype )
+      write( IOBuffer, '(I2)' ) this%NTT68
+      call FileWriteParameter( iounit_normal, IdSite_NTT68 )
+      do i = 1, this%NTT68
+        call FileWriteBlank( iounit_normal )
+        call Save( this%SiteTT68(i) )
       end do
     end if
 
@@ -530,6 +571,10 @@ contains
       this%Mass = this%Mass + this%SiteMIEnm(i)%mass
       r(:) = r(:) + this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(:)
     end do
+    do i = 1, this%NTT68
+      this%Mass = this%Mass + this%SiteTT68(i)%mass
+      r(:) = r(:) + this%SiteTT68(i)%mass * this%SiteTT68(i)%r(:)
+    end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
       r(:) = r(:) + this%SiteCharge(i)%mass * this%SiteCharge(i)%r(:)
@@ -548,6 +593,11 @@ contains
     do i = 1, this%NMIEnm
       do j = 1, 3
         this%SiteMIEnm(i)%r(j) = this%SiteMIEnm(i)%r(j) - r(j)
+      end do
+    end do
+    do i = 1, this%NTT68
+      do j = 1, 3
+        this%SiteTT68(i)%r(j) = this%SiteTT68(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
@@ -596,6 +646,15 @@ contains
       moi(3, 3) = moi(3, 3) + this%SiteMIEnm(i)%mass * ( this%SiteMIEnm(i)%r(1)**2 + this%SiteMIEnm(i)%r(2)**2 )
     end do
 
+    do i = 1, this%NTT68
+      moi(1, 1) = moi(1, 1) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(2)**2 + this%SiteTT68(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(2) * this%SiteTT68(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(2)**2 )
+    end do
+
     do i = 1, this%NCharge
       moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
       moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
@@ -628,6 +687,10 @@ contains
     call eigen_sort( this%MOI(:), rotation(:,:) )
     do i = 1, this%NMIEnm
       this%SiteMIEnm(i)%r(:) = matmul( this%SiteMIEnm(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NTT68
+      this%SiteTT68(i)%r(:) = matmul( this%SiteTT68(i)%r(:), rotation(:, :) )
     end do
 
     do i = 1, this%NCharge
@@ -862,4 +925,3 @@ contains
 
 
 end module ms2_molecule
-
