@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>efe1e0352b61891b8e9a4d6cab68cf957ea25969</caseRepositoryHash>
+	<caseRepositoryHash>71c02a98ef9204a43b0602f2d4eb380aa9913306</caseRepositoryHash>
 	<caseList>
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
@@ -47,6 +47,8 @@
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
 		<case name="SVC_aceton" file="SVC_aceton.xml" />
 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" />
+		<case name="TangToennies_com" file="TangToennies_com.xml" />
+		<case name="TangToennies_site" file="TangToennies_site.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
 <!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
 	</caseList>
