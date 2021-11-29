@@ -219,7 +219,7 @@ end type TSimulation
   interface ODFClose
     module procedure TSimulation_ODFClose
   end interface
-  
+
   interface KBIOpen
     module procedure TSimulation_KBIOpen
   end interface
@@ -821,7 +821,7 @@ contains
         write( IOBuffer, '("ODF files will not be created")' )
       end if
       call LogWrite
-      
+
       if( ODFUpdateFrequency > 0 ) then
         call FileReadParameter( nR, iounit_params , IdnR, .true., 3 )
         write( IOBuffer, '("ODF will operate with", I7, " shells")' ) nR
@@ -837,7 +837,7 @@ contains
         call LogWrite
       end if
       call LogWriteBlank
-      
+
       ! Read frequency of updating KBI file
       call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
@@ -886,7 +886,7 @@ contains
             call LogWrite
             write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
             call LogWrite
-            write( IOBuffer, '("Alpha2 correlation shift each", T40, I7, " time steps")' ) ALPHA2Shift
+            write( IOBuffer, '("Alpha2 correlation span", T40, I7, " time steps")' ) ALPHA2Shift
             call LogWrite           
         else
             call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )
@@ -1145,22 +1145,22 @@ contains
     call AllocationError( stat, 'ensembles', this%NEnsembles )
 
     this%terminate_cc_multiensemble = 0 !DC NOTE- initialize the global termination counter for multiensemble simulation
-    !DC NOTE- Read option if the simulation is supposed to be Cluster criteria          
+    !DC NOTE- Read option if the simulation is supposed to be Cluster criteria
     call FileReadParameter( str , iounit_params , IdIsClusterCriteria, .true. , 'no' )
     select case( str )
       case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
         this%Ensemble(:)%isCCSimulation = .true.
-        write( IOBuffer, '("Cluster Criteria evaluation:    .true.")' ) 
+        write( IOBuffer, '("Cluster Criteria evaluation:    .true.")' )
         call LogWrite
 
       case( 'no', 'No', 'NO', 'False', 'false' ,'nein')
         this%Ensemble(:)%isCCSimulation = .false.
-        write( IOBuffer, '("Cluster Criteria evaluation:    .false.")' ) 
+        write( IOBuffer, '("Cluster Criteria evaluation:    .false.")' )
         call LogWrite
 
       case default
         call Error( 'Unknown Cluster Criteria control option :'//trim(str))
-    end select            
+    end select
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -1483,8 +1483,8 @@ contains
       end if
     end if
 
-#if MPI_VER > 0 
-    ! For MC parallelization: if we have common equilibration 
+#if MPI_VER > 0
+    ! For MC parallelization: if we have common equilibration
     ! active, we revert to one rootproc
     if (SimulationType .eq. MonteCarlo) then 
       if (CommonEqui) then
@@ -2320,7 +2320,6 @@ eqloop: do
       end if
       
       if (mod(Step,1000)==0) then
-    print*, Step
 end if
       ! Run simulation step
       select case( SimulationType )
@@ -2352,7 +2351,7 @@ end if
 #endif
       endif
 
-      !DC NOTE- check whether the simulation should be aborted      
+      !DC NOTE- check whether the simulation should be aborted
 #if MPI_VER > 0
       !DC NOTE- MPI Abortion
       !DC NOTE- termination status is 0/1 value - reducing it as product yield the 0/1 value if program is to be terminated
@@ -2360,26 +2359,26 @@ end if
       stop_cc_simulation = 0
       call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
       !DC NOTE- perform the check in MPI context
-      if ( stop_cc_simulation .ge. this%NEnsembles ) then            
-#ifdef __INTEL_COMPILER          
+      if ( stop_cc_simulation .ge. this%NEnsembles ) then
+#ifdef __INTEL_COMPILER
         call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
         err = SetTerminateProgram( 1 )
-#else          
+#else
         call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
-        call SetTerminateProgram          
+        call SetTerminateProgram
 #endif
       end if
 
 #else
       !DC NOTE- Single Abortion
       !DC NOTE- perform the check in serial context
-      if (this%terminate_cc_multiensemble .ge. this%NEnsembles ) then            
+      if (this%terminate_cc_multiensemble .ge. this%NEnsembles ) then
 #ifdef __INTEL_COMPILER
         err = SetTerminateProgram( 1 )
 #else
         call SetTerminateProgram
 #endif
-      end if      
+      end if
 #endif
 
       ! Check for termination request (caused e.g. by signal handler)
@@ -2488,31 +2487,31 @@ end if
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       !DC NOTE- way to discontinue calculation of simulations stopped by CC
       if (this%Ensemble(i)%isStopSimulation .eqv. .false. ) then
-      call RunMDStep( this%Ensemble(i) )
-      end if      
+        call RunMDStep( this%Ensemble(i) )
+      end if
     end do
 
-  !DC NOTE- this section facilitates middle level of simulation stop    
+  !DC NOTE- this section facilitates middle level of simulation stop
   if ((RootProc .eqv. .true.)) then
-      terminate_counter = 0 
-      do i = this%firstEnsembleIdx, this%lastEnsembleIdx        
+      terminate_counter = 0
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         if (this%Ensemble(i)%isStopSimulation .eqv. .true.) then
           terminate_counter = terminate_counter +1
         end if
       end do
 
       !DC DEBUG- message below is for indication of terminating in multiensemble case per step- validating the condition
-      ! write (*, '("Step:",I4," Ensemble:",I2,"-",I2," terminate_counter: ",I4," terminate_cc_multiensemble:", I12)') Step, this%firstEnsembleIdx, this%lastEnsembleIdx, terminate_counter, this%terminate_cc_multiensemble  
+      ! write (*, '("Step:",I4," Ensemble:",I2,"-",I2," terminate_counter: ",I4," terminate_cc_multiensemble:", I12)') Step, this%firstEnsembleIdx, this%lastEnsembleIdx, terminate_counter, this%terminate_cc_multiensemble
 
       if ( .not. Equilibration .and. &
       & (this%terminate_cc_multiensemble .eq. 0) .and. &
       & (terminate_counter .gt. (this%lastEnsembleIdx - this%firstEnsembleIdx)) ) then
         write( IOBuffer, '("Ensemble(s)",I3," : ",I3," stopped - the PU idle ")' ) this%firstEnsembleIdx, this%lastEnsembleIdx
         call LogWrite
-        !DC NOTE- this ensures that message will be printed only once 
+        !DC NOTE- this ensures that message will be printed only once
         !DC NOTE- signifies for other PU that this one is done
         !DC TODO- correct the index calculation for proper stop
-        this%terminate_cc_multiensemble = 1 + this%lastEnsembleIdx - this%firstEnsembleIdx 
+        this%terminate_cc_multiensemble = 1 + this%lastEnsembleIdx - this%firstEnsembleIdx
       end if
     end if
 
@@ -2949,7 +2948,7 @@ end if
     integer :: i
 
     !DC NOTE- Check for root process
-    if( .not. RootProc ) return    
+    if( .not. RootProc ) return
 
     !DC NOTE- Open ensemble visualisation files
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
@@ -2979,11 +2978,11 @@ end if
     !DC NOTE- Return if equilibration
     if( Equilibration ) return
 
-    !DC NOTE- Update ensemble visualisation files    
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx        
-      call VisualCCUpdate( this%Ensemble(i))        
+    !DC NOTE- Update ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call VisualCCUpdate( this%Ensemble(i))
     end do
-    
+
 
   end subroutine TSimulation_VisualCCUpdate
 
@@ -3061,7 +3060,7 @@ end if
 
     !DC NOTE- Check for root process
     if( .not. RootProc ) return
-    
+
     !DC NOTE- Close ensemble visualisation files
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call CCClose( this%Ensemble(i) )
