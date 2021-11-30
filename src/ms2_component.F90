@@ -1698,14 +1698,14 @@ contains
       this%Molecule%SiteTT68(i)%NPart2 => this%NPart2
 
       call Allocate( this%Molecule%SiteTT68(i) )
-      this%Molecule%SiteTT68(i)%PX => this%P0(:, 1)
-      this%Molecule%SiteTT68(i)%PY => this%P0(:, 2)
-      this%Molecule%SiteTT68(i)%PZ => this%P0(:, 3)
+      this%Molecule%SiteTT68(i)%PX => this%P0(:, 1, 1)
+      this%Molecule%SiteTT68(i)%PY => this%P0(:, 2, 1)
+      this%Molecule%SiteTT68(i)%PZ => this%P0(:, 3, 1)
 
       if( ntest > 0 ) then
-        this%Molecule%SiteTT68(i)%PXTest => this%P0Test(:, 1)
-        this%Molecule%SiteTT68(i)%PYTest => this%P0Test(:, 2)
-        this%Molecule%SiteTT68(i)%PZTest => this%P0Test(:, 3)
+        this%Molecule%SiteTT68(i)%PXTest => this%P0Test(:, 1, 1)
+        this%Molecule%SiteTT68(i)%PYTest => this%P0Test(:, 2, 1)
+        this%Molecule%SiteTT68(i)%PZTest => this%P0Test(:, 3, 1)
       end if
 
 #if TRANS==1
@@ -3145,9 +3145,9 @@ contains
         r2 = pTT68%r(2) * BoxLengthInv
         r3 = pTT68%r(3) * BoxLengthInv
         do i = 1, l
-          pTT68%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pTT68%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pTT68%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pTT68%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pTT68%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pTT68%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -3236,9 +3236,9 @@ contains
       do j = 1, this%Molecule%NTT68
         pTT68 => this%Molecule%SiteTT68(j)
         do i = 1, l
-          pTT68%RX(i-1+i0) = this%P0(i, 1)
-          pTT68%RY(i-1+i0) = this%P0(i, 2)
-          pTT68%RZ(i-1+i0) = this%P0(i, 3)
+          pTT68%RX(i) = this%P0(i, 1, iUnit)
+          pTT68%RY(i) = this%P0(i, 2, iUnit)
+          pTT68%RZ(i) = this%P0(i, 3, iUnit)
         end do
       end do
 
@@ -3647,9 +3647,9 @@ contains
       do i = 1, this%Molecule%NTT68
         pTT68 => this%Molecule%SiteTT68(i)
         do j = 1, np
-          pTT68%RXTest(j) = this%P0Test(j, 1)
-          pTT68%RYTest(j) = this%P0Test(j, 2)
-          pTT68%RZTest(j) = this%P0Test(j, 3)
+          pTT68%RXTest(j) = this%P0Test(j, 1, k)
+          pTT68%RYTest(j) = this%P0Test(j, 2, k)
+          pTT68%RZTest(j) = this%P0Test(j, 3, k)
         end do
       end do
 
@@ -3788,12 +3788,12 @@ contains
           r1x = ( pTT68%RX(i-1+i0) - rx(i) ) * BoxLength
           r1y = ( pTT68%RY(i-1+i0) - ry(i) ) * BoxLength
           r1z = ( pTT68%RZ(i-1+i0) - rz(i) ) * BoxLength
-          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
-          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
-          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
-          this%T(i-1+i0, 1) = this%T(i-1+i0, 1) + r1y * fz - r1z * fy
-          this%T(i-1+i0, 2) = this%T(i-1+i0, 2) + r1z * fx - r1x * fz
-          this%T(i-1+i0, 3) = this%T(i-1+i0, 3) + r1x * fy - r1y * fx
+          this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + fx
+          this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + fy
+          this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + fz
+          this%T(i-1+i0, 1, iUnit) = this%T(i-1+i0, 1, iUnit) + r1y * fz - r1z * fy
+          this%T(i-1+i0, 2, iUnit) = this%T(i-1+i0, 2, iUnit) + r1z * fx - r1x * fz
+          this%T(i-1+i0, 3, iUnit) = this%T(i-1+i0, 3, iUnit) + r1x * fy - r1y * fx
         end do
       end do
 
@@ -3897,9 +3897,9 @@ contains
       do j = 1, this%Molecule%NTT68
         pTT68 => this%Molecule%SiteTT68(j)
         do i = 1, l
-          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT68%FX(i-1+i0)
-          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pTT68%FY(i-1+i0)
-          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pTT68%FZ(i-1+i0)
+          this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + pTT68%FX(i-1+i0)
+          this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + pTT68%FY(i-1+i0)
+          this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + pTT68%FZ(i-1+i0)
         end do
       end do
 
@@ -4334,15 +4334,15 @@ contains
        !   end if
           !TRANSPORT_END
 #endif
-          r1x = ( pTT68%RX(i) - rx(i) ) * BoxLength
-          r1y = ( pTT68%RY(i) - ry(i) ) * BoxLength
-          r1z = ( pTT68%RZ(i) - rz(i) ) * BoxLength
-          this%F(i, 1) = this%F(i, 1) + fx
-          this%F(i, 2) = this%F(i, 2) + fy
-          this%F(i, 3) = this%F(i, 3) + fz
-          this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
-          this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
-          this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+          r1x = ( pTT68%RX(i) - rx(i, 1) ) * BoxLength
+          r1y = ( pTT68%RY(i) - ry(i, 1) ) * BoxLength
+          r1z = ( pTT68%RZ(i) - rz(i, 1) ) * BoxLength
+          this%F(i, 1, k) = this%F(i, 1, k) +  fx
+          this%F(i, 2, k) = this%F(i, 2, k) + fy
+          this%F(i, 3, k) = this%F(i, 3, k) + fz
+          this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
+          this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
+          this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
 #if  TRANS == 1
           !TRANSPORT_start
           this%FS(i, 1)= this%FS(i, 1)+ vsx
@@ -4719,9 +4719,9 @@ contains
       !    end if
           !TRANSPORT_END
 #endif
-          this%F(i, 1) = this%F(i, 1) + pTT68%FX(i)
-          this%F(i, 2) = this%F(i, 2) + pTT68%FY(i)
-          this%F(i, 3) = this%F(i, 3) + pTT68%FZ(i)
+          this%F(i, 1, k) = this%F(i, 1, k) + pTT68%FX(i)
+          this%F(i, 2, k) = this%F(i, 2, k) + pTT68%FY(i)
+          this%F(i, 3, k) = this%F(i, 3, k) + pTT68%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
           this%FS(i, 1) = this%FS(i, 1) + vsx
@@ -4769,9 +4769,9 @@ contains
       !    end if
           !TRANSPORT_END
 #endif
-          this%F(i, 1) = this%F(i, 1) + pTT68%FX(i)
-          this%F(i, 2) = this%F(i, 2) + pTT68%FY(i)
-          this%F(i, 3) = this%F(i, 3) + pTT68%FZ(i)
+          this%F(i, 1, k) = this%F(i, 1, k) + pTT68%FX(i)
+          this%F(i, 2, k) = this%F(i, 2, k) + pTT68%FY(i)
+          this%F(i, 3, k) = this%F(i, 3, k) + pTT68%FZ(i)
 #if  TRANS == 1
           !TRANSPORT_start
           this%FS(i, 1) = this%FS(i, 1) + vsx

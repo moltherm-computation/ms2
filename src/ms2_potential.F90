@@ -3248,10 +3248,10 @@ loop3:  do j = j0, j1
     tdx2 => this%Site2%tdTTx
     tdy2 => this%Site2%tdTTy
     tdz2 => this%Site2%tdTTz
-    q1  => this%Site1%Q0r(:, 1)
-    q2  => this%Site1%Q0r(:, 2)
-    q3  => this%Site1%Q0r(:, 3)
-    q4  => this%Site1%Q0r(:, 4)
+    q1  => this%Site1%Q0r(:, 1, 1)
+    q2  => this%Site1%Q0r(:, 2, 1)
+    q3  => this%Site1%Q0r(:, 3, 1)
+    q4  => this%Site1%Q0r(:, 4, 1)
 
 #endif
 
@@ -3736,7 +3736,7 @@ loop1:do k = 1, this%NInCutoff(i)
 
     ! Declare local variables
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RCutoffSquared
     real(RK)          :: RShieldSquared
     real(RK)          :: RXi, RYi, RZi

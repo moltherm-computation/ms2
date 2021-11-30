@@ -2429,9 +2429,9 @@ contains
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j)
-            PYij = PYi - PY2(j)
-            PZij = PZi - PZ2(j)
+            PXij = PXi - PX2(j, 1)
+            PYij = PYi - PY2(j, 1)
+            PZij = PZi - PZ2(j, 1)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
@@ -3628,9 +3628,9 @@ contains
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j)
-            PYij = PYi - PY2(j)
-            PZij = PZi - PZ2(j)
+            PXij = PXi - PX2(j, 1)
+            PYij = PYi - PY2(j, 1)
+            PZij = PZi - PZ2(j, 1)
             PXij = (PXij - anint( RXij )) * BoxLength
             PYij = (PYij - anint( RYij )) * BoxLength
             PZij = (PZij - anint( RZij )) * BoxLength

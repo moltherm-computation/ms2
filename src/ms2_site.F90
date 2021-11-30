@@ -109,7 +109,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
     integer, pointer, contiguous  :: RDFSum(:)
 
 #if  TRANS == 1
@@ -121,7 +121,7 @@ module ms2_site
     real(RK), pointer, contiguous :: tuTTx(:),  tuTTy(:),  tuTTz(:)
     real(RK), pointer, contiguous :: tlTTx(:),  tlTTy(:),  tlTTz(:)
     real(RK), pointer, contiguous :: tdTTx(:),  tdTTy(:),  tdTTz(:)
-    real(RK), pointer, contiguous :: Q0r(:,:)
+    real(RK), pointer, contiguous :: Q0r(:,:,:)
 !TRANSPORT_END
 #endif
 
