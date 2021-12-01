@@ -65,6 +65,8 @@
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
 		<case name="SVC_aceton" file="SVC_aceton.xml" />
 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" />
+		<case name="TangToennies_com" file="TangToennies_com.xml" />
+		<case name="TangToennies_site" file="TangToennies_site.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
 <!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
 	</caseList>
