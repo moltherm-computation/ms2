@@ -7388,7 +7388,12 @@ loop2:        do nc = 1, this%NComponents
           this%EPotTest(:) = 0._RK
           this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         else
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+          if( this%NMIEnmMax > 0 ) then
+            this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+          endif
+          if( this%NTT68Max > 0 ) then
+            this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          endif
         end if
 #else
         if( this%NMIEnmMax > 0 ) then

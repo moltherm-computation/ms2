@@ -766,6 +766,7 @@ contains
     call FindMOI(this) ! if NDFRot < 0
     call ReadMOI(this) ! if NDFRot >= 0
 
+    write(*,*) "ndfrot = ", this%Unit(1)%NDFRot
     call FindNDF(this)
 
     ! check for elongation of rigid molecules
@@ -1967,6 +1968,15 @@ contains
           moi(3, 3) = moi(3, 3) + mieSite%mass * ( mieSite%r(1)**2 + mieSite%r(2)**2 )
         end do
 
+        do i = 1, this%NTT68
+          moi(1, 1) = moi(1, 1) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(2)**2 + this%SiteTT68(i)%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(2)
+          moi(1, 3) = moi(1, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(3)
+          moi(2, 2) = moi(2, 2) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(2) * this%SiteTT68(i)%r(3)
+          moi(3, 3) = moi(3, 3) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(2)**2 )
+        end do
+
         do i = 1, unit%NCharge
           if (.not. UseIntDegFreed) then
               chargeSite => this%SiteCharge(i)
@@ -2017,14 +2027,9 @@ contains
           if (.not. UseIntDegFreed) this%SiteMIEnm(i)%r(:) = matmul( this%SiteMIEnm(i)%r(:), rotation(:, :) )
         end do
 
-    do i = 1, this%NTT68
-      moi(1, 1) = moi(1, 1) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(2)**2 + this%SiteTT68(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(2) * this%SiteTT68(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(2)**2 )
-    end do
+        do i = 1, this%NTT68
+          this%SiteTT68(i)%r(:) = matmul( this%SiteTT68(i)%r(:), rotation(:, :) )
+        end do
 
         do i = 1, unit%NCharge
           unit%SiteCharge(i)%r(:) = matmul( unit%SiteCharge(i)%r(:), rotation(:, :) )
@@ -2046,10 +2051,6 @@ contains
         end do
 
         if( (unit%NCharge > 0).or.(unit%NDipole > 0) ) unit%Mue(:) = matmul( unit%Mue(:), rotation(:, :) )
-
-    do i = 1, this%NTT68
-      this%SiteTT68(i)%r(:) = matmul( this%SiteTT68(i)%r(:), rotation(:, :) )
-    end do
 
         ! Calculate inverse of rotation matrix - from body coordinate to space axes
         Rot2(:,:) = rotation

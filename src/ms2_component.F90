@@ -7576,6 +7576,7 @@ subroutine TComponent_RotateMol( this, np, dq )
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pLJ126
+    type(TSiteTT68), pointer      :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -7643,6 +7644,17 @@ subroutine TComponent_RotateMol( this, np, dq )
           pLJ126%RX(np) = P%x + r1 * A11 + r2 * A21 + r3 * A31
           pLJ126%RY(np) = P%y + r1 * A12 + r2 * A22 + r3 * A32
           pLJ126%RZ(np) = P%z + r1 * A13 + r2 * A23 + r3 * A33
+        end do
+
+        ! Loop over TT sites in unit
+        do j = 1, this%Molecule%NTT68
+          pTT68 => this%Molecule%SiteTT68(j)
+          r1 = pTT68%r(1) * BoxLengthInv
+          r2 = pTT68%r(2) * BoxLengthInv
+          r3 = pTT68%r(3) * BoxLengthInv
+          pTT68%RX(np) = P%x + r1 * A11 + r2 * A21 + r3 * A31
+          pTT68%RY(np) = P%y + r1 * A12 + r2 * A22 + r3 * A32
+          pTT68%RZ(np) = P%z + r1 * A13 + r2 * A23 + r3 * A33
         end do
 
         ! Loop over charge sites in molecule
