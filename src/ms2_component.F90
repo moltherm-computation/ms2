@@ -7720,6 +7720,14 @@ subroutine TComponent_RotateMol( this, np, dq )
           pLJ126%RZ(np) = this%P0(np, 3, k)
         end do
 
+        ! Loop over TT68 sites in molecule
+        do i = 1, this%Molecule%NTT68
+          pTT68 => this%Molecule%SiteTT68(i)
+          pTT68%RX(np) = this%P0(np, 1, k)
+          pTT68%RY(np) = this%P0(np, 2, k)
+          pTT68%RZ(np) = this%P0(np, 3, k)
+        end do
+
         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
