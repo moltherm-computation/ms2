@@ -5037,7 +5037,7 @@ loop1:do i = 1, this%NPart
       do i = 1, np
         r(i, j) = 0._RK
         do iUnit= 1, this%Molecule%NUnit
-          MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
+          MassInv = 1._RK / this%Molecule%Mass
           this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
 
           if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j, iUnit) = this%Corr0(i, j, iUnit) &
@@ -5066,7 +5066,7 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          r(i, j) = r(i, j) + this%Molecule%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
         end do
 
         if (UseIntDegFreed) then
