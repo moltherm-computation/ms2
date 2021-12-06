@@ -3029,7 +3029,7 @@ contains
 
     ! Calculate translational kinetic energy
     do  iUnit = 1,  this%Molecule%NUnit
-      if (.not. UseIntDegFreed) then
+      if (.not. UseIntDegFreed .and. .not. EMinimizationIDF) then
           this%EKinTran = this%EkinTran+this%Molecule%Mass * TimeStepSquaredInv2 &
 &           * sum( this%P1(1:this%NPart, :, iUnit)**2 ) * this%BoxLength**2
       else
