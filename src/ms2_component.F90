@@ -2975,7 +2975,11 @@ contains
       P(:) = 0._RK
       L(:) = 0._RK
       do i = 1, 3
-        P(i) = P(i) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
+        if (.not. UseIntDegFreed) then
+            P(i) = P(i) + this%Molecule%Mass * sum( this%P1(1:this%NPart, i, k) )
+        else
+            P(i) = P(i) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
+        end if
 
         if( i <= this%Molecule%Unit(k)%NDFRot ) L(i) = L(i) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
 
@@ -2985,7 +2989,12 @@ contains
 
       ! Remove net momentum
       do i = 1, 3
-        Pim = P(i) / this%Molecule%Unit(k)%Mass
+        if (.not. UseIntDegFreed) then
+            Pim = P(i) / this%Molecule%Mass
+        else
+            Pim = P(i) / this%Molecule%Unit(k)%Mass
+        end if
+
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim
         end do
@@ -3020,8 +3029,13 @@ contains
 
     ! Calculate translational kinetic energy
     do  iUnit = 1,  this%Molecule%NUnit
-      this%EKinTran = this%EkinTran+this%Molecule%Unit(iUnit)%Mass * TimeStepSquaredInv2 &
-&       * sum( this%P1(1:this%NPart, :, iUnit)**2 ) * this%BoxLength**2
+      if (.not. UseIntDegFreed) then
+          this%EKinTran = this%EkinTran+this%Molecule%Mass * TimeStepSquaredInv2 &
+&           * sum( this%P1(1:this%NPart, :, iUnit)**2 ) * this%BoxLength**2
+      else
+          this%EKinTran = this%EkinTran+this%Molecule%Unit(iUnit)%Mass * TimeStepSquaredInv2 &
+&           * sum( this%P1(1:this%NPart, :, iUnit)**2 ) * this%BoxLength**2
+      end if
     end do
 
     ! Calculate rotational kinetic energy
@@ -5037,7 +5051,11 @@ loop1:do i = 1, this%NPart
       do i = 1, np
         r(i, j) = 0._RK
         do iUnit= 1, this%Molecule%NUnit
-          MassInv = 1._RK / this%Molecule%Mass
+          if (.not. UseIntDegFreed) then
+              MassInv = 1._RK / this%Molecule%Mass
+          else
+              MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
+          end if
           this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
 
           if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j, iUnit) = this%Corr0(i, j, iUnit) &
@@ -5066,7 +5084,11 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(i, j) = r(i, j) + this%Molecule%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          if (.not. UseIntDegFreed) then
+              r(i, j) = r(i, j) + this%Molecule%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          else
+              r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          end if
         end do
 
         if (UseIntDegFreed) then
