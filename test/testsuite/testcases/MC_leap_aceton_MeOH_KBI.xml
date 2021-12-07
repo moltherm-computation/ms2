@@ -13,13 +13,13 @@
 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.kbirav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.rav</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.res</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.run</file>
-	</reference> -->
+	</reference>
 </testcase>
