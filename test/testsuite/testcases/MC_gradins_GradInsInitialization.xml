@@ -4,9 +4,9 @@
 	<name>MC_gradins_GradInsInitialization</name>
 	<parFile>MC_gradins_GradInsInitialization.par</parFile>
 	<np>3</np>
-<!-- 	<reference>
+	<reference>
 		<file>MC_gradins_GradInsInitialization.rst</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>MC_gradins_GradInsInitialization_1.rav</file>
 	</reference>
