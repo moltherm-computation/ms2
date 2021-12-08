@@ -654,7 +654,8 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPH = 3
   integer, parameter :: EnsembleTypeNPT = 4
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
-  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT
+  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
+  integer, parameter :: EnsembleTypeNPTSVC = 7			   ! NpT + SVC
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
@@ -729,6 +730,7 @@ module ms2_global
 
   ! Number of simulation time steps
   integer :: NSteps
+  integer :: NStepsSVC	
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
@@ -770,6 +772,19 @@ module ms2_global
   ! Too many particles flag (in GE runs)
   logical :: tooManyParticles
 
+! Logical parameters for VLE with NPT and SVC
+  logical :: SVCCalc = .false. !If SVC was already calculated
+  ! Arrays for SVC and dB/dT 
+  
+  real(RK), dimension(:, :), allocatable :: ArrSVC
+  real(RK), dimension(:, :), allocatable :: ArrdBdT
+  real(RK), dimension(:), allocatable :: ArrChemPot
+  real(RK), dimension(:), allocatable :: ArrPartMolVol
+
+
+  
+   real(RK) :: BmixSVCtemp, dBdTmixtemp
+   real(RK) :: StartTemperature, StartPressure, NumberOfComp ! 
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
