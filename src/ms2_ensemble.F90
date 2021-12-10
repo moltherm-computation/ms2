@@ -103,7 +103,6 @@ module ms2_ensemble
 
 
 #if  TRANS == 1
-    !logical :: Conductivity   !TRANSPORT_thisline
     logical :: EConductivity
     logical :: MolarEnthConduct
     logical :: Bulkviscosity
@@ -413,7 +412,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumResidencePairs
 
 #if  TRANS == 1
-!TRANSPORT_start
+
     ! Correlation functions
     logical  :: CorrFunMode
 
@@ -423,21 +422,22 @@ module ms2_ensemble
     integer  :: NSpanCF,Nviewcf
 
     real(RK), pointer, contiguous :: cf_soret(:,:), average_cf_soret(:,:), sinte_soret(:,:), average_sinte_soret(:,:)
-    real(RK), pointer, contiguous :: cf_db(:), average_cf_db(:)
+!    real(RK), pointer, contiguous :: cf_db(:), average_cf_db(:)
     real(RK), pointer, contiguous :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
     real(RK), pointer, contiguous :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
     real(RK), pointer, contiguous :: lamda(:, :)
     real(RK), pointer, contiguous :: average_lamda(:, :)
     real(RK), pointer, contiguous :: sinte_i(:, :), sinte_lamda(:,:)
     real(RK), pointer, contiguous :: average_sinte_i(:, :), average_sinte_lamda(:,:)
-    real(RK), pointer, contiguous :: sinte_db(:), average_sinte_db(:)
+!    real(RK), pointer, contiguous :: sinte_db(:), average_sinte_db(:)
     real(RK), pointer, contiguous :: sinte_vs(:), sinte_vb(:)
     real(RK), pointer, contiguous :: average_sinte_vs(:), average_sinte_vb(:)
     real(RK), pointer, contiguous :: sinte_c(:), sinte_ec(:)
     real(RK), pointer, contiguous :: average_sinte_c(:), average_sinte_ec(:)
     real(RK), pointer, contiguous :: a(:, :), A_SpanCF(:,:)
+    real(RK), pointer, contiguous :: velcompX(:,:), velcompY(:,:), velcompZ(:,:)
     real(RK), pointer, contiguous :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
-    real(RK), pointer, contiguous  :: vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK), pointer, contiguous :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer, contiguous :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
@@ -449,8 +449,7 @@ module ms2_ensemble
     real(RK)         :: conduct
     real(RK)         :: econduct
 
-    ! 4.) Transport properties
-
+    !Accumulators
     type(TAccumulator),pointer, contiguous :: Sumself_i(:)
     type(TAccumulator),pointer, contiguous :: SumOnsager(:,:)
     type(TAccumulator),pointer, contiguous :: SumSoret(:)
@@ -458,7 +457,7 @@ module ms2_ensemble
     type(TAccumulator)         :: SumVisco_b
     type(TAccumulator)         :: SumConduct
     type(TAccumulator)         :: SumEConduct
-!TRANSPORT_END
+
 #endif
 
     ! 5.) Sampling of Dielectric Constant
@@ -1017,7 +1016,7 @@ module ms2_ensemble
 #endif
 
 #if  TRANS == 1
-!TRANSPORT_start
+
   interface CalCorrFun
     module procedure TEnsemble_CalCorrFun
   end interface
@@ -1029,7 +1028,7 @@ module ms2_ensemble
   interface EinsteinCoefProcedure  !EinsteinCoef interface
     module procedure TEnsemble_EinsteinCoefProcedure
   end interface
-!TRANSPORT_END
+
 #endif
 
 #if CONSTR > 0
@@ -1458,7 +1457,7 @@ contains
     end if
 
 #if  TRANS == 1
-!TRANSPORT_start
+
     call LogWriteBlank
     if ( parVersionNr .ge. 2.0_RK ) then
       call FileReadParameter( str , iounit_params , IdCorrFun, .false. , 'no' )
@@ -1557,7 +1556,6 @@ contains
       ! Initialization of Mmess
       this%Mmess = 0
     end if
-!TRANSPORT_END
 #endif
 
 #if MPI_VER > 0
@@ -1763,7 +1761,6 @@ contains
 
      this%Bulkviscosity = .true.
      this%MolarEnthConduct = .true.
-!     this%Conductivity = .true.
      this%EConductivity = .false.
 
      if (EnsembleType .eq. EnsembleTypeNVE) then
@@ -1783,21 +1780,19 @@ contains
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
        do i = 1, this%NComponents
             if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
-!               this%Conductivity = .false.
                this%MolarEnthConduct = .false.
             end if
        end do
       end if
 
 
-      if (LongRange .eq. Ewald) then
+      if ((LongRange .eq. Ewald) .and. (TransMethod .eq. GreenKubo)) then
         do i = 1, this%NComponents
           if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
              this%EConductivity = .true.
           end if
         end do
       end if
-
 
 #endif
 
@@ -2621,9 +2616,11 @@ contains
 
 #if TRANS==1
     !EinsteinCoef NEinstein
-    do i = 1, this%NRealComponents
+    if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NRealComponents
         this%Component(i)%NEinstein = this%NCorr / this%NSpanCF
-    end do
+      end do
+    end if  
 #endif
   end subroutine TEnsemble_CreateComponents
 
@@ -3007,26 +3004,29 @@ contains
       end if
 
 #if  TRANS == 1
-!TRANSPORT_start
-    ! 4.) Transport properties
+    ! Transport properties
     if( this%CorrfunMode ) then
-      do i = 1, this%NComponents
-        call Construct( this%Sumself_i(i),  .false., .true. )
-      end do
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+        do i = 1, this%NComponents
+          call Construct( this%Sumself_i(i),  .false., .true. )
+        end do
+           call Construct( this%SumVisco_s, .false., .true. )
+      end if  
 
       if (this%NComponents .gt. 1) then
-        do i = 1, this%NComponents
-          do j = 1, this%NComponents
-            call Construct( this%SumOnsager(i,j), .false., .true. )
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+          do i = 1, this%NComponents
+            do j = 1, this%NComponents
+              call Construct( this%SumOnsager(i,j), .false., .true. )
+            end do
           end do
-        end do
+        end if  
 
         do i = 1, this%NComponents
           call Construct( this%SumSoret(i), .false., .true. )
         end do
       end if
 
-      call Construct( this%SumVisco_s, .false., .true. )
       call Construct( this%SumVisco_b, .false., .true. )
       call Construct( this%SumConduct, .false., .true. )
       call Construct( this%SumEConduct,.false., .true. )
@@ -3034,24 +3034,22 @@ contains
     end if
 
     !EinsteinCoef Construct acc
-    if (EinsteinCoefCalc) then
+    if ((TransMethod .eq. Einstein).or. (TransMethod .eq. GKEinstein)) then
+       do i = 1, this%NComponents
+          call Construct( this%EinsteinDSelfAcc(i),  .false., .true. )
+       end do
 
-        do i = 1, this%NComponents
-            call Construct( this%EinsteinDSelfAcc(i),  .false., .true. )
-        end do
+       if (this%NComponents .gt. 1) then
+          do i = 1, this%NComponents
+             do j = 1, this%NComponents
+                call Construct( this%EinsteinOnsagerAcc(i,j), .false., .true. )
+             end do
+          end do
+       end if
 
-        if (this%NComponents .gt. 1) then
-            do i = 1, this%NComponents
-                do j = 1, this%NComponents
-                    call Construct( this%EinsteinOnsagerAcc(i,j), .false., .true. )
-                end do
-            end do
-        end if
-
-      call Construct( this%EinsteinShearAcc, .false., .true. )
+       call Construct( this%EinsteinShearAcc, .false., .true. )
     end if
 
-!TRANSPORT_END
 #endif
 
 ! 5.) Sampling of Dielectric Constant
@@ -3210,48 +3208,48 @@ contains
     end if
 
 #if  TRANS == 1
-!TRANSPORT_start
+
     if( this%CorrfunMode ) then
-
-      do i = 1, this%NComponents
-         call Destruct( this%Sumself_i(i) )
-      end do
-
-      if (this%NComponents .gt. 1) then
-        do i = 1, this%NComponents
-          do j = 1, this%NComponents
-            call Destruct( this%SumOnsager(i,j) )
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+          do i = 1, this%NComponents
+            call Destruct( this%Sumself_i(i) )
           end do
-        end do
-        do i = 1, this%NComponents
-          call Destruct( this%SumSoret(i) )
-        end do
-      end if
-      call Destruct( this%SumVisco_s )
+          call Destruct( this%SumVisco_s )
+       end if 
+
+       if (this%NComponents .gt. 1) then
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+            do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                call Destruct( this%SumOnsager(i,j) )
+              end do
+            end do
+          end if  
+          do i = 1, this%NComponents
+            call Destruct( this%SumSoret(i) )
+          end do
+       end if
+  
       call Destruct( this%SumVisco_b )
       call Destruct( this%SumConduct )
       call Destruct( this%SumEConduct )
-
     end if
 
     !EinsteinCoef destruct acc
-    if (EinsteinCoefCalc) then
+    if ( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+       do i = 1, this%NComponents
+         call Destruct( this%EinsteinDSelfAcc(i) )
+       end do
 
-        do i = 1, this%NComponents
-        call Destruct( this%EinsteinDSelfAcc(i) )
-        end do
-
-        if (this%NComponents .gt. 1) then
-            do i = 1, this%NComponents
+       if (this%NComponents .gt. 1) then
+          do i = 1, this%NComponents
             do j = 1, this%NComponents
-                call Destruct( this%EinsteinOnsagerAcc(i,j) )
+              call Destruct( this%EinsteinOnsagerAcc(i,j) )
             end do
-            end do
+          end do
         end if
-
         call Destruct( this%EinsteinShearAcc )
     end if
-!TRANSPORT_END
 #endif
 
     ! 5.) Sampling of Dielectric Constant
@@ -3602,19 +3600,18 @@ contains
 
 #if TRANS==1
     !EinsteinCoef nullify
-    nullify( this%DselfEinstein)
-    nullify( this%DselfEinsteinAve)
-    nullify( this%OnsagerEinstein)
-    nullify( this%OnsagerEinsteinAve)
-    nullify( this%EinsteinCoefTimeStep)
-
-    nullify( this%DselfEinsteinCurrent)
-    nullify( this%OnsagerEinsteinCurrent)
-
-
-    nullify( this%EinsteinShear)
-    nullify( this%EinsteinShearAve)
-    nullify( this%EinsteinShearInt)
+    if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      nullify( this%DselfEinstein)
+      nullify( this%DselfEinsteinAve)
+      nullify( this%OnsagerEinstein)
+      nullify( this%OnsagerEinsteinAve)
+      nullify( this%EinsteinCoefTimeStep)
+      nullify( this%DselfEinsteinCurrent)
+      nullify( this%OnsagerEinsteinCurrent)
+      nullify( this%EinsteinShear)
+      nullify( this%EinsteinShearAve)
+      nullify( this%EinsteinShearInt)
+    end if  
 #endif
 
 
@@ -3685,42 +3682,41 @@ contains
 
 #if TRANS==1
     !EinsteinCoef allocate
-    if( EinsteinCoefCalc ) then
+    if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+        allocate( this%DselfEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents), STAT = stat )
+        call AllocationError( stat, 'DselfEinstein' )
+        allocate( this%DselfEinsteinAve(this%NCorr, this%NComponents), STAT = stat )
+        call AllocationError( stat, 'DselfEinsteinAve' )
+        allocate( this%OnsagerEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents, this%NComponents ), STAT = stat )
+        call AllocationError( stat, 'OnsagerEinstein' )
+        allocate( this%OnsagerEinsteinAve(this%NCorr, this%NComponents, this%NComponents), STAT = stat )
+        call AllocationError( stat, 'OnsagerEinsteinAve' )
+        allocate( this%EinsteinCoefTimeStep(0:this%NCorr/this%NSpanCF-1), STAT = stat)
+        call AllocationError (stat, 'EinsteinCoefTimeStep')
+        this%EinsteinCoefAveCount = 0
+        this%EinsteinCoefTimeStep(:) = 0
+        this%DselfEinstein(:,:,:) = 0
+        this%DselfEinsteinAve(:,:) = 0
+        this%OnsagerEinstein(:,:,:,:) = 0
+        this%OnsagerEinsteinAve(:,:,:) = 0
 
-      allocate( this%DselfEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'DselfEinstein' )
-      allocate( this%DselfEinsteinAve(this%NCorr, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'DselfEinsteinAve' )
-      allocate( this%OnsagerEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents, this%NComponents ), STAT = stat )
-      call AllocationError( stat, 'OnsagerEinstein' )
-      allocate( this%OnsagerEinsteinAve(this%NCorr, this%NComponents, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'OnsagerEinsteinAve' )
-      allocate( this%EinsteinCoefTimeStep(0:this%NCorr/this%NSpanCF-1), STAT = stat)
-      call AllocationError (stat, 'EinsteinCoefTimeStep')
-      this%EinsteinCoefAveCount = 0
-      this%EinsteinCoefTimeStep(:) = 0
-      this%DselfEinstein(:,:,:) = 0
-      this%DselfEinsteinAve(:,:) = 0
-      this%OnsagerEinstein(:,:,:,:) = 0
-      this%OnsagerEinsteinAve(:,:,:) = 0
+        allocate( this%DselfEinsteinCurrent(this%NComponents), STAT = stat)
+        call AllocationError (stat, 'DselfEinsteinCurrent')
+        allocate( this%OnsagerEinsteinCurrent(this%NComponents,this%NComponents), STAT = stat)
+        call AllocationError (stat, 'OnsagerEinsteinCurrent')
+        this%DselfEinsteinCurrent(:) = 0
+        this%OnsagerEinsteinCurrent(:,:) = 0
+        this%ShearEinsteinCurrent = 0
 
-      allocate( this%DselfEinsteinCurrent(this%NComponents), STAT = stat)
-      call AllocationError (stat, 'DselfEinsteinCurrent')
-      allocate( this%OnsagerEinsteinCurrent(this%NComponents,this%NComponents), STAT = stat)
-      call AllocationError (stat, 'OnsagerEinsteinCurrent')
-      this%DselfEinsteinCurrent(:) = 0
-      this%OnsagerEinsteinCurrent(:,:) = 0
-      this%ShearEinsteinCurrent = 0
-
-      allocate( this%EinsteinShear(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShear')
-      allocate( this%EinsteinShearAve(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShearAve')
-      allocate( this%EinsteinShearInt(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShearInt')
-      this%EinsteinShear = 0
-      this%EinsteinShearAve = 0
-      this%EinsteinShearInt = 0
+        allocate( this%EinsteinShear(this%NCorr), STAT = stat)
+        call AllocationError (stat, 'EinsteinShear')
+        allocate( this%EinsteinShearAve(this%NCorr), STAT = stat)
+        call AllocationError (stat, 'EinsteinShearAve')
+        allocate( this%EinsteinShearInt(this%NCorr), STAT = stat)
+        call AllocationError (stat, 'EinsteinShearInt')
+        this%EinsteinShear = 0
+        this%EinsteinShearAve = 0
+        this%EinsteinShearInt = 0
     end if
 #endif
 
@@ -3808,7 +3804,7 @@ contains
 #endif
 
 #if  TRANS == 1
-!TRANSPORT_start
+
       NPart3 = 3*this%NPart
       NComp2 = this%NComponents*this%NComponents
       NC     = this%NComponents
@@ -3816,11 +3812,50 @@ contains
     ! Allocate correlation fucntions
      if( this%CorrfunMode ) then
 
-      allocate( this%cf_vs(this%NCorr), STAT = stat )
-      call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+         allocate( this%cf_vs(this%NCorr), STAT = stat )
+         call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
 
-      allocate( this%average_cf_vs(this%NCorr), STAT = stat )
-      call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+         allocate( this%average_cf_vs(this%NCorr), STAT = stat )
+         call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+    
+         allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'self_diffusion', this%NCorr )
+
+         allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'self_diffusion', this%NCorr )
+     
+         allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
+         call AllocationError( stat, 'onsager_coefficient', this%NCorr )
+
+         allocate( this%average_lamda( NComp2, this%NCorr ), STAT = stat )
+         call AllocationError( stat, 'onsager_coefficient', this%NCorr )
+
+         allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
+
+         allocate( this%average_sinte_i( this%NComponents, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
+
+         allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+
+         allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+
+         allocate( this%sinte_vs( this%NCorr), STAT = stat )
+         call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+
+         allocate( this%average_sinte_vs( this%NCorr), STAT = stat )
+         call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+
+         allocate( this%a( NPart3, this%NCorr), STAT = stat  )
+         call AllocationError( stat, 'diffusion_matrix', NPart3 )
+
+         allocate( this%A_SpanCF( NPart3, this%NSpanCF), STAT = stat  )
+         call AllocationError( stat, 'diffusion_matrix', NPart3 )
+      end if
+
 
       allocate( this%cf_vb(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_bulk_cf_vb', this%NCorr )
@@ -3840,59 +3875,17 @@ contains
       allocate( this%average_cf_ec(this%NCorr), STAT = stat )
       call AllocationError( stat, 'conductivity_cf_ec', this%NCorr )
 
-      allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion', this%NCorr )
-
-      allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion', this%NCorr )
-
-      allocate( this%cf_db( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'binary_diffusion', this%NCorr )
-
-      allocate( this%average_cf_db( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'binary_diffusion', this%NCorr )
-
       allocate( this%cf_soret( NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion', this%NCorr )
 
       allocate( this%average_cf_soret(NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion', this%NCorr )
 
-      allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
-      call AllocationError( stat, 'onsager_coefficient', this%NCorr )
-
-      allocate( this%average_lamda( NComp2, this%NCorr ), STAT = stat )
-      call AllocationError( stat, 'onsager_coefficient', this%NCorr )
-
-      allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
-
-      allocate( this%average_sinte_i( this%NComponents, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
-
-      allocate( this%sinte_db( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual_diffusion integrated', this%NCorr )
-
-      allocate( this%average_sinte_db( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual_diffusion integrated', this%NCorr )
-
       allocate( this%sinte_soret(NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
 
       allocate( this%average_sinte_soret( NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
-
-      allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
-
-      allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
-
-      allocate( this%sinte_vs( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
-
-      allocate( this%average_sinte_vs( this%NCorr), STAT = stat )
-      call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
 
       allocate( this%sinte_vb( this%NCorr), STAT = stat )
       call AllocationError( stat, 'bulk_viscosity_integrated', this%NCorr )
@@ -3911,12 +3904,6 @@ contains
 
       allocate( this%average_sinte_ec( this%NCorr), STAT = stat )
       call AllocationError( stat, 'Electric_conductivity_integrated', this%NCorr )
-
-      allocate( this%a( NPart3, this%NCorr), STAT = stat  )
-      call AllocationError( stat, 'diffusion_matrix', NPart3 )
-
-      allocate( this%A_SpanCF( NPart3, this%NSpanCF), STAT = stat  )
-      call AllocationError( stat, 'diffusion_matrix', NPart3 )
 
       allocate( this%vsk(this%NCorr, 3), STAT = stat  )
       call AllocationError( stat, 'vsk', this%NPart )
@@ -3945,17 +3932,19 @@ contains
       allocate( this%vcmt(this%NCorr, 3), STAT = stat  )
       call AllocationError( stat, 'vcmt', this%NPart )
 
-      allocate( this%selfd_i(this%NComponents), STAT = stat  )
-      call AllocationError( stat, 'selfd_i', this%NComponents )
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        allocate( this%selfd_i(this%NComponents), STAT = stat  )
+        call AllocationError( stat, 'selfd_i', this%NComponents )
 
-      allocate( this%Sumself_i(this%NComponents), STAT = stat  )
-      call AllocationError( stat, 'Sumselfd_i', this%NComponents )
+        allocate( this%Sumself_i(this%NComponents), STAT = stat  )
+        call AllocationError( stat, 'Sumselfd_i', this%NComponents )
 
-       allocate( this%Onsager(this%NComponents,this%NComponents), STAT = stat  )
-      call AllocationError( stat, 'Onsager', this%NComponents )
+        allocate( this%Onsager(this%NComponents,this%NComponents), STAT = stat  )
+        call AllocationError( stat, 'Onsager', this%NComponents )
 
-      allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
-      call AllocationError( stat, 'SumOnsager', this%NComponents )
+        allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
+        call AllocationError( stat, 'SumOnsager', this%NComponents )
+      end if  
 
       allocate( this%soret(NC), STAT = stat )
       call AllocationError( stat, 'Soret', this%NComponents )
@@ -3963,56 +3952,68 @@ contains
       allocate( this%SumSoret(NC), STAT = stat )
       call AllocationError( stat, 'SumSoret', this%NComponents )
 
+      if (TransMethod .eq. Einstein) then
+         allocate( this%velcompX(NC, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'thermal_diffusion', this%NCorr )
+
+         allocate( this%velcompY(NC, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'thermal_diffusion', this%NCorr )
+
+         allocate( this%velcompZ(NC, this%NCorr), STAT = stat )
+         call AllocationError( stat, 'thermal_diffusion', this%NCorr )
+      end if
+            
       !Einsteincoef allocate
-      if (EinsteinCoefCalc) then
+      if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
           allocate( this%EinsteinDSelfAcc(this%NComponents), STAT = stat  )
           call AllocationError( stat, 'EinsteinDSelfAcc', this%NComponents )
           allocate( this%EinsteinOnsagerAcc(this%NComponents,this%NComponents), STAT = stat  )
           call AllocationError( stat, 'EinsteinOnsagerAcc', this%NComponents )
-
       end if
 
       ! Set correlation-fucntion vectors
-      this%cf_d(:,:)      = 0._RK
-      this%cf_db(:)       = 0._RK
+
       this%cf_soret(:,:)  = 0._RK
-      this%lamda(:,:)     = 0._RK
-      this%cf_vs(:)       = 0._RK
       this%cf_vb(:)       = 0._RK
       this%cf_c(:)        = 0._RK
       this%cf_ec(:)       = 0._RK
 
-      this%average_cf_d(:,:)     = 0._RK
-      this%average_cf_db(:)      = 0._RK
       this%average_cf_soret(:,:) = 0._RK
-      this%average_lamda(:,:)    = 0._RK
-      this%average_cf_vs(:)      = 0._RK
       this%average_cf_vb(:)      = 0._RK
       this%average_cf_c(:)       = 0._RK
       this%average_cf_ec(:)      = 0._RK
 
-      this%a(:,:)           = 0._RK
-      this%A_SpanCF(:,:)    = 0._RK
-
-      this%sinte_i(:,:)     = 0._RK
-      this%sinte_lamda(:,:) = 0._RK
-      this%sinte_db (:)     = 0._RK
       this%sinte_soret(:,:) = 0._RK
-      this%sinte_vs(:)      = 0._RK
       this%sinte_vb(:)      = 0._RK
       this%sinte_c(:)       = 0._RK
       this%sinte_ec(:)      = 0._RK
 
-      this%average_sinte_i(:,:)     = 0._RK
-      this%average_sinte_db (:)     = 0._RK
       this%average_sinte_soret(:,:) = 0._RK
-      this%average_sinte_lamda(:,:) = 0._RK
-      this%average_sinte_vs(:)      = 0._RK
       this%average_sinte_vb(:)      = 0._RK
       this%average_sinte_c(:)       = 0._RK
       this%average_sinte_ec(:)      = 0._RK
 
-      this%selfd_i(:)  = 0._RK
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        this%cf_d(:,:)      = 0._RK
+        this%lamda(:,:)     = 0._RK
+        this%cf_vs(:)       = 0._RK
+
+        this%average_cf_d(:,:)     = 0._RK 
+        this%average_lamda(:,:)    = 0._RK
+        this%average_cf_vs(:)      = 0._RK
+
+        this%a(:,:)           = 0._RK
+        this%A_SpanCF(:,:)    = 0._RK
+        this%sinte_i(:,:)     = 0._RK
+        this%sinte_lamda(:,:) = 0._RK
+        this%sinte_vs(:)      = 0._RK
+
+        this%average_sinte_i(:,:)     = 0._RK
+        this%average_sinte_lamda(:,:) = 0._RK
+        this%average_sinte_vs(:)      = 0._RK
+        this%selfd_i(:)  = 0._RK
+      end if
+
       this%vsk(:,:)    = 0._RK
       this%vsp(:,:)    = 0._RK
       this%vbk(:,:)    = 0._RK
@@ -4026,7 +4027,7 @@ contains
       this%sc(:) = 0._RK
       this%sp(:) = 0._RK
     end if
-    !TRANSPORT_END
+
 #endif
 
 ! Calculation of residence times
@@ -4190,60 +4191,6 @@ contains
       deallocate( this%alpha2tempstep )
     end if
 
-#if TRANS==1
-    !EinsteinCoef associated
-        if( associated( this%DselfEinstein ) ) then
-            deallocate( this%DselfEinstein )
-        end if
-
-        if( associated( this%DselfEinsteinAve ) ) then
-            deallocate( this%DselfEinsteinAve )
-        end if
-
-        if( associated( this%OnsagerEinstein ) ) then
-            deallocate( this%OnsagerEinstein )
-        end if
-
-        if( associated( this%OnsagerEinsteinAve ) ) then
-            deallocate( this%OnsagerEinsteinAve )
-        end if
-
-        if (associated ( this%EinsteinCoefTimeStep) ) then
-            deallocate (this%EinsteinCoefTimeStep)
-        end if
-
-        if (associated (this%DselfEinsteinCurrent) ) then
-            deallocate (this%DselfEinsteinCurrent)
-        end if
-
-        if (associated (this%OnsagerEinsteinCurrent) ) then
-            deallocate (this%OnsagerEinsteinCurrent)
-        end if
-
-        if (associated (this%EinsteinShear) ) then
-            deallocate (this%EinsteinShear)
-        end if
-
-        if (associated (this%EinsteinShearAve) ) then
-            deallocate (this%EinsteinShearAve)
-        end if
-
-        if (associated (this%EinsteinShearInt) ) then
-            deallocate (this%EinsteinShearInt)
-        end if
-
-        !if (EinsteinCoef > 0) then
-        if( associated( this%EinsteinDSelfAcc ) ) then
-        deallocate( this%EinsteinDSelfAcc )
-        end if
-        if( associated( this%EinsteinOnsagerAcc ) ) then
-        deallocate( this%EinsteinOnsagerAcc )
-        end if
-        !end if
-#endif
-
-
-
     if( associated( this%SumKBIGij1 ) ) then
       deallocate( this%SumKBIGij1 )
     end if
@@ -4257,8 +4204,57 @@ contains
     end if
 
 
-#if  TRANS == 1
-!TRANSPORT_start
+
+#if TRANS==1
+    !EinsteinCoef associated
+        if( associated( this%DselfEinstein ) ) then
+           deallocate( this%DselfEinstein )
+        end if
+
+        if( associated( this%DselfEinsteinAve ) ) then
+           deallocate( this%DselfEinsteinAve )
+        end if
+
+        if( associated( this%OnsagerEinstein ) ) then
+           deallocate( this%OnsagerEinstein )
+        end if
+
+        if( associated( this%OnsagerEinsteinAve ) ) then
+           deallocate( this%OnsagerEinsteinAve )
+        end if
+
+        if (associated ( this%EinsteinCoefTimeStep) ) then
+           deallocate (this%EinsteinCoefTimeStep)
+        end if
+
+        if (associated (this%DselfEinsteinCurrent) ) then
+           deallocate (this%DselfEinsteinCurrent)
+        end if
+
+        if (associated (this%OnsagerEinsteinCurrent) ) then
+           deallocate (this%OnsagerEinsteinCurrent)
+        end if
+
+        if (associated (this%EinsteinShear) ) then
+           deallocate (this%EinsteinShear)
+        end if
+
+        if (associated (this%EinsteinShearAve) ) then
+           deallocate (this%EinsteinShearAve)
+        end if
+
+        if (associated (this%EinsteinShearInt) ) then
+           deallocate (this%EinsteinShearInt)
+        end if
+
+        if( associated( this%EinsteinDSelfAcc ) ) then
+           deallocate( this%EinsteinDSelfAcc )
+        end if
+
+        if( associated( this%EinsteinOnsagerAcc ) ) then
+           deallocate( this%EinsteinOnsagerAcc )
+        end if
+
     ! Deallocate arrays for correlation fucntions
 
     if( associated( this%cf_d  ) )   then
@@ -4268,14 +4264,6 @@ contains
      if( associated( this%average_cf_d  ) )   then
       deallocate( this%average_cf_d  )
     end if
-
-     if( associated( this%cf_db ) )   then
-       deallocate( this%cf_db )
-     end if
-
-     if( associated( this%average_cf_db ) )   then
-       deallocate( this%average_cf_db )
-     end if
 
     if( associated( this%cf_soret ) )   then
        deallocate( this%cf_soret )
@@ -4333,13 +4321,13 @@ contains
       deallocate( this%average_sinte_i  )
     end if
 
-     if( associated( this%sinte_db) ) then
-       deallocate( this%sinte_db )
-    end if
+ !    if( associated( this%sinte_db) ) then
+ !      deallocate( this%sinte_db )
+ !   end if
 
-    if( associated( this%average_sinte_db) ) then
-       deallocate( this%average_sinte_db )
-    end if
+ !   if( associated( this%average_sinte_db) ) then
+ !      deallocate( this%average_sinte_db )
+ !   end if
 
     if( associated( this%sinte_soret) ) then
        deallocate( this%sinte_soret )
@@ -4379,6 +4367,18 @@ contains
 
     if( associated( this%average_sinte_ec)  ) then
       deallocate( this%average_sinte_ec )
+    end if
+
+     if( associated( this%velcompX)  ) then
+      deallocate( this%velcompX )
+    end if
+
+    if( associated( this%velcompY)  ) then
+      deallocate( this%velcompY )
+    end if
+
+    if( associated( this%velcompZ)  ) then
+      deallocate( this%velcompZ )
     end if
 
     if( associated( this%a )  )   then
@@ -4450,9 +4450,6 @@ contains
       deallocate( this%SumSoret )
     end if
 
-
-
-!TRANSPORT_END
 #endif
 
 ! Calculation of residence times
@@ -5269,20 +5266,17 @@ xloop:do i = 1, NCells1dim(1)
    end if
 
 #if  TRANS == 1
-
-!TRANSPORT_start
+    !Calculation of Correlation Functions
     if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
       call CalCorrFun( this )
     end if
 
    !EinsteinCoef call subroutine
-    if(EinsteinCoefCalc) then
-        if (.not. Equilibration .and. (mod((Step-1),this%NStepCorr) .eq. 0)) then !
-          call EinsteinCoefProcedure(this)
-        end if
+    if((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      if (.not. Equilibration .and. (mod((Step-1),this%NStepCorr) .eq. 0)) then !
+        call EinsteinCoefProcedure(this)
+      end if
     end if
-
-!TRANSPORT_END
 #endif
 
     ! Calculation of residence time
@@ -6157,8 +6151,8 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteMIEnm(j)%FX(1:pc%NPart) = 0._RK
         pc%Molecule%SiteMIEnm(j)%FY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteMIEnm(j)%FZ(1:pc%NPart) = 0._RK
+
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteMIEnm(j)%vsMIEx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteMIEnm(j)%vsMIEy(1:pc%NPart) = 0._RK
@@ -6184,7 +6178,6 @@ loop3:    do nc = 1, this%NComponents
             pc%Molecule%SiteMIEnm(j)%tdMIEz(1:pc%NPart) = 0._RK
    !       end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NTT68
@@ -6192,7 +6185,6 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteTT68(j)%FY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteTT68(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteTT68(j)%vsTTx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteTT68(j)%vsTTy(1:pc%NPart) = 0._RK
@@ -6218,7 +6210,6 @@ loop3:    do nc = 1, this%NComponents
             pc%Molecule%SiteTT68(j)%tdTTz(1:pc%NPart) = 0._RK
     !       end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NCharge
@@ -6226,7 +6217,6 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
@@ -6252,7 +6242,6 @@ loop3:    do nc = 1, this%NComponents
             pc%Molecule%SiteCharge(j)%tdCz(1:pc%NPart) = 0._RK
      !     end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NDipole
@@ -6263,7 +6252,6 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteDipole(j)%TY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteDipole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
@@ -6289,7 +6277,6 @@ loop3:    do nc = 1, this%NComponents
             pc%Molecule%SiteDipole(j)%tdDz(1:pc%NPart) = 0._RK
        !   end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NQuadrupole
@@ -6300,7 +6287,6 @@ loop3:    do nc = 1, this%NComponents
         pc%Molecule%SiteQuadrupole(j)%TY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteQuadrupole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
@@ -6326,7 +6312,6 @@ loop3:    do nc = 1, this%NComponents
             pc%Molecule%SiteQuadrupole(j)%tdQz(1:pc%NPart) = 0._RK
          ! end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       if( pc%Molecule%isElongated ) then
@@ -6335,7 +6320,6 @@ loop3:    do nc = 1, this%NComponents
         pc%tRFZ(:) = 0._RK
       end if
 #if  TRANS == 1
-      !TRANSPORT_start
       if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
         do j = 1, this%Component(i)%NPart
           this%Component(i)%FS(j, 1)    = 0._RK
@@ -6354,7 +6338,6 @@ loop3:    do nc = 1, this%NComponents
      !     end if
         end do
       end if
-      !TRANSPORT_END
 #endif
     end do
 
@@ -10740,10 +10723,14 @@ loop2:        do nc = 1, this%NComponents
         call FileAppend( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
 #endif
+
 #if TRANS ==1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
-
+       if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         call FileAppend( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
+      end if
 #endif
 
     else
@@ -10787,7 +10774,10 @@ loop2:        do nc = 1, this%NComponents
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
-!TRANSPORT_END
+      if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
+      end if
 #endif
 
     end if
@@ -11885,33 +11875,35 @@ loop2:        do nc = 1, this%NComponents
     end if
 
 #if  TRANS == 1
-    ! 4.) Tranport properties !TRANSPORT_start
-    if( mod(Step-1,this%NStepCorr) .eq. 0 ) then ! Michael Sch.: this if needed?
+    ! Tranport properties 
+    if( mod(Step-1,this%NStepCorr) .eq. 0 ) then
 
       if( mod( (Step-1)/this%NStepCorr-this%NCorr+1, BlockSizeCF*this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
-
-        do i = 1, this%NComponents
-          call Update( this%Sumself_i(i), this%selfd_i(i), this%Mmess )
-        end do
+        if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do i = 1, this%NComponents
+            call Update( this%Sumself_i(i), this%selfd_i(i), this%Mmess )
+          end do
+          call Update( this%SumVisco_s, this%visco_s, this%Mmess )
+        end if  
 
         if(this%NComponents .gt. 1) then
           do i = 1, this%NComponents
            call Update( this%SumSoret(i), this%soret(i), this%Mmess )
           end do
-          do i = 1, this%NComponents
-            do j = 1, this%NComponents
-              call Update( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess )
+          if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+            do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                call Update( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess )
+              end do
             end do
-          end do
+          end if  
         end if
 
-        call Update( this%SumVisco_s, this%visco_s, this%Mmess )
         call Update( this%SumVisco_b, this%visco_b, this%Mmess )
         call Update( this%SumConduct, this%conduct, this%Mmess )
         call Update( this%SumEConduct, this%econduct, this%Mmess )
       end if
     end if
-!TRANSPORT_END
 #endif
 
     t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
@@ -12974,7 +12966,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 
 #if  TRANS == 1
-    ! Transport properties !TRANSPORT_start
+    ! Transport properties 
     if( ( this%Mmess > 0 ) .and. ( mod(this%Mmess, this%Nviewcf) == 0 )&
 &       .and. (mod((Step + this%NStepCorr -1), (this%NSpanCF*this%NStepCorr)) == 0) ) then
 
@@ -12982,75 +12974,80 @@ loop2:        do nc = 1, this%NComponents
       write( IOBuffer, '("  TIME[ps]")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      if(this%Ncomponents>1)then
-        do i=1,this%NComponents*this%NComponents
-          write( IOBuffer, '(T10, "L_ij", I1)') i
+      if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        if(this%Ncomponents>1)then
+          do i=1,this%NComponents*this%NComponents
+            write( IOBuffer, '(T10, "L_ij", I1)') i
+            call FileWriteNoAdvance( this%iounit_rescf )
+          end do
+        end if
+
+        do i = 1, this%NComponents
+          write( IOBuffer, '(T10,"D_i",I2)' ) i
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
-      end if
 
-      do i = 1, this%NComponents
-        write( IOBuffer, '(T10,"D_i",I2)' ) i
+        write( IOBuffer, '(T13,"Shr. Vis.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-      end do
-
-      write( IOBuffer, '(T13,"VS")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      end if 
 
       if (this%Bulkviscosity) then
-        write( IOBuffer, '(T13,"VB")' )
+        write( IOBuffer, '(T13,"Bulk Vis.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
 !      if (this%Conductivity) then
-        write( IOBuffer, '(T13,"CO")' )
-        call FileWriteNoAdvance( this%iounit_rescf )
-        if(this%Ncomponents .gt.  1)then
-          do i = 1, this%NComponents
-            write( IOBuffer, '(T10,"LiQ", I1)' )i
-            call FileWriteNoAdvance( this%iounit_rescf )
-          end do
-        end if
+      write( IOBuffer, '(T13,"Th. Cond.")' )
+      call FileWriteNoAdvance( this%iounit_rescf )
+
+      if(this%Ncomponents .gt.  1)then
+        do i = 1, this%NComponents
+          write( IOBuffer, '(T10,"L_iQ", I1)' )i
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end do
+      end if
 !      end if
 
       if (this%EConductivity) then
-        write( IOBuffer, '(T13,"EC")' )
+        write( IOBuffer, '(T13,"El. Cond.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if( this%Ncomponents > 1 ) then
-        do i=1,this%NComponents*this%NComponents
-           write( IOBuffer, '(T7,"Int_Lij",I1)')i
+      if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        if( this%Ncomponents > 1 ) then
+          do i=1,this%NComponents*this%NComponents
+             write( IOBuffer, '(T9,"Int_Lij",I1)')i
+             call FileWriteNoAdvance( this%iounit_rescf )
+         end do
+        end if
+
+        do i = 1, this%NComponents
+           write( IOBuffer, '(T9,"IntD_i",I2)' ) i
            call FileWriteNoAdvance( this%iounit_rescf )
-       end do
-      end if
+        end do
 
-      do i = 1, this%NComponents
-         write( IOBuffer, '(T7,"IntD_i",I2)' ) i
-         call FileWriteNoAdvance( this%iounit_rescf )
-      end do
-
-      write( IOBuffer, '(T9,"Int VS")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+        write( IOBuffer, '(T9,"Int Sh. Vis.")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if  
 
       if (this%Bulkviscosity) then
-        write( IOBuffer, '(T9,"Int VB")' )
+        write( IOBuffer, '(T10,"Int Bulk Vis.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
  !     if (this%Conductivity) then
-        write( IOBuffer, '(T10,"Int C ")' )
+        write( IOBuffer, '(T10,"Int Th. Cond.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
         if (this%NComponents .gt. 1 ) then
           do i = 1, this%NComponents
-            write( IOBuffer, '(T10,"Int LiQ", I1)')i
+            write( IOBuffer, '(T10,"Int L_iQ", I1)')i
             call FileWriteNoAdvance( this%iounit_rescf )
           end do
         end if
  !     end if
 
       if (this%EConductivity) then
-        write( IOBuffer, '(T9,"Int EC")' )
+        write( IOBuffer, '(T9,"Int El. Cond.")' )
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
@@ -13063,22 +13060,24 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_rescf )
 
 !         ! Onsager Diffusion coefficients
-        if(this%Ncomponents>1)then
-          do j=1,this%NComponents*this%NComponents
-              write( IOBuffer, '(T5, F10.5)' )  this%average_lamda(j, i)/this%average_lamda(j,1)
-              call FileWriteNoAdvance( this%iounit_rescf )
+        if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          if(this%Ncomponents>1)then
+            do j=1,this%NComponents*this%NComponents
+               write( IOBuffer, '(T5, F10.5)' )  this%average_lamda(j, i)/this%average_lamda(j,1)
+               call FileWriteNoAdvance( this%iounit_rescf )
+            end do
+          end if
+
+          ! Self-diffusion coefficients
+          do j = 1, this%NComponents
+            write( IOBuffer, '(T5, F10.5)' ) this%average_cf_d(j,i)/this%average_cf_d(j,1)
+            call FileWriteNoAdvance( this%iounit_rescf )
           end do
-        end if
 
-        ! Self-diffusion coefficients
-        do j = 1, this%NComponents
-          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_d(j,i)/this%average_cf_d(j,1)
+          ! Shear viscosity
+          write( IOBuffer, '(T5, F10.5)' ) this%average_cf_vs(i)/this%average_cf_vs(1)
           call FileWriteNoAdvance( this%iounit_rescf )
-        end do
-
-        ! Shear viscosity
-        write( IOBuffer, '(T5, F10.5)' ) this%average_cf_vs(i)/this%average_cf_vs(1)
-        call FileWriteNoAdvance( this%iounit_rescf )
+        end if
 
         ! Bulk viscosity
         if (this%Bulkviscosity) then
@@ -13087,17 +13086,15 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         ! Thermal conductivity and thermal diffusion
- !       if (this%Conductivity) then
           write( IOBuffer, '(T5, F10.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance( this%iounit_rescf )
           if (this%NComponents .gt. 1) then
             do j=1,this%NComponents
               value = this%density*this%density*this%Component(j)%Molecule%Mass/(6._RK*this%NPart)
-              write( IOBuffer, '(T5,F12.5)' ) this%average_cf_soret(j,i)*value/this%Mmess
+              write( IOBuffer, '(T5,F14.4)' ) this%average_cf_soret(j,i)*value/this%Mmess
               call FileWriteNoAdvance( this%iounit_rescf )
             end do
           end if
-!        end if
 
         ! Electric Conductivity
         if (this%EConductivity) then
@@ -13109,28 +13106,29 @@ loop2:        do nc = 1, this%NComponents
         value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
         ! Onsager Diffusion coefficients
-        if( this%Ncomponents > 1) then
-          do j = 1, this%NComponents*this%NComponents
-             write( IOBuffer, '(T5, F10.4)' )  this%average_sinte_lamda(j,i)*value !this%sinte_lamda(j,i) / this%sinte_lamda(j,this%Ncorr)* value
-             call FileWriteNoAdvance( this%iounit_rescf )
+        if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          if( this%Ncomponents > 1) then
+            do j = 1, this%NComponents*this%NComponents
+               write( IOBuffer, '(T5, F10.4)' )  this%average_sinte_lamda(j,i)*value !this%sinte_lamda(j,i) / this%sinte_lamda(j,this%Ncorr)* value
+               call FileWriteNoAdvance( this%iounit_rescf )
+            end do
+          end if
+
+          ! Self-diffusion coefficient
+          do j = 1, this%NComponents
+            write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_i(j,i)* value !this%sinte_i(j,i) / this%sinte_i(j,this%NCorr) * this%selfd_i(j) * value
+            call FileWriteNoAdvance( this%iounit_rescf )
           end do
+
+          !shear viscosity
+          value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+          write( IOBuffer, '(T5, F10.5)' )  this%average_sinte_vs(i)* value !this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
+          call FileWriteNoAdvance( this%iounit_rescf )
         end if
 
-        ! Self-diffusion coefficient
-        do j = 1, this%NComponents
-          write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_i(j,i)* value !this%sinte_i(j,i) / this%sinte_i(j,this%NCorr) * this%selfd_i(j) * value
-          call FileWriteNoAdvance( this%iounit_rescf )
-        end do
-
-       !viscosity
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-
-       !shear
-        write( IOBuffer, '(T5, F10.5)' )  this%average_sinte_vs(i)* value !this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
-        call FileWriteNoAdvance( this%iounit_rescf )
-
-       ! bulk
+       ! bulk viscosity
         if (this%Bulkviscosity) then
+          value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK      
           write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value !this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
           call FileWriteNoAdvance( this%iounit_rescf )
         end if
@@ -13163,7 +13161,6 @@ loop2:        do nc = 1, this%NComponents
       call flush( this%iounit_rescf )
 #endif
     end if
-!TRANSPORT_END
 #endif
 
 
@@ -13261,6 +13258,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: value
 #if  TRANS == 1
     integer                   :: k, m
+    real(RK)                  :: mw,w1,w2,nc,factor
     real(RK)                  :: det, inv_det
     real(RK)                  :: x(this%NComponents)
     real(RK)                  :: Inv_x(this%NComponents)
@@ -13274,10 +13272,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
 #if HBOND > 0
     integer                   :: k, l, m
-#endif
-
-#if TRANS == 1
-    real(RK) :: mw,w1,w2,nc,factor
 #endif
 
     ! Declare local variables for velocity of sound
@@ -13893,7 +13887,6 @@ loop2:        do nc = 1, this%NComponents
             Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-!MERKER
           else
             Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = -log( 1/pc%SumInvChemPotRho%Average )
@@ -13909,7 +13902,6 @@ loop2:        do nc = 1, this%NComponents
 &                  Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
           end if
           call FileWrite( this%iounit_errors )
-!MERKER
 
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
@@ -14869,7 +14861,7 @@ end if
 #endif
 
 #if  TRANS == 1
-    ! Transport properties !TRANSPORT_start
+    ! Transport properties 
     if ( this%CorrfunMode ) Then
 
       write( IOBuffer, '(T24, "TRANSPORT PROPERTIES")' )
@@ -14883,12 +14875,12 @@ end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      write( IOBuffer, '("Number of CF", T36, ":",T45, I6 )' ) this%Mmess
+      write( IOBuffer, '("Number of Corr. Funct.", T36, ":",T45, I8 )' ) this%Mmess
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       value = this%NCorr*this%TimeStepCorr
-      write( IOBuffer, '("Length of CF  ", T29, "reduced:", F20.9)' ) value
+      write( IOBuffer, '("Length of Corr. Funct.", T29, "reduced:", F20.9)' ) value
       call FileWrite( this%iounit_errors )
 
       write( IOBuffer, '(T31, "in ps:", F20.9)' )  value*UnitTime/1E-12_RK
@@ -14910,52 +14902,53 @@ end if
         if( mod( ((Step-1)/this%NStepCorr) - this%NCorr + 1, BlockSizeCF * this%NSpanCF ) == 0 .and. NBlockSizesCF >= 2) then
 
           if ( this%NComponents > 1 ) then
-            do i = 1, this%NComponents
-              do j = 1, this%NComponents
-                call Error(this%SumOnsager(i,j), .true.)
+            if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+              do i = 1, this%NComponents
+                do j = 1, this%NComponents
+                  call Error(this%SumOnsager(i,j), .true.)
+                end do
               end do
-            end do
+            end if  
             do i = 1, this%NComponents
               call Error(this%SumSoret(i), .true.)
             end do
           end if !this%NComponents > 1
 
-          do i = 1, this%NComponents
-            call Error(this%Sumself_i(i), .true.)
-          end do
-          call Error(this%SumVisco_s, .true.)
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+            do i = 1, this%NComponents
+              call Error(this%Sumself_i(i), .true.)
+            end do
+            call Error(this%SumVisco_s, .true.)
+          end if
+
           call Error(this%SumVisco_b, .true.)
           call Error(this%SumConduct, .true.)
           call Error(this%SumEConduct,.true.)
 
         end if
 
+        do i = 1, this%NComponents
+           x(i) = this%Component(i)%Fraction
+           Inv_x(i) = 1._RK/x(i)
+        end do
+
         ! Onsager coefficients
-        if ( this%NComponents > 1 ) then
-          do i = 1, this%NComponents
-            do j = 1, this%NComponents
-              Average  = this%SumOnsager(i,j)%Average
-              Variance = this%SumOnsager(i,j)%Variance
-              value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-              write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
-              call FileWrite( this%iounit_errors )
-              write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-              call FileWrite( this%iounit_errors )
-            end do
-          end do
-          call FileWriteBlank( this%iounit_errors )
-        end if !this%NComponents
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          if ( this%NComponents > 1 ) then
+            do i = 1, this%NComponents
+              do j = 1, this%NComponents
+                Average  = this%SumOnsager(i,j)%Average
+                Variance = this%SumOnsager(i,j)%Variance
+                value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+                write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
+                call FileWrite( this%iounit_errors )
+                write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+                call FileWrite( this%iounit_errors )
+              end do
+            end do            
+            call FileWriteBlank( this%iounit_errors )
 
-        !for multicomponent mixtures
-
-        if( this%NComponents >= 2  ) then
-
-           do i = 1, this%NComponents
-              x(i) = this%Component(i)%Fraction
-              Inv_x(i) = 1._RK/x(i)
-           end do
-
-           do i = 1, this%NComponents
+            do i = 1, this%NComponents
               do  j = 1, this%NComponents
                  if (i ==j) then
                   L(i,j) = this%SumOnsager(i,j)%Average
@@ -14963,25 +14956,27 @@ end if
                   L(i,j) = (this%SumOnsager(i,j)%Average + this%SumOnsager(j,i)%Average)/2._RK
                  end if
               end do
-           end do
-
-        end if
+            end do           
+          end if !this%NComponents
+        end if 
 
 
         !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
 
-          D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
-          err_D12 = this%SumOnsager(1,1)%Variance * x(2)*Inv_x(1) + &
-&                   this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
-&                   this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+            D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
+            err_D12 = this%SumOnsager(1,1)%Variance * x(2)*Inv_x(1) + &
+&                     this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
+&                     this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
 
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
+            write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if
 
           if (this%MolarEnthConduct) then
 
@@ -15010,227 +15005,225 @@ end if
 
         ! Ternary and Quaternary diffusion
         if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
+           if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      
+             !obtain matrix [delta] Equations 48 to 55 from Supplementary material
+             !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
 
-          !obtain matrix [delta] Equations 48 to 55 from Supplementary material
-          !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
-
-          delta(:,:) = 0._RK
-          do i=1, (this%NComponents-1)
-             do j =1, (this%NComponents-1)
-                delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
-                do k = 1, this%NComponents
+             delta(:,:) = 0._RK
+             do i=1, (this%NComponents-1)
+               do j =1, (this%NComponents-1)
+                 delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
+                 do k = 1, this%NComponents
                    if (k /= i) then
-                    delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
+                     delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
                    end if
-                end do
-             end do
-          end do
-
-         !calculate variance by error propagation
-          err_delta(:,:) = 0._RK
-           do i=1, (this%NComponents-1)
-             do j =1, (this%NComponents-1)
-                err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%SumOnsager(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%SumOnsager(i,this%NComponents)%Variance
-                do k = 1, this%NComponents
-                   if (k /= i) then
-                    err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%SumOnsager(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%SumOnsager(k,this%NComponents)%Variance
-                   end if
-                end do
-             end do
-          end do
-
-        end if
-
-
-
-        !Ternary diffusion
-        if( this%NComponents == 3 ) then
-          value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
-          ! determinat of matrix [delta]
-          det = (delta(1,1)*delta(2,2))-(delta(1,2)*delta(2,1))
-          inv_det = 1._RK/det
-
-          !obtain matrix [B] so that [B]=[D]-1
-          B(1,1) =  inv_det* delta(2,2) !B1
-          B(1,2) =  inv_det*(-delta(1,2)) !B2
-          B(2,1) =  inv_det*(-delta(2,1)) !B3
-          B(2,2) =  inv_det* delta(1,1) !B4
-
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
-          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
-           err_B(:,:) = 0._RK
-
-           do k = 1, (this%NComponents-1)
-              do m = 1, (this%NComponents-1)
-                 do i = 1, (this%NComponents-1)
-                    do  j = 1, (this%NComponents-1)
-                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
-                    end do
                  end do
                end do
-           end do
+             end do
 
-          !Calculate diffusion coefficients
-          D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )
-          D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))
-          D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))
-
-          !Obtain error of Diffusion coefficients
-          err_D13 = ABS(1._RK/((x(2)*Inv_x(1)*B(1,2)+B(1,1))**2))*err_B(1,1) + &
-&                   ABS(x(2)*Inv_x(1)/((B(1,1)+x(2)*Inv_x(1)*B(1,2))**2))*err_B(1,2)
-          err_D12 = ABS(1._RK/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,1) + &
-&                   ABS(((x(1)+x(3))*Inv_x(1))/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,2)
-          err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
-&                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
-
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-        end if !this%NComponents == 3
-
-
-        if ( this%NComponents == 4 ) then
-
-          value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
-          ! determinat of matrix [delta]
-          det = (delta(1,1)*delta(2,2)*delta(3,3))+(delta(2,1)*delta(3,2)*delta(1,3))+(delta(3,1)*delta(1,2)*delta(2,3))-&
-&               (delta(1,1)*delta(3,2)*delta(2,3))-(delta(3,1)*delta(2,2)*delta(1,3))-(delta(2,1)*delta(1,2)*delta(3,3))
-
-          inv_det = 1._RK/det
-
-          !obtain matrix [B] so that [B]=[D]-1
-          B(1,1) =  inv_det* (delta(2,2)*delta(3,3)-delta(2,3)*delta(3,2)) !B1
-          B(1,2) =  inv_det* (delta(1,3)*delta(3,2)-delta(1,2)*delta(3,3)) !B2
-          B(1,3) =  inv_det* (delta(1,2)*delta(2,3)-delta(1,3)*delta(2,2))
-          B(2,1) =  inv_det* (delta(2,3)*delta(3,1)-delta(2,1)*delta(3,3))
-          B(2,2) =  inv_det* (delta(1,1)*delta(3,3)-delta(1,3)*delta(3,1))
-          B(2,3) =  inv_det* (delta(1,3)*delta(2,1)-delta(1,1)*delta(2,3))
-          B(3,1) =  inv_det* (delta(2,1)*delta(3,2)-delta(2,2)*delta(3,1))
-          B(3,2) =  inv_det* (delta(1,2)*delta(3,1)-delta(1,1)*delta(3,2))
-          B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1))
-
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
-          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
-          err_B(:,:) = 0._RK
-
-           do k = 1, (this%NComponents-1)
-              do m = 1, (this%NComponents-1)
-                 do i = 1, (this%NComponents-1)
-                    do  j = 1, (this%NComponents-1)
-                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
-                    end do
+             !calculate variance by error propagation
+             err_delta(:,:) = 0._RK
+             do i=1, (this%NComponents-1)
+               do j =1, (this%NComponents-1)
+                 err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%SumOnsager(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%SumOnsager(i,this%NComponents)%Variance
+                 do k = 1, this%NComponents
+                   if (k /= i) then
+                     err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%SumOnsager(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%SumOnsager(k,this%NComponents)%Variance
+                   end if
                  end do
                end do
-           end do
+             end do
+!        end if
+
+           !Ternary diffusion
+             if( this%NComponents == 3 ) then
+               value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+
+               ! determinat of matrix [delta]
+               det = (delta(1,1)*delta(2,2))-(delta(1,2)*delta(2,1))
+               inv_det = 1._RK/det
+
+               !obtain matrix [B] so that [B]=[D]-1
+               B(1,1) =  inv_det* delta(2,2) !B1
+               B(1,2) =  inv_det*(-delta(1,2)) !B2
+               B(2,1) =  inv_det*(-delta(2,1)) !B3
+               B(2,2) =  inv_det* delta(1,1) !B4
+
+               !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
+               !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+
+               err_B(:,:) = 0._RK
+
+               do k = 1, (this%NComponents-1)
+                 do m = 1, (this%NComponents-1)
+                   do i = 1, (this%NComponents-1)
+                     do  j = 1, (this%NComponents-1)
+                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
+                     end do
+                   end do
+                 end do
+               end do
+
+               !Calculate diffusion coefficients
+               D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )
+               D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))
+               D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))
+
+               !Obtain error of Diffusion coefficients
+               err_D13 = ABS(1._RK/((x(2)*Inv_x(1)*B(1,2)+B(1,1))**2))*err_B(1,1) + &
+&                        ABS(x(2)*Inv_x(1)/((B(1,1)+x(2)*Inv_x(1)*B(1,2))**2))*err_B(1,2)
+               err_D12 = ABS(1._RK/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,1) + &
+&                        ABS(((x(1)+x(3))*Inv_x(1))/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,2)
+               err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
+&                        ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
+
+               write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end if !this%NComponents == 3
 
 
-          !Calculate diffusion coefficients
-          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )
-          D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )
-          D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )
-          D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
-          D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
-          D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
+             if ( this%NComponents == 4 ) then
+
+               value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+
+               ! determinat of matrix [delta]
+               det = (delta(1,1)*delta(2,2)*delta(3,3))+(delta(2,1)*delta(3,2)*delta(1,3))+(delta(3,1)*delta(1,2)*delta(2,3))-&
+&                    (delta(1,1)*delta(3,2)*delta(2,3))-(delta(3,1)*delta(2,2)*delta(1,3))-(delta(2,1)*delta(1,2)*delta(3,3))
+
+               inv_det = 1._RK/det
+
+               !obtain matrix [B] so that [B]=[D]-1
+               B(1,1) =  inv_det* (delta(2,2)*delta(3,3)-delta(2,3)*delta(3,2)) !B1
+               B(1,2) =  inv_det* (delta(1,3)*delta(3,2)-delta(1,2)*delta(3,3)) !B2
+               B(1,3) =  inv_det* (delta(1,2)*delta(2,3)-delta(1,3)*delta(2,2))
+               B(2,1) =  inv_det* (delta(2,3)*delta(3,1)-delta(2,1)*delta(3,3))
+               B(2,2) =  inv_det* (delta(1,1)*delta(3,3)-delta(1,3)*delta(3,1))
+               B(2,3) =  inv_det* (delta(1,3)*delta(2,1)-delta(1,1)*delta(2,3))
+               B(3,1) =  inv_det* (delta(2,1)*delta(3,2)-delta(2,2)*delta(3,1))
+               B(3,2) =  inv_det* (delta(1,2)*delta(3,1)-delta(1,1)*delta(3,2))
+               B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1))
+
+              !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
+              !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
+
+               err_B(:,:) = 0._RK
+
+               do k = 1, (this%NComponents-1)
+                 do m = 1, (this%NComponents-1)
+                   do i = 1, (this%NComponents-1)
+                     do  j = 1, (this%NComponents-1)
+                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
+                     end do
+                   end do
+                 end do
+               end do
+
+               !Calculate diffusion coefficients
+               D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )
+               D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )
+               D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )
+               D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
+               D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
+               D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
 
 
-          !Obtain error of Diffusion coefficients
-          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,2) + &
-                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,3)
+               !Obtain error of Diffusion coefficients
+               err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,1) + &
+                         ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,2) + &
+                         ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,3)
 
-          err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+               err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                         ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                         ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
-          err_D34 = ABS(1._RK/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,3) + &
-                    ABS(x(1)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,1) + &
-                    ABS(x(2)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,2)
+               err_D34 = ABS(1._RK/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,3) + &
+                         ABS(x(1)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,1) + &
+                         ABS(x(2)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,2)
 
-          err_D12 = ABS(1._RK/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS((x(1)-1._RK)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+               err_D12 = ABS(1._RK/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                         ABS((x(1)-1._RK)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                         ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
-          err_D13 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
-                    ABS((x(3)-1._RK)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
+               err_D13 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
+                         ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
+                         ABS((x(3)-1._RK)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
 
-          err_D23 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
+               err_D23 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
+                         ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
+                         ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
-
-          write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-
-        end if !this%NComponents == 4
-
+               write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end if !this%NComponents == 4
+           end if !TransMethod GreenKubo
+        end if !NComponents = 3 or 4
 
         !self-diffusion coefficient
-        do i = 1, this%NComponents
-          Average  = this%Sumself_i(i)%Average
-          Variance = this%Sumself_i(i)%Variance
-          value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-          write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", 2F20.9)' )  &
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do i = 1, this%NComponents
+            Average  = this%Sumself_i(i)%Average
+            Variance = this%Sumself_i(i)%Variance
+            value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
+            write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", 2F20.9)' )  &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-          call FileWrite( this%iounit_errors )
-        end do
-        call FileWriteBlank( this%iounit_errors )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
+            call FileWrite( this%iounit_errors )
+          end do
+          call FileWriteBlank( this%iounit_errors )
 
-        !shear viscosity
-        Average  = this%SumVisco_s%Average
-        Variance = this%SumVisco_s%Variance
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
+          !shear viscosity
+          Average  = this%SumVisco_s%Average
+          Variance = this%SumVisco_s%Variance
+          value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+          write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+         end if
 
         !bulk viscosity
         if (this%Bulkviscosity ) then
@@ -15291,7 +15284,8 @@ end if
 
          ! Onsager coefficients
         if ( this%NComponents > 1 ) then
-          do i = 1, this%NComponents
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then    
+            do i = 1, this%NComponents
               Average  = this%SumOnsager(i,i)%Average
               Variance = this%SumOnsager(i,i)%Variance
               factor = this%density*this%Component(i)%Molecule%Mass* this%Component(i)%Molecule%Mass
@@ -15300,9 +15294,9 @@ end if
               call FileWrite( this%iounit_errors )
               write( IOBuffer, '(T16, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) Average*factor*value, Variance*factor*value
               call FileWrite( this%iounit_errors )
-          end do
-          call FileWriteBlank( this%iounit_errors )
-
+            end do
+            call FileWriteBlank( this%iounit_errors )
+          end if
 
           Average  = this%SumConduct%Average
           Variance = this%SumConduct%Variance
@@ -15351,58 +15345,63 @@ end if
 
          !Onsager coefficients
         if ( this%NComponents > 1 ) then
-           do i = 1, this%NComponents
-              do j = 1, this%NComponents
+           if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+             do i = 1, this%NComponents
+               do j = 1, this%NComponents
                  write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,0._RK
                  call FileWrite( this%iounit_errors )
                  write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
                  call FileWrite( this%iounit_errors )
-              end do
-           end do
-           call FileWriteBlank( this%iounit_errors )
-        end if
+               end do
+             end do
+             call FileWriteBlank( this%iounit_errors )      
 
-        if ( this%NComponents==2 ) then
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", F20.9)' )  0._RK
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
+             if ( this%NComponents==2 ) then
+               write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", F20.9)' )  0._RK
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end if  !Ncomponents ==2
+           end if !TransMethod
+  
+           !Thermal diff. coeff.
+           if ( this%NComponents==2 ) then
+             if (this%MolarEnthConduct) then
+               write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             else
+               write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end if
+           end if !this%NComponents==2
 
-          !...Calculation of Thermal diff. coeff. does not work yet...
-          if (this%MolarEnthConduct) then
+           !ternary diffusion coefficient
+           if( this%NComponents == 3 ) then
+             if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+               write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)') 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+               write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end if  !TransMethod
+           end if !Ncomponents ==3
+        end if !Ncomponents >1
 
-            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), 0._RK
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          else
-            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          end if
-
-        end if !this%NComponents==2
-
-         !ternary diffusion coefficient
-        if( this%NComponents == 3 ) then
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)') 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-        end if
 
         do i = 1, this%NComponents
           write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
@@ -15412,11 +15411,13 @@ end if
         end do
         call FileWriteBlank( this%iounit_errors )
 
-        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", F20.9)' )  0._RK
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
+          call FileWrite( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )
+        end if
 
         if (this%Bulkviscosity ) then
           write( IOBuffer, '("Bulk viscosity     ", T29, "reduced:", F20.9)' )  0._RK
@@ -15447,8 +15448,8 @@ end if
              end if
            end if
         else
-          write( IOBuffer, '("Thermal conductivity only implemented for Reaction Field")' )
-          call FileWrite( this%iounit_errors )
+           write( IOBuffer, '("Thermal conductivity only implemented for Reaction Field")' )
+           call FileWrite( this%iounit_errors )
         end if
         call FileWriteBlank( this%iounit_errors )
 
@@ -15465,13 +15466,15 @@ end if
 
 
         if ( this%NComponents > 1 ) then
-          do i = 1, this%NComponents
-            write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i, 0._RK
-            call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T21, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) 0._RK
-            call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
-          end do
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+            do i = 1, this%NComponents
+              write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i, 0._RK
+              call FileWrite( this%iounit_errors )
+              write( IOBuffer, '(T21, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) 0._RK
+              call FileWrite( this%iounit_errors )
+              call FileWriteBlank( this%iounit_errors )
+            end do
+          end if  
 
           if (this%MolarEnthConduct) then
             write( IOBuffer, '("Energy coefficient LQQ ", T29, "reduced:", 2F20.9)' ) 0._RK
@@ -15506,17 +15509,18 @@ end if
 
       end if
 
-
 !EinsteinCoef iounit_errors
-if (this%EinsteinCoefAveCount > 0) then
 
-        if ( this%NComponents > 1 ) then
+      if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+        if (this%EinsteinCoefAveCount > 0) then
+
+          if ( this%NComponents > 1 ) then
             do i = 1, this%NComponents
-            do j = 1, this%NComponents
+              do j = 1, this%NComponents
                 call Error(this%EinsteinOnsagerAcc(i,j), .true.)
+              end do
             end do
-            end do
-        end if
+          end if
 
         do i = 1, this%NComponents
             call Error(this%EinsteinDSelfAcc(i), .true.)
@@ -15524,12 +15528,11 @@ if (this%EinsteinCoefAveCount > 0) then
 
         call Error(this%EinsteinShearAcc, .true.)
 
+        write( IOBuffer, '(T24, "Einstein coefficient theory")' )
+        call FileWrite( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )
 
-      write( IOBuffer, '(T24, "Einstein coefficient theory")' )
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-
-      value = (dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
+        value = (dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
 
        ! Onsager coefficients
         if ( this%NComponents > 1 ) then
@@ -15558,13 +15561,12 @@ if (this%EinsteinCoefAveCount > 0) then
            do i = 1, this%NComponents
               do  j = 1, this%NComponents
                  if (i ==j) then
-                  L(i,j) = this%EinsteinOnsagerAcc(i,j)%Average
+                   L(i,j) = this%EinsteinOnsagerAcc(i,j)%Average
                  else
-                  L(i,j) = (this%EinsteinOnsagerAcc(i,j)%Average + this%EinsteinOnsagerAcc(j,i)%Average)/2._RK
+                   L(i,j) = (this%EinsteinOnsagerAcc(i,j)%Average + this%EinsteinOnsagerAcc(j,i)%Average)/2._RK
                  end if
               end do
            end do
-
         end if
 
         !binary diffusion and thermal diffusion
@@ -15580,8 +15582,6 @@ if (this%EinsteinCoefAveCount > 0) then
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
         end if !this components = 2
-
-
 
        ! Ternary and Quaternary diffusion
         if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
@@ -15601,21 +15601,19 @@ if (this%EinsteinCoefAveCount > 0) then
              end do
           end do
 
-         !calculate variance by error propagation
+          !calculate variance by error propagation
           err_delta(:,:) = 0._RK
-           do i=1, (this%NComponents-1)
-             do j =1, (this%NComponents-1)
-                err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%EinsteinOnsagerAcc(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%EinsteinOnsagerAcc(i,this%NComponents)%Variance
-                do k = 1, this%NComponents
-                   if (k /= i) then
+          do i=1, (this%NComponents-1)
+            do j =1, (this%NComponents-1)
+               err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%EinsteinOnsagerAcc(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%EinsteinOnsagerAcc(i,this%NComponents)%Variance
+               do k = 1, this%NComponents
+                  if (k /= i) then
                     err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%EinsteinOnsagerAcc(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%EinsteinOnsagerAcc(k,this%NComponents)%Variance
-                   end if
-                end do
-             end do
+                  end if
+               end do
+            end do
           end do
-
-        end if
-
+        end if !Components 3 or 4
 
 
         !Ternary diffusion
@@ -15678,7 +15676,6 @@ if (this%EinsteinCoefAveCount > 0) then
 
 
         if ( this%NComponents == 4 ) then
-
           ! determinat of matrix [delta]
           det = (delta(1,1)*delta(2,2)*delta(3,3))+(delta(2,1)*delta(3,2)*delta(1,3))+(delta(3,1)*delta(1,2)*delta(2,3))-&
 &               (delta(1,1)*delta(3,2)*delta(2,3))-(delta(3,1)*delta(2,2)*delta(1,3))-(delta(2,1)*delta(1,2)*delta(3,3))
@@ -15777,7 +15774,6 @@ if (this%EinsteinCoefAveCount > 0) then
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-
         end if !this%NComponents == 4
 
 
@@ -15801,9 +15797,24 @@ if (this%EinsteinCoefAveCount > 0) then
         write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-end if
 
-!TRANSPORT_END
+        if ( this%NComponents > 1 ) then
+           do i = 1, this%NComponents
+             Average  = this%EinsteinOnsagerAcc(i,i)%Average
+             Variance = this%EinsteinOnsagerAcc(i,i)%Variance
+             factor = this%density*this%Component(i)%Molecule%Mass* this%Component(i)%Molecule%Mass
+             value = UnitTemperature*UnitMass*UnitTime/(1E-10_RK*UnitLength**3)
+             write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i,Average*factor, Variance*factor
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T16, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) Average*factor*value, Variance*factor*value
+             call FileWrite( this%iounit_errors )
+           end do
+           call FileWriteBlank( this%iounit_errors )
+        end if
+        
+      end if !EinsteinAverageCount
+    end if   !TransMethodEinstein
+
       ! Separator
       write( IOBuffer, '(76("="))' )
       call FileWrite( this%iounit_errors )
@@ -16331,67 +16342,64 @@ end if
 
 #if TRANS==1
     !EinsteinCoef ecoef output
-    if( EinsteinCoefCalc) then
-        if (RootProc) then
-        write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
-        write(IOBuffer, '(T8,"t*")')
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        write(IOBuffer, '(T12,"t")')
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        do t=1,this%NComponents
+    if(  (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+       if (RootProc) then
+         !write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         !call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
+         write(IOBuffer, '(T8,"t*")')
+         call FileWriteNoAdvance( this%iounit_ecoef )
+         write(IOBuffer, '(T12,"t")')
+         call FileWriteNoAdvance( this%iounit_ecoef )
+         do t=1,this%NComponents
             write( IOBuffer, '(T4,"Dself_",I1)' ) t
             call FileWriteNoAdvance( this%iounit_ecoef )
-        end do
+         end do
 
-        if (this%NComponents > 1) then
+         if (this%NComponents > 1) then
             do t=1,this%NComponents
-            do j=1,this%NComponents
+              do j=1,this%NComponents
                 write( IOBuffer, '(T4,"Onsager_",2I1)' ) t,j
                 call FileWriteNoAdvance( this%iounit_ecoef )
+              end do
             end do
-            end do
-        end if
+         end if
 
-        write( IOBuffer, '(T4,"ShearV")' )
-        call FileWriteNoAdvance( this%iounit_ecoef )
+         write( IOBuffer, '(T4,"ShearV")' )
+         call FileWriteNoAdvance( this%iounit_ecoef )
 
-
-
-        call FileWriteBlank( this%iounit_ecoef )
+         call FileWriteBlank( this%iounit_ecoef )
 
 
         do i=1,this%NCorr
-            value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
-            write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
-            call FileWriteNoAdvance( this%iounit_ecoef )
-            write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
-            call FileWriteNoAdvance( this%iounit_ecoef )
+           value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
+           write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
+           call FileWriteNoAdvance( this%iounit_ecoef )
+           write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
+           call FileWriteNoAdvance( this%iounit_ecoef )
 
 
-            do t=1,this%NComponents
-                write( IOBuffer, '(T4,F10.4)')  this%DselfEinsteinAve(i,t)*value
-                call FileWriteNoAdvance( this%iounit_ecoef )
-            end do
+           do t=1,this%NComponents
+              write( IOBuffer, '(T4,F10.4)')  this%DselfEinsteinAve(i,t)*value
+              call FileWriteNoAdvance( this%iounit_ecoef )
+           end do
 
-        if (this%NComponents > 1) then
+           if (this%NComponents > 1) then
             !I know, an extra information is here, it's just for checking
-            do t=1,this%NComponents
-            do j=1,this%NComponents
-                write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
-                call FileWriteNoAdvance( this%iounit_ecoef )
-            end do
-            end do
-        end if
+             do t=1,this%NComponents
+               do j=1,this%NComponents
+                  write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
+                  call FileWriteNoAdvance( this%iounit_ecoef )
+               end do
+             end do
+           end if
 
-            value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
            ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
             write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve(i)*value*0.5/3.0*this%Density /(this%NPart * this%Temperature)
             call FileWriteNoAdvance( this%iounit_ecoef )
-
-
             call FileWriteBlank( this%iounit_ecoef )
         end do
+
         write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%EinsteinCoefAveCount
         call FileWriteNoAdvance( this%iounit_ecoef )
         call FileWriteBlank( this%iounit_ecoef )
@@ -16399,7 +16407,7 @@ end if
         call FileWriteNoAdvance( this%iounit_ecoef )
         call FileWriteBlank( this%iounit_ecoef )
         call FileClose( this%iounit_ecoef )
-        end if
+       end if
     end if
 #endif
   end subroutine TEnsemble_ErrorsUpdate
@@ -21509,96 +21517,94 @@ end if
             end do
           end if
 
-#if TRANS==1
+        
+!#if TRANS==1
           !EinsteinCoef rest write
-    if( EinsteinCoefCalc ) then
+!    if( EinsteinCoefCalc ) then
 
-
-
-            write( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
-
-            do j = 0, this%NCorr/this%NSpanCF-1
-              write( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
-            end do
-
-            do s = 1, this%NComponents
-                do i = 1, this%NCorr
-                  do j = 0, this%NCorr/this%NSpanCF-1
-                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
-                  end do
-                end do
-            end do
-            if(this%NComponents > 1) then
-                do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    do i = 1, this%NCorr
-                      do j = 0, this%NCorr/this%NSpanCF-1
+!            write( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
+!
+!            do j = 0, this%NCorr/this%NSpanCF-1
+!              write( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
+!            end do
+!
+!            do s = 1, this%NComponents
+!                do i = 1, this%NCorr
+!                  do j = 0, this%NCorr/this%NSpanCF-1
+!                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+!                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
+!                  end do
+!                end do
+!            end do
+!            if(this%NComponents > 1) then
+!                do s = 1, this%NComponents
+!                do t = 1, this%NComponents
+!                    do i = 1, this%NCorr
+!                      do j = 0, this%NCorr/this%NSpanCF-1
                         !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
-                      end do
-                    end do
-                end do
-                end do
-            end if
-            do s = 1, this%NComponents
-                do i = 1, this%NCorr
+!                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
+!                      end do
+!                    end do
+!                end do
+!                end do
+!            end if
+!            do s = 1, this%NComponents
+!                do i = 1, this%NCorr
                     !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
-                end do
-            end do
-            if(this%NComponents > 1) then
-                do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    do i = 1, this%NCorr
+!                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
+!                end do
+!            end do
+!            if(this%NComponents > 1) then
+!                do s = 1, this%NComponents
+!                do t = 1, this%NComponents
+!                    do i = 1, this%NCorr
                         !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
-                    end do
-                end do
-                end do
-            end if
+!                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
+!                    end do
+!                end do
+!                end do
+!            end if
 
 
 
-        do s = 1, this%NComponents
-            write(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
-        end do
+!        do s = 1, this%NComponents
+!            write(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
+!        end do
 
 
-        if(this%NComponents > 1) then
-            do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    write(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
-                end do
-            end do
-        endif
+!        if(this%NComponents > 1) then
+!            do s = 1, this%NComponents
+!                do t = 1, this%NComponents
+!                    write(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
+!                end do
+!            end do
+!        endif
 
 
-        do s = 1, this%NComponents
-            call RestartSave( this%EinsteinDSelfAcc(s), .true. )
-        end do
+!        do s = 1, this%NComponents
+!            call RestartSave( this%EinsteinDSelfAcc(s), .true. )
+!        end do
 
-        if(this%NComponents > 1) then
-          do s = 1, this%NComponents
-             do t = 1, this%NComponents
-               call RestartSave( this%EinsteinOnsagerAcc(s,t), .true. )
-             end do
-          end do
-        end if
+!        if(this%NComponents > 1) then
+!          do s = 1, this%NComponents
+!             do t = 1, this%NComponents
+!               call RestartSave( this%EinsteinOnsagerAcc(s,t), .true. )
+!             end do
+!          end do
+!        end if
 
+!        do i = 1, this%NCorr
+!            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
+!        end do
 
-        do i = 1, this%NCorr
-            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
-        end do
+!        do i = 1, this%NCorr
+!            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
+!        end do
 
-        do i = 1, this%NCorr
-            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
-        end do
-
-        call RestartSave( this%EinsteinShearAcc, .true.)
-    end if
+!        call RestartSave( this%EinsteinShearAcc, .true.)
+!    end if
         !Einstein end rest
-#endif
+!#endif
 
 
 
@@ -21896,7 +21902,6 @@ end if
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
 
-    !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
     !Reduced correlation steps
     StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
@@ -21906,18 +21911,21 @@ if( RootProc .and. this%CorrfunMode ) then
       Mindex = this%NCorr
     end if
 
-    k=mod(Mindex,this%NSpanCF)
-    this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
-    !Aenderungen Koester
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      k=mod(Mindex,this%NSpanCF)
+      this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
+    end if
 
     write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
-    do i = 1, 3*this%NPart
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, 3*this%NPart
         do j = 1, this%NCorr
             write( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
-    end do
+      end do
+    end if  
 
     do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
@@ -21952,9 +21960,13 @@ if( RootProc .and. this%CorrfunMode ) then
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
     end do
-    do i = 1, this%NCorr
+
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
-    end do
+      end do
+    end if
+
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
     end do
@@ -21965,43 +21977,67 @@ if( RootProc .and. this%CorrfunMode ) then
           write( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i,j)
         end do
       end do
+
+      if (TransMethod .eq. Einstein) then
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompX(i,j)
+          end do
+        end do
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompY(i,j)
+          end do
+        end do
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompZ(i,j)
+          end do
+        end do
+      end if
     end if
 
-    do i = 1, this%NComponents
-      do j = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
-      end do
-    end do
-
-    if (this%NComponents > 1) then
-      do i = 1, this%NComponents*this%NComponents
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NComponents
         do j = 1, this%NCorr
-          write( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
+          write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
         end do
       end do
+
+      if (this%NComponents > 1) then
+        do i = 1, this%NComponents*this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
+          end do
+        end do
+      end if
     end if
 
     write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-    do i = 1, this%NComponents
-      call RestartSave( this%Sumself_i(i), .true. )
-    end do
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NComponents
+       call RestartSave( this%Sumself_i(i), .true. )
+      end do
+    end if  
 
     if(this%NComponents > 1) then
-      do i = 1, this%NComponents
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+        do i = 1, this%NComponents
          do j = 1, this%NComponents
            call RestartSave( this%SumOnsager(i,j), .true. )
          end do
-      end do
+        end do
+      end if 
       do i = 1, this%NComponents
          call RestartSave( this%SumSoret(i), .true. )
       end do
     end if
 
+     if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+       call RestartSave( this%SumVisco_s, .true. )
+    end if
 
-
-
-    call RestartSave( this%SumVisco_s, .true. )
     call RestartSave( this%SumVisco_b, .true. )
     call RestartSave( this%SumConduct, .true. )
     call RestartSave( this%SumEConduct,.true. )
@@ -22014,7 +22050,85 @@ if( RootProc .and. this%CorrfunMode ) then
       write( iounit_restart, '(ES20.12E3)' )  this%sc(i)
     end do
 
-endif
+    if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein) ) then
+       write( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
+       do j = 0, this%NCorr/this%NSpanCF-1
+          write( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
+       end do
+
+       do s = 1, this%NComponents
+         do i = 1, this%NCorr
+            do j = 0, this%NCorr/this%NSpanCF-1
+               write( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
+            end do
+         end do
+       end do
+
+       if(this%NComponents > 1) then
+         do s = 1, this%NComponents
+           do t = 1, this%NComponents
+              do i = 1, this%NCorr
+                do j = 0, this%NCorr/this%NSpanCF-1
+                   write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
+                end do
+              end do
+           end do
+         end do
+       end if
+
+       do s = 1, this%NComponents
+          do i = 1, this%NCorr
+             write( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
+          end do
+       end do
+
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+                do i = 1, this%NCorr
+                   write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
+                end do
+             end do
+          end do
+       end if
+
+       do s = 1, this%NComponents
+         write(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
+       end do
+
+
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+            do t = 1, this%NComponents
+               write(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
+            end do
+         end do
+       endif
+
+       do s = 1, this%NComponents
+          call RestartSave( this%EinsteinDSelfAcc(s), .true. )
+       end do
+     
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+               call RestartSave( this%EinsteinOnsagerAcc(s,t), .true. )
+             end do
+          end do
+        end if
+
+
+        do i = 1, this%NCorr
+          write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
+        end do
+
+        do i = 1, this%NCorr
+          write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
+        end do
+
+        call RestartSave( this%EinsteinShearAcc, .true.)
+    end if
+ endif
 #endif
 
   end subroutine TEnsemble_RestartSave
@@ -22419,7 +22533,6 @@ endif
 
     if ( RootProc ) then
 
-      !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
       !Reduced correlation steps
       StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
@@ -22430,17 +22543,16 @@ endif
       end if
 
       k=mod(Mindex,this%NSpanCF)
-      !Aenderungen Koester
 
-      do i = 1, 3*this%NPart
-        do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
-        end do
-      end do
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, 3*this%NPart
+          do j = 1, this%NCorr
+            read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
+          end do
+        end do  
 
-      !Aenderungen Koester
-      this%A_SpanCF(:,1:k) =  this%a(:,Mindex + 1 - k:Mindex )
-      !Aenderungen Koester
+        this%A_SpanCF(:,1:k) =  this%a(:,Mindex + 1 - k:Mindex )
+      end if
 
       do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsk(i,:)
@@ -22475,9 +22587,13 @@ endif
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
       end do
-      do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
-      end do
+
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NCorr
+          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
+        end do
+      end if
+
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' )  this%average_cf_ec(i)
       end do
@@ -22488,39 +22604,65 @@ endif
              read( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i,j)
           end do
         end do
+
+        if (TransMethod .eq. Einstein) then
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompX(i,j)
+            end do
+          end do
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompY(i,j)
+            end do
+          end do
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompZ(i,j)
+            end do
+          end do
+        end if
       end if
 
-      do i = 1, this%NComponents
-        do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
-        end do
-      end do
-      if (this%Ncomponents>1) then
-        do i = 1, this%NComponents*this%NComponents
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
           do j = 1, this%NCorr
-            read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
+            read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
           end do
         end do
+        if (this%Ncomponents>1) then
+          do i = 1, this%NComponents*this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
+            end do
+          end do
+        end if
       end if
 
       read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-      do i = 1, this%NComponents
-        call RestartRead( this%Sumself_i(i) )
-      end do
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
+          call RestartRead( this%Sumself_i(i) )
+        end do
+      end if  
 
-      if(this%NComponents >= 2) then
-        do i = 1, this%NComponents
-           do j = 1, this%NComponents
-             call RestartRead( this%SumOnsager(i,j) )
+      if(this%NComponents > 1) then
+         if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+           do i = 1, this%NComponents
+             do j = 1, this%NComponents
+               call RestartRead( this%SumOnsager(i,j) )
+             end do
            end do
-        end do
-        do i = 1, this%NComponents
+         end if  
+         do i = 1, this%NComponents
           call RestartRead( this%SumSoret(i) )
-        end do
+         end do
       end if
 
-      call RestartRead( this%SumVisco_s )
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        call RestartRead( this%SumVisco_s )
+      end if  
       call RestartRead( this%SumVisco_b )
       call RestartRead( this%SumConduct )
       call RestartRead( this%SumEConduct)
@@ -22533,6 +22675,82 @@ endif
         read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
       end do
 
+       if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein) ) then
+            read( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
+            do j = 0, this%NCorr/this%NSpanCF-1
+              read( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
+            end do
+
+            do s = 1, this%NComponents
+                do i = 1, this%NCorr
+                  do j = 0, this%NCorr/this%NSpanCF-1
+                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                    read( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
+                  end do
+                end do
+            end do
+            if(this%NComponents > 1) then
+                do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    do i = 1, this%NCorr
+                      do j = 0, this%NCorr/this%NSpanCF-1
+                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                        read( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
+                      end do
+                    end do
+                end do
+                end do
+            end if
+            do s = 1, this%NComponents
+                do i = 1, this%NCorr
+                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                    read( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
+                end do
+            end do
+            if(this%NComponents > 1) then
+                do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    do i = 1, this%NCorr
+                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                        read( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
+                    end do
+                end do
+                end do
+            end if
+            do s = 1, this%NComponents
+               read(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
+            end do
+
+
+        if(this%NComponents > 1) then
+            do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    read(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
+                end do
+            end do
+        endif
+         do s = 1, this%NComponents
+            call RestartRead( this%EinsteinDSelfAcc(s), .true. )
+        end do
+
+        if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+               call RestartRead( this%EinsteinOnsagerAcc(s,t), .true. )
+             end do
+          end do
+        end if
+
+        do i = 1, this%NCorr
+            read( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
+        end do
+
+        do i = 1, this%NCorr
+            read( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
+        end do
+
+        call RestartRead( this%EinsteinShearAcc, .true.)
+      end if
     end if
 #endif
 
@@ -25448,20 +25666,28 @@ contains
         !end if
       end do !k =1, 3
 
-      ! kinetic part
-      !Diffusion matrix a
-      k=mod(Mindex,this%NSpanCF)
-      if (k==0) k=this%NSpanCF
-      ! Multiplikation mit BoxLength_dt erst nach der Integration
-      this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1)
-      this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2)
-      this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3)
+      
+      !Diffusion matrix a (velocity matrix)
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         k=mod(Mindex,this%NSpanCF)
+         if (k==0) k=this%NSpanCF
+         ! Multiplikation mit BoxLength_dt erst nach der Integration
+         this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1)
+         this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2)
+         this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3)
+      end if
 
-      !parts of the stress and energy tensors
+      !kinetic parts of the stress and energy tensors
       ! shear off diagonal terms
       this%vsk(Mindex, 1) = this%vsk(Mindex,1) + sum( pc%P1(:,1) * pc%P1(:,2) ) * Mass*BoxLength_dt2
       this%vsk(Mindex, 2) = this%vsk(Mindex,2) + sum( pc%P1(:,1) * pc%P1(:,3) ) * Mass*BoxLength_dt2
       this%vsk(Mindex, 3) = this%vsk(Mindex,3) + sum( pc%P1(:,2) * pc%P1(:,3) ) * Mass*BoxLength_dt2
+
+      if (TransMethod .eq. Einstein) then
+         this%velcompX(i, Mindex) = sum (pc%P1(:,1))*BoxLength_dt
+         this%velcompY(i, Mindex) = sum (pc%P1(:,2))*BoxLength_dt
+         this%velcompZ(i, Mindex) = sum (pc%p1(:,3))*BoxLength_dt
+      end if
 
       j0 = j0 + np
     end do    ! Component
@@ -25488,45 +25714,62 @@ contains
        end if
 
      ! nullify the autocorrelation functions
-       do i = 1, this%NComponents
-         this%cf_d(i, :) = 0._RK
-       end do
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         do i = 1, this%NComponents
+           this%cf_d(i, :) = 0._RK
+         end do
+         this%cf_vs(:) = 0._RK
+       end if  
 
-        this%cf_vs(:) = 0._RK
-        this%cf_c(:)  = 0._RK
-        this%cf_vb(:) = 0._RK
-        this%cf_ec(:) = 0._RK
+       this%cf_c(:)  = 0._RK
+       this%cf_vb(:) = 0._RK
+       this%cf_ec(:) = 0._RK
 
-        if (this%NComponents .gt. 1) then
-          do k = 1, ncomp2
+       if (this%NComponents .gt. 1) then
+         if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+           do k = 1, ncomp2
              this%lamda(k,:) = 0._RK
-          end do
-          do k = 1, this%NComponents
-             this%cf_soret(k,:) = 0._RK
-          end do
-        end if
+           end do
+         end if  
+         do k = 1, this%NComponents
+            this%cf_soret(k,:) = 0._RK
+         end do
+       end if
 
 
        ! Preparation of the Autocorrelation function - safe the Startpoints
         j0 = 0
-        do i = 1, this%NComponents
-          np = this%Component(i)%NPart
-          SXindex(i)  = sum(this%a(j0       +1:j0+np        , CFindex))
-          SYindex(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , CFindex))
-          SZindex(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , CFindex))
-          j0 = j0 + np
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            SXindex(i)  = sum(this%a(j0       +1:j0+np        , CFindex))
+            SYindex(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , CFindex))
+            SZindex(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , CFindex))
+            j0 = j0 + np
+          end do
 
-        do i = 1, this%NComponents
-          Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
-          Sindex(i,2)=SYindex(i)*BoxLength_dt
-          Sindex(i,3)=SZindex(i)*BoxLength_dt
-        end do
+          do i = 1, this%NComponents
+            Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
+            Sindex(i,2)=SYindex(i)*BoxLength_dt
+            Sindex(i,3)=SZindex(i)*BoxLength_dt
+          end do
+        end if
 
-      ! Calculation of all transport properties
-      ! s .. matrix index of the corresponding values
-!mn      s = CFindex    Has to be set inside of the loop for OMP parallelisation
-      CFtmp=CFindex
+         if (TransMethod .eq. Einstein) then
+           do i = 1, this%NComponents
+             Sindex(i,1)=this%velcompX(i,CFindex)  !mass flux for thermal diffusion
+             Sindex(i,2)=this%velcompY(i,CFindex)
+             Sindex(i,3)=this%velcompZ(i,CFindex)
+           end do
+        end if
+  
+
+        ! Calculation of all transport properties
+        ! s .. matrix index of the corresponding values
+        ! s = CFindex    Has to be set inside of the loop for OMP parallelisation
+
+        CFtmp=CFindex
+
 ! Directive inserted by Cray Reveal.  May be incomplete.
 !$OMP  parallel do default(none)                                         &
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
@@ -25540,51 +25783,66 @@ contains
          ! Loop over particles
         s=CFtmp+nmess-1
         if (s > this%NCorr) s = s-this%NCorr
-        j0 = 0
-        do i = 1, this%NComponents
-          np = this%Component(i)%NPart
-          this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , &
-&                                                     this%a(j0+1: j0+np,s) ) &
-&                             + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
-&                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
-&                             + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
-&                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
 
-          if ( this%NComponents .gt. 1 ) then
-            sx(i)  = sum(this%a(j0       +1:j0+np        , s))
-            sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
-            sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
-          end if
-          j0 = j0 + np
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          j0 = 0
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , &
+&                                                       this%a(j0+1: j0+np,s) ) &
+&                               + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
+&                                                       this%a(j0+NPart +1 : j0+NPart +np,s) ) &
+&                               + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
+&                                                       this%a(j0+NPart2+1 : j0+NPart2+np,s) )
 
-        do i = 1, this%NComponents
-          ss(i,1) = sx(i)* BoxLength_dt
-          ss(i,2) = sy(i)* BoxLength_dt
-          ss(i,3) = sz(i)* BoxLength_dt
-        end do
+            if ( this%NComponents .gt. 1 ) then
+              sx(i)  = sum(this%a(j0       +1:j0+np        , s))
+              sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
+              sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
+            end if
+            j0 = j0 + np
+          end do
 
-        ! Just loops over components!
-        if (this%NComponents .gt. 1) then
-          nc = this%NComponents
-          k = 1
-          do i = 1, nc
-            do j = 1,nc
-              this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
-&                                                         + SYindex(i)*sy(j) &
-&                                                         + SZindex(i)*sz(j)
-              k = k + 1
-            end do
+          do i = 1, this%NComponents
+            ss(i,1) = sx(i)* BoxLength_dt
+            ss(i,2) = sy(i)* BoxLength_dt
+            ss(i,3) = sz(i)* BoxLength_dt
+          end do
+        end if 
+
+         if (TransMethod .eq. Einstein) then
+           do i = 1, this%NComponents
+             ss(i,1) = this%velcompX(i,s)
+             ss(i,2) = this%velcompY(i,s)
+             ss(i,3) = this%velcompZ(i,s)
           end do
         end if
+         
+        ! Just loops over components!
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          if (this%NComponents .gt. 1) then
+            nc = this%NComponents
+            k = 1
+            do i = 1, nc
+              do j = 1,nc
+                this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
+&                                                           + SYindex(i)*sy(j) &
+&                                                           + SZindex(i)*sz(j)
+                k = k + 1
+              end do
+            end do
+          end if
+        end if  
 
         ! Calculated in general
         do k = 1, 3
           ! shear viscosity (off-diagonal elements)
-          this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
-&                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
-&                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
-&                                                 this%vsp(CFindex, k)*this%vsk(s, k)
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+            this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
+&                                                   this%vsp(CFindex, k)*this%vsp(s, k) + &
+&                                                   this%vsk(CFindex, k)*this%vsp(s, k) + &
+&                                                   this%vsp(CFindex, k)*this%vsk(s, k)
+          end if
 
           ! bulk viscosity
           if (Bulkviscosity) then
@@ -25626,17 +25884,17 @@ contains
 
         end do !k = 1, 3
 
-
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
           this%cf_vs(nmess) = this%cf_vs(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
-&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
-&                                                              (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
-&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
-&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
-&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
-&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
-&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
-
+&                                                                (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                                (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
+&                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                                (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
+         end if
 
          !Thermal diffusivity
          if (this%Ncomponents .gt. 1) then
@@ -25690,11 +25948,12 @@ contains
       end do  ! NMess
       this%Mmess  = this%Mmess +1
 
-      do i = 1, this%NComponents
-        this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
-      end do
-
-      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
+          this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+        end do
+        this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      end if  
       this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb(:))
       this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
       this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
@@ -25703,9 +25962,11 @@ contains
         do k = 1, this%NComponents
           this%average_cf_soret(k,:)= (this%average_cf_soret(k,:) + this%cf_soret(k,:))
         end do
-        do k = 1, ncomp2
-          this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do k = 1, ncomp2
+            this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
+          end do
+        end if  
       end if
 
 
@@ -25715,15 +25976,15 @@ contains
 ! -----------------------------------
      else ! if (Step .gt. this%NCorr)
         CFindex = Mindex +1
-        this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+        end if  
      end if ! if (Step .gt. this%NCorr)
     end if ! if (mod(Step, this%NSpanCF).eq.0)
 
  end if ! RootProc
    end subroutine TEnsemble_CalCorrFun
 #endif
-
-
 
 #if TRANS==1
 !==============================================================!
@@ -25739,58 +26000,52 @@ contains
     ! Declare local varibles
     integer  :: i, j, k
     integer  :: ncomp2
-    real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3 !, w1, w2, MM
-!    real(RK) :: Inv_x1, Inv_x2, Inv_x3
-!    real(RK) :: B11, B12, B21, B22
+    real(RK) :: helpvar
+    real(RK) :: x1, x2, x3 
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
-    !MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
-    !w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
-    !w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
-
-
-    do i  = 1, this%NComponents
-      helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
-         this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
-         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
-         this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
-         this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
-      end if
-    end do
-
-
-    if ( this%NComponents .gt. 1) then
-      helpvar =  Third /(this%NPart) * BoxLength_dt2
-      do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-15) then
-           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
-           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
-           this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+       !Self-diffusion coefficients     
+      do i  = 1, this%NComponents
+        helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
+        if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
+           this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
+           this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
+           this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
+           this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
         end if
       end do
 
-      k = 1
-       do i = 1, this%NComponents
-         do j = 1, this%NComponents
+      !Onsager Coefficients
+      if ( this%NComponents .gt. 1) then
+        helpvar =  Third /(this%NPart) * BoxLength_dt2
+        do k = 1, ncomp2
+          if (abs(this%lamda(k, 1)) .gt. 1e-15) then
+             this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
+             this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
+             this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+          end if
+        end do
+
+        k = 1
+        do i = 1, this%NComponents
+          do j = 1, this%NComponents
              this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
              k = k +1
-         end do
-      end do
+          end do
+        end do
+      end if
 
-    end if
-
-
-    helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
-    this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
-    this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
-    this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-
+      !shear Viscosity
+      helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
+      this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
+      this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
+      this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
+      this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
+    end if  
 
     helpvar =  this%Density*Ninth/(this%NPart * this%Temperature)
     if (this%Bulkviscosity) then
@@ -25801,34 +26056,31 @@ contains
     end if
 
     helpvar = this%Density*Third/this%NPart
- !   if (this%Conductivity) then
+    if (abs(this%cf_c(1)) .gt. 1e-15) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
       this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/this%Mmess)
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
- !   end if
-
-     if ( this%NComponents .gt. 1 ) then
- !     if (abs(this%cf_soret(1)) .gt. 1e-15) then
-        do k = 1, this%NComponents
-          if (abs(this%cf_soret(k,1)) .gt. 1e-15) then
-            this%sinte_soret(k,:) = simpson (this%cf_soret(k,:)/this%cf_soret(k,1), this%TimeStepCorr, this%NCorr )
-            this%average_sinte_soret(k,:) = simpson (this%average_cf_soret(k,:)/this%average_cf_soret(k,1), this%TimeStepCorr, this%NCorr)
-            this%average_sinte_soret(k,:) = this%average_sinte_soret(k,:)*this%average_cf_soret(k,1)*helpvar*this%Component(k)%Molecule%Mass/(2._RK*this%Mmess)
-            this%soret(k) =  this%sinte_soret(k, this%NCorr)*this%cf_soret(k,1)*this%Component(k)%Molecule%Mass*helpvar/2._RK
-          end if
-        end do
- !     end if
     end if
 
-     helpvar = this%Density*Third /(this%NPart * this%Temperature)
+    if ( this%NComponents .gt. 1 ) then
+      do k = 1, this%NComponents
+        if (abs(this%cf_soret(k,1)) .gt. 1e-15) then
+           this%sinte_soret(k,:) = simpson (this%cf_soret(k,:)/this%cf_soret(k,1), this%TimeStepCorr, this%NCorr )
+           this%average_sinte_soret(k,:) = simpson (this%average_cf_soret(k,:)/this%average_cf_soret(k,1), this%TimeStepCorr, this%NCorr)
+           this%average_sinte_soret(k,:) = this%average_sinte_soret(k,:)*this%average_cf_soret(k,1)*helpvar*this%Component(k)%Molecule%Mass/(2._RK*this%Mmess)
+           this%soret(k) =  this%sinte_soret(k, this%NCorr)*this%cf_soret(k,1)*this%Component(k)%Molecule%Mass*helpvar/2._RK
+         end if
+       end do
+    end if
+
+    helpvar = this%Density*Third /(this%NPart * this%Temperature)
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
       this%average_sinte_ec = this%average_sinte_ec(:)*this%average_cf_ec(1)*(helpvar * BoxLength_dt2/this%Mmess)
       this%econduct = this%sinte_ec( this%NCorr ) * this%cf_ec(1) * (helpvar * BoxLength_dt2)
     end if
-
 
   contains
 
