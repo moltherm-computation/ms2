@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NPTSVC_N2_O2_MC.par</parFile>
+	<name>NPTSVC_N2_O2_MC</name>
+	<np>40</np>
+	<walltime>04:30:00</walltime>
+	<reference>
+		<file>NPTSVC_N2_O2_MC_1.res</file>
+	</reference>
+</testcase>

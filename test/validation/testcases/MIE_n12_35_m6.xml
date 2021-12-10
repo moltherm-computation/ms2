@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MDNVT_widom_Axy.par</parFile>
+	<name>MIE_n12_35_m6</name>
+	<np>40</np>
+	<walltime>11:00:00</walltime>
+	<reference>
+		<file>MDNVT_widom_Axy_1.res</file>
+	</reference>
+</testcase>

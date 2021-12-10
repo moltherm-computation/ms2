@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MDNVT_KBI_quat.par</parFile>
+	<name>MDNVT_KBI_quat</name>
+	<np>120</np>
+	<walltime>4-00:00:00</walltime>
+	<reference>
+		<file>MDNVT_KBI_quat_1.res</file>
+	</reference>
+</testcase>
