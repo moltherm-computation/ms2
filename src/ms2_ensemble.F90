@@ -14683,6 +14683,7 @@ loop2:        do nc = 1, this%NComponents
           else
             write( IOBuffer, '(T10,"D_i_",I2)' ) i
           end if
+          call FileWriteNoAdvance( this%iounit_rescf )
         end do
 
         write( IOBuffer, '(T13,"Shr. Vis.")' )
