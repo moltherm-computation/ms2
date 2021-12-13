@@ -2,11 +2,12 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>43506118a694adb906c6ff3672e519b0fe2b950e</caseRepositoryHash>
+	<caseRepositoryHash>c64738b4cb70376a387e7e7978b1a45a857ba0e5</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="einstein_CO2" file="einstein_CO2.xml" /> -->
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 <!-- 		<case name="greenKubo" file="greenKubo.xml" /> -->
+<!-- 		<case name="greenKubo_Einstein" file="greenKubo_Einstein.xml" /> -->
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
