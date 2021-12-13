@@ -4,8 +4,11 @@
 	<tools4ms2version>0.0.276</tools4ms2version>
 	<caseRepositoryHash>c344bfe12d5d2601153d900c74568074067f5d67</caseRepositoryHash>
 	<caseList>
+<!-- 		<case name="einstein_CO2" file="einstein_CO2.xml" /> -->
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
 		<case name="energyMinimization" file="energyMinimization.xml" />
+<!-- 		<case name="greenKubo" file="greenKubo.xml" /> -->
+<!-- 		<case name="greenKubo_Einstein" file="greenKubo_Einstein.xml" /> -->
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
