@@ -27761,9 +27761,9 @@ contains
          k=mod(Mindex,this%NSpanCF)
          if (k==0) k=this%NSpanCF
          ! Multiplikation mit BoxLength_dt erst nach der Integration
-         this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1)
-         this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2)
-         this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3)
+         this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1, 1)
+         this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2, 1)
+         this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3, 1)
       end if
 
       !kinetic parts of the stress and energy tensors
@@ -27773,9 +27773,9 @@ contains
       this%vsk(Mindex, 3) = this%vsk(Mindex,3) + sum( pc%P1(:,2,1) * pc%P1(:,3,1) ) * Mass*BoxLength_dt2
 
       if (TransMethod .eq. Einstein) then
-         this%velcompX(i, Mindex) = sum (pc%P1(:,1))*BoxLength_dt
-         this%velcompY(i, Mindex) = sum (pc%P1(:,2))*BoxLength_dt
-         this%velcompZ(i, Mindex) = sum (pc%p1(:,3))*BoxLength_dt
+         this%velcompX(i, Mindex) = sum (pc%P1(:,1, 1))*BoxLength_dt
+         this%velcompY(i, Mindex) = sum (pc%P1(:,2, 1))*BoxLength_dt
+         this%velcompZ(i, Mindex) = sum (pc%p1(:,3, 1))*BoxLength_dt
       end if
 
       j0 = j0 + np
