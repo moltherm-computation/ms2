@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -163,18 +163,6 @@ end type TSimulation
     module procedure TSimulation_VisualClose
   end interface
 
-  interface VisualCCOpen
-    module procedure TSimulation_VisualCCOpen
-  end interface
-
-  interface VisualCCUpdate
-    module procedure TSimulation_VisualCCUpdate
-  end interface
-
-  interface VisualCCClose
-    module procedure TSimulation_VisualCCClose
-  end interface
-
   interface CCOpen
     module procedure TSimulation_CCOpen
   end interface
@@ -275,9 +263,9 @@ contains
     real(RK)                    :: debyelen_h
     integer                     :: grid_h,spline_h
     integer                     :: nvecmax_h,nsqmax_h,nmax_h
-	integer                     :: maxNComp, thisNComp
-	real(RK)                    :: dummyR
-	
+    integer                     :: maxNComp, thisNComp
+    real(RK)                    :: dummyR
+    
 #if MPI_VER > 0
     integer  :: icommunicator
     !real(RK) :: dummyR
@@ -485,7 +473,6 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
-      VisualCCUpdateFrequency = 0 !DC NOTE- initialize the visual CC update frequency
       RDFUpdateFrequency = 0
       ODFUpdateFrequency = 0
       KBIUpdateFrequency = 0
@@ -603,7 +590,7 @@ contains
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'Humid Air'
-	case( 'NPTSVC', 'nptsvc' )
+    case( 'NPTSVC', 'nptsvc' )
         EnsembleType = EnsembleTypeNPTSVC
         ConstantTemperature = .true.
         ConstantPressure = .true.
@@ -1108,19 +1095,6 @@ contains
          case default
            call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
       end select
-
-     !EinsteinCoef procedure switching
-!    call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
-!     if (str == 'yes') then
-!        EinsteinCoefCalc = .true.
-!        write( IOBuffer, '("Einstein formalism procedure is switched on")')
-!        call LogWrite
-!     else
-!        EinsteinCoefCalc = .false.
-!        write( IOBuffer, '("Einstein formalism procedure is switched off")')
-!        call LogWrite
-!    endif
-
 #endif
 
 #if MPI_VER > 0
@@ -1199,72 +1173,74 @@ contains
 ! preparation of VLE calculation based on SVC  
   if (SimulationType .eq. MolecularDynamics .or. SimulationType .eq. MonteCarlo) then   
      if (EnsembleType .eq. EnsembleTypeNPTSVC) then
-	   if (SVCCalc .eqv. .false.) then !if SVC was not calculated until now
-	       write( IOBuffer, '(72(1H*))')
+       if (SVCCalc .eqv. .false.) then !if SVC was not calculated until now
+           write( IOBuffer, '(72(1H*))')
            call LogWrite
-		   write(IOBuffer, '(T18, "Reading Second Virial Coefficient Parameters")')
-		   call LogWrite
-		   write( IOBuffer, '(72(1H*))')
-	       call LogWrite
+           write(IOBuffer, '(T18, "Reading Second Virial Coefficient Parameters")')
+           call LogWrite
+           write( IOBuffer, '(72(1H*))')
+           call LogWrite
            call LogWriteBlank
-		   SimulationTypeString = 'Second Virial Coefficient'
-		   SimulationType = SecondVirialCoeff
-		   call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-		   if( .not. UseReducedUnits ) then
-		   call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! hard-coded.
-		   call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 200 )
-		   call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 2._RK )
-		   call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 20._RK  )
-		   else
-		   call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! 
-		   call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 200 )
-		   call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 0.66_RK )
-		   call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 6.66_RK )
-		   end if
-		   maxNComp=0
-		   do i = 1, this%NEnsembles !maximum number of components
-		       call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )! dirty hack to move the file pointer to the next ensemble
-			   call FileReadParameter( thisNComp, iounit_params , IdNComponents, .false. )
-			   if (thisNComp > maxNComp) maxNComp = thisNComp !maximum number of NComponents of all ensembles
-		   end do
-		   allocate(ArrSVC(maxNComp*2,maxNComp*2), STAT=stat ) !allocate memory for SVC and dB/dT
-		   call AllocationError( stat, 'Array SVC' )
-	       allocate(ArrdBdT(maxNComp*2,maxNComp*2), STAT=stat)
-		   call AllocationError( stat, 'Array dB/dT' )
-		   allocate(ArrChemPot(maxNComp), STAT=stat) !allocate memory for SVC and dB/dT
-		   call AllocationError( stat, 'Array Chemical potential' )
+           SimulationTypeString = 'Second Virial Coefficient'
+           SimulationType = SecondVirialCoeff
+           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
+           if( .not. UseReducedUnits ) then
+           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! hard-coded.
+           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 200 )
+           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 2._RK )
+           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 20._RK  )
+           else
+           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! 
+           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 400 )
+           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 0.66_RK )
+           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 6.66_RK )
+           end if
+           maxNComp=0
+           do i = 1, this%NEnsembles !maximum number of components
+               call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )! dirty hack to move the file pointer to the next ensemble
+               call FileReadParameter( thisNComp, iounit_params , IdNComponents, .false. )
+               if (thisNComp > maxNComp) maxNComp = thisNComp !maximum number of NComponents of all ensembles
+           end do
+           allocate(ArrSVC(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat) !allocate memory for SVC and dB/dT
+           call AllocationError( stat, 'Array SVC' )
+           ArrSVC(:,:,:) = 0.0
+           allocate(ArrdBdT(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat)      
+           ArrdBdT(:,:,:) = 0.0
+           call AllocationError( stat, 'Array dB/dT' )
+           allocate(ArrChemPot(maxNComp), STAT=stat) !allocate memory for SVC and dB/dT
+           call AllocationError( stat, 'Array Chemical potential' )
            allocate(ArrPartMolVol(maxNComp), STAT=stat) !allocate memory for v_i
-		   call AllocationError( stat, 'Array Partial molar volume' )
+           call AllocationError( stat, 'Array Partial molar volume' )
 
-		   
-		   CutoffMode = CenterofMass ! Set cutoff mode
-		   BlockSize = 0
+           
+           CutoffMode = CenterofMass ! Set cutoff mode
+           BlockSize = 0
            ErrorsUpdateFrequency = NSteps ! Set output frequencies
-		   NStepsSVC = NSteps
+           NStepsSVC = NSteps
            VisualUpdateFrequency = 0
            RDFUpdateFrequency = 0
-		   write( IOBuffer, '("Number of orientations: ",T24, I7)' ) NOrient
+           write( IOBuffer, '("Number of orientations: ",T24, I7)' ) NOrient
            call LogWrite
            write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
            call LogWrite
                     if( .not. UseReducedUnits ) then
-		      MinRadius = MinRadius / UnitLength * Angstroem
-			  MaxRadius = MaxRadius / UnitLength * Angstroem
-		   endif
+              MinRadius = MinRadius / UnitLength * Angstroem
+              MaxRadius = MaxRadius / UnitLength * Angstroem
+           endif
            write( IOBuffer, '("Minimum radius: ",T27, F8.3, " A")' ) MinRadius * UnitLength / Angstroem
            call LogWrite
            write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem   
-		   call LogWrite      
-           call FileClose( iounit_params )		   
-		   call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par		   
+           call LogWrite      
+           call FileClose( iounit_params )         
+           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par         
 #if MPI_VER > 0
            ! force sequential reading of parameter file (within Ensemble Construct)    better use MPI-IO!
            do icommunicator = 0,NCommunicators-1
              if (icommunicator==NCommunicator) then
 #endif
              do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-		       call ConstructSVC( this%Ensemble(i), i )
-		     end do
+               call ConstructSVC( this%Ensemble(i), i )
+             end do
 #if MPI_VER > 0
              else
                ! dirty hack to move the file pointer to the next ensemble
@@ -1274,12 +1250,12 @@ contains
              call MPI_Barrier( MPI_COMM_WORLD, ierror )
            end do
 #endif
-		   call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-		   call FileClose( iounit_params )	   
-		   SVCCalc = .true.
-	   endif
-	 endif
-  endif		
+           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
+           call FileClose( iounit_params )     
+           SVCCalc = .true.
+       endif
+     endif
+  endif     
 
   ! Create accumulators
   call CreateAccumulators( this )
@@ -1298,16 +1274,15 @@ contains
     write( IOBuffer, '(72(1H*))')
     call LogWrite
     if (SimulationType .eq. SecondVirialCoeff) then
-		write( IOBuffer, '(T28, "Start Calculation of Second Virial Coefficient")')
-	else
+        write( IOBuffer, '(T28, "Start Calculation of Second Virial Coefficient")')
+    else
         write( IOBuffer, '(T28, "Start Simulation")')
-	endif    
-	call LogWrite
+    endif    
+    call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
-    call VisualCCOpen( this )
     call CCOpen( this )
     call RDFOpen( this )
     call ODFOpen( this )
@@ -1346,7 +1321,6 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-    call VisualCCClose( this )
     call CCClose( this )
     call KBIClose( this )
     !call RDFClose( this ) ! file is closed after updating
@@ -1365,17 +1339,17 @@ contains
     end if
 
 ! Start NPT Simulation if SVC was calculated before NPT start
-	if (SVCCalc .eqv. .true.) then
-		call Construct( this )
-		call Run( this )
-		SVCCalc = .false.
-		! Deallocate Arrays for SVC and dB/dT
-	    deallocate( ArrSVC )
-	    deallocate( ArrdBdT )
-		deallocate( ArrChemPot )
+    if (SVCCalc .eqv. .true.) then
+        call Construct( this )
+        call Run( this )
+        SVCCalc = .false.
+        ! Deallocate Arrays for SVC and dB/dT
+        deallocate( ArrSVC )
+        deallocate( ArrdBdT )
+        deallocate( ArrChemPot )
         deallocate( ArrPartMolVol )
-		call Destruct( this )
-	endif
+        call Destruct( this )
+    endif
   end subroutine TSimulation_Destruct
 
 
@@ -2290,7 +2264,6 @@ end if
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
-      call VisualCCUpdate( this )
       call RDFUpdate ( this )
       call ODFUpdate ( this )
       call KBIUpdate ( this )
@@ -2886,83 +2859,6 @@ end if
 
   end subroutine TSimulation_VisualClose
 
-!==============================================================!
-!  Subroutine TSimulation_VisualCCOpen                         !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Open ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCOpen( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_VisualCCOpen
-
-
-!==============================================================!
-!  Subroutine TSimulation_VisualCCUpdate                       !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Return if equilibration
-    if( Equilibration ) return
-
-    !DC NOTE- Update ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCUpdate( this%Ensemble(i))
-    end do
-
-
-  end subroutine TSimulation_VisualCCUpdate
-
-
-!==============================================================!
-!  Subroutine TSimulation_VisualCCClose                        !
-!==============================================================!
-
-  subroutine TSimulation_VisualCCClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    !DC NOTE- Check for root process
-    if( .not. RootProc ) return
-
-    !DC NOTE- Close ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call VisualCCClose( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_VisualCCClose
 
 !==============================================================!
 !  Subroutine TSimulation_CCOpen                               !

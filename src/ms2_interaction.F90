@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -1443,7 +1443,7 @@ contains
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      if( .not. Equilibration .and. KBIUpdateFrequency > 0 ) then
+      if(.not. Equilibration .and. KBIUpdateFrequency > 0 .and. present(InvKBIdr)) then 
         call CalcRDFforKBI_MD( this, InvKBIdr)!Calc. KBISum while calculating Cutoff partners
       else
         call CalcCutoffPartners( this )

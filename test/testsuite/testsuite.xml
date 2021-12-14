@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>c64738b4cb70376a387e7e7978b1a45a857ba0e5</caseRepositoryHash>
+	<caseRepositoryHash>63cd850451760a36f0f44af7e74888d6ab35686d</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="einstein_CO2" file="einstein_CO2.xml" /> -->
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -16,29 +16,29 @@
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
-<!-- 		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" /> -->
-<!-- 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" /> -->
+		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
+		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 <!-- 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" /> -->
-<!-- 		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" /> -->
-<!-- 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" /> -->
+		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" />
+		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 <!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
-<!-- 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" /> -->
+		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
 <!-- 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" /> -->
-<!-- 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" /> -->
+		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
-<!-- 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" /> -->
+		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
 		<case name="Mie_site_mpi" file="Mie_site_mpi.xml" />
-<!-- 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" /> -->
+		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
 <!-- 		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" /> -->
-<!-- 		<case name="MD_gear_methaneCO2_250_cluster" file="MD_gear_methaneCO2_250_cluster.xml" /> -->
-<!-- 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" /> -->
+		<case name="MD_gear_methaneCO2_250_cluster" file="MD_gear_methaneCO2_250_cluster.xml" />
+		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 <!-- 		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" /> -->
-<!-- 		<case name="MD_leap_aceton_MeOH_KBI" file="MD_leap_aceton_MeOH_KBI.xml" /> -->
-<!-- 		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" /> -->
-<!-- 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" /> -->
-<!-- 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" /> -->
+		<case name="MD_leap_aceton_MeOH_KBI" file="MD_leap_aceton_MeOH_KBI.xml" />
+		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" />
+		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
+		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 <!-- 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" /> -->
 <!-- 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" /> -->
@@ -51,8 +51,8 @@
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
 <!-- 		<case name="SVC_aceton" file="SVC_aceton.xml" /> -->
 <!-- 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" /> -->
-<!-- 		<case name="TangToennies_com" file="TangToennies_com.xml" /> -->
-<!-- 		<case name="TangToennies_site" file="TangToennies_site.xml" /> -->
+		<case name="TangToennies_com" file="TangToennies_com.xml" />
+		<case name="TangToennies_site" file="TangToennies_site.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
 <!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
 	</caseList>

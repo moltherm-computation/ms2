@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -173,9 +173,6 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
-  !DC NOTE- Extension of cluster related visualisation file.
-  character(*), parameter :: VisualCCFileExtension = '.cvim'
-
   !DC NOTE- Extension of cluster criteria info file.
   character(*), parameter :: CCFileExtension = '.clust'
 
@@ -260,9 +257,8 @@ module ms2_global
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
   integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
-  integer, parameter :: iounit_ccpos     = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_cc        = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_ccgrid    = iounit_start + 22 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
+  integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -376,7 +372,6 @@ module ms2_global
   character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'
   character(*), parameter :: IdCcount                      = 'ClusterMoleculeCount'
   character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'
-  character(*), parameter :: IdIsCvim                      = 'ClusterIsCvim'
 
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
@@ -613,7 +608,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPT = 4
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
-  integer, parameter :: EnsembleTypeNPTSVC = 7			   ! NpT + SVC
+  integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
@@ -651,9 +646,8 @@ module ms2_global
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
 
-  integer, parameter :: CCritTypeVapor  = 0
-  integer, parameter :: CCritTypeGridvap = 2
-  integer, parameter :: CCritTypeGridliq = 3
+  integer, parameter :: CCritTypeGridvap = 1
+  integer, parameter :: CCritTypeGridliq = 2
 
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
@@ -677,7 +671,7 @@ module ms2_global
 
   ! Number of simulation time steps
   integer :: NSteps
-  integer :: NStepsSVC	
+  integer :: NStepsSVC  
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
@@ -719,15 +713,16 @@ module ms2_global
   logical :: SVCCalc = .false. !If SVC was already calculated
   ! Arrays for SVC and dB/dT 
   
-  real(RK), dimension(:, :), allocatable :: ArrSVC
-  real(RK), dimension(:, :), allocatable :: ArrdBdT
+  real(RK), dimension(:, :, :), allocatable :: ArrSVC
+  real(RK), dimension(:, :, :), allocatable :: ArrdBdT
   real(RK), dimension(:), allocatable :: ArrChemPot
   real(RK), dimension(:), allocatable :: ArrPartMolVol
 
 
   
    real(RK) :: BmixSVCtemp, dBdTmixtemp
-   real(RK) :: StartTemperature, StartPressure, NumberOfComp ! 
+   real(RK) :: StartTemperature, StartPressure
+   integer  :: EnsembleNum  
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
@@ -1471,20 +1466,20 @@ contains
     call LogWrite
     write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
     call LogWrite
-    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,     *")')
+    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,        *")')
     call LogWrite
-    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser, *")')
+    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,      *")')
     call LogWrite
-    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                            *")')
+    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                          *")')
     call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2017)                                 *")')
+    write( IOBuffer, '("* Computer Physics Communications (2020)                                 *")')
     call LogWrite
     write( IOBuffer, '(74("*"))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '(74("*"))')
     call LogWrite
-    write( IOBuffer, '("* (c) by TU Kaiserslautern / U Paderborn                                 *")')
+    write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
     call LogWrite
     write( IOBuffer, '("*     P.O. Box 67653                                                     *")')
     call LogWrite
