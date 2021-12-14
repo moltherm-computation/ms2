@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -636,9 +636,9 @@ contains
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
         str = 'no calculation'
-			if (EnsembleType .eq. EnsembleTypeNPTSVC) then
-		this%ChemPotMethod = ChemPotMethodWidom
-		end if
+            if (EnsembleType .eq. EnsembleTypeNPTSVC) then
+        this%ChemPotMethod = ChemPotMethodWidom
+        end if
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom
         str = 'Widom''s test particle method'
