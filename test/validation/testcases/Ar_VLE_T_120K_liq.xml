@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>VLE_liq_T_2.par</parFile>
+	<name>Ar_VLE_T_120K_liq</name>
+	<np>40</np>
+	<walltime>6:00:00</walltime>
+	<reference>
+		<file>VLE_liq_T_2_1.res</file>
+	</reference>
+</testcase>
