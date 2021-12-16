@@ -3222,7 +3222,7 @@ subroutine time_left(time_limit)
     time_remaining = max_time - real(time_elapsed)/60.
 
     if (time_remaining .le. time_limit) then
-       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster (time remaining=",G8.1,"<",G8.1," min)")' ) time_remaining, real(time_elapsed)/60.
+       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster (time remaining=",G8.1,"<",G8.1,"-",G8.1," min)")' ) time_remaining, max_time, real(time_elapsed)/60.
        call LogWrite
        call LogWriteBlank
 
