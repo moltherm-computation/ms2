@@ -10728,10 +10728,10 @@ loop2:        do nc = 1, this%NComponents
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
-      if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
-          write( IOBuffer, '(I16)' ) this%EnsembleNumber
-          call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
-      end if
+      !if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      !    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      !    call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension )
+      !end if
 #endif
 
     end if
@@ -11969,12 +11969,14 @@ loop2:        do nc = 1, this%NComponents
         MZ = 0._RK
         if( LongRange .eq. Rfield ) then
           do i = 1, this%NComponents
-          pc => this%Component(i)
-        do kIndex = 1, pc%NPart
-            MX=MX+pc%MueX(kIndex)
-            MY=MY+pc%MueY(kIndex)
-            MZ=MZ+pc%MueZ(kIndex)
-        end do
+            pc => this%Component(i)
+            if (pc%Molecule%NDipole > 0) then
+              do kIndex = 1, pc%NPart
+                  MX=MX+pc%MueX(kIndex)
+                  MY=MY+pc%MueY(kIndex)
+                  MZ=MZ+pc%MueZ(kIndex)
+              end do
+            endif
           end do
         else ! Ewald
           do i = 1, this%NComponents
@@ -13516,7 +13518,13 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NVE equilibration steps", T36, ":", I10)' ) NStepsE
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+    if( EnsembleType .eq. EnsembleTypeHA ) then
+       write( IOBuffer, '("Number of HA equilibration steps", T36, ":", I10)' ) NStepsP
+    elseif( EnsembleType .eq. EnsembleTypeGE ) then
+       write( IOBuffer, '("Number of GE equilibration steps", T36, ":", I10)' ) NStepsP
+    else
+       write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+    endif
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
@@ -16318,8 +16326,8 @@ end if
     !EinsteinCoef ecoef output
     if(  (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
        if (RootProc) then
-         !write( IOBuffer, '(I16)' ) this%EnsembleNumber
-         !call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
+         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
          write(IOBuffer, '(T8,"t*")')
          call FileWriteNoAdvance( this%iounit_ecoef )
          write(IOBuffer, '(T12,"t")')
@@ -25580,7 +25588,10 @@ contains
       if (StepCorr .gt. this%NCorr) then
 
        CFindex = Mindex +1
-       this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       end if
 
        if (Mindex .eq. this%NCorr) then
          CFindex = 1                       !index of t = t0
