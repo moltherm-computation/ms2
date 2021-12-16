@@ -2,12 +2,12 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>2f395c3ff45f7197627781057450776ad47f002e</caseRepositoryHash>
+	<caseRepositoryHash>433492997178de9039cb09e1052a006e7daacf1e</caseRepositoryHash>
 	<caseList>
-<!-- 		<case name="einstein_CO2" file="einstein_CO2.xml" /> -->
+		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
-<!-- 		<case name="greenKubo" file="greenKubo.xml" /> -->
-<!-- 		<case name="greenKubo_Einstein" file="greenKubo_Einstein.xml" /> -->
+		<case name="greenKubo" file="greenKubo.xml" />
+		<case name="greenKubo_Einstein" file="greenKubo_Einstein.xml" />
 		<case name="LJ126_com" file="LJ126_com.xml" />
 		<case name="LJ126_com_mpi" file="LJ126_com_mpi.xml" />
 		<case name="LJ126_site" file="LJ126_site.xml" />
@@ -40,7 +40,7 @@
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
-<!-- 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" /> -->
+		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
 <!-- 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" /> -->
 <!-- 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" /> -->
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />

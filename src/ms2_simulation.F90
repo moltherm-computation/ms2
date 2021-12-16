@@ -55,7 +55,9 @@ module ms2_simulation
 #if MPI_VER > 0
     logical :: doneBcastTerm=.false., doneMsgTerm=.false.
     integer :: numMsgTerm_send=0, numMsgTerm_recv=0
-    integer :: mpireqbcastTerm, mpireqmsgTerm
+    !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
+    integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
+    integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
 #endif
     !
 
@@ -993,30 +995,55 @@ contains
 
     ! Read number of MPI ensemble groups
     call FileReadParameter( this%mpiEnsembleGroups, iounit_params , IdmpiEnsembleGroups, .true., 0 )
+    if ( this%mpiEnsembleGroups /= 0 ) then
+        write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
+        call LogWrite
+    end if
 #if MPI_VER > 0
-    write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
-    call LogWrite
     if ( this%mpiEnsembleGroups .eq. 1 ) this%mpiEnsembleGroups=this%NEnsembles
     if ( this%mpiEnsembleGroups .gt. this%NEnsembles .or. this%mpiEnsembleGroups .gt. NProcs_W ) &
 &      this%mpiEnsembleGroups=min(this%NEnsembles,NProcs_W)
     if ( this%mpiEnsembleGroups .le. 1 ) this%mpiEnsembleGroups=0
 
     if (this%mpiEnsembleGroups .gt. 1) then
-      ! Close the ParameterFile to reopen it within the subcommunicators
-      call FileClose( iounit_params )
-      call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
-      ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
-      call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
-      ! 1-index based
-      this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
-      this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
-      write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
-&            NCommunicator+1,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
-      ! be aware that e.g. the random number generator calls might be different
-      call LogWrite
-      ! Reopen the ParameterFile (dirty hack) for each communicator
-      call FileReset( iounit_params, ParameterFileName )
-      !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
+        write( IOBuffer, '("setting up",I3," MPI ensemble groups")' ) this%mpiEnsembleGroups
+        call LogWrite
+        ! Close the ParameterFile to reopen it within the subcommunicators
+        call FileClose( iounit_params )
+        call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
+        ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
+        call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
+        ! 1-index based
+        this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
+        this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
+        write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
+&              NCommunicator+1,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
+        ! be aware that e.g. the random number generator calls might be different
+        call LogWrite
+        ! Reopen the ParameterFile (dirty hack) for each communicator
+        call FileReset( iounit_params, ParameterFileName )
+        !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
+        
+        !TerminateStatus=0
+        !TerminateStatus_msg=0
+        !TerminateStatus_bcast=0
+        !doneBcastTerm=.false.
+        !doneMsgTerm=.false.
+        !numMsgTerm_send=0
+        !numMsgTerm_recv=0
+        this%mpireqbcastTerm=MPI_REQUEST_NULL
+        this%mpireqmsgTerm=MPI_REQUEST_NULL
+        
+        if ( RootProc) then
+          if ( RootProc_R ) then
+            ! RootProc_W subcommunicator root starts receiving a TerminateStatus message
+            call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
+          else ! (RootProc.and.).not.RootProc_R
+            ! non_RootProc_R subcommunicator roots start receiving TerminateStatus broadcast of TerminateStatus before the loop
+            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
+          end if
+        end if
+      
     endif
 #else
     if ( this%mpiEnsembleGroups /= 0 ) then
@@ -2091,15 +2118,16 @@ eqloop: do
     if (NCommunicators > 1 ) then
       ! clean up (but don't use MPI_Cancel)
       if ( RootProc ) then
-        if ( RootProc_R ) then
+        if ( RootProc_R ) then ! RootProc.and.RootProc_R
           call MPI_Reduce( MPI_IN_PLACE, this%numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
 !          if ( .not. this%doneMsgTerm ) then
 !            ! check again, if terminate message was received
 !            call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
 !            if ( this%doneMsgTerm ) then
 !              write( IOBuffer, '("received message with termination status (",B0,") after step ",I0,"/",I0)' ) &
-!&                    TerminateStatus, Step, StepTotal
+!&                    this%TerminateStatus_msg, Step, StepTotal
 !              call LogWriteTime
+!              TerminateStatus=this%TerminateStatus_msg
 !              this%doneMsgTerm=.true.
 !              this%numMsgTerm_recv = this%numMsgTerm_recv + 1
 !            end if
@@ -2110,14 +2138,15 @@ eqloop: do
             if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
-        else ! .not.RootProc_R
+        else ! RootProc.and..not.RootProc_R
           !if ( .not. this%doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
           if ( .not. this%doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then    ! should work for NProcs_R.gt.1
             ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
 !              write( IOBuffer, '("PE (W) ",I0," sending message with termination status (",B0,")")' ) NProc_W, TerminateStatus
 !              call LogWriteTime
+              this%TerminateStatus_msg=TerminateStatus
               !    MPI_Bsend should also work and doesn't require the MPI_Wait
-              call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
+              call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
               this%doneMsgTerm=.true.
               this%numMsgTerm_send = this%numMsgTerm_send + 1
           end if
@@ -2125,23 +2154,27 @@ eqloop: do
         end if
         if ( this%doneMsgTerm ) then
           call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
+          !TerminateStatus=this%TerminateStatus_msg
         end if
 
         if ( .not. this%doneBcastTerm ) then
-          if ( RootProc_R ) then
+          if ( RootProc_R ) then ! RootProc.and.RootProc_R
+             ! satisfy the pending non-root Ibcast
 !            write( IOBuffer, '("broadcasting termination status (",B0,")")' ) TerminateStatus
 !            call LogWriteTime
-            call MPI_Ibcast(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
+            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
             this%doneBcastTerm = .true.
 !          else
 !            call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
-!            if (this%doneBcastTerm .and. TerminateStatus>0) then
+!            if (this%doneBcastTerm) then
 !              write( IOBuffer, '("received broadcast with termination status (",B0,") after step ",I0,"/",I0)' ) &
-!&                    TerminateStatus, Step, StepTotal
+!&                    this%TerminateStatus_bcast, Step, StepTotal
 !              call LogWriteTime
+!              TerminateStatus=this%TerminateStatus_bcast
 !            end if
           end if
           call MPI_Wait(this%mpireqbcastTerm, mpistatus, ierror)
+          TerminateStatus=this%TerminateStatus_bcast
         end if
       end if    ! RootProc
 
@@ -2283,7 +2316,10 @@ end if
       !DC NOTE- termination status is 0/1 value - reducing it as product yield the 0/1 value if program is to be terminated
       !       - termination is only done when all PU have the terminate_cc_multiensemble = 1
       stop_cc_simulation = 0
-      call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
+      ! ??? 
+      !call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
+      call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
+      ! ???
       !DC NOTE- perform the check in MPI context
       if ( stop_cc_simulation .ge. this%NEnsembles ) then
 #ifdef __INTEL_COMPILER
@@ -2320,45 +2356,51 @@ end if
         if ( RootProc ) then
           call MPI_Reduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, NRootProc, Communicator, ierror )
           if ( .not. this%doneMsgTerm ) then
-            if ( RootProc_R ) then
+            if ( RootProc_R ) then ! RootProc.and.RootProc_R
               !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
               if ( this%doneMsgTerm ) then
 !                write( IOBuffer, '("PE ",I0,"(W) received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-!&                      NProc_W, TerminateStatus, Step, StepTotal
+!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
 !                call LogWriteTime
+                TerminateStatus=this%TerminateStatus_msg
                 this%doneMsgTerm=.true.
                 this%numMsgTerm_recv = this%numMsgTerm_recv + 1
               end if
             else ! RootProc .and. .not.RootProc_W
               if (TerminateStatus /= 0) then
+                 this%TerminateStatus_msg=TerminateStatus
 !                write( IOBuffer, '("PE ",I0,"(W) sending message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-!&                      NProc_W, TerminateStatus, Step, StepTotal
+!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
 !                call LogWriteTime
-                call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
+                call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
                 this%doneMsgTerm=.true.
                 this%numMsgTerm_send = this%numMsgTerm_send + 1
               end if
             end if
           end if
           if ( .not. this%doneBcastTerm ) then
-            if ( RootProc_R ) then
+            if ( RootProc_R ) then ! RootProc.and.RootProc_R
               if (TerminateStatus /= 0) then
+                this%TerminateStatus_bcast=TerminateStatus
                 write( IOBuffer, '("PE ",I0,"(W) broadcasting termination status (",B0,") within step ",I0,"/",I0)' ) &
-&                      NProc_W, TerminateStatus, Step, StepTotal
+&                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
                 call LogWriteTime
-                call MPI_Ibcast(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
+                call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
                 this%doneBcastTerm = .true.
               end if
-            else
+            else ! RootProc.and..not.RootProc_R
               call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
-              if (this%doneBcastTerm .and. TerminateStatus>0) then
-                !TerminateProgram=.true.
-                !if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
+              if (this%doneBcastTerm) then
                 write( IOBuffer, '("PE ",I0,"(W) received broadcast with termination status (",B0,") within step ",I0,"/",I0)' ) &
-&                      NProc_W, TerminateStatus, Step, StepTotal
+&                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
                 call LogWriteTime
+                TerminateStatus=this%TerminateStatus_bcast
               end if
+              !if (TerminateStatus>0) then
+              !  TerminateProgram=.true.
+              !  if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
+              !end if
             end if
           end if
         else !.not.RootProc
@@ -2379,7 +2421,7 @@ end if
       if ( TerminateProgram ) then
         write( IOBuffer, '("terminating program after step ",I0,"/",I0)' ) Step,StepTotal
         call LogWriteTime
-        exit
+        exit !***
       end if
       ! Check for too many particles (GE only)
       if ( tooManyParticles ) exit
