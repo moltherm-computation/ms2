@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.286</tools4ms2version>
-	<caseRepositoryHash>e8bcd9b8669cb76014e5d90e228bcf010bd96c90</caseRepositoryHash>
+	<caseRepositoryHash>7d70ffe70b8a0e63587e5c929d4adb44c8eff3e0</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="2VC_aceton" file="2VC_aceton.xml" /> -->
 <!-- 		<case name="2VC_Ar" file="2VC_Ar.xml" /> -->
