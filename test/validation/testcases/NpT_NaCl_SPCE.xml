@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NaCl_NPT_p01_x0076.par</parFile>
+	<name>NpT_NaCl_SPCE</name>
+	<np>40</np>
+	<walltime>12:00:00</walltime>
+	<reference>
+		<file>NaCl_NPT_p01_x0076_1.res</file>
+	</reference>
+</testcase>

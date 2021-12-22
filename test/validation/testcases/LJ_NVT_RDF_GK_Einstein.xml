@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>LJ_NVT_T0p84_rho0p7561.par</parFile>
+	<name>LJ_NVT_RDF_GK_Einstein</name>
+	<np>40</np>
+	<walltime>12:00:00</walltime>
+	<compilerOption>TRANS</compilerOption>
+	<reference>
+		<file>LJ_NVT_T0p84_rho0p7561_1.res</file>
+	</reference>
+</testcase>

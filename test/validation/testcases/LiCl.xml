@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>LiCl.par</parFile>
+	<name>LiCl</name>
+	<np>40</np>
+	<walltime>12:00:00</walltime>
+	<reference>
+		<file>LiCl_1.res</file>
+	</reference>
+</testcase>

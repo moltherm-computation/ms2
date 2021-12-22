@@ -2,12 +2,16 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.290</tools4ms2version>
-	<caseRepositoryHash>c4f1d91d0d6037aa628f3ce63e9a9a632605a5d0</caseRepositoryHash>
+	<caseRepositoryHash>0c1a65f74de502d08c73c15d47bbacdfafc5f5ca</caseRepositoryHash>
 	<caseList>
 		<case name="2VC_aceton" file="2VC_aceton.xml" />
 		<case name="2VC_Ar" file="2VC_Ar.xml" />
 		<case name="2VC_CO2" file="2VC_CO2.xml" />
 		<case name="2VC_meoh" file="2VC_meoh.xml" />
+		<case name="2VC_Schwefelwasserstoff" file="2VC_Schwefelwasserstoff.xml" />
+		<case name="2VC_Wasser" file="2VC_Wasser.xml" />
+		<case name="LiCl" file="LiCl.xml" />
+		<case name="LJ_NVT_RDF_GK_Einstein" file="LJ_NVT_RDF_GK_Einstein.xml" />
 		<case name="MC" file="MC.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
@@ -219,7 +223,9 @@
 		<case name="MIE_n12_35_m6" file="MIE_n12_35_m6.xml" />
 		<case name="ms2_ODF_test" file="ms2_ODF_test.xml" />
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
+		<case name="NpT_NaCl_SPCE" file="NpT_NaCl_SPCE.xml" />
 		<case name="NPTSVC_N2_O2_MC" file="NPTSVC_N2_O2_MC.xml" />
+		<case name="NVT_NaCl_SPCE" file="NVT_NaCl_SPCE.xml" />
 		<case name="permittivity" file="permittivity.xml" />
 	</caseList>
 </testsuite>
