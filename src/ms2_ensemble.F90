@@ -313,7 +313,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumDensity
     type(TAccumulator) :: SumTemperature
     type(TAccumulator) :: SumEPot
-    type(TAccumulator) :: SumEPotDeltaSquared
+    type(TAccumulator) :: SumEPotDeltaSquared                                    
     type(TAccumulator) :: SumEnthalpy
     type(TAccumulator) :: SumConfEnthalpy
     type(TAccumulator) :: SumEPotIntra
@@ -324,7 +324,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotIntra_Nonbonded
     type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
-    type(TAccumulator) :: SumVirialDeltaSquared
+    type(TAccumulator) :: SumVirialDeltaSquared                                    
     type(TAccumulator) :: SumVirialIntra
     type(TAccumulator) :: SumVirialInter
 #if OSMOP > 0
@@ -356,7 +356,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotSquared
     type(TAccumulator) :: SumEPotV
     type(TAccumulator) :: SumEPotVirial
-    type(TAccumulator) :: SumEPotDeltaVirialDelta
+    type(TAccumulator) :: SumEPotDeltaVirialDelta                                            
     type(TAccumulator) :: SumEnthalpySquared
     type(TAccumulator) :: SumEnthalpyV
     type(TAccumulator) :: SumVolumeSquared
@@ -395,7 +395,7 @@ module ms2_ensemble
     type(TAccumulator) :: SumdHdP
     type(TAccumulator) :: SumdUdV
     type(TAccumulator) :: SumCV
-    type(TAccumulator) :: SumCorCoefR
+    type(TAccumulator) :: SumCorCoefR                                
     type(TAccumulator) :: SumCP
     type(TAccumulator) :: SumAlphaP
 
@@ -608,10 +608,6 @@ module ms2_ensemble
     module procedure TEnsemble_Allocate
   end interface
 
-  interface DeallocateEPot
-    module procedure TEnsemble_DeallocateEPot
-  end interface
-
   interface Deallocate
     module procedure TEnsemble_Deallocate
   end interface
@@ -744,24 +740,15 @@ module ms2_ensemble
     module procedure TEnsemble_ChemicalPotential
   end interface
 
-  interface UpdateEnergy
-    module procedure TEnsemble_UpdateEnergy
-    module procedure TEnsemble_UpdateEnergy1
-    module procedure TEnsemble_UpdateEnergy1Mol
+  interface EnergyinRC
+    module procedure TEnsemble_Energy1
   end interface
 
   interface Energy
-    module procedure TEnsemble_Energy
-    module procedure TEnsemble_Energy1
+    module procedure TEnsemble_Energy   
     module procedure TEnsemble_Energy1Mol
     module procedure TEnsemble_Energy1_CF
     module procedure TEnsemble_EwaldEnergy1
-  end interface
-
-  interface GetEnergy
-    module procedure TEnsemble_GetEnergy
-    module procedure TEnsemble_GetEnergy1
-    module procedure TEnsemble_GetEnergy1Mol
   end interface
 
   interface GetEnergyIntra
@@ -781,16 +768,8 @@ module ms2_ensemble
     module procedure TEnsemble_GetEnergyIntra_Dihedral
   end interface
 
-  interface GetVirial
-    module procedure TEnsemble_GetVirial
-  end interface
-
   interface GetVirialIntra
     module procedure TEnsemble_GetVirialIntra
-  end interface
-
-  interface Getd2EpotdV2
-    module procedure TEnsemble_Getd2EpotdV2
   end interface
 
   interface Move
@@ -1136,8 +1115,13 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-
+    real(RK) :: EPot, d2EdV2, Virial
     integer :: counter
+    
+    ! Nullify EPot, d2EPotdV2 and Virial
+    this%EPot = 0._RK
+    this%d2EPotdV2 = 0._RK
+    this%Virial = 0._RK
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -2113,11 +2097,9 @@ contains
 
         ! Convert unit coordinates to atom positions
         call Unit2Atom( this )
+        ! Set potential energy
 
-        ! Set all potential energy matrices
-        call Energy( this, this%EPot )
-
-        call UpdateEnergy( this )
+        call Energy( this, this%EPot, d2EdV2, Virial )
 
         ! Set initial values of maximum allowed MC displacements
         this%DispVol = DispVolStart
@@ -2951,12 +2933,12 @@ contains
       call Construct( this%SumDensity, .false. )
       call Construct( this%SumTemperature, .false. )
       call Construct( this%SumEPot, .false. )
-      call Construct( this%SumEPotDeltaSquared, .false. )
+      call Construct( this%SumEPotDeltaSquared, .false. )                                                    
       call Construct( this%SumEnthalpy, .false. )
       call Construct( this%SumConfEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
-      call Construct( this%SumVirialDeltaSquared, .false. )
+      call Construct( this%SumVirialDeltaSquared, .false. )                                                    
       call Construct( this%SumEPotInter, .false. )
       call Construct( this%SumEPotIntra, .false. )
       if (printIDF) then
@@ -3005,7 +2987,7 @@ contains
       call Construct( this%SumEPotSquared, .false. )
       call Construct( this%SumEPotV, .false. )
       call Construct( this%SumEPotVirial, .false. )
-      call Construct( this%SumEPotDeltaVirialDelta, .false. )
+      call Construct( this%SumEPotDeltaVirialDelta, .false. )                                                    
       call Construct( this%SumEnthalpySquared, .false. )
       call Construct( this%SumEnthalpyV, .false. )
       call Construct( this%SumVolumeSquared, .false. )
@@ -3045,7 +3027,7 @@ contains
       call Construct( this%SumdHdP, .true. )
       call Construct( this%SumdUdV, .true. )
       call Construct( this%SumCV, .true. )
-      call Construct( this%SumCorCoefR, .true. )
+      call Construct( this%SumCorCoefR, .true. )                                        
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
       if( LongRange .eq. Rfield) then
@@ -3170,12 +3152,12 @@ contains
     call Destruct( this%SumDensity )
     call Destruct( this%SumTemperature )
     call Destruct( this%SumEPot )
-    call Destruct( this%SumEPotDeltaSquared )
+    call Destruct( this%SumEPotDeltaSquared )                                        
     call Destruct( this%SumEnthalpy )
     call Destruct( this%SumConfEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
-    call Destruct( this%SumVirialDeltaSquared )
+    call Destruct( this%SumVirialDeltaSquared )                                        
     call Destruct( this%SumEPotInter )
     call Destruct( this%SumEPotIntra )
     if (printIDF) then
@@ -3224,7 +3206,7 @@ contains
     call Destruct( this%SumEPotSquared )
     call Destruct( this%SumEPotV )
     call Destruct( this%SumEPotVirial )
-    call Destruct( this%SumEPotDeltaVirialDelta )
+    call Destruct( this%SumEPotDeltaVirialDelta )                                            
     call Destruct( this%SumEnthalpySquared )
     call Destruct( this%SumEnthalpyV )
     call Destruct( this%SumVolumeSquared )
@@ -3263,7 +3245,7 @@ contains
     call Destruct( this%SumdHdP )
     call Destruct( this%SumdUdV )
     call Destruct( this%SumCV )
-    call Destruct( this%SumCorCoefR )
+    call Destruct( this%SumCorCoefR )                                
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
     if( LongRange .eq. Rfield) then
@@ -4184,31 +4166,6 @@ contains
 
 
 !==============================================================!
-!  Subroutine TEnsemble_DeallocateEPot                         !
-!==============================================================!
-
-  subroutine TEnsemble_DeallocateEPot( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer :: i, j
-
-    ! Deallocate potential energy matrix
-    do i = 1, this%NComponents
-      do j = 1, this%NComponents
-        call DeallocateEPot( this%Interaction(i, j) )
-      end do
-    end do
-
-  end subroutine TEnsemble_DeallocateEPot
-
-
-
-!==============================================================!
 !  Subroutine TEnsemble_Deallocate                             !
 !==============================================================!
 
@@ -5050,9 +5007,6 @@ xloop:do i = 1, NCells1dim(1)
     ! Declare local variables
     integer :: i
 
-    ! Reallocate ensemble
-    if( dealloc ) call DeallocateEPot( this )
-
     ! Set initial velocities of particles
     call InitVelocities( this )
 
@@ -5370,6 +5324,8 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare arguments
     type(TEnsemble) :: this
+    
+    real(RK) :: EPot, d2EdV2, Virial
 
     ! Calculate new initial density
     this%RefDensity = this%RefDensity * real( this%NPart, RK ) / real( this%NPartInitial, RK )
@@ -5396,9 +5352,8 @@ xloop:do i = 1, NCells1dim(1)
     if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
       call InitMolecularDynamics( this, .false. )
     else
-    ! Set all potential energy matrices
-    call Energy( this, this%EPot )
-    call UpdateEnergy( this )
+    ! Set potential energy
+    call Energy( this, this%EPot, d2EdV2, Virial )
     end if
 
   end subroutine TEnsemble_ResetEnsemble
@@ -5555,6 +5510,7 @@ loop5:  do nc = 1, this%NComponents
     integer  :: i, NPart2, t, nu, denominator
     real(RK) :: rx, sx
     real(RK) :: diffpressure
+    real(RK) :: EPot, d2EdV2, Virial
 
     ! Zero number of MC attempts and successes
     if( Step == 1 ) call ZeroNAttempts( this )
@@ -5667,7 +5623,8 @@ loop3:  do nc = 1, this%NComponents
     if (Equilibration .and. CommonEqui) then
 
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-      call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+      call Energy( this, EPot, d2EdV2, Virial )
+      call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       if (printIDF) then
         call MPI_Allreduce( GetEnergyIntra_Bond( this ), this%EPotIntra_Bond, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
@@ -5676,16 +5633,15 @@ loop3:  do nc = 1, this%NComponents
         this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
       endif
       this%EPotInter = this%EPot - this%EPotIntra
-      call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( d2EdV2, this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
         if ( this%OptPressure ) then
-          call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+          call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
           call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
           this%VirialInter = this%Virial - this%VirialIntra
         endif
 
     else
-
-      this%EPot = GetEnergy( this )
+      call Energy( this, this%EPot, this%d2EpotdV2, Virial )
       this%EPotIntra   = GetEnergyIntra( this )
       if (printIDF) then
         this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -5696,15 +5652,14 @@ loop3:  do nc = 1, this%NComponents
       this%EPotInter   = this%EPot - this%EPotIntra
       this%d2EpotdV2 = Getd2EpotdV2( this )
       if ( this%OptPressure ) then
-        this%Virial = GetVirial( this )
+        this%Virial = Virial
         this%VirialIntra = GetVirialIntra( this )
         this%VirialInter = this%Virial - this%VirialIntra
       endif
 
     endif
 #else
-
-    this%EPot = GetEnergy( this )
+    call Energy( this, this%EPot, this%d2EpotdV2, Virial )
     this%EPotIntra   = GetEnergyIntra( this )
     if (printIDF) then
       this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -5715,7 +5670,7 @@ loop3:  do nc = 1, this%NComponents
     this%EPotInter   = this%EPot - this%EPotIntra
     this%d2EpotdV2 = Getd2EpotdV2( this )
     if ( this%OptPressure ) then
-      this%Virial = GetVirial( this )
+      this%Virial = Virial
       this%VirialIntra = GetVirialIntra( this )
       this%VirialInter = this%Virial - this%VirialIntra
     endif
@@ -5851,16 +5806,16 @@ loop5:    do nc = 1, this%NComponents
         ! Loop over units
         do np = 1, this%Component(i)%NPart
           do nu = 1, this%Component(i)%Molecule%NUnit
-            call Energy( pi, np, nu, this%BoxLength )
+            call EnergySVC( pi, np, nu, this%BoxLength )
             if ( pi%SameComponent .and. UseIntDegFreed ) then
               call IntraEnergy( pi, np, nu, this%BoxLength )
             end if
           end do
 
           ! Sum Mayer f-function
-          pi%MayerFFunction(Step) = pi%MayerFFunction(Step) + sum( exp( betaneg * pi%EPot1(1:n) ) - 1._RK )
-          pi%MayerFFunction1(Step) = pi%MayerFFunction1(Step) + sum( exp( betaneg1 * pi%EPot1(1:n) ) - 1._RK )
-          pi%MayerFFunction2(Step) = pi%MayerFFunction2(Step) + sum( exp( betaneg2 * pi%EPot1(1:n) ) - 1._RK )
+          pi%MayerFFunction(Step) = pi%MayerFFunction(Step) + sum( exp( betaneg * pi%EPotSVC(1:n) ) - 1._RK )
+          pi%MayerFFunction1(Step) = pi%MayerFFunction1(Step) + sum( exp( betaneg1 * pi%EPotSVC(1:n) ) - 1._RK )
+          pi%MayerFFunction2(Step) = pi%MayerFFunction2(Step) + sum( exp( betaneg2 * pi%EPotSVC(1:n) ) - 1._RK ) 
 
         end do
 
@@ -7567,117 +7522,30 @@ loop2:        do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TEnsemble_UpdateEnergy                           !
-!==============================================================!
-
-  subroutine TEnsemble_UpdateEnergy( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-
-    ! Declare local variables
-    type(TInteraction), pointer :: pi
-    integer                     :: n1, n2
-    integer                     :: i, j
-
-    ! Update potential energy and virial matrices
-    do i = 1, this%NComponents
-      do j = 1, this%NComponents
-        pi => this%Interaction(j, i)
-        n1 = pi%NPart1 * pi%NUnit1
-        n2 = pi%NPart2 * pi%NUnit2
-        pi%EPot(1:n1, 1:n2) = pi%EPotNew(1:n1, 1:n2)
-        pi%d2EpotdV2(1:n1, 1:n2) = pi%d2EpotdV2New(1:n1, 1:n2)
-        if ( this%OptPressure ) then
-          pi%Virial(1:n1, 1:n2) = pi%VirialNew(1:n1, 1:n2)
-        end if
-        if ( j == i .and. UseIntDegFreed) then
-          pi%EPotAngle(:) = pi%EPotAngleNew(:)
-          pi%EPotTo(:) = pi%EPotToNew(:)
-        end if
-      end do
-    end do
-
-  end subroutine TEnsemble_UpdateEnergy
-
-
-
-!==============================================================!
-!  Subroutine TEnsemble_UpdateEnergy1                          !
-!==============================================================!
-
-  subroutine TEnsemble_UpdateEnergy1( this, nc, np, nu )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np, nu
-
-    ! Declare local variables
-    type(TInteraction), pointer :: pi
-    integer                     :: n
-    integer                     :: i
-    integer                     :: npu
-    integer                     :: NBond, NAngle, NDihedral
-
-    npu = (np-1) * this%Component(nc)%Molecule%NUnit + nu
-
-    ! Update potential energy and virial matrices for a particle
-    do i = 1, this%NComponents
-      pi => this%Interaction(nc, i)
-      n = pi%NPart2 * pi%NUnit2
-      pi%EPot(npu, 1:n) = pi%EPot1(1:n)
-      pi%d2EpotdV2(npu, 1:n) = pi%d2EpotdV21(1:n)
-
-      if ( this%OptPressure ) then
-        pi%Virial(npu, 1:n) = pi%Virial1(1:n)
-      end if
-
-      this%Interaction(i, nc)%EPot(1:n, npu) = pi%EPot1(1:n)
-      this%Interaction(i, nc)%d2EpotdV2(1:n, npu) = pi%d2EpotdV21(1:n)
-
-      if ( this%OptPressure ) then
-        this%Interaction(i, nc)%Virial(1:n, npu) = pi%Virial1(1:n)
-      end if
-    end do
-
-    if ( UseIntDegFreed ) then
-      pi => this%Interaction(nc,nc)
-      NAngle = pi%NAngle
-      NDihedral = pi%NDihedral
-
-      pi%EPotAngle((np-1)*NAngle+1:np*NAngle) = pi%EPot1Angle(:)
-      pi%EPotTo((np-1)*NDihedral+1:np*Ndihedral) = pi%EPot1To(:)
-    end if
-
-  end subroutine TEnsemble_UpdateEnergy1
-
-
-
-!==============================================================!
 !  Subroutine TEnsemble_Energy                                 !
 !==============================================================!
 
-  subroutine TEnsemble_Energy( this, E )
+  subroutine TEnsemble_Energy( this, E, d2EdV2, V )
 
     implicit none
 
     ! Declare arguments
     type(TEnsemble)       :: this
     real(RK), intent(out) :: E
+    real(RK), intent(out) :: d2EdV2
+    real(RK), intent(out) :: V
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
     integer                     :: nc, np
     integer                     :: nu1, nu
-    integer                     :: i, n
+    integer                     :: i
     real(RK)                    :: Intra
 
     ! Initialize new energy
     E = 0._RK
+    d2EdV2 = 0._RK
+    V = 0._RK
     Intra = 0._RK
 
     if (LongRange .eq. Ewald) then
@@ -7690,31 +7558,45 @@ loop2:        do nc = 1, this%NComponents
 
     ! Loop over components
     do nc = 1, this%NComponents
-      do i = 1, this%NComponents
+      do i = nc, this%NComponents
         pi => this%Interaction(nc, i)
-        n = pi%NUnit2*pi%NPart2
-        ! Loop over units
-        do np = 1, this%Component(nc)%NPart
-          do nu=1, this%Component(nc)%Molecule%NUnit
-            call Energy( pi, np, nu, this%BoxLength )
-            if ( pi%SameComponent .and. UseIntDegFreed ) then
-              call IntraEnergy(pi, np, nu, this%BoxLength)
-              pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
-              pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
-            end if
+        if (nc == i) then !SameComponent => matrixhalf      
+            ! Loop over units
+            do np = 1, this%Component(nc)%NPart
+              do nu=1, this%Component(nc)%Molecule%NUnit
+                call Energy( pi, np, nu, this%BoxLength, .true. )
+                if ( pi%SameComponent .and. UseIntDegFreed ) then
+                  call IntraEnergy(pi, np, nu, this%BoxLength)
+                  pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
+                  pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
+                end if
 
-            nu1=(np-1)*pi%NUnit1+nu ! global number of unit
+                ! Sum energy
+                E = E + pi%EPot
+                if ( this%OptPressure ) then !RFMC => kann raus?
+                  V = V + pi%Virial
+                end if
+              end do
+            end do
+        else
+            ! Loop over units
+            do np = 1, this%Component(nc)%NPart
+              do nu=1, this%Component(nc)%Molecule%NUnit
+                call Energy( pi, np, nu, this%BoxLength )
+                if ( pi%SameComponent .and. UseIntDegFreed ) then
+                  call IntraEnergy(pi, np, nu, this%BoxLength)
+                  pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
+                  pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
+                end if
 
-            ! Save new energy matrix
-            pi%EPotNew(nu1, 1:n) = pi%EPot1(1:n)
-            pi%d2EpotdV2New(nu1, 1:n) = pi%d2EpotdV21(1:n)
-            if (this%OptPressure) then
-              pi%VirialNew(nu1, 1:n) = pi%Virial1(1:n)
-            end if
-            ! Sum energy
-            E = E + sum( pi%EPot1(1:n) )
-          end do
-        end do
+                ! Sum energy
+                E = E + pi%EPot
+                if ( this%OptPressure ) then !RFMC => kann raus?
+                  V = V + pi%Virial
+                end if
+              end do
+            end do
+        end if
       end do
       Intra = Intra + sum(this%Interaction(nc,nc)%EPotAngleNew(:)) + &
 &                     sum(this%Interaction(nc,nc)%EPotToNew(:))
@@ -7722,11 +7604,22 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate new energy
     if( this%NMIEnmMax > 0 ) then
-      E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
+      E =  E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
+      d2EdV2 =  d2EdV2 + this%Density * this%d2EpotdV2CorrMIE
+      if ( this%OptPressure ) then
+        V =  V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
+      end if
     endif
     if( this%NTT68Max > 0 ) then
-      E = .5_RK * E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+      E = E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+      d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
+      if ( this%OptPressure ) then
+        V = V + this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+      end if
     endif
+    
+
+
 ! Ewald
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
@@ -7758,7 +7651,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n
     integer                     :: i
 
     ! Initialize new energy
@@ -7767,7 +7659,6 @@ loop2:        do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
-      n = pi%NPart2 * pi%NUnit2
 
       call Energy( pi, np, nu, this%BoxLength )
 
@@ -7777,7 +7668,7 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       ! Calculate new energy
-      EPotNew = EPotNew + sum( pi%EPot1(1:n) )
+      EPotNew = EPotNew + pi%EPot
     end do
 
     if (LongRange .eq. Ewald) then
@@ -7807,7 +7698,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n
     integer                     :: i, nu
 
     ! Initialize new energy
@@ -7817,14 +7707,13 @@ loop2:        do nc = 1, this%NComponents
     do nu=1,this%Component(nc)%Molecule%NUnit
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
-        n = pi%NPart2*pi%NUnit2
         call Energy( pi, np, nu, this%BoxLength )
         if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
         ! Calculate new energy
-        EPotNew = EPotNew + sum( pi%EPot1(1:n) )
+        EPotNew = EPotNew + pi%EPot
       end do
     end do
 
@@ -7857,7 +7746,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n
     integer                     :: i, nu
 
     ! Initialize new energy
@@ -7866,7 +7754,6 @@ loop2:        do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
-      n = pi%NPart2*pi%NUnit2
       do nu = 1,pi%NUnit1
 
         call Energy( pi, np, nu, this%BoxLength )
@@ -7877,7 +7764,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         ! Calculate new energy
-        EPotNew = EPotNew + sum( pi%EPot1(1:n) )
+        EPotNew = EPotNew + pi%EPot
       end do
     end do
 
@@ -7892,209 +7779,6 @@ loop2:        do nc = 1, this%NComponents
     end if
   end subroutine TEnsemble_Energy1_CF
 
-
-
-!==============================================================!
-!  Function TEnsemble_GetEnergy                                !
-!==============================================================!
-
-  function TEnsemble_GetEnergy( this ) result(E)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    integer :: i, j
-    integer :: n, n2
-    real(RK):: Intra
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    Intra = 0._RK
-    do i = 1, this%NComponents
-      n = this%Component(i)%NPart*this%Component(i)%Molecule%NUnit
-      do j = 1, this%NComponents
-        n2 = this%Component(j)%NPart*this%Component(j)%Molecule%NUnit
-        E = E + sum( this%Interaction(j, i)%EPot(1:n2, 1:n) )
-      end do
-      ! Kein Faktor 2, weil unten einfach aufaddiert wird
-      Intra = Intra + sum(this%Interaction(i,i)%EPotAngle(:)) + &
-&                   sum(this%Interaction(i,i)%EPotTo(:))
-    end do
-    if( this%NMIEnmMax > 0 ) then
-      E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
-    endif
-    if( this%NTT68Max > 0 ) then
-      E = .5_RK * E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
-    endif
-
-! Ewald
-    if (LongRange .eq. Ewald) then
-      call EwaldFourierEnergy(this)
-      E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      call charge_grid_MCall (this)
-      call PMEFourierTermMC(this)
-      E = E + this%UFourier + this%UIntra + this%USelbstTerm
-#endif
-    end if
-
-  end function TEnsemble_GetEnergy
-
-
-
-!==============================================================!
-!  Function TEnsemble_GetEnergy1                               !
-!==============================================================!
-
-  function TEnsemble_GetEnergy1( this, nc, np, nu ) result(E)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np, nu
-
-    ! Declare result
-    real(RK) :: E
-
-    ! Declare local variables
-    type(TInteraction), pointer :: pi
-    integer :: i
-    integer :: NAngle, NDihedral
-    integer :: NUnitPart
-    integer :: nup1
-
-    ! Calculate potential energy of a particle
-    E = 0._RK
-    nup1= this%Component(nc)%Molecule%NUnit * (np - 1) + nu
-    do i = 1, this%NComponents
-      NUnitPart = this%Component(i)%Molecule%NUnit * this%Component(i)%NPart
-      if (UseIntDegFreed) then
-          E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1) )
-      else
-          E = E + sum( this%Interaction(nc, i)%EPot(nup1, 1:NUnitPart) )
-      end if
-    end do
-
-    if ( UseIntDegFreed ) then
-      pi => this%Interaction(nc,nc)
-      NAngle = pi%NAngle
-      NDihedral = pi%NDihedral
-      do i=1,NAngle
-        if (this%Component(nc)%molecule%idfangle(i)%unitid1 == nu .or. &
-&           this%Component(nc)%molecule%idfangle(i)%unitid2 == nu .or. &
-&           this%Component(nc)%molecule%idfangle(i)%unitid3 == nu) then
-          E = E + pi%EPotAngle((np-1)*NAngle+i)
-        end if
-      end do
-      do i=1,NDihedral
-        if (this%Component(nc)%molecule%idfdihedral(i)%unitid1 == nu .or. &
-&           this%Component(nc)%molecule%idfdihedral(i)%unitid2 == nu .or. &
-&           this%Component(nc)%molecule%idfdihedral(i)%unitid3 == nu .or. &
-&           this%Component(nc)%molecule%idfdihedral(i)%unitid4 == nu) then
-          E = E + pi%EPotTo((np-1)*NDihedral+i)
-        end if
-      end do
-    end if
-
-! Ewald
-    if (LongRange .eq. Ewald) then
-      E = E + this%UFourier
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      E = E + this%UFourier
-#endif
-    end if
-
-  end function TEnsemble_GetEnergy1
-
-
-!==============================================================!
-!  Function TEnsemble_GetVirial                                !
-!==============================================================!
-
-  function TEnsemble_GetVirial( this ) result(V)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: V
-
-    ! Declare local variables
-    integer :: i, j
-    integer :: n
-
-    ! Calculate potential energy of a particle
-    V = 0._RK
-    do i = 1, this%NComponents
-      n = this%Component(i)%NPart * this%Component(i)%Molecule%NUnit
-      do j = 1, this%NComponents
-        V = V + sum( this%Interaction(j, i)%Virial(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
-      end do
-    end do
-    if( this%NMIEnmMax > 0 ) then
-      V = .5_RK * V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
-    endif
-    if( this%NTT68Max > 0 ) then
-      V = .5_RK * V + this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
-    endif
-
-    if (LongRange .eq. Ewald) then
-!       call EwaldFourierEnergy(this)
-      V = V + this%EVirial
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      V = V + this%EVirial
-#endif
-    end if
-
-  end function TEnsemble_GetVirial
-
-!==============================================================!
-!  Function TEnsemble_Getd2EpotdV2                                !
-!==============================================================!
-
-  function TEnsemble_Getd2EpotdV2( this ) result(V)
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare result
-    real(RK) :: V
-
-    ! Declare local variables
-    integer :: i, j
-    integer :: n
-
-    ! Calculate potential energy of a particle
-    V = 0._RK
-    do i = 1, this%NComponents
-      n = this%Component(i)%NPart * this%Component(i)%Molecule%NUnit
-      do j = 1, this%NComponents
-        V = V + sum( this%Interaction(j, i)% &
-&         d2EpotdV2(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
-      end do
-    end do
-    if( this%NMIEnmMax > 0 ) then
-      V = .5_RK * V + this%Density * this%d2EpotdV2CorrMIE
-    endif
-    if( this%NTT68Max > 0 ) then
-      V = .5_RK * V + this%Density * this%d2EpotdV2CorrTT68
-    endif
-
-  end function TEnsemble_Getd2EpotdV2
 
 
 !==============================================================!
@@ -8131,7 +7815,8 @@ loop2:        do nc = 1, this%NComponents
 
     ! Save current particle position and energy
     r(:) = pc%P0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejection
     if (LongRange .eq. Ewald) then
@@ -8174,7 +7859,8 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
-    call Energy( this, nc, np, nu, EPotNew )
+    MCOverlapDetected = .FALSE.
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
@@ -8193,7 +7879,6 @@ loop2:        do nc = 1, this%NComponents
     if( accepted ) then
       ! Accept move
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 
       ! Calculate new COM
       call Unit2Mol( pc, np )
@@ -8267,7 +7952,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Save current particle orientation and energy
     q(:) = pc%Q0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
@@ -8312,7 +7997,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy with trial orientation
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
@@ -8331,7 +8016,6 @@ loop2:        do nc = 1, this%NComponents
     if( accepted ) then
       ! Accept rotation
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 
     else
 
@@ -8386,6 +8070,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                  :: r(3), rm(3)
     real(RK)                  :: EPotOld, EPotNew, NewOmega
+    real(RK)                  :: EPot, d2EdV2, Virial
     real(RK)                  :: EFourier, EVirial
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
@@ -8401,7 +8086,7 @@ loop2:        do nc = 1, this%NComponents
     ! Save current particle position and energy
     r(:) = pc%P0(np, :, nu)
     rm(:) = pc%Pm0(np, :)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
@@ -8454,7 +8139,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
@@ -8480,11 +8165,11 @@ loop2:        do nc = 1, this%NComponents
           this%Temperature = 2._RK * (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) / real (this%NDF, RK)
       end if
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+        call Energy( this, EPot, d2EdV2, Virial )
+        call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed ) then
         this%EPot = this%EPot - EPotDelta
       endif
@@ -8551,6 +8236,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                  :: q(4), dq(3)
     real(RK)                  :: EPotOld, EPotNew, NewOmega
+    real(RK)                  :: EPot, d2EdV2, Virial
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
     integer                   :: i
@@ -8565,7 +8251,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Save current particle orientation and energy
     q(:) = pc%Q0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
@@ -8604,7 +8290,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy with trial orientation
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
@@ -8630,11 +8316,11 @@ loop2:        do nc = 1, this%NComponents
           this%Temperature = 2._RK * (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) / real (this%NDF, RK)
       end if
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+        call Energy( this, EPot, d2EdV2, Virial )
+        call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed) then
         this%EPot = this%EPot - EPotDelta
       endif
@@ -8697,6 +8383,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                  :: r(3), rm(3)
     real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EPot, d2EdV2, Virial
     real(RK)                  :: EFourier, EVirial
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
@@ -8712,7 +8399,7 @@ loop2:        do nc = 1, this%NComponents
     ! Save current particle position and energy
     r(:) = pc%P0(np, :, nu)
     rm(:) = pc%Pm0(np, :)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
@@ -8765,7 +8452,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
     ! Apply acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
@@ -8786,11 +8473,11 @@ loop2:        do nc = 1, this%NComponents
      ! Accept move
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
       ! in MC simulations we only communicate during common equilibration
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
-        call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+        call Energy( this, EPot, d2EdV2, Virial )
+        call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed) then
         this%EPot = this%EPot - EPotDelta
       endif
@@ -8856,6 +8543,7 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                  :: q(4), dq(3)
     real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EPot, d2EdV2, Virial
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
     integer                   :: i
@@ -8870,7 +8558,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Save current particle orientation and energy
     q(:) = pc%Q0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
@@ -8909,7 +8597,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy with trial orientation
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
@@ -8930,7 +8618,18 @@ loop2:        do nc = 1, this%NComponents
      ! Accept rotation
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
+#if MPI_VER > 0
+      ! in MC simulations we only communicate during common equilibration
+      if (Equilibration .and. CommonEqui) then
+        call Energy( this, EPot, d2EdV2, Virial )
+        call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+      else
+        this%EPot = this%EPot - EPotDelta
+      endif
+#else
+      this%EPot = this%EPot - EPotDelta
+#endif
+
     else
 
       ! Reject move
@@ -9000,7 +8699,7 @@ loop2:        do nc = 1, this%NComponents
     ! Save current particle position and energy
     r(:) = pc%P0(np, :, nu)
     rm(:) = pc%Pm0(np, :)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Apply distance criterion
     dr(:) = r(:) - pcf%P0(npf, :, nu)
@@ -9062,7 +8761,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy at trial position
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
@@ -9082,7 +8781,6 @@ loop2:        do nc = 1, this%NComponents
 
       ! Accept move
       pc%NMoveBiasedSuccesses = pc%NMoveBiasedSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 
     else
 
@@ -9155,7 +8853,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Save current particle orientation and energy
     q(:) = pc%Q0(np, :, nu)
-    EPotOld = GetEnergy( this, nc, np, nu )
+    call EnergyinRC( this, nc, np, nu, EPotOld )
 
     ! Apply distance criterion
     dr(:) = pc%P0(np, :, nu) - pcf%P0(npf, :, nu)
@@ -9211,7 +8909,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Calculate particle energy with trial orientation
-    call Energy( this, nc, np, nu, EPotNew )
+    call EnergyinRC( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
@@ -9230,7 +8928,6 @@ loop2:        do nc = 1, this%NComponents
     if( accepted ) then
       ! Accept rotation
       pc%NRotateBiasedSuccesses = pc%NRotateBiasedSuccesses + 1
-      call UpdateEnergy( this, nc, np, nu )
 
     else
 
@@ -9383,7 +9080,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     ! Get old energy of fluctuating particle
-    EPotOld = GetEnergy( this, ncf, npf )
+    call EnergyinRC( this, ncf, npf, EPotOld )
 
     ! Change state of fluctuating particle
     ncfnew = pc%NFluctComp( newstate )
@@ -9438,7 +9135,6 @@ loop2:        do nc = 1, this%NComponents
          pc%NFluctState = newstate
          ncf = ncfnew
          npf = npfnew
-         call UpdateEnergy( this, ncf, npf )
          if( newstate > oldstate ) then
            pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
          else
@@ -9475,7 +9171,7 @@ loop2:        do nc = 1, this%NComponents
        call Unit2Atom1( pcfnew, npfnew )
 
        ! Calculate particle energy at new fluctuating state
-       call Energy( this, ncfnew, npfnew, EPotNew )
+       call EnergyinRC( this, ncfnew, npfnew, EPotNew )
 
     ! Apply acceptance criterion
 #if MPI_VER > 0
@@ -9502,7 +9198,6 @@ loop2:        do nc = 1, this%NComponents
          pc%NFluctState = newstate
          ncf = ncfnew
          npf = npfnew
-         call UpdateEnergy( this, ncf, npf )
 
          if( newstate > oldstate ) then
            pc%NFluctUpSuccesses(newstate) = pc%NFluctUpSuccesses(newstate)+1
@@ -9745,7 +9440,7 @@ loop2:        do nc = 1, this%NComponents
     integer                    :: currentbin
     real(RK)                   :: Shield1, Shield2
     real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
-    real(RK)                   :: EPotOld, EPotNew
+    real(RK)                   :: EPotOld, EPotNew, EPot
     real(RK)                   :: EPotDeltaAll, Scale
     real(RK)                   :: EFourier, EVirial
 
@@ -9765,7 +9460,8 @@ loop2:        do nc = 1, this%NComponents
       if( this%NTT68Max > 0 ) then
        EPotOld = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       endif
-      EPotOld = EPotOld + GetEnergy( this, nt, 1 )
+      call EnergyinRC(this, nt, 1, EPot)
+      EPotOld = EPotOld + EPot
       currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
       ChempotDelta=-pc%BinsIntdEndLa(currentbin)
 
@@ -9804,14 +9500,13 @@ loop2:        do nc = 1, this%NComponents
           else
               call Unit2Atom( this )
           end if
-          call Energy( this, nt, 1, EPotNew )
-          call UpdateEnergy( this, nt, 1 )
+          call EnergyinRC( this, nt, 1, EPotNew )
           pt%Lambda=LambdaNew
         else
           ! Reject
           if (LongRange == Ewald) then
             call EwaldSelfTerm_Energy(this)
-            call Energy( this, nt, 1, EPotNew )
+            call EnergyinRC( this, nt, 1, EPotNew )
           end if
         end if       ! Acceptance Criteria
 
@@ -9979,8 +9674,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
           ! Accept Insertion
           this%NInsertSuccesses = this%NInsertSuccesses + 1
-          ! Update energy matrix
-          call UpdateEnergy( this, nc, np )
           ! Update density
           this%Density = this%NPart / this%Volume0
           ! Update fractions and NDF
@@ -10011,7 +9704,7 @@ loop2:        do nc = 1, this%NComponents
       else                                         ! REACTION FIELD
         ! Calculate particle energy at trial position
         if (SimulationType .eq. MonteCarlo) then
-          call Energy( this, nc, np, EPotIns )
+          call EnergyRC( this, nc, np, EPotIns )
         else
           E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; FIns(:,:) = 0._RK;
           do j = 1, this%NComponents
@@ -10065,8 +9758,6 @@ loop2:        do nc = 1, this%NComponents
             success = .true.
             this%Density = this%NPart / this%Volume0
           else
-            ! Update energy matrix
-            call UpdateEnergy( this, nc, np )
             ! Update density
             this%Density = this%NPart / this%Volume0
             ! Update fractions and NDF
@@ -10134,7 +9825,7 @@ loop2:        do nc = 1, this%NComponents
     integer, intent(in) :: nc, np
 
     ! Declare local variables
-    real(RK)                    :: EPotDel
+    real(RK)                    :: EPotDel, EPot
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
     logical                     :: success
@@ -10172,13 +9863,14 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
         if ( Equilibration .and. CommonEqui ) then
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-          call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
+          call EnergyinRC( this, nc, np, EPot)
+          call MPI_Allreduce( EPot, EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
         else
-          EPotDel = GetEnergy( this, nc, np )
+          call EnergyinRC( this, nc, np, EPotDel)
         endif
 
 #else
-        EPotDel = GetEnergy( this, nc, np )
+        call EnergyinRC( this, nc, np, EPotDel)
 #endif
         if( this%NMIEnmMax > 0 ) then
           EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
@@ -10193,29 +9885,6 @@ loop2:        do nc = 1, this%NComponents
           ! Accept Deletion
           this%NDeleteSuccesses = this%NDeleteSuccesses + 1
           call RemoveParticle( pc, np )
-
-          ! Copy energies and virial
-          nup = (np-1)*nu
-          n1 = pc%NPart
-          do k= 1, nu
-            do i = 1, this%NComponents
-              pi => this%Interaction(nc, i)
-              n2 = pi%NPart2*pi%NUnit2
-              pi%EPot(nup+k, 1:n2) = pi%EPot(n1+k, 1:n2)
-              if ( this%OptPressure ) then
-                pi%Virial(nup+k, 1:n2) = pi%Virial(n1+k, 1:n2)
-              end if
-              this%Interaction(i, nc)%EPot(1:n2, nup+k) = pi%EPot(n1+k, 1:n2)
-              if ( this%OptPressure ) then
-                this%Interaction(i, nc)%Virial(1:n2, nup+k) = pi%Virial(n1+k, 1:n2)
-              end if
-            end do
-          end do
-          ! Zero diagonal elements
-          this%Interaction(nc, nc)%EPot(nup+1:nup+nu, nup+1:nup+nu) = 0._RK
-          if ( this%OptPressure ) then
-            this%Interaction(nc, nc)%Virial(nup+1:nup+nu, nup+1:nup+nu) = 0._RK
-          end if
 
           this%NPart = this%NPart - 1
           this%NUnitTotal = this%NUnitTotal - nu
@@ -10260,13 +9929,14 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
           if ( Equilibration .and. CommonEqui ) then
             ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-            call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
+            call EnergyinRC( this, nc, np, EPot)
+            call MPI_Allreduce( EPot, EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
           else
-            EPotDel = GetEnergy( this, nc, np )
+            call EnergyinRC( this, nc, np, EPotDel)
           endif
 
 #else
-          EPotDel = GetEnergy( this, nc, np )
+          call EnergyinRC( this, nc, np, EPotDel)
 #endif
         else
           E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; FDel(:,:) = 0._RK;
@@ -10298,29 +9968,6 @@ loop2:        do nc = 1, this%NComponents
           endif
           if (SimulationType .ne. MonteCarlo) then
             success = .true.
-          else
-            ! Copy energies and virial
-            nup = (np-1)*nu
-            n1 = pc%NPart
-            do k= 1, nu
-              do i = 1, this%NComponents
-                pi => this%Interaction(nc, i)
-                n2 = pi%NPart2*pi%NUnit2
-                pi%EPot(nup+k, 1:n2) = pi%EPot(n1+k, 1:n2)
-                if ( this%OptPressure ) then
-                  pi%Virial(nup+k, 1:n2) = pi%Virial(n1+k, 1:n2)
-                end if
-                this%Interaction(i, nc)%EPot(1:n2, nup+k) = pi%EPot(n1+k, 1:n2)
-                if ( this%OptPressure ) then
-                  this%Interaction(i, nc)%Virial(1:n2, nup+k) = pi%Virial(n1+k, 1:n2)
-                end if
-              end do
-            end do
-            ! Zero diagonal elements
-            this%Interaction(nc, nc)%EPot(nup+1:nup+nu, nup+1:nup+nu) = 0._RK
-            if ( this%OptPressure ) then
-              this%Interaction(nc, nc)%Virial(nup+1:nup+nu, nup+1:nup+nu) = 0._RK
-            end if
           end if
 
           this%NPart = this%NPart - 1
@@ -10387,12 +10034,10 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     type(TComponent), pointer   :: pc
     type(TInteraction), pointer :: pi
-    integer                     :: i, k, n1, n2, nu, nu1, nu2, nu1k, nu2k
+    integer                     :: k, n1, nu, nu1, nu2, nu1k, nu2k
     real(RK)                    :: PSave(3)
     real(RK)                    :: P0Save(3, 1:this%Component(nc)%Molecule%NUnit)
     real(RK)                    :: Q0Save(4, 1:this%Component(nc)%Molecule%NUnit)
-    real(RK)                    :: ESave(this%NUnitMax,this%NPartMax*this%NUnitMax)
-    real(RK)                    :: VSave(this%NUnitMax,this%NPartMax*this%NUnitMax)
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -10416,46 +10061,6 @@ loop2:        do nc = 1, this%NComponents
     ! Convert molecular coordinates to atom positions
     call Unit2Atom1( pc, np )
     call Unit2Atom1( pc, n1 )
-
-    ! Copy energies and virial
-    do i = 1, this%NRealComponents
-      pi => this%Interaction(nc, i)
-      n2 = pi%NPart2*pi%NUnit2
-      nu1 = (np-1)*pi%NUnit1
-      nu2 = (n1-1)*pi%NUnit1
-      do k=1, pi%NUnit1
-        nu1k = nu1 + k
-        nu2k = nu2 + k
-        ESave(k,1:n2) = pi%EPot(nu1k, :)
-        if ( this%OptPressure ) then
-          VSave(k,1:n2) = pi%Virial(nu1k, :)
-        end if
-        if( i .eq. nc ) then
-          ESave(k,nu1k) = pi%EPot(nu1k, n2)
-          if ( this%OptPressure ) then
-            VSave(k,nu1k) = pi%Virial(nu1k, n2)
-          end if
-        end if
-        pi%EPot(nu1k, :) = pi%EPot(nu2k, :)
-        this%Interaction(i, nc)%EPot(:, nu1k) = pi%EPot(nu2k, :)
-        pi%EPot(nu2k, :) = ESave(k,1:n2)
-        this%Interaction(i, nc)%EPot(:, nu2k) = ESave(k,1:n2)
-        if ( this%OptPressure ) then
-          pi%Virial(nu1k, :) = pi%Virial(nu2k, :)
-          this%Interaction(i, nc)%Virial(:, nu1k) = pi%Virial(nu2k, :)
-          pi%Virial(nu2k, :) = VSave(k,1:n2)
-          this%Interaction(i, nc)%Virial(:, nu2k) = VSave(k,1:n2)
-        end if
-      end do
-    end do
-
-    ! Zero diagonal elements
-    do i=1,nu
-      this%Interaction(nc, nc)%EPot(nu1+i, nu1+i) = 0._RK
-      if ( this%OptPressure ) then
-        this%Interaction(nc, nc)%Virial(nu1+i, nu1+i) = 0._RK
-      end if
-    end do
 
     ! Set new particle number
     np = n1
@@ -10481,16 +10086,14 @@ loop2:        do nc = 1, this%NComponents
     type(TEnsemble) :: this
 
     ! Declare local variables
-    real(RK) :: VolumeOld, EPotOld
+    real(RK) :: VolumeOld, EPotOld, VirialOld
     real(RK) :: EPotDelta
     real(RK) :: EVirial
     real(RK) :: UFourier
     real(RK) :: UIntra, EVirialintra
     real(RK) :: DelBoxL,BoxLengthOld
     logical  :: accepted
-#if MPI_VER > 0
-    real(RK) :: EPotNew
-#endif
+    real(RK) :: EPot, d2EdV2, Virial
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -10498,6 +10101,7 @@ loop2:        do nc = 1, this%NComponents
     ! Save current simulation box size, volume, energy, virial
     VolumeOld = this%Volume0
     EPotOld = this%EPot
+    VirialOld = this%Virial
     BoxLengthOld = this%BoxLength
     if (LongRange .eq. Ewald) then
        UFourier= this%UFourier
@@ -10525,15 +10129,25 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate potential energy and virial at trial position
 #if MPI_VER > 0
+    ! in MC simulations we only communicate during common equilibration
     if ( Equilibration .and. CommonEqui ) then
-      call Energy( this, EPotNew )
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-      call MPI_Allreduce( EPotNew, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+        ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+        call Energy( this, EPot, d2EdV2, Virial )
+        call MPI_Allreduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+        if ( this%OptPressure ) then
+           call MPI_Allreduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+        end if
     else
-     call Energy( this, this%EPot )
+        call Energy( this, this%EPot, d2EdV2, Virial )
+        if ( this%OptPressure ) then
+          this%Virial = Virial
+        end if 
     endif
 #else
-    call Energy( this, this%EPot )
+    call Energy( this, this%EPot, d2EdV2, Virial )
+    if ( this%OptPressure ) then
+      this%Virial = Virial
+    end if 
 #endif
 
     ! Find potential change
@@ -10546,70 +10160,6 @@ loop2:        do nc = 1, this%NComponents
         ! Accept volume change
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
-        call UpdateEnergy( this )
-        if ( this%OptPressure .or. UseIntDegFreed) then
-#if MPI_VER > 0
-          if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then
-            ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-            call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-            if (printIDF) then
-              call MPI_Allreduce( GetEnergyIntra_Bond( this ), this%EPotIntra_Bond, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-              call MPI_Allreduce( GetEnergyIntra_Angle( this ), this%EPotIntra_Angle, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-              call MPI_Allreduce( GetEnergyIntra_Dihedral( this ), this%EPotIntra_Dihedral, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-              this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
-            endif
-            this%EPotInter   = this%EPot - this%EPotIntra
-            call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-            if ( this%OptPressure ) then
-              call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-              call MPI_Allreduce( GetVirialIntra(this), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-              this%VirialInter = this%Virial - this%VirialIntra
-            end if
-          else
-            this%EPotIntra   = GetEnergyIntra( this )
-            if (printIDF) then
-              this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
-              this%EpotIntra_Angle = GetEnergyIntra_Angle( this )
-              this%EpotIntra_Dihedral = GetEnergyIntra_Dihedral( this )
-              this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
-            endif
-            this%EPotInter   = this%EPot - this%EPotIntra
-            this%d2EpotdV2 = Getd2EpotdV2( this )
-            if ( this%OptPressure ) then
-              this%Virial = GetVirial( this )
-              this%VirialIntra = GetVirialIntra( this )
-              this%VirialInter = this%Virial - this%VirialIntra
-            end if
-          endif
-#else
-          this%EPotIntra   = GetEnergyIntra( this )
-          if (printIDF) then
-            this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
-            this%EpotIntra_Angle = GetEnergyIntra_Angle( this )
-            this%EpotIntra_Dihedral = GetEnergyIntra_Dihedral( this )
-            this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
-          endif
-          this%EPotInter   = this%EPot - this%EPotIntra
-          this%d2EpotdV2 = Getd2EpotdV2( this )
-          if ( this%OptPressure ) then
-            this%Virial = GetVirial( this )
-            this%VirialIntra = GetVirialIntra( this )
-            this%VirialInter = this%Virial - this%VirialIntra
-          end if
-#endif
-        end if
-#if MPI_VER > 0
-        ! in MC simulations we only communicate during common equilibration
-        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .and. .not. UseIntDegFreed) then
-          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-        else if (.not. UseIntDegFreed) then
-          this%EPot = GetEnergy( this )
-        endif
-#else
-        if (.not. UseIntDegFreed) then
-            this%EPot = GetEnergy( this )
-        end if
-#endif
       else
         ! Reject volume change
         this%Volume0 = VolumeOld
@@ -10617,13 +10167,14 @@ loop2:        do nc = 1, this%NComponents
         call ResizeMol( this, 1._RK / DelBoxL )
         call Unit2Atom( this )
         this%EPot = EPotOld
+        this%Virial = VirialOld
         if (LongRange .eq. Ewald) then
-          this%UFourier = UFourier
-          call Energy(this,this%Epot)
+          this%UFourier = UFourier                   
 
-#if MPI_VER > 0
+#if MPI_VER > 0 
           if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed).or. (Equilibration .and. CommonEqui) ) then
-            call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+            call Energy( this, EPot, d2EdV2, Virial )
+            call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if (printIDF) then
               call MPI_Allreduce( GetEnergyIntra_Bond( this ), this%EPotIntra_Bond, 1, MPI_RK, MPI_SUM, Communicator, ierror )
@@ -10634,12 +10185,12 @@ loop2:        do nc = 1, this%NComponents
             this%EPotInter   = this%EPot - this%EPotIntra
             call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1, MPI_RK, MPI_SUM, Communicator, ierror )
             if ( this%OptPressure ) then
-              call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+              call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
               call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
               this%VirialInter = this%Virial - this%VirialIntra
             end if
           else
-            this%EPot = GetEnergy(this)
+            call Energy( this, this%EPot, d2EdV2, Virial 
             this%EPotIntra   = GetEnergyIntra( this )
             if (printIDF) then
               this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -10650,14 +10201,14 @@ loop2:        do nc = 1, this%NComponents
             this%EPotInter   = this%EPot - this%EPotIntra
             this%d2EpotdV2 = Getd2EpotdV2( this )
             if ( this%OptPressure ) then
-              this%Virial = GetVirial( this )
+              this%Virial = Virial
               this%VirialIntra = GetVirialIntra( this )
               this%VirialInter = this%Virial - this%VirialIntra
             end if
           end if
 
 #else
-          this%EPot = GetEnergy(this)
+          call Energy( this, this%EPot, d2EdV2, Virial )
           this%EPotIntra   = GetEnergyIntra( this )
           if (printIDF) then
             this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -10668,7 +10219,7 @@ loop2:        do nc = 1, this%NComponents
           this%EPotInter   = this%EPot - this%EPotIntra
           this%d2EpotdV2 = Getd2EpotdV2( this )
           if ( this%OptPressure ) then
-            this%Virial = GetVirial( this )
+            this%Virial = Virial
             this%VirialIntra = GetVirialIntra( this )
             this%VirialInter = this%Virial - this%VirialIntra
           end if
@@ -10699,7 +10250,7 @@ loop2:        do nc = 1, this%NComponents
 
         ! Update energy and virial matrices
         call UpdateEnergy( this )
-        if ( this%OptPressure .or. UseIntDegFreed) then
+        if (UseIntDegFreed) then
 #if MPI_VER > 0
           if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then         !Michael Sch.: move to after if clause!
             call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1, MPI_RK, MPI_SUM, Communicator, ierror )
@@ -10760,9 +10311,9 @@ loop2:        do nc = 1, this%NComponents
         call ResizeMol( this, 1._RK / DelBoxL )
         call Unit2Atom( this )
         this%EPot = EPotOld
+        this%Virial = VirialOld
         if (LongRange .eq. Ewald) then
-          this%UFourier = UFourier
-          call Energy(this,this%Epot)
+          this%UFourier = UFourier                       
 
 #if MPI_VER > 0
           if ( (SimulationType .ne. MonteCarlo .or. UseIntDegFreed) .or. (Equilibration .and. CommonEqui) ) then
@@ -10776,13 +10327,15 @@ loop2:        do nc = 1, this%NComponents
             endif
             this%EPotInter   = this%EPot - this%EPotIntra
             call MPI_Allreduce( Getd2EpotdV2( this ), this%d2EpotdV2, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+            call Energy( this, EPot, d2EdV2, Virial )
+            call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
             if ( this%OptPressure ) then
-              call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+              call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
               call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
               this%VirialInter = this%Virial - this%VirialIntra
             end if
           else
-            this%EPot = GetEnergy(this)
+            call Energy( this, this%EPot, d2EdV2, Virial )
             this%EPotIntra   = GetEnergyIntra( this )
             if (printIDF) then
               this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -10793,7 +10346,7 @@ loop2:        do nc = 1, this%NComponents
             this%EPotInter   = this%EPot - this%EPotIntra
             this%d2EpotdV2 = Getd2EpotdV2( this )
             if ( this%OptPressure ) then
-              this%Virial = GetVirial( this )
+	              this%Virial = Virial
               this%VirialIntra = GetVirialIntra( this )
               this%VirialInter = this%Virial - this%VirialIntra
             end if
@@ -10853,9 +10406,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK), intent(in out) :: dv
     real(RK), intent(in out) :: EPotDelta
     real(RK) :: VolumeOld, EPotOld, BoxLengthOld, DelBoxL
-#if MPI_VER > 0
-    real(RK) :: EPotNew
-#endif
+    real(RK) :: EPot, d2EdV2, Virial
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -10877,10 +10428,10 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate potential energy and virial at trial position
 #if MPI_VER > 0
-    call Energy( this, EPotNew )
-    call MPI_Allreduce( EPotNew, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    call Energy( this, EPot, d2EdV2, Virial )
+    call MPI_Allreduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-    call Energy( this, this%EPot )
+    call Energy( this, this%EPot, d2EdV2, Virial )
 #endif
 
     ! Find potential change
@@ -10907,19 +10458,20 @@ loop2:        do nc = 1, this%NComponents
     type(TEnsemble) :: this
     real(RK),intent(in) :: EPotOldliq,VolumeOld
     logical  :: accept
+    real(RK) :: EPot, d2EdV2, Virial
     real(RK) :: BoxLengthOld, DelBoxL
 
     if ( accept ) then
       ! Accept volume change
       this%NResizeSuccesses = this%NResizeSuccesses + 1
 
-      ! Update energy and virial matrices
-      call UpdateEnergy( this )
 
 #if MPI_VER > 0
-      call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call Energy( this, EPot, d2EdV2, Virial )
+      call MPI_Allreduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-      this%Virial = GetVirial( this )
+      call Energy( this, EPot, d2EdV2, Virial )
+      this%Virial = Virial
 #endif
 
     else
@@ -10931,15 +10483,14 @@ loop2:        do nc = 1, this%NComponents
       call ResizeMol( this, DelBoxL ) ! testing needed before old mol2unit was used (before rev388)
       call Unit2Atom( this )
       this%EPot = EPotOldliq
-      if (LongRange .eq. Ewald) then
-         call Energy(this,this%Epot)
+      if (LongRange .eq. Ewald) then                        
 
 #if MPI_VER > 0
-         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-         call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+         call Energy( this, EPot, d2EdV2, Virial )
+         call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+         call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-         this%EPot = GetEnergy(this)
-         this%Virial = GetVirial( this )
+         call Energy( this, this%EPot, d2EdV2, this%Virial )
 #endif
 
 #if SPME > 0
@@ -10975,6 +10526,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK) :: EVirial
     real(RK) :: UFourier, BoxLengthOld, DelBoxL
     real(RK) :: UIntra, EVirialintra
+    real(RK) :: EPot, d2EdV2, Virial
 #if MPI_VER > 0
     real(RK) :: EPotNew
 #endif
@@ -11009,10 +10561,10 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate potential energy and virial at trial position
 
 #if MPI_VER > 0
-    call Energy( this, EPotNew )
+    call Energy( this, EPotNew, d2EdV2, Virial )
     call MPI_Allreduce( EPotNew, this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-    call Energy( this, this%EPot )
+    call Energy( this, this%EPot, d2EdV2, Virial )
 #endif
 
     ! Find potential change
@@ -11023,13 +10575,10 @@ loop2:        do nc = 1, this%NComponents
 
       accept = .true.
 
-      ! Update energy and virial matrices
-      call UpdateEnergy( this )
-
 #if MPI_VER > 0
-      call MPI_Allreduce( GetVirial( this ), this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-      this%Virial = GetVirial( this )
+      this%Virial = Virial
 #endif
 
     else
@@ -11041,14 +10590,14 @@ loop2:        do nc = 1, this%NComponents
       this%EPot = EPotOld
       if (LongRange .eq. Ewald) then
          this%UFourier = UFourier
-         call Energy(this,this%Epot)
+         call Energy( this, EPot, d2EdV2, Virial )
 
 #if MPI_VER > 0
-         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-         call MPI_Allreduce( GetVirial( this ), this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+         call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+         call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-         this%EPot = GetEnergy(this)
-         this%Virial = GetVirial( this )
+         this%EPot = EPot
+         this%Virial = Virial
 #endif
 
 #if SPME > 0
@@ -11128,7 +10677,7 @@ loop2:        do nc = 1, this%NComponents
     integer                     :: i, n1, n2
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, EPotNew
+    real(RK)                    :: EFourier, EPotNew, EPot
     real(RK)                    :: EVirial, EVirialIntra
     real(RK)                    :: USelf, UIntra
     real(RK)                    :: r(3)
@@ -11154,9 +10703,10 @@ loop2:        do nc = 1, this%NComponents
       ! Calculate particle energy
 
 #if MPI_VER > 0
-      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call EnergyinRC( this, nc, np, EPot)
+      call MPI_Allreduce( EPot, EPotDel, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-      EPotDel = GetEnergy( this, nc, np )
+      call EnergyinRC( this, nc, np, EPotDel)
 #endif
 
       if( this%NMIEnmMax > 0 ) then
@@ -11194,9 +10744,10 @@ loop2:        do nc = 1, this%NComponents
     else
       ! Calculate particle energy
 #if MPI_VER > 0
-      call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+      call EnergyinRC( this, nc, np, EPot)
+      call MPI_Allreduce( EPot, EPotDel, 1, MPI_RK, MPI_SUM, Communicator, ierror )
 #else
-      EPotDel = GetEnergy( this, nc, np )
+      call EnergyinRC( this, nc, np, EPotDel)
 #endif
       if( this%NMIEnmMax > 0 ) then
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
@@ -11294,8 +10845,6 @@ loop2:        do nc = 1, this%NComponents
         ! Accept Insertion
         accept = .true.
         this%NInsertSuccesses = this%NInsertSuccesses + 1
-        ! Update energy matrix
-        call UpdateEnergy( this, nc, np )
         ! Update density
         this%Density = this%NPart / this%Volume0
         ! Update fractions and NDF
@@ -11315,7 +10864,7 @@ loop2:        do nc = 1, this%NComponents
 
     else                                         ! REACTION FIELD
       ! Calculate particle energy at trial position
-      call Energy( this, nc, np, EPotIns )
+      call EnergyinRC( this, nc, np, EPotIns )
     ! Apply acceptance criterion
 #if MPI_VER > 0
       call MPI_Allreduce( EPotIns, EPotInsAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
@@ -11344,8 +10893,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
         accept = .true.
-        ! Update energy matrix
-        call UpdateEnergy( this, nc, np )
         ! Update density
         this%Density = this%NPart / this%Volume0
         ! Update fractions and NDF
@@ -11389,7 +10936,6 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent)  ,pointer :: pc
     type(TInteraction),pointer :: pi
 
-    integer  :: n1,n2,i
     real(RK) :: AccRateTransfer
 
     pc => this%Component(nc)
@@ -11398,21 +10944,6 @@ loop2:        do nc = 1, this%NComponents
       this%NTransferSuccesses = this%NTransferSuccesses + 1
       call RemoveParticle( pc, np )
 
-        ! Copy energies and virial
-        n1 = pc%NPart + 1
-
-        do i = 1, this%NComponents
-          pi => this%Interaction(nc, i)
-          n2 = pi%NPart2
-          pi%EPot(np, 1:n2) = pi%EPot(n1, 1:n2)
-          pi%Virial(np, 1:n2) = pi%Virial(n1, 1:n2)
-          this%Interaction(i, nc)%EPot(1:n2, np) = pi%EPot(n1, 1:n2)
-          this%Interaction(i, nc)%Virial(1:n2, np) = pi%Virial(n1, 1:n2)
-        end do
-
-        ! Zero diagonal elements
-        this%Interaction(nc, nc)%EPot(np, np) = 0._RK
-        this%Interaction(nc, nc)%Virial(np, np) = 0._RK
         this%NPart = this%NPart - 1
         this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
 
@@ -11789,14 +11320,14 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     integer :: i
+    real(RK):: EPot, d2EdV2, Virial
 
     ! Restore current state
     do i = 1, this%NRealComponents
       call RestoreState( this%Component(i) )
     end do
 
-    call Energy( this, this%EPot )
-    call UpdateEnergy( this )
+    call Energy( this, this%EPot, d2EdV2, Virial )
 
   end subroutine TEnsemble_RestoreState
 
@@ -11931,7 +11462,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i,j,t,err,currentbin
     real(RK)                  :: value
-    real(RK)                  :: currentBinsEn
+    real(RK)                  :: currentBinsEn, EPot
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
@@ -11964,7 +11495,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
-      call Reset( this%SumEPotDeltaSquared )
+      call Reset( this%SumEPotDeltaSquared )                                        
       call Reset( this%SumEPotInter )
       call Reset( this%SumEPotIntra )
       if (printIDF) then
@@ -11979,7 +11510,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
-      call Reset( this%SumVirialDeltaSquared )
+      call Reset( this%SumVirialDeltaSquared )                                    
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
 #if OSMOP > 0
@@ -12038,7 +11569,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumEPotSquared )
       call Reset( this%SumEPotV )
       call Reset( this%SumEPotVirial )
-      call Reset( this%SumEPotDeltaVirialDelta )
+      call Reset( this%SumEPotDeltaVirialDelta )                                        
       call Reset( this%SumEnthalpySquared )
       call Reset( this%SumEnthalpyV )
       call Reset( this%SumVolumeSquared )
@@ -12072,7 +11603,7 @@ loop2:        do nc = 1, this%NComponents
       else
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
-        call Reset( this%SumCorCoefR )
+        call Reset( this%SumCorCoefR )                            
       endif
       if( LongRange .eq. Rfield) then
         if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -12862,11 +12393,9 @@ loop2:        do nc = 1, this%NComponents
 
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
-    
     call Update( this%SumEPotDeltaVirialDelta, (this%EPot/real( this%NPart, RK ) - this%SumEPot%Average)*((-3_RK*this%Virial) - this%SumVirial%Average) )
     call Update( this%SumEPotDeltaSquared, (this%EPot/real( this%NPart, RK ) - this%SumEPot%Average)**2 )
-    call Update( this%SumVirialDeltaSquared, ((-3_RK*this%Virial) - this%SumVirial%Average)**2 )
-
+    call Update( this%SumVirialDeltaSquared, ((-3_RK*this%Virial) - this%SumVirial%Average)**2 )                                                                                                                                                     
     call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
     call Update( this%SumEPotIntra, this%EPotIntra / real( this%NPart, RK ) )
     if (printIDF) then
@@ -12983,7 +12512,6 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
-    
 
     if( ConstantPressure ) then
        if (.not. UseIntDegFreed) then
@@ -13048,10 +12576,7 @@ loop2:        do nc = 1, this%NComponents
 
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
-
-      
-      
-      call Update( this%SumCorCoefR, (-1_RK)*this%SumEPotDeltaVirialDelta%Average/sqrt(this%SumVirialDeltaSquared%Average*this%SumEPotDeltaSquared%Average) )
+      call Update( this%SumCorCoefR, (-1_RK)*this%SumEPotDeltaVirialDelta%Average/sqrt(this%SumVirialDeltaSquared%Average*this%SumEPotDeltaSquared%Average) )                                                                                                                                                    
     endif
 
     if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
@@ -13322,7 +12847,8 @@ loop2:        do nc = 1, this%NComponents
                 end if
 
                 if (SimulationType .ne. MolecularDynamics ) then
-                    currentBinsEn = currentBinsEn + GetEnergy( this, t, 1 )
+                  call EnergyinRC( this, t, 1, EPot)
+                  currentBinsEn = currentBinsEn + EPot
                 else
                     do j = 1, this%NRealComponents
                         call Force( this%Interaction( t, j ), currentBinsEn, a1, a2, a3, a4, a5, this%BoxLength )
@@ -15164,7 +14690,7 @@ loop2:        do nc = 1, this%NComponents
       else
         call Error( this%SumdUdV )
         call Error( this%SumCV )
-        call Error( this%SumCorCoefR )
+        call Error( this%SumCorCoefR )                            
       end if
 
       do i = 1, this%NRealComponents
@@ -15922,13 +15448,12 @@ loop2:        do nc = 1, this%NComponents
 &              Variance * kBoltzmann * NAvogadro
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-        
         ! Correlation coefficient R
         Average = this%SumCorCoefR%Average
         Variance = this%SumCorCoefR%Variance
         write( IOBuffer, '("Correlation coefficient R", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
+        call FileWriteBlank( this%iounit_errors )                                                                                                                                                                                                                                                    
       endif
 
     end if
@@ -23840,7 +23365,7 @@ end if
         call RestartSave( this%SumEnthalpy )
         call RestartSave( this%SumConfEnthalpy )
         call RestartSave( this%SumVolume )
-        call RestartSave( this%SumVirial )      
+        call RestartSave( this%SumVirial )
     if (printIDF) then
       call RestartSave( this%SumEPotInter )
       call RestartSave( this%SumEPotIntra )
@@ -23866,7 +23391,7 @@ end if
         call RestartSave( this%SumEPotSquared )
         call RestartSave( this%SumEPotV )
         call RestartSave( this%SumEPotVirial )
-        call RestartSave( this%SumEPotDeltaVirialDelta )
+        call RestartSave( this%SumEPotDeltaVirialDelta )                                                
         call RestartSave( this%SumEnthalpySquared )
         call RestartSave( this%SumEnthalpyV )
         call RestartSave( this%SumVolumeSquared )
@@ -23899,7 +23424,7 @@ end if
         else
           call RestartSave( this%SumdUdV )
           call RestartSave( this%SumCV )
-          call RestartSave( this%SumCorCoefR )
+          call RestartSave( this%SumCorCoefR )                                
         endif
         if( LongRange .eq. Rfield) then
           if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -24373,6 +23898,7 @@ if( RootProc .and. this%CorrfunMode ) then
     type(TComponent), pointer :: pc
     integer                   :: i,j,r,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
+    real(RK)                  :: EPot, d2EdV2, Virial
 #if MPI_VER > 0
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
@@ -24460,7 +23986,7 @@ if( RootProc .and. this%CorrfunMode ) then
     call RestartRead( this%SumEnthalpy )
     call RestartRead( this%SumConfEnthalpy )
     call RestartRead( this%SumVolume )
-    call RestartRead( this%SumVirial )  
+    call RestartRead( this%SumVirial )
     if (printIDF) then
         call RestartRead( this%SumEPotInter )
         call RestartRead( this%SumEPotIntra )
@@ -24486,7 +24012,7 @@ if( RootProc .and. this%CorrfunMode ) then
     call RestartRead( this%SumEPotSquared )
     call RestartRead( this%SumEPotV )
     call RestartRead( this%SumEPotVirial )
-    call RestartRead( this%SumEPotDeltaVirialDelta )
+    call RestartRead( this%SumEPotDeltaVirialDelta )                                                
     call RestartRead( this%SumEnthalpySquared )
     call RestartRead( this%SumEnthalpyV )
     call RestartRead( this%SumVolumeSquared )
@@ -24520,7 +24046,7 @@ if( RootProc .and. this%CorrfunMode ) then
     else
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
-      call RestartRead( this%SumCorCoefR )
+      call RestartRead( this%SumCorCoefR )                                    
     endif
     if( LongRange .eq. Rfield) then
       if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -25126,8 +24652,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
       ! Initialize energy matrix
       call Unit2Atom( this )
-      call Energy( this, this%EPot )
-      call UpdateEnergy( this )
+      call Energy( this, this%EPot, d2EdV2, Virial )
 
     end if
 
