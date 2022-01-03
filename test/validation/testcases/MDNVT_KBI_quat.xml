@@ -4,7 +4,7 @@
 	<parFile>MDNVT_KBI_quat.par</parFile>
 	<name>MDNVT_KBI_quat</name>
 	<np>120</np>
-	<walltime>4-00:00:00</walltime>
+	<walltime>2-20:00:00</walltime>
 	<reference>
 		<file>MDNVT_KBI_quat_1.res</file>
 	</reference>
