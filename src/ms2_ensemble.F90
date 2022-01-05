@@ -25185,7 +25185,7 @@ contains
     NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
-  !  Conductivity = this%Conductivity
+  ! Conductivity = this%Conductivity
     EConductivity = this%EConductivity
     Bulkviscosity = this%Bulkviscosity
     MolarEnthConduct = this%MolarEnthConduct
@@ -25201,7 +25201,8 @@ contains
     if (Mindex .eq. 0) then
       Mindex = this%NCorr
     end if
-
+    
+    KinERot(:) = 0._RK
     !Write transport properties Matrixes (root Processor)
     this%vsk(Mindex,  :) = 0._RK
     this%vsp(Mindex,  :) = 0._RK
