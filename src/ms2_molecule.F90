@@ -766,7 +766,6 @@ contains
     call FindMOI(this) ! if NDFRot < 0
     call ReadMOI(this) ! if NDFRot >= 0
 
-    write(*,*) "ndfrot = ", this%Unit(1)%NDFRot
     call FindNDF(this)
 
     ! check for elongation of rigid molecules
