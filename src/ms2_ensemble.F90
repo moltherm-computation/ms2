@@ -7599,8 +7599,8 @@ loop2:        do nc = 1, this%NComponents
             end do
         end if
       end do
-      Intra = Intra + sum(this%Interaction(nc,nc)%EPotAngleNew(:)) + &
-&                     sum(this%Interaction(nc,nc)%EPotToNew(:))
+!      Intra = Intra + sum(this%Interaction(nc,nc)%EPotAngleNew(:)) + &
+!&                     sum(this%Interaction(nc,nc)%EPotToNew(:))
     end do
 
     ! Calculate new energy
@@ -30265,7 +30265,7 @@ end subroutine  TEnsemble_infnan
           end if
           ! Calculate new energy
           EPotNew = EPotNew + pi%EPot  !includes Bond energies
-          pi%EPotMol(nu,:) = pi%Epot
+!          pi%EPotMol(nu,:) = pi%Epot
       end do
     end do
 
