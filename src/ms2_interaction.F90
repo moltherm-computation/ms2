@@ -911,6 +911,23 @@ contains
         call AllocationError( stat, 'ODFSum', nPhi*nPhi*nGamma*nR)
     endif
 
+    ! Allocate arrays
+    if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
+      allocate( this%EPot1Angle(this%NAngle), STAT = stat )
+      call AllocationError( stat, 'Angles', this%NAngle )
+
+      allocate( this%EPotAngle(this%NAngle*NP1), STAT = stat )
+      call AllocationError( stat, 'Angles', this%NAngle*NP1 )
+      allocate( this%EPotAngleNew(this%NAngle*NP1), STAT = stat )
+      call AllocationError( stat, 'Angles', this%NAngle*NP1 )
+      allocate( this%EPotTo(this%NDihedral*NP1), STAT = stat )
+      call AllocationError( stat, 'Dihedral', this%NDihedral*NP1 )
+      allocate( this%EPotToNew(this%NDihedral*NP1), STAT = stat )
+      call AllocationError( stat, 'Dihedral', this%NDihedral*NP1 )
+      allocate( this%EPot1To(this%NDihedral), STAT = stat )
+      call AllocationError( stat, 'Dihedral', this%NDihedral )
+    end if
+
     if( SimulationType .eq. SecondVirialCoeff ) then
       allocate( this%MayerFFunction(NSteps), STAT = stat )
       call AllocationError( stat, 'Mayer f-function' )
