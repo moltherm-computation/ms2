@@ -19,7 +19,7 @@
 	<reference>
 		<file>2500_All_128_1.rav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>2500_All_128_1.res</file>
 	</reference>
 	<reference>
@@ -27,7 +27,7 @@
 	</reference>
 	<reference>
 		<file>2500_All_128_1.rtr</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>2500_All_128_1.run</file>
 	</reference>
@@ -43,7 +43,7 @@
 	<reference>
 		<file>2500_All_128_2.rav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>2500_All_128_2.res</file>
 	</reference>
 	<reference>
@@ -51,7 +51,7 @@
 	</reference>
 	<reference>
 		<file>2500_All_128_2.rtr</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>2500_All_128_2.run</file>
 	</reference>
@@ -67,7 +67,7 @@
 	<reference>
 		<file>2500_All_128_3.rav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>2500_All_128_3.res</file>
 	</reference>
 	<reference>
@@ -75,8 +75,11 @@
 	</reference>
 	<reference>
 		<file>2500_All_128_3.rtr</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>2500_All_128_3.run</file>
+	</reference>
+	<reference>
+		<file>2500_All_128_1.rst</file>
 	</reference>
 </testcase>

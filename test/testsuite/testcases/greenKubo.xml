@@ -37,7 +37,7 @@
 	<reference>
 		<file>2500_Einstein_128_2.rav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>2500_Einstein_128_2.res</file>
 	</reference>
 	<reference>
@@ -45,7 +45,7 @@
 	</reference>
 	<reference>
 		<file>2500_Einstein_128_2.rtr</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>2500_Einstein_128_2.run</file>
 	</reference>
@@ -58,7 +58,7 @@
 	<reference>
 		<file>2500_Einstein_128_3.rav</file>
 	</reference>
-<!-- 	<reference>
+	<reference>
 		<file>2500_Einstein_128_3.res</file>
 	</reference>
 	<reference>
@@ -66,7 +66,7 @@
 	</reference>
 	<reference>
 		<file>2500_Einstein_128_3.rtr</file>
-	</reference> -->
+	</reference>
 	<reference>
 		<file>2500_Einstein_128_3.run</file>
 	</reference>
