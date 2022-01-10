@@ -5625,6 +5625,7 @@ loop3:  do nc = 1, this%NComponents
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call Energy( this, EPot, d2EdV2, Virial )
       call MPI_Allreduce( EPot, this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+      call MPI_Allreduce( d2EdV2, this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       call MPI_Allreduce( GetEnergyIntra( this ), this%EPotIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       if (printIDF) then
         call MPI_Allreduce( GetEnergyIntra_Bond( this ), this%EPotIntra_Bond, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
@@ -5633,7 +5634,6 @@ loop3:  do nc = 1, this%NComponents
         this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
       endif
       this%EPotInter = this%EPot - this%EPotIntra
-      call MPI_Allreduce( d2EdV2, this%d2EpotdV2, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
         if ( this%OptPressure ) then
           call MPI_Allreduce( Virial, this%Virial, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
           call MPI_Allreduce( GetVirialIntra( this ), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
@@ -5650,7 +5650,6 @@ loop3:  do nc = 1, this%NComponents
         this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
       endif
       this%EPotInter   = this%EPot - this%EPotIntra
-      this%d2EpotdV2 = d2EdV2
       if ( this%OptPressure ) then
         this%Virial = Virial
         this%VirialIntra = GetVirialIntra( this )
@@ -5659,7 +5658,7 @@ loop3:  do nc = 1, this%NComponents
 
     endif
 #else
-    call Energy( this, this%EPot, d2EdV2, Virial )
+    call Energy( this, this%EPot, this%d2EpotdV2, Virial )
     this%EPotIntra   = GetEnergyIntra( this )
     if (printIDF) then
       this%EpotIntra_Bond = GetEnergyIntra_Bond( this )
@@ -5668,7 +5667,6 @@ loop3:  do nc = 1, this%NComponents
       this%EpotIntra_Nonbonded = this%EPotIntra - this%EPotIntra_Bond - this%EPotIntra_Angle - this%EPotIntra_Dihedral
     endif
     this%EPotInter   = this%EPot - this%EPotIntra
-    this%d2EpotdV2 = d2EdV2
     if ( this%OptPressure ) then
       this%Virial = Virial
       this%VirialIntra = GetVirialIntra( this )
@@ -7574,6 +7572,7 @@ loop2:        do nc = 1, this%NComponents
 
                 ! Sum energy
                 E = E + pi%EPot
+                d2EdV2 = d2EdV2 + pi%d2EpotdV2
                 if ( this%OptPressure ) then !RFMC => kann raus?
                   V = V + pi%Virial
                 end if
@@ -7592,6 +7591,7 @@ loop2:        do nc = 1, this%NComponents
 
                 ! Sum energy
                 E = E + pi%EPot
+                d2EdV2 = d2EdV2 + pi%d2EpotdV2
                 if ( this%OptPressure ) then !RFMC => kann raus?
                   V = V + pi%Virial
                 end if
