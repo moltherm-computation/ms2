@@ -34,7 +34,16 @@
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 module ms2_ensemble
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
 
   use ms2_accumulator
   use ms2_component
@@ -1102,7 +1111,7 @@ contains
 
     ! Include MPI header
 #if HBOND > 0
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 #endif
@@ -5218,7 +5227,7 @@ xloop:do i = 1, NCells1dim(1)
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -5497,7 +5506,7 @@ loop5:  do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -6126,7 +6135,7 @@ loop5:    do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -6186,7 +6195,7 @@ loop5:    do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -6246,7 +6255,7 @@ loop5:    do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -6439,7 +6448,7 @@ loop5:    do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -6859,7 +6868,7 @@ loop5:    do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -7791,7 +7800,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -7928,7 +7937,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8060,7 +8069,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8226,7 +8235,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8373,7 +8382,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8533,7 +8542,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8673,7 +8682,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -8828,7 +8837,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -9033,7 +9042,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -9230,7 +9239,7 @@ loop2:        do nc = 1, this%NComponents
    implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -9427,7 +9436,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -9563,7 +9572,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -9817,7 +9826,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10079,7 +10088,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10396,7 +10405,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10451,7 +10460,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10513,7 +10522,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10663,7 +10672,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10771,7 +10780,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -10923,7 +10932,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -11448,7 +11457,9 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
 #if MPI_VER > 0
+#if !defined(MPI_USE_MODULE)
   include 'mpif.h'
+#endif
     integer         :: fields = 0
     integer         :: accumulate_step = 0
     integer         :: headers = 0
@@ -14496,7 +14507,7 @@ loop2:        do nc = 1, this%NComponents
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -18156,7 +18167,7 @@ end if
   subroutine TEnsemble_ErrorsUpdateThermoInt( this, i, NBins )
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -18823,7 +18834,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -19149,7 +19160,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -19514,7 +19525,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -23888,7 +23899,7 @@ if( RootProc .and. this%CorrfunMode ) then
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -24670,7 +24681,7 @@ if( RootProc .and. this%CorrfunMode ) then
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -24732,7 +24743,7 @@ if( RootProc .and. this%CorrfunMode ) then
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -24843,7 +24854,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
    ! Declare arguments
@@ -25158,7 +25169,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -25366,7 +25377,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -25472,7 +25483,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -25586,7 +25597,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -25796,7 +25807,7 @@ if( RootProc .and. this%CorrfunMode ) then
    implicit none
 
     include 'fftw3.f'
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -26569,7 +26580,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -26644,7 +26655,7 @@ contains
    implicit none
 
     include 'fftw3.f'
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -27343,7 +27354,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -27951,7 +27962,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -28388,7 +28399,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -28413,7 +28424,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -28513,7 +28524,7 @@ contains
     implicit none
 
   ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     type(TEnsemble)           :: this
@@ -28567,7 +28578,7 @@ contains
     implicit none
 
   ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     ! Declare arguments
