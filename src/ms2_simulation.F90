@@ -31,7 +31,16 @@
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 module ms2_simulation
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
 
   use ms2_global
   use ms2_ensemble
@@ -250,7 +259,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -1437,7 +1446,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2188,7 +2197,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2413,7 +2422,7 @@ end if
     implicit none
 
   ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -2514,7 +2523,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -3284,7 +3293,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -3350,7 +3359,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
