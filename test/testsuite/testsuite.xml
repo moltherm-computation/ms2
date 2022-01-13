@@ -23,7 +23,7 @@
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
-		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
+<!-- 		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" /> -->
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 <!-- 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" /> -->
 		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" />
