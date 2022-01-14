@@ -10164,8 +10164,6 @@ loop2:        do nc = 1, this%NComponents
           this%Virial = Virial
           this%VirialIntra = GetVirialIntra( this )
           this%VirialInter = this%Virial - this%VirialIntra
-#else
-          call Energy( this, this%EPot, d2EdV2, this%Virial )
 #endif
 
 #if SPME > 0
@@ -10204,11 +10202,9 @@ loop2:        do nc = 1, this%NComponents
             endif
             this%EPotInter   = this%EPot - this%EPotIntra
             call MPI_Allreduce( d2EdV2, this%d2EpotdV2, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-            if ( this%OptPressure ) then
-              call MPI_Allreduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-              call MPI_Allreduce( GetVirialIntra(this), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-              this%VirialInter = this%Virial - this%VirialIntra
-            end if
+            call MPI_Allreduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+            call MPI_Allreduce( GetVirialIntra(this), this%VirialIntra, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
+            this%VirialInter = this%Virial - this%VirialIntra
           else
             this%EPotIntra   = GetEnergyIntra( this )
             if (printIDF) then
@@ -10221,11 +10217,11 @@ loop2:        do nc = 1, this%NComponents
             if (UseIntDegFreed) then
                 this%d2EpotdV2 = d2EdV2
             end if
-            if ( this%OptPressure ) then
-              this%Virial = Virial
-              this%VirialIntra = GetVirialIntra( this )
-              this%VirialInter = this%Virial - this%VirialIntra
-            end if
+
+            this%Virial = Virial
+            this%VirialIntra = GetVirialIntra( this )
+            this%VirialInter = this%Virial - this%VirialIntra
+
           endif
 #else
           this%EPotIntra   = GetEnergyIntra( this )
@@ -10237,11 +10233,9 @@ loop2:        do nc = 1, this%NComponents
           endif
           this%EPotInter   = this%EPot - this%EPotIntra
           this%d2EpotdV2 = d2EdV2
-          if ( this%OptPressure ) then
-            this%Virial = Virial
-            this%VirialIntra = GetVirialIntra( this )
-            this%VirialInter = this%Virial - this%VirialIntra
-          end if
+          this%Virial = Virial
+          this%VirialIntra = GetVirialIntra( this )
+          this%VirialInter = this%Virial - this%VirialIntra
 #endif
         end if
 
@@ -10304,8 +10298,6 @@ loop2:        do nc = 1, this%NComponents
           this%Virial = Virial
           this%VirialIntra = GetVirialIntra( this )
           this%VirialInter = this%Virial - this%VirialIntra
-#else
-          call Energy( this, this%EPot, d2EdV2, this%Virial )
 #endif
 
 #if SPME > 0
@@ -15351,7 +15343,7 @@ loop2:        do nc = 1, this%NComponents
         Variance = this%SumCorCoefR%Variance
         write( IOBuffer, '("Correlation coefficient R", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )                                                                                                                                                                                                                                                    
+        call FileWriteBlank( this%iounit_errors )
       endif
 
     end if
@@ -17431,13 +17423,6 @@ end if
       end do
       call FileWriteBlank( this%iounit_errors )
 
-      if ( this%OptPressure ) then
-         Average = this%SumPressure%Average
-         Variance = this%SumPressure%Variance
-      else
-         Average = this%RefPressure
-         Variance = 0._RK
-      end if
       ! Simulation pressure of liquid phase
       write( IOBuffer, '("Liquid simulation pressure", T29, "reduced:", F20.9)' ) this%RefPressure
       call FileWrite( this%iounit_errors )
@@ -17446,7 +17431,8 @@ end if
       call FileWriteBlank( this%iounit_errors )
 
       ! Vapor pressure
-      AvgPressure = this%SumPressure%Average
+      Average = this%SumPressure%Average
+      Variance = this%SumPressure%Variance
       NN = 0._RK
       do i = 1, this%NComponents
         NN = NN + this%Component(i)%SumFraction%Average * this%Component(i)%PartialMolarVolume
@@ -17460,40 +17446,23 @@ end if
         varv(i) = pc%VarPartialMolarVolume
       end do
 
-      VarPressure = sqrt( this%SumPressure%Variance**2 + sum( (dpdmu * varmu)**2 ) + sum( (dpdv * varv)**2 ) )
-    else
-      AvgPressure = this%RefPressure
-      NN = 0._RK
-      do i = 1, this%NComponents
-        NN = NN + this%Component(i)%SumFraction%Average * this%Component(i)%PartialMolarVolume
-      end do
-      NN = NN - this%Temperature / Average
-      do i = 1, this%NComponents
-        pc => this%Component(i)
-        dpdmu(i) = -this%Temperature * pc%SumFraction%Average / NN
-        dpdv(i) = 0._RK
-        varmu(i) = pc%VarChemPot
-        varv(i) = pc%VarPartialMolarVolume
-      end do
-      VarPressure = sqrt( sum( (dpdmu * varmu)**2 ) )
-    end if
-
-      write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) AvgPressure, VarPressure
+      VarPressure = sqrt( Variance**2 + sum( (dpdmu * varmu)**2 ) + sum( (dpdv * varv)**2 ) )
+      write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) Average, VarPressure
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) AvgPressure * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
+      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! Mole fractions of vapor phase
       do i = 1, this%NComponents
         pc => this%Component(i)
-        yvi = pc%SumFraction%Average * ( pc%PartialMolarVolume / this%Temperature - 1 / Average )
+        yvi = pc%SumFraction%Average * ( pc%PartialMolarVolume / this%Temperature - 1 / this%SumPressure%Average )
         do j = 1, this%NComponents
           dydmu(i, j) = yvi * dpdmu(j)
           dydv(i, j) = yvi * dpdv(j)
         end do
         dydmu(i, i) = dydmu(i, i) + pc%SumFraction%Average
-        dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * 1 / this%Temperature * ( Average - this%RefPressure )
+        dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * 1 / this%Temperature * ( this%SumPressure%Average - this%RefPressure )
       end do
 
       do i = 1, (this%NComponents - 1)
@@ -17514,9 +17483,9 @@ end if
       call FileWriteBlank( this%iounit_errors )
 
       ! Saturated liquid density
-      Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( AvgPressure - this%RefPressure)
+      Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( this%SumPressure%Average - this%RefPressure)
 
-      Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( AvgPressure - this%RefPressure )&
+      Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( this%SumPressure%Average - this%RefPressure )&
 &               + VarPressure * this%LiqBetaT )**2 )
 
       write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
@@ -17529,19 +17498,19 @@ end if
       Average = this%SumDensity%Average
       Variance = this%SumDensity%Variance
       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-&            Average, Average * VarPressure / AvgPressure
+&            Average, Average * VarPressure / this%SumPressure%Average
 
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
-&            * VarPressure / AvgPressure * UnitDensity
+&            * VarPressure / this%SumPressure%Average * UnitDensity
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! Saturated liquid enthalpy
-      Average = this%LiqEnthalpy + this%LiqdHdP * ( AvgPressure - this%RefPressure )
+      Average = this%LiqEnthalpy + this%LiqdHdP * ( this%SumPressure%Average - this%RefPressure )
 
       Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
-&                ( AvgPressure - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
+&                ( this%SumPressure%Average - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
 
       write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
@@ -17578,6 +17547,8 @@ end if
       write( IOBuffer, '(76("="))' )
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
+
+    end if
 
     if( (SimulationType .eq. MolecularDynamics) .and. (EnsembleType .eq. EnsembleTypeGE) ) then
       ! Statistics section

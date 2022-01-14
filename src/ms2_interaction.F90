@@ -5833,11 +5833,10 @@ end subroutine TInteraction_EnergySVC
     this%EPot1Angle(:) = 0._RK
     this%EPot1To(:) = 0._RK
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
-    OptPressure = this%OptPressure
-    if ( OptPressure ) then
-      Virial = 0._RK
-      VirialLocal = 1E33_RK
-    end if
+
+    Virial = 0._RK
+    VirialLocal = 1E33_RK
+
 
     N = this%NPart2
     RCutoffSquared = this%RCutoffSquared
