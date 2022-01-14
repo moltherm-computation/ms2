@@ -1927,7 +1927,7 @@ eqloop: do
               Equilibration = .false.
 
             else
-              write( IOBuffer, '("GE equilibration ended with too many/too less particles")' )
+              write( IOBuffer, '("GE equilibration ended with too many/too few particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
@@ -1966,7 +1966,7 @@ eqloop: do
               write( IOBuffer, '("HA equilibration completed")' )
               Equilibration = .false.
             else
-              write( IOBuffer, '("HA equilibration ended with too many/too less particles")' )
+              write( IOBuffer, '("HA equilibration ended with too many/too few particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
@@ -2059,7 +2059,7 @@ eqloop: do
               Equilibration = .false.
 
             else
-              write( IOBuffer, '("Gibbs equilibration ended with too many/too less particles")' )
+              write( IOBuffer, '("Gibbs equilibration ended with too many/too few particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
