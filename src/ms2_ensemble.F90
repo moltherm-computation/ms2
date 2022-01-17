@@ -8568,15 +8568,13 @@ loop2:        do nc = 1, this%NComponents
           ! Accept
           ! Apply scaling factors
           call ScaleInteractionThermoInt(this, nt, Factor)
-          call Mol2Atom( this )
-          !call Mol2Atom1( this%Component(nt), 1 )
-          call EnergyinRC( this, nt, 1, EPotNew )
+
           pt%Lambda=LambdaNew
         else
           ! Reject
           if (LongRange == Ewald) then
             call EwaldSelfTerm_Energy(this)
-            call EnergyinRC( this, nt, 1, EPotNew )
+
           end if
         end if       ! Acceptance Criteria
 
