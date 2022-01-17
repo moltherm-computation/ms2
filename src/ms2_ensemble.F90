@@ -1325,8 +1325,8 @@ contains
     & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
 
       this%NPartInitial = this%NPart
-      this%NPartLBound = int( real( this%NPart, RK ) / 1.2_RK )
-      this%NPartUBound = int( real( this%NPart, RK ) * 1.2_RK )
+      this%NPartLBound = int( real( this%NPart, RK ) / 1.3_RK )
+      this%NPartUBound = int( real( this%NPart, RK ) * 1.3_RK )
 
     end if
 
