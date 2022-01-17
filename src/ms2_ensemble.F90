@@ -1251,10 +1251,9 @@ contains
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
-      if( .not. UseReducedUnits ) then
-!        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
-      end if
-      write( IOBuffer, '("Mass of piston: ",T26, F15.9)' ) this%PistonMass
+      write( IOBuffer, '("Mass of piston (reduced): ",T26, F15.9)' ) this%PistonMass
+      call LogWrite
+      write( IOBuffer, '("Mass of piston: ",T26, F15.9, " kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
       call LogWrite
     end if
 
@@ -13031,7 +13030,9 @@ loop2:        do nc = 1, this%NComponents
 
     ! Mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
-      write( IOBuffer, '("Mass of piston", T36, ":", F20.9)' ) this%PistonMass
+      write( IOBuffer, '("Mass of piston (reduced)", T36, ":", F20.9)' ) this%PistonMass
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '("Mass of piston", T36, ":", F20.9," kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
