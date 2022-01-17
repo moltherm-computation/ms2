@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>ecc55b5cab45388afc4ecd8d07883b08b90e8583</caseRepositoryHash>
+	<caseRepositoryHash>bb695b4979c25815f68fd823b67d6366831e6c47</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
