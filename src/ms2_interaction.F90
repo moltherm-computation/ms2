@@ -744,7 +744,7 @@ contains
 
 
     ! Calculate dimension of arrays
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       N1 = this%NPartMax
       N2 = this%NPartMax
 

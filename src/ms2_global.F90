@@ -607,6 +607,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
+  integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
