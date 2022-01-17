@@ -5978,7 +5978,7 @@ loop1:do i = 1, this%NPart
 
         if (.not. printIDF) then
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%Disp( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%Disp( i, j ),j=1,3)
             end do
 
             if( ALPHA2UpdateFrequency > 0 ) then
