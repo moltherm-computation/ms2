@@ -12056,6 +12056,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
+		call FileWriteBlank( this%iounit_runave )										 
 
 #if ARCH == 2 && ! MPI_VER > 0
         call flush( this%iounit_result )
@@ -12356,6 +12357,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
+		call FileWriteBlank( this%iounit_runave )										 
 
 #if ARCH == 2
         call flush( this%iounit_result )
