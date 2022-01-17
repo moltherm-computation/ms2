@@ -1057,7 +1057,7 @@ contains
     EnsembleNum = ne
     end if  
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -1985,7 +1985,7 @@ contains
 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   if (this%isCCSimulation .eqv. .true.) then
@@ -2077,7 +2077,7 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -5134,10 +5134,10 @@ xloop:do i = 1, NCells1dim(1)
 #endif
 
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
-  if ((this%isCCSimulation .eqv. .true.) .and. &
-  &   (this%isStopSimulation .eqv. .false.) .and. &
-  &   (Equilibration .eqv. .false.) .and. &
-  &   (mod( Step, this%CCFrequency ) .eq. 0) ) then
+  if ((      this%isCCSimulation  ) .and. &
+  &   (.not. this%isStopSimulation) .and. &
+  &   (.not. Equilibration        ) .and. &
+  &   (mod( Step, this%CCFrequency) .eq. 0) ) then
 
     !DC DEBUG - validating that the conditions are fulfulled as prescribed
     ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
@@ -6276,13 +6276,12 @@ loop3:    do nc = 1, this%NComponents
     integer                   :: i, j, t
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
     integer                   :: r, s, nc, np, ncf, npf
-    integer                   :: ewald_h, ratio, sndf, nuh
+    integer                   :: ratio, sndf, nuh
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
     integer                   :: tempComm
     integer                   :: tempVec(0:this%NFluctMax)
-    real(RK)                  :: EPot_h
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
 #endif
@@ -6809,14 +6808,18 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate new energy
     if( this%NMIEnmMax > 0 ) then
-      E =  E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
+      !selfterm ReactionField contribution to pressure and EPot was turned off for MC
+      !because it does not need selfterm correction
+      E =  E + this%Density * this%EPotCorrMIE !+ this%EPotCorrRF
       d2EdV2 =  d2EdV2 + this%Density * this%d2EpotdV2CorrMIE
-      V =  V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
+      V =  V + this%Density * this%VirialCorrMIE !+ Third*this%VirialCorrRF
     endif
     if( this%NTT68Max > 0 ) then
-      E = E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+      !selfterm ReactionField contribution to pressure and EPot was turned off for MC
+      !because it does not need selfterm correction
+      E = E + this%Density * this%EPotCorrTT68 !+ this%EPotCorrRF
       d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
-      V = V + this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+      V = V + this%Density * this%VirialCorrTT68 !+ Third*this%VirialCorrRF
     endif
     
 
@@ -8441,10 +8444,9 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     type(TComponent), pointer  :: pc, pt
     integer                    :: currentbin
-    real(RK)                   :: Shield1, Shield2
-    real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
+    real(RK)                   :: LambdaNew, Factor, ChempotDelta
     real(RK)                   :: EPotOld, EPotNew, EPot
-    real(RK)                   :: EPotDeltaAll, Scale
+    real(RK)                   :: EPotDeltaAll
     real(RK)                   :: EFourier, EVirial
 
     ! Assign local variables
@@ -8736,16 +8738,11 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     real(RK)                    :: EPotDel, EPot
     type(TComponent), pointer   :: pc
-    type(TInteraction), pointer :: pi
-    integer                     :: i, n1, n2
-!     real(RK)                    :: s
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, EPotNew
+    real(RK)                    :: EFourier
     real(RK)                    :: EVirial, EVirialIntra
     real(RK)                    :: USelf, UIntra
-    real(RK)                    :: r(3)
-    real(RK)                    :: q(4)
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -9355,15 +9352,11 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TComponent), pointer   :: pc
-    type(TInteraction), pointer :: pi
-    integer                     :: i, n1, n2
 
 ! Ewald Parameter
-    real(RK)                    :: EFourier, EPotNew, EPot
+    real(RK)                    :: EFourier, EPot
     real(RK)                    :: EVirial, EVirialIntra
     real(RK)                    :: USelf, UIntra
-    real(RK)                    :: r(3)
-    real(RK)                    :: q(4)
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -10115,14 +10108,13 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: value
     real(RK)                  :: currentBinsEn, EPot
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
-    real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A20id, A30res, A21res, A12res
+    real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
     real(RK)                  :: currentHmU, currentHmUm1, currentH
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
-    real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
     real(RK)                   :: a1, a2 ! dummy arguments
     ! Sampling of Dielectric Constant
     real(RK)                  :: MX, MY, MZ
@@ -15538,21 +15530,21 @@ end if
       call Error (this%SumResidenceDuration)
 
       if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .ne. 0) ) then
-         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F20.5" fs")' ) &
+         write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F20.5," fs")' ) &
 &           this%ResidComp1, this%ResidSite1, &
 &           this%ResidComp2, this%ResidSite2, Step*TimeStep* UnitTime * 1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No separation between the two components observed")' )
 
       else if ( (this%SumResidenceDuration%NTotalsum .eq. 0) .and. (this%ResidPairs .eq. 0) ) then
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs")' ) &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5," fs")' ) &
 &           this%ResidComp1, this%ResidSite1, this%ResidComp2,this%ResidSite2,&
 &           this%ResidenceDuration*UnitTime*1E15_RK
         call FileWrite( this%iounit_errors )
         write(IOBuffer, '("No pairing between the two components observed")' )
 
       else
-        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =" F14.5" fs +-",F10.5)' ) &
+        write(IOBuffer, '("Comp.",I2," Site",I2,"  and Comp.",I2," Site",I2," =", F14.5," fs +-",F10.5)' ) &
 &         this%ResidComp1,this%ResidSite1, &
 &         this%ResidComp2,this%ResidSite2, this%SumResidenceDuration%Average*UnitTime*1E15_RK ,&
 &         this%SumResidenceDuration%Variance*UnitTime*1E15_RK
@@ -17216,7 +17208,7 @@ end if
     do p = 1, 3 !Method
         do i= 1, this%NRealComponents
             do j= i, this%NRealComponents
-                write(IOBuffer, '(I5,I5,","I1)') i, j, p
+                write(IOBuffer, '(I5,I5,",",I1)') i, j, p
                 call FileWriteNoAdvance( this%iounit_kbirdf )
             end do
         end do
@@ -21478,11 +21470,11 @@ if( RootProc .and. this%CorrfunMode ) then
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               do j = 0, ALPHA2Length/ALPHA2Shift-1
-                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+                read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
               end do
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
             end do
         end if
 
