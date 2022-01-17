@@ -303,12 +303,6 @@ contains
     this%PX2 => Component2%P0(:, 1)
     this%PY2 => Component2%P0(:, 2)
     this%PZ2 => Component2%P0(:, 3)
-!    write(*,*) "after PX1 ",LOC(this%PX1)
-!    write(*,*) "after PY1 ",LOC(this%PY1)
-!    write(*,*) "after PZ1 ",LOC(this%PZ1)
-!    write(*,*) "after PX2 ",LOC(this%PX2)
-!    write(*,*) "after PY2 ",LOC(this%PY2)
-!    write(*,*) "after PZ2 ",LOC(this%PZ2)
 
     ! Total dipole moments of molecules for reaction field
     this%MueX1 => Component1%MueX(:)
@@ -1826,7 +1820,7 @@ contains
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: CosAux, CosGammaij
-    real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
+    real(RK)          :: dCosThetai, dCosThetaj
     real(RK)          :: Tmp, RFConst2
     real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
@@ -2548,7 +2542,7 @@ contains
 
               dCosThetai = Rij4Inv * CosAux
               dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
-              dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+
               Tmp = -4._RK * RijInv * EPotLocal
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -2558,19 +2552,6 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
 
-                                     
-                                             
-                                                                                    
-                                                         
-                                                 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                     
-                    
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
@@ -2651,15 +2632,6 @@ contains
               FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
 
-                                     
-                                       
-                                                               
-                                                                  
-                                                                                                                  
-                                                             
-                                                             
-                                                                     
-                    
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth !xxxx7 QC
@@ -2739,7 +2711,7 @@ contains
 
               dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
               dCosThetaj = Rij4Inv * CosAux
-              dCosGammaij = -2._RK * Rij4Inv * CosThetai
+
               Tmp = -4._RK * RijInv * EPotLocal
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -2749,19 +2721,6 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
 
-                                     
-                                                                                    
-                                             
-                                                          
-                                                 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                     
-                    
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
@@ -2855,7 +2814,7 @@ contains
               dCosThetaj = Rij5Inv * (-10._RK * CosThetaj &
 &                                    - 30._RK * CosThetaj * CosThetaiSquared &
 &                                    - 20._RK * CosThetai * Tmp)
-              dCosGammaij = 4._RK * Rij5Inv * Tmp
+
               Tmp = -5._RK * RijInv * EPotLocal
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -2999,29 +2958,6 @@ contains
               EPot = EPot +this%RFConst2 * ( muexi * this%MueX1(np) + mueyi * this%MueY1(np) + muezi * this%MueZ1(np) )
             end do
 
-! This part seems to do nothing, therefore it has been commented out.
-!          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then
-!            pcc => this%PotChargeCharge(1, 1)
-!            Epsilon = pcc%Epsilon
-!            RShieldSquared = pcc%RShieldSquared
-!
-!          ! Assign pointers to site positions
-!            RX1 => pcc%Site1%RX
-!            RY1 => pcc%Site1%RY
-!            RZ1 => pcc%Site1%RZ
-!            RX2 => pcc%Site2%RX
-!            RY2 => pcc%Site2%RY
-!            RZ2 => pcc%Site2%RZ
-!            do k = 1, this%NInCutoff(np)
-!              j = this%CutoffPartner(k, np)
-!              RXij = RX2(j)-RX1(np)
-!              RYij = RY2(j)-RY1(np)
-!              RZij = RZ2(j)-RZ1(np)
-!              RXij = (RXij - anint(RXij))*BoxLength
-!              RYij = (RYij - anint(RYij))*BoxLength
-!              RZij = (RZij - anint(RZij))*BoxLength
-!              Rij = (RXij**2+RYij**2+RZij**2)
-!            end do
           end if
         end if
       end if
@@ -3187,12 +3123,6 @@ contains
             FZij = Fij * RZij
             Virial = Virial + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
 
-                                   
-                               
-                               
-                               
-                                                                                 
-                  
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
             d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
 &            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
@@ -3382,7 +3312,7 @@ contains
                                      
               dCosThetai = Rij4Inv * CosAux
               dCosThetaj = Rij4Inv * (CosGammaij - 10._RK * CosThetai * CosThetaj)
-              dCosGammaij = 2._RK * Rij4Inv * CosThetaj
+
               Tmp = -4._RK * RijInv * EPotLocal
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -3485,7 +3415,7 @@ contains
 
               dCosThetai = Rij4Inv * (10._RK * CosThetai * CosThetaj - CosGammaij)
               dCosThetaj = Rij4Inv * CosAux
-              dCosGammaij = -2._RK * Rij4Inv * CosThetai
+
               Tmp = -4._RK * RijInv * EPotLocal
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -3595,13 +3525,8 @@ contains
 &                                    - 30._RK * CosThetaj * CosThetaiSquared &
 &                                    - 20._RK * CosThetai * Tmp)
 
-              dCosGammaij = 4._RK * Rij5Inv * Tmp
+
               Tmp = -5._RK * RijInv * EPotLocal
-                                                                                
-                                                                  
-                                                             
-                                                                                
-                                                                  
 
               FXij = -eX * Tmp + RijInv * ((eX * CosThetai - OXi) * dCosThetai &
 &                                        + (eX * CosThetaj - OXj) * dCosThetaj)
@@ -3611,14 +3536,6 @@ contains
 &                                        + (eZ * CosThetaj - OZj) * dCosThetaj)
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                                  
-                                                                                 
-                                                                     
-                    
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
