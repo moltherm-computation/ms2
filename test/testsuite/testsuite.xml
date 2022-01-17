@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.276</tools4ms2version>
-	<caseRepositoryHash>79f7e1a68ac250159742417e7c01b14d58a5e4ad</caseRepositoryHash>
+	<caseRepositoryHash>ecc55b5cab45388afc4ecd8d07883b08b90e8583</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -32,13 +32,13 @@
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 <!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
-<!-- 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" /> -->
+		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
 		<case name="Mie_site_mpi" file="Mie_site_mpi.xml" />
 		<case name="MD_gear_aceton" file="MD_gear_aceton.xml" />
-<!-- 		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" /> -->
+		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MD_gear_methaneCO2_250_cluster" file="MD_gear_methaneCO2_250_cluster.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
 <!-- 		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" /> -->
