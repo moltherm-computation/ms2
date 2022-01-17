@@ -17573,10 +17573,10 @@ end if
     ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
     do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
         meanRDF(p)=0.
-        do o=(3*KBINShellsCubeEdge/4)+1, KBINShellsCubeEdge
+        do o=(3*KBINumberShells/4)+1, KBINumberShells
             meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
         end do
-        meanRDF(p)=meanRDF(p)/(KBINShellsCubeEdge/4+1)
+        meanRDF(p)=meanRDF(p)/(KBINumberShells/4)
         RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
     end do
 
