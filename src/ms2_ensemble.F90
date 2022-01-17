@@ -511,19 +511,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumTotalDipoleMomentSquared
     type(TAccumulator) :: SumDielectricConstant
 
-#if CONSTR > 0
-   integer         :: NCons
-   integer,pointer, contiguous :: Cons1Comp(:)
-   integer,pointer, contiguous :: Cons2Comp(:)
-   integer,pointer, contiguous :: Cons1(:)
-   integer,pointer, contiguous :: Cons2(:)
-   real(RK),pointer, contiguous:: ConsR(:)
-   real(RK),pointer, contiguous:: FCons(:)
-   real(RK),pointer, contiguous:: UCons(:)
-   logical         :: consup
-#endif
-
-
 #if HBOND > 0
    integer          :: NHBondCrit
    integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
@@ -1079,12 +1066,6 @@ module ms2_ensemble
     module procedure TEnsemble_EinsteinCoefProcedure
   end interface
 
-#endif
-
-#if CONSTR > 0
-  interface Constraints
-    module procedure TEnsemble_Constraints
-  end interface
 #endif
 
 #if HBOND > 0
@@ -1809,68 +1790,6 @@ contains
           end if
         end do
       end if
-
-#endif
-
-#if CONSTR > 0
-    write( IOBuffer, '("CONSTRAINED DYNAMICS")' )
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdNCons )
-    read( IOBuffer, * ) this%NCons
-    write( IOBuffer, '("Number of Constrained Molecules:", I3)' ) this%NCons
-    call LogWrite
-
-    allocate( this%Cons1Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons1Comp'
-    allocate( this%Cons2Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons2Comp'
-    allocate( this%Cons1( this%NCons), STAT = stat )
-           if(stat >0) write(*,*) 'Allocation Error Cons1'
-    allocate( this%Cons2( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error Cons2'
-    allocate( this%ConsR( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error ConsR'
-    allocate( this%FCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error FCons'
-    allocate( this%UCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error UCons'
-
-   DO i=1,this%NCons,1
-    call FileReadParameter( iounit_params , IdCons1Comp )
-    read( IOBuffer, * ) this%Cons1Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 1:", I3)' ) this%Cons1Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons1 )
-    read( IOBuffer, * ) this%Cons1(i)
-    write( IOBuffer, '("Constrained Mol 1:", I3)' ) this%Cons1(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2Comp )
-    read( IOBuffer, * ) this%Cons2Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 2:", I3)' ) this%Cons2Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2 )
-    read( IOBuffer, * ) this%Cons2(i)
-    write( IOBuffer, '("Constrained Mol 2:", I3)' ) this%Cons2(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdConsR )
-    read( IOBuffer, * ) this%ConsR(i)
-    write( IOBuffer, '("Constrained Mol Distance:", F6.3)' ) this%ConsR(i)
-    call LogWrite
-
-    this%ConsR(i) = this%ConsR(i) * Angstroem
-    this%ConsR(i) = this%ConsR(i) / UnitLength
-! Use only squared!
-    this%ConsR(i) = this%ConsR(i) * this%ConsR(i)
-
-   END DO
-
-! REduce the number of degrees of freedom in the system
-    this%NDF = this%NDF - this%NCons
 
 #endif
 
@@ -5418,10 +5337,6 @@ loop5:  do nc = 1, this%NComponents
     end if
     call Correct( this )
 
-#if CONSTR > 0
-    call Constraints(this)
-#endif
-
    if(.not. Equilibration) then
    end if
 
@@ -6698,37 +6613,6 @@ loop5:    do nc = 1, this%NComponents
       ! d2Epot/dV2 correction
       d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT68
     endif
-
-!     ! Calculate interactions partners within cutoff sphere
-!     if( CutoffMode .eq. CenterofMass ) then
-!       do i = 1, this%NComponents
-!         do j = i, this%NComponents
-!           call CalcCutoffPartners( this%Interaction( i, j ) )
-!         end do
-!       end do
-!     end if
-!
-! #if MPI_VER > 0
-!     do i = 1, this%NComponents
-!       this%Component(i)%NAdd(:) = .false.
-!     end do
-!     do i = 1, this%NComponents
-!       i0 = this%Component(i)%NPart0
-!       i1 = this%Component(i)%NPart2
-!       do j = i, this%NComponents
-!         ! Calculate SitePositions by demand
-!         do np1 = i0, i1
-!           do n = 1, this%Interaction( i, j )%NInCutoff(np1)
-!             np = this%Interaction( i, j )%CutoffPartner(n, np1)
-!             if ( np < this%Component(j)%NPart0 .or. np > this%Component(j)%NPart2 ) then
-!               this%Component(j)%NAdd(np) = .true.
-!               call Mol2Atom1( this%Component(j), np)
-!             end if
-!           end do
-!         end do
-!       end do
-!     end do
-! #endif
 
     ! Loop over components
     do i = 1, this%NComponents
@@ -9225,146 +9109,47 @@ loop2:        do nc = 1, this%NComponents
       if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
         this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeCharge(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Charge
-        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Charge
-        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-        !    this%Interaction(nt, i)%PotChargeCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !    this%Interaction(i, nt)%PotChargeCharge(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotChargeDipole)) then
         this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeDipole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleCharge(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Charge
-        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Dipole
-        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-        !    this%Interaction(nt, i)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Dipole
-        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Charge
-        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-        !    this%Interaction(i, nt)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then
         this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Charge
-        !  Shield1 = this%Component(nt)%Molecule%SiteCharge(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-        !    this%Interaction(nt, i)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Quadrupole
-        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Charge
-        !    Shield1 = this%Component(nt)%Molecule%SiteCharge(l)%shield
-        !    this%Interaction(i, nt)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleCharge)) then
         this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleCharge(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeDipole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Dipole
-        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Charge
-        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-        !    this%Interaction(nt, i)%PotDipoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Charge
-        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Dipole
-        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-        !    this%Interaction(i, nt)%PotChargeDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleDipole)) then
         this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleDipole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleDipole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Dipole
-        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Dipole
-        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-        !    this%Interaction(nt, i)%PotDipoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !    this%Interaction(i, nt)%PotDipoleDipole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotDipoleQuadrupole)) then
         this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Dipole
-        !  Shield1 = this%Component(nt)%Molecule%SiteDipole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-        !    this%Interaction(nt, i)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Quadrupole
-        !  Shield2 = this%Component(i)%Molecule%SiteQuadrupole(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Dipole
-        !    Shield1 = this%Component(nt)%Molecule%SiteDipole(l)%shield
-        !    this%Interaction(i, nt)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleCharge)) then
         this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotChargeQuadrupole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Quadrupole
-        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Charge
-        !    Shield2 = this%Component(i)%Molecule%SiteCharge(l)%shield
-        !    this%Interaction(nt, i)%PotQuadrupoleCharge(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Charge
-        !  Shield2 = this%Component(i)%Molecule%SiteCharge(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
-        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-        !    this%Interaction(i, nt)%PotChargeQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleDipole)) then
         this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon    = this%Interaction(nt, i)%PotQuadrupoleDipole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon    = this%Interaction(i, nt)%PotDipoleQuadrupole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Quadrupole
-        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Dipole
-        !    Shield2 = this%Component(i)%Molecule%SiteDipole(l)%shield
-        !    this%Interaction(nt, i)%PotQuadrupoleDipole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !  enddo
-        !enddo
-        !do k=1,this%Interaction(i,nt)%N1Dipole
-        !  Shield2 = this%Component(i)%Molecule%SiteDipole(k)%shield
-        !  do l=1,this%Interaction(i,nt)%N2Quadrupole
-        !    Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(l)%shield
-        !    this%Interaction(i, nt)%PotDipoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield2  + Shield1 * Factor)**2
-        !  enddo
-        !enddo
+
       endif
       if( associated(this%Interaction(nt, i)%PotQuadrupoleQuadrupole)) then
         this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(nt, i)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon= this%Interaction(i, nt)%PotQuadrupoleQuadrupole(:, :)%Epsilon * Factor
-        !do k=1,this%Interaction(nt,i)%N1Quadrupole
-        !  Shield1 = this%Component(nt)%Molecule%SiteQuadrupole(k)%shield
-        !  do l=1,this%Interaction(nt,i)%N2Quadrupole
-        !    Shield2 = this%Component(i)%Molecule%SiteQuadrupole(l)%shield
-        !    this%Interaction(nt, i)%PotQuadrupoleQuadrupole(k, l)%RShieldSquared = .25_RK * ( Shield1 * Factor + Shield2 )**2
-        !    this%Interaction(i, nt)%PotQuadrupoleQuadrupole(l, k)%RShieldSquared = .25_RK * ( Shield2 + Shield1 * Factor )**2
-        !  enddo
-        !enddo
+
       endif
     end do
     if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
@@ -9372,8 +9157,7 @@ loop2:        do nc = 1, this%NComponents
         this%Component(nt)%Molecule%Unit(i)%Mue(:) = this%Component(nt)%Molecule%Unit(i)%Mue(:) * Factor
         this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
       end do
-      !this%Component(nt)%Molecule%MueY(:) = this%Component(nt)%Molecule%MueY(:) * Factor
-      !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
+
     endif
 
   end subroutine TEnsemble_ScaleInteractionThermoInt
@@ -11184,7 +10968,7 @@ loop2:        do nc = 1, this%NComponents
     end do
 
 ! Update pairs, that were grouped but were separated for less time than allowed (ResidBreak)
-    counter  = 0
+    counter = 0
     do i=1,ResidPairs
       do j=1, this%ResidCem
         if ( (this%CompPair(i,1) .eq. this%ResidPairsCem(j,1)) .and. (this%CompPair(i,2) .eq. this%ResidPairsCem(j,2)) ) then
@@ -11197,7 +10981,7 @@ loop2:        do nc = 1, this%NComponents
     this%ResidCem = this%ResidCem - counter
 
 ! Update Residence Time
-    counter  = 0
+    counter = 0
     do i=1, this%ResidCem
       if ( (Step - this%ResidPairsCem(i,4)) .gt. this%ResidBreak ) then
          call Update( this%SumResidenceDuration, ( this%ResidPairsCem(i,4)-this%ResidPairsCem(i,3) )*TimeStep )
@@ -11327,7 +11111,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-     else
+      else
         ! Open result file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -11338,7 +11122,7 @@ loop2:        do nc = 1, this%NComponents
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-     endif
+      endif
 #else
 
       ! Open result file
@@ -11419,7 +11203,31 @@ loop2:        do nc = 1, this%NComponents
     !DC NOTE this prevent update of data on stopped simulations
     if (this%isStopSimulation .eqv. .true.) then
       return
-    endif                                                                   
+    endif
+    
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo .and. fields .eq. 0) then
+       headers = headers + 1
+       fields = fields + 7
+       ! Sampling of Dielectric Constant
+       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+       fields = fields + 3
+       end if
+       do i = 1, this%NRealComponents
+         if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           fields = fields + 1
+           if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then 
+             fields = fields + 1
+             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
+           end if
+         end if
+       enddo
+       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
+
+    end if
+#endif
+    
+    !
     if( Step == 1 ) then
       ! Reset accumulators
       ! 1.) Basic sums
@@ -11427,7 +11235,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
-      call Reset( this%SumEPotDeltaSquared )                                        
+      call Reset( this%SumEPotDeltaSquared )
       call Reset( this%SumEPotInter )
       call Reset( this%SumEPotIntra )
       if (printIDF) then
@@ -11442,7 +11250,7 @@ loop2:        do nc = 1, this%NComponents
       call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
-      call Reset( this%SumVirialDeltaSquared )                                    
+      call Reset( this%SumVirialDeltaSquared )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
 #if OSMOP > 0
@@ -11603,35 +11411,10 @@ loop2:        do nc = 1, this%NComponents
       ! Update result header
       if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
-         fields = 0
-         headers = headers + 1
-         fields = fields + 7
-         ! Sampling of Dielectric Constant
-         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-         fields = fields + 3
-         endif         
-         do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-             fields = fields + 1
-             if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then 
-               fields = fields + 1
-               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
-             end if
-           end if
-         enddo
-         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
-#if CONSTR > 0
-         fields = fields + 2 *  this%NCons
-#endif
-
-         if (RootProc) then
-           if (CommonEqui) then
-             offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1
-           else
-             offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
-           endif
-           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+         call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header !RFMC
+         call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
+         call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
+         if (RootProc) then        
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -11788,29 +11571,11 @@ loop2:        do nc = 1, this%NComponents
              end do
            end if
 
-#if CONSTR > 0
-           do i=1, this%NCons
-             if ( i < 10 ) then
-               write( IOBuffer, '("      PMF_", I1)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               write( IOBuffer, '("      MF_",  I1)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             else
-               write( IOBuffer, '("     PMF_", I2)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               write( IOBuffer, '("     MF_",  I2)' ) i
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end if
-           end do
-#endif
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
          endif
+         call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header !RFMC
 #else
          call FileWriteBlank( this%iounit_result )
          call FileWriteBlank( this%iounit_runave )
@@ -11971,21 +11736,6 @@ loop2:        do nc = 1, this%NComponents
            end do
          end if
 
-#if CONSTR > 0
-         do i=1, this%NCons
-           if ( i < 10 ) then
-             write( IOBuffer, '("      PMF_", I1)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-             write( IOBuffer, '("      MF_",  I1)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-           else
-             write( IOBuffer, '("     PMF_", I2)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-             write( IOBuffer, '("     MF_",  I2)' ) i
-             call FileWriteNoAdvance( this%iounit_runave )
-           end if
-         end do
-#endif
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
 #endif
@@ -12286,21 +12036,6 @@ loop2:        do nc = 1, this%NComponents
           end do
         end if
 
-#if CONSTR > 0
-        do i=1, this%NCons
-          if ( i < 10 ) then
-            write( IOBuffer, '("      PMF_", I1)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-            write( IOBuffer, '("      MF_",  I1)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-          else
-            write( IOBuffer, '("     PMF_", I2)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-            write( IOBuffer, '("     MF_",  I2)' ) i
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
-#endif
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
       end if
@@ -12411,21 +12146,11 @@ loop2:        do nc = 1, this%NComponents
     call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because the results are identical with and without it.
-      !if( SimulationType .eq. MolecularDynamics ) then
-      !  Momentum(:) = 0._RK
-      !  Mass = 0._RK
-      !  do j = 1, this%NComponents
-      !    Mass=Mass+this%Component(j)%Molecule%Mass*real(this%Component(j)%NPart, RK)
-      !    do i = 1, 3
-      !      Momentum(i)=Momentum(i)+this%Component(j)%Molecule%Mass*sum(this%Component(j)%P1(1:this%Component(j)%NPart,i))
-      !    end do
-      !  end do
-      !  Momentumd2Mass=(Momentum(1)*Momentum(1)+Momentum(2)*Momentum(2)+Momentum(3)*Momentum(3))/(2._RK*Mass)
-      !  currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPot) - Momentumd2Mass
-      !else
-        currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPotInter)
-      !endif
+      !Following part differs from J.Chem.Phys.100(4)1994 for NVEMom MD,
+      !the results are identical with and without complete implementation
+
+      currentHmU = (this%RefHamiltonian*real( this%NPart, RK ) - this%EPotInter)
+
       currentHmUm1 = 1._RK/currentHmU
       call Update( this%SumHmU,            currentHmU )
       call Update( this%SumHmUm1,          currentHmUm1 )
@@ -12897,11 +12622,15 @@ loop2:        do nc = 1, this%NComponents
     if( mod( Step, BlockSize ) == 0 ) then
       if(SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
+
+        call MPI_Barrier(Communicator, ierror)  ! wait for RootProc to write header
+        offset=0
+        call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
+        call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
+        call MPI_Barrier(Communicator, ierror)  ! wait for seeks before writing (and maybe moving END)
+
         if (Equilibration) then
           if(CommonEqui) then
-            offset = (accumulate_step/BlockSize+headers) * (11 * fields + 1) + headers
-            call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-            call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
             if (RootProc) then
               ! PROC
               write( IOBuffer, '(I11)' ) NProc
@@ -13061,21 +12790,14 @@ loop2:        do nc = 1, this%NComponents
                 end do
               end if
 
-#if CONSTR == 0
-               write( IOBuffer, '()' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-               this%consup = .true.
-#endif
                write( IOBuffer, '(A)' )new_line('a')
                call FileWriteNoAdvance_parallel( this%iounit_result )
                call FileWriteNoAdvance_parallel( this%iounit_runave )
             endif
           else ! No CommonEqui
-            offset = (NProc  + ((accumulate_step/BlockSize)) * NProcs +headers) * (11 * fields + 1) + headers
-            call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-            call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+            offset = NProc * (11 * fields + 1)
+            call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
             ! PROC
             write( IOBuffer, '(I11)' ) NProc
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13233,26 +12955,15 @@ loop2:        do nc = 1, this%NComponents
               end do
             end if
 
-#if CONSTR == 0
-             write( IOBuffer, '()' )
-             call FileWriteNoAdvance_parallel( this%iounit_result )
-             call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-             this%consup = .true.
-#endif
              write( IOBuffer, '(A)' )new_line('a')
              call FileWriteNoAdvance_parallel( this%iounit_result )
              call FileWriteNoAdvance_parallel( this%iounit_runave )
           endif
           accumulate_step = accumulate_step + BlockSize
         else !production starts
-          if (CommonEqui) then
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers
-          else
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+headers) * (11 * fields + 1) + headers
-          endif
-          call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
-          call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
+          offset = NProc * (11 * fields + 1)
+          call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
+          call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
           ! PROC
           write( IOBuffer, '(I11)' ) NProc
           call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13467,13 +13178,6 @@ loop2:        do nc = 1, this%NComponents
             end do
           end if
 
-#if CONSTR == 0
-           write( IOBuffer, '()' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-#else
-          this%consup = .true.
-#endif
           write( IOBuffer, '(A)' )new_line('a')
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -13712,12 +13416,8 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-#if CONSTR == 0
-        call FileWriteBlank( this%iounit_runave )
-#else
-        this%consup = .true.
-#endif
-#if ARCH == 2
+
+#if ARCH == 2 && ! MPI_VER > 0
         call flush( this%iounit_result )
         call flush( this%iounit_runave )
 #endif
@@ -14081,11 +13781,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-#if CONSTR == 0
-        call FileWriteBlank( this%iounit_runave )
-#else
-        this%consup = .true.
-#endif
+
 #if ARCH == 2
         call flush( this%iounit_result )
         call flush( this%iounit_runave )
@@ -15010,68 +14706,6 @@ loop2:        do nc = 1, this%NComponents
 &          Variance * UnitEnergy * NAvogadro
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
-
-! Some of the ensemble averages used in calculation of Amn's (they are not necessarily candidates for .res file output)
-
-    ! EpotSuared
-!    Average = this%SumEpotSquared%Average
-!    Variance = this%SumEpotSquared%Variance
-!    write( IOBuffer, '("EpotSquared", T29, "reduced:", 2F20.9)' ) &
-!&     Average, Variance
-!    call FileWrite( this%iounit_errors )
-!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-!&     Average * UnitEnergy * NAvogadro, &
-!&     Variance * UnitEnergy * NAvogadro
-!    call FileWrite( this%iounit_errors )
-!    call FileWriteBlank( this%iounit_errors )
-
-    ! dEpot/dV
-!    Average = this%SumdEpotdV%Average
-!    Variance = this%SumdEpotdV%Variance
-!    write( IOBuffer, '("dEpot/dV", T29, "reduced:", 2F20.9)' ) &
-!&     Average, Variance
-!    call FileWrite( this%iounit_errors )
-!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-!&     Average * UnitEnergy * NAvogadro, &
-!&     Variance * UnitEnergy * NAvogadro
-!    call FileWrite( this%iounit_errors )
-!    call FileWriteBlank( this%iounit_errors )
-
-    ! dEpot/dVSquared
-!    Average = this%SumdEpotdVSquared%Average
-!    Variance = this%SumdEpotdVSquared%Variance
-!    write( IOBuffer, '("dEpot/dVSquared", T29, "reduced:", 2F20.9)' ) &
-!&     Average, Variance
-!    call FileWrite( this%iounit_errors )
-!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-!&     Average * UnitEnergy * NAvogadro, &
-!&     Variance * UnitEnergy * NAvogadro
-!    call FileWrite( this%iounit_errors )
-!    call FileWriteBlank( this%iounit_errors )
-
-    ! d2Epot/dV2
-!    Average = this%Sumd2EpotdV2%Average
-!    Variance = this%Sumd2EpotdV2%Variance
-!    write( IOBuffer, '("d2Epot/dV2", T29, "reduced:", 2F20.9)' ) &
-!&     Average, Variance
-!    call FileWrite( this%iounit_errors )
-!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-!&     Average * UnitEnergy * NAvogadro, &
-!&     Variance * UnitEnergy * NAvogadro
-!    call FileWrite( this%iounit_errors )
-!    call FileWriteBlank( this%iounit_errors )
-
-    ! EpotdEpot/dV
-!    Average = this%SumEPotdEpotdV%Average
-!    Variance = this%SumEPotdEpotdV%Variance
-!    write( IOBuffer, '("EpotdEpot/dV", T29, "reduced:", 2F20.9)' ) &
-!&     Average, Variance
-!    call FileWrite( this%iounit_errors )
-!    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-!&     Average * UnitEnergy * NAvogadro, &
-!&     Variance * UnitEnergy * NAvogadro
-!    call FileWrite( this%iounit_errors )
-!    call FileWriteBlank( this%iounit_errors )
 
     ! Enthalpy
     Average = this%SumEnthalpy%Average
@@ -25526,115 +25160,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
 
   END subroutine TEnsemble_EwaldFourierAddDel
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Constraints                            !
-!  Calculate part of SHAKE                                     !
-!==============================================================!
-#if CONSTR > 0
-
-  subroutine TEnsemble_Constraints( this)
-
-    implicit none
-
-   type(TEnsemble) :: this
-
-   integer         :: maxit
-   integer         :: i, j, aa, bb
-   integer         :: aacomp, bbcomp
-   real(RK)        :: PX1, PY1, PZ1
-   real(RK)        :: PX2, PY2, PZ2
-   real(RK)        :: dx,dy,dz
-   real(RK)        :: ddx,ddy,ddz
-   real(RK)        :: dist2, dr2, dist
-   real(RK)        :: fac
-   real(RK)        :: Forc
-   real(RK)        :: dLOgVolumeThird
-   real(RK)        :: tol
-
-   logical         :: cont
-
-! Initialization of important variables
-   cont  = .false.
-! Initialization of the max number of iterations for SHAKE
-   maxit = 300
-   tol   = 1e-7
-   dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
-
-
-   if (this%consup .eqv. .true.) then
-     DO j=1,this%NCons,1
-          write( IOBuffer, '(F10.5)' ) this%UCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-          write( IOBuffer, '(F10.5)' ) this%FCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-
-          this%FCons(j) = 0._RK
-          this%UCons(j) = 0._RK
-     END DO
-
-     call FileWriteBlank( this%iounit_runave )
-#if ARCH == 2
-     call flush( this%iounit_runave )
-#endif
-     this%consup = .false.
-   end if
-
-    i=0
-    DO WHILE ((i .le. maxit) .AND. (cont .eq. .false.))
-       cont  = .true.
-       DO j=1,this%NCons,1
-         aacomp  = this%Cons1Comp(j)
-         bbcomp  = this%Cons2Comp(j)
-         aa      = this%Cons1(j)
-         bb      = this%Cons2(j)
-         dr2     = this%ConsR(j)
-
-         PX1 = this%Component(aacomp)%P0(aa,1)
-         PY1 = this%Component(aacomp)%P0(aa,2)
-         PZ1 = this%Component(aacomp)%P0(aa,3)
-         PX2 = this%Component(bbcomp)%P0(bb,1)
-         PY2 = this%Component(bbcomp)%P0(bb,2)
-         PZ2 = this%Component(bbcomp)%P0(bb,3)
-
-         dx  = (PX2 - PX1)
-         dy  = (PY2 - PY1)
-         dz  = (PZ2 - PZ1)
-
-         dx  = (dx - anint(dx))*this%BoxLength
-         dy  = (dy - anint(dy))*this%BoxLength
-         dz  = (dz - anint(dz))*this%BoxLength
-
-         dist2 = dx*dx + dy*dy + dz*dz
-
-         dist  = dist2 - dr2
-
-         if (abs(dist) .gt. tol) then
-            Forc = 0._RK
-            cont = .false.
-            fac = 1 - sqrt(dr2 / dist2)
-
-            ddx = 0.5_RK*fac * dx/this%BoxLength
-            ddy = 0.5_RK*fac * dy/this%BoxLength
-            ddz = 0.5_RK*fac * dz/this%BoxLength
-
-            call CorrectGear_Constraint(this%Component(aacomp),aa,dLogVolumeThird,Forc, ddx,ddy,ddz)
-            call CorrectGear_Constraint(this%Component(bbcomp),bb,dLogVolumeThird,Forc,-ddx,-ddy,-ddz)
-         end if
-
-         this%FCons(j) = this%FCons(j) + Forc
-         this%UCons(j) = this%UCons(j) + Forc*dist
-
-       END DO
-
-    END DO
-
-
-  end subroutine TEnsemble_Constraints
-
-#endif
-
 
 
 !==============================================================!

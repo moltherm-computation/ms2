@@ -516,12 +516,6 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 
-#if CONSTR > 0
-  interface CorrectGear_Constraint
-    module procedure TComponent_CorrectGear_Constraint
-  end interface
-#endif
-
 #if  TRANS == 1
 !TRANSPORT_start
   interface ForceTransport
@@ -3947,15 +3941,7 @@ contains
 
     end do
 
-    ! Add forces and torques by demand
 #if MPI_VER > 0
-!     do i = 1, i0-1
-!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
-!     end do
-!     do i = i1, this%NPart
-!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
-!     end do
-
     ! Reduce forces and torques from all processes
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
@@ -5937,7 +5923,7 @@ loop1:do i = 1, this%NPart
       ! Centers of mass positions
       do i = 1, np
         do k = 1, nu
-          read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P0( i, :, k )
+          read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P0( i, j, k ),j=1,3)
         end do
       end do
 
@@ -5960,39 +5946,39 @@ loop1:do i = 1, this%NPart
         ! Centers of mass positions' derivatives
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P1( i, : , k )
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P1( i, j, k),j=1,3)
           end do
         end do
 
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P2( i, : , k )
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P2( i, j, k),j=1,3)
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P3( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P3( i, j, k),j=1,3)
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P4( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P4( i, j, k),j=1,3)
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%P5( i, j, k),j=1,3)
             end do
           end do
         end if
 
         if (.not. printIDF) then
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%Disp( i, j, k),j=1,3)
             end do
 
             if( ALPHA2UpdateFrequency > 0 ) then
@@ -6028,7 +6014,7 @@ loop1:do i = 1, this%NPart
         ! Quaternion parameters
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q0( i, :, k )
+            read( iounit_restart, '(4(ES20.12E3, :, X))' ) (this%Q0( i, j, k),j=1,4)
           end do
         end do
 
@@ -6036,26 +6022,26 @@ loop1:do i = 1, this%NPart
           ! Quaternion parameters' derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q1( i, :, k )
+              read( iounit_restart, '(4(ES20.12E3, :, X))' ) (this%Q1( i, j, k),j=1,4)
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q2( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) (this%Q2( i, j, k),j=1,4)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q3( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) (this%Q3( i, j, k),j=1,4)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q4( i, :, k )
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) (this%Q4( i, j, k),j=1,4)
               end do
             end do
           end if
@@ -6063,32 +6049,32 @@ loop1:do i = 1, this%NPart
           ! Angular velocities and their derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W0( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%W0( i, j, k),j=1,3)
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W1( i, :, k )
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%W1( i, j, k),j=1,3)
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W2( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%W2( i, j, k),j=1,3)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W3( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%W3( i, j, k),j=1,3)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W4( i, : , k)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) (this%W4( i, j, k),j=1,3)
               end do
             end do
 
@@ -6258,76 +6244,6 @@ subroutine TComponent_ForceTransport( this )
 
   end subroutine TComponent_ForceTransport
 !TRANSPORT_END
-
-
-#if CONSTR > 0
-!==============================================================!
-!  Subroutine TComponent_CorrectGear                           !
-!==============================================================!
-
-  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)         :: this
-    real(RK),intent(in)      :: dLogVolumeThird
-    integer,intent (in)      :: aa
-    real(RK), intent(in out) :: Forc
-    real(RK),intent(in)      :: drx,dry,drz
-
-    ! Declare local variables
-    real(RK)          :: BoxLength
-    real(RK)          :: Mass
-    real(RK)          :: np
-    real(RK)          :: ff
-    real(RK)          :: Corr0,Corr0ff,Corr1
-    real(RK)          :: dr(3)
-    integer           :: i, j
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    Mass = this%Molecule%Mass
-    np = 2
-    dr(1) = drx
-    dr(2) = dry
-    dr(3) = drz
-
-    ! Correct COM positions and their derivatives
-    do j = 1, 3,1
-
-      Corr1 = + dr(j) / Gear20
-      Corr0 = Corr1 + this%P2(aa,j)
-
-      Corr0ff = Corr0
-      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
-
-        ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-        Forc = Forc + ff
-        this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
-
-        ! Check for conservation of particles in primary cell
-
-#if ARCH == 1
-        if( this%P0(aa, j) < -.5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) + 1._RK
-        elseif( this%P0(i, j) > .5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) - 1._RK
-        end if
-#else
-        this%P0(aa, j) = this%P0(aa, j) - anint( this%P0(aa, j) )
-#endif
-        this%P0old(aa, j) = this%P0(aa, j)
-    end do
-
-  end subroutine TComponent_CorrectGear_Constraint
-
-#endif
 
 
 !==============================================================!
