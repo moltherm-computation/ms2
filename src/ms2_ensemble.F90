@@ -15707,7 +15707,7 @@ end if
 #endif
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
         if ( Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) tempReal
         endif
