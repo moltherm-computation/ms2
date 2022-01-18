@@ -6477,7 +6477,7 @@ loop1:do k = 1, this%NInCutoff(i)
 #if OSMOP == 2
 loop2:  do m=1,NBinsDen
           if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
-	            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
+            if (PX2(j) < real(m)/NBinsDen-0.5_RK) then
               Bin2=m
               exit loop2
             end if
@@ -6560,15 +6560,15 @@ loop2:  do m=1,NBinsDen
         tdxi   = tdxi + 0.5 * PXij* txi
         tdyi   = tdyi + 0.5 * PYij* tyi
         tdzi   = tdzi + 0.5 * PZij* tzi
-		 tuTempX(j)= tuTempX(j) + 0.5 * PXij* tyi
-         tuTempY(j)= tuTempY(j) + 0.5 * PXij* tzi
-         tuTempZ(j)= tuTempZ(j) + 0.5 * PYij* tzi
-         tlTempX(j)= tlTempX(j) + 0.5 * PYij* txi
-         tlTempY(j)= tlTempY(j) + 0.5 * PZij* txi
-         tlTempZ(j)= tlTempZ(j) + 0.5 * PZij* tyi
-         tdTempX(j)= tdTempX(j) + 0.5 * PXij* txi
-         tdTempY(j)= tdTempY(j) + 0.5 * PYij* tyi
-         tdTempZ(j)= tdTempZ(j) + 0.5 * PZij* tzi
+        tuTempX(j)= tuTempX(j) + 0.5 * PXij* tyi
+        tuTempY(j)= tuTempY(j) + 0.5 * PXij* tzi
+        tuTempZ(j)= tuTempZ(j) + 0.5 * PYij* tzi
+        tlTempX(j)= tlTempX(j) + 0.5 * PYij* txi
+        tlTempY(j)= tlTempY(j) + 0.5 * PZij* txi
+        tlTempZ(j)= tlTempZ(j) + 0.5 * PZij* tyi
+        tdTempX(j)= tdTempX(j) + 0.5 * PXij* txi
+        tdTempY(j)= tdTempY(j) + 0.5 * PYij* tyi
+        tdTempZ(j)= tdTempZ(j) + 0.5 * PZij* tzi
 #endif
 
       end do loop1

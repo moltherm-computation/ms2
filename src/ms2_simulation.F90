@@ -288,7 +288,7 @@ contains
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
-      write( IOBuffer, '("Restarting ",A," using ",A,"_*.",A," files")' ) &
+      write( IOBuffer, '("Restarting ",A," using ",A,"_*",A," files")' ) &
 &            trim( ParameterFileName ),trim(OutputNameTag),RestartFileExtension
       call LogWrite
 
@@ -3541,7 +3541,7 @@ eqloop: do
       ! Close restart file
       call FileClose( iounit_restart )
 
-    write( IOBuffer, '("Finished reading restart file", A)' ) trim( RestartFileName )
+    write( IOBuffer, '("Finished reading restart file ", A)' ) trim( RestartFileName )
     call LogWriteTime
 
  end subroutine TSimulation_RestartRead
