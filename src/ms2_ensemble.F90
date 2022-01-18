@@ -7672,7 +7672,7 @@ loop2:        do nc = 1, this%NComponents
      ! Acceptance criterion
     if( exp(( real (this%NDF, RK) / 2._RK  - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
-!print*, 'MOVE', real (this%NDF, RK), this%RefEnthalpy, this%Epot, EpotDelta, this%RefPressure, this%Volume0
+
 
      ! Accept move
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
@@ -7813,7 +7813,7 @@ loop2:        do nc = 1, this%NComponents
      ! Acceptance criterion
     if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
-!print*, 'ROTATE', real (this%NDF, RK), this%RefEnthalpy, this%Epot, EpotDelta, this%RefPressure, this%Volume0
+
      ! Accept rotation
       this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
@@ -10189,7 +10189,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
-    real(RK)                   :: a1, a2 ! dummy arguments
+    real(RK)                  :: a1, a2 ! dummy arguments
     ! Sampling of Dielectric Constant
     real(RK)                  :: MX, MY, MZ
     integer                   :: kIndex, lIndex
@@ -11550,7 +11550,7 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
 
               ! Dielectric Constant
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
+                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage
                   call FileWriteNoAdvance_parallel( this%iounit_result )
                   write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -11572,7 +11572,7 @@ loop2:        do nc = 1, this%NComponents
                 end if
               end do
 
-            ! Partial molar volume
+              ! Partial molar volume
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
                 if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) )) then
@@ -11583,7 +11583,7 @@ loop2:        do nc = 1, this%NComponents
                 end if
               end do
 
-             ! Partial molar enthalphy
+              ! Partial molar enthalphy
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
                 if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) )) then
@@ -11593,7 +11593,7 @@ loop2:        do nc = 1, this%NComponents
                 end if
               end do
 
-            ! Number of particles in ensemble
+              ! Number of particles in ensemble
               if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
               & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
                 write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
@@ -11689,7 +11689,7 @@ loop2:        do nc = 1, this%NComponents
                   end if
             end do
 
-          ! Partial molar volume
+            ! Partial molar volume
             do i = 1, this%NRealComponents
               pc => this%Component(i)
               if( pc%ChemPotMethod .ne. ChemPotMethodNone .and.  ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
@@ -11709,7 +11709,7 @@ loop2:        do nc = 1, this%NComponents
               end if
             end do
 
-          ! Number of particles in ensemble
+            ! Number of particles in ensemble
             if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
             & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
               write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
@@ -12056,7 +12056,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-		call FileWriteBlank( this%iounit_runave )										 
+        call FileWriteBlank( this%iounit_runave )
 
 #if ARCH == 2 && ! MPI_VER > 0
         call flush( this%iounit_result )
@@ -12357,7 +12357,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
         call FileWriteBlank( this%iounit_result )
-		call FileWriteBlank( this%iounit_runave )										 
+        call FileWriteBlank( this%iounit_runave )
 
 #if ARCH == 2
         call flush( this%iounit_result )
@@ -12853,7 +12853,7 @@ loop2:        do nc = 1, this%NComponents
       call Error( this%SumGammaV )
       call Error( this%SumBetaT )
       call Error( this%SumAlphaP )
-      call Error( this%SumCP )					  
+      call Error( this%SumCP )
 
     else
       if( ConstantPressure ) then
@@ -13098,7 +13098,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Unit of energy", T36, ":", F20.9, " K")' ) UnitEnergy / kBoltzmann
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " a.u.")' ) UnitMass * NAvogadro * 1000._RK
+    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " g/mol")' ) UnitMass * NAvogadro * 1000._RK
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
@@ -22553,37 +22553,37 @@ if( RootProc .and. this%CorrfunMode ) then
     end if
 
     ! Reading and broadcasting thi-file for ThermoInt
-      t = this%NRealComponents+1
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-        call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
-      end if
-      do i=1,this%NRealComponents
-        pc => this%Component(i)
-        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+    t = this%NRealComponents+1
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+    end if
+    do i=1,this%NRealComponents
+      pc => this%Component(i)
+      if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
 
-          call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
-          pc%CalcChemPot = .true.
-          if (RootProc) then
-          !read empty line
-          read( this%iounit_thermoint, * )
+        call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+        pc%CalcChemPot = .true.
+        if (RootProc) then
+           !read empty line
+           read( this%iounit_thermoint, * )
 
-          ! read thermoint-profile
-          do j = 0,pc%NBins-1
-            read( this%iounit_thermoint, '(I6, 2X, F5.3,7(1X, E15.6),1X, I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
-          end do
-          end if
-          t = t+1
+           ! read thermoint-profile
+           do j = 0,pc%NBins-1
+             read( this%iounit_thermoint, '(I6, 2X, F5.3,7(1X, E15.6),1X, I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
+           end do
         end if
-      end do
-      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
-        call FileClose( this%iounit_thermoint )
+        t = t+1
       end if
+    end do
+    if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+      call FileClose( this%iounit_thermoint )
+    end if
 
 #if MPI_VER > 0
-    !if (SimulationType .eq. MonteCarlo) then
-      t = this%NRealComponents+1
-      do i=1,this%NRealComponents
+
+    t = this%NRealComponents+1
+    do i=1,this%NRealComponents
         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
           !call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) //done during the preceding call FileReadParameter
@@ -22598,8 +22598,8 @@ if( RootProc .and. this%CorrfunMode ) then
           call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
           t = t+1
         endif
-      enddo
-    !end if
+    enddo
+
 #endif
     t = this%NRealComponents+1
     do i=1,this%NRealComponents
