@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>muVT.par</parFile>
+	<name>grandCanonicalEnsemble</name>
+	<np>40</np>
+	<walltime>01:00:00</walltime>
+	<reference>
+		<file>muVT_1.res</file>
+	</reference>
+	<reference>
+		<file>muVT_2.res</file>
+	</reference>
+	<reference>
+		<file>muVT_3.res</file>
+	</reference>
+</testcase>

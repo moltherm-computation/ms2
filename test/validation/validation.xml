@@ -10,6 +10,7 @@
 		<case name="2VC_meoh" file="2VC_meoh.xml" />
 		<case name="2VC_Schwefelwasserstoff" file="2VC_Schwefelwasserstoff.xml" />
 		<case name="2VC_Wasser" file="2VC_Wasser.xml" />
+		<case name="grandCanonicalEnsemble" file="grandCanonicalEnsemble.xml" />
 		<case name="LiCl" file="LiCl.xml" />
 		<case name="LJ_NVT_RDF_GK_Einstein" file="LJ_NVT_RDF_GK_Einstein.xml" />
 		<case name="MC" file="MC.xml" />
