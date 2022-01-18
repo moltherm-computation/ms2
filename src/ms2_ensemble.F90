@@ -12849,23 +12849,23 @@ loop2:        do nc = 1, this%NComponents
       call Error( this%SumJ010 )
       call Error( this%SumJ110 )
       call Error( this%SumJ011 )
-    !   call Error( this%SumCV )
-    !   call Error( this%SumGammaV )
-    !   call Error( this%SumBetaT )
-    !   call Error( this%SumAlphaP )
+      call Error( this%SumCV )
+      call Error( this%SumGammaV )
+      call Error( this%SumBetaT )
+      call Error( this%SumAlphaP )
+      call Error( this%SumCP )					  
 
-    ! else
-    !   if( ConstantPressure ) then
+    else
+      if( ConstantPressure ) then
         call Error( this%SumBetaT )
         call Error( this%SumdHdP )
         call Error( this%SumCP )
         call Error( this%SumAlphaP )
-      ! else
+      else
         call Error( this%SumdUdV )
         call Error( this%SumCV )
         call Error( this%SumCorCoefR )
-        call Error( this%SumGammaV )
-      ! end if
+      end if
 
       do i = 1, this%NRealComponents
         pc => this%Component(i)
