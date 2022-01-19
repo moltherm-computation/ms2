@@ -893,7 +893,7 @@ contains
 
 
     ! Calculate dimension of arrays
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       NP1 = this%NPartMax
       N1 = NP1*this%NUnitMax
       N2 = NP1*this%NUnitMax

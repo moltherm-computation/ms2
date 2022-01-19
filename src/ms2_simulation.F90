@@ -607,11 +607,18 @@ contains
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'Humid Air'
-    case( 'NPTSVC', 'nptsvc' )
+
+      case( 'NPTSVC', 'nptsvc' )
         EnsembleType = EnsembleTypeNPTSVC
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'NpT + SVC'
+
+      case( 'MUVT', 'muvt' )
+        EnsembleType = EnsembleTypeMUVT
+        ConstantTemperature = .true.
+        ConstantPressure = .false.
+        EnsembleTypeString = 'MUVT'
 
       case default
         call Error( trim( str )//' ensemble is not implemented' )
@@ -625,7 +632,7 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
+      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA) &
 &         .and. .not. SimulationType .eq. MonteCarlo ) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
@@ -709,6 +716,11 @@ contains
       else if( EnsembleType .eq. EnsembleTypeGE ) then
         call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of GE equilibration steps: ",T40, I7)' ) NStepsP
+        call LogWrite
+
+      else if( EnsembleType .eq. EnsembleTypeMUVT ) then
+        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
+        write( IOBuffer, '("Number of MUVT equilibration steps: ",T40, I7)' ) NStepsP
         call LogWrite
 
       else
@@ -1719,7 +1731,7 @@ contains
               endif
 
               if (Equilibration) then
-                if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT) NStepsP = 1
                 if( ConstantPressure ) then 
                   if(EnsembleType .eq. EnsembleTypeNPH ) then
                     NStepsH = 1
@@ -1951,6 +1963,54 @@ eqloop: do
             write( IOBuffer, '("GE equilibration TERMINATED")' )
           end if
           call LogWriteTime
+
+        else if( EnsembleType .eq. EnsembleTypeMUVT ) then
+          StepEnd = NStepsP
+
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming MUVT equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting MUVT equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"MUVT equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+          if( .not. TerminateProgram ) then
+            call CheckNPart( this, NPartsOk )
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
+            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
+            if ( .not. AnyNPartOk) then
+                NPartsOk = .false.
+            endif
+#endif
+
+            if( NPartsOk ) then
+              write( IOBuffer, '("MUVT equilibration completed")' )
+              Equilibration = .false.
+
+            else
+              write( IOBuffer, '("MUVT equilibration ended with too many/too few particles")' )
+              call LogWriteTime
+              write( IOBuffer, '("Restarting equilibration")' )
+              call LogWrite
+              call ResetEnsembles( this )
+              tooManyParticles = .false.
+              NVTEquilibration = .true.
+              StepStart = 1
+              cycle eqloop
+            end if
+
+          else
+            write( IOBuffer, '("MUVT equilibration TERMINATED")' )
+          end if
+          call LogWriteTime   
 
         else if( EnsembleType .eq. EnsembleTypeHA ) then
           StepEnd = NStepsP

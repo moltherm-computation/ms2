@@ -632,6 +632,13 @@ contains
         call LogWrite
       end if
 
+    else if( EnsembleType .eq. EnsembleTypeMUVT ) then
+      ! Read chemical potential
+      call FileReadParameter( this%ChemPot0, iounit_params , IdChemPot, .false. )
+      write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+      &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
+      call LogWrite
+
     else
       ! Read method for calculation of chemical potential
       call FileReadParameter( str, iounit_params, IdChemPotMethod, .false., "NONE" )
@@ -1223,7 +1230,7 @@ contains
       call Construct( this%SumHM, .true. )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -1280,7 +1287,7 @@ contains
       call Destruct( this%SumHM )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
@@ -2820,7 +2827,7 @@ contains
        call Error
      end if
 
-     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
+     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeMUVT) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
        write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system, q=",G16.9)') q
        call Error
      end if
@@ -5485,10 +5492,22 @@ loop1:do i = 1, this%NPart
     integer            :: selected, i
 
     ! Test boundaries of particle arrays
-    if( this%NPart > this%NPartMax ) then
+    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
       tooManyParticles = .true.
       return
-    elseif( this%NPart == this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
+    end if
+
+    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeMUVT ) then
+      tooManyParticles = .true.
+      return
+    end if
+
+    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeGE) then
+      tooManyParticles = .true.
+      return
+    end if
+
+    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVT) then
       tooManyParticles = .true.
       return
     end if
