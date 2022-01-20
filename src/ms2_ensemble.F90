@@ -5230,14 +5230,14 @@ xloop:do i = 1, NCells1dim(1)
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
   if ((      this%isCCSimulation  ) .and. &
   &   (.not. this%isStopSimulation) .and. &
-  &   (.not. Equilibration        ) .and. &
-  &   (mod( Step, this%CCFrequency) .eq. 0) ) then
+  &   (.not. Equilibration        ) ) then
+    if (mod( Step, this%CCFrequency) .eq. 0) then
+      !DC DEBUG - validating that the conditions are fulfulled as prescribed
+      ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
+      ! write (*, '("Ensemble: ", I3, " step: ",I3, " freq: ",I4, " step%freq: ",I3)') this%EnsembleNumber, Step, this%CCFrequency, mod(Step, this%CCFrequency)
 
-    !DC DEBUG - validating that the conditions are fulfulled as prescribed
-    ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
-    ! write (*, '("Ensemble: ", I3, " step: ",I3, " freq: ",I4, " step%freq: ",I3)') this%EnsembleNumber, Step, this%CCFrequency, mod(Step, this%CCFrequency)
-
-    call ClustCrit(this)
+      call ClustCrit(this)
+    end if
   end if
 
   end subroutine TEnsemble_RunMDStep
