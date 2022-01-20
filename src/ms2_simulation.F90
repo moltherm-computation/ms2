@@ -1512,7 +1512,7 @@ contains
         deallocate( ArrdBdT )
         deallocate( ArrChemPot )
         deallocate( ArrPartMolVol )
-        call Destruct( this )
+        !call Destruct( this ) ! known issue in master, see issue #66
     endif
   end subroutine TSimulation_Destruct
 
