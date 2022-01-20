@@ -288,7 +288,7 @@ contains
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
-      write( IOBuffer, '("Restarting ",A," using ",A,"_*.",A," files")' ) &
+      write( IOBuffer, '("Restarting ",A," using ",A,"_*",A," files")' ) &
 &            trim( ParameterFileName ),trim(OutputNameTag),RestartFileExtension
       call LogWrite
 
@@ -1813,34 +1813,12 @@ eqloop: do
           call logwritestop_Timer(RunStepsTimer)
 
           if( .not. TerminateProgram ) then
-            call CheckNPart( this, NPartsOk )
-#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
-            if ( .not. AnyNPartOk) then
-                NPartsOk = .false.
-            endif
-#endif
-
-            if( NPartsOk ) then
-              write( IOBuffer, '("MUVT equilibration completed")' )
-              Equilibration = .false.
-
-            else
-              write( IOBuffer, '("MUVT equilibration ended with too many/too few particles")' )
-              call LogWriteTime
-              write( IOBuffer, '("Restarting equilibration")' )
-              call LogWrite
-              call ResetEnsembles( this )
-              tooManyParticles = .false.
-              NVTEquilibration = .true.
-              StepStart = 1
-              cycle eqloop
-            end if
-
+            write( IOBuffer, '("MUVT equilibration completed")' )
+            Equilibration = .false.
           else
             write( IOBuffer, '("MUVT equilibration TERMINATED")' )
           end if
-          call LogWriteTime   
+          call LogWriteTime
 
         else if( EnsembleType .eq. EnsembleTypeHA ) then
           StepEnd = NStepsP
@@ -3563,7 +3541,7 @@ eqloop: do
       ! Close restart file
       call FileClose( iounit_restart )
 
-    write( IOBuffer, '("Finished reading restart file", A)' ) trim( RestartFileName )
+    write( IOBuffer, '("Finished reading restart file ", A)' ) trim( RestartFileName )
     call LogWriteTime
 
  end subroutine TSimulation_RestartRead

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.239</tools4ms2version>
-	<caseRepositoryHash>ca60ed9790a22ea8daf11f7e87e1059d92e68c01</caseRepositoryHash>
+	<tools4ms2version>0.0.297</tools4ms2version>
+	<caseRepositoryHash>bced4464f46d4087f4a5a24706e86fd7b9802b07</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
