@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.276</tools4ms2version>
+	<tools4ms2version>0.0.297</tools4ms2version>
 	<caseRepositoryHash>16515424656120a0785e7ad10d7d541ea80f3549</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
