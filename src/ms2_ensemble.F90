@@ -115,7 +115,7 @@ module ms2_ensemble
     integer, pointer :: NPartMaxFluct
 
     ! Maximum number of units
-    integer, pointer :: NUnitMax
+    integer :: NUnitMax
 
     ! Number of particles in ensemble
     integer :: NPart, NPartInitial
@@ -1133,10 +1133,6 @@ contains
     call AllocationError( stat, 'maximum number of particles' )
     allocate( this%NPartMaxFluct, STAT = stat )
     call AllocationError( stat, 'maximum number of particles' )
-
-    ! Allocate maximum number of units
-    allocate( this%NUnitMax, STAT = stat )
-    call AllocationError( stat, 'maximum number of units' )
 
     ! Set number of ensemble
     this%EnsembleNumber = ne
@@ -2188,9 +2184,6 @@ contains
     ! Allocate maximum number of particles
     allocate( this%NPartMax, STAT = stat )
     call AllocationError( stat, 'maximum number of particles' )
-    ! Allocate maximum number of units
-    allocate( this%NUnitMax, STAT = stat )
-    call AllocationError( stat, 'maximum number of units' )
 
     ! Set number of ensemble
     this%EnsembleNumber = ne
@@ -2259,7 +2252,7 @@ contains
     this%NUnitMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
-      pc%NUnitMax => pc%Molecule%NUnit
+      pc%NUnitMax = pc%Molecule%NUnit
       if (pc%Molecule%NUnit > this%NUnitMax) this%NUnitMax = pc%Molecule%NUnit
     end do
 
@@ -2386,9 +2379,6 @@ contains
     if( associated( this%NPartMaxFluct ) ) then
       deallocate( this%NPartMaxFluct )
     end if
-
-    ! Deallocate maximum number of units
-    if( associated( this%NUnitMax ) ) deallocate( this%NUnitMax )
 
     ! Deallocate simulation box length
     if( associated( this%BoxLength ) ) then
@@ -3840,7 +3830,7 @@ contains
 
        do i = 1, this%NComponents
          this%Component(i)%NPartMax => this%NPartMax
-         this%Component(i)%NUnitMax => this%NUnitMax
+         this%Component(i)%NUnitMax = this%NUnitMax
 
          if( this%Component(i)%NTest > 0 ) then
            this%Component(i)%P0Test => this%P0Test
@@ -3855,11 +3845,11 @@ contains
        do i = 1, this%NComponents
          if (i .le. this%NRealComponents) then
            this%Component(i)%NPartMax => this%Component(i)%NPart
-           this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
+           this%Component(i)%NUnitMax = this%Component(i)%Molecule%NUnit
 
          else
            this%Component(i)%NPartMax => this%NPartMaxFluct
-           this%Component(i)%NUnitMax => this%NUnitMax
+           this%Component(i)%NUnitMax = this%NUnitMax
          end if
 
          if( this%Component(i)%NTest > 0 ) then

@@ -129,7 +129,7 @@ module ms2_interaction
 #endif
     
     ! Number of units
-    integer, pointer :: NUnit1, NUnit2
+    integer :: NUnit1, NUnit2
 
     ! Numbers of sites
     integer :: N1MIEnm, N2MIEnm
@@ -325,8 +325,8 @@ contains
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
     ! Set number of Units
     this%NUnitMax = max( Component1%NUnitMax, Component2%NUnitMax )
-    this%NUnit1 => Component1%Molecule%NUnit
-    this%NUnit2 => Component2%Molecule%NUnit
+    this%NUnit1 = Component1%Molecule%NUnit
+    this%NUnit2 = Component2%Molecule%NUnit
 #if MPI_VER > 0
     this%NPart10 => Component1%NPart0
     this%NPart12 => Component1%NPart2

@@ -106,7 +106,7 @@ module ms2_molecule
     integer :: NNotConstraint
 
     ! Units of molecule
-    integer, pointer :: NUnit ! Michael Sch. pointer needed?
+    integer          :: NUnit ! Michael Sch. pointer needed?
     type(TUnit), pointer, contiguous ::Unit(:)
     
     ! File name for potential model
@@ -264,7 +264,6 @@ contains
     nullify( this%IdfAngle )
     nullify( this%IdfDihedral )
     nullify( this%Unit )
-    nullify( this%NUnit )
 
     ! Open potential model file
     this%PotModFileName = filename
@@ -277,10 +276,6 @@ contains
     this%NBond = 0
     this%NAngle = 0
     this%NDihedral = 0
-
-    ! Zero number of Units
-    allocate( this%NUnit, STAT = stat )
-    call AllocationError( stat, 'number of units' )
 
     ! Zero number of constraint and unconstrained Units
     this%NConstraint = 0

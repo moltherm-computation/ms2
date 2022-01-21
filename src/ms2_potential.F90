@@ -49,7 +49,7 @@ module ms2_potential
   type TPotMIEnmMIEnm
 
     type(TSiteMIEnm), pointer :: Site1, Site2
-    integer, pointer          :: NUnit1, NUnit2
+    integer                   :: NUnit1, NUnit2
     real(RK)                  :: Sigma, Epsilon
     real(RK)                  :: Mie_n, Mie_m, Mie_a, Mie_nHalf, Mie_mHalf
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
@@ -154,7 +154,7 @@ end type TPotTT68TT68
   type TPotChargeCharge
 
     type(TSiteCharge), pointer :: Site1, Site2
-    integer, pointer           :: NUnit1, NUnit2
+    integer                    :: NUnit1, NUnit2
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -205,7 +205,7 @@ end type TPotTT68TT68
 
     type(TSiteCharge), pointer :: Site1
     type(TSiteDipole), pointer :: Site2
-    integer, pointer           :: NUnit1, NUnit2
+    integer                    :: NUnit1, NUnit2
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -249,7 +249,7 @@ end type TPotTT68TT68
 
     type(TSiteCharge), pointer     :: Site1
     type(TSiteQuadrupole), pointer :: Site2
-    integer, pointer               :: NUnit1, NUnit2
+    integer                        :: NUnit1, NUnit2
     real(RK)                       :: Epsilon
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
@@ -292,7 +292,7 @@ end type TPotTT68TT68
 
     type(TSiteDipole), pointer :: Site1
     type(TSiteCharge), pointer :: Site2
-    integer, pointer           :: NUnit1, NUnit2
+    integer                    :: NUnit1, NUnit2
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -334,7 +334,7 @@ end type TPotTT68TT68
   type TPotDipoleDipole
 
     type(TSiteDipole), pointer :: Site1, Site2
-    integer, pointer           :: NUnit1, NUnit2
+    integer                    :: NUnit1, NUnit2
     real(RK)                   :: Epsilon
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
@@ -378,7 +378,7 @@ end type TPotTT68TT68
 
     type(TSiteDipole), pointer     :: Site1
     type(TSiteQuadrupole), pointer :: Site2
-    integer, pointer               :: NUnit1, NUnit2
+    integer                        :: NUnit1, NUnit2
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -420,7 +420,7 @@ end type TPotTT68TT68
 
     type(TSiteQuadrupole), pointer :: Site1
     type(TSiteCharge), pointer     :: Site2
-    integer, pointer               :: NUnit1, NUnit2
+    integer                        :: NUnit1, NUnit2
     real(RK)                       :: Epsilon
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
@@ -463,7 +463,7 @@ end type TPotTT68TT68
 
     type(TSiteQuadrupole), pointer :: Site1
     type(TSiteDipole), pointer     :: Site2
-    integer, pointer               :: NUnit1, NUnit2
+    integer                        :: NUnit1, NUnit2
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -505,7 +505,7 @@ end type TPotTT68TT68
   type TPotQuadrupoleQuadrupole
 
     type(TSiteQuadrupole), pointer :: Site1, Site2
-    integer, pointer               :: NUnit1, NUnit2
+    integer                        :: NUnit1, NUnit2
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -674,9 +674,9 @@ contains
 
     ! Construct potential
     this%Site1 => Molecule1%SiteMIEnm(j1)
-    this%NUnit1 => Molecule1%NUnit
+    this%NUnit1 = Molecule1%NUnit
     this%Site2 => Molecule2%SiteMIEnm(j2)
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Sigma = .5_RK * (this%Site1%sig + this%Site2%sig)
     this%Epsilon = sqrt(this%Site1%eps * this%Site2%eps)
@@ -3937,8 +3937,8 @@ loop2:  do j = 1, N2
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%e * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -5695,8 +5695,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%e * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -6823,8 +6823,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%e * this%Site2%Q
     this%RCutoffSquared = RCutoff**2
@@ -7957,8 +7957,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%D * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -9057,8 +9057,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%D * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -10619,8 +10619,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%D * this%Site2%Q
     this%RCutoffSquared = RCutoff**2
@@ -12189,8 +12189,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%Q * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -13321,8 +13321,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%Q * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -14907,8 +14907,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 => Molecule1%NUnit
-    this%NUnit2 => Molecule2%NUnit
+    this%NUnit1 = Molecule1%NUnit
+    this%NUnit2 = Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Epsilon = .75_RK * this%Site1%Q * this%Site2%Q
     this%RCutoffSquared = RCutoff**2

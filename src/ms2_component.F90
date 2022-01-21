@@ -197,7 +197,7 @@ module ms2_component
     integer, pointer :: NPartMax
 
     ! Maximum number of units in component
-    integer, pointer :: NUnitMax
+    integer :: NUnitMax
 
     ! Number of particles in component
     integer, pointer :: NPart
