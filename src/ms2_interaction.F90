@@ -113,7 +113,7 @@ module ms2_interaction
     integer :: NPartMax
 
     ! Max number of units per component
-    integer :: NUnitMax
+    integer :: nUnitsMax
 
     ! Numbers of particles
     integer, pointer :: NPart1, NPart2
@@ -129,7 +129,7 @@ module ms2_interaction
 #endif
     
     ! Number of units
-    integer :: NUnit1, NUnit2
+    integer :: nUnits(2) ! for two components or their molecules, respectively
 
     ! Numbers of sites
     integer :: N1MIEnm, N2MIEnm
@@ -324,9 +324,9 @@ contains
     this%NPart2 => Component2%NPart
     this%NPartMax = max( Component1%NPartMax, Component2%NPartMax )
     ! Set number of Units
-    this%NUnitMax = max( Component1%NUnitMax, Component2%NUnitMax )
-    this%NUnit1 = Component1%Molecule%NUnit
-    this%NUnit2 = Component2%Molecule%NUnit
+    this%nUnitsMax = max( Component1%nUnitsMax, Component2%nUnitsMax )
+    this%nUnits(1) = Component1%Molecule%nUnits
+    this%nUnits(2) = Component2%Molecule%nUnits
 #if MPI_VER > 0
     this%NPart10 => Component1%NPart0
     this%NPart12 => Component1%NPart2
@@ -890,13 +890,13 @@ contains
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       NP1 = this%NPartMax
-      N1 = NP1*this%NUnitMax
-      N2 = NP1*this%NUnitMax
+      N1 = NP1*this%nUnitsMax
+      N2 = NP1*this%nUnitsMax
 
     else
       NP1 = max(this%NPart1, 1)
-      N1 = NP1*this%NUnit1
-      N2 = max(this%NPart2, 1)*this%NUnit2
+      N1 = NP1*this%nUnits(1)
+      N2 = max(this%NPart2, 1)*this%nUnits(2)
     end if
 
     if( KBIUpdateFrequency > 0 ) then
@@ -944,7 +944,7 @@ contains
     end if
 
     if(( CutoffMode .eq. CenterofMass ) .or. ( CutoffMode .eq. SiteSite ))  then
-      N1 = max( N1, this%NTest1*this%NUnit1 )
+      N1 = max( N1, this%NTest1*this%nUnits(1) )
       allocate( this%NInCutoff(N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 )
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
@@ -1625,7 +1625,7 @@ contains
     end do
 
     ! Inner Degrees of Freedom
-    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%nUnits(1) > 1) then
       
       ! Calculate bond forces
       if (.not. Shake > 0) then
@@ -1672,23 +1672,23 @@ contains
       i1 = this%NPart1
       do i = 1, i1
 #endif
-        do iUnit = 1, this%NUnit1
+        do iUnit = 1, this%nUnits(1)
           TXi = 0._RK
           TYi = 0._RK
           TZi = 0._RK
           mueXi = MueX1(i, iUnit)    ! mue for unit  iUnit of i-th molecule
           mueYi = MueY1(i, iUnit)
           mueZi = MueZ1(i, iUnit)
-          globalUnitIndex = (i-1)*this%NUnit1+iUnit ! unit's number
+          globalUnitIndex = (i-1)*this%nUnits(1)+iUnit ! unit's number
           do k = 1, this%NInCutoff(globalUnitIndex)
             ! number of unit, which is in the cutoff radius of our unit globalUnitIndex
             j = this%CutoffPartner(k, globalUnitIndex)
-            u2 = mod (j, this%NUnit2)
+            u2 = mod (j, this%nUnits(2))
             if (u2 == 0) then
-              ju = INT(j / this%NUnit2) ! number of molecule, to which this unit corresponds
-              u2 = this%NUnit2
+              ju = INT(j / this%nUnits(2)) ! number of molecule, to which this unit corresponds
+              u2 = this%nUnits(2)
             else
-              ju = INT(j / this%NUnit2) + 1
+              ju = INT(j / this%nUnits(2)) + 1
             end if
             mueXj = MueX2(ju, u2)
             mueYj = MueY2(ju, u2)
@@ -1860,7 +1860,7 @@ contains
     end do
     
     ! Inner Degrees of Freedom
-    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%nUnits(1) > 1) then
       
       ! Calculate bond forces
       if (.not. Shake > 0) then
@@ -1898,8 +1898,8 @@ contains
       TY2 => this%tRFY2
       TZ2 => this%tRFZ2
       EPotLocal = 0._RK
-      nu1 = this%NUnit1  ! Number of units in molecule of first component
-      nu2 = this%NUnit2
+      nu1 = this%nUnits(1)  ! Number of units in molecule of first component
+      nu2 = this%nUnits(2)
 
 #if MPI_VER > 0
       i0 = this%NPart10
@@ -1980,8 +1980,8 @@ contains
     logical           :: intra
 
     intra = .false.
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
@@ -2055,7 +2055,7 @@ contains
 !#else
       do i = 1, this%NTest1
 !#endif
-        do u = 1, this%NUnit1
+        do u = 1, this%nUnits(1)
           EPotLocal = 0._RK
           iu = (i-1)*nu1+u ! unit's number
           mueXi = MueX1(i, u)    ! mue for unit  u of i-th molecule
@@ -2167,7 +2167,7 @@ contains
 
     ! Assign local variables
     SameComponent = this%SameComponent
-    unit1=this%NUnit1*(np-1)+nu ! Global number of unit
+    unit1=this%nUnits(1)*(np-1)+nu ! Global number of unit
                                   
                            
     Virial=0._RK
@@ -2234,8 +2234,8 @@ contains
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit
             nu2 = pmie%Site2%UnitNumber !!!!Michael Sch.: UnitNumber of potential wrong!(only when using constrainted units?)!! and UnitMIE1() wrong
-            if ( mod(j-nu2, this%NUnit2)==0) then ! choose only units, to which our Site2 correspond
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then ! choose only units, to which our Site2 correspond
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2388,8 +2388,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcc%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2455,8 +2455,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcc%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2531,8 +2531,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2609,8 +2609,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pcq%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2693,8 +2693,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pdc%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j)/this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2773,8 +2773,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pdd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2865,8 +2865,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pdq%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -2962,8 +2962,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pqc%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -3045,8 +3045,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pqd%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -3141,8 +3141,8 @@ contains
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
             ! choose only units, to which our Site2 correspond
             nu2 = pqq%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
-              jk  = CEILING(real(j)/this%NUnit2)
+            if ( mod(j-nu2, this%nUnits(2))==0) then
+              jk  = CEILING(real(j) / this%nUnits(2))
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
               RZij = RZi - RZ2(jk)
@@ -3232,12 +3232,12 @@ contains
 
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-              nu2 = this%NUnit2 ! number of unit in molecule
+            if (mod(j,this%nUnits(2))==0) then
+              jk = INT(j/this%nUnits(2)) !number of molecule,to which this unit correspond
+              nu2 = this%nUnits(2) ! number of unit in molecule
             else
-              jk = INT(j/this%NUnit2)+1
-              nu2 = mod(j,this%NUnit2)
+              jk = INT(j/this%nUnits(2))+1
+              nu2 = mod(j,this%nUnits(2))
             end if
             EPotLocal = EPotLocal +  ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )           
           end do
@@ -3258,12 +3258,12 @@ contains
 
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-              if (mod(j,this%NUnit2)==0) then
-                jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-                nu2 = this%NUnit2 ! number of unit in molecule
+              if (mod(j,this%nUnits(2))==0) then
+                jk = INT(j/this%nUnits(2)) !number of molecule,to which this unit correspond
+                nu2 = this%nUnits(2) ! number of unit in molecule
               else
-                jk = INT(j/this%NUnit2)+1
-                nu2 = mod(j,this%NUnit2)
+                jk = INT(j/this%nUnits(2))+1
+                nu2 = mod(j,this%nUnits(2))
               end if
               EPotLocal = EPotLocal + ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
             end do
@@ -3307,9 +3307,9 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
-              if ( mod(j-nu2, this%NUnit2)==0) then
-                jk  = CEILING(real(j)/this%NUnit2)
-                nu2 = this%NUnit2
+              if ( mod(j-nu2, this%nUnits(2))==0) then
+                jk  = CEILING(real(j)/this%nUnits(2))
+                nu2 = this%nUnits(2)
                 RXij = RXi - RX2(jk)
                 RYij = RYi - RY2(jk)
                 RZij = RZi - RZ2(jk)
@@ -3354,9 +3354,9 @@ contains
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
-              if ( mod(j-nu2, this%NUnit2)==0) then
-                jk  = CEILING(real(j)/this%NUnit2)
-                nu2 = this%NUnit2
+              if ( mod(j-nu2, this%nUnits(2))==0) then
+                jk  = CEILING(real(j)/this%nUnits(2))
+                nu2 = this%nUnits(2)
                 RXij = RXi - RX2(jk)
                 RYij = RYi - RY2(jk)
                 RZij = RZi - RZ2(jk)
@@ -3441,7 +3441,7 @@ contains
             RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
-            jk = (j-1)*this%NUnit2 + pmie%Site2%UnitNumber
+            jk = (j-1)*this%nUnits(2) + pmie%Site2%UnitNumber
             EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
 
             Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
@@ -3610,7 +3610,7 @@ contains
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-            jk = (j-1)*this%NUnit2 + pdd%Site2%UnitNumber
+            jk = (j-1)*this%nUnits(2) + pdd%Site2%UnitNumber
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -3707,7 +3707,7 @@ contains
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-            jk = (j-1)*this%NUnit2 + pdq%Site2%UnitNumber
+            jk = (j-1)*this%nUnits(2) + pdq%Site2%UnitNumber
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
@@ -3812,7 +3812,7 @@ contains
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-            jk = (j-1)*this%NUnit2 + pqd%Site2%UnitNumber
+            jk = (j-1)*this%nUnits(2) + pqd%Site2%UnitNumber
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -3914,7 +3914,7 @@ contains
             RYij = (RYij - anint( RYij )) * BoxLength
             RZij = (RZij - anint( RZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-            jk = (j-1)*this%NUnit2 + pqq%Site2%UnitNumber
+            jk = (j-1)*this%nUnits(2) + pqq%Site2%UnitNumber
 
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
@@ -4991,12 +4991,12 @@ end subroutine TInteraction_EnergySVC
 
     ! Declare local variables
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PX1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PY1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PZ1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PX2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PY2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PZ2d(this%NPart2*this%nUnits(2))
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
@@ -5008,9 +5008,9 @@ end subroutine TInteraction_EnergySVC
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
     this%NInCutoff(:) = 0
-    NU = this%NUnit1
+    NU = this%nUnits(1)
     N2 = this%NPart2
-    NU2 = this%NUnit2
+    NU2 = this%nUnits(2)
 
 !$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, k, l, m, o, NInCutoff, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
     ! Assign local pointers
@@ -5275,13 +5275,13 @@ end subroutine TInteraction_EnergySVC
     PYi = this%PY1(np, nu)
     PZi = this%PZ1(np, nu)
     NInCutoff = 0
-    iUnitGlobalMol1 = (np-1)*this%NUnit1 + nu
+    iUnitGlobalMol1 = (np-1)*this%nUnits(1) + nu
 #if MPI_VER > 0
     do j = this%NPart20, this%NPart22
 #else
     do j = 1, this%NPart2
 #endif
-      do k = 1, this%NUnit2
+      do k = 1, this%nUnits(2)
           !k = CEILING(real(j)/this%NUnit2)
           if( this%SameComponent .and. j == np ) cycle
           if( (matrixhalf .eqv. .true.) .and. (j > np) ) exit
@@ -5295,7 +5295,7 @@ end subroutine TInteraction_EnergySVC
 
           if( RijSquared < RCutoffSquaredScaled ) then
             NInCutoff = NInCutoff + 1
-            iUnitGlobalMol2 = (j-1) * this%NUnit2 + k
+            iUnitGlobalMol2 = (j-1) * this%nUnits(2) + k
             this%CutoffPartner(NInCutoff, iUnitGlobalMol1) = iUnitGlobalMol2
           end if
       end do
@@ -5343,21 +5343,21 @@ end subroutine TInteraction_EnergySVC
 !$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere
 !$OMP DO
-    do k = 1, this%NUnit1
+    do k = 1, this%nUnits(1)
 !#if MPI_VER > 0
 !      do i = this%NTest10, this%NTest12
 !#else
       do i = 1, this%NTest1
 !#endif
-        m = (i-1)*this%NUnit1+k
+        m = (i-1)*this%nUnits(1)+k
         PXi = PX1(i,k)
         PYi = PY1(i,k)
         PZi = PZ1(i,k)
         NInCutoff = 0
 
-        do l = 1, this%NUnit2
+        do l = 1, this%nUnits(2)
           do j = 1, this%NPart2
-            n = (j-1)*this%NUnit2+l
+            n = (j-1)*this%nUnits(2)+l
             PXij = PXi - PX2(j,l)
             PYij = PYi - PY2(j,l)
             PZij = PZi - PZ2(j,l)
@@ -5393,12 +5393,12 @@ end subroutine TInteraction_EnergySVC
 
     ! Declare local variables
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PX1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PY1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PZ1d(this%NPart1*this%nUnits(1))
+    real(RK)          :: PX2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PY2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PZ2d(this%NPart2*this%nUnits(2))
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
@@ -5409,9 +5409,9 @@ end subroutine TInteraction_EnergySVC
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
     this%NInCutoff(:) = 0
-    NU = this%NUnit1
+    NU = this%nUnits(1)
     N2 = this%NPart2
-    NU2 = this%NUnit2
+    NU2 = this%nUnits(2)
 
     ! Assign local pointers
     PX1 => this%PX1
@@ -5620,7 +5620,7 @@ end subroutine TInteraction_EnergySVC
     end do
 
     ! Inner Degrees of Freedom
-    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%nUnits(1)>1 ) then
       if (.not. Shake > 0) then
         do i = 1, this%NBond
           call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
@@ -5639,17 +5639,17 @@ end subroutine TInteraction_EnergySVC
 
     ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
     if ( this%ReactionField .and. LongRange .eq. RField) then
-      do i = 1, this%NUnit1
-        unit1 = (selected-1)*this%NUnit1+i
+      do i = 1, this%nUnits(1)
+        unit1 = (selected-1)*this%nUnits(1)+i
 
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-              j = this%NUnit2 ! number of unit in molecule
+            if (mod(j,this%nUnits(2))==0) then
+              jk = INT(j/this%nUnits(2)) !number of molecule,to which this unit correspond
+              j = this%nUnits(2) ! number of unit in molecule
             else
-              jk = INT(j/this%NUnit2)+1
-              j = mod(j,this%NUnit2)
+              jk = INT(j/this%nUnits(2))+1
+              j = mod(j,this%nUnits(2))
             end if
             E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
 &                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
@@ -5782,7 +5782,7 @@ end subroutine TInteraction_EnergySVC
     ! Zero angle/torison energies (others are set to 0 in Energy-routine)
     this%EPot1Angle(:) = 0._RK
     this%EPot1To(:) = 0._RK
-    unit1=this%NUnit1*(np-1)+nu ! Global number of unit
+    unit1=this%nUnits(1)*(np-1)+nu ! Global number of unit
 
     Virial = 0._RK
     VirialLocal = 1E33_RK
@@ -5819,7 +5819,7 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate Lennard-Jones energy
       do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
-        do j=1, this%NUnit2 ! Michael Sch.: changed
+        do j=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
 !           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
@@ -5871,7 +5871,7 @@ end subroutine TInteraction_EnergySVC
 
             EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
-            unit2=(np-1)*this%NUnit1+pmie%Site2%UnitNumber ! global number of unit
+            unit2=(np-1)*this%nUnits(1)+pmie%Site2%UnitNumber ! global number of unit
             EPot = EPot + EPotLocal
             if ( OptPressure ) then
               PXij = PXij - anint( PXij )
@@ -5895,7 +5895,7 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate point charge energy
       do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do j=1, this%NUnit2 ! Michael Sch.: changed
+        do j=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
 !           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
@@ -5967,7 +5967,7 @@ end subroutine TInteraction_EnergySVC
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
                 end if
                 !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
-                unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber
+                unit2=(np-1)*this%nUnits(1)+pcc%Site2%UnitNumber
                 EPot  = EPot + EPotLocal
                 if ( OptPressure ) &
 &                  Virial = Virial + Third * VirialLocal
@@ -6014,7 +6014,7 @@ end subroutine TInteraction_EnergySVC
                 sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
                 d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx1 CC
               end if
-              unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber! global number of unit
+              unit2=(np-1)*this%nUnits(1)+pcc%Site2%UnitNumber! global number of unit
               EPot = EPot + EPotLocal
               if ( OptPressure ) &
 &                Virial= Virial + Third * VirialLocal
@@ -6100,7 +6100,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx2 CD
             end if
 
-            unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
+            unit2=(np-1)*this%nUnits(1)+pcd%Site2%UnitNumber
             EPot = EPot + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
             if ( OptPressure ) &
 &              Virial= Virial + 2._RK*Viriallocal     ! F2*R_COM_Price; stimmt so
@@ -6184,7 +6184,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx3 CQ
             end if
 
-            unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
+            unit2=(np-1)*this%nUnits(1)+pcq%Site2%UnitNumber
             EPot =  + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial + 2._RK*Third * VirialLocal
@@ -6195,7 +6195,7 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do j=1, this%NUnit2 ! Michael Sch.: changed
+        do j=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
 !           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
@@ -6272,7 +6272,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third !xxxx4 DC
             end if
 
-            unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
+            unit2=(np-1)*this%nUnits(1)+pdc%Site2%UnitNumber
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial + 2._RK*Third * VirialLocal
@@ -6368,7 +6368,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxx5 DD
             end if
 
-            unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
+            unit2=(np-1)*this%nUnits(1)+pdd%Site2%UnitNumber! global number of unit
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial + 2._RK*Third * VirialLocal
@@ -6469,7 +6469,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxx6 DQ
             end if
 
-            unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
+            unit2=(np-1)*this%nUnits(1)+pdq%Site2%UnitNumber ! global number of unit
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial + 2._RK*Third * VirialLocal
@@ -6480,7 +6480,7 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do j=1, this%NUnit2 ! Michael Sch.: changed
+        do j=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
 !           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
@@ -6562,7 +6562,7 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third !xxxx7 QC
             end if
 
-            unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
+            unit2=(np-1)*this%nUnits(1)+pqc%Site2%UnitNumber
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial - 2._RK*Third * VirialLocal
@@ -6662,7 +6662,7 @@ end subroutine TInteraction_EnergySVC
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxx8 QD
             end if
-            unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
+            unit2=(np-1)*this%nUnits(1)+pqd%Site2%UnitNumber! global number of unit
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &             Virial = Virial + 2._RK*Third * VirialLocal
@@ -6774,7 +6774,7 @@ end subroutine TInteraction_EnergySVC
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
             end if
-            unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
+            unit2= (np-1)*this%nUnits(1)+pqq%Site2%UnitNumber
             EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
 &              Virial = Virial + 2._RK*Third * VirialLocal
@@ -6794,8 +6794,8 @@ end subroutine TInteraction_EnergySVC
           mueXi = this%MueX1(np,nu)
           mueYi = this%MueY1(np,nu)
           mueZi = this%MueZ1(np,nu)
-          unit1 = (np-1)*this%NUnit1
-          do nu2 = 1, this%NUnit1
+          unit1 = (np-1)*this%nUnits(1)
+          do nu2 = 1, this%nUnits(1)
             EPot = EPot + RFConst2 &
 &               * ( mueXi * MueX2(np,nu2) + mueYi * MueY2(np,nu2) + mueZi * MueZ2(np,nu2) )
           end do
@@ -6856,7 +6856,7 @@ end subroutine TInteraction_EnergySVC
 
           EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
-          unit2=(np-1)*this%NUnit2+pmie%Site2%UnitNumber ! global number of unit
+          unit2=(np-1)*this%nUnits(2)+pmie%Site2%UnitNumber ! global number of unit
           EPot = EPot +  EPotLocal
           if ( OptPressure ) then
             PXij = PXij - anint( RXij )
@@ -6971,7 +6971,7 @@ end subroutine TInteraction_EnergySVC
             d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
           end if
 
-          unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
+          unit2=(np-1)*this%nUnits(1)+pdd%Site2%UnitNumber! global number of unit
           EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
 &            Virial = Virial + 2._RK*Third * VirialLocal
@@ -7076,7 +7076,7 @@ end subroutine TInteraction_EnergySVC
             d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
           end if
 
-          unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
+          unit2=(np-1)*this%nUnits(1)+pdq%Site2%UnitNumber ! global number of unit
           EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
 &            Virial = Virial + 2._RK*Third * VirialLocal
@@ -7181,7 +7181,7 @@ end subroutine TInteraction_EnergySVC
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
             d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
           end if
-          unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
+          unit2=(np-1)*this%nUnits(1)+pqd%Site2%UnitNumber! global number of unit
           EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
 &             Virial = Virial + 2._RK*Third * VirialLocal
@@ -7295,7 +7295,7 @@ end subroutine TInteraction_EnergySVC
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
             d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
           end if
-          unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
+          unit2= (np-1)*this%nUnits(1)+pqq%Site2%UnitNumber
           EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
 &            Virial = Virial + 2._RK*Third * VirialLocal
@@ -7333,7 +7333,7 @@ end subroutine TInteraction_EnergySVC
         RSquared=RXij**2+RYij**2+RZij**2
         R=dsqrt(RSquared) ! Bond length
         ! Deviation from equilibrium
-        unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu
+        unit2 =(np-1) * this%nUnits(1) + (u1+u2-nu) ! global number of u2 if u1==nu
                                              !(which should be the case Michael Sch.)
         dR=R-this%PotBond(bi)%R0
         ! Potential parameter
@@ -7591,10 +7591,10 @@ end subroutine TInteraction_EnergySVC
 
     ! Declare local variables
     real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PX1d(this%nUnits(1)), PY1d(this%nUnits(1)), PZ1d(this%nUnits(1))
+    real(RK)          :: PX2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PY2d(this%NPart2*this%nUnits(2))
+    real(RK)          :: PZ2d(this%NPart2*this%nUnits(2))
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared, RCutoffSquaredScaled
     real(RK)          :: RCutoff
@@ -7606,9 +7606,9 @@ end subroutine TInteraction_EnergySVC
 
     ! Assigning local variables
     RCutoff = this%RCutoffSquaredScaled
-    NU = this%NUnit1
+    NU = this%nUnits(1)
     N2 = this%NPart2
-    NU2 = this%NUnit2
+    NU2 = this%nUnits(2)
 
     do k=1, NU
       PX1d(k) = this%PX1(np, k)
@@ -7634,8 +7634,8 @@ end subroutine TInteraction_EnergySVC
       NInCutoff = 0
 #if MPI_VER > 0
       if (SimulationType .eq. MonteCarlo) then
-        l = (this%NPart20-1)*this%NUnit2+1
-        m = this%NPart22*this%NUnit2
+        l = (this%NPart20-1)*this%nUnits(2)+1
+        m = this%NPart22*this%nUnits(2)
       else
         l = 1
         m = N2*NU2

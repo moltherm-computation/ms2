@@ -106,7 +106,7 @@ module ms2_molecule
     integer :: NNotConstraint
 
     ! Units of molecule
-    integer          :: NUnit ! Michael Sch. pointer needed?
+    integer          :: nUnits
     type(TUnit), pointer, contiguous ::Unit(:)
     
     ! File name for potential model
@@ -500,16 +500,16 @@ contains
         call AllocationError( stat, 'ConstraintSiteIds', ncs )
       end if
       this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
-      this%NUnit   = this%NNotConstraint+this%NConstraint ! total number of units
+      this%nUnits   = this%NNotConstraint+this%NConstraint ! total number of units
 
     else !  No IDF,  rigid molecule
-        this%NUnit = 1
+        this%nUnits = 1
         this%NConstraint = 1 ! Only one constrained unit for the whole molecule
         this%NNotConstraint = 0
     end if
 
-    allocate(this%Unit(this%NUnit),STAT = stat)
-    call AllocationError( stat, 'Units', this%NUnit)
+    allocate(this%Unit(this%nUnits),STAT = stat)
+    call AllocationError( stat, 'Units', this%nUnits)
 
     ! Rewind File for reading Constraints
     call FileRewind( potmodFile%iounit, this%PotModFileName )  !Michael Sch.: fix me ... needed? if not delete whole rewind-routine
@@ -580,7 +580,7 @@ contains
           end do
         end if
         ! Construct not constrained Units
-        do i = (this%NConstraint+1), this%NUnit
+        do i = (this%NConstraint+1), this%nUnits
           call Construct(this%Unit(i), .false., 1)
           this%Unit(i)%SiteIds=this%NotConstraintSiteIds(i-this%NConstraint)
           ! To know about this site parameters like in Constraint Unit
@@ -693,7 +693,7 @@ contains
     !Michael Sch.: changed mechanics here.
     if (UseIntDegFreed) then
        if (this%NBond>0) then ! check bonds and find initial bond lengths
-         this%BondCount(1:this%NUnit)=0  ! Zero arrays
+         this%BondCount(1:this%nUnits)=0  ! Zero arrays
          do j = 1, this%NBond
            !if (j<=this%NBond) then
              call FindBondR(this,this%IdfBond(j), j) 
@@ -705,7 +705,7 @@ contains
        end if
 
        if (this%NAngle>0) then ! check angles and find initial angles
-         this%AngleCount(1:this%NUnit)=0  ! Zero arrays
+         this%AngleCount(1:this%nUnits)=0  ! Zero arrays
          do j = 1, this%NAngle
            !if (j<=this%NAngle) then
              call FindAngle(this,this%IdfAngle(j), j) 
@@ -717,7 +717,7 @@ contains
        end if
 
        if ( this%NDihedral > 0 ) then
-         this%DihedralCount(1:this%NUnit)=0
+         this%DihedralCount(1:this%nUnits)=0
          do j = 1, this%NDihedral
            !if (j<=this%NDihedral) then
              call FindDihedral(this,this%IdfDihedral(j), j) 
@@ -736,13 +736,13 @@ contains
     nullify( this%UnitQP )
 
     ! Allocate unit site counters
-    allocate( this%UnitLJ(this%NUnit+1), STAT = stat )
+    allocate( this%UnitLJ(this%nUnits+1), STAT = stat )
     call AllocationError( stat, 'UnitLJ' )
-    allocate( this%UnitC(this%NUnit+1), STAT = stat )
+    allocate( this%UnitC(this%nUnits+1), STAT = stat )
     call AllocationError( stat, 'UnitC' )
-    allocate( this%UnitDP(this%NUnit+1), STAT = stat )
+    allocate( this%UnitDP(this%nUnits+1), STAT = stat )
     call AllocationError( stat, 'UnitDP' )
-    allocate( this%UnitQP(this%NUnit+1), STAT = stat )
+    allocate( this%UnitQP(this%nUnits+1), STAT = stat )
     call AllocationError( stat, 'UnitQP' )
 
     this%UnitLJ = 1
@@ -750,7 +750,7 @@ contains
     this%UnitDP = 1
     this%UnitQP = 1
 
-    do i=2, this%NUnit+1
+    do i=2, this%nUnits+1
       this%UnitLJ(i) = this%Unit(i-1)%NMIEnm  + this%UnitLJ(i-1)
       this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
       this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
@@ -759,7 +759,7 @@ contains
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
     this%NDF = 0
-    do i = 1, this%NUnit
+    do i = 1, this%nUnits
       call FindCOM ( this%Unit(i) )
     end do
 
@@ -770,7 +770,7 @@ contains
 
     ! check for elongation of rigid molecules
     this%isElongated = .false.
-    this%isElongated = this%NUnit > 1
+    this%isElongated = this%nUnits > 1
     if ( this%Unit(1)%NDFRot > 0 ) this%isElongated = .true.
 
     ! sort SiteIds
@@ -943,7 +943,7 @@ contains
        AllSites(Site4,Site3)=0
      end do
 
-     do i = 1, this%NUnit
+     do i = 1, this%nUnits
         if (this%Unit(i)%NSites>1) then
            do j=1, this%Unit(i)%NSites
               AllSites(this%Unit(i)%SiteIds(j),this%Unit(i)%SiteIds(:))=0
@@ -1392,7 +1392,7 @@ contains
       end do
 
       ! For Unit Sites as well
-      do i = 1, this%NUnit
+      do i = 1, this%nUnits
         do j = 1, this%Unit(i)%NMIEnm
           this%Unit(i)%SiteMIEnm(j)%sig = this%Unit(i)%SiteMIEnm(j)%sig * scalesig
           this%Unit(i)%SiteMIEnm(j)%eps = this%Unit(i)%SiteMIEnm(j)%eps * scaleeps
@@ -1431,7 +1431,7 @@ contains
     call FileClose( potmodFile%iounit )
 
     ! Reduction of point charges and dipoles of units to body fixed dipole vector
-    do i=1, this%NUnit
+    do i=1, this%nUnits
       this%Unit(i)%Mue(:) = 0._RK
       if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
         if (LongRange .ne. Ewald) then
@@ -1945,7 +1945,7 @@ contains
     type(TSiteMIEnm), pointer      :: mieSite
     type(TSiteQuadrupole), pointer :: quadrupoleSite
 
-    do iUnit = 1, this%NUnit
+    do iUnit = 1, this%nUnits
 
       unit => this%Unit(iUnit)
 
@@ -2235,7 +2235,7 @@ contains
     type(TUnit), pointer :: unit
     integer :: i, iUnit
 
-    do iUnit = 1, this%NUnit
+    do iUnit = 1, this%nUnits
 
         unit => this%Unit(iUnit)
 
@@ -2287,7 +2287,7 @@ contains
     logical :: disoriented
     integer :: i, iUnit
 
-    do iUnit = 1, this%NUnit
+    do iUnit = 1, this%nUnits
 
         unit => this%Unit(iUnit)
 

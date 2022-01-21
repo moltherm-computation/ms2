@@ -49,7 +49,7 @@ module ms2_potential
   type TPotMIEnmMIEnm
 
     type(TSiteMIEnm), pointer :: Site1, Site2
-    integer                   :: NUnit1, NUnit2
+    integer                   :: nUnits(2) ! for two components
     real(RK)                  :: Sigma, Epsilon
     real(RK)                  :: Mie_n, Mie_m, Mie_a, Mie_nHalf, Mie_mHalf
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
@@ -154,7 +154,7 @@ end type TPotTT68TT68
   type TPotChargeCharge
 
     type(TSiteCharge), pointer :: Site1, Site2
-    integer                    :: NUnit1, NUnit2
+    integer                    :: nUnits(2) ! for two components
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -205,7 +205,7 @@ end type TPotTT68TT68
 
     type(TSiteCharge), pointer :: Site1
     type(TSiteDipole), pointer :: Site2
-    integer                    :: NUnit1, NUnit2
+    integer                    :: nUnits(2) ! for two components
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -249,7 +249,7 @@ end type TPotTT68TT68
 
     type(TSiteCharge), pointer     :: Site1
     type(TSiteQuadrupole), pointer :: Site2
-    integer                        :: NUnit1, NUnit2
+    integer                        :: nUnits(2) ! for two components
     real(RK)                       :: Epsilon
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
@@ -292,7 +292,7 @@ end type TPotTT68TT68
 
     type(TSiteDipole), pointer :: Site1
     type(TSiteCharge), pointer :: Site2
-    integer                    :: NUnit1, NUnit2
+    integer                    :: nUnits(2) ! for two components
     real(RK)                   :: Epsilon
     real(RK)                   :: RShieldSquared
     real(RK)                   :: RCutoffSquared
@@ -334,7 +334,7 @@ end type TPotTT68TT68
   type TPotDipoleDipole
 
     type(TSiteDipole), pointer :: Site1, Site2
-    integer                    :: NUnit1, NUnit2
+    integer                    :: nUnits(2) ! for two components
     real(RK)                   :: Epsilon
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
@@ -378,7 +378,7 @@ end type TPotTT68TT68
 
     type(TSiteDipole), pointer     :: Site1
     type(TSiteQuadrupole), pointer :: Site2
-    integer                        :: NUnit1, NUnit2
+    integer                        :: nUnits(2) ! for two components
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -420,7 +420,7 @@ end type TPotTT68TT68
 
     type(TSiteQuadrupole), pointer :: Site1
     type(TSiteCharge), pointer     :: Site2
-    integer                        :: NUnit1, NUnit2
+    integer                        :: nUnits(2) ! for two components
     real(RK)                       :: Epsilon
     real(RK)                       :: RShieldSquared
     real(RK)                       :: RCutoffSquared
@@ -463,7 +463,7 @@ end type TPotTT68TT68
 
     type(TSiteQuadrupole), pointer :: Site1
     type(TSiteDipole), pointer     :: Site2
-    integer                        :: NUnit1, NUnit2
+    integer                        :: nUnits(2) ! for two components
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -505,7 +505,7 @@ end type TPotTT68TT68
   type TPotQuadrupoleQuadrupole
 
     type(TSiteQuadrupole), pointer :: Site1, Site2
-    integer                        :: NUnit1, NUnit2
+    integer                        :: nUnits(2) ! for two components
     real(RK)                       :: Epsilon
     real(RK)                       :: RCutoffSquared
     real(RK)                       :: RShieldSquared
@@ -674,9 +674,9 @@ contains
 
     ! Construct potential
     this%Site1 => Molecule1%SiteMIEnm(j1)
-    this%NUnit1 = Molecule1%NUnit
+    this%nUnits(1) = Molecule1%nUnits
     this%Site2 => Molecule2%SiteMIEnm(j2)
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Sigma = .5_RK * (this%Site1%sig + this%Site2%sig)
     this%Epsilon = sqrt(this%Site1%eps * this%Site2%eps)
@@ -1209,15 +1209,15 @@ loop0:  do m=1,NBinsDen
         end do loop0
 #endif
 
-        unit=this%NUnit1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
+        unit=this%nUnits(1)*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
 
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
-          if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+          if ( mod(j-this%Site2%UnitNumber, this%nUnits(2))==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,this%nUnits(2))==0) then
+              jk = INT(j/this%nUnits(2))   ! number of molecule, to which this unit correspond
             else
-              jk = INT(j/this%NUnit2)+1
+              jk = INT(j/this%nUnits(2))+1
             end if
             RXij = RXi - RX2(jk)
             RYij = RYi - RY2(jk)
@@ -1758,15 +1758,15 @@ loop0:  do m=1,NBinsDen
         end do loop0
 #endif
 
-        unit=this%NUnit1*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
+        unit=this%nUnits(1)*(i-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
 
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
-          if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+          if ( mod(j-this%Site2%UnitNumber, this%nUnits(2))==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,this%nUnits(2))==0) then
+              jk = INT(j/this%nUnits(2))   ! number of molecule, to which this unit correspond
             else
-              jk = INT(j/this%NUnit2)+1
+              jk = INT(j/this%nUnits(2))+1
             end if
             RXij = RXi - RX2(jk)
             RYij = RYi - RY2(jk)
@@ -2141,17 +2141,17 @@ loop3:  do j = j0, j1
       RYi = RY1(i)
       RZi = RZ1(i)
 
-      unit=this%NUnit1*(i-1)+this%Site1%UnitNumber
+      unit=this%nUnits(1)*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
 !NEC$ ivdep
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
-        if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
-          if (mod(j,this%NUnit2)==0) then
-            jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+        if ( mod(j-this%Site2%UnitNumber, this%nUnits(2))==0) then  ! choose only units, to which our Site2 correspond
+          if (mod(j,this%nUnits(2))==0) then
+            jk = INT(j/this%nUnits(2))   ! number of molecule, to which this unit correspond
           else
-            jk = INT(j/this%NUnit2)+1
+            jk = INT(j/this%nUnits(2))+1
           end if
           RXij = RXi - RX2(jk)
           RYij = RYi - RY2(jk)
@@ -2254,17 +2254,17 @@ loop1:do k = 1, this%NInCutoff(unit)
         PZi = PZ1(i)
         EPotLocal = 0._RK
 
-        unit = this%NUnit1*(i-1)+this%Site1%UnitNumber
+        unit = this%nUnits(1)*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
 !NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
-          if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2)   ! number of molecule, to which this unit correspond
+          if ( mod(j-this%Site2%UnitNumber, this%nUnits(2))==0) then  ! choose only units, to which our Site2 correspond
+            if (mod(j,this%nUnits(2))==0) then
+              jk = INT(j/this%nUnits(2))   ! number of molecule, to which this unit correspond
             else
-              jk = INT(j/this%NUnit2)+1
+              jk = INT(j/this%nUnits(2))+1
             end if
             RXij = RXi - RX2(jk)
             RYij = RYi - RY2(jk)
@@ -3937,8 +3937,8 @@ loop2:  do j = 1, N2
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%e * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -4129,15 +4129,15 @@ loop0:do m=1,NBinsDen
       end do loop0
 #endif
 
-      unit=this%NUnit1*(i-1)+this%Site1%UnitNumber
+      unit=this%nUnits(1)*(i-1)+this%Site1%UnitNumber
 
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit)
-        if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then
-          if (mod(j,this%NUnit2)==0) then
-            jk = INT(j/this%NUnit2)
+        if ( mod(j-this%Site2%UnitNumber, this%nUnits(2))==0) then
+          if (mod(j,this%nUnits(2))==0) then
+            jk = INT(j/this%nUnits(2))
           else
-            jk = INT(j/this%NUnit2)+1
+            jk = INT(j/this%nUnits(2))+1
           end if
           RXij = RXi - RX2(jk)
           RYij = RYi - RY2(jk)
@@ -4368,8 +4368,8 @@ loop2:  do m=1,NBinsDen
     EPotLocal=0._RK
     VirialLocal=0._RK
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -4737,8 +4737,8 @@ loop2:  do m=1,NBinsDen
     i1 = this%Site1%NPart
 #endif
     Epsilon = this%Epsilon
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -5283,8 +5283,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     Faktor = 2._RK/sqrt(Pi) * Kappa
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -5594,8 +5594,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -5695,8 +5695,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%e * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -5846,8 +5846,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -6249,8 +6249,8 @@ loop2:  do m=1,NBinsDen
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -6714,8 +6714,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -6823,8 +6823,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteCharge(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%e * this%Site2%Q
     this%RCutoffSquared = RCutoff**2
@@ -6973,8 +6973,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -7377,8 +7377,8 @@ loop2:  do m=1,NBinsDen
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -7848,8 +7848,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -7957,8 +7957,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%D * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -8100,8 +8100,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -8480,8 +8480,8 @@ loop2:  do m=1,NBinsDen
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -8945,8 +8945,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -9057,8 +9057,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = this%Site1%D * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -9229,8 +9229,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RFConstant2 = 2._RK * this%RFConstant
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -9813,8 +9813,8 @@ loop3:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RFConstant2 = 2._RK * this%RFConstant
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -10439,8 +10439,8 @@ loop3:  do j = j0, j1
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
     RFConstant2 = 2._RK * this%RFConstant
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -10619,8 +10619,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteDipole(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%D * this%Site2%Q
     this%RCutoffSquared = RCutoff**2
@@ -10789,8 +10789,8 @@ loop2:  do j = 1, j1
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -11374,8 +11374,8 @@ loop3:  do j = j0, j1
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -12014,8 +12014,8 @@ loop3:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -12189,8 +12189,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteCharge(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%Q * this%Site2%e
     this%RCutoffSquared = RCutoff**2
@@ -12336,8 +12336,8 @@ loop2:  do j = 1, j1
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -12739,8 +12739,8 @@ loop2:  do m=1,NBinsDen
 #endif
     Epsilon = this%Epsilon
     SameComponent = this%SameComponent
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra = 0._RK
@@ -13212,8 +13212,8 @@ loop2:  do m=1,NBinsDen
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -13321,8 +13321,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteDipole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = 1.5_RK * this%Site1%Q * this%Site2%D
     this%RCutoffSquared = RCutoff**2
@@ -13491,8 +13491,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -14083,8 +14083,8 @@ loop3:  do j = j0, j1
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -14730,8 +14730,8 @@ loop3:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
@@ -14907,8 +14907,8 @@ loop2:  do j = 1, j1
     ! Construct potential
     this%Site1 => Molecule1%SiteQuadrupole(j1)
     this%Site2 => Molecule2%SiteQuadrupole(j2)
-    this%NUnit1 = Molecule1%NUnit
-    this%NUnit2 = Molecule2%NUnit
+    this%nUnits(1) = Molecule1%nUnits
+    this%nUnits(2) = Molecule2%nUnits
     this%SameComponent = i1 == i2
     this%Epsilon = .75_RK * this%Site1%Q * this%Site2%Q
     this%RCutoffSquared = RCutoff**2
@@ -15103,8 +15103,8 @@ loop2:  do j = 1, j1
 !$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
 !$OMP PRIVATE (EPotLocal1, Plen2, sitecorr)
 
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -15720,8 +15720,8 @@ loop3:  do j = j0, j1
 #endif
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
     EPotLocalInter   = 0._RK
     VirialLocalInter = 0._RK
     EPotLocalIntra   = 0._RK
@@ -16410,8 +16410,8 @@ loop3:  do j = j0, j1
     Epsilon = this%Epsilon
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
-    nu1 = this%NUnit1
-    nu2 = this%NUnit2
+    nu1 = this%nUnits(1)
+    nu2 = this%nUnits(2)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2

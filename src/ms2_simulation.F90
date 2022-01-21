@@ -1968,7 +1968,7 @@ eqloop: do
         do k = 1, this%NEnsembles
           do j = 1, this%Ensemble(k)%NComponents
             do i = 1, this%Ensemble(k)%Component(j)%NPart
-              do l = 1, this%Ensemble(k)%Component(j)%Molecule%NUnit
+              do l = 1, this%Ensemble(k)%Component(j)%Molecule%nUnits
                 do m = 1, 3
       ! Michael Sch.: offsetting all unit velocities by +/- 10%, before all velocities within a molecule are the same
                   this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
