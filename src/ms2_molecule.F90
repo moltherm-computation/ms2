@@ -227,7 +227,7 @@ contains
     integer       :: npossPartners
 
     ! Inner Degrees of Freedom
-    integer       :: k, index, index1, index2
+    integer       :: k, index, index1, index2, iUnit
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
@@ -580,38 +580,38 @@ contains
           end do
         end if
         ! Construct not constrained Units
-        do i = (this%NConstraint+1), this%nUnits
-          call Construct(this%Unit(i), .false., 1)
-          this%Unit(i)%SiteIds=this%NotConstraintSiteIds(i-this%NConstraint)
+        do iUnit = (this%NConstraint+1), this%nUnits
+          call Construct(this%Unit(iUnit), .false., 1)
+          this%Unit(iUnit)%SiteIds=this%NotConstraintSiteIds(iUnit-this%NConstraint)
           ! To know about this site parameters like in Constraint Unit
-          call binar_search(this%SiteMIEnm%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+          call binar_search(this%SiteMIEnm%SiteId, this%Unit(iUnit)%SiteIds(1), ok, index )
           if (ok) then
-            this%Unit(i)%NMIEnm=1
-            this%Unit(i)%SiteMIEnm(1)=this%SiteMIEnm(index)
-            this%SiteMIEnm(index)%UnitNumber = i
+            this%Unit(iUnit)%NMIEnm=1
+            this%Unit(iUnit)%SiteMIEnm(1)=this%SiteMIEnm(index)
+            this%SiteMIEnm(index)%UnitNumber = iUnit
           end if
           if  ( .not. ok .and. this%NCharge > 0) then
-            call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            call binar_search(this%SiteCharge%SiteId, this%Unit(iUnit)%SiteIds(1), ok, index )
             if (ok) then
-              this%Unit(i)%NCharge=1
-              this%Unit(i)%SiteCharge(1)=this%SiteCharge(index)
-              this%SiteCharge(index)%UnitNumber = i
+              this%Unit(iUnit)%NCharge=1
+              this%Unit(iUnit)%SiteCharge(1)=this%SiteCharge(index)
+              this%SiteCharge(index)%UnitNumber = iUnit
             end if
           end if
           if  ( .not. ok .and. this%NDipole > 0) then
-            call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            call binar_search(this%SiteDipole%SiteId, this%Unit(iUnit)%SiteIds(1), ok, index )
             if (ok) then
-              this%Unit(i)%NDipole=1
-              this%Unit(i)%SiteDipole(1)=this%SiteDipole(index)
-              this%SiteDipole(index)%UnitNumber = i
+              this%Unit(iUnit)%NDipole=1
+              this%Unit(iUnit)%SiteDipole(1)=this%SiteDipole(index)
+              this%SiteDipole(index)%UnitNumber = iUnit
             end if
           end if
           if  ( .not. ok .and. this%NQuadrupole > 0) then
-            call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+            call binar_search(this%SiteQuadrupole%SiteId, this%Unit(iUnit)%SiteIds(1), ok, index )
             if (ok) then
-              this%Unit(i)%NQuadrupole=1
-              this%Unit(i)%SiteQuadrupole(1)=this%SiteQuadrupole(index)
-              this%SiteQuadrupole(index)%UnitNumber = i
+              this%Unit(iUnit)%NQuadrupole=1
+              this%Unit(iUnit)%SiteQuadrupole(1)=this%SiteQuadrupole(index)
+              this%SiteQuadrupole(index)%UnitNumber = iUnit
             end if
           end if
           ! Finish to know Unit Site's parameters
@@ -750,17 +750,17 @@ contains
     this%UnitDP = 1
     this%UnitQP = 1
 
-    do i=2, this%nUnits+1
-      this%UnitLJ(i) = this%Unit(i-1)%NMIEnm  + this%UnitLJ(i-1)
-      this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
-      this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
-      this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
+    do iUnit=2, this%nUnits+1
+      this%UnitLJ(iUnit) = this%Unit(iUnit-1)%NMIEnm  + this%UnitLJ(iUnit-1)
+      this%UnitC(iUnit)  = this%Unit(iUnit-1)%NCharge + this%UnitC(iUnit-1)
+      this%UnitDP(iUnit) = this%Unit(iUnit-1)%NDipole + this%UnitDP(iUnit-1)
+      this%UnitQP(iUnit) = this%Unit(iUnit-1)%NQuadrupole + this%UnitQP(iUnit-1)
     end do
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
     this%NDF = 0
-    do i = 1, this%nUnits
-      call FindCOM ( this%Unit(i) )
+    do iUnit = 1, this%nUnits
+      call FindCOM ( this%Unit(iUnit) )
     end do
 
     call FindMOI(this) ! if NDFRot < 0
@@ -943,10 +943,10 @@ contains
        AllSites(Site4,Site3)=0
      end do
 
-     do i = 1, this%nUnits
-        if (this%Unit(i)%NSites>1) then
-           do j=1, this%Unit(i)%NSites
-              AllSites(this%Unit(i)%SiteIds(j),this%Unit(i)%SiteIds(:))=0
+     do iUnit = 1, this%nUnits
+        if (this%Unit(iUnit)%NSites>1) then
+           do j=1, this%Unit(iUnit)%NSites
+              AllSites(this%Unit(iUnit)%SiteIds(j),this%Unit(iUnit)%SiteIds(:))=0
            end do
          end if
       end do
@@ -1392,22 +1392,22 @@ contains
       end do
 
       ! For Unit Sites as well
-      do i = 1, this%nUnits
-        do j = 1, this%Unit(i)%NMIEnm
-          this%Unit(i)%SiteMIEnm(j)%sig = this%Unit(i)%SiteMIEnm(j)%sig * scalesig
-          this%Unit(i)%SiteMIEnm(j)%eps = this%Unit(i)%SiteMIEnm(j)%eps * scaleeps
+      do iUnit = 1, this%nUnits
+        do j = 1, this%Unit(iUnit)%NMIEnm
+          this%Unit(iUnit)%SiteMIEnm(j)%sig = this%Unit(iUnit)%SiteMIEnm(j)%sig * scalesig
+          this%Unit(iUnit)%SiteMIEnm(j)%eps = this%Unit(iUnit)%SiteMIEnm(j)%eps * scaleeps
         end do
-        do j = 1, this%Unit(i)%NCharge
-          this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
-          this%Unit(i)%SiteCharge(j)%e      = this%Unit(i)%SiteCharge(j)%e * scaleest
+        do j = 1, this%Unit(iUnit)%NCharge
+          this%Unit(iUnit)%SiteCharge(j)%shield = this%Unit(iUnit)%SiteCharge(j)%shield * scalegeo
+          this%Unit(iUnit)%SiteCharge(j)%e      = this%Unit(iUnit)%SiteCharge(j)%e * scaleest
         end do
-        do j = 1, this%Unit(i)%NDipole
-          this%Unit(i)%SiteDipole(j)%shield = this%Unit(i)%SiteDipole(j)%shield * scalegeo
-          this%Unit(i)%SiteDipole(j)%D      = this%Unit(i)%SiteDipole(j)%D * scaleest
+        do j = 1, this%Unit(iUnit)%NDipole
+          this%Unit(iUnit)%SiteDipole(j)%shield = this%Unit(iUnit)%SiteDipole(j)%shield * scalegeo
+          this%Unit(iUnit)%SiteDipole(j)%D      = this%Unit(iUnit)%SiteDipole(j)%D * scaleest
         end do
-        do j = 1, this%Unit(i)%NQuadrupole
-          this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
-          this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
+        do j = 1, this%Unit(iUnit)%NQuadrupole
+          this%Unit(iUnit)%SiteQuadrupole(j)%shield = this%Unit(iUnit)%SiteQuadrupole(j)%shield * scalegeo
+          this%Unit(iUnit)%SiteQuadrupole(j)%Q      = this%Unit(iUnit)%SiteQuadrupole(j)%Q * scaleest
         end do
       end do
 
@@ -1431,23 +1431,23 @@ contains
     call FileClose( potmodFile%iounit )
 
     ! Reduction of point charges and dipoles of units to body fixed dipole vector
-    do i=1, this%nUnits
-      this%Unit(i)%Mue(:) = 0._RK
-      if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
+    do iUnit=1, this%nUnits
+      this%Unit(iUnit)%Mue(:) = 0._RK
+      if( (this%Unit(iUnit)%NCharge > 0).or.(this%Unit(iUnit)%NDipole > 0) ) then
         if (LongRange .ne. Ewald) then
           if (LongRange .ne. PME) then
-            do j =1, this%Unit(i)%NCharge
-              this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                      this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+            do j =1, this%Unit(iUnit)%NCharge
+              this%Unit(iUnit)%Mue(:) = this%Unit(iUnit)%Mue(:) + &
+&                      this%Unit(iUnit)%SiteCharge(j)%r(:) * this%Unit(iUnit)%SiteCharge(j)%e
             end do
           end if
         end if
-        do j =1, this%Unit(i)%NDipole
-          this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                    this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
+        do j =1, this%Unit(iUnit)%NDipole
+          this%Unit(iUnit)%Mue(:) = this%Unit(iUnit)%Mue(:) + &
+&                    this%Unit(iUnit)%SiteDipole(j)%or(:) * this%Unit(iUnit)%SiteDipole(j)%D
         end do
       end if
-      this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
+      this%Unit(iUnit)%MueSquared = sum( this%Unit(iUnit)%Mue(:)**2 )
     end do
 
     ! Reduction of point charges and dipoles to body fixed dipole vector

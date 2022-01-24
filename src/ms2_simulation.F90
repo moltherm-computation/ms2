@@ -1692,7 +1692,7 @@ contains
     real(RK) :: Shakesave
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
-    integer :: k
+    integer :: k, iUnit
 
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
@@ -1968,10 +1968,10 @@ eqloop: do
         do k = 1, this%NEnsembles
           do j = 1, this%Ensemble(k)%NComponents
             do i = 1, this%Ensemble(k)%Component(j)%NPart
-              do l = 1, this%Ensemble(k)%Component(j)%Molecule%nUnits
+              do iUnit = 1, this%Ensemble(k)%Component(j)%Molecule%nUnits
                 do m = 1, 3
       ! Michael Sch.: offsetting all unit velocities by +/- 10%, before all velocities within a molecule are the same
-                  this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
+                  this%Ensemble(k)%Component(j)%P1(i,m,iUnit) = this%Ensemble(k)%Component(j)%P1(i,m,iUnit) &
 &                                                           * ( 1._RK + 0.1_RK * rnd(-1._RK,1._RK) )
                 end do
               end do

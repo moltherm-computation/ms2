@@ -3333,7 +3333,7 @@ contains
     ! Declare local variables
     real(RK)                  :: s
     type(TComponent), pointer :: pc
-    integer                   :: i,t
+    integer                   :: i, t, iUnit
     integer                   :: k, j,  nUnitsMax
 
     ! Adjust number of cells to cube of integer
@@ -3418,8 +3418,8 @@ contains
       pc%Fraction = real( pc%NPart, RK ) / real( this%NPart, RK )
       pc%NDFTran = pc%NPart * pc%Molecule%nUnits * 3  ! all unit*3
       pc%NDFRot=0
-      do j = 1, pc%Molecule%nUnits
-        pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(j)%NDFRot ! for one molecule
+      do iUnit = 1, pc%Molecule%nUnits
+        pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(iUnit)%NDFRot ! for one molecule
       end do
      ! Inner Degrees of Freedom of one particle
       if (UseIntDegFreed .and. Shake > 0 ) then
@@ -3572,7 +3572,7 @@ contains
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer                   :: i, j
+    integer                   :: i, iUnit
     type(TComponent), pointer :: pc
 
     ! Set mole fractions according to real number of particles
@@ -3585,8 +3585,8 @@ contains
       this%Component(i)%Fraction = real( pc%NPart, RK ) / real( this%NPart, RK )
       pc%NDFTran = pc%NPart * pc%Molecule%nUnits * 3
       pc%NDFRot=0
-      do j = 1, pc%Molecule%nUnits
-        pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(j)%NDFRot ! for one molecule
+      do iUnit = 1, pc%Molecule%nUnits
+        pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(iUnit)%NDFRot ! for one molecule
       end do
       if ( Shake > 0 .and. UseIntDegFreed) then
           this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
@@ -4577,7 +4577,7 @@ contains
     type(TComponent), pointer       :: pc
     type(TPotMIEnmMIEnm), pointer   :: pmie
     type(TPotTT68TT68), pointer     :: ptt68
-    integer                         :: i1, i2, j1, j2
+    integer                         :: i1, i2, j1, j2, iUnit
     real(RK)                        :: fac
     real(RK)                        :: fac_neutral, fac_charge1, fac_charge2
     real(RK)                        :: totcharge, sumcharge
@@ -4672,13 +4672,13 @@ contains
         do i1 = 1, this%NComponents
           pc => this%Component(i1)
           pc%EPotTestCorrRF = 0._RK
-          do j1 = 1, pc%Molecule%nUnits
+          do iUnit = 1, pc%Molecule%nUnits
             if (.not. UseIntDegFreed) then
                 this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
                 pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%MueSquared * 2._RK * RFConst
             else
-                this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%Unit(j1)%MueSquared * pc%NPart
-                pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%Unit(j1)%MueSquared * 2._RK * RFConst
+                this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%Unit(iUnit)%MueSquared * pc%NPart
+                pc%EPotTestCorrRF = pc%EPotTestCorrRF + pc%Molecule%Unit(iUnit)%MueSquared * 2._RK * RFConst
             end if
           end do
         end do
@@ -4719,8 +4719,8 @@ contains
 &                   fac_charge2 * totcharge * pc%NPart / NProcs
 
           else ! charged
-            do j1 = 1, pc%Molecule%nUnits
-              this%EPotCorrRFPart = this%EPotCorrRFPart - fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart / NProcs
+            do iUnit = 1, pc%Molecule%nUnits
+              this%EPotCorrRFPart = this%EPotCorrRFPart - fac_neutral / 3._RK * pc%Molecule%Unit(iUnit)%MueSquared * pc%NPart / NProcs
               this%VirialCorrRF   = this%VirialCorrRF - fac_neutral / (4._RK*PI) * this%RefTemperature * &
 &                       (1._RK-1._RK/this%RFEpsilon) / NProcs
             end do
@@ -4936,7 +4936,7 @@ xloop:do i = 1, NCells1dim(1)
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer                   :: i, j, k
+    integer                   :: i, j, k, iUnit
     real(RK)                  :: dq(3), pm(3), r
     type(TComponent), pointer :: pc
 
@@ -4961,8 +4961,8 @@ xloop:do i = 1, NCells1dim(1)
               end do
               call InitUnit(pc,j,dq)
               call Unit2Mol( pc, j )
-              do k = 1, pc%Molecule%nUnits
-                pc%P0(j,:,k) = pc%P0(j,:,k) + pm(:) - pc%Pm0(j,:)
+              do iUnit = 1, pc%Molecule%nUnits
+                pc%P0(j,:,iUnit) = pc%P0(j,:,iUnit) + pm(:) - pc%Pm0(j,:)
               end do
               pc%Pm0(j,:) = pm(:)
           end if
@@ -5433,7 +5433,7 @@ loop5:  do nc = 1, this%NComponents
     ! Declare local variables
     integer  :: r, s
     integer  :: nc, np, ndf
-    integer  :: i, k, NPart2, t, nu, denominator
+    integer  :: i, k, NPart2, t, iUnit, nu, denominator
     real(RK) :: rx, sx
     real(RK) :: diffpressure
     real(RK) :: EPot, d2EdV2, Virial
@@ -5461,43 +5461,43 @@ loop1:do nc = 1, this%NComponents
       t = 1 + ((s - r) - (np-1) * ndf)
 
       ! Assign Unit
-loop2:do nu = 1, this%Component(nc)%Molecule%nUnits
-        if (t <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit loop2
+loop2:do iUnit = 1, this%Component(nc)%Molecule%nUnits
+        if (t <= sum(this%Component(nc)%Molecule%Unit(1:iUnit)%NDF)) exit loop2
       end do loop2
 
       ! Move or Rotate Unit
-      if ( this%Component(nc)%Molecule%Unit(nu)%isElongated ) then
+      if ( this%Component(nc)%Molecule%Unit(iUnit)%isElongated ) then
         if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
           ! Move or rotate for NVE ensemble
           if( (mod( s - r, ndf ) < 3 .and. .not. UseIntDegFreed) .or. (mod( s - r, 2 ) .eq. 0 .and. UseIntDegFreed)) then
-            call Move_NVE( this, nc, np, nu )
+            call Move_NVE( this, nc, np, iUnit )
           else
-            call Rotate_NVE( this, nc, np, nu )
+            call Rotate_NVE( this, nc, np, iUnit )
           end if
 
         else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
           ! Move or rotate for NPH ensemble
           if( mod( s - r, 2 ) .eq. 0 ) then
-            call Move_NPH( this, nc, np, nu )
+            call Move_NPH( this, nc, np, iUnit )
           else
-            call Rotate_NPH( this, nc, np, nu )
+            call Rotate_NPH( this, nc, np, iUnit )
           end if
 
         else
           ! Move or rotate for constant temperature ensembles
           if( (mod( s - r, ndf ) < 3 .and. .not. UseIntDegFreed) .or. (mod( s - r, 2 ) .eq. 0 .and. UseIntDegFreed)) then
-            call Move( this, nc, np, nu )
+            call Move( this, nc, np, iUnit )
           else
-            call Rotate( this, nc, np, nu )
+            call Rotate( this, nc, np, iUnit )
           end if
         endif
       else
         if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
-          call Move_NVE( this, nc, np, nu )
+          call Move_NVE( this, nc, np, iUnit )
         else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
-          call Move_NPH( this, nc, np, nu )
+          call Move_NPH( this, nc, np, iUnit )
         else
-          call Move( this, nc, np, nu )
+          call Move( this, nc, np, iUnit )
         endif
       end if
     end do
@@ -5702,7 +5702,7 @@ loop5:    do nc = 1, this%NComponents
     real(RK)                    :: r, rdist, rsquared(NSteps)
     real(RK)                    :: betaneg, betaneg1, betaneg2, Bij0
     integer                     :: i, j, n, np
-    integer                     :: nu
+    integer                     :: iUnit
     type(TInteraction), pointer :: pi
 
     ! Inverse temperature
@@ -5737,10 +5737,10 @@ loop5:    do nc = 1, this%NComponents
 
         ! Loop over units
         do np = 1, this%Component(i)%NPart
-          do nu = 1, this%Component(i)%Molecule%nUnits
+          do iUnit = 1, this%Component(i)%Molecule%nUnits
             call EnergySVC( pi, np, this%BoxLength )
             if ( pi%SameComponent .and. UseIntDegFreed ) then
-              call IntraEnergy( pi, np, nu, this%BoxLength )
+              call IntraEnergy( pi, np, iUnit, this%BoxLength )
             end if
           end do
 
@@ -6770,7 +6770,7 @@ loop5:    do nc = 1, this%NComponents
     integer                   :: ndf, ndfmove, ndfbiased, ndffluct, ndfchange, ndfcp
     integer                   :: r, s, nc, np, ncf, npf
     integer                   :: ratio, sndf, nuh
-    integer                   :: nu, nuh2, j0, j1, selected
+    integer                   :: iUnit, nuh2, j0, j1, selected
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
@@ -6863,12 +6863,12 @@ loop5:    do nc = 1, this%NComponents
                   do t = 1, 3
                     rm(t) = rnd( -.5_RK, .5_RK )
                   end do
-                  do r = 1, pc%Molecule%nUnits
-                    pc%P0Test(j,:,r) = pc%Molecule%Unit(r)%P0(:) + rm(:)
+                  do iUnit = 1, pc%Molecule%nUnits
+                    pc%P0Test(j,:,iUnit) = pc%Molecule%Unit(iUnit)%P0(:) + rm(:)
                   end do
                   if (pc%Molecule%isElongated) then
-                    do r = 1, pc%Molecule%nUnits
-                      pc%Q0Test(j,:,r) = pc%Molecule%Unit(r)%Q0(:)
+                    do iUnit = 1, pc%Molecule%nUnits
+                      pc%Q0Test(j,:,iUnit) = pc%Molecule%Unit(iUnit)%Q0(:)
                     end do
                     do t = 1, 3
                       rm(t) = rnd( -1._RK, 1._RK )
@@ -6885,11 +6885,11 @@ loop5:    do nc = 1, this%NComponents
                     rm(t) = rnd( -.5_RK, .5_RK )
                   end do
                   selected = rnd( pc%NPart )
-                  do r = 1, pc%Molecule%nUnits
-                    pc%P0Test(j,1:3,r) = pc%P0(selected,1:3,r) + rm(1:3)
+                  do iUnit = 1, pc%Molecule%nUnits
+                    pc%P0Test(j,1:3,iUnit) = pc%P0(selected,1:3,iUnit) + rm(1:3)
                   end do
-                  do r = 1, pc%Molecule%nUnits
-                    pc%P0Test(j,1:3,r) = pc%P0Test(j,1:3,r) - pc%Pm0(selected,1:3)
+                  do iUnit = 1, pc%Molecule%nUnits
+                    pc%P0Test(j,1:3,iUnit) = pc%P0Test(j,1:3,iUnit) - pc%Pm0(selected,1:3)
                   end do
 
                   if (pc%Molecule%isElongated) then
@@ -7005,9 +7005,9 @@ loop1:        do nc = 1, this%NComponents
 
               ! Move or rotate
               if( mod( s - r, ndf ) < 3 ) then
-                call Move( this, nc, np, nu )
+                call Move( this, nc, np, iUnit )
               else
-                call Rotate( this, nc, np, nu )
+                call Rotate( this, nc, np, iUnit )
               end if
 
             else if( r <= (ndfmove + ndfbiased) ) then
@@ -7022,9 +7022,9 @@ loop2:        do nc = 1, this%NComponents
               np = this%BiasedPartners(int((nuh-sndf)*this%Component(nc)%BiasedPartnersNum / this%Component(nc)%BiasedPartners)+1)
               nuh= int(( (r-1)/(ndfbiased/ratio)*this%NGradIns + 1 ) * ndf - nuh )
               nuh2 = 0
-              do nu = 1, this%Component(nc)%Molecule%nUnits
-                if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:nu)%NDF)) exit
-                nuh2 = nuh2 + this%Component(nc)%Molecule%Unit(nu)%NDF
+              do iUnit = 1, this%Component(nc)%Molecule%nUnits
+                if (nuh <= sum(this%Component(nc)%Molecule%Unit(1:iUnit)%NDF)) exit
+                nuh2 = nuh2 + this%Component(nc)%Molecule%Unit(iUnit)%NDF
               end do
 
               ! Acceleration of MC Moves
@@ -7032,9 +7032,9 @@ loop2:        do nc = 1, this%NComponents
 
               ! Move or rotate biased
               if( (mod( sndf - r, ndf)-nuh2) < 3 ) then
-                call MoveBiased( this, nc, np, nu, ncf, npf )
+                call MoveBiased( this, nc, np, iUnit, ncf, npf )
               else
-                call RotateBiased( this, nc, np, nu, ncf, npf )
+                call RotateBiased( this, nc, np, iUnit, ncf, npf )
               end if
 
             else if( r <= (ndfmove + ndfbiased + ndffluct) ) then
@@ -7298,12 +7298,12 @@ loop2:        do nc = 1, this%NComponents
             pc%currentBinsEn = pc%currentBinsEn + E - GetEnergyIntra( this, t, 1 )
           else
             E = 0._RK; EIntra = 0._RK; EBond = 0._RK; EAngle = 0._RK; EDihedral = 0._RK; F(:,:) = 0._RK
-            nu =this%Component(t)%Molecule%nUnits
+            iUnit =this%Component(t)%Molecule%nUnits
             do j = 1, this%NComponents
               if (j > t) then
-                call MDEnergy( this%Interaction(t,j), nu, F(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
+                call MDEnergy( this%Interaction(t,j), iUnit, F(:,1:iUnit), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .true. )
               else
-                call MDEnergy( this%Interaction(j,t), nu, F(:,1:nu), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .false. )
+                call MDEnergy( this%Interaction(j,t), iUnit, F(:,1:iUnit), E, EIntra, EBond, EAngle, EDihedral, this%BoxLength, .false. )
               end if
             end do
             E = E - EIntra
@@ -7442,8 +7442,8 @@ loop2:        do nc = 1, this%NComponents
     ! Declare local variables
     type(TInteraction), pointer :: pi
     integer                     :: nc, np
-    integer                     :: nu1, nu
-    integer                     :: i, iUnit
+    integer                     :: nu1, iUnit, nu
+    integer                     :: i
     logical                     :: matrixhalf
     real(RK)                    :: Intra
 
@@ -7583,18 +7583,18 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: i, nu
+    integer                     :: i, iUnit
 
     ! Initialize new energy
     EPotNew = 0._RK
 
     ! Loop over components
-    do nu=1,this%Component(nc)%Molecule%nUnits
+    do iUnit=1,this%Component(nc)%Molecule%nUnits
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
-        call Energy( pi, np, nu, this%BoxLength, .false. )
+        call Energy( pi, np, iUnit, this%BoxLength, .false. )
         if ( pi%SameComponent .and. UseIntDegFreed ) then
-          call IntraEnergy( pi, np, nu, this%BoxLength )
+          call IntraEnergy( pi, np, iUnit, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
         ! Calculate new energy
@@ -7631,7 +7631,7 @@ loop2:        do nc = 1, this%NComponents
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: i, nu
+    integer                     :: i, iUnit
 
     ! Initialize new energy
     EPotNew = 0._RK
@@ -7639,12 +7639,12 @@ loop2:        do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
-      do nu = 1,pi%nUnits(1)
+      do iUnit = 1,pi%nUnits(1)
 
-        call Energy( pi, np, nu, this%BoxLength, .false. )
+        call Energy( pi, np, iUnit, this%BoxLength, .false. )
 
         if ( pi%SameComponent .and. UseIntDegFreed ) then
-          call IntraEnergy( pi, np, nu, this%BoxLength )
+          call IntraEnergy( pi, np, iUnit, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
         end if
 
@@ -9077,7 +9077,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK), intent(in)   :: factor
 
     ! Declare local variables
-    integer                 :: i
+    integer                 :: i, iUnit
 
     do i = 1, this%NComponents
       if (nt == i) cycle
@@ -9145,8 +9145,8 @@ loop2:        do nc = 1, this%NComponents
       endif
     end do
     if( associated(this%Component(nt)%MueX)) then  ! if MueX then also MueY and Z
-      do i=1,this%Component(nt)%Molecule%nUnits
-        this%Component(nt)%Molecule%Unit(i)%Mue(:) = this%Component(nt)%Molecule%Unit(i)%Mue(:) * Factor
+      do iUnit=1,this%Component(nt)%Molecule%nUnits
+        this%Component(nt)%Molecule%Unit(iUnit)%Mue(:) = this%Component(nt)%Molecule%Unit(iUnit)%Mue(:) * Factor
         this%Component(nt)%Molecule%Mue(:) = this%Component(nt)%Molecule%Mue(:) * Factor
       end do
 
@@ -17461,7 +17461,7 @@ end if
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer                   :: i, j, k, num
+    integer                   :: i, j, iUnit, num
     type(TSiteMIEnm), pointer :: psMIEnm
     type(TSiteTT68), pointer  :: psTT68
     type(TSiteCharge), pointer :: psCharge
@@ -17475,19 +17475,19 @@ end if
     num = 0
     do i = 1, this%NComponents
       if( this%NMIEnmMax > 0 ) then
-        do k = 1, this%Component(i)%Molecule%nUnits
-          if (this%Component(i)%Molecule%Unit(k)%NMIEnm > 0) then
-            do j = 1, this%Component(i)%Molecule%Unit(k)%NMIEnm
-              psMIEnm => this%Component(i)%Molecule%Unit(k)%SiteMIEnm(j)
+        do iUnit = 1, this%Component(i)%Molecule%nUnits
+          if (this%Component(i)%Molecule%Unit(iUnit)%NMIEnm > 0) then
+            do j = 1, this%Component(i)%Molecule%Unit(iUnit)%NMIEnm
+              psMIEnm => this%Component(i)%Molecule%Unit(iUnit)%SiteMIEnm(j)
               write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
 &                  psMIEnm%sig  * UnitLength / Angstroem
               call FileWrite(this%visualFile)
             end do
           else  ! For visualisation of Units with no LJ sites
             ch_sig = UnitLength * 0.2
-            do j = 1, this%Component(i)%Molecule%Unit(k)%NCharge
-              psCharge => this%Component(i)%Molecule%Unit(k)%SiteCharge(j)
-              write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+k), &
+            do j = 1, this%Component(i)%Molecule%Unit(iUnit)%NCharge
+              psCharge => this%Component(i)%Molecule%Unit(iUnit)%SiteCharge(j)
+              write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+iUnit), &
 &                psCharge%r(:) * UnitLength / Angstroem, ch_sig
               call FileWrite(this%visualFile)
             end do
@@ -17531,7 +17531,7 @@ end if
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, k, num
+    integer  :: i, j, iUnit, num
     logical  :: l
     real(RK) :: r(3), q(4)
 
@@ -17545,20 +17545,20 @@ end if
     call FileWrite(this%visualFile)
     do i = 1, this%NComponents
       do j = 1, this%Component(i)%NPart
-        do k = 1, this%Component(i)%Molecule%nUnits
-          l = this%Component(i)%Molecule%Unit(k)%isElongated
-          r(:) = this%Component(i)%P0(j, :, k) + .5_RK
+        do iUnit = 1, this%Component(i)%Molecule%nUnits
+          l = this%Component(i)%Molecule%Unit(iUnit)%isElongated
+          r(:) = this%Component(i)%P0(j, :, iUnit) + .5_RK
 
           if( l ) then
-            q(:) = this%Component(i)%Q0(j, :, k)
+            q(:) = this%Component(i)%Q0(j, :, iUnit)
           else
             q(1) = 1._RK
             q(2:4) = .0_RK
           end if
           if (.not. UseIntDegFreed) then
-              write( IOBuffer, '("!", I3,  3I4, 4I5)' ) (num+k),  nint( r(:) * 999 ), nint( q(:) * 999 )
+              write( IOBuffer, '("!", I3,  3I4, 4I5)' ) (num+iUnit),  nint( r(:) * 999 ), nint( q(:) * 999 )
           else
-              write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
+              write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+iUnit),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
           end if
           call FileWrite(this%visualFile)
         end do
@@ -24045,7 +24045,7 @@ if( RootProc .and. this%CorrfunMode ) then
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: nc, i, i1, i2, j, n, n2, n3, k, nu
+    integer                   :: nc, i, i1, i2, j, n, n2, n3, iUnit, nu
     real(RK)                  :: C(this%NPart*this%nUnitsMax* 3), Q(this%NPart*this%nUnitsMax*4)
 
     if( .not. RootProc ) return
@@ -24062,14 +24062,14 @@ if( RootProc .and. this%CorrfunMode ) then
       i2 = i2 + pc%NPart
       do i = i1, i2
         j = i - i1 + 1
-        do k = 1, pc%Molecule%nUnits
-          C(i*nu+k) = pc%P0(j, 1, k)
-          C(i*nu+k+n) = pc%P0(j, 2, k)
-          C(i*nu+k+n2) = pc%P0(j, 3, k)
-          Q(i*nu+k) = pc%Q0(j, 1, k)
-          Q(i*nu+k+n) = pc%Q0(j, 2, k)
-          Q(i*nu+k+n2) = pc%Q0(j, 3, k)
-          Q(i*nu+k+n3) = pc%Q0(j, 4, k)
+        do iUnit = 1, pc%Molecule%nUnits
+          C(i*nu+iUnit) = pc%P0(j, 1, iUnit)
+          C(i*nu+iUnit+n) = pc%P0(j, 2, iUnit)
+          C(i*nu+iUnit+n2) = pc%P0(j, 3, iUnit)
+          Q(i*nu+iUnit) = pc%Q0(j, 1, iUnit)
+          Q(i*nu+iUnit+n) = pc%Q0(j, 2, iUnit)
+          Q(i*nu+iUnit+n2) = pc%Q0(j, 3, iUnit)
+          Q(i*nu+iUnit+n3) = pc%Q0(j, 4, iUnit)
         end do
       end do
       i1 = i2 + 1
@@ -28397,7 +28397,7 @@ end subroutine  TEnsemble_infnan
     real(RK)                  :: dq(3), EPotOld, EPotNew
     real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc
-    integer                   :: i, nUnits
+    integer                   :: i, nUnits, iUnit
     real(RK)                  :: EPotDelta
     logical                   :: accepted
 
@@ -28409,9 +28409,9 @@ end subroutine  TEnsemble_infnan
     pc%NRotateAttempts = pc%NRotateAttempts + 1
 
     ! Save old positions
-    do i=1,nUnits
-      p(:,i) = pc%P0(np, :, i)
-      q(:,i) = pc%Q0(np, :, i)
+    do iUnit=1,nUnits
+      p(:,iUnit) = pc%P0(np, :, iUnit)
+      q(:,iUnit) = pc%Q0(np, :, iUnit)
     end do
 
     ! Calculate old Energies
@@ -28481,10 +28481,10 @@ end subroutine  TEnsemble_infnan
           this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
           this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
         END DO
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call EwaldFourierEnergy(this,nc,np)
 
@@ -28493,19 +28493,19 @@ end subroutine  TEnsemble_infnan
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min(this, nc, np)
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call chargegrid_plus(this, nc, np)
 #endif
 
       else
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
       end if
 
@@ -28537,7 +28537,7 @@ end subroutine  TEnsemble_infnan
     real(RK)                  :: EFourier, EVirial
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
-    integer                   :: i, j, nUnits
+    integer                   :: i, iUnit, nUnits
     logical                   :: accepted
 
     ! Assign local variables
@@ -28573,9 +28573,9 @@ end subroutine  TEnsemble_infnan
       trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
       pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
       pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
-      do j=1, nUnits
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
+      do iUnit=1, nUnits
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) + trans(i)
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) - anint( pc%P0(np, i, iUnit) )
       end do
     end do
     
@@ -28624,10 +28624,10 @@ end subroutine  TEnsemble_infnan
         END DO
 
         pc%Pm0(np, :) = rm(:)
-        do j=1, nUnits
-          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-          call Unit2Atom1( pc, np, j )
+        do iUnit=1, nUnits
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call EwaldFourierEnergy(this,nc,np)
 
@@ -28637,19 +28637,19 @@ end subroutine  TEnsemble_infnan
         this%EVirial  = EVirial
         call chargegrid_min(this, nc, np)
         pc%Pm0(np, :) = rm(:)
-        do j=1, nUnits
-          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-          call Unit2Atom1( pc, np, j )
+        do iUnit=1, nUnits
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
-        do j=1, nUnits
-          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-          call Unit2Atom1( pc, np, j )
+        do iUnit=1, nUnits
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+          call Unit2Atom1( pc, np, iUnit )
         end do
       end if
 
@@ -28685,7 +28685,7 @@ end subroutine  TEnsemble_infnan
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i, iUnit
     integer                   :: nUnits
     real(RK)                  :: EPotDelta
 
@@ -28697,9 +28697,9 @@ end subroutine  TEnsemble_infnan
     pc%NRotateMolAttempts = pc%NRotateMolAttempts + 1
 
     ! Save old positions
-    do i=1,nUnits
-      p(:,i) = pc%P0(np, :, i)
-      q(:,i) = pc%Q0(np, :, i)
+    do iUnit=1,nUnits
+      p(:,iUnit) = pc%P0(np, :, iUnit)
+      q(:,iUnit) = pc%Q0(np, :, iUnit)
     end do
 
     ! Calculate old Energies
@@ -28771,10 +28771,10 @@ end subroutine  TEnsemble_infnan
           this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
           this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
         END DO
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call EwaldFourierEnergy(this,nc,np)
 
@@ -28783,18 +28783,18 @@ end subroutine  TEnsemble_infnan
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min(this, nc, np)
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call chargegrid_plus(this, nc, np)
 #endif
       else
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
       end if
 
@@ -28830,7 +28830,7 @@ end subroutine  TEnsemble_infnan
 #endif
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
-    integer                   :: i, j
+    integer                   :: i, iUnit
     integer                   :: nUnits
 
     ! Assign local variables
@@ -28865,9 +28865,9 @@ end subroutine  TEnsemble_infnan
       trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
       pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
       pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
-      do j=1, nUnits
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
+      do iUnit=1, nUnits
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) + trans(i)
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) - anint( pc%P0(np, i, iUnit) )
       end do
 
     end do
@@ -28919,10 +28919,10 @@ end subroutine  TEnsemble_infnan
             this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
           END DO
           pc%Pm0(np, :) = rm(:)
-          do j=1, nUnits
-            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-            call Unit2Atom1( pc, np, j )
+          do iUnit=1, nUnits
+            pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+            pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+            call Unit2Atom1( pc, np, iUnit )
           end do
           call EwaldFourierEnergy(this,nc,np)
 
@@ -28932,19 +28932,19 @@ end subroutine  TEnsemble_infnan
           this%EVirial  = EVirial
           call chargegrid_min(this, nc, np)
           pc%Pm0(np, :) = rm(:)
-          do j=1, nUnits
-            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-            call Unit2Atom1( pc, np, j )
+          do iUnit=1, nUnits
+            pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+            pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+            call Unit2Atom1( pc, np, iUnit )
           end do
           call chargegrid_plus(this, nc, np)
 #endif
       else
         pc%Pm0(np, :) = rm(:)
-        do j=1, nUnits
-          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
-          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
-          call Unit2Atom1( pc, np, j )
+        do iUnit=1, nUnits
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - trans(:)
+          pc%P0(np, :, iUnit) = pc%P0(np, :, iUnit) - anint( pc%P0(np, :, iUnit) )
+          call Unit2Atom1( pc, np, iUnit )
         end do
       end if
 
@@ -28980,7 +28980,7 @@ end subroutine  TEnsemble_infnan
     real(RK)                  :: EVirial
 #endif
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i, iUnit
     integer                   :: nUnits
     real(RK)                  :: EPotDelta
     logical                   :: accepted
@@ -28993,9 +28993,9 @@ end subroutine  TEnsemble_infnan
     pc%NRotateMolAttempts = pc%NRotateMolAttempts + 1
 
     ! Save old positions
-    do i=1,nUnits
-      p(:,i) = pc%P0(np, :, i)
-      q(:,i) = pc%Q0(np, :, i)
+    do iUnit=1,nUnits
+      p(:,iUnit) = pc%P0(np, :, iUnit)
+      q(:,iUnit) = pc%Q0(np, :, iUnit)
     end do
     ! Calculate old Energies
     call EnergyinRC( this, nc, np, EPotOld )   ! IDF
@@ -29062,10 +29062,10 @@ end subroutine  TEnsemble_infnan
           this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
           this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
         END DO
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call EwaldFourierEnergy(this,nc,np)
 
@@ -29074,18 +29074,18 @@ end subroutine  TEnsemble_infnan
         this%UFourier = EFourier
         this%EVirial  = EVirial
         call chargegrid_min(this, nc, np)
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
         call chargegrid_plus(this, nc, np)
 #endif
       else
-        do i=1,nUnits
-          pc%P0(np, :, i) = p(:,i)
-          pc%Q0(np, :, i) = q(:,i)
-          call Unit2Atom1( pc, np, i )
+        do iUnit=1,nUnits
+          pc%P0(np, :, iUnit) = p(:,iUnit)
+          pc%Q0(np, :, iUnit) = q(:,iUnit)
+          call Unit2Atom1( pc, np, iUnit )
         end do
       end if
 
@@ -29122,7 +29122,7 @@ end subroutine  TEnsemble_infnan
 #endif
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
-    integer                   :: i, j, nUnits
+    integer                   :: i, j, nUnits, iUnit
     logical                   :: accepted
 
     ! Assign local variables
@@ -29157,9 +29157,9 @@ end subroutine  TEnsemble_infnan
     do i = 1, 3
       trans(i) = rnd( -pc%DispMolTran, pc%DispMolTran )
       pc%Pm0(np, i) = pc%Pm0(np, i) + trans(i)
-      do j=1, nUnits
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) + trans(i)
-        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
+      do iUnit=1, nUnits
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) + trans(i)
+        pc%P0(np, i, iUnit ) = pc%P0(np, i, iUnit ) - anint( pc%P0(np, i, iUnit) )
       end do
       pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
     end do
@@ -29485,7 +29485,7 @@ end subroutine  TEnsemble_infnan
 
     ! Declare local variables
     type(TInteraction), pointer :: pi
-    integer                     :: n, nu, nup
+    integer                     :: n, iUnit, nup
     integer                     :: i
 
     ! Initialize new energy
@@ -29496,15 +29496,15 @@ end subroutine  TEnsemble_infnan
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%nUnits(2)
-      do nu=1, this%Component(nc)%Molecule%nUnits
-          call Energy( pi, np, nu, this%BoxLength, .false. )
+      do iUnit=1, this%Component(nc)%Molecule%nUnits
+          call Energy( pi, np, iUnit, this%BoxLength, .false. )
           if ( pi%SameComponent .and. UseIntDegFreed ) then
-            call IntraEnergy( pi, np, nu, this%BoxLength )
+            call IntraEnergy( pi, np, iUnit, this%BoxLength )
             EPotNew = EPotNew - 0.5_RK*pi%EPot
           end if
           ! Calculate new energy
           EPotNew = EPotNew + pi%EPot  !includes Bond energies
-!          pi%EPotMol(nu,:) = pi%Epot
+!          pi%EPotMol(iUnit,:) = pi%Epot
       end do
     end do
 
@@ -29543,7 +29543,7 @@ end subroutine  TEnsemble_infnan
     ! Declare local variables
     type(TInteraction), pointer :: pi
     integer                     :: n
-    integer                     :: i, j
+    integer                     :: i, iUnit
     integer                     :: NBond, NAngle, NDihedral
     integer                     :: npu, npu1
 
@@ -29553,8 +29553,8 @@ end subroutine  TEnsemble_infnan
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
       n = pi%NPart2 * pi%nUnits(2)
-      do j=1,pi%nUnits(1)
-        npu1 = npu + j
+      do iUnit=1,pi%nUnits(1)
+        npu1 = npu + iUnit
 
         this%Interaction(i, nc)%EPot = pi%EPot
         this%Interaction(i, nc)%d2EpotdV2 = pi%d2EpotdV2

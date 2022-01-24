@@ -1975,7 +1975,7 @@ contains
     real(RK)          :: EPotLocal
     real(RK)          :: muexj, mueyj, muezj
     integer           :: i, j, k
-    integer           :: u,u2,nu1,nu2
+    integer           :: iUnit,u2,nu1,nu2
     integer           :: ju,iu
     logical           :: intra
 
@@ -2055,12 +2055,12 @@ contains
 !#else
       do i = 1, this%NTest1
 !#endif
-        do u = 1, this%nUnits(1)
+        do iUnit = 1, this%nUnits(1)
           EPotLocal = 0._RK
-          iu = (i-1)*nu1+u ! unit's number
-          mueXi = MueX1(i, u)    ! mue for unit  u of i-th molecule
-          mueYi = MueY1(i, u)
-          mueZi = MueZ1(i, u)
+          iu = (i-1)*nu1+iUnit ! unit's number
+          mueXi = MueX1(i, iUnit)    ! mue for unit  iUnit of i-th molecule
+          mueYi = MueY1(i, iUnit)
+          mueZi = MueZ1(i, iUnit)
           do k = 1, this%NInCutoff(iu)
             j = this%CutoffPartner(k, iu)
             u2 = mod (j, nu2)
@@ -5260,7 +5260,7 @@ end subroutine TInteraction_EnergySVC
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
     integer           :: j, NInCutoff
-    integer           :: i, k, iUnitGlobalMol1, iUnitGlobalMol2
+    integer           :: i, iUnit, iUnitGlobalMol1, iUnitGlobalMol2
     
     ! Set cutoff radius
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
@@ -5281,13 +5281,13 @@ end subroutine TInteraction_EnergySVC
 #else
     do j = 1, this%NPart2
 #endif
-      do k = 1, this%nUnits(2)
-          !k = CEILING(real(j)/this%NUnit2)
+      do iUnit = 1, this%nUnits(2)
+          !iUnit = CEILING(real(j)/this%NUnit2)
           if( this%SameComponent .and. j == np ) cycle
-          if( (matrixhalf .eqv. .true.) .and. (j > np) ) exit
-          PXij = PXi - PX2(j, k)
-          PYij = PYi - PY2(j, k)
-          PZij = PZi - PZ2(j, k)
+          if( matrixhalf .and. j > np ) exit
+          PXij = PXi - PX2(j, iUnit)
+          PYij = PYi - PY2(j, iUnit)
+          PZij = PZi - PZ2(j, iUnit)
           PXij = PXij - anint( PXij )
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
@@ -5295,7 +5295,7 @@ end subroutine TInteraction_EnergySVC
 
           if( RijSquared < RCutoffSquaredScaled ) then
             NInCutoff = NInCutoff + 1
-            iUnitGlobalMol2 = (j-1) * this%nUnits(2) + k
+            iUnitGlobalMol2 = (j-1) * this%nUnits(2) + iUnit
             this%CutoffPartner(NInCutoff, iUnitGlobalMol1) = iUnitGlobalMol2
           end if
       end do
@@ -5322,7 +5322,7 @@ end subroutine TInteraction_EnergySVC
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
-    integer           :: i, j, NInCutoff, k, l, m, n
+    integer           :: i, j, NInCutoff, iUnit, kUnit, m, n
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
@@ -5343,24 +5343,24 @@ end subroutine TInteraction_EnergySVC
 !$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere
 !$OMP DO
-    do k = 1, this%nUnits(1)
+    do iUnit = 1, this%nUnits(1)
 !#if MPI_VER > 0
 !      do i = this%NTest10, this%NTest12
 !#else
       do i = 1, this%NTest1
 !#endif
-        m = (i-1)*this%nUnits(1)+k
-        PXi = PX1(i,k)
-        PYi = PY1(i,k)
-        PZi = PZ1(i,k)
+        m = (i-1)*this%nUnits(1)+iUnit
+        PXi = PX1(i,iUnit)
+        PYi = PY1(i,iUnit)
+        PZi = PZ1(i,iUnit)
         NInCutoff = 0
 
-        do l = 1, this%nUnits(2)
+        do kUnit = 1, this%nUnits(2)
           do j = 1, this%NPart2
-            n = (j-1)*this%nUnits(2)+l
-            PXij = PXi - PX2(j,l)
-            PYij = PYi - PY2(j,l)
-            PZij = PZi - PZ2(j,l)
+            n = (j-1)*this%nUnits(2)+kUnit
+            PXij = PXi - PX2(j,kUnit)
+            PYij = PYi - PY2(j,kUnit)
+            PZij = PZi - PZ2(j,kUnit)
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
@@ -5564,7 +5564,7 @@ end subroutine TInteraction_EnergySVC
 
 #if 0
     ! Declare local variables
-    integer        :: i, j, k, jk, unit1
+    integer        :: i, j, k, jk, unit1, iUnit
     real(RK)       :: EBonded
 
     call CalcCutoffPartners( this, selected )
@@ -5639,8 +5639,8 @@ end subroutine TInteraction_EnergySVC
 
     ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
     if ( this%ReactionField .and. LongRange .eq. RField) then
-      do i = 1, this%nUnits(1)
-        unit1 = (selected-1)*this%nUnits(1)+i
+      do iUnit = 1, this%nUnits(1)
+        unit1 = (selected-1)*this%nUnits(1)+iUnit
 
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
@@ -5651,8 +5651,8 @@ end subroutine TInteraction_EnergySVC
               jk = INT(j/this%nUnits(2))+1
               j = mod(j,this%nUnits(2))
             end if
-            E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
-&                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
+            E = E + this%RFConst2 * ( this%MueX1(selected, iUnit) * this%MueX2(jk,j) &
+&                 + this%MueY1(selected, iUnit) * this%MueY2(jk,j) + this%MueZ1(selected, iUnit) * this%MueZ2(jk,j) )
           end do
       end do
     end if
@@ -5767,7 +5767,7 @@ end subroutine TInteraction_EnergySVC
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
     real(RK)          :: f0
     integer           :: N, nmax
-    integer           :: s1, s2, i, j, k
+    integer           :: s1, s2, i, iUnit, k,j
     integer           :: bi, u1, u2, u3, u4
     integer           :: unit1,unit2, nu2
     logical           :: SameComponent
@@ -5819,10 +5819,10 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate Lennard-Jones energy
       do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
-        do j=1, this%nUnits(2) ! Michael Sch.: changed
+        do iUnit=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
-!           j = this%CutoffPartner(k, nu) ! j - global number of unit
-          do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
+!           iUnit = this%CutoffPartner(k, nu) ! iUnit - global number of unit
+          do s2 = this%UnitLJ2(iUnit), this%UnitLJ2(iUnit+1) - 1
 
             ! Set site specific variables
             pmie => this%PotMIEnmMIEnm(s1, s2)
@@ -5895,10 +5895,10 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate point charge energy
       do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do j=1, this%nUnits(2) ! Michael Sch.: changed
+        do iUnit=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
-!           j = this%CutoffPartner(k, nu) ! j - global number of unit
-          do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
+!           iUnit = this%CutoffPartner(k, nu) ! iUnit - global number of unit
+          do s2 = this%UnitC2(iUnit), this%UnitC2(iUnit+1) - 1
             pcc => this%PotChargeCharge(s1, s2)
 
             if (pcc%potintra14) then
@@ -6022,7 +6022,7 @@ end subroutine TInteraction_EnergySVC
             end if ! ReactionField - Ewald-Summation
           end do !s2-cycle
 
-          do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
+          do s2 = this%UnitDP2(iUnit), this%UnitDP2(iUnit+1) - 1
             pcd => this%PotChargeDipole(s1, s2)
 
             if (pcd%potintra14) then
@@ -6107,7 +6107,7 @@ end subroutine TInteraction_EnergySVC
             d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
 
-          do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
+          do s2=this%UnitQP2(iUnit), this%UnitQP2(iUnit+1) - 1
             pcq => this%PotChargeQuadrupole(s1, s2)
 
             if (pcq%potintra14) then
@@ -6195,10 +6195,10 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do j=1, this%nUnits(2) ! Michael Sch.: changed
+        do iUnit=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
-!           j = this%CutoffPartner(k, nu) ! j - global number of unit
-          do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
+!           iUnit = this%CutoffPartner(k, nu) ! iUnit - global number of unit
+          do s2 = this%UnitC2(iUnit), this%UnitC2(iUnit+1) - 1
             pdc => this%PotDipoleCharge(s1, s2)
 
             if (pdc%potintra14) then
@@ -6278,7 +6278,7 @@ end subroutine TInteraction_EnergySVC
 &              Virial = Virial + 2._RK*Third * VirialLocal
             d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do ! s2-cycle
-          do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
+          do s2 = this%UnitDP2(iUnit), this%UnitDP2(iUnit+1) - 1
             pdd => this%PotDipoleDipole(s1, s2)
 
             if (pdd%potintra14) then
@@ -6374,7 +6374,7 @@ end subroutine TInteraction_EnergySVC
 &              Virial = Virial + 2._RK*Third * VirialLocal
             d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
-          do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
+          do s2=this%UnitQP2(iUnit), this%UnitQP2(iUnit+1) - 1
             pdq => this%PotDipoleQuadrupole(s1, s2)
 
             if (pdq%potintra14) then
@@ -6480,10 +6480,10 @@ end subroutine TInteraction_EnergySVC
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do j=1, this%nUnits(2) ! Michael Sch.: changed
+        do iUnit=1, this%nUnits(2) ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
-!           j = this%CutoffPartner(k, nu) ! j - global number of unit
-          do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
+!           iUnit = this%CutoffPartner(k, nu) ! iUnit - global number of unit
+          do s2 = this%UnitC2(iUnit), this%UnitC2(iUnit+1) - 1
             pqc => this%PotQuadrupoleCharge(s1, s2)
 
             if (pqc%potintra14) then
@@ -6568,7 +6568,7 @@ end subroutine TInteraction_EnergySVC
 &              Virial = Virial - 2._RK*Third * VirialLocal
             d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
-          do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
+          do s2 = this%UnitDP2(iUnit), this%UnitDP2(iUnit+1) - 1
             pqd => this%PotQuadrupoleDipole(s1, s2)
 
             if (pqd%potintra14) then
@@ -6668,7 +6668,7 @@ end subroutine TInteraction_EnergySVC
 &             Virial = Virial + 2._RK*Third * VirialLocal
             d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do! s2-cycle
-          do s2 = this%UnitQP2(j), this%UnitQP2(j+1) - 1
+          do s2 = this%UnitQP2(iUnit), this%UnitQP2(iUnit+1) - 1
             pqq => this%PotQuadrupoleQuadrupole(s1, s2)
 
             if (pqq%potintra14) then
@@ -6795,9 +6795,9 @@ end subroutine TInteraction_EnergySVC
           mueYi = this%MueY1(np,nu)
           mueZi = this%MueZ1(np,nu)
           unit1 = (np-1)*this%nUnits(1)
-          do nu2 = 1, this%nUnits(1)
+          do iUnit = 1, this%nUnits(1)
             EPot = EPot + RFConst2 &
-&               * ( mueXi * MueX2(np,nu2) + mueYi * MueY2(np,nu2) + mueZi * MueZ2(np,nu2) )
+&               * ( mueXi * MueX2(np, iUnit) + mueYi * MueY2(np, iUnit) + mueZi * MueZ2(np, iUnit) )
           end do
         else         ! Extended ReactionField
           call Error('No Extended ReactionField for inner degrees of freedom')
@@ -7314,8 +7314,8 @@ end subroutine TInteraction_EnergySVC
       ! Site
       k = this%BondCount(nu)
       !this%EPot1Bond(:) = this%EPotBond (this%NBond*(np-1)+1 : this%NBond*np)
-      do j = 1, k
-        bi = this%BoPartner(nu,j)
+      do iUnit = 1, k
+        bi = this%BoPartner(nu,iUnit)
         pbo => this%PotBond(bi)
         u1 = pbo%Unit1 ! unit1 of bond
         u2 = pbo%Unit2 ! unit2 of bond
@@ -7393,8 +7393,8 @@ end subroutine TInteraction_EnergySVC
       ! Angle Interaction
       k = this%AngleCount(nu)
       this%EPot1Angle(:) = this%EPotAngle(this%NAngle*(np-1)+1 : this%NAngle*np)
-      do j = 1, k
-        bi = this%AnglePartner(nu,j)
+      do iUnit = 1, k
+        bi = this%AnglePartner(nu,iUnit)
         pan => this%PotAngle(bi)
         u1 = pan%Unit1 ! unit1 of angle
         u2 = pan%Unit2 ! unit2 of angle
