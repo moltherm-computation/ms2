@@ -1861,7 +1861,11 @@ contains
       call UpdateBoxLength( this )
 
       ! Abort, if maximum cutoff larger than boxlength
-      if (this%RCutoffMax2 > this%BoxLength) call Error('Cutoff is larger than the boxsize')
+      if (this%RCutoffMax2 > this%BoxLength) then
+          write(ErrorBuffer, '(A, f0.6, A, f0.6, A, I0.1)') "Cut-off diameter (", this%RCutoffMax2 , &
+                ") is larger than the boxsize (", this%BoxLength ,") for ensemble ", this%EnsembleNumber
+          call Error(ErrorBuffer)
+      end if
 
       ! Set initial positions of particles in simulation box
       call InitPositions( this )
