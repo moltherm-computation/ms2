@@ -1559,6 +1559,10 @@ contains
     write( IOBuffer, '(" OSMOP=2")' )
     call LogWriteNoAdvance
 #endif
+#if SPME == 1
+    write( IOBuffer, '(" SPME=1")' )
+    call LogWriteNoAdvance
+#endif
     ! new compiler flags should be added
     ! include target, omp and precision???
     write( IOBuffer, '(" ")' )
