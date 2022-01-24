@@ -4,7 +4,7 @@
 	<parFile>MC_NVT_thermoint_hydrazineH2O_T391-x025.par</parFile>
 	<name>MC_NVT_thermoint_hydrazineH2O_T391-x025</name>
 	<np>40</np>
-	<walltime>12:00:00</walltime>
+	<walltime>15:45:00</walltime>
 	<reference>
 		<file>MC_NVT_thermoint_hydrazineH2O_T391-x025_1.res</file>
 	</reference>
