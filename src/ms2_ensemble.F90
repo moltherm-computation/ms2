@@ -6882,6 +6882,7 @@ loop2:        do nc = 1, this%NComponents
     type(TInteraction), pointer :: pi
     integer                     :: nc, np
     integer                     :: i
+    logical                     :: matrixhalf
 
     ! Initialize new energy
     E = 0._RK
@@ -6900,25 +6901,15 @@ loop2:        do nc = 1, this%NComponents
     do nc = 1, this%NComponents
       do i = nc, this%NComponents
         pi => this%Interaction(nc, i)
-        if (nc == i) then !SameComponent => matrixhalf
-            ! Loop over particles
-            do np = 1, this%Component(nc)%NPart
-              call Energy( pi, np, this%BoxLength, .true. )
-              ! Sum energy
-              E = E + pi%EPot
-              d2EdV2 = d2EdV2 + pi%d2EpotdV2
-              V = V + pi%Virial
-            end do
-        else
-            ! Loop over particles
-            do np = 1, this%Component(nc)%NPart
-              call Energy( pi, np, this%BoxLength )
-              ! Sum energy
-              E = E + pi%EPot
-              d2EdV2 = d2EdV2 + pi%d2EpotdV2
-              V = V + pi%Virial
-            end do
-        end if
+        matrixhalf = nc == i !SameComponent => matrixhalf=.true.        
+        ! Loop over particles
+        do np = 1, this%Component(nc)%NPart
+          call Energy( pi, np, this%BoxLength, matrixhalf )
+          ! Sum energy
+          E = E + pi%EPot
+          d2EdV2 = d2EdV2 + pi%d2EpotdV2
+          V = V + pi%Virial
+        end do
       end do
     end do
 
@@ -6980,7 +6971,7 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
 
-      call Energy( pi, np, this%BoxLength )
+      call Energy( pi, np, this%BoxLength, .false. )
 
       ! Calculate new energy
       EPotNew = EPotNew + pi%EPot
@@ -7021,7 +7012,7 @@ loop2:        do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
-      call Energy( pi, np, this%BoxLength )
+      call Energy( pi, np, this%BoxLength, .false. )
       ! Calculate new energy
       EPotNew = EPotNew + pi%EPot
     end do
@@ -7063,7 +7054,7 @@ loop2:        do nc = 1, this%NComponents
     ! Loop over components
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
-      call Energy( pi, np, this%BoxLength )
+      call Energy( pi, np, this%BoxLength, .false. )
 
       ! Calculate new energy
       EPotNew = EPotNew + pi%EPot
