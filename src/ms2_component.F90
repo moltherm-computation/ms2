@@ -1931,8 +1931,8 @@ contains
       this%Molecule%IdfBond(i)%NPart0 => this%NPart0
       this%Molecule%IdfBond(i)%NPart1 => this%NPart1
       this%Molecule%IdfBond(i)%NPart2 => this%NPart2
-      SiteId1 = this%Molecule%IdfBond(i)%SiteId1
-      SiteId2 = this%Molecule%IdfBond(i)%SiteId2
+      SiteId1 = this%Molecule%IdfBond(i)%SiteId(1)
+      SiteId2 = this%Molecule%IdfBond(i)%SiteId(2)
       Site1 = .false.
       Site2 = .false.
       if ( this%Molecule%NMIEnm>0 ) then
@@ -2054,9 +2054,9 @@ contains
       this%Molecule%IdfAngle(i)%NPart0 => this%NPart0
       this%Molecule%IdfAngle(i)%NPart1 => this%NPart1
       this%Molecule%IdfAngle(i)%NPart2 => this%NPart2
-      SiteId1 = this%Molecule%IdfAngle(i)%SiteId1
-      SiteId2 = this%Molecule%IdfAngle(i)%SiteId2
-      SiteId3 = this%Molecule%IdfAngle(i)%SiteId3
+      SiteId1 = this%Molecule%IdfAngle(i)%SiteId(1)
+      SiteId2 = this%Molecule%IdfAngle(i)%SiteId(2)
+      SiteId3 = this%Molecule%IdfAngle(i)%SiteId(3)
       Site1 = .false.
       Site2 = .false.
       Site3 = .false.
@@ -2211,10 +2211,10 @@ contains
       this%Molecule%IdfDihedral(i)%NPart0 => this%NPart0
       this%Molecule%IdfDihedral(i)%NPart1 => this%NPart1
       this%Molecule%IdfDihedral(i)%NPart2 => this%NPart2
-      SiteId1 = this%Molecule%IdfDihedral(i)%SiteId1
-      SiteId2 = this%Molecule%IdfDihedral(i)%SiteId2
-      SiteId3 = this%Molecule%IdfDihedral(i)%SiteId3
-      SiteId4 = this%Molecule%IdfDihedral(i)%SiteId4
+      SiteId1 = this%Molecule%IdfDihedral(i)%SiteId(1)
+      SiteId2 = this%Molecule%IdfDihedral(i)%SiteId(2)
+      SiteId3 = this%Molecule%IdfDihedral(i)%SiteId(3)
+      SiteId4 = this%Molecule%IdfDihedral(i)%SiteId(4)
       Site1 = .false.
       Site2 = .false.
       Site3 = .false.

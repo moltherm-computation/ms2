@@ -925,10 +925,10 @@ contains
 
 
      do i=1, this%NDihedral
-       Site1=this%IdfDihedral(i)%SiteId1
-       Site2=this%IdfDihedral(i)%SiteId2
-       Site3=this%IdfDihedral(i)%SiteId3
-       Site4=this%IdfDihedral(i)%SiteId4
+       Site1=this%IdfDihedral(i)%SiteId(1)
+       Site2=this%IdfDihedral(i)%SiteId(2)
+       Site3=this%IdfDihedral(i)%SiteId(3)
+       Site4=this%IdfDihedral(i)%SiteId(4)
        AllSites(Site1,Site2)=0
        AllSites(Site1,Site3)=0
        AllSites(Site1,Site4)=0
@@ -1145,11 +1145,11 @@ contains
        k=1
        do i=1, this%NDihedral
          if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
-           Site1=this%IdfDihedral(i)%SiteId1
-           Site4=this%IdfDihedral(i)%SiteId4
+           Site1=this%IdfDihedral(i)%SiteId(1)
+           Site4=this%IdfDihedral(i)%SiteId(4)
            if (Site1>Site4) then
-             Site1=this%IdfDihedral(i)%SiteId4
-             Site4=this%IdfDihedral(i)%SiteId1
+             Site1=this%IdfDihedral(i)%SiteId(4)
+             Site4=this%IdfDihedral(i)%SiteId(1)
            end if
            if (k>1) then
              call binar_search(Int14(1:k,1), Site1, ok1, index)
@@ -2354,8 +2354,8 @@ contains
     real(RK)          :: r1(3),r2(3)
     character(10)      ::str
 
-    SiteId1 = Bond%SiteId1
-    SiteId2 = Bond%SiteId2
+    SiteId1 = Bond%SiteId(1)
+    SiteId2 = Bond%SiteId(2)
 
     Site1 = .false.
     Site2 = .false.
@@ -2488,9 +2488,9 @@ contains
     real(RK)          :: r1(3),r2(3),r3(3)
     character(10)     ::str
 
-    SiteId1 = Angle%SiteId1
-    SiteId2 = Angle%SiteId2
-    SiteId3 = Angle%SiteId3
+    SiteId1 = Angle%SiteId(1)
+    SiteId2 = Angle%SiteId(2)
+    SiteId3 = Angle%SiteId(3)
 
     Site1 = .false.   !    (Site1) (Site3)
     Site2 = .false.   !         \  /
@@ -2702,10 +2702,10 @@ contains
     logical           :: Site1, Site2, Site3, Site4
     character(10)     ::str
 
-    SiteId1 = Dihedral%SiteId1
-    SiteId2 = Dihedral%SiteId2
-    SiteId3 = Dihedral%SiteId3
-    SiteId4 = Dihedral%SiteId4
+    SiteId1 = Dihedral%SiteId(1)
+    SiteId2 = Dihedral%SiteId(2)
+    SiteId3 = Dihedral%SiteId(3)
+    SiteId4 = Dihedral%SiteId(4)
 
 
     Site1 = .false.   !    (Site1)     (Site4)

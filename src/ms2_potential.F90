@@ -16637,8 +16637,8 @@ loop2:  do j = 1, j1
     ! Construct potential
 
     this%Bond => Molecule%IdfBond(j)
-    this%Site1 = this%Bond%SiteId1
-    this%Site2 = this%Bond%SiteId2
+    this%Site1 = this%Bond%SiteId(1)
+    this%Site2 = this%Bond%SiteId(2)
     this%Unit1 = this%Bond%UnitId1
     this%Unit2 = this%Bond%UnitId2
     this%ForConst => this%Bond%ForConst
@@ -16843,12 +16843,12 @@ loop2:  do j = 1, j1
     FXij = Fij * RXij
     FYij = Fij * RYij
     FZij = Fij * RZij
-    F(1,this%Bond%SiteId1) = F(1,this%Bond%SiteId1) + FXij
-    F(2,this%Bond%SiteId1) = F(2,this%Bond%SiteId1) + FYij
-    F(3,this%Bond%SiteId1) = F(3,this%Bond%SiteId1) + FZij
-    F(1,this%Bond%SiteId2) = F(1,this%Bond%SiteId2) - FXij
-    F(2,this%Bond%SiteId2) = F(2,this%Bond%SiteId2) - FYij
-    F(3,this%Bond%SiteId2) = F(3,this%Bond%SiteId2) - FZij
+    F(1,this%Bond%SiteId(1)) = F(1,this%Bond%SiteId(1)) + FXij
+    F(2,this%Bond%SiteId(1)) = F(2,this%Bond%SiteId(1)) + FYij
+    F(3,this%Bond%SiteId(1)) = F(3,this%Bond%SiteId(1)) + FZij
+    F(1,this%Bond%SiteId(2)) = F(1,this%Bond%SiteId(2)) - FXij
+    F(2,this%Bond%SiteId(2)) = F(2,this%Bond%SiteId(2)) - FYij
+    F(3,this%Bond%SiteId(2)) = F(3,this%Bond%SiteId(2)) - FZij
 
   end subroutine TPotBond_Energy
 
@@ -16870,9 +16870,9 @@ loop2:  do j = 1, j1
     ! Construct potential
 
     this%Angle => Molecule%IdfAngle(j)
-    this%Site1 = this%Angle%SiteId1
-    this%Site2 = this%Angle%SiteId2
-    this%Site3 = this%Angle%SiteId3
+    this%Site1 = this%Angle%SiteId(1)
+    this%Site2 = this%Angle%SiteId(2)
+    this%Site3 = this%Angle%SiteId(3)
     this%Unit1 = this%Angle%UnitId1
     this%Unit2 = this%Angle%UnitId2
     this%Unit3 = this%Angle%UnitId3
@@ -17108,15 +17108,15 @@ loop2:  do j = 1, j1
     fby = fab*RYij-fbb*RYkj
     fbz = fab*RZij-fbb*RZkj
 
-    F(1,this%Angle%SiteId1) = F(1,this%Angle%SiteId1) - fax
-    F(2,this%Angle%SiteId1) = F(2,this%Angle%SiteId1) - fay
-    F(3,this%Angle%SiteId1) = F(3,this%Angle%SiteId1) - faz
-    F(1,this%Angle%SiteId2) = F(1,this%Angle%SiteId2) + fax + fbx
-    F(2,this%Angle%SiteId2) = F(2,this%Angle%SiteId2) + fay + fby
-    F(2,this%Angle%SiteId2) = F(3,this%Angle%SiteId2) + faz + fbz
-    F(1,this%Angle%SiteId3) = F(1,this%Angle%SiteId3) - fbx
-    F(2,this%Angle%SiteId3) = F(2,this%Angle%SiteId3) - fby
-    F(3,this%Angle%SiteId3) = F(3,this%Angle%SiteId3) - fbz
+    F(1,this%Angle%SiteId(1)) = F(1,this%Angle%SiteId(1)) - fax
+    F(2,this%Angle%SiteId(1)) = F(2,this%Angle%SiteId(1)) - fay
+    F(3,this%Angle%SiteId(1)) = F(3,this%Angle%SiteId(1)) - faz
+    F(1,this%Angle%SiteId(2)) = F(1,this%Angle%SiteId(2)) + fax + fbx
+    F(2,this%Angle%SiteId(2)) = F(2,this%Angle%SiteId(2)) + fay + fby
+    F(2,this%Angle%SiteId(2)) = F(3,this%Angle%SiteId(2)) + faz + fbz
+    F(1,this%Angle%SiteId(3)) = F(1,this%Angle%SiteId(3)) - fbx
+    F(2,this%Angle%SiteId(3)) = F(2,this%Angle%SiteId(3)) - fby
+    F(3,this%Angle%SiteId(3)) = F(3,this%Angle%SiteId(3)) - fbz
 
   end subroutine TPotAngle_Energy
 
@@ -17138,10 +17138,10 @@ loop2:  do j = 1, j1
     ! Construct potential
 
     this%Dihedral => Molecule%IdfDihedral(j)
-    this%Site1 = this%Dihedral%SiteId1
-    this%Site2 = this%Dihedral%SiteId2
-    this%Site3 = this%Dihedral%SiteId3
-    this%Site4 = this%Dihedral%SiteId4
+    this%Site1 = this%Dihedral%SiteId(1)
+    this%Site2 = this%Dihedral%SiteId(2)
+    this%Site3 = this%Dihedral%SiteId(3)
+    this%Site4 = this%Dihedral%SiteId(4)
     this%Unit1 = this%Dihedral%UnitId1
     this%Unit2 = this%Dihedral%UnitId2
     this%Unit3 = this%Dihedral%UnitId3

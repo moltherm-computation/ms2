@@ -37,7 +37,7 @@ module ms2_idf
 
     real(RK)          :: ForConst
     real(RK)          :: R0
-    integer           :: SiteId1, SiteId2
+    integer           :: SiteId(2)
     integer           :: UnitId1, UnitId2
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
@@ -69,7 +69,7 @@ module ms2_idf
 
     real(RK)          :: ForConst
     real(RK)          :: Angle0, Angle
-    integer           :: SiteId1, SiteId2, SiteId3
+    integer           :: SiteId(3)
     integer           :: UnitId1, UnitId2, UnitId3
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
@@ -102,7 +102,7 @@ module ms2_idf
 
     real(RK)          :: phi
     integer           :: nmax    ! multiplicity
-    integer           :: SiteId1, SiteId2, SiteId3, SiteId4
+    integer           :: SiteId(4)
     integer           :: UnitId1, UnitId2, UnitId3, UnitId4
     real(RK)          :: ScaleLJ14
     real(RK)          :: ScaleEl14
@@ -151,7 +151,7 @@ contains
 
     ! Read site parameters
     call FileReadParameter_IOBuffer( potmodFile%iounit, IdBond_Sites )
-    read( IOBuffer, * ) this%SiteId1, this%SiteId2
+    read( IOBuffer, * ) this%SiteId(1), this%SiteId(2)
     call FileReadParameter( this%R0, potmodFile%iounit, IdBond_R0, .false.)
     if (Shake > 0) then
       this%ForConst = 1e07_RK
@@ -207,7 +207,7 @@ end subroutine TIdfBond_Construct
 
     ! Save site parameters
 
-    write( IOBuffer, '(2I3)' ) this%SiteId1, this%SiteId2
+    write( IOBuffer, '(2I3)' ) this%SiteId(1), this%SiteId(2)
     call FileWriteParameter( normalFile%iounit, IdBond_Sites )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%R0 * UnitLength / Angstroem, this%R0
@@ -232,7 +232,7 @@ end subroutine TIdfBond_Construct
 
     ! Read site parameters
     call FileReadParameter_IOBuffer( potmodFile%iounit, IdAngle_Sites )
-    read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3
+    read( IOBuffer, * ) this%SiteId(1), this%SiteId(2), this%SiteId(3)
     call FileReadParameter( this%Angle0, potmodFile%iounit, IdAngle_Angle0, .false.)
     call FileReadParameter( this%ForConst, potmodFile%iounit, IdAngle_ForConst, .false.)
 
@@ -276,7 +276,7 @@ end subroutine TIdfAngle_Construct
 
     ! Save site parameters
 
-    write( IOBuffer, '(3I3)' ) this%SiteId1, this%SiteId2, this%SiteId3
+    write( IOBuffer, '(3I3)' ) this%SiteId(1), this%SiteId(2), this%SiteId(3)
     call FileWriteParameter( normalFile%iounit, IdAngle_Sites )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%Angle0*180/PI, this%Angle0
@@ -305,7 +305,7 @@ end subroutine TIdfAngle_Construct
 
     ! Read site parameters
     call FileReadParameter_IOBuffer( potmodFile%iounit, IdDihedral_Sites )
-    read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
+    read( IOBuffer, * ) this%SiteId(1), this%SiteId(2), this%SiteId(3), this%SiteId(4)
     call FileReadParameter( this%nmax, potmodFile%iounit, IdDihedral_nmax, .false. )
 
     if (this%nmax > 0 ) then
@@ -383,7 +383,7 @@ end subroutine TIdfDihedral_Construct
     integer           :: i
 
     ! Save site parameters
-    write( IOBuffer, '(4I3)' ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
+    write( IOBuffer, '(4I3)' ) this%SiteId(1), this%SiteId(2), this%SiteId(3), this%SiteId(4)
     call FileWriteParameter( normalFile%iounit, IdDihedral_Sites )
     write( IOBuffer, '(G20.10)' ) this%nmax
     call FileWriteParameter( normalFile%iounit, IdDihedral_nmax )
