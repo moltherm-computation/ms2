@@ -2063,28 +2063,28 @@ contains
       if ( this%Molecule%NMIEnm>0 ) then
         do j = 1, this%Molecule%NMIEnm
           if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId1) then
-            this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(1)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(1)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(1)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId2) then
-            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(2)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(2)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(2)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(2)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(2)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(2)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId3) then
-            this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(3)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(3)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(3)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site3 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3) exit
@@ -2093,28 +2093,28 @@ contains
       if((.not.Site1.or. .not.Site2 .or. .not.Site3) .and. (this%Molecule%NCharge>0) ) then
         do j = 1, this%Molecule%NCharge
           if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-            this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(1)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(1)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(1)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(2)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(2)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(2)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(2)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(2)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(2)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
-            this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(3)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(3)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(3)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site3 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3) exit
@@ -2124,39 +2124,39 @@ contains
         do j = 1, this%Molecule%NDipole
           if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
             if (SiteId1 == SiteId2) then
-              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteDipole(j)%OX(:)
-              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteDipole(j)%OY(:)
-              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteDipole(j)%OZ(:)
+              this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteDipole(j)%OZ(:)
             else
-              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
-              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
-              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
+              this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
             end if
-            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%F(1)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(1)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(1)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(2)%X=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(2)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(2)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(2)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(2)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(2)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId3) then
             if (SiteId3 == SiteId2) then
-              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteDipole(j)%OX(:)
-              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteDipole(j)%OY(:)
-              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteDipole(j)%OZ(:)
+              this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteDipole(j)%OZ(:)
             else
-              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteDipole(j)%RX(:)
-              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteDipole(j)%RY(:)
-              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteDipole(j)%RZ(:)
+              this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
             end if
-            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%F(3)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(3)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(3)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site3 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3) exit
@@ -2166,39 +2166,39 @@ contains
         do j = 1, this%Molecule%NQuadrupole
           if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
             if (SiteId1 == SiteId2) then
-              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteQuadrupole(j)%OX(:)
-              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteQuadrupole(j)%OY(:)
-              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+              this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteQuadrupole(j)%OZ(:)
             else
-              this%Molecule%IdfAngle(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
-              this%Molecule%IdfAngle(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
-              this%Molecule%IdfAngle(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+              this%Molecule%IdfAngle(i)%R(1)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%R(1)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%R(1)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
             end if
-            this%Molecule%IdfAngle(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%F(1)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(1)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(1)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfAngle(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
-            this%Molecule%IdfAngle(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
-            this%Molecule%IdfAngle(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
-            this%Molecule%IdfAngle(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%R(2)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfAngle(i)%R(2)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfAngle(i)%R(2)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfAngle(i)%F(2)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(2)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(2)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId3) then
             if (SiteId3 == SiteId2) then
-              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteQuadrupole(j)%OX(:)
-              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteQuadrupole(j)%OY(:)
-              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+              this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteQuadrupole(j)%OZ(:)
             else
-              this%Molecule%IdfAngle(i)%RX3=>this%Molecule%SiteQuadrupole(j)%RX(:)
-              this%Molecule%IdfAngle(i)%RY3=>this%Molecule%SiteQuadrupole(j)%RY(:)
-              this%Molecule%IdfAngle(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+              this%Molecule%IdfAngle(i)%R(3)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfAngle(i)%R(3)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfAngle(i)%R(3)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
             end if
-            this%Molecule%IdfAngle(i)%FX3=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfAngle(i)%FY3=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfAngle(i)%FZ3=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfAngle(i)%F(3)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfAngle(i)%F(3)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfAngle(i)%F(3)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site3 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3) exit

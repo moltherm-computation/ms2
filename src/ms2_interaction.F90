@@ -7401,27 +7401,27 @@ end subroutine TInteraction_EnergySVC
         u3 = pan%Unit3 ! unit2 of angle
 
         ! Positions
-        RXi=pan%Angle%RX1(np)
-        RYi=pan%Angle%RY1(np)
-        RZi=pan%Angle%RZ1(np)
-        RXk=pan%Angle%RX3(np)
-        RYk=pan%Angle%RY3(np)
-        RZk=pan%Angle%RZ3(np)
+        RXi=pan%Angle%R(1)%X(np)
+        RYi=pan%Angle%R(1)%Y(np)
+        RZi=pan%Angle%R(1)%Z(np)
+        RXk=pan%Angle%R(3)%X(np)
+        RYk=pan%Angle%R(3)%Y(np)
+        RZk=pan%Angle%R(3)%Z(np)
 
         if ( .not. pan%orientation1 ) then
           ! Assign pointers to site positions
-          RXij = (RXi - pan%Angle%RX2(np))
-          RYij = (RYi - pan%Angle%RY2(np))
-          RZij = (RZi - pan%Angle%RZ2(np))
+          RXij = (RXi - pan%Angle%R(2)%X(np))
+          RYij = (RYi - pan%Angle%R(2)%Y(np))
+          RZij = (RZi - pan%Angle%R(2)%Z(np))
           RXij = (RXij - anint(RXij)) * BoxLength
           RYij = (RYij - anint(RYij)) * BoxLength
           RZij = (RZij - anint(RZij)) * BoxLength
         end if
 
         if ( .not. pan%orientation2 ) then
-          RXkj = (RXk - pan%Angle%RX2(np))
-          RYkj = (RYk - pan%Angle%RY2(np))
-          RZkj = (RZk - pan%Angle%RZ2(np))
+          RXkj = (RXk - pan%Angle%R(2)%X(np))
+          RYkj = (RYk - pan%Angle%R(2)%Y(np))
+          RZkj = (RZk - pan%Angle%R(2)%Z(np))
           RXkj = (RXkj - anint(RXkj)) * BoxLength
           RYkj = (RYkj - anint(RYkj)) * BoxLength
           RZkj = (RZkj - anint(RZkj)) * BoxLength

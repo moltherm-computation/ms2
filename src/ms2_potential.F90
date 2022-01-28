@@ -16943,15 +16943,15 @@ loop2:  do j = 1, j1
      EPotLocal = 0._RK
 
     ! Assign pointers
-     FX1 => this%Angle%FX1 !           (1)    (3)
-     FY1 => this%Angle%FY1 !             \    /
-     FZ1 => this%Angle%FZ1 !            a \  / b
-     FX2 => this%Angle%FX2 !               \/
-     FY2 => this%Angle%FY2 !               (2)
-     FZ2 => this%Angle%FZ2
-     FX3 => this%Angle%FX3
-     FY3 => this%Angle%FY3
-     FZ3 => this%Angle%FZ3
+     FX1 => this%Angle%F(1)%X !           (1)    (3)
+     FY1 => this%Angle%F(1)%Y !             \    /
+     FZ1 => this%Angle%F(1)%Z !            a \  / b
+     FX2 => this%Angle%F(2)%X !               \/
+     FY2 => this%Angle%F(2)%Y !               (2)
+     FZ2 => this%Angle%F(2)%Z
+     FX3 => this%Angle%F(3)%X
+     FY3 => this%Angle%F(3)%Y
+     FZ3 => this%Angle%F(3)%Z
 
     ! Standard harmonic potential of angle
     ! Energy:
@@ -16965,9 +16965,9 @@ loop2:  do j = 1, j1
 #endif
 
 !CDIR NODEP
-         R1 = vector(this%Angle%RX1(i), this%Angle%RY1(i), this%Angle%RZ1(i))
-         R2 = vector(this%Angle%RX2(i), this%Angle%RY2(i), this%Angle%RZ2(i))
-         R3 = vector(this%Angle%RX3(i), this%Angle%RY3(i), this%Angle%RZ3(i))
+         R1 = vector(this%Angle%R(1)%X(i), this%Angle%R(1)%Y(i), this%Angle%R(1)%Z(i))
+         R2 = vector(this%Angle%R(2)%X(i), this%Angle%R(2)%Y(i), this%Angle%R(2)%Z(i))
+         R3 = vector(this%Angle%R(3)%X(i), this%Angle%R(3)%Y(i), this%Angle%R(3)%Z(i))
 
          Rij = SUB_VECTOR(R1, R2)
          Rkj = SUB_VECTOR(R3, R2)
@@ -17062,12 +17062,12 @@ loop2:  do j = 1, j1
     ForConst = this%ForConst
     Angle0 = this%Angle0
 
-    RXij = this%Angle%RX1(np) - this%Angle%RX2(np)
-    RYij = this%Angle%RY1(np) - this%Angle%RY2(np)
-    RZij = this%Angle%RZ1(np) - this%Angle%RZ2(np)
-    RXkj = this%Angle%RX3(np) - this%Angle%RX2(np)
-    RYkj = this%Angle%RY3(np) - this%Angle%RY2(np)
-    RZkj = this%Angle%RZ3(np) - this%Angle%RZ2(np)
+    RXij = this%Angle%R(1)%X(np) - this%Angle%R(2)%X(np)
+    RYij = this%Angle%R(1)%Y(np) - this%Angle%R(2)%Y(np)
+    RZij = this%Angle%R(1)%Z(np) - this%Angle%R(2)%Z(np)
+    RXkj = this%Angle%R(3)%X(np) - this%Angle%R(2)%X(np)
+    RYkj = this%Angle%R(3)%Y(np) - this%Angle%R(2)%Y(np)
+    RZkj = this%Angle%R(3)%Z(np) - this%Angle%R(2)%Z(np)
     RXij = (RXij - anint( RXij )) * BoxLength
     RYij = (RYij - anint( RYij )) * BoxLength
     RZij = (RZij - anint( RZij )) * BoxLength

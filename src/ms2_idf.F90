@@ -60,6 +60,11 @@ module ms2_idf
   end interface
 
 
+  type coordinatesPointer
+
+    real(RK), pointer, contiguous :: X(:), Y(:), Z(:)
+
+  end type coordinatesPointer
 
 !==============================================================!
 !  Type TIdfAngle                                              !
@@ -73,8 +78,7 @@ module ms2_idf
     integer           :: UnitId1, UnitId2, UnitId3
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
-    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
+    type(coordinatesPointer), dimension(3) :: R, F
     logical           :: orientation1, orientation2
 
 
