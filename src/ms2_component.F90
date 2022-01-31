@@ -1938,26 +1938,26 @@ contains
       if ( this%Molecule%NMIEnm>0 ) then
         do j = 1, this%Molecule%NMIEnm
           if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId1) then
-            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteMIEnm(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteMIEnm(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteMIEnm(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteMIEnm(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(1)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(1)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(1)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(1)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(1)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(1)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(1)%X=>this%Molecule%SiteMIEnm(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(1)%Y=>this%Molecule%SiteMIEnm(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(1)%Z=>this%Molecule%SiteMIEnm(j)%PZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId2) then
-            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteMIEnm(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteMIEnm(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteMIEnm(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteMIEnm(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(2)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(2)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(2)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(2)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(2)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(2)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(2)%X=>this%Molecule%SiteMIEnm(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(2)%Y=>this%Molecule%SiteMIEnm(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(2)%Z=>this%Molecule%SiteMIEnm(j)%PZ(:)
             Site2 = .true.
           end if
           if (Site1 .and. Site2) exit
@@ -1966,26 +1966,26 @@ contains
       if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NCharge > 0) ) then
         do j = 1, this%Molecule%NCharge
           if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(1)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(1)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(1)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(1)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(1)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(1)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(1)%X=>this%Molecule%SiteCharge(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(1)%Y=>this%Molecule%SiteCharge(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(1)%Z=>this%Molecule%SiteCharge(j)%PZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteCharge(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteCharge(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteCharge(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(2)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(2)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(2)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(2)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(2)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(2)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(2)%X=>this%Molecule%SiteCharge(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(2)%Y=>this%Molecule%SiteCharge(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(2)%Z=>this%Molecule%SiteCharge(j)%PZ(:)
             Site2 = .true.
           end if
           if (Site1 .and. Site2) exit
@@ -1994,26 +1994,26 @@ contains
       if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NDipole > 0) ) then
         do j = 1, this%Molecule%NDipole
           if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
-            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteDipole(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteDipole(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteDipole(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(1)%X=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(1)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(1)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(1)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(1)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(1)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(1)%X=>this%Molecule%SiteDipole(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(1)%Y=>this%Molecule%SiteDipole(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(1)%Z=>this%Molecule%SiteDipole(j)%PZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteDipole(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteDipole(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteDipole(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(2)%X=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(2)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(2)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(2)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(2)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(2)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(2)%X=>this%Molecule%SiteDipole(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(2)%Y=>this%Molecule%SiteDipole(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(2)%Z=>this%Molecule%SiteDipole(j)%PZ(:)
             Site2 = .true.
           end if
           if (Site1 .and. Site2) exit
@@ -2022,26 +2022,26 @@ contains
       if((.not.Site1 .or. .not. Site2) .and. (this%Molecule%NQuadrupole > 0) ) then
         do j = 1, this%Molecule%NQuadrupole
           if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
-            this%Molecule%IdfBond(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX1=>this%Molecule%SiteQuadrupole(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY1=>this%Molecule%SiteQuadrupole(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ1=>this%Molecule%SiteQuadrupole(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(1)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(1)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(1)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(1)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(1)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(1)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(1)%X=>this%Molecule%SiteQuadrupole(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(1)%Y=>this%Molecule%SiteQuadrupole(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(1)%Z=>this%Molecule%SiteQuadrupole(j)%PZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfBond(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
-            this%Molecule%IdfBond(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
-            this%Molecule%IdfBond(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
-            this%Molecule%IdfBond(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfBond(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfBond(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
-            this%Molecule%IdfBond(i)%PX2=>this%Molecule%SiteQuadrupole(j)%PX(:)
-            this%Molecule%IdfBond(i)%PY2=>this%Molecule%SiteQuadrupole(j)%PY(:)
-            this%Molecule%IdfBond(i)%PZ2=>this%Molecule%SiteQuadrupole(j)%PZ(:)
+            this%Molecule%IdfBond(i)%R(2)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfBond(i)%R(2)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfBond(i)%R(2)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfBond(i)%F(2)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfBond(i)%F(2)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfBond(i)%F(2)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfBond(i)%P(2)%X=>this%Molecule%SiteQuadrupole(j)%PX(:)
+            this%Molecule%IdfBond(i)%P(2)%Y=>this%Molecule%SiteQuadrupole(j)%PY(:)
+            this%Molecule%IdfBond(i)%P(2)%Z=>this%Molecule%SiteQuadrupole(j)%PZ(:)
             Site2 = .true.
           end if
           if (Site1 .and. Site2) exit
@@ -6351,12 +6351,12 @@ molloop: do i = 1, i1
         Unit1 = pBond%UnitId1
         Unit2 = pBond%UnitId2
 
-        RX1 = pBond%RX1(i)
-        RY1 = pBond%RY1(i)
-        RZ1 = pBond%RZ1(i)
-        RX2 = pBond%RX2(i)
-        RY2 = pBond%RY2(i)
-        RZ2 = pBond%RZ2(i)
+        RX1 = pBond%R(1)%X(i)
+        RY1 = pBond%R(1)%Y(i)
+        RZ1 = pBond%R(1)%Z(i)
+        RX2 = pBond%R(2)%X(i)
+        RY2 = pBond%R(2)%Y(i)
+        RZ2 = pBond%R(2)%Z(i)
 
         PX1 = tempP0(1,Unit1)
         PY1 = tempP0(2,Unit1)
@@ -6445,12 +6445,12 @@ molloop: do i = 1, i1
         pBond => this%Molecule%IdfBond(j)
 
         R0Sq = pBond%R0**2 ! squared equlibrium bond length
-        RX1 = pBond%RX1(i)
-        RY1 = pBond%RY1(i)
-        RZ1 = pBond%RZ1(i)
-        RX2 = pBond%RX2(i)
-        RY2 = pBond%RY2(i)
-        RZ2 = pBond%RZ2(i)
+        RX1 = pBond%R(1)%X(i)
+        RY1 = pBond%R(1)%Y(i)
+        RZ1 = pBond%R(1)%Z(i)
+        RX2 = pBond%R(2)%X(i)
+        RY2 = pBond%R(2)%Y(i)
+        RZ2 = pBond%R(2)%Z(i)
 
         ! Calculate temporary bond vector
         RXij(j) = RX1 - RX2
@@ -6581,12 +6581,12 @@ molloop: do i = 1, i1
           pBond => this%Molecule%IdfBond(j)
 
           R0Sq = pBond%R0**2
-          RX1 = pBond%RX1(i)
-          RY1 = pBond%RY1(i)
-          RZ1 = pBond%RZ1(i)
-          RX2 = pBond%RX2(i)
-          RY2 = pBond%RY2(i)
-          RZ2 = pBond%RZ2(i)
+          RX1 = pBond%R(1)%X(i)
+          RY1 = pBond%R(1)%Y(i)
+          RZ1 = pBond%R(1)%Z(i)
+          RX2 = pBond%R(2)%X(i)
+          RY2 = pBond%R(2)%Y(i)
+          RZ2 = pBond%R(2)%Z(i)
 
           ! Calculate temporary bond vector
           RXij(j) = RX1 - RX2

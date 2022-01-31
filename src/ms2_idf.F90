@@ -28,6 +28,12 @@ module ms2_idf
   use ms2_global
 
 
+  type coordinatesPointer
+
+    real(RK), pointer, contiguous :: X(:), Y(:), Z(:)
+
+  end type coordinatesPointer
+
 
 !==============================================================!
 !  Type TIdfBond                                             !
@@ -41,9 +47,7 @@ module ms2_idf
     integer           :: UnitId1, UnitId2
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    type(coordinatesPointer), dimension(3) :: P, R, F
 
   end type TIdfBond
 
@@ -59,12 +63,6 @@ module ms2_idf
     module procedure TIdfBond_Save
   end interface
 
-
-  type coordinatesPointer
-
-    real(RK), pointer, contiguous :: X(:), Y(:), Z(:)
-
-  end type coordinatesPointer
 
 !==============================================================!
 !  Type TIdfAngle                                              !

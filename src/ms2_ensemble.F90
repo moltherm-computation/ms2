@@ -6563,12 +6563,12 @@ loop5:    do nc = 1, this%NComponents
       end do
 
       do j = 1, this%Component(i)%Molecule%NBond
-        pc%Molecule%IdfBond(j)%FX1(1:pc%NPart) = 0._RK
-        pc%Molecule%IdfBond(j)%FY1(1:pc%NPart) = 0._RK
-        pc%Molecule%IdfBond(j)%FZ1(1:pc%NPart) = 0._RK
-        pc%Molecule%IdfBond(j)%FX2(1:pc%NPart) = 0._RK
-        pc%Molecule%IdfBond(j)%FY2(1:pc%NPart) = 0._RK
-        pc%Molecule%IdfBond(j)%FZ2(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(1)%X(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(1)%Y(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(1)%Z(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(2)%X(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(2)%Y(1:pc%NPart) = 0._RK
+        pc%Molecule%IdfBond(j)%F(2)%Z(1:pc%NPart) = 0._RK
       end do
       do j = 1, this%Component(i)%Molecule%NAngle
         pc%Molecule%IdfAngle(j)%F(1)%X(1:pc%NPart) = 0._RK

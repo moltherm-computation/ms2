@@ -16713,12 +16713,12 @@ loop2:  do j = 1, j1
      d2EpotdV2Local = 0._RK
 
     ! Assign pointers
-     FX1 => this%Bond%FX1
-     FY1 => this%Bond%FY1
-     FZ1 => this%Bond%FZ1
-     FX2 => this%Bond%FX2
-     FY2 => this%Bond%FY2
-     FZ2 => this%Bond%FZ2
+     FX1 => this%Bond%F(1)%X
+     FY1 => this%Bond%F(1)%Y
+     FZ1 => this%Bond%F(1)%Z
+     FX2 => this%Bond%F(2)%X
+     FY2 => this%Bond%F(2)%Y
+     FZ2 => this%Bond%F(2)%Z
 
     ! Loop over molecules
 #if MPI_VER > 0
@@ -16729,8 +16729,8 @@ loop2:  do j = 1, j1
 
 !CDIR NODEP
 
-        R1 = vector(this%Bond%RX1(i), this%Bond%RY1(i), this%Bond%RZ1(i))
-        R2 = vector(this%Bond%RX2(i), this%Bond%RY2(i), this%Bond%RZ2(i))
+        R1 = vector(this%Bond%R(1)%X(i), this%Bond%R(1)%Y(i), this%Bond%R(1)%Z(i))
+        R2 = vector(this%Bond%R(2)%X(i), this%Bond%R(2)%Y(i), this%Bond%R(2)%Z(i))
 
         ! Standard harmonic bond
         ! Energy and forces:
@@ -16761,8 +16761,8 @@ loop2:  do j = 1, j1
         Fij = SCALE_VECTOR(Rij, Fijabs)
 
         ! For calculation of virial
-        P1 = vector(this%Bond%PX1(i), this%Bond%PY1(i), this%Bond%PZ1(i))
-        P2 = vector(this%Bond%PX2(i), this%Bond%PY2(i), this%Bond%PZ2(i))
+        P1 = vector(this%Bond%P(1)%X(i), this%Bond%P(1)%Y(i), this%Bond%P(1)%Z(i))
+        P2 = vector(this%Bond%P(2)%X(i), this%Bond%P(2)%Y(i), this%Bond%P(2)%Z(i))
 
         Pij = SUB_VECTOR(P1, P2)
         Pij = SUB_ANINT_VECTOR(Pij)
@@ -16823,9 +16823,9 @@ loop2:  do j = 1, j1
     R0 = this%R0
 
     ! Calculate bond length
-    RXij = this%Bond%RX1(np) - this%Bond%RX2(np)
-    RYij = this%Bond%RY1(np) - this%Bond%RY2(np)
-    RZij = this%Bond%RZ1(np) - this%Bond%RZ2(np)
+    RXij = this%Bond%R(1)%X(np) - this%Bond%R(2)%X(np)
+    RYij = this%Bond%R(1)%Y(np) - this%Bond%R(2)%Y(np)
+    RZij = this%Bond%R(1)%Z(np) - this%Bond%R(2)%Z(np)
     RXij = (RXij - anint( RXij )) * BoxLength
     RYij = (RYij - anint( RYij )) * BoxLength
     RZij = (RZij - anint( RZij )) * BoxLength

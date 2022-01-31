@@ -7321,12 +7321,12 @@ end subroutine TInteraction_EnergySVC
         u2 = pbo%Unit2 ! unit2 of bond
 
         ! Assign pointers to site positions
-        RXi=pbo%Bond%RX1(np)
-        RYi=pbo%Bond%RY1(np)
-        RZi=pbo%Bond%RZ1(np)
-        RXij = (RXi - pbo%Bond%RX2(np))
-        RYij = (RYi - pbo%Bond%RY2(np))
-        RZij = (RZi - pbo%Bond%RZ2(np))
+        RXi=pbo%Bond%R(1)%X(np)
+        RYi=pbo%Bond%R(1)%Y(np)
+        RZi=pbo%Bond%R(1)%Z(np)
+        RXij = (RXi - pbo%Bond%R(2)%X(np))
+        RYij = (RYi - pbo%Bond%R(2)%Y(np))
+        RZij = (RZi - pbo%Bond%R(2)%Z(np))
         RXij = (RXij - anint(RXij)) * BoxLength
         RYij = (RYij - anint(RYij)) * BoxLength
         RZij = (RZij - anint(RZij)) * BoxLength
@@ -7353,12 +7353,12 @@ end subroutine TInteraction_EnergySVC
         !this%EPot1Bond(bi) = dR*F0
 #endif
 
-        PXi = pbo%Bond%PX1(np)
-        PYi = pbo%Bond%PY1(np)
-        PZi = pbo%Bond%PZ1(np)
-        PXij = PXi - pbo%Bond%PX2(np)
-        PYij = PYi - pbo%Bond%PY2(np)
-        PZij = PZi - pbo%Bond%PZ2(np)
+        PXi = pbo%Bond%P(1)%X(np)
+        PYi = pbo%Bond%P(1)%Y(np)
+        PZi = pbo%Bond%P(1)%Z(np)
+        PXij = PXi - pbo%Bond%P(2)%X(np)
+        PYij = PYi - pbo%Bond%P(2)%Y(np)
+        PZij = PZi - pbo%Bond%P(2)%Z(np)
         PXij = (PXij - anint(PXij)) * BoxLength
         PYij = (PYij - anint(PYij)) * BoxLength
         PZij = (PZij - anint(PZij)) * BoxLength
