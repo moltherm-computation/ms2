@@ -617,8 +617,8 @@ contains
 
 
 #if MPI_VER>0
-        if (SimulationType .eq. MolecularDynamics) then
-           this%NTest = ((this%NTest -1)/NProcs +1)
+        if ( (SimulationType .eq. MolecularDynamics) .or. (mpiMCCommonGroups > 0) ) then
+           this%NTest = ((this%NTest -1)/NProcs +1) !for mpiMCCommonGroups > 0: inside a group chemical potential calculation is parallelized by this%NTest
         endif
 #endif
       end if
@@ -667,8 +667,8 @@ contains
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
 #if MPI_VER>0
-        if (SimulationType .eq. MolecularDynamics) then
-          this%NTest = ((this%NTest-1)/NProcs +1)
+        if ( (SimulationType .eq. MolecularDynamics) .or. (mpiMCCommonGroups > 0) ) then
+          this%NTest = ((this%NTest-1)/NProcs +1) !for mpiMCCommonGroups > 0: inside a group chemical potential calculation is parallelized by this%NTest
         endif
 #endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then
@@ -2237,7 +2237,7 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+    if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
       call MPI_Bcast( this%P0(:, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) call MPI_Bcast( this%Q0(:, :), size( this%Q0 ),&
       & MPI_RK, NRootProc, Communicator, ierror )

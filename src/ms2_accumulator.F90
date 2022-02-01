@@ -221,11 +221,19 @@ contains
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo ) then
       ! Allocate arrays for MC communication COL_DEBUG
-      allocate( this%BlockSumGathered( i*NProcs ), STAT = stat )
+      if ( mpiMCCommonGroups > 0 ) then !Production cycles are distributed over mpiMCCommonGroups
+        allocate( this%BlockSumGathered( i*mpiMCCommonGroups ), STAT = stat )
+      else
+        allocate( this%BlockSumGathered( i*NProcs ), STAT = stat )
+      endif     
       call AllocationError( stat, 'output blocks', i )
       this%BlockSumGathered = 0._RK
    
-      allocate( this%NBlockSumGathered( i*NProcs ), STAT = stat )
+      if ( mpiMCCommonGroups > 0 ) then
+        allocate( this%NBlockSumGathered( i*mpiMCCommonGroups ), STAT = stat )
+      else
+        allocate( this%NBlockSumGathered( i*NProcs ), STAT = stat )
+      endif
       call AllocationError( stat, 'output blocks', i )
       this%NBlockSumGathered = 0._RK
     endif
@@ -295,6 +303,7 @@ contains
 
     ! Declare local variables
     integer :: i, j, k
+    
 
     i = Step
     j = BlockSize
@@ -397,19 +406,35 @@ contains
 
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo .and. .not. present(kbi)) then
+      if ( mpiMCCommonGroups > 0 ) then !gather and reduce accumulated values of each group to the head (RootProc_MCCom) of each group heads (RootProc)
+        if (RootProc) then
+          call MPI_Gather(this%BlockSum(1:(n/mpiMCCommonGroups)),n/mpiMCCommonGroups, MPI_RK , &
+&           this%BlockSumGathered(1:n), n/mpiMCCommonGroups,MPI_RK,NRootProc_MCCom,MCCommonGroups_R,ierror )
+          call MPI_Gather(this%NBlockSum(1:(n/mpiMCCommonGroups)),n/mpiMCCommonGroups, MPI_INTEGER , &
+&           this%NBlockSumGathered(1:n), n/mpiMCCommonGroups,MPI_INTEGER,NRootProc_MCCom,MCCommonGroups_R,ierror )
+          call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&           NRootProc_MCCom, MCCommonGroups_R, ierror )
+        endif
+      else
+        call MPI_Gather(this%BlockSum(1:(n/NProcs)),n/NProcs, MPI_RK , &
+&         this%BlockSumGathered(1:n), n/NProcs,MPI_RK,NRootProc,Communicator,ierror )
+        call MPI_Gather(this%NBlockSum(1:(n/NProcs)),n/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:n), & 
+&         n/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
+        call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&         NRootProc, Communicator, ierror )
+      endif
 
-      call MPI_Gather(this%BlockSum(1:(n/NProcs)),n/NProcs, MPI_RK , &
-&       this%BlockSumGathered(1:n), n/NProcs,MPI_RK,NRootProc,Communicator,ierror )
-      call MPI_Gather(this%NBlockSum(1:(n/NProcs)),n/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:n), & 
-&       n/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-      call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
-&       NRootProc, Communicator, ierror )
-
-    !Carefull: This if statement should remain as is, 
-    ! because in the MC parallelization, every processor is treated as root
-    if (Nproc /= NRootProc) return
-        
-      this%Average=ReducedAverage/NProcs
+      !Carefull: This if statement should remain as is, 
+      ! because in the MC parallelization, every processor is treated as root
+      ! this means that NRootProc=0 for each process
+      if (Nproc /= NRootProc) return
+      
+      if ( mpiMCCommonGroups > 0 ) then
+        if ( .not. RootProc_MCCom ) return !=RootProc_W
+        this%Average=ReducedAverage/mpiMCCommonGroups
+      else        
+        this%Average=ReducedAverage/NProcs
+      endif
       ! Calculate variance
       Tau = 0._RK
       do i = 1, m
@@ -501,18 +526,36 @@ contains
 
     real(RK) :: ReducedAverage
 
-    call MPI_Gather(this%BlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_RK , this%BlockSumGathered(1:NBlocks), & 
-&     NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
-    call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
-&     NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-    call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
-&     NRootProc, Communicator, ierror )
+    if ( mpiMCCommonGroups > 0 ) then !gather and reduce accumulated values of each group to the head (RootProc_MCCom) of each group heads (RootProc)
+      if (RootProc) then
+        call MPI_Gather(this%BlockSum(1:(NBlocks/mpiMCCommonGroups)),NBlocks/mpiMCCommonGroups, MPI_RK , &
+&         this%BlockSumGathered(1:NBlocks), NBlocks/mpiMCCommonGroups,MPI_RK,NRootProc_MCCom,MCCommonGroups_R,ierror )        
+        call MPI_Gather(this%NBlockSum(1:(NBlocks/mpiMCCommonGroups)),NBlocks/mpiMCCommonGroups, MPI_INTEGER , &
+&         this%NBlockSumGathered(1:NBlocks), NBlocks/mpiMCCommonGroups,MPI_INTEGER,NRootProc_MCCom,MCCommonGroups_R,ierror )       
+        call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&         NRootProc_MCCom, MCCommonGroups_R, ierror )
+      endif
+    else
+      call MPI_Gather(this%BlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_RK , this%BlockSumGathered(1:NBlocks), & 
+&       NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
+      call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
+&       NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
+      call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&       NRootProc, Communicator, ierror )
+    endif
+
 
     !be careful: This if statement should remain as is, because in the MC parallelization, 
     !every processor is treated as root
     if (RootProc) then
         
-      this%Average=ReducedAverage/NProcs
+      if ( mpiMCCommonGroups > 0 ) then
+        if ( .not. RootProc_MCCom ) return !=RootProc_W
+        this%Average=ReducedAverage/mpiMCCommonGroups
+      else
+        this%Average=ReducedAverage/NProcs
+      endif 
+      
       ! Calculate variance
       Tau = 0._RK
       do i = 1, NBlockSizes
@@ -566,6 +609,7 @@ contains
 #if MPI_VER > 0
     endif
 
+    if ( mpiMCCommonGroups > 0 ) return
     if (RootProc) then
 
       if (NProc/=NProc_W) then
@@ -659,7 +703,6 @@ contains
       call MPI_Bcast( this%BlockSum(:), size( this%BlockSum ), MPI_RK, NRootProc, Communicator, ierror )
       call MPI_Bcast( this%NBlockSum(:), size( this%NBlockSum ), MPI_INTEGER, NRootProc, Communicator, ierror )
       call MPI_Bcast( i, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-
     elseif ( .not. RootProc) then
       return
     endif
