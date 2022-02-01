@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>12caac1dc12a5fa13135c992abb284dc8e386a49</caseRepositoryHash>
+	<caseRepositoryHash>7e438c43db1394c326c63ddf2260a6b0e4048590</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -68,6 +68,7 @@
 		<case name="pentan_NPT" file="pentan_NPT.xml" />
 		<case name="pentan_NPT_site" file="pentan_NPT_site.xml" />
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
+		<case name="serialQCD" file="serialQCD.xml" />
 		<case name="spme_NpT_NaCl+SPCE" file="spme_NpT_NaCl+SPCE.xml" />
 <!-- 		<case name="SVC_aceton" file="SVC_aceton.xml" /> -->
 <!-- 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" /> -->

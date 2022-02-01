@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>Q_C_D.par</parFile>
+	<name>serialQCD</name>
+	<np>1</np>
+	<reference>
+		<file>Q_C_D_1.rav</file>
+	</reference>
+	<reference>
+		<file>Q_C_D_1.res</file>
+	</reference>
+	<reference>
+		<file>Q_C_D_1.run</file>
+	</reference>
+	<reference>
+		<file>Q_C_D_1.vim</file>
+	</reference>
+	<reference>
+		<file>Q_C_D.rst</file>
+	</reference>
+	<reference>
+		<file>Q_C_D.TIP4P_w6.nrm</file>
+	</reference>
+</testcase>
