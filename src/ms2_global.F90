@@ -353,6 +353,7 @@ module ms2_global
   character(*), parameter :: IdMaxRadius                   = 'RMaxRadius'
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
   character(*), parameter :: IdmpiEnsembleGroups           = 'mpiEnsembleGroups'
+  character(*), parameter :: IdmpiMCCommonGroups           = 'mpiMCCommonGroups'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
   character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
   character(*), parameter :: IdRefEnthalpy                 = 'Enthalpy'
@@ -890,6 +891,9 @@ module ms2_global
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
+  
+  ! Number of common groups for MC parallelization of cycles and particles
+  integer :: mpiMCCommonGroups
 
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
@@ -908,6 +912,7 @@ module ms2_global
   integer :: Communicator   ! actual MPI communicator
   !integer :: Communicator_W    ! =MPI_COMM_WORLD
   integer :: Communicator_R ! MPI communicator containing all roots
+  integer :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
   integer :: NProcs ! number of PEs within actual MPI communicator
   integer :: NProc  ! MPI rank of actual MPI communicator
   integer :: NRootProc  ! MPI rank of root of actual MPI communicator
@@ -920,6 +925,10 @@ module ms2_global
   integer :: NProc_R    ! MPI rank within actual Communicator_R
   integer :: NRootProc_R    ! MPI rank of root PE within actual Communicator_R
   logical :: RootProc_R     ! is PE root of actual Communicator_R?
+  integer :: NProcs_MCCom   ! number of PEs within actual MCCommonGroups_R
+  integer :: NProc_MCCom    ! MPI rank within actual MCCommonGroups_R
+  integer :: NRootProc_MCCom   ! MPI rank of root PE within actual MCCommonGroups_R
+  logical :: RootProc_MCCom    ! is PE root of actual MCCommonGroups_R
   integer :: NCommunicators ! number of Communicators (useful after MPI_Comm_Split)
   integer :: NCommunicator  ! ID of the Communicator
   !
@@ -1948,6 +1957,11 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! using <OutputNameTag>.log, if only one communicator exists date_and_time
     ! and   <OutputNameTag>_<CommId>.log for several
@@ -1988,6 +2002,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Close log file
     call FileClose( iounit_log )
@@ -2006,6 +2026,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write contents of buffer to log file
     call FileWrite( iounit_log )
@@ -2028,6 +2054,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write contents of buffer to log file
     call FileWriteNoAdvance( iounit_log )
@@ -2046,6 +2078,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write blank line to log file
     call FileWriteBlank( iounit_log )
@@ -2068,6 +2106,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Update log file
     call LogWriteNoAdvance
@@ -2092,6 +2136,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Update log file
     write( IOBuffer, '(I9, " steps completed")' ) Step
@@ -2118,6 +2168,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
 
     ! Open file for reading
     write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
@@ -2362,6 +2413,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write contents of buffer to file
     call FileWriteNoAdvance( iounit )
@@ -2384,6 +2441,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write contents of buffer to file
     write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
@@ -2405,6 +2468,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write blank line to file
     write( iounit, '()' )
@@ -2771,6 +2840,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+    
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write parameter to file
     write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
@@ -2795,7 +2870,7 @@ contains
     iy = ieor(777755555, seed)
 
     ! Initialize test particle random number generator
-    tpix = NProc
+    tpix = NProc_W !for standard MC or MD NProc=NProc_W, whereas for MC with mpiMCCommonGroups NProc!=NProc_W
     tpix = ieor( tpix, ishft(tpix,5) ) + 1422217823
     tpix = ieor( tpix, ishft(tpix,-16) ) + 1842055030
     tpix = ieor( tpix, ishft(tpix,9) ) + 80567781
@@ -2803,7 +2878,7 @@ contains
 
     ! Calculate normalization factor
     am = nearest(1._RK, -1._RK) / huge(ix)
-
+    
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
     write( IOBuffer, '(72("-"))')
@@ -3094,7 +3169,7 @@ contains
       ! The if-statement reads:
       ! only do it if we are in the equilibration phase of a MC  simulation
       ! and common equilibration is active. It is a little complicated, but that cannot be helped
-      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then
+      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0)) .or. (mpiMCCommonGroups > 0)) then
         range_size = 1 + (overall_size - 1) / NProcs
         first_index = 1 + NProc * range_size
         last_index = min( first_index + range_size - 1, overall_size )

@@ -1056,8 +1056,13 @@ contains
 
 #if MPI_VER > 0
     ! Loop over molecules
-    i0 = this%NPart10
-    i1 = this%NPart12
+    if ( mpiMCCommonGroups > 0 ) then
+      i0 = 1
+      i1 = this%NPart1
+    else
+      i0 = this%NPart10
+      i1 = this%NPart12
+    endif
     do i = i0, i1
 #else
     i1 = this%NPart1
@@ -5341,6 +5346,8 @@ end subroutine TInteraction_EnergySVC
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
+
+
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere
