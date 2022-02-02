@@ -308,6 +308,7 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
+  character(*), parameter :: IdAccInserts                  = 'AccInserts'
   character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsE                     = 'NVESteps'
@@ -606,7 +607,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPH = 3
   integer, parameter :: EnsembleTypeNPT = 4
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
-  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
+  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
   integer            :: EnsembleType
@@ -669,9 +670,13 @@ module ms2_global
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100
 
+  ! muVT insert/delete acceptance
+  real(RK) :: AccInserts
+  real(RK) :: InsertUpperLimit,InsertLowerLimit
+
   ! Number of simulation time steps
   integer :: NSteps
-  integer :: NStepsSVC  
+  integer :: NStepsSVC
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
@@ -711,18 +716,18 @@ module ms2_global
 
 ! Logical parameters for VLE with NPT and SVC
   logical :: SVCCalc = .false. !If SVC was already calculated
-  ! Arrays for SVC and dB/dT 
-  
+  ! Arrays for SVC and dB/dT
+
   real(RK), dimension(:, :, :), allocatable :: ArrSVC
   real(RK), dimension(:, :, :), allocatable :: ArrdBdT
   real(RK), dimension(:), allocatable :: ArrChemPot
   real(RK), dimension(:), allocatable :: ArrPartMolVol
 
 
-  
+
    real(RK) :: BmixSVCtemp, dBdTmixtemp
    real(RK) :: StartTemperature, StartPressure
-   integer  :: EnsembleNum  
+   integer  :: EnsembleNum
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
@@ -826,7 +831,7 @@ module ms2_global
   ! Common equilibration flag for MC. Determines whether one shared
   ! equilibration is performed
   logical :: CommonEqui
-  
+
   ! Number of common groups for MC parallelization of cycles and particles
   integer :: mpiMCCommonGroups
 
@@ -1452,7 +1457,7 @@ contains
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
-    
+
     RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
     ! Open log file
@@ -1552,6 +1557,10 @@ contains
 #endif
 #if OSMOP == 2
     write( IOBuffer, '(" OSMOP=2")' )
+    call LogWriteNoAdvance
+#endif
+#if SPME == 1
+    write( IOBuffer, '(" SPME=1")' )
     call LogWriteNoAdvance
 #endif
     ! new compiler flags should be added
@@ -1933,7 +1942,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -1957,7 +1966,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -1985,7 +1994,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2009,7 +2018,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2035,7 +2044,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2218,7 +2227,7 @@ contains
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
-    
+
     ! Write contents of buffer to file
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
     !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
@@ -2226,7 +2235,7 @@ contains
     !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
     !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)  ! collective operation to write ranks one after another with a shared file handler
     !
-    
+
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif
@@ -2342,7 +2351,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2370,7 +2379,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2397,7 +2406,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2769,7 +2778,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -2807,7 +2816,7 @@ contains
 
     ! Calculate normalization factor
     am = nearest(1._RK, -1._RK) / huge(ix)
-    
+
     write( IOBuffer, '("Random number generator initialized")' )
     call LogWrite
     write( IOBuffer, '(72("-"))')
