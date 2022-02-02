@@ -279,7 +279,7 @@ contains
     integer                     :: maxNComp, thisNComp
     real(RK)                    :: dummyR
     integer                     :: value
-    
+
 #if MPI_VER > 0
     integer  :: icommunicator
     integer  :: color, oldCommunicator, newCommunicator, groupId
@@ -644,7 +644,7 @@ contains
           call LogWriteBlank
           ! Read number of MPI common groups for MC => Prod. cycles are divided by the number of groups
           ! and the mpi members of a group share the work of the particles
-          call FileReadParameter( mpiMCCommonGroups, iounit_params , IdmpiMCCommonGroups, .true., 0 )   
+          call FileReadParameter( mpiMCCommonGroups, iounit_params , IdmpiMCCommonGroups, .true., 0 )
           if ( mpiMCCommonGroups > 0 ) then
             RootProc_MCCom = .true. ! for all processes for writing because RootProc is true only for RootProc_W (because up to here the old Communicator is still active)
             write( IOBuffer, '("mpiMCCommonGroups:",T24, I3)' ) mpiMCCommonGroups
@@ -659,31 +659,31 @@ contains
               oldCommunicator=Communicator
               color = NProc*mpiMCCommonGroups/NProcs
               ! Split Communicator by color so by the number of mpiMCCommonGroups
-              call MPI_Comm_Split(oldCommunicator,color,NProc,newCommunicator,ierror)     
-              call SetCommunicator(newCommunicator)   !   RootProc is now true for the root of the new communicator(Communicator) so that RootProc is true for every color of Communicator; in other words: RootProc is the head of each group 
+              call MPI_Comm_Split(oldCommunicator,color,NProc,newCommunicator,ierror)
+              call SetCommunicator(newCommunicator)   !   RootProc is now true for the root of the new communicator(Communicator) so that RootProc is true for every color of Communicator; in other words: RootProc is the head of each group
 
               ! Create new MCCommonGroups_R that contains all RootProcs of Communicator
-              if (RootProc) then 
+              if (RootProc) then
                 groupId = 0
               else
                 groupId = 1
               endif
               RootProc_MCCom = .false. ! for all processes
-              call MPI_Comm_Split(oldCommunicator,groupId,NProc_W,MCCommonGroups_R,ierror)  
+              call MPI_Comm_Split(oldCommunicator,groupId,NProc_W,MCCommonGroups_R,ierror)
               call MPI_Comm_size( MCCommonGroups_R, NProcs_MCCom, ierror )
               call MPI_Comm_rank( MCCommonGroups_R, NProc_MCCom, ierror )
               NRootProc_MCCom = 0
               ! from now RootProc_MCCom is the head of all MC Common Group heads (RootProc)
               if ( NProc_MCCom == NRootProc_MCCom .and. RootProc) RootProc_MCCom = .true. ! =RootProc_W
-                           
+
               ! Reopen the ParameterFile (dirty hack) for each communicator
-              call FileReset( iounit_params, ParameterFileName )          
+              call FileReset( iounit_params, ParameterFileName )
             else
               call Error( trim( str )//' Number of mpi processes must be divisible by mpiMCCommonGroups without remainder' )
-            end if      
-          end if  
+            end if
+          end if
       end if
-#endif  
+#endif
 
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
@@ -727,6 +727,21 @@ contains
       else
         MCOverlapReduction = .false.
         EMinimizationIDF = .false.
+      end if
+
+      ! Read insert/delete acceptance rate for muVT
+      if( EnsembleType .eq. EnsembleTypeMUVT ) then
+        call FileReadParameter( AccInserts, iounit_params , IdAccInserts, .true., 0.5_RK )
+        if( AccInserts < 0.05_RK ) then
+          AccInserts = 0.05_RK
+        else if( AccInserts > 0.95_RK ) then
+          AccInserts = 0.95_RK
+        end if
+        write( IOBuffer, '("Inserts rate: ",T24, F6.2, "%")' ) AccInserts * 100._RK
+        call LogWrite
+        InsertUpperLimit = AccInserts * 1.2_RK
+        InsertLowerLimit = AccInserts * 0.8_RK
+        call LogWriteBlank
       end if
 
       ! Read number of NVT equilibration steps
@@ -782,8 +797,8 @@ contains
       call LogWriteBlank
 
 #if MPI_VER > 0
-      if ( SimulationType .eq. MonteCarlo ) then        
-        if ( mpiMCCommonGroups > 0 ) then 
+      if ( SimulationType .eq. MonteCarlo ) then
+        if ( mpiMCCommonGroups > 0 ) then
           NSteps = ceiling(real(NSteps)/mpiMCCommonGroups)
         else
           NSteps = ceiling(real(NSteps)/NProcs)
@@ -951,7 +966,7 @@ contains
               BlockSizeKBI=int(BlockSizeKBI/mpiMCCommonGroups) !KBIBlockSize per MC Common Group
             else
               BlockSizeKBI=int(BlockSizeKBI/NProcs) !KBIBlockSize per process
-            endif 
+            endif
             !rounding up if KBIResetFreq is not a multiple of KBIUpdateFreq
             BlockSizeKBI=KBIUpdateFrequency*int(BlockSizeKBI/KBIUpdateFrequency)
         end if
@@ -1219,7 +1234,7 @@ contains
         ! Reopen the ParameterFile (dirty hack) for each communicator
         call FileReset( iounit_params, ParameterFileName )
         !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
-        
+
         !TerminateStatus=0
         !TerminateStatus_msg=0
         !TerminateStatus_bcast=0
@@ -1229,7 +1244,7 @@ contains
         !numMsgTerm_recv=0
         this%mpireqbcastTerm=MPI_REQUEST_NULL
         this%mpireqmsgTerm=MPI_REQUEST_NULL
-        
+
         if ( RootProc) then
           if ( RootProc_R ) then
             this%TerminateCountdown=NProcs_R    !=NCommunicators
@@ -1242,7 +1257,7 @@ contains
 &                           Communicator_R, this%mpireqbcastTerm, ierror)
           end if
         end if
-      
+
     endif
 #else
     if ( this%mpiEnsembleGroups /= 0 ) then
@@ -1300,7 +1315,7 @@ contains
       call LogWrite
     endif
 
-      !Read Transport Method 
+      !Read Transport Method
       call FileReadParameter( str, iounit_params , IdTransMethod, .true., "GK" )
       select case( str )
         case( 'GK', 'gk', 'GreenKubo', 'GREENKUBO', 'Green-Kubo')
@@ -1396,8 +1411,8 @@ contains
   write( IOBuffer, '(72(1H*))')
   call LogWrite
   call LogWriteBlank
-! preparation of VLE calculation based on SVC  
-  if (SimulationType .eq. MolecularDynamics .or. SimulationType .eq. MonteCarlo) then   
+! preparation of VLE calculation based on SVC
+  if (SimulationType .eq. MolecularDynamics .or. SimulationType .eq. MonteCarlo) then
      if (EnsembleType .eq. EnsembleTypeNPTSVC) then
        if (SVCCalc .eqv. .false.) then !if SVC was not calculated until now
            write( IOBuffer, '(72(1H*))')
@@ -1416,7 +1431,7 @@ contains
            call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 2._RK )
            call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 20._RK  )
            else
-           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! 
+           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) !
            call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 400 )
            call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 0.66_RK )
            call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 6.66_RK )
@@ -1430,7 +1445,7 @@ contains
            allocate(ArrSVC(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat) !allocate memory for SVC and dB/dT
            call AllocationError( stat, 'Array SVC' )
            ArrSVC(:,:,:) = 0.0
-           allocate(ArrdBdT(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat)      
+           allocate(ArrdBdT(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat)
            ArrdBdT(:,:,:) = 0.0
            call AllocationError( stat, 'Array dB/dT' )
            allocate(ArrChemPot(maxNComp), STAT=stat) !allocate memory for SVC and dB/dT
@@ -1438,7 +1453,7 @@ contains
            allocate(ArrPartMolVol(maxNComp), STAT=stat) !allocate memory for v_i
            call AllocationError( stat, 'Array Partial molar volume' )
 
-           
+
            CutoffMode = CenterofMass ! Set cutoff mode
            BlockSize = 0
            ErrorsUpdateFrequency = NSteps ! Set output frequencies
@@ -1455,10 +1470,10 @@ contains
            endif
            write( IOBuffer, '("Minimum radius: ",T27, F8.3, " A")' ) MinRadius * UnitLength / Angstroem
            call LogWrite
-           write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem   
-           call LogWrite      
-           call FileClose( iounit_params )         
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par         
+           write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem
+           call LogWrite
+           call FileClose( iounit_params )
+           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
 #if MPI_VER > 0
            ! force sequential reading of parameter file (within Ensemble Construct)    better use MPI-IO!
            do icommunicator = 0,NCommunicators-1
@@ -1477,11 +1492,11 @@ contains
            end do
 #endif
            call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-           call FileClose( iounit_params )     
+           call FileClose( iounit_params )
            SVCCalc = .true.
        endif
      endif
-  endif     
+  endif
 
   ! Create accumulators
   call CreateAccumulators( this )
@@ -1503,7 +1518,7 @@ contains
         write( IOBuffer, '(T28, "Start Calculation of Second Virial Coefficient")')
     else
         write( IOBuffer, '(T28, "Start Simulation")')
-    endif    
+    endif
     call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
@@ -2594,7 +2609,7 @@ eqloop: do
       !DC NOTE- termination status is 0/1 value - reducing it as product yield the 0/1 value if program is to be terminated
       !       - termination is only done when all PU have the terminate_cc_multiensemble = 1
       stop_cc_simulation = 0
-      ! ??? 
+      ! ???
       !call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
       call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
       ! ???
@@ -2615,7 +2630,7 @@ eqloop: do
           TerminateProgram= .true.
         end if
       end if
-      
+
 #else
       !DC NOTE- Single Abortion
       !DC NOTE- perform the check in serial context
@@ -3153,7 +3168,7 @@ eqloop: do
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -3187,7 +3202,7 @@ eqloop: do
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -3226,7 +3241,7 @@ eqloop: do
 
     ! Check for root process
     if( .not. RootProc ) return
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
@@ -3690,7 +3705,7 @@ eqloop: do
 #else
         write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
         call LogWriteTime
-#endif      
+#endif
 
         ! Open restart file for writing
         call FileRewrite( iounit_restart, trim(RestartFileName) )
@@ -3735,7 +3750,7 @@ eqloop: do
 #else
     write( IOBuffer, '("Finished saving restart file ", A)' ) trim( RestartFileName )
     call LogWriteTime
-#endif  
+#endif
 
 
   end subroutine TSimulation_RestartSave

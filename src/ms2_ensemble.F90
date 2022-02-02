@@ -283,6 +283,7 @@ module ms2_ensemble
     integer :: NInsertAttempts, NInsertSuccesses
     integer :: NDeleteAttempts, NDeleteSuccesses
     integer :: NTransferAttempts, NTransferSuccesses
+    integer :: BndInsertAttempts
 
     ! Kinetic energy
     real(RK) :: EKin, EKinTran, EKinRot
@@ -894,6 +895,10 @@ module ms2_ensemble
     module procedure TEnsemble_UpdateDisplacements
   end interface
 
+  interface UpdateInsertAttempts
+    module procedure TEnsemble_UpdateInsertAttempts
+  end interface
+
   interface Residence
     module procedure TEnsemble_Residence
   end interface
@@ -1379,10 +1384,10 @@ contains
           call LogWrite
 #if MPI_VER > 0
           if ( mpiMCCommonGroups > 1) then
-            !it does not make any sense to use mpiMCCommonGroups with CommonEqui 
+            !it does not make any sense to use mpiMCCommonGroups with CommonEqui
             !because mpiMCCommonGroups acts like CommonEqui just for standard equilibration and run
-            CommonEqui = .false. 
-            write( IOBuffer, '("Common equilibration is set to: No because mpiMCCommonGroups > 1")' ) 
+            CommonEqui = .false.
+            write( IOBuffer, '("Common equilibration is set to: No because mpiMCCommonGroups > 1")' )
             call LogWrite
           end if
 #endif
@@ -1929,7 +1934,11 @@ contains
       call UpdateBoxLength( this )
 
       ! Abort, if maximum cutoff larger than boxlength
-      if (this%RCutoffMax2 > this%BoxLength) call Error('Cutoff is larger than the boxsize')
+      if (this%RCutoffMax2 > this%BoxLength) then
+          write(ErrorBuffer, '(A, f0.6, A, f0.6, A, I0.1)') "Cut-off diameter (", this%RCutoffMax2 , &
+                ") is larger than the boxsize (", this%BoxLength ,") for ensemble ", this%EnsembleNumber
+          call Error(ErrorBuffer)
+      end if
 
       ! Set initial positions of particles in simulation box
       call InitPositions( this )
@@ -2048,6 +2057,11 @@ contains
             this%Component(i)%DispMolRot = DispMolRotStart
           end if
         end do
+
+        ! Set initial number of insert/delete attempts
+        if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+          this%BndInsertAttempts = 2
+        end if
 
       end if
     else        ! Restart
@@ -5453,14 +5467,14 @@ loop5:  do nc = 1, this%NComponents
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
   if ((      this%isCCSimulation  ) .and. &
   &   (.not. this%isStopSimulation) .and. &
-  &   (.not. Equilibration        ) .and. &
-  &   (mod( Step, this%CCFrequency) .eq. 0) ) then
+  &   (.not. Equilibration        ) ) then
+    if (mod( Step, this%CCFrequency) .eq. 0) then
+      !DC DEBUG - validating that the conditions are fulfulled as prescribed
+      ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
+      ! write (*, '("Ensemble: ", I3, " step: ",I3, " freq: ",I4, " step%freq: ",I3)') this%EnsembleNumber, Step, this%CCFrequency, mod(Step, this%CCFrequency)
 
-    !DC DEBUG - validating that the conditions are fulfulled as prescribed
-    ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
-    ! write (*, '("Ensemble: ", I3, " step: ",I3, " freq: ",I4, " step%freq: ",I3)') this%EnsembleNumber, Step, this%CCFrequency, mod(Step, this%CCFrequency)
-
-    call ClustCrit(this)
+      call ClustCrit(this)
+    end if
   end if
 
   end subroutine TEnsemble_RunMDStep
@@ -5486,7 +5500,7 @@ loop5:  do nc = 1, this%NComponents
     ! Declare local variables
     integer  :: r, s
     integer  :: nc, np, ndf
-    integer  :: i, NPart2, t, nu, denominator
+    integer  :: i, k, NPart2, t, nu, denominator
     real(RK) :: rx, sx
     real(RK) :: diffpressure
     real(RK) :: EPot, d2EdV2, Virial
@@ -5670,7 +5684,13 @@ loop3:  do nc = 1, this%NComponents
         ! Attempt inserts and deletes
         ! Prevent insertion of ions - look at Gibbs Ensemble - Particle Transfer
 
-        do i = 1, 2
+        if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+          k = this%BndInsertAttempts
+        else
+          k = 2
+        end if
+
+        do i = 1, k
           sx = 0._RK
           rx = rnd( 0._RK, 1._RK )
 
@@ -5714,7 +5734,12 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Update MC displacements
-    if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) call UpdateDisplacements( this )
+    if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) then
+      if ( EnsembleType .eq. EnsembleTypeMUVT .and. ( .not. NVTEquilibration ) ) then
+        call UpdateInsertAttempts( this )
+      end if
+      call UpdateDisplacements( this )
+    end if
 
 #if HBOND > 0
     call HBonding(this)
@@ -7388,7 +7413,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
         factor=pc%LaMin**pc%LambdaExponent
         ExpMinusBetaEnLaMin = sum( exp( -( factor*this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
-        
+
 #if MPI_VER > 0
         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
           call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
@@ -7485,6 +7510,7 @@ loop2:        do nc = 1, this%NComponents
     integer                     :: nc, np
     integer                     :: nu1, nu
     integer                     :: i
+    logical                     :: matrixhalf
     real(RK)                    :: Intra
 
     ! Initialize new energy
@@ -7505,41 +7531,23 @@ loop2:        do nc = 1, this%NComponents
     do nc = 1, this%NComponents
       do i = nc, this%NComponents
         pi => this%Interaction(nc, i)
-        if (nc == i) then !SameComponent => matrixhalf
-            ! Loop over units
-            do np = 1, this%Component(nc)%NPart
-              do nu=1, this%Component(nc)%Molecule%NUnit
-                call Energy( pi, np, nu, this%BoxLength, .true. )
-                if ( pi%SameComponent .and. UseIntDegFreed ) then
-                  call IntraEnergy(pi, np, nu, this%BoxLength)
-                  pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
-                  pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
-                end if
+        matrixhalf = nc == i !SameComponent => matrixhalf=.true.        
+        ! Loop over units
+        do np = 1, this%Component(nc)%NPart
+          do nu=1, this%Component(nc)%Molecule%NUnit
+            call Energy( pi, np, nu, this%BoxLength, matrixhalf )
+            if ( pi%SameComponent .and. UseIntDegFreed ) then
+              call IntraEnergy(pi, np, nu, this%BoxLength)
+              pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
+              pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
+            end if
 
-                ! Sum energy
-                E = E + pi%EPot
-                d2EdV2 = d2EdV2 + pi%d2EpotdV2
-                V = V + pi%Virial
-              end do
-            end do
-        else
-            ! Loop over units
-            do np = 1, this%Component(nc)%NPart
-              do nu=1, this%Component(nc)%Molecule%NUnit
-                call Energy( pi, np, nu, this%BoxLength )
-                if ( pi%SameComponent .and. UseIntDegFreed ) then
-                  call IntraEnergy(pi, np, nu, this%BoxLength)
-                  pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
-                  pi%EPotToNew((np-1)*pi%NDihedral+1:np*pi%NDihedral) = pi%EPot1To(:)
-                end if
-
-                ! Sum energy
-                E = E + pi%EPot
-                d2EdV2 = d2EdV2 + pi%d2EpotdV2
-                V = V + pi%Virial
-              end do
-            end do
-        end if
+            ! Sum energy
+            E = E + pi%EPot
+            d2EdV2 = d2EdV2 + pi%d2EpotdV2
+            V = V + pi%Virial
+          end do
+        end do
       end do
 !      Intra = Intra + sum(this%Interaction(nc,nc)%EPotAngleNew(:)) + &
 !&                     sum(this%Interaction(nc,nc)%EPotToNew(:))
@@ -7603,7 +7611,7 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, this%NComponents
       pi => this%Interaction(nc, i)
 
-      call Energy( pi, np, nu, this%BoxLength )
+      call Energy( pi, np, nu, this%BoxLength, .false. )
 
       if ( pi%SameComponent .and. UseIntDegFreed ) then
         call IntraEnergy( pi, np,  nu, this%BoxLength )
@@ -7650,7 +7658,7 @@ loop2:        do nc = 1, this%NComponents
     do nu=1,this%Component(nc)%Molecule%NUnit
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
-        call Energy( pi, np, nu, this%BoxLength )
+        call Energy( pi, np, nu, this%BoxLength, .false. )
         if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
           EPotNew = EPotNew + sum(pi%EPot1Angle) + sum(pi%EPot1To)
@@ -7699,7 +7707,7 @@ loop2:        do nc = 1, this%NComponents
       pi => this%Interaction(nc, i)
       do nu = 1,pi%NUnit1
 
-        call Energy( pi, np, nu, this%BoxLength )
+        call Energy( pi, np, nu, this%BoxLength, .false. )
 
         if ( pi%SameComponent .and. UseIntDegFreed ) then
           call IntraEnergy( pi, np, nu, this%BoxLength )
@@ -9297,7 +9305,7 @@ loop2:        do nc = 1, this%NComponents
 
         ! Acceptance Criteria
         EPotDeltaAll = EPotOld - EPotNew
-        
+
         if( rnd( 0._RK, 1._RK ) < exp( ( EPotDeltaAll + ChempotDelta) / this%Temperature ) ) then
           ! Accept
           ! Apply scaling factors
@@ -10870,6 +10878,38 @@ loop2:        do nc = 1, this%NComponents
 
 
 !==============================================================!
+!  Subroutine TEnsemble_UpdateInsertAttempts                   !
+!==============================================================!
+
+  subroutine TEnsemble_UpdateInsertAttempts( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    real(RK) :: AccRateInsert, AccRateDelete
+
+    ! Calculate acceptance rates
+    AccRateInsert = real(this%NInsertSuccesses) / real(DispUpdateFrequency)
+    AccRateDelete = real(this%NDeleteSuccesses) / real(DispUpdateFrequency)
+
+    ! Update translational displacement
+    if( min( AccRateInsert, AccRateDelete ) .gt. InsertUpperLimit ) then
+      this%BndInsertAttempts = this%BndInsertAttempts - 1
+    else if( max( AccRateInsert, AccRateDelete ) .lt. InsertLowerLimit ) then
+      this%BndInsertAttempts = this%BndInsertAttempts + 1
+    end if
+
+    if ( this%BndInsertAttempts .eq. 0 ) then
+      this%BndInsertAttempts = 1
+    end if
+
+  end subroutine TEnsemble_UpdateInsertAttempts
+
+
+!==============================================================!
 !  Subroutine TEnsemble_ResidenceTime                          !
 !==============================================================!
 
@@ -11243,9 +11283,9 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: a1, a3, a4, a5! dummy arguments
     type(idfPotentialEnergies):: a2
-#if MPI_VER > 0 
+#if MPI_VER > 0
     real(RK)                  :: auxEPot !ThermoInt with mpiMCCommonGroups
-#endif  
+#endif
     ! Sampling of Dielectric Constant
     real(RK)                  :: MX, MY, MZ
     integer                   :: kIndex, lIndex
@@ -11501,7 +11541,7 @@ loop2:        do nc = 1, this%NComponents
          ! group has its own RootProc, so only RootProc_W writes header, thus MPI_Barrier is done for MPI_COMM_WORLD to wait for
          ! all processes
          ! RootProc_W is writing header
-         call MPI_Barrier(MPI_COMM_WORLD, ierror) 
+         call MPI_Barrier(MPI_COMM_WORLD, ierror)
          call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
          call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
          if (RootProc_W) then
@@ -12236,7 +12276,7 @@ loop2:        do nc = 1, this%NComponents
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
         Totalmu = 0
         do i = 1, this%NComponents
-          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction 
+          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction
         end do
         call Update( this%SumNPart2, real( this%NPart, RK )**2 )
         call Update( this%SumNPart3, real( this%NPart, RK )**3 )
@@ -12295,18 +12335,18 @@ loop2:        do nc = 1, this%NComponents
 
         CV = ( Beta2*this%SumJ200%Average - ( (this%SumJ001%Average - Beta*this%SumJ101%Average)**2 )&
         &           /this%SumJ002%Average )/real( this%SumNPart%Average, RK )
-        
+
         GammaV = ( this%SumJ010%Average-Beta*this%SumJ110%Average - this%SumJ011%Average &
-        &              * ( this%SumJ001%Average - Beta*this%SumJ101%Average )/this%SumJ002%Average ) & 
+        &              * ( this%SumJ001%Average - Beta*this%SumJ101%Average )/this%SumJ002%Average ) &
         &              / real( this%SumNPart%Average, RK )
-        
+
         BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumJ020%Average- &
         &                (this%SumJ011%Average**2) / this%SumJ002%Average )
 
         call Update( this%SumCV, CV )
-        call Update( this%SumGammaV, GammaV ) 
-        call Update( this%SumBetaT, BetaT ) 
-        call Update( this%SumAlphaP, BetaT*GammaV ) 
+        call Update( this%SumGammaV, GammaV )
+        call Update( this%SumBetaT, BetaT )
+        call Update( this%SumAlphaP, BetaT*GammaV )
         call Update( this%SumCP, CV + specv*InvBeta*BetaT*(GammaV**2) )
       end if
 
@@ -12824,7 +12864,7 @@ loop2:        do nc = 1, this%NComponents
                 offset = (NProc_W/NProcs) * (11 * fields + 1) !offset for each head of each mpiMCCommonGroup
                 call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
                 call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
-                
+
                 ! PROC
                 write( IOBuffer, '(I11)' ) NProc_W
                 call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13005,7 +13045,7 @@ loop2:        do nc = 1, this%NComponents
             offset = NProc * (11 * fields + 1)
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
-              
+
             ! PROC
             write( IOBuffer, '(I11)' ) NProc
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13170,17 +13210,17 @@ loop2:        do nc = 1, this%NComponents
             accumulate_step = accumulate_step + BlockSize
 
           endif !(CommonEqui or mpiMCCommonGroups>0) else No CommonEqui
-            
+
         else !production starts
-        
+
           if (mpiMCCommonGroups > 0) then
             !in case of mpiMCCommonGroups>0, then RootProc is every head of each mpiMCCommonGroup
-            if (.not. RootProc) return 
-            
+            if (.not. RootProc) return
+
             offset = (NProc_W/NProcs) * (11 * fields + 1) !offset for each head of each mpiMCCommonGroup
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
-            
+
             ! PROC
             write( IOBuffer, '(I11)' ) NProc_W
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13191,11 +13231,11 @@ loop2:        do nc = 1, this%NComponents
 &                  * (BlockSize * mpiMCCommonGroups) + (NProc_W/NProcs + 1) * BlockSize
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-          else        
+          else
             offset = NProc * (11 * fields + 1)
             call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_CUR, ierr)
             call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_CUR, ierr)
-            
+
             ! PROC
             write( IOBuffer, '(I11)' ) NProc
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -14398,7 +14438,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK):: tempReal
 
     if ( SimulationType .eq. MonteCarlo) then
-      if ( mpiMCCommonGroups > 0 ) then 
+      if ( mpiMCCommonGroups > 0 ) then
         NBlockSizes = int( sqrt( real( Step*mpiMCCommonGroups / BlockSize, RK ) ) )
         tempVal = NBlocks
         NBlocks = tempVal*mpiMCCommonGroups
@@ -14636,7 +14676,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 #endif
 
-    
+
     ! Open final result file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_errors, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
@@ -17472,7 +17512,7 @@ end if
       ! Statistical analogues
       ! Cv
       Average = this%SumCV%Average
-      Variance = this%SumCV%Variance 
+      Variance = this%SumCV%Variance
       write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
@@ -17481,7 +17521,7 @@ end if
       call FileWriteBlank( this%iounit_errors )
       ! GammaV
       Average = this%SumGammaV%Average
-      Variance = this%SumGammaV%Variance 
+      Variance = this%SumGammaV%Variance
       write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
@@ -17491,7 +17531,7 @@ end if
       call FileWriteBlank( this%iounit_errors )
       ! BetaT
       Average = this%SumBetaT%Average
-      Variance = this%SumBetaT%Variance 
+      Variance = this%SumBetaT%Variance
       write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
@@ -17501,7 +17541,8 @@ end if
       call FileWriteBlank( this%iounit_errors )
       ! ALphaP
       Average = this%SumAlphaP%Average
-      Variance = this%SumAlphaP%Variance 
+      Variance = SQRT( ( this%SumBetaT%Average * this%SumGammaV%Variance )**2 + &
+&               ( this%SumBetaT%Variance * this%SumGammaV%Average )**2 )
       write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite( this%iounit_errors )
@@ -17509,9 +17550,11 @@ end if
       &              Variance / UnitTemperature
             call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
-      ! CP 
+      ! CP
       Average = this%SumCP%Average
-      Variance = this%SumCP%Variance 
+      Variance = SQRT( this%SumCV%Variance**2 + &
+&        ( this%RefTemperature*this%SumGammaV%Average*this%SumBetaT%Variance / this%RefDensity )**2 + &
+&        ( this%RefTemperature*this%SumGammaV%Variance*this%SumBetaT%Average / this%RefDensity )**2 )
       write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
       write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
@@ -17531,12 +17574,9 @@ end if
       Average = SQRT( this%SumCP%Average / ( molmass*this%SumBetaT%Average &
 &               *this%SumCV%Average*this%RefDensity ) )
 
-      Variance = .25_RK / molmass / ( this%SumBetaT%Average * this%SumDensity%Average - this%RefTemperature * &
-&                  this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid ) )**3 * ( this%SumDensity%Average**2 *&
-&                  this%SumBetaT%Variance**2 + this%SumBetaT%Average**2 * this%SumDensity%Variance**2 +&
-&                  this%RefTemperature**2 * this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 *&
-&                  ( 4._RK * this%SumAlphaP%Variance**2 + this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 * &
-&                  this%SumCP%Variance**2 ) )
+      Variance = .5_RK * SQRT( ( Average*this%SumCP%Variance/this%SumCp%Average )**2 + &
+&                ( Average*this%SumBetaT%Variance/this%SumBetaT%Average )**2 + &
+&                ( Average*this%SumCV%Variance/this%SumCV%Average )**2 ) / Average
 
       write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
@@ -17546,10 +17586,15 @@ end if
 
       ! Joule Thomson
       Average = 1._RK/(this%RefDensity*this%SumCP%Average) * (this%RefTemperature*this%SumAlphaP%Average-1)
-      Variance = 0 ! TODO
+
+      Variance = SQRT( ( this%SumCP%Variance/(this%RefDensity*this%SumCP%Average*this%SumCP%Average) * &
+      &      (this%RefTemperature*this%SumAlphaP%Average-1) )**2 + &
+      &      (this%RefTemperature*this%SumAlphaP%Variance / &
+      &      (this%RefDensity*this%SumCP%Average) )**2 )
+
       write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK ) 
+      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -17642,13 +17687,13 @@ end if
       ! Volume change acceptance rate and maximum displacement
       if( ConstantPressure ) then
 #if MPI_VER > 0
-        if ( mpiMCCommonGroups > 0 ) then    
+        if ( mpiMCCommonGroups > 0 ) then
           call MPI_Reduce( this%NResizeSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
-          call MPI_Reduce( this%NResizeAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )        
+          call MPI_Reduce( this%NResizeAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
         else
           call MPI_Reduce( this%NResizeSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
           call MPI_Reduce( this%NResizeAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-        endif       
+        endif
         if ( Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate volume changes", T32, "in %:", F20.9)' ) &
 &                100._RK * real(tempVal, RK ) / real (tempVal2, RK )
@@ -17659,7 +17704,7 @@ end if
 #endif
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        if ( mpiMCCommonGroups > 0 ) then    
+        if ( mpiMCCommonGroups > 0 ) then
            call MPI_Reduce( this%DispVol,tempReal, 1, MPI_RK, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
            tempReal = tempReal / mpiMCCommonGroups
         else
@@ -17682,9 +17727,9 @@ end if
         write( IOBuffer, '("Component ", A)' ) pc%PotModFileName
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        if ( mpiMCCommonGroups > 0 ) then  
+        if ( mpiMCCommonGroups > 0 ) then
           call MPI_Reduce( pc%NMoveSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
-          call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )        
+          call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
         else
           call MPI_Reduce( pc%NMoveSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
           call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
@@ -17701,9 +17746,9 @@ end if
 
         if((.not. UseIntDegFreed .and. pc%Molecule%IsElongated) .or. (UseIntDegFreed .and. this%NDFRot > 0)) then
 #if MPI_VER > 0
-          if ( mpiMCCommonGroups > 0 ) then  
+          if ( mpiMCCommonGroups > 0 ) then
             call MPI_Reduce( pc%NRotateSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
-            call MPI_Reduce( pc%NRotateAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )          
+            call MPI_Reduce( pc%NRotateAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
           else
             call MPI_Reduce( pc%NRotateSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
             call MPI_Reduce( pc%NRotateAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
@@ -17753,7 +17798,7 @@ end if
 
         ! Maximum translational and rotational displacements
 #if MPI_VER > 0
-        if ( mpiMCCommonGroups > 0 ) then       
+        if ( mpiMCCommonGroups > 0 ) then
           call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
         else
           call MPI_Reduce( pc%DispTran,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
@@ -17768,7 +17813,7 @@ end if
 
         if(((.not. UseIntDegFreed .and. pc%Molecule%IsElongated) .or. (UseIntDegFreed .and. this%NDFRot > 0))) then
 #if MPI_VER > 0
-          if ( mpiMCCommonGroups > 0 ) then  
+          if ( mpiMCCommonGroups > 0 ) then
             call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
           else
             call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, NRootProc, Communicator, ierror )
@@ -17873,15 +17918,25 @@ end if
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &                100._RK * real( tempVal, RK ) / real ( tempVal2, RK )
+          if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+&                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
+          end if
         endif
 #else
         write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
+        if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+&              100._RK * this%BndInsertAttempts * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
+        end if
 #endif
         call FileWrite( this%iounit_errors )
 
 #if MPI_VER > 0
-        if ( mpiMCCommonGroups > 0 ) then 
+        if ( mpiMCCommonGroups > 0 ) then
           call MPI_Reduce( this%NDeleteSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
           call MPI_Reduce( this%NDeleteAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
         else
@@ -17891,10 +17946,20 @@ end if
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &                100._RK * real(tempVal, RK ) / real ( tempVal2, RK )
+          if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+&                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
+          end if
         endif
 #else
         write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
+        if ( EnsembleType .eq. EnsembleTypeMUVT ) then
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '("Per time step", T32, "in %:", F20.9)' ) &
+&                100._RK * this%BndInsertAttempts * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
+        end if
 #endif
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
@@ -18199,9 +18264,9 @@ end if
           BinsIntHW(j)     = BinsIntHW(j)/NProcs
         end do
       endif
-      
-      
-      
+
+
+
     else
       BinsEn(:)        = pc%BinsEn(:)
       BinsdEndLa(:)    = pc%BinsdEndLa(:)
@@ -19269,7 +19334,7 @@ end if
                             end if
                             this%RDFValue(o) = RDFRhoLocal / RDFRho
                             ! Calculate average over all prozesses with MPI_Reduce
-                            if ( mpiMCCommonGroups > 0 ) then 
+                            if ( mpiMCCommonGroups > 0 ) then
                               call MPI_Reduce( this%RDFValue(o), RDF_hilf(o), 1, MPI_RK, MPI_SUM, NRootProc_MCCom, MCCommonGroups_R, ierror )
                               this%RDFValue(o) = RDF_hilf(o) / mpiMCCommonGroups
                             else
@@ -19294,7 +19359,7 @@ end if
                             end if
                             this%RDFValue(o) = RDFRhoLocal / RDFRho
                             ! Calculate average over all prozesses with MPI_Reduce
-                            if ( mpiMCCommonGroups > 0 ) then 
+                            if ( mpiMCCommonGroups > 0 ) then
                               call MPI_Reduce( this%RDFValue(o), RDF_hilf(o), 1, MPI_RK, MPI_SUM, NRootProc_MCCom, MCCommonGroups_R, ierror )
                               this%RDFValue(o) = RDF_hilf(o) / mpiMCCommonGroups
                             else
@@ -19622,7 +19687,7 @@ end if
     if ( SimulationType .eq. MonteCarlo ) then
         do o = 1, KBINShellsCubeEdge
             do p = 1, this%NRealComponents*(this%NRealComponents+1)/2
-                if ( mpiMCCommonGroups > 0 ) then 
+                if ( mpiMCCommonGroups > 0 ) then
                   call MPI_Allreduce( KBIRDF(o,p), KBI_hilf(o,p), 1, MPI_RK, MPI_SUM, MPI_COMM_WORLD, ierror )
                   KBIRDF(o,p) = KBI_hilf(o,p) / NProcs_W
                 else
@@ -19731,7 +19796,7 @@ end if
 
     call FileClose( this%iounit_kbirdf )
 
-    
+
     ! Start of numerical Kirkwood-Buff Integration
     do o = 1, KBINShellsCubeEdge
         do p = 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of combinations, e.g. 11 12 22
@@ -23267,7 +23332,7 @@ end if
     integer                   :: ODFErrSum_hilf(NProcs)
     integer(KIND=4)           :: tpix_aux(1:NProcs)
     integer                   :: NBins, LocalVisit
-    real(RK), dimension(:), allocatable :: BinsEn, BinsdEndLa, BinsIntdEndLa   ! dynamic 1-D arrays 
+    real(RK), dimension(:), allocatable :: BinsEn, BinsdEndLa, BinsIntdEndLa   ! dynamic 1-D arrays
     real(RK), dimension(:), allocatable :: BinsdEndLaV, BinsdEndLaH, BinsIntVW, BinsIntHW
     integer,  dimension(:), allocatable :: BinsVisit
     integer :: status
@@ -23405,6 +23470,9 @@ end if
           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA ) then
             write(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
             write(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
+            if( EnsembleType .eq. EnsembleTypeMUVT ) then
+              write(iounit_restart, '(2I10)' ) this%BndInsertAttempts
+            end if
           end if
         end if
 
@@ -23597,7 +23665,7 @@ end if
 #endif
 
     end if
-    
+
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
       call MPI_Gather( tpix, 1, MPI_INTEGER4, &
@@ -23610,9 +23678,9 @@ end if
           write(iounit_restart, '(I12)' ) tpix_aux(i)
         end do
         write(iounit_restart, '(ES20.12E3)' ) am
-      endif     
+      endif
     endif
-#endif  
+#endif
 
     if (ODFUpdateFrequency > 0) then
         do i= 1, this%NComponents
@@ -23697,7 +23765,7 @@ end if
                  do s=1, this%Component(i)%molecule%NTT68
                      do t=1, this%Component(j)%molecule%NTT68
 #if MPI_VER > 0
-                        if ( .not. mpiMCCommonGroups > 0 ) then                     
+                        if ( .not. mpiMCCommonGroups > 0 ) then
                           call MPI_Gather( this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
 &                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
                         endif
@@ -23734,10 +23802,10 @@ end if
 &                     KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )
                 endif
                 if( RootProc ) then
-                    if ( mpiMCCommonGroups > 0 ) then !every group writes its own *.rst in MC with mpiMCCommonGroups 
+                    if ( mpiMCCommonGroups > 0 ) then !every group writes its own *.rst in MC with mpiMCCommonGroups
                         do o = 1, KBINShellsCubeEdge
                           write(iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
-                        end do                      
+                        end do
                     else
                         do o = 1, KBINShellsCubeEdge*NProcs
                           write(iounit_restart, '(I10)' ) KBISum_hilf(o)
@@ -24003,13 +24071,13 @@ if( RootProc .and. this%CorrfunMode ) then
 #if MPI_VER > 0
     ! Saving ThermoInt parameters for MC with mpiMCCommonGroups>0 in *.rst file (in all other cases restart by *.thi file)
     if ( mpiMCCommonGroups > 0 ) then
-    
+
         t = this%NRealComponents+1
         do i=1,this%NRealComponents
           pc => this%Component(i)
           if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
             NBins = pc%NBins
-            
+
             ! Allocate arrays
             allocate(BinsEn       (0: NBins-1), stat=status)
             allocate(BinsdEndLa   (0: NBins-1), stat=status)
@@ -24019,7 +24087,7 @@ if( RootProc .and. this%CorrfunMode ) then
             allocate(BinsIntVW    (0: NBins-1), stat=status)
             allocate(BinsIntHW    (0: NBins-1), stat=status)
             allocate(BinsVisit    (0: NBins-1), stat=status)
-            
+
             ! Average ThermoInt values for each mpiMCCommonGroup
             call MPI_Reduce( pc%BinsEn(0: NBins-1)       , BinsEn(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
             call MPI_Reduce( pc%BinsdEndLa(0: NBins-1)   , BinsdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -24040,7 +24108,7 @@ if( RootProc .and. this%CorrfunMode ) then
               BinsVisit(j)     = BinsVisit(j)/NProcs
             end do
 
-            ! write ThermoInt parameters into *.rst file for each MCCommonGroup       
+            ! write ThermoInt parameters into *.rst file for each MCCommonGroup
             if (RootProc) then
               ! current lambda
               write( iounit_restart, '(E19.10)' ) this%Component(t)%lambda
@@ -24052,20 +24120,20 @@ if( RootProc .and. this%CorrfunMode ) then
             endif
 
             ! Deallocate arrays
-            deallocate(BinsEn,        stat=status)  
+            deallocate(BinsEn,        stat=status)
             deallocate(BinsdEndLa,    stat=status)
             deallocate(BinsdEndLaV,   stat=status)
             deallocate(BinsdEndLaH,   stat=status)
             deallocate(BinsIntdEndLa, stat=status)
             deallocate(BinsIntVW,     stat=status)
             deallocate(BinsIntHW,     stat=status)
-            deallocate(BinsVisit,     stat=status)          
-                        
+            deallocate(BinsVisit,     stat=status)
+
             t = t+1
-            
+
           end if
         end do
-        
+
     endif
 #endif
 
@@ -24143,6 +24211,9 @@ if( RootProc .and. this%CorrfunMode ) then
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA ) then
           read(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
           read(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
+          if( EnsembleType .eq. EnsembleTypeMUVT ) then
+            read(iounit_restart, '(2I10)' ) this%BndInsertAttempts
+          end if
         end if
       end if
       read( iounit_restart, '(I10)' ) this%NRCutoffMax
@@ -24375,10 +24446,10 @@ if( RootProc .and. this%CorrfunMode ) then
           read( iounit_restart, '(I12)' ) tpix_aux(i)
         end do
         read(iounit_restart, '(ES20.12E3)' ) am
-      endif 
+      endif
       call MPI_Scatter( tpix_aux(1:NProcs), 1, MPI_INTEGER4, &
-&          tpix, 1, MPI_INTEGER4, NRootProc, Communicator, ierror ) 
-      call MPI_Bcast( ix, 1, MPI_INTEGER4, NRootProc, Communicator, ierror )  
+&          tpix, 1, MPI_INTEGER4, NRootProc, Communicator, ierror )
+      call MPI_Bcast( ix, 1, MPI_INTEGER4, NRootProc, Communicator, ierror )
       call MPI_Bcast( iy, 1, MPI_INTEGER4, NRootProc, Communicator, ierror )
       call MPI_Bcast( am, 1, MPI_RK,       NRootProc, Communicator, ierror )
     endif
@@ -24513,12 +24584,12 @@ if( RootProc .and. this%CorrfunMode ) then
                     if ( mpiMCCommonGroups > 0 ) then
                         do o = 1, KBINShellsCubeEdge
                             read( iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
-                        end do                  
+                        end do
                     else
                         do o = 1, KBINShellsCubeEdge*NProcs
                             read( iounit_restart, '(I10)' ) KBISum_hilf(o)
                         end do
-                    endif      
+                    endif
                 end if
                 if ( mpiMCCommonGroups > 0 ) then
                     call MPI_Bcast( this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), &
@@ -24547,14 +24618,14 @@ if( RootProc .and. this%CorrfunMode ) then
         end if
 #if MPI_VER > 0
         if ( mpiMCCommonGroups > 0 ) then
-          do i = 1, this%NRealComponents*(this%NRealComponents+1)/2         
+          do i = 1, this%NRealComponents*(this%NRealComponents+1)/2
             call MPI_Bcast(this%KBIRDFextra(1:KBINShellsCubeEdge,i),      KBINShellsCubeEdge, MPI_RK,NRootProc,Communicator,ierror)
             call MPI_Bcast(this%KBIRDFvdVextra(1:KBINShellsCubeEdge,i),   KBINShellsCubeEdge, MPI_RK,NRootProc,Communicator,ierror)
             call MPI_Bcast(this%KBIRDFvdVshfextra(1:KBINShellsCubeEdge,i),KBINShellsCubeEdge, MPI_RK,NRootProc,Communicator,ierror)
           end do
           call MPI_Bcast( this%KBIBlockCount, 1, MPI_INTEGER, NRootProc, Communicator, ierror)
         endif
-#endif      
+#endif
         do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartRead( this%SumKBIGij1(i), .true. )
             call RestartRead( this%SumKBIGij2(i), .true. )
@@ -24891,10 +24962,10 @@ if( RootProc .and. this%CorrfunMode ) then
              read( this%iounit_thermoint, '(I6, 2X, F5.3,7(1X, E15.6),1X, I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
            end do
         end if
-        
+
 #if MPI_VER > 0
         if ( mpiMCCommonGroups > 0 ) then
-        ! reading in ThermoInt parameters from *.rst files for each MCCommonGroup         
+        ! reading in ThermoInt parameters from *.rst files for each MCCommonGroup
             if (RootProc) then
               ! read current lambda
               read( iounit_restart, '(E19.10)' ) this%Component(t)%lambda
@@ -24903,10 +24974,10 @@ if( RootProc .and. this%CorrfunMode ) then
                 read( iounit_restart, '(7(E19.10, :, X), I10)' ) pc%BinsEn(j), pc%BinsdEndLa(j), pc%BinsdEndLaV(j), pc%BinsdEndLaH(j),&
 &               pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
               end do
-            endif       
+            endif
         endif
 #endif
-        
+
         t = t+1
       end if
     end do
@@ -24921,7 +24992,7 @@ if( RootProc .and. this%CorrfunMode ) then
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
           !The Broadcast of the following properties would not have been necessary for MD runs during the implementation of ThermoInt, but for MC required
           !call MPI_Bcast( this%Component(t)%lambda ... done during the preceding call FileReadParameter, but for MC with mpiMCCommonGroups>0 it is required
-          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) 
+          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
