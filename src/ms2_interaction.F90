@@ -4060,7 +4060,7 @@ end subroutine TInteraction_Energy
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      call CalcCutoffPartners( this, np, .false. )
+      call CalcCutoffPartners( this, np )
     end if   
 
     N = this%NPart2

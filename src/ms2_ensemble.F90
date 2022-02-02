@@ -30509,7 +30509,7 @@ end subroutine  TEnsemble_infnan
       pi => this%Interaction(nc, i)
       n = pi%NPart2*pi%NUnit2
       do nu=1, this%Component(nc)%Molecule%NUnit
-          call Energy( pi, np, nu, this%BoxLength )
+          call Energy( pi, np, nu, this%BoxLength, .false. )
           if ( pi%SameComponent .and. UseIntDegFreed ) then
             call IntraEnergy( pi, np, nu, this%BoxLength )
             EPotNew = EPotNew - 0.5_RK*pi%EPot
