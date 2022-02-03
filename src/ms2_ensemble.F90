@@ -4731,11 +4731,6 @@ xloop:do i = 1, NCells1dim(1)
       this%Component(i)%P0 = this%Component(i)%P0 - 0.5_RK
     end do
 
-    ! Save old positions
-    do i = 1, this%NComponents
-      this%Component(i)%P0old = this%Component(i)%P0
-    end do
-
   contains
 
     ! Select component randomly
@@ -4830,11 +4825,6 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Initialize integrator
     call InitIntegrator( this )
-
-    ! Set old positions for displacement
-    do i = 1, this%NComponents
-      this%Component(i)%P0old = this%Component(i)%P0
-    end do
 
     ! Remove net momentum
     call RemoveNetMomentum( this )

@@ -69,7 +69,6 @@ module ms2_component
     ! Centers of mass positions and their derivatives
     real(RK), pointer, contiguous :: P0(:, :)
     real(RK), pointer, contiguous :: P0Save(:, :)
-    real(RK), pointer, contiguous :: P0old(:, :)
     real(RK), pointer, contiguous :: P1(:, :)
     real(RK), pointer, contiguous :: P2(:, :)
     real(RK), pointer, contiguous :: P3(:, :)
@@ -1137,7 +1136,6 @@ contains
     ! Nullify pointers
     nullify( this%P0 )
     nullify( this%P0Save )
-    nullify( this%P0old )
     nullify( this%P1 )
     nullify( this%P2 )
     nullify( this%P3 )
@@ -1302,8 +1300,6 @@ contains
     allocate( this%P0( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%P0Save( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%P0old( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
 
     if( SimulationType .eq. MolecularDynamics ) then
@@ -1659,9 +1655,6 @@ contains
     end if
     if( associated( this%P0Save ) ) then
       deallocate( this%P0Save )
-    end if
-    if( associated( this%P0old ) ) then
-      deallocate( this%P0old )
     end if
     if( associated( this%P1 ) ) then
       deallocate( this%P1 )
@@ -3910,6 +3903,7 @@ loop1:do i = 1, this%NPart
     ! Declare local variables
     integer :: np, nra
     integer :: i, j
+    real(RK) :: P0old
 
     ! Assign local variables
     np = this%NPart
@@ -3918,6 +3912,9 @@ loop1:do i = 1, this%NPart
     ! Predict COM positions and their derivatives
     do j = 1, 3
       do i = 1, np
+
+        P0old = this%P0(i, j)
+
         this%P0(i, j) = this%P0(i, j) + this%P1(i, j) + this%P2(i, j) + this%P3(i, j) + this%P4(i, j) + this%P5(i, j)
         this%P1(i, j) = this%P1(i, j) + 2._RK * this%P2(i, j) + 3._RK * this%P3(i, j) + 4._RK * this%P4(i, j) + 5._RK * this%P5(i, j)
         this%P2(i, j) = this%P2(i, j) + 3._RK * this%P3(i, j) + 6._RK * this%P4(i, j) + 10._RK * this%P5(i, j)
@@ -3925,7 +3922,7 @@ loop1:do i = 1, this%NPart
         this%P4(i, j) = this%P4(i, j) + 5._RK * this%P5(i, j)
 
         ! Calculate displacement
-        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
+        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - P0old
 
         ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -3937,7 +3934,6 @@ loop1:do i = 1, this%NPart
 #else
         this%P0(i, j) = this%P0(i, j) - anint( this%P0(i, j) )
 #endif
-        this%P0old(i, j) = this%P0(i, j)
       end do
     end do
 
@@ -3982,7 +3978,7 @@ loop1:do i = 1, this%NPart
 
     ! Declare local variables
     real(RK)          :: BoxLengthInv
-    real(RK)          :: MassInv
+    real(RK)          :: MassInv, P0old
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer, contiguous :: pF(:, :), pT(:, :)
@@ -4009,6 +4005,8 @@ loop1:do i = 1, this%NPart
         if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j) = this%Corr0(i, j) &
 &           - this%P1(i, j) * dLogVolumeThird
 
+        P0old = this%P0(i, j)
+
         this%Corr1(i, j) = this%Corr0(i, j) - this%P2(i, j)
         this%P0(i, j) = this%P0(i, j) + this%Corr1(i, j) * Gear20
         this%P1(i, j) = this%P1(i, j) + this%Corr1(i, j) * Gear21
@@ -4018,7 +4016,7 @@ loop1:do i = 1, this%NPart
         this%P5(i, j) = this%P5(i, j) + this%Corr1(i, j) * Gear25
 
         ! Calculate displacement
-        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
+        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - P0old
 
         ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4030,7 +4028,6 @@ loop1:do i = 1, this%NPart
 #else
         this%P0(i, j) = this%P0(i, j) - anint( this%P0(i, j) )
 #endif
-        this%P0old(i, j) = this%P0(i, j)
       end do
     end do
 
@@ -4121,7 +4118,7 @@ loop1:do i = 1, this%NPart
     real(RK), intent(in) :: scale
 
     ! Declare local variables
-    real(RK) :: Korr
+    real(RK) :: Korr, P0old
     integer  :: np, nra
     integer  :: i, j
 
@@ -4130,11 +4127,14 @@ loop1:do i = 1, this%NPart
 
     do j = 1, 3
       do i = 1, np
+
+        P0old = this%P0(i, j)
+
         this%P1(i, j) = Korr * this%P1(i, j) + this%P2(i, j)
         this%P0(i, j) = this%P0(i, j) + this%P1(i, j)
 
         ! Calculate displacement
-        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - this%P0old(i, j)
+        this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j) - P0old
 
         ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4146,7 +4146,6 @@ loop1:do i = 1, this%NPart
 #else
         this%P0(i, j) = this%P0(i, j) - anint( this%P0(i, j) )
 #endif
-        this%P0old(i, j) = this%P0(i, j)
       end do
     end do
 
@@ -4894,9 +4893,6 @@ loop1:do i = 1, this%NPart
       call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
-
-    ! Update old positions
-    this%P0old = this%P0
 
   end subroutine TComponent_RestartRead
 
