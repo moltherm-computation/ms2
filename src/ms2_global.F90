@@ -1254,6 +1254,33 @@ contains
 
 #endif
 
+  subroutine writeCitationHeader(ioUnit)
+
+    implicit none
+
+    integer, intent(in) :: ioUnit
+
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    call FileWriteBlank(ioUnit)
+
+  end subroutine writeCitationHeader
 
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
@@ -1472,25 +1499,9 @@ contains
     write( IOBuffer, '(74("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                         Publishing with ms2                            *")')
-    call LogWrite
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                    *")')
-    call LogWrite
-    write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
-    call LogWrite
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,        *")')
-    call LogWrite
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,      *")')
-    call LogWrite
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                          *")')
-    call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                 *")')
-    call LogWrite
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    call LogWriteBlank
+
+    call writeCitationHeader(iounit_log)
+
     write( IOBuffer, '(74("*"))')
     call LogWrite
     write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
@@ -3313,6 +3324,5 @@ subroutine Global_printprocStatus(tag_string)
 
   end subroutine Global_printprocStatus
 #endif
-
 
 end module ms2_global
