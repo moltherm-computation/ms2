@@ -17210,18 +17210,18 @@ loop2:  do j = 1, j1
     VirialLocal = 0._RK
 
     ! Assign pointers
-     FX1 => this%Dihedral%FX1
-     FY1 => this%Dihedral%FY1
-     FZ1 => this%Dihedral%FZ1
-     FX2 => this%Dihedral%FX2 !                  (i)            (l)
-     FY2 => this%Dihedral%FY2 !                    \            /
-     FZ2 => this%Dihedral%FZ2 !                  a  \          / c
-     FX3 => this%Dihedral%FX3 !                      (j)-----(m)
-     FY3 => this%Dihedral%FY3 !                            b
-     FZ3 => this%Dihedral%FZ3
-     FX4 => this%Dihedral%FX4
-     FY4 => this%Dihedral%FY4
-     FZ4 => this%Dihedral%FZ4
+     FX1 => this%Dihedral%F(1)%X
+     FY1 => this%Dihedral%F(1)%Y
+     FZ1 => this%Dihedral%F(1)%Z
+     FX2 => this%Dihedral%F(2)%X !                  (i)            (l)
+     FY2 => this%Dihedral%F(2)%Y !                    \            /
+     FZ2 => this%Dihedral%F(2)%Z !                  a  \          / c
+     FX3 => this%Dihedral%F(3)%X !                      (j)-----(m)
+     FY3 => this%Dihedral%F(3)%Y !                            b
+     FZ3 => this%Dihedral%F(3)%Z
+     FX4 => this%Dihedral%F(4)%X
+     FY4 => this%Dihedral%F(4)%Y
+     FZ4 => this%Dihedral%F(4)%Z
 
       ! Loop over molecules
 #if MPI_VER > 0
@@ -17229,10 +17229,10 @@ loop2:  do j = 1, j1
 #else
       do i = 1, i1
 #endif
-        Ri = vector(this%Dihedral%RX1(i), this%Dihedral%RY1(i), this%Dihedral%RZ1(i))
-        Rj = vector(this%Dihedral%RX2(i), this%Dihedral%RY2(i), this%Dihedral%RZ2(i))
-        Rm = vector(this%Dihedral%RX3(i), this%Dihedral%RY3(i), this%Dihedral%RZ3(i))
-        Rl = vector(this%Dihedral%RX4(i), this%Dihedral%RY4(i), this%Dihedral%RZ4(i))
+        Ri = vector(this%Dihedral%R(1)%X(i), this%Dihedral%R(1)%Y(i), this%Dihedral%R(1)%Z(i))
+        Rj = vector(this%Dihedral%R(2)%X(i), this%Dihedral%R(2)%Y(i), this%Dihedral%R(2)%Z(i))
+        Rm = vector(this%Dihedral%R(3)%X(i), this%Dihedral%R(3)%Y(i), this%Dihedral%R(3)%Z(i))
+        Rl = vector(this%Dihedral%R(4)%X(i), this%Dihedral%R(4)%Y(i), this%Dihedral%R(4)%Z(i))
 
 !CDIR NODEP
 
@@ -17411,15 +17411,15 @@ loop2:  do j = 1, j1
         EDihedral = EDihedral + earg * this%ForConst(1)
     else
       ! Calculate vectors IJ, JK, KL
-      ax = this%Dihedral%RX2(np) - this%Dihedral%RX1(np)
-      ay = this%Dihedral%RY2(np) - this%Dihedral%RY1(np)
-      az = this%Dihedral%RZ2(np) - this%Dihedral%RZ1(np)
-      bx = this%Dihedral%RX3(np) - this%Dihedral%RX2(np)
-      by = this%Dihedral%RY3(np) - this%Dihedral%RY2(np)
-      bz = this%Dihedral%RZ3(np) - this%Dihedral%RZ2(np)
-      cx = this%Dihedral%RX4(np) - this%Dihedral%RX3(np)
-      cy = this%Dihedral%RY4(np) - this%Dihedral%RY3(np)
-      cz = this%Dihedral%RZ4(np) - this%Dihedral%RZ3(np)
+      ax = this%Dihedral%R(2)%X(np) - this%Dihedral%R(1)%X(np)
+      ay = this%Dihedral%R(2)%Y(np) - this%Dihedral%R(1)%Y(np)
+      az = this%Dihedral%R(2)%Z(np) - this%Dihedral%R(1)%Z(np)
+      bx = this%Dihedral%R(3)%X(np) - this%Dihedral%R(2)%X(np)
+      by = this%Dihedral%R(3)%Y(np) - this%Dihedral%R(2)%Y(np)
+      bz = this%Dihedral%R(3)%Z(np) - this%Dihedral%R(2)%Z(np)
+      cx = this%Dihedral%R(4)%X(np) - this%Dihedral%R(3)%X(np)
+      cy = this%Dihedral%R(4)%Y(np) - this%Dihedral%R(3)%Y(np)
+      cz = this%Dihedral%R(4)%Z(np) - this%Dihedral%R(3)%Z(np)
       !
       ax = (ax - anint( ax )) * BoxLength
       ay = (ay - anint( ay )) * BoxLength

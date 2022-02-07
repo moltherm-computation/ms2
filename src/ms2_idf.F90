@@ -111,16 +111,8 @@ module ms2_idf
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
     real(RK), pointer, contiguous :: ForConst(:), gamma0(:)
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:)
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: RX3(:), RY3(:), RZ3(:)
-    real(RK), pointer, contiguous :: RX4(:), RY4(:), RZ4(:)
-    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:)
-    real(RK), pointer, contiguous :: FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer, contiguous :: FX3(:), FY3(:), FZ3(:)
-    real(RK), pointer, contiguous :: FX4(:), FY4(:), FZ4(:)
+    type(coordinatesPointer), dimension(4) :: R, F
     logical           :: orientation1, orientation2
-!    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
 
   end type TIdfDihedral
 

@@ -2222,36 +2222,36 @@ contains
       if ( this%Molecule%NMIEnm>0 ) then
         do j = 1, this%Molecule%NMIEnm
           if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId1) then
-            this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(1)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId2) then
-            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(2)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(2)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId3) then
-            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(3)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(3)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site3 = .true.
           else if (this%Molecule%SiteMIEnm(j)%SiteId==SiteId4) then
-            this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteMIEnm(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteMIEnm(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteMIEnm(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteMIEnm(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteMIEnm(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteMIEnm(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteMIEnm(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteMIEnm(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteMIEnm(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(4)%X=>this%Molecule%SiteMIEnm(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Y=>this%Molecule%SiteMIEnm(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Z=>this%Molecule%SiteMIEnm(j)%FZ(:)
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
@@ -2261,36 +2261,36 @@ contains
 &              .and. (this%Molecule%NCharge > 0) ) then
         do j = 1, this%Molecule%NCharge
           if (this%Molecule%SiteCharge(j)%SiteId==SiteId1) then
-            this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(1)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
-            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(2)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(2)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId3) then
-            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(3)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(3)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site3 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId4) then
-            this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteCharge(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteCharge(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteCharge(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteCharge(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteCharge(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteCharge(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteCharge(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteCharge(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteCharge(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(4)%X=>this%Molecule%SiteCharge(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Y=>this%Molecule%SiteCharge(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Z=>this%Molecule%SiteCharge(j)%FZ(:)
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
@@ -2301,47 +2301,47 @@ contains
         do j = 1, this%Molecule%NDipole
           if (this%Molecule%SiteDipole(j)%SiteId==SiteId1) then
             if ( SiteId1 == SiteId2 ) then
-              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteDipole(j)%OX(:)
-              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteDipole(j)%OY(:)
-              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteDipole(j)%OZ(:)
+              this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteDipole(j)%OZ(:)
             else
-              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteDipole(j)%RX(:)
-              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteDipole(j)%RY(:)
-              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteDipole(j)%RZ(:)
+              this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
             end if
-            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%F(1)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteDipole(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteDipole(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteDipole(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(2)%X=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(2)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId3) then
-            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteDipole(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteDipole(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteDipole(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(3)%X=>this%Molecule%SiteDipole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(3)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site3 = .true.
           else if (this%Molecule%SiteDipole(j)%SiteId==SiteId4) then
             if ( SiteId4 == SiteId3 ) then
-              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%OX(:)
-              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%OY(:)
-              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%OZ(:)
+              this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteDipole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteDipole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteDipole(j)%OZ(:)
             else
-              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteDipole(j)%RX(:)
-              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteDipole(j)%RY(:)
-              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteDipole(j)%RZ(:)
+              this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteDipole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteDipole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteDipole(j)%RZ(:)
             end if
-            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteDipole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteDipole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteDipole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%F(4)%X=>this%Molecule%SiteDipole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Y=>this%Molecule%SiteDipole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Z=>this%Molecule%SiteDipole(j)%FZ(:)
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
@@ -2352,47 +2352,47 @@ contains
         do j = 1, this%Molecule%NQuadrupole
           if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId1) then
             if ( SiteId1 == SiteId2 ) then
-              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteQuadrupole(j)%OX(:)
-              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteQuadrupole(j)%OY(:)
-              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+              this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteQuadrupole(j)%OZ(:)
             else
-              this%Molecule%IdfDihedral(i)%RX1=>this%Molecule%SiteQuadrupole(j)%RX(:)
-              this%Molecule%IdfDihedral(i)%RY1=>this%Molecule%SiteQuadrupole(j)%RY(:)
-              this%Molecule%IdfDihedral(i)%RZ1=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+              this%Molecule%IdfDihedral(i)%R(1)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%R(1)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
             end if
-            this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%F(1)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(1)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId2) then
-            this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteQuadrupole(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY2=>this%Molecule%SiteQuadrupole(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ2=>this%Molecule%SiteQuadrupole(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX2=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY2=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ2=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(2)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(2)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(2)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(2)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site2 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId3) then
-            this%Molecule%IdfDihedral(i)%RX3=>this%Molecule%SiteQuadrupole(j)%RX(:)
-            this%Molecule%IdfDihedral(i)%RY3=>this%Molecule%SiteQuadrupole(j)%RY(:)
-            this%Molecule%IdfDihedral(i)%RZ3=>this%Molecule%SiteQuadrupole(j)%RZ(:)
-            this%Molecule%IdfDihedral(i)%FX3=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY3=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ3=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%R(3)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+            this%Molecule%IdfDihedral(i)%R(3)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+            this%Molecule%IdfDihedral(i)%F(3)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(3)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site3 = .true.
           else if (this%Molecule%SiteQuadrupole(j)%SiteId==SiteId4) then
             if ( SiteId4 == SiteId3 ) then
-              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%OX(:)
-              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%OY(:)
-              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%OZ(:)
+              this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteQuadrupole(j)%OX(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteQuadrupole(j)%OY(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteQuadrupole(j)%OZ(:)
             else
-              this%Molecule%IdfDihedral(i)%RX4=>this%Molecule%SiteQuadrupole(j)%RX(:)
-              this%Molecule%IdfDihedral(i)%RY4=>this%Molecule%SiteQuadrupole(j)%RY(:)
-              this%Molecule%IdfDihedral(i)%RZ4=>this%Molecule%SiteQuadrupole(j)%RZ(:)
+              this%Molecule%IdfDihedral(i)%R(4)%X=>this%Molecule%SiteQuadrupole(j)%RX(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Y=>this%Molecule%SiteQuadrupole(j)%RY(:)
+              this%Molecule%IdfDihedral(i)%R(4)%Z=>this%Molecule%SiteQuadrupole(j)%RZ(:)
             end if
-            this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteQuadrupole(j)%FX(:)
-            this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteQuadrupole(j)%FY(:)
-            this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteQuadrupole(j)%FZ(:)
+            this%Molecule%IdfDihedral(i)%F(4)%X=>this%Molecule%SiteQuadrupole(j)%FX(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Y=>this%Molecule%SiteQuadrupole(j)%FY(:)
+            this%Molecule%IdfDihedral(i)%F(4)%Z=>this%Molecule%SiteQuadrupole(j)%FZ(:)
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit

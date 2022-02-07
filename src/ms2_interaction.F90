@@ -7468,18 +7468,18 @@ end subroutine TInteraction_EnergySVC
         nmax = pto%nmax
 
         ! Assign pointers to site positions
-        RXi=pto%Dihedral%RX1(np)
-        RYi=pto%Dihedral%RY1(np) !                  (i)            (l)
-        RZi=pto%Dihedral%RZ1(np) !                    \            /
-        RXj=pto%Dihedral%RX2(np) !                  a  \          / c
-        RYj=pto%Dihedral%RY2(np) !                      (j)-----(k)
-        RZj=pto%Dihedral%RZ2(np) !                            b
-        RXk=pto%Dihedral%RX3(np)
-        RYk=pto%Dihedral%RY3(np)
-        RZk=pto%Dihedral%RZ3(np)
-        RXl=pto%Dihedral%RX4(np)
-        RYl=pto%Dihedral%RY4(np)
-        RZl=pto%Dihedral%RZ4(np)
+        RXi=pto%Dihedral%R(1)%X(np)
+        RYi=pto%Dihedral%R(1)%Y(np) !                  (i)            (l)
+        RZi=pto%Dihedral%R(1)%Z(np) !                    \            /
+        RXj=pto%Dihedral%R(2)%X(np) !                  a  \          / c
+        RYj=pto%Dihedral%R(2)%Y(np) !                      (j)-----(k)
+        RZj=pto%Dihedral%R(2)%Z(np) !                            b
+        RXk=pto%Dihedral%R(3)%X(np)
+        RYk=pto%Dihedral%R(3)%Y(np)
+        RZk=pto%Dihedral%R(3)%Z(np)
+        RXl=pto%Dihedral%R(4)%X(np)
+        RYl=pto%Dihedral%R(4)%Y(np)
+        RZl=pto%Dihedral%R(4)%Z(np)
 
         if (nmax .eq. 0) then
           earg = 1._RK + cos(-pto%gamma0(1))
