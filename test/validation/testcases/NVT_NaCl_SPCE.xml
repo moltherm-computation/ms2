@@ -4,7 +4,7 @@
 	<parFile>NaCl_NVT_p01_x0076.par</parFile>
 	<name>NVT_NaCl_SPCE</name>
 	<np>40</np>
-	<walltime>12:00:00</walltime>
+	<walltime>1-10:00:00</walltime>
 	<compilerOption>TRANS</compilerOption>
 	<reference>
 		<file>NaCl_NVT_p01_x0076_1.res</file>

@@ -4,7 +4,7 @@
 	<parFile>NO3_osmop.par</parFile>
 	<name>OPAS_NpT_NaNO3_SPCE</name>
 	<np>40</np>
-	<walltime>12:00:00</walltime>
+	<walltime>20:00:00</walltime>
 	<compilerOption>
 		<name>OSMOP</name>
 		<value>1</value>
