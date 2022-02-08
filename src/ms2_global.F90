@@ -268,11 +268,6 @@ module ms2_global
   integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
   integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
 
-#if MPI_VER > 0
-  integer            :: iounit_result_parallel = iounit_start + 6
-  integer            :: iounit_runave_parallel = iounit_start + 7
-#endif
-
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
