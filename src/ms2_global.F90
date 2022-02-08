@@ -1627,7 +1627,7 @@ contains
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
       call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
-      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+      if( (ierror == MPI_SUCCESS) .and. (flag) .and. (hostrank /= MPI_PROC_NULL) ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
       end if
@@ -2215,7 +2215,7 @@ contains
 &                     , iounit, ierror)
     ! no "Append" in the strict sense!
     if(RootProc) then
-      if( ierror /= 0 ) then
+      if( ierror /= MPI_SUCCESS ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
