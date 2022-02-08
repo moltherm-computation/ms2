@@ -1307,9 +1307,9 @@ contains
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
     character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
-    integer                                    :: hostrank = MPI_PROC_NULL
-    integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer, contiguous                            :: ioranks(:)
+    integer(KIND=MPI_ADDRESS_KIND)             :: hostrank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND)             :: iorank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND),pointer, contiguous :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP
@@ -1640,7 +1640,7 @@ contains
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,NRootProc, Communicator, ierror)
     call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
-    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+    call MPI_Gather(iorank, 1, MPI_AINT, ioranks, 1, MPI_AINT &
 &                  ,NRootProc, Communicator, ierror)
 
     if( RootProc ) then
