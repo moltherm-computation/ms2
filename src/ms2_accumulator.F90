@@ -613,13 +613,13 @@ contains
     if (RootProc) then
 
       if (NProc/=NProc_W) then
-        call MPI_Send(this%Variance,1, MPI_RK ,NRootProc,1,MPI_COMM_WORLD,ierror )
-        call MPI_Send(this%Average,1, MPI_RK ,NRootProc,2,MPI_COMM_WORLD,ierror )
+        call MPI_Send(this%Variance, 1, MPI_RK ,NRootProc, 1, MPI_COMM_WORLD, ierror )
+        call MPI_Send(this%Average, 1, MPI_RK ,NRootProc, 2, MPI_COMM_WORLD, ierror )
       endif
 
     elseif (NProc_W==NRootProc) then
-      call MPI_Recv(this%Variance,1, MPI_RK ,NRootProc_W,1,MPI_COMM_WORLD,ierror )
-      call MPI_Recv(this%Average,1, MPI_RK ,NRootProc_W,2,MPI_COMM_WORLD,ierror )
+      call MPI_Recv(this%Variance, 1, MPI_RK ,NRootProc_W, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror )
+      call MPI_Recv(this%Average, 1, MPI_RK ,NRootProc_W, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror )
     endif
 
 #endif
