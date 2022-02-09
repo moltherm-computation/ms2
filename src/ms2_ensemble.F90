@@ -14675,25 +14675,7 @@ loop2:        do nc = 1, this%NComponents
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_errors, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
 
-    write( IOBuffer, '(76("="))')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                         Publishing with ms2                              *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(76("="))')
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+    call writeCitationHeader( this%iounit_errors )
 
     ! Separator
     write( IOBuffer, '(76("="))' )
@@ -18331,25 +18313,7 @@ end if
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_errors, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
 
-    write( IOBuffer, '(76("="))')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                         Publishing with ms2                              *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(76("="))')
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
+    call writeCitationHeader(this%iounit_errors)
 
     ! Separator
     call FileWriteBlank( this%iounit_errors )
@@ -23306,7 +23270,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 

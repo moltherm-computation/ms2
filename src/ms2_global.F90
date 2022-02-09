@@ -1323,6 +1323,33 @@ contains
 
 #endif
 
+  subroutine writeCitationHeader(ioUnit)
+
+    implicit none
+
+    integer, intent(in) :: ioUnit
+
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    call FileWriteBlank(ioUnit)
+
+  end subroutine writeCitationHeader
 
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
@@ -1349,9 +1376,9 @@ contains
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
     character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
-    integer                                    :: hostrank = MPI_PROC_NULL
-    integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer, contiguous                            :: ioranks(:)
+    integer(KIND=MPI_ADDRESS_KIND)             :: hostrank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND)             :: iorank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND),pointer, contiguous :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP
@@ -1541,25 +1568,9 @@ contains
     write( IOBuffer, '(74("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                         Publishing with ms2                            *")')
-    call LogWrite
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                    *")')
-    call LogWrite
-    write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
-    call LogWrite
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,        *")')
-    call LogWrite
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,      *")')
-    call LogWrite
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                          *")')
-    call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                 *")')
-    call LogWrite
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    call LogWriteBlank
+
+    call writeCitationHeader(iounit_log)
+
     write( IOBuffer, '(74("*"))')
     call LogWrite
     write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
@@ -1684,7 +1695,7 @@ contains
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Comm_get_attr(Communicator, MPI_HOST, hostrank, flag, ierror)
+      call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
@@ -1697,8 +1708,8 @@ contains
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,NRootProc, Communicator, ierror)
-    call MPI_Comm_get_attr(Communicator, MPI_IO, iorank, flag, ierror)
-    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+    call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+    call MPI_Gather(iorank, 1, MPI_AINT, ioranks, 1, MPI_AINT &
 &                  ,NRootProc, Communicator, ierror)
 
     if( RootProc ) then
@@ -3384,7 +3395,6 @@ subroutine Global_printprocStatus(tag_string)
 
   end subroutine Global_printprocStatus
 #endif
-
 
 !==============================================================!
 !  Subroutine Global_FileRewind                                !

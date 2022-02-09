@@ -2427,7 +2427,7 @@ eqloop: do
           !                             1 irecv is received or pending
           !do i = 1, this%numMsgTerm_send-max(this%numMsgTerm_recv,1)
           do i = 1, this%numMsgTerm_send-(this%numMsgTerm_recv+1)
-            call MPI_Recv(TerminateStatus, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, ierror)
+            call MPI_Recv(TerminateStatus, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, MPI_STATUS_IGNORE, ierror)
             if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.   !int(b'1')
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.   !int(b'10')
           end do
