@@ -301,6 +301,7 @@ module ms2_component
     type(TAccumulator) :: SumInvChemPot
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
+    type(TAccumulator) :: SumChemPotGE
     type(TAccumulator) :: SumHW_counter
     type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
@@ -1228,6 +1229,9 @@ contains
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
     end select
+    if (EnsembleType .eq. EnsembleTypeGE) then
+      call Construct( this%SumChemPotGE, .false. )
+    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
@@ -1285,6 +1289,9 @@ contains
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
     end select
+    if (EnsembleType .eq. EnsembleTypeGE) then
+      call Destruct( this%SumChemPotGE )
+    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )

@@ -11312,6 +11312,9 @@ loop2:        do nc = 1, this%NComponents
              if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
            end if
          end if
+         if( EnsembleType .eq. EnsembleTypeGE ) then
+           fields = fields + 1
+         endif
        enddo
        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
        & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -11513,6 +11516,9 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%Component(i)%SumHW_counter )
           call Reset( this%Component(i)%SumHW_denom )
         end select
+        if (EnsembleType .eq. EnsembleTypeGE) then
+          call Reset( this%Component(i)%SumChemPotGE )
+        endif
       end do
 
       ! 5.) Sampling of Dielectric Constant
@@ -11640,7 +11646,7 @@ loop2:        do nc = 1, this%NComponents
 
            ! Chemical potential
            do i = 1, this%NRealComponents
-             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+             if( (this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone) .or. (EnsembleType .eq. EnsembleTypeGE) ) then
                if( i < 10 ) then
                  write( IOBuffer, '("      MUE_", I1)' ) i
                else
@@ -11807,7 +11813,7 @@ loop2:        do nc = 1, this%NComponents
 
          ! Chemical potential
          do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .or. (EnsembleType .eq. EnsembleTypeGE) ) then
              if( i < 10 ) then
                write( IOBuffer, '("      MUE_", I1)' ) i
              else
@@ -12765,6 +12771,9 @@ loop2:        do nc = 1, this%NComponents
           end if
         end select
       end if
+      if (EnsembleType .eq. EnsembleTypeGE) then
+          call Update( pc%SumChemPotGE, pc%ChemPot )
+      endif
     end do
 
       do i = 1, this%NRealComponents
@@ -12989,6 +12998,12 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                 end if
+                if (EnsembleType .eq. EnsembleTypeGE) then
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                endif
               end do
 
               ! Partial molar volume
@@ -13157,7 +13172,13 @@ loop2:        do nc = 1, this%NComponents
                   write( IOBuffer, '(" ",F10.5)' ) 0._RK
                   call FileWriteNoAdvance_parallel( this%iounit_result )
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
-                  end if
+              end if
+              if (EnsembleType .eq. EnsembleTypeGE) then
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
+                  call FileWriteNoAdvance_parallel( this%iounit_result )
+                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
+                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+              endif
             end do
 
             ! Partial molar volume
@@ -13404,6 +13425,12 @@ loop2:        do nc = 1, this%NComponents
                   end select
                 end if
             end if
+            if (EnsembleType .eq. EnsembleTypeGE) then
+              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
+              call FileWriteNoAdvance_parallel( this%iounit_result )
+              write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
+              call FileWriteNoAdvance_parallel( this%iounit_runave )
+            endif
           end do
 
         ! Partial molar volume
@@ -13630,6 +13657,12 @@ loop2:        do nc = 1, this%NComponents
               end if
             end if
           end if
+          if (EnsembleType .eq. EnsembleTypeGE) then
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
+            call FileWriteNoAdvance( this%iounit_result )
+            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
+            call FileWriteNoAdvance( this%iounit_runave )
+          endif
         end do
 
       ! Partial molar volume
@@ -14655,6 +14688,12 @@ loop2:        do nc = 1, this%NComponents
         end select
       end do
     end if
+    if (EnsembleType .eq. EnsembleTypeGE) then
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        call Error( pc%SumChemPotGE )
+      enddo
+    endif
 
     ! Sampling of Dielectric Constant
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -15052,6 +15091,19 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite( this%iounit_errors )
       end do
       call FileWriteBlank( this%iounit_errors )
+      
+      if (EnsembleType .eq. EnsembleTypeGE) then
+        ! Chemical potential
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          Average = pc%SumChemPotGE%Average
+          Variance = pc%SumChemPotGE%Variance
+          write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          call FileWrite( this%iounit_errors )        
+        enddo
+        call FileWriteBlank( this%iounit_errors )
+      endif
 
     else
       ! Chemical potential
@@ -23588,6 +23640,9 @@ end if
             call RestartSave( pc%SumHW_counter )
             call RestartSave( pc%SumHW_denom )
           end select
+          if (EnsembleType .eq. EnsembleTypeGE) then
+            call RestartSave( pc%SumChemPotGE )
+          endif
 
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
             call RestartSave( pc%SumVW )
@@ -24361,6 +24416,10 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( pc%SumHW_counter )
         call RestartRead( pc%SumHW_denom )
       end select
+      if (EnsembleType .eq. EnsembleTypeGE) then
+        call RestartRead( pc%SumChemPotGE )
+      endif
+      
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartRead( pc%SumVW )
         call RestartRead( pc%SumHM )
