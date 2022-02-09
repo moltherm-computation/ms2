@@ -268,11 +268,6 @@ module ms2_global
   integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
   integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
 
-#if MPI_VER > 0
-  integer            :: iounit_result_parallel = iounit_start + 6
-  integer            :: iounit_runave_parallel = iounit_start + 7
-#endif
-
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
@@ -1627,7 +1622,7 @@ contains
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
       call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
-      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+      if( (ierror == MPI_SUCCESS) .and. (flag) .and. (hostrank /= MPI_PROC_NULL) ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
       end if
@@ -2215,7 +2210,7 @@ contains
 &                     , iounit, ierror)
     ! no "Append" in the strict sense!
     if(RootProc) then
-      if( ierror /= 0 ) then
+      if( ierror /= MPI_SUCCESS ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if

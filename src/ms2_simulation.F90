@@ -1568,8 +1568,6 @@ contains
     character(255) :: hostnameStr
     logical :: multNodes
     logical :: AnyNPartOk = .false.
-
-    integer :: mpistatus(MPI_STATUS_SIZE)
 #endif
 
 #ifdef USE_PRINTPROCSTATUS
@@ -2241,7 +2239,7 @@ eqloop: do
           call MPI_Reduce( MPI_IN_PLACE, this%numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
 !          if ( .not. this%doneMsgTerm ) then
 !            ! check again, if terminate message was received
-!            call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
+!            call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, MPI_STATUS_IGNORE, ierror)
 !            if ( this%doneMsgTerm ) then
 !              write( IOBuffer, '("received message with termination status (",B0,") after step ",I0,"/",I0)' ) &
 !&                    this%TerminateStatus_msg, Step, StepTotal
@@ -2275,7 +2273,7 @@ eqloop: do
 &                         Communicator_R, ierror )
         end if
         if ( this%doneMsgTerm ) then
-          call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
+          call MPI_Wait(this%mpireqmsgTerm, MPI_STATUS_IGNORE, ierror)
           !TerminateStatus=this%TerminateStatus_msg
         end if
 
@@ -2287,7 +2285,7 @@ eqloop: do
             call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
             this%doneBcastTerm = .true.
 !          else
-!            call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
+!            call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, MPI_STATUS_IGNORE, ierror)
 !            if (this%doneBcastTerm) then
 !              write( IOBuffer, '("received broadcast with termination status (",B0,") after step ",I0,"/",I0)' ) &
 !&                    this%TerminateStatus_bcast, Step, StepTotal
@@ -2295,7 +2293,7 @@ eqloop: do
 !              TerminateStatus=this%TerminateStatus_bcast
 !            end if
           end if
-          call MPI_Wait(this%mpireqbcastTerm, mpistatus, ierror)
+          call MPI_Wait(this%mpireqbcastTerm, MPI_STATUS_IGNORE, ierror)
           TerminateStatus=this%TerminateStatus_bcast
         end if
       end if    ! RootProc
@@ -2351,7 +2349,6 @@ eqloop: do
 
 #if MPI_VER > 0
     integer :: stop_cc_simulation !DC NOTE- local variable for mpi reduce output
-    integer :: mpistatus(MPI_STATUS_SIZE)
 #endif
 
 #if TRANS==1
@@ -2494,7 +2491,7 @@ eqloop: do
               TerminateStatus=IBCLR(TerminateStatus,2)  !=IEOR(TerminateStatus,int(b'100'))
               !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               do i=1,this%TerminateCountdown
-                call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
+                call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, MPI_STATUS_IGNORE, ierror)
                 if ( this%doneMsgTerm ) then
 !                  write( IOBuffer, '("PE ",I0,"(W) received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
 !&                        NProc_W, this%TerminateStatus_msg, Step, StepTotal
@@ -2529,7 +2526,7 @@ eqloop: do
                 write( IOBuffer, '("PE ",I0,"(W) sending message with termination status (",B0,") within step ",I0,"/",I0)' ) &
 &                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
                 call LogWriteTime
-                if (this%doneMsgTerm) call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
+                if (this%doneMsgTerm) call MPI_Wait(this%mpireqmsgTerm, MPI_STATUS_IGNORE, ierror)
                 call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, &
 &                              Communicator_R, this%mpireqmsgTerm, ierror)
                 this%numMsgTerm_send = this%numMsgTerm_send + 1
@@ -2553,7 +2550,7 @@ eqloop: do
                 this%doneBcastTerm = .true.
               end if
             else ! RootProc.and..not.RootProc_R
-              call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
+              call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, MPI_STATUS_IGNORE, ierror)
               if (this%doneBcastTerm) then
                 write( IOBuffer, '("PE ",I0,"(W) received broadcast with termination status (",B0,") within step ",I0,"/",I0)' ) &
 &                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
