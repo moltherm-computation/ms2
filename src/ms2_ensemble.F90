@@ -5010,11 +5010,6 @@ xloop:do i = 1, NCells1dim(1)
     ! Initialize integrator
     call InitIntegrator( this )
 
-    ! Set old positions for displacement
-    do i = 1, this%NComponents
-      this%Component(i)%Pm0old = this%Component(i)%Pm0
-    end do
-
     ! Remove net momentum
     call RemoveNetMomentum( this )
 
