@@ -4931,9 +4931,10 @@ loop1:do i = 1, this%NPart
         end do
 
         if (UseIntDegFreed) then
+          P0old = this%Pm0(i, j)
           this%Pm0(i,j) = r(i, j)/this%Molecule%Mass ! (unit-)mass averaged coordinates
           ! Calculate displacement of molecules
-          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
           this%Pm0(i,j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
         else ! there should exist only one unit
           this%Pm0(i,j) = this%P0(i, j, 1)
@@ -5055,9 +5056,10 @@ loop1:do i = 1, this%NPart
         end do
 
         if (UseIntDegFreed) then
+            P0old = this%Pm0(i, j)
             this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
             ! Calculate displacement of molecules
-            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
             this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
         else ! there should exist only one unit
             this%Pm0(i, j) = this%P0(i, j, 1)
@@ -5195,10 +5197,12 @@ loop1:do i = 1, this%NPart
           ! Calculate new positions of COM for molecules from new COM of units
           r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
 
+
           if (UseIntDegFreed) then
+              P0old = this%Pm0(i, j)
               this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
               ! Calculate displacement of molecules
-              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
               this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
           else
               this%Pm0(i, j) = this%P0(i,j,1)
@@ -6283,7 +6287,7 @@ subroutine TComponent_ForceTransport( this )
     ! Declare local variables
     integer           :: nu, np
     integer           :: i, j, k
-    real(RK)          :: r(3), BoxLengthInv
+    real(RK)          :: r(3), BoxLengthInv, P0old(3)
 
     BoxLengthInv = 1._RK / this%BoxLength
     np = this%NPart
@@ -6322,11 +6326,12 @@ subroutine TComponent_ForceTransport( this )
         end do
       end do
 
+      P0old = this%Pm0(i, :)
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
       ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - P0old
       this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
     do k = 1, nu

@@ -4894,9 +4894,8 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Save old positions
     do i = 1, this%NComponents
-      this%Component(i)%Pm0old = this%Component(i)%Pm0
       if (.not. UseIntDegFreed) then
-          this%Component(i)%P0(:,:,1) = this%Component(i)%Pm0old(:,:)
+          this%Component(i)%P0(:,:,1) = this%Component(i)%Pm0
       end if
     end do
 
