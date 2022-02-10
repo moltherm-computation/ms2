@@ -10177,6 +10177,301 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_ResultOpen
 
 
+  subroutine writeIOBufferToRUNandRAV(iounit_result, iounit_runave)
+
+    implicit none
+
+    integer, intent(in) :: iounit_result, iounit_runave
+
+#if MPI_VER > 0
+
+    ! parallel MC
+    if (SimulationType .eq. MonteCarlo) then
+
+        call FileWriteNoAdvance_parallel(iounit_result)
+        call FileWriteNoAdvance_parallel(iounit_runave)
+
+    else
+#endif
+        ! not parallel MC
+        call FileWriteNoAdvance(iounit_result)
+        call FileWriteNoAdvance(iounit_runave)
+
+#if MPI_VER > 0
+    endif
+#endif
+
+  end subroutine writeIOBufferToRUNandRAV
+
+
+  subroutine writeRunRavHeader(this)
+
+    implicit none
+
+    type(TEnsemble) :: this
+    integer :: i, j
+    character(11) :: columnWidth
+
+#if HBOND > 0
+    integer                   :: k, l, m
+#endif
+
+    ! Number of steps
+    write( IOBuffer, '("       NR")' )
+
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then ! parallel MC differs w.r.t. this column width
+
+        write( IOBuffer, '(A)' )new_line('a')
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! PROC
+        write( IOBuffer, '("       PROC")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        write( IOBuffer, '("         NR")' )
+    else
+#endif
+
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
+
+#if MPI_VER > 0
+    end if
+#endif
+
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    if (SimulationType .ne. MonteCarlo) then
+
+        ! Displacement
+        write( IOBuffer, '("     DISP")' )
+        call FileWriteNoAdvance( this%iounit_runave )
+
+    end if
+
+    ! Pressure
+    write( IOBuffer, '("      PRESS")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    ! Density
+    write( IOBuffer, '("    DENSITY")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    ! Temperature
+    write( IOBuffer, '("       TEMP")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+#if OSMOP > 0
+    ! OsmoticPressure
+    write( IOBuffer, '("      OSPR")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+#endif
+
+    ! Potential energy
+    write( IOBuffer, '("       EPOT")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    ! Enthalpy
+    write( IOBuffer, '("      ENTLP")' )
+    call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    ! Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+
+        write( IOBuffer, '("    EPSILON")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Dielectric Constant
+        write( IOBuffer, '("        <M>")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+    
+        ! Dielectric Constant
+        write( IOBuffer, '("      <M^2>")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    endif
+
+    ! Chemical potential
+    do i = 1, this%NRealComponents
+
+        if( (this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone) .or. (EnsembleType .eq. EnsembleTypeGE) ) then
+
+            write( columnWidth, '(A, I0.1)') "MUE_", i  ! create string
+            write( IOBuffer, '(A)' ) adjustr(columnWidth)! fill string up to length 'width' with leading spaces for right alignment
+
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        end if
+
+    end do
+
+    ! Partial molar volume
+    do i = 1, this%NRealComponents
+
+        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
+
+            write( columnWidth, '(A, I0.1)') "VW_", i
+            write( IOBuffer, '(A)' ) adjustr(columnWidth)
+
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        end if
+
+    end do
+
+    ! Partial molar enthalpy
+    do i = 1, this%NRealComponents
+
+        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
+
+            write( columnWidth, '(A, I0.1)') "HM_", i 
+            write( IOBuffer, '(A)' ) adjustr(columnWidth)
+
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        end if
+
+    end do
+
+    if (SimulationType .ne. MonteCarlo) then
+
+#if HBOND > 0
+        do i = 1, this%NComponents
+          write( IOBuffer, '("  HB0_(", I1, ")")' ) i
+          call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+        end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+          end do
+        end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              write( IOBuffer, '("  HB2_(", I1, ",", I1, ",", I1, ")")' ) i, j, k
+              call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+            end do
+          end do
+        end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do  l = k, this%NComponents
+                write( IOBuffer, '("  HB3_(", I1, ",", I1, ",", I1, ",", I1, ")")' ) i, j, k, l
+                call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+              end do
+            end do
+          end do
+        end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("  HB4_(", I1, ",", I1, ",", I1, ",", I1,",", I1, ")")' ) i, j, k, l, m
+                  call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+                end do
+              end do
+            end do
+          end do
+        end do
+
+        do i = 1, this%NComponents
+          write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
+          call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+        end do
+#endif
+
+#if OSMOP > 0
+        !Density Profile
+        do i = 1, this%NComponents
+          do j = 1, NBinsDen
+            if (j .le. 9) then
+              write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
+            elseif (j .le. 99) then
+              write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
+            else
+              write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
+            endif
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+          end do
+        end do
+
+#if OSMOP == 2
+        !Pressure Profile
+        do j = 1, NBinsDen
+          if (j .le. 9) then
+            write( IOBuffer, '(" PPB00", I1)' ) j
+          elseif (j .le. 99) then
+            write( IOBuffer, '(" PPB0", I2)' ) j
+          else
+            write( IOBuffer, '(" PPB", I3)' ) j
+          endif
+          call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+        end do
+
+        !Chemical Potential Profile
+        do i = 1, this%NRealComponents
+          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
+            do j = 1, NBinsDen
+              if (j .le. 9) then
+                write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
+              elseif (j .le. 99) then
+                write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
+              else
+                write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
+              endif
+              call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+            end do
+          end if
+        end do
+#endif
+#endif
+    end if
+
+    ! Number of particles in ensemble
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
+        EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+
+        write( IOBuffer, '("      NPART")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+        
+        ! Mole fraction of each component
+        do i = 1, this%NComponents
+
+            write( columnWidth, '(A, I0.1)') "FRACT_", i
+            write( IOBuffer, '(A)' ) adjustr(columnWidth)
+
+            call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        end do
+
+    end if
+
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then ! parallel MC
+
+        write( IOBuffer, '(A)' )new_line('a')
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    else
+#endif
+
+        call FileWriteBlank( this%iounit_result )
+        call FileWriteBlank( this%iounit_runave )
+
+#if MPI_VER > 0
+    end if
+#endif
+
+  end subroutine writeRunRavHeader
+
 
 !==============================================================!
 !  Subroutine TEnsemble_ResultUpdate                           !
@@ -10462,8 +10757,8 @@ loop2:        do nc = 1, this%NComponents
         end do
 
       ! Update result header
-      if (SimulationType .eq. MonteCarlo) then
 #if MPI_VER > 0
+      if (SimulationType .eq. MonteCarlo) then ! parallel MC
          ! wait for RootProc_W to write header, in MC Communicator=MPI_COMM_WORLD for standard MC and MC with CommonEqui
          ! so RootProc=RootProc_W, but in MC with mpiMCCommonGroups>0, Communicator is split into mpiMCCommonGroups with each
          ! group has its own RootProc, so only RootProc_W writes header, thus MPI_Barrier is done for MPI_COMM_WORLD to wait for
@@ -10473,465 +10768,22 @@ loop2:        do nc = 1, this%NComponents
          call MPI_File_seek(this%iounit_result, offset, MPI_SEEK_END, ierr)
          call MPI_File_seek(this%iounit_runave, offset, MPI_SEEK_END, ierr)
          if (RootProc_W) then
-           write( IOBuffer, '(A)' )new_line('a')
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-           ! PROC
-           write( IOBuffer, '("       PROC")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-           ! Number of steps
-           write( IOBuffer, '("         NR")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
+           call writeRunRavHeader(this)
 
-           ! Pressure
-           write( IOBuffer, '("      PRESS")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-           ! Density
-           write( IOBuffer, '("    DENSITY")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-           ! Temperature
-           write( IOBuffer, '("       TEMP")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-           ! Potential energy
-           write( IOBuffer, '("       EPOT")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-           ! Enthalpy
-           write( IOBuffer, '("      ENTLP")' )
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-           ! Dielectric Constant
-           if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-               write( IOBuffer, '("    EPSILON")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-               ! Dielectric Constant
-               write( IOBuffer, '("        <M>")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-               ! Dielectric Constant
-               write( IOBuffer, '("      <M^2>")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-           endif
-
-           ! Chemical potential
-           do i = 1, this%NRealComponents
-             if( (this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone) .or. (EnsembleType .eq. EnsembleTypeGE) ) then
-               if( i < 10 ) then
-                 write( IOBuffer, '("      MUE_", I1)' ) i
-               else
-                 write( IOBuffer, '("     MUE_", I2)' ) i
-               end if
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end if
-           end do
-
-           ! Partial molar volume
-           do i = 1, this%NRealComponents
-             if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-               if( i < 10 ) then
-                 write( IOBuffer, '("       VW_", I1)' ) i
-               else
-                 write( IOBuffer, '("      VW_", I2)' ) i
-               end if
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end if
-           end do
-
-           ! Partial molar enthalpy
-           do i = 1, this%NRealComponents
-               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-               if( i < 10 ) then
-                 write( IOBuffer, '("       HM_", I1)' ) i
-               else
-                 write( IOBuffer, '("      HM_", I2)' ) i
-               end if
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end if
-           end do
-
-           ! Number of particles in ensemble
-           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
-           & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-             write( IOBuffer, '("      NPART")' )
-             call FileWriteNoAdvance_parallel( this%iounit_result )
-             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-             ! Mole fraction of each component
-             do i = 1, this%NComponents
-               if( i < 10 ) then
-                 write( IOBuffer, '("    FRACT_", I1)' ) i
-               else
-                 write( IOBuffer, '("   FRACT_", I2)' ) i
-               end if
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-             end do
-           end if
-
-           write( IOBuffer, '(A)' )new_line('a')
-           call FileWriteNoAdvance_parallel( this%iounit_result )
-           call FileWriteNoAdvance_parallel( this%iounit_runave )
          endif
          ! wait for RootProc_W to write header
          call MPI_Barrier(MPI_COMM_WORLD, ierror)
-#else
-         call FileWriteBlank( this%iounit_result )
-         call FileWriteBlank( this%iounit_runave )
-         ! Number of steps
-         write( IOBuffer, '("       NR")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
 
-         ! Pressure
-         write( IOBuffer, '("      PRESS")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
-
-         ! Density
-         write( IOBuffer, '("    DENSITY")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
-
-         ! Temperature
-         write( IOBuffer, '("       TEMP")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
-
-         ! Potential energy
-         write( IOBuffer, '("       EPOT")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
-
-         ! Enthalpy
-         write( IOBuffer, '("      ENTLP")' )
-         call FileWriteNoAdvance( this%iounit_result )
-         call FileWriteNoAdvance( this%iounit_runave )
-
-         ! Dielectric Constant
-         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-             write( IOBuffer, '("    EPSILON")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-
-             ! Dielectric Constant
-             write( IOBuffer, '("        <M>")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-
-             ! Dielectric Constant
-             write( IOBuffer, '("      <M^2>")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-         endif
-
-         ! Chemical potential
-         do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .or. (EnsembleType .eq. EnsembleTypeGE) ) then
-             if( i < 10 ) then
-               write( IOBuffer, '("      MUE_", I1)' ) i
-             else
-               write( IOBuffer, '("     MUE_", I2)' ) i
-             end if
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-           end if
-         end do
-
-         ! Partial molar volume
-         do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-             if( i < 10 ) then
-               write( IOBuffer, '("       VW_", I1)' ) i
-             else
-               write( IOBuffer, '("      VW_", I2)' ) i
-             end if
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-           end if
-         end do
-
-         ! Partial molar enthalpy
-         do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-             if( i < 10 ) then
-               write( IOBuffer, '("       HM_", I1)' ) i
-             else
-               write( IOBuffer, '("      HM_", I2)' ) i
-             end if
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-           end if
-         end do
-
-         ! Number of particles in ensemble
-         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
-         & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-           write( IOBuffer, '("      NPART")' )
-           call FileWriteNoAdvance( this%iounit_result )
-           call FileWriteNoAdvance( this%iounit_runave )
-
-           ! Mole fraction of each component
-           do i = 1, this%NComponents
-             if( i < 10 ) then
-               write( IOBuffer, '("    FRACT_", I1)' ) i
-             else
-               write( IOBuffer, '("   FRACT_", I2)' ) i
-             end if
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-           end do
-         end if
-
-        call FileWriteBlank( this%iounit_result )
-        call FileWriteBlank( this%iounit_runave )
-#endif
-      else !MD
-        call FileWriteBlank( this%iounit_result )
-        call FileWriteBlank( this%iounit_runave )
-        ! Number of steps
-        write( IOBuffer, '("       NR")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Displacement
-          write( IOBuffer, '("     DISP")' )
-          call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Pressure
-        write( IOBuffer, '("      PRESS")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Density
-        write( IOBuffer, '("    DENSITY")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Temperature
-        write( IOBuffer, '("       TEMP")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-#if OSMOP > 0
-           ! OsmoticPressure
-           write( IOBuffer, '("      OSPR")' )
-           call FileWriteNoAdvance( this%iounit_result )
-           call FileWriteNoAdvance( this%iounit_runave )
+      else ! not parallel MC
 #endif
 
-        ! Potential energy
-        write( IOBuffer, '("       EPOT")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
+         call writeRunRavHeader(this)
 
-        ! Enthalpy
-        write( IOBuffer, '("      ENTLP")' )
-        call FileWriteNoAdvance( this%iounit_result )
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! Dielectric Constant
-        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '("    EPSILON")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-
-            ! Dielectric Constant
-            write( IOBuffer, '("        <M>")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-
-            ! Dielectric Constant
-            write( IOBuffer, '("      <M^2>")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-        endif
-
-        ! Chemical potential
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-            if( i < 10 ) then
-              write( IOBuffer, '("      MUE_", I1)' ) i
-            else
-              write( IOBuffer, '("     MUE_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
-
-        ! Partial molar volume
-        do i = 1, this%NRealComponents
-            if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-            if( i < 10 ) then
-              write( IOBuffer, '("       VW_", I1)' ) i
-            else
-              write( IOBuffer, '("      VW_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
-
-        ! Partial molar enthalpy
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-            if( i < 10 ) then
-              write( IOBuffer, '("       HM_", I1)' ) i
-            else
-              write( IOBuffer, '("      HM_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end if
-        end do
-
-#if HBOND > 0
-        do i = 1, this%NComponents
-          write( IOBuffer, '("  HB0_(", I1, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              write( IOBuffer, '("  HB2_(", I1, ",", I1, ",", I1, ")")' ) i, j, k
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end do
-        end do
-
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do  l = k, this%NComponents
-                write( IOBuffer, '("  HB3_(", I1, ",", I1, ",", I1, ",", I1, ")")' ) i, j, k, l
-                call FileWriteNoAdvance( this%iounit_result )
-                call FileWriteNoAdvance( this%iounit_runave )
-              end do
-            end do
-          end do
-        end do
-
-        do i = 1, this%NComponents
-          do  j = 1, this%NComponents
-            do k = j, this%NComponents
-              do l = k, this%NComponents
-                do m = l, this%NComponents
-                  write( IOBuffer, '("  HB4_(", I1, ",", I1, ",", I1, ",", I1,",", I1, ")")' ) i, j, k, l, m
-                  call FileWriteNoAdvance( this%iounit_result )
-                  call FileWriteNoAdvance( this%iounit_runave )
-                end do
-              end do
-            end do
-          end do
-        end do
-
-        do i = 1, this%NComponents
-          write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-#endif
-
-#if OSMOP > 0
-        !Density Profile
-        do i = 1, this%NComponents
-          do j = 1, NBinsDen
-            if (j .le. 9) then
-              write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
-            elseif (j .le. 99) then
-              write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
-            else
-              write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
-            endif
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end do
-
-#if OSMOP == 2
-        !Pressure Profile
-        do j = 1, NBinsDen
-          if (j .le. 9) then
-            write( IOBuffer, '(" PPB00", I1)' ) j
-          elseif (j .le. 99) then
-            write( IOBuffer, '(" PPB0", I2)' ) j
-          else
-            write( IOBuffer, '(" PPB", I3)' ) j
-          endif
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-        end do
-
-        !Chemical Potential Profile
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
-            do j = 1, NBinsDen
-              if (j .le. 9) then
-                write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
-              elseif (j .le. 99) then
-                write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
-              else
-                write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
-              endif
-              call FileWriteNoAdvance( this%iounit_result )
-              call FileWriteNoAdvance( this%iounit_runave )
-            end do
-          end if
-        end do
-#endif
-#endif
-
-        ! Number of particles in ensemble
-        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
-        & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-          write( IOBuffer, '("      NPART")' )
-          call FileWriteNoAdvance( this%iounit_result )
-          call FileWriteNoAdvance( this%iounit_runave )
-
-          ! Mole fraction of each component
-          do i = 1, this%NComponents
-            if( i < 10 ) then
-              write( IOBuffer, '("    FRACT_", I1)' ) i
-            else
-              write( IOBuffer, '("   FRACT_", I2)' ) i
-            end if
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-          end do
-        end if
-
-        call FileWriteBlank( this%iounit_result )
-        call FileWriteBlank( this%iounit_runave )
+#if MPI_VER > 0
       end if
+#endif
+
     endif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! END IF of step ==1
@@ -25842,7 +25694,7 @@ contains
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
 !$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp,           &
-!$OMP&            BoxLength_dt,Sindex,Bulkviscosity)           &
+!$OMP&            BoxLength_dt,Sindex,Bulkviscosity, TransMethod)        &
 !$OMP&   private (sx,sy,sz,ss)
 
 
