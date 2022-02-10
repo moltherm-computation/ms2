@@ -25694,7 +25694,7 @@ contains
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
 !$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp,           &
-!$OMP&            BoxLength_dt,Sindex,Bulkviscosity)           &
+!$OMP&            BoxLength_dt,Sindex,Bulkviscosity, TransMethod)        &
 !$OMP&   private (sx,sy,sz,ss)
 
 
