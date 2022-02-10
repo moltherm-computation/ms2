@@ -11278,7 +11278,11 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Number of steps
-    write( IOBuffer, '("       NR")' )
+    if (printIDF) then
+        write( IOBuffer, '("     NR")' )
+    else
+        write( IOBuffer, '("       NR")' )
+    end if
 
 #if MPI_VER > 0
     if (SimulationType .eq. MonteCarlo) then ! parallel MC differs w.r.t. this column width
@@ -11291,6 +11295,7 @@ loop2:        do nc = 1, this%NComponents
         call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
 
         write( IOBuffer, '("         NR")' )
+
     else
 #endif
 
@@ -11330,11 +11335,19 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     ! Potential energy
-    write( IOBuffer, '("       EPOT")' )
+    if (printIDF) then
+        write( IOBuffer, '("         EPOT")' )
+    else
+        write( IOBuffer, '("       EPOT")' )
+    end if
     call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
 
     ! Enthalpy
-    write( IOBuffer, '("      ENTLP")' )
+    if (printIDF) then
+        write( IOBuffer, '("        ENTLP")' )
+    else
+        write( IOBuffer, '("      ENTLP")' )
+    end if
     call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
 
     ! Dielectric Constant
@@ -11352,6 +11365,42 @@ loop2:        do nc = 1, this%NComponents
         call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
 
     endif
+
+    if (printIDF) then
+
+        ! Inter Potential energy
+        write( IOBuffer, '("     EP_Inter")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Potential energy
+        write( IOBuffer, '("     EP_Intra")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Potential energy - Bonds
+        write( IOBuffer, '("     EP_Bonds")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Potential energy - Angles
+        write( IOBuffer, '("    EP_Angles")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Potential energy - Dihedral
+        write( IOBuffer, '("     EP_Dihed")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Potential energy - Nonbonded
+        write( IOBuffer, '("     EP_14_15")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Intra Virial
+        write( IOBuffer, '("    Vir_Intra")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+        ! Inter Virial
+        write( IOBuffer, '("      Vir_Inter")' )
+        call writeIOBufferToRUNandRAV(this%iounit_result, this%iounit_runave)
+
+    end if
 
     ! Chemical potential
     do i = 1, this%NRealComponents
