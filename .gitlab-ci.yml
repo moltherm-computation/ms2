@@ -69,11 +69,12 @@ TRANS:
     - gfortran --version
     - mpiifort --version
     - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i
-    - make all -j 3 $COMPILER $MPI TRANS=1
+    - make all -j 3 $COMPILER $MPI $OMP TRANS=1
   parallel:
     matrix:
       - COMPILER: [COMPILER=GNU, COMPILER=INTEL]
         MPI: [MPI=1, MPI=0]
+        OMP: [OMP=1, OMP=0]
   retry: 2
 
 HBOND:
