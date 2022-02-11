@@ -11431,54 +11431,25 @@ loop2:        do nc = 1, this%NComponents
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
               endif
 
-              ! Pressure
-              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Density
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Temperature
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Potential energy
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Enthalpy
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
               ! Dielectric Constant
               if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! Dielectric Constant
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Dielectric Constant
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+                  call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
               endif
 
               ! Chemical potential
@@ -11556,54 +11527,25 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-            ! Pressure
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Density
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Temperature
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Potential energy
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Enthalpy
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
             ! Dielectric Constant
             if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+                call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
             endif
 
             ! Chemical potential
@@ -11652,11 +11594,10 @@ loop2:        do nc = 1, this%NComponents
 
               ! Mole fraction of each component
               do i = 1, this%NComponents
+
                 pc => this%Component(i)
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
               end do
             end if
 
@@ -11703,54 +11644,25 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance_parallel( this%iounit_runave )
           endif
 
-          ! Pressure
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Density
-          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Temperature
-          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Potential energy
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Enthalpy
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
           ! Dielectric Constant
           if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+              call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
           endif
 
           ! Chemical potential
@@ -11875,54 +11787,25 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Density
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Temperature
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Potential energy
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Enthalpy
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
         ! Dielectric Constant
         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
         endif
 
         ! Chemical potential
@@ -12047,23 +11930,11 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(" ",F8.3)' ) value
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Density
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Temperature
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
 #if OSMOP > 0
         ! OsmoticPressure
@@ -12073,36 +11944,18 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_runave )
 #endif
 
-        ! Potential energy
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Enthalpy
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Dielectric Constant
         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
         endif
 
         ! Chemical potential

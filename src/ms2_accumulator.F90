@@ -501,6 +501,39 @@ contains
   end subroutine TAccumulator_Error
 
 
+  subroutine writeAverages(this, iounit_result, iounit_runave, parallelMC)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    integer            :: iounit_result, iounit_runave
+    logical            :: parallelMC
+
+#if MPI_VER > 0
+    if (parallelMC) then
+
+        write( IOBuffer, '(" ",F10.5)' ) this%BlockAverage
+        call FileWriteNoAdvance_parallel(iounit_result)
+
+        write( IOBuffer, '(" ",F10.5)' ) this%Average
+        call FileWriteNoAdvance_parallel(iounit_runave)
+
+    else
+#endif
+
+    write( IOBuffer, '(" ",F10.5)' ) this%BlockAverage
+    call FileWriteNoAdvance(iounit_result)
+
+    write( IOBuffer, '(" ",F10.5)' ) this%Average
+    call FileWriteNoAdvance(iounit_runave)
+
+#if MPI_VER > 0
+    end if
+#endif
+
+  end subroutine writeAverages
+
+
 !==============================================================!
 !  Subroutine TAccumulator_ErrorGI                             !
 !==============================================================!
