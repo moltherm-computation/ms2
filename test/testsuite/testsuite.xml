@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>5275e544657fa299b9d7e257104c330c8d769397</caseRepositoryHash>
+	<caseRepositoryHash>dc42447921d3218ffec3321278319eda0d42e3b4</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -27,6 +27,7 @@
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 <!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
+		<case name="MC_ThermoInt" file="MC_ThermoInt.xml" />
 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
