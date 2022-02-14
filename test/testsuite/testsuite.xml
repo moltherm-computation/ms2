@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>56e5cd9490453e58b31f875c37f8fac6afa3be20</caseRepositoryHash>
+	<caseRepositoryHash>f6ec0ce5b2f77b8276ccc0f752bd3f58aa2d3b80</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -16,6 +16,7 @@
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
+		<case name="MC_GE_methaneCO2_250_x009_serial" file="MC_GE_methaneCO2_250_x009_serial.xml" />
 		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 		<case name="MChybrid_scalar_ReactionField" file="MChybrid_scalar_ReactionField.xml" />
