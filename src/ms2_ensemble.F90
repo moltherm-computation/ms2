@@ -11692,10 +11692,9 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                   case( ChemPotMethodThermoInt )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                    call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
                   end select
 
                 else
@@ -11721,10 +11720,9 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                   case( ChemPotMethodThermoInt )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                    call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
                   end select
                 end if
             end if
@@ -11740,10 +11738,9 @@ loop2:        do nc = 1, this%NComponents
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.true.)
+
             end if
           end do
 
@@ -11751,29 +11748,26 @@ loop2:        do nc = 1, this%NComponents
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.true.)
+
             end if
           end do
 
         ! Number of particles in ensemble
           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
           & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            call writeAverages(this%SumNPart, this%iounit_result, this%iounit_runave, '(" ",F10.2)', parallelMC=.true.)
 
             ! Mole fraction of each component
             do i = 1, this%NComponents
+
               pc => this%Component(i)
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
             end do
+
           end if
 
           write( IOBuffer, '(A)' )new_line('a')
@@ -11828,10 +11822,8 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
                 end select
 
@@ -11851,19 +11843,16 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
                 end select
               end if
           end if
           if (EnsembleType .eq. EnsembleTypeGE) then
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumChemPotGE, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
           endif
         end do
 
@@ -11871,10 +11860,9 @@ loop2:        do nc = 1, this%NComponents
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
           end if
         end do
 
@@ -11882,28 +11870,24 @@ loop2:        do nc = 1, this%NComponents
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
           end if
         end do
 
       ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
         & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumNPart, this%iounit_result, this%iounit_runave, '(" ",F10.2)', parallelMC=.false.)
 
           ! Mole fraction of each component
           do i = 1, this%NComponents
             pc => this%Component(i)
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
           end do
         end if
 
@@ -11937,11 +11921,7 @@ loop2:        do nc = 1, this%NComponents
         call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
 #if OSMOP > 0
-        ! OsmoticPressure
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumOsmoticPressure, this%iounit_result, this%iounit_runave, '(F10.5)', parallelMC=.false.)
 #endif
 
         call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.false.)
@@ -12025,10 +12005,9 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_runave )
 
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+               call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
             end if
           end if
         end do
@@ -12042,38 +12021,34 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+              call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
             end if
           end if
         end do
 
 #if HBOND > 0
         do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumHBond0(i), this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
         end do
 
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(this%SumHBond1(i,j), this%iounit_result, this%iounit_runave, '("   ", F10.4)', parallelMC=.false.)
+
           end do
         end do
 
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+              call writeAverages(this%SumHBond2(i,j,k), this%iounit_result, this%iounit_runave, '("      ", F10.4)', parallelMC=.false.)
+
             end do
           end do
         end do
@@ -12082,10 +12057,9 @@ loop2:        do nc = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
               do  l = k, this%NComponents
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%Average
-                call FileWriteNoAdvance( this%iounit_runave )
+
+                call writeAverages(this%SumHBond3(i,j,k,l), this%iounit_result, this%iounit_runave, '("         ", F10.4)', parallelMC=.false.)
+
               end do
             end do
           end do
@@ -12096,10 +12070,9 @@ loop2:        do nc = 1, this%NComponents
             do k = j, this%NComponents
               do l = k, this%NComponents
                 do m = l, this%NComponents
-                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(this%SumHBond4(i,j,k,l,m), this%iounit_result, this%iounit_runave, '("         ", F10.4)', parallelMC=.false.)
+
                 end do
               end do
             end do
@@ -12107,10 +12080,9 @@ loop2:        do nc = 1, this%NComponents
         end do
 
         do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumHBondN(i), this%iounit_result, this%iounit_runave, '(" ", F10.4)', parallelMC=.false.)
+
         end do
 #endif
 
@@ -12119,20 +12091,18 @@ loop2:        do nc = 1, this%NComponents
         do i = 1, this%NComponents
           pc => this%Component(i)
           do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumDenProfile(j), this%iounit_result, this%iounit_runave, '(F10.4)', parallelMC=.false.)
+
           end do
         end do
 
 #if OSMOP == 2
         !Pressure Profile
         do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(this%SumPressureProfile(j), this%iounit_result, this%iounit_runave, '(F10.4)', parallelMC=.false.)
+
         end do
 
         !Chemical Potential Profile
