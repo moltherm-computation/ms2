@@ -34,6 +34,7 @@
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 <!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
+		<case name="MC_ThermoInt" file="MC_ThermoInt.xml" />
 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MC_xA040_NPH" file="MC_xA040_NPH.xml" />
 		<case name="Mie_com_mpi" file="Mie_com_mpi.xml" />
