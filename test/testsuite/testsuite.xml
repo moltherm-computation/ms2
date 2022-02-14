@@ -72,6 +72,7 @@
 		<case name="pentan_NPT_site" file="pentan_NPT_site.xml" />
 		<case name="RDF_NPT_4mixT380--MD" file="RDF_NPT_4mixT380--MD.xml" />
 		<case name="serialQCD" file="serialQCD.xml" />
+		<case name="serial_ThermoInt_MC" file="serial_ThermoInt_MC.xml" />
 		<case name="spme_NpT_NaCl+SPCE" file="spme_NpT_NaCl+SPCE.xml" />
 <!-- 		<case name="SVC_aceton" file="SVC_aceton.xml" /> -->
 <!-- 		<case name="SVC_meoh_CO2_Ar" file="SVC_meoh_CO2_Ar.xml" /> -->
