@@ -5664,7 +5664,11 @@ loop3:  do nc = 1, this%NComponents
     end if
 
     ! Calculate pressure
-    this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+    if (.not. UseIntDegFreed) then
+        this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
+    else
+        this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT) then
 
