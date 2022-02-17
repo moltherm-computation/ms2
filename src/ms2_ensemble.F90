@@ -13284,69 +13284,22 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank( this%iounit_errors )
       end if
 
-      ! A10
-      Average = this%SumA10resI%Average
-      Variance = this%SumA10resI%Variance
-      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resI, 'A10', this%iounit_errors)
 
-      ! A01
-      Average = this%SumA01resI%Average
-      Variance = this%SumA01resI%Variance
-      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resI, 'A01', this%iounit_errors)
 
-      ! A20
-      Average = this%SumA20resI%Average
-      Variance = this%SumA20resI%Variance
-      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resI, 'A20', this%iounit_errors)
 
-      ! A11
-      Average = this%SumA11resI%Average
-      Variance = this%SumA11resI%Variance
-      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resI, 'A11', this%iounit_errors)
 
-      ! A02
-      Average = this%SumA02resI%Average
-      Variance = this%SumA02resI%Variance
-      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resI, 'A02', this%iounit_errors)
 
-      ! A30
-      Average = this%SumA30resI%Average
-      Variance = this%SumA30resI%Variance
-      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resI, 'A30', this%iounit_errors)
 
-      ! A21
-      Average = this%SumA21resI%Average
-      Variance = this%SumA21resI%Variance
-      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resI, 'A21', this%iounit_errors)
 
-      ! A12
-      Average = this%SumA12resI%Average
-      Variance = this%SumA12resI%Variance
-      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resI, 'A12', this%iounit_errors)
+
     end if
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
@@ -13373,133 +13326,38 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank( this%iounit_errors )
       end if
 
-      ! A10I
-      Average = this%SumA10resI%Average
-      Variance = this%SumA10resI%Variance
-      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resI, 'A10', this%iounit_errors)
 
-      ! A01I
-      Average = this%SumA01resI%Average
-      Variance = this%SumA01resI%Variance
-      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resI, 'A01', this%iounit_errors)
 
-      ! A20I
-      Average = this%SumA20resI%Average
-      Variance = this%SumA20resI%Variance
-      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resI, 'A20', this%iounit_errors)
 
-      ! A11I
-      Average = this%SumA11resI%Average
-      Variance = this%SumA11resI%Variance
-      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resI, 'A11', this%iounit_errors)
 
-      ! A02I
-      Average = this%SumA02resI%Average
-      Variance = this%SumA02resI%Variance
-      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resI, 'A02', this%iounit_errors)
 
-      ! A30I
-      Average = this%SumA30resI%Average
-      Variance = this%SumA30resI%Variance
-      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resI, 'A30', this%iounit_errors)
 
-      ! A21I
-      Average = this%SumA21resI%Average
-      Variance = this%SumA21resI%Variance
-      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resI, 'A21', this%iounit_errors)
 
-      ! A12I
-      Average = this%SumA12resI%Average
-      Variance = this%SumA12resI%Variance
-      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resI, 'A12', this%iounit_errors)
 
-      ! A10II
-      Average = this%SumA10resII%Average
-      Variance = this%SumA10resII%Variance
-      write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resII, 'A10', this%iounit_errors)
 
-      ! A01II
-      Average = this%SumA01resII%Average
-      Variance = this%SumA01resII%Variance
-      write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resII, 'A01', this%iounit_errors)
 
-      ! A20II
-      Average = this%SumA20resII%Average
-      Variance = this%SumA20resII%Variance
-      write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resII, 'A20', this%iounit_errors)
 
-      ! A11II
-      Average = this%SumA11resII%Average
-      Variance = this%SumA11resII%Variance
-      write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resII, 'A11', this%iounit_errors)
 
-      ! A02II
-      Average = this%SumA02resII%Average
-      Variance = this%SumA02resII%Variance
-      write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resII, 'A02', this%iounit_errors)
 
-      ! A30II
-      Average = this%SumA30resII%Average
-      Variance = this%SumA30resII%Variance
-      write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resII, 'A30', this%iounit_errors)
 
-      ! A21II
-      Average = this%SumA21resII%Average
-      Variance = this%SumA21resII%Variance
-      write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resII, 'A21', this%iounit_errors)
 
-      ! A12II
-      Average = this%SumA12resII%Average
-      Variance = this%SumA12resII%Variance
-      write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resII, 'A12', this%iounit_errors)
+
     end if
 
     ! thermodynamic factors with KBI
@@ -15423,72 +15281,23 @@ end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! J100
-      Average = this%SumJ100%Average
-      Variance = this%SumJ100%Variance
-      write( IOBuffer, '("J100", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J010
-      Average = this%SumJ010%Average
-      Variance = this%SumJ010%Variance
-      write( IOBuffer, '("J010", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J001
-      Average = this%SumJ001%Average
-      Variance = this%SumJ001%Variance
-      write( IOBuffer, '("J001", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ100, "J100", this%iounit_errors, .true.)
 
-      ! J200
-      Average = this%SumJ200%Average
-      Variance = this%SumJ200%Variance
-      write( IOBuffer, '("J200", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J020
-      Average = this%SumJ020%Average
-      Variance = this%SumJ020%Variance
-      write( IOBuffer, '("J020", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J002
-      Average = this%SumJ002%Average
-      Variance = this%SumJ002%Variance
-      write( IOBuffer, '("J002", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ010, "J010", this%iounit_errors, .true.)
 
-      ! J110
-      Average = this%SumJ110%Average
-      Variance = this%SumJ110%Variance
-      write( IOBuffer, '("J110", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J101
-      Average = this%SumJ101%Average
-      Variance = this%SumJ101%Variance
-      write( IOBuffer, '("J101", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J011
-      Average = this%SumJ011%Average
-      Variance = this%SumJ011%Variance
-      write( IOBuffer, '("J011", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ001, "J001", this%iounit_errors, .true.)
 
+      call writeAverageAndVariance(this%SumJ200, "J200", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ020, "J020", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ002, "J002", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ110, "J110", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ101, "J101", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ011, "J011", this%iounit_errors, .true.)
 
     end if
 

@@ -542,6 +542,32 @@ contains
   end subroutine writeAverages
 
 
+  subroutine writeAverageAndVariance(this, variableName, iounit_errors, reducedTitle)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    integer, intent(in)        :: iounit_errors
+    character(:), allocatable    :: formatString
+    character(len=*), intent(in)    :: variableName
+    logical, optional :: reducedTitle
+
+
+    if (present(reducedTitle) .and. reducedTitle) then
+
+        formatString = '("'//variableName//'", T29, "Dimensionless:", 2F20.9)'
+    else
+
+        formatString = '("'//variableName//'", T29, "Dimensionless, residual:", 2F20.9)'
+    end if
+
+    write( IOBuffer, formatString) this%Average, this%Variance
+    call FileWrite(iounit_errors)
+    call FileWriteBlank(iounit_errors)
+
+  end subroutine writeAverageAndVariance
+
+
 !==============================================================!
 !  Subroutine TAccumulator_ErrorGI                             !
 !==============================================================!
