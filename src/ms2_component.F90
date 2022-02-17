@@ -6348,8 +6348,8 @@ molloop: do i = 1, i1
 
       do j = 1, this%Molecule%NBond
         pBond => this%Molecule%IdfBond(j)
-        Unit1 = pBond%UnitId1
-        Unit2 = pBond%UnitId2
+        Unit1 = pBond%UnitId(1)
+        Unit2 = pBond%UnitId(2)
 
         RX1 = pBond%R(1)%X(i)
         RY1 = pBond%R(1)%Y(i)
@@ -6481,8 +6481,8 @@ molloop: do i = 1, i1
         do j= 1, this%Molecule%NBond
           pBond => this%Molecule%IdfBond(j)
 
-          Unit1 = pBond%UnitId1
-          Unit2 = pBond%UnitId2
+          Unit1 = pBond%UnitId(1)
+          Unit2 = pBond%UnitId(2)
           R0Sq = pBond%R0**2
           DotProd = R0Xij(j)*RXij(j)+R0Yij(j)*RYij(j)+R0Zij(j)*RZij(j)
 

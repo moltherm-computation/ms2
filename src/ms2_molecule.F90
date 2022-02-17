@@ -2367,17 +2367,17 @@ contains
           r1(2)=this%SiteMIEnm(i)%r(2)
           r1(3)=this%SiteMIEnm(i)%r(3)
           Site1 = .true.
-          Bond%UnitId1=this%SiteMIEnm(i)%UnitNumber
-          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          Bond%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
+          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
+          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
         else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
           r2(1)=this%SiteMIEnm(i)%r(1)
           r2(2)=this%SiteMIEnm(i)%r(2)
           r2(3)=this%SiteMIEnm(i)%r(3)
           Site2 = .true.
-          Bond%UnitId2=this%SiteMIEnm(i)%UnitNumber
-          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          Bond%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
+          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
+          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
         end if
         if (Site1 .and. Site2) exit
       end do
@@ -2390,17 +2390,17 @@ contains
           r1(2)=this%SiteCharge(i)%r(2)
           r1(3)=this%SiteCharge(i)%r(3)
           Site1 = .true.
-          Bond%UnitId1=this%SiteCharge(i)%UnitNumber
-          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          Bond%UnitId(1)=this%SiteCharge(i)%UnitNumber
+          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
+          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
           r2(1)=this%SiteCharge(i)%r(1)
           r2(2)=this%SiteCharge(i)%r(2)
           r2(3)=this%SiteCharge(i)%r(3)
           Site2 = .true.
-          Bond%UnitId2=this%SiteCharge(i)%UnitNumber
-          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          Bond%UnitId(2)=this%SiteCharge(i)%UnitNumber
+          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
+          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
         end if
         if (Site1 .and. Site2) exit
       end do
@@ -2413,17 +2413,17 @@ contains
           r1(2)=this%SiteDipole(i)%r(2)
           r1(3)=this%SiteDipole(i)%r(3)
           Site1 = .true.
-          Bond%UnitId1=this%SiteDipole(i)%UnitNumber
-          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          Bond%UnitId(1)=this%SiteDipole(i)%UnitNumber
+          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
+          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId2) then
           r2(1)=this%SiteDipole(i)%r(1)
           r2(2)=this%SiteDipole(i)%r(2)
           r2(3)=this%SiteDipole(i)%r(3)
           Site2 = .true.
-          Bond%UnitId2=this%SiteDipole(i)%UnitNumber
-          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          Bond%UnitId(2)=this%SiteDipole(i)%UnitNumber
+          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
+          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
         end if
         if (Site1 .and. Site2) exit
       end do
@@ -2436,17 +2436,17 @@ contains
           r1(2)=this%SiteQuadrupole(i)%r(2)
           r1(3)=this%SiteQuadrupole(i)%r(3)
           Site1 = .true.
-          Bond%UnitId1=this%SiteQuadrupole(i)%UnitNumber
-          this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
-          this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
+          Bond%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
+          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
+          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
           r2(1)=this%SiteQuadrupole(i)%r(1)
           r2(2)=this%SiteQuadrupole(i)%r(2)
           r2(3)=this%SiteQuadrupole(i)%r(3)
           Site2 = .true.
-          Bond%UnitId2=this%SiteQuadrupole(i)%UnitNumber
-          this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
-          this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
+          Bond%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
+          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
+          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
         end if
         if (Site1 .and. Site2) exit
       end do
@@ -2458,7 +2458,7 @@ contains
       call Error('Uncorrect sites for bond' // str)
     end if
 
-    if (Bond%UnitId1==Bond%UnitId2) then  !Michael Sch.: changed due to different reading scheme
+    if (Bond%UnitId(1)==Bond%UnitId(2)) then  !Michael Sch.: changed due to different reading scheme
       call Error('Sites of the same unit can not be bonded')
       write (str, '(i10)') j
       call Error('Uncorrect sites for bond' // str)
@@ -2503,27 +2503,27 @@ contains
           r1(2)=this%SiteMIEnm(i)%r(2)
           r1(3)=this%SiteMIEnm(i)%r(3)
           Site1 = .true.
-          Angle%UnitId1=this%SiteMIEnm(i)%UnitNumber
+          Angle%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
           Angle%orientation1 = .false.
-          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
+          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
         else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
           r2(1)=this%SiteMIEnm(i)%r(1)
           r2(2)=this%SiteMIEnm(i)%r(2)
           r2(3)=this%SiteMIEnm(i)%r(3)
           Site2 = .true.
-          Angle%UnitId2=this%SiteMIEnm(i)%UnitNumber
-          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          Angle%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
+          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
         else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
           r3(1)=this%SiteMIEnm(i)%r(1)
           r3(2)=this%SiteMIEnm(i)%r(2)
           r3(3)=this%SiteMIEnm(i)%r(3)
           Site3=.true.
           Angle%orientation2 = .false.
-          Angle%UnitId3=this%SiteMIEnm(i)%UnitNumber
-          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          Angle%UnitId(3)=this%SiteMIEnm(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
+          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
         end if
         if (Site1 .and. Site2 .and. Site3) exit
       end do
@@ -2536,27 +2536,27 @@ contains
           r1(2)=this%SiteCharge(i)%r(2)
           r1(3)=this%SiteCharge(i)%r(3)
           Site1 = .true.
-          Angle%UnitId1=this%SiteCharge(i)%UnitNumber
+          Angle%UnitId(1)=this%SiteCharge(i)%UnitNumber
           Angle%orientation1 = .false.
-          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
+          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
           r2(1)=this%SiteCharge(i)%r(1)
           r2(2)=this%SiteCharge(i)%r(2)
           r2(3)=this%SiteCharge(i)%r(3)
           Site2 = .true.
-          Angle%UnitId2=this%SiteCharge(i)%UnitNumber
-          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          Angle%UnitId(2)=this%SiteCharge(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
+          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
           r3(1)=this%SiteCharge(i)%r(1)
           r3(2)=this%SiteCharge(i)%r(2)
           r3(3)=this%SiteCharge(i)%r(3)
           Site3 = .true.
-          Angle%UnitId3=this%SiteCharge(i)%UnitNumber
+          Angle%UnitId(3)=this%SiteCharge(i)%UnitNumber
           Angle%orientation2 = .false.
-          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
+          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
         end if
         if (Site1 .and. Site2 .and. Site3) exit
       end do
@@ -2577,17 +2577,17 @@ contains
             Angle%orientation1 = .false.
           end if
           Site1 = .true.
-          Angle%UnitId1=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          Angle%UnitId(1)=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
+          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId2) then
           r2(1)=this%SiteDipole(i)%r(1)
           r2(2)=this%SiteDipole(i)%r(2)
           r2(3)=this%SiteDipole(i)%r(3)
           Site2 = .true.
-          Angle%UnitId2=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          Angle%UnitId(2)=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
+          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId3) then
           if ( SiteId3 == SiteId2) then
             r3(1)=this%SiteDipole(i)%or(1)
@@ -2601,9 +2601,9 @@ contains
             Angle%orientation2 = .false.
           end if
           Site3 = .true.
-          Angle%UnitId3=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          Angle%UnitId(3)=this%SiteDipole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
+          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
         end if
         if (Site1 .and. Site2 .and. Site3) exit
       end do
@@ -2624,17 +2624,17 @@ contains
             Angle%orientation1 = .false.
           end if
           Site1 = .true.
-          Angle%UnitId1=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
-          this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
+          Angle%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
+          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
           r2(1)=this%SiteQuadrupole(i)%r(1)
           r2(2)=this%SiteQuadrupole(i)%r(2)
           r2(3)=this%SiteQuadrupole(i)%r(3)
           Site2 = .true.
-          Angle%UnitId2=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
-          this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
+          Angle%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
+          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
           if ( SiteId3 == SiteId2) then
             r3(1)=this%SiteQuadrupole(i)%or(1)
@@ -2648,9 +2648,9 @@ contains
             Angle%orientation2 = .false.
           end if
           Site3 = .true.
-          Angle%UnitId3=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
-          this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
+          Angle%UnitId(3)=this%SiteQuadrupole(i)%UnitNumber
+          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
+          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
         end if
         if (Site1 .and. Site2 .and. Site3) exit
       end do
@@ -2662,20 +2662,20 @@ contains
     end if
 
 
-    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then  !Michael Sch.: changed due to different reading scheme
+    if (Angle%UnitId(1)==Angle%UnitId(2) .and. Angle%UnitId(2)==Angle%UnitId(3)) then  !Michael Sch.: changed due to different reading scheme
       call Error('At leas one site of a given angle potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
 
     else
-      if (Angle%UnitId1==Angle%UnitId2) then
-        this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      if (Angle%UnitId(1)==Angle%UnitId(2)) then
+        this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))-1
       end if
-      if (Angle%UnitId2==Angle%UnitId3) then
-        this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+      if (Angle%UnitId(2)==Angle%UnitId(3)) then
+        this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))-1
       end if
-      if (Angle%UnitId1==Angle%UnitId3) then
-        this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      if (Angle%UnitId(1)==Angle%UnitId(3)) then
+        this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))-1
       end if
     end if
 
@@ -2717,27 +2717,27 @@ contains
       do i = 1, this%NMIEnm
         if (this%SiteMIEnm(i)%SiteId==SiteId1) then
           Site1 = .true.
-          Dihedral%UnitId1=this%SiteMIEnm(i)%UnitNumber
+          Dihedral%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
           Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
+          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
         else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
           Site2 = .true.
-          Dihedral%UnitId2=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Dihedral%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
+          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
           Dihedral%orientation1 = .false.
         else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
           Site3=.true.
-          Dihedral%UnitId3=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          Dihedral%UnitId(3)=this%SiteMIEnm(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
+          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
           Dihedral%orientation2 = .false.
         else if (this%SiteMIEnm(i)%SiteId==SiteId4) then
           Site4=.true.
-          Dihedral%UnitId4=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Dihedral%UnitId(4)=this%SiteMIEnm(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
+          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
           Dihedral%orientation2 = .false.
         end if
         if (Site1 .and. Site2 .and. Site3 .and. Site4)exit
@@ -2748,28 +2748,28 @@ contains
       do i = 1, this%NCharge
         if (this%SiteCharge(i)%SiteId==SiteId1) then
           Site1 = .true.
-          Dihedral%UnitId1=this%SiteCharge(i)%UnitNumber
+          Dihedral%UnitId(1)=this%SiteCharge(i)%UnitNumber
           Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
+          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId2) then
           Site2 = .true.
-          Dihedral%UnitId2=this%SiteCharge(i)%UnitNumber
+          Dihedral%UnitId(2)=this%SiteCharge(i)%UnitNumber
           Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
+          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId3) then
           Site3 = .true.
-          Dihedral%UnitId3=this%SiteCharge(i)%UnitNumber
+          Dihedral%UnitId(3)=this%SiteCharge(i)%UnitNumber
           Dihedral%orientation2 = .false.
-          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
+          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
         else if (this%SiteCharge(i)%SiteId==SiteId4) then
           Site4 = .true.
-          Dihedral%UnitId4=this%SiteCharge(i)%UnitNumber
+          Dihedral%UnitId(4)=this%SiteCharge(i)%UnitNumber
           Dihedral%orientation2 = .false.
-          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
+          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
         end if
         if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
       end do
@@ -2784,19 +2784,19 @@ contains
             Dihedral%orientation1 = .false.
           end if
           Site1 = .true.
-          Dihedral%UnitId1=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          Dihedral%UnitId(1)=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
+          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId2) then
           Site2 = .true.
-          Dihedral%UnitId2=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Dihedral%UnitId(2)=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
+          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId3) then
           Site3 = .true.
-          Dihedral%UnitId3=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          Dihedral%UnitId(3)=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
+          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
         else if (this%SiteDipole(i)%SiteId==SiteId4) then
           if ( SiteId4 == SiteId3 ) then
             Dihedral%orientation2 = .true.
@@ -2804,9 +2804,9 @@ contains
             Dihedral%orientation2 = .false.
           end if
           Site4 = .true.
-          Dihedral%UnitId4=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Dihedral%UnitId(4)=this%SiteDipole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
+          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
         end if
         if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
       end do
@@ -2821,19 +2821,19 @@ contains
             Dihedral%orientation1 = .false.
           end if
           Site1 = .true.
-          Dihedral%UnitId1=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
-          this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
+          Dihedral%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
+          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
           Site2 = .true.
-          Dihedral%UnitId2=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
-          this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
+          Dihedral%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
+          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
           Site3 = .true.
-          Dihedral%UnitId3=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
-          this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
+          Dihedral%UnitId(3)=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
+          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
         else if (this%SiteQuadrupole(i)%SiteId==SiteId4) then
           if ( SiteId4 == SiteId3 ) then
             Dihedral%orientation2 = .true.
@@ -2841,9 +2841,9 @@ contains
             Dihedral%orientation2 = .false.
           end if
           Site4 = .true.
-          Dihedral%UnitId4=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
-          this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
+          Dihedral%UnitId(4)=this%SiteQuadrupole(i)%UnitNumber
+          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
+          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
         end if
         if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
       end do
@@ -2855,41 +2855,41 @@ contains
     end if
 
 
-    if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 &
-&             .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then  !Michael Sch.: changed due to different reading scheme
+    if (Dihedral%UnitId(1)==Dihedral%UnitId(2) .and. Dihedral%UnitId(2)==Dihedral%UnitId(3) &
+&             .and. Dihedral%UnitId(3)==Dihedral%UnitId(4) ) then  !Michael Sch.: changed due to different reading scheme
       call Error('At leas one site of a given dihedral potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
     else !
-      if (Dihedral%UnitId1==Dihedral%UnitId2) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(2)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))-1
       end if
-      if (Dihedral%UnitId2==Dihedral%UnitId3) then
-        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+      if (Dihedral%UnitId(2)==Dihedral%UnitId(3)) then
+        this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))-1
       end if
-      if (Dihedral%UnitId1==Dihedral%UnitId3) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(3)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))-1
       end if
-      if (Dihedral%UnitId1==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))-1
       end if
-      if (Dihedral%UnitId2==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
+      if (Dihedral%UnitId(2)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))-1
       end if
-      if (Dihedral%UnitId3==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
+      if (Dihedral%UnitId(3)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))-1
       end if
-      if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(2) .and. Dihedral%UnitId(2)==Dihedral%UnitId(3)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
       end if
-      if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(2) .and. Dihedral%UnitId(2)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
       end if
-      if (Dihedral%UnitId2==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
+      if (Dihedral%UnitId(2)==Dihedral%UnitId(3) .and. Dihedral%UnitId(3)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
       end if
-      if (Dihedral%UnitId1==Dihedral%UnitId3 .and. Dihedral%UnitId3==Dihedral%UnitId4) then
-        this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
+      if (Dihedral%UnitId(1)==Dihedral%UnitId(3) .and. Dihedral%UnitId(3)==Dihedral%UnitId(4)) then
+        this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
       end if
     end if
 

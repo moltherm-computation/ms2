@@ -43,8 +43,7 @@ module ms2_idf
 
     real(RK)          :: ForConst
     real(RK)          :: R0
-    integer           :: SiteId(2)
-    integer           :: UnitId1, UnitId2
+    integer, dimension(2) :: SiteId, UnitId
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
     type(coordinatesPointer), dimension(3) :: P, R, F
@@ -72,8 +71,7 @@ module ms2_idf
 
     real(RK)          :: ForConst
     real(RK)          :: Angle0, Angle
-    integer           :: SiteId(3)
-    integer           :: UnitId1, UnitId2, UnitId3
+    integer, dimension(3) :: SiteId, UnitId
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
     type(coordinatesPointer), dimension(3) :: R, F
@@ -104,8 +102,7 @@ module ms2_idf
 
     real(RK)          :: phi
     integer           :: nmax    ! multiplicity
-    integer           :: SiteId(4)
-    integer           :: UnitId1, UnitId2, UnitId3, UnitId4
+    integer, dimension(4) :: SiteId, UnitId
     real(RK)          :: ScaleLJ14
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart
