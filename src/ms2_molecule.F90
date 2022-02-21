@@ -2348,120 +2348,106 @@ contains
     integer, intent(in) :: j
 
     ! Declare local variables
-    integer:: SiteId1, SiteId2
-    integer           :: i
-    logical           :: Site1, Site2
-    real(RK)          :: r1(3),r2(3)
+    integer           :: i, iSite
+    logical           :: foundSite(2)
     character(10)      ::str
 
-    SiteId1 = Bond%SiteId(1)
-    SiteId2 = Bond%SiteId(2)
+    foundSite = .false.
 
-    Site1 = .false.
-    Site2 = .false.
+    if (this%NMIEnm > 0) then
+        do i = 1, this%NMIEnm
 
-    if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteMIEnm(i)%r(1)
-          r1(2)=this%SiteMIEnm(i)%r(2)
-          r1(3)=this%SiteMIEnm(i)%r(3)
-          Site1 = .true.
-          Bond%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
-          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
-          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteMIEnm(i)%r(1)
-          r2(2)=this%SiteMIEnm(i)%r(2)
-          r2(3)=this%SiteMIEnm(i)%r(3)
-          Site2 = .true.
-          Bond%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
-          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
-          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
-        end if
-        if (Site1 .and. Site2) exit
-      end do
+            do iSite = 1, 2
+                if (this%SiteMIEnm(i)%SiteId == Bond%SiteId(iSite)) then
+
+                    foundSite(iSite) = .true.
+                    Bond%UnitId(iSite) = this%SiteMIEnm(i)%UnitNumber
+                    this%BondCount(Bond%UnitId(iSite)) = this%BondCount(Bond%UnitId(iSite)) + 1
+                    this%BoPartner(Bond%UnitId(iSite), this%BondCount(Bond%UnitId(iSite))) = j
+
+                    exit ! do not check other bond site
+
+                end if
+            end do
+
+            if (all(foundSite)) exit ! do not check other mie-sites
+        end do
     end if
 
-    if((.not. Site1 .or. .not. Site2) .and. (this%NCharge > 0) ) then
-      do i = 1, this%NCharge
-        if (this%SiteCharge(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteCharge(i)%r(1)
-          r1(2)=this%SiteCharge(i)%r(2)
-          r1(3)=this%SiteCharge(i)%r(3)
-          Site1 = .true.
-          Bond%UnitId(1)=this%SiteCharge(i)%UnitNumber
-          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
-          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteCharge(i)%r(1)
-          r2(2)=this%SiteCharge(i)%r(2)
-          r2(3)=this%SiteCharge(i)%r(3)
-          Site2 = .true.
-          Bond%UnitId(2)=this%SiteCharge(i)%UnitNumber
-          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
-          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
-        end if
-        if (Site1 .and. Site2) exit
-      end do
+    if ((.not. all(foundSite)) .and. (this%NCharge > 0)) then
+        do i = 1, this%NCharge
+
+            do iSite = 1, 2
+                if (this%SiteCharge(i)%SiteId == Bond%SiteId(iSite)) then
+
+                    foundSite(iSite) = .true.
+                    Bond%UnitId(iSite) = this%SiteCharge(i)%UnitNumber
+                    this%BondCount(Bond%UnitId(iSite)) = this%BondCount(Bond%UnitId(iSite)) + 1
+                    this%BoPartner(Bond%UnitId(iSite), this%BondCount(Bond%UnitId(iSite))) = j
+
+                    exit ! do not check other bond site
+
+                end if
+            end do
+
+            if (all(foundSite)) exit ! do not check other charge-sites
+        end do
     end if
-    
-    if((.not. Site1 .or. .not. Site2) .and. (this%NDipole > 0) ) then
-      do i = 1, this%NDipole
-        if (this%SiteDipole(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteDipole(i)%r(1)
-          r1(2)=this%SiteDipole(i)%r(2)
-          r1(3)=this%SiteDipole(i)%r(3)
-          Site1 = .true.
-          Bond%UnitId(1)=this%SiteDipole(i)%UnitNumber
-          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
-          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteDipole(i)%r(1)
-          r2(2)=this%SiteDipole(i)%r(2)
-          r2(3)=this%SiteDipole(i)%r(3)
-          Site2 = .true.
-          Bond%UnitId(2)=this%SiteDipole(i)%UnitNumber
-          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
-          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
-        end if
-        if (Site1 .and. Site2) exit
-      end do
+
+    if ((.not. all(foundSite)) .and. (this%NDipole > 0) ) then
+        do i = 1, this%NDipole
+
+            do iSite = 1, 2
+                if (this%SiteDipole(i)%SiteId == Bond%SiteId(iSite)) then
+
+                    foundSite(iSite) = .true.
+                    Bond%UnitId(iSite) = this%SiteDipole(i)%UnitNumber
+                    this%BondCount(Bond%UnitId(iSite)) = this%BondCount(Bond%UnitId(iSite)) + 1
+                    this%BoPartner(Bond%UnitId(iSite), this%BondCount(Bond%UnitId(iSite))) = j
+
+                    exit ! do not check other bond site
+
+                end if
+            end do
+
+            if (all(foundSite)) exit ! do not check other dipole-sites
+        end do
     end if
-    
-    if((.not. Site1 .or. .not. Site2) .and. (this%NQuadrupole > 0) ) then
-      do i = 1, this%NQuadrupole
-        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteQuadrupole(i)%r(1)
-          r1(2)=this%SiteQuadrupole(i)%r(2)
-          r1(3)=this%SiteQuadrupole(i)%r(3)
-          Site1 = .true.
-          Bond%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
-          this%BondCount(Bond%UnitId(1))=this%BondCount(Bond%UnitId(1))+1
-          this%BoPartner(Bond%UnitId(1),this%BondCount(Bond%UnitId(1)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteQuadrupole(i)%r(1)
-          r2(2)=this%SiteQuadrupole(i)%r(2)
-          r2(3)=this%SiteQuadrupole(i)%r(3)
-          Site2 = .true.
-          Bond%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
-          this%BondCount(Bond%UnitId(2))=this%BondCount(Bond%UnitId(2))+1
-          this%BoPartner(Bond%UnitId(2),this%BondCount(Bond%UnitId(2)))=j
-        end if
-        if (Site1 .and. Site2) exit
-      end do
+
+    if ((.not. all(foundSite)) .and. (this%NQuadrupole > 0) ) then
+        do i = 1, this%NQuadrupole
+
+            do iSite = 1, 2
+                if (this%SiteQuadrupole(i)%SiteId == Bond%SiteId(iSite)) then
+
+                    foundSite(iSite) = .true.
+                    Bond%UnitId(iSite) = this%SiteQuadrupole(i)%UnitNumber
+                    this%BondCount(Bond%UnitId(iSite)) = this%BondCount(Bond%UnitId(iSite)) + 1
+                    this%BoPartner(Bond%UnitId(iSite), this%BondCount(Bond%UnitId(iSite))) = j
+
+                    exit ! do not check other bond site
+
+                end if
+            end do
+
+            if (all(foundSite)) exit ! do not check other quadrupole-sites
+        end do
     end if
 
 
-    if (.not. Site1 .or. .not. Site2) then
+    if (.not. all(foundSite)) then
+
       write (str, '(i10)') j
       call Error('Uncorrect sites for bond' // str)
+
     end if
 
-    if (Bond%UnitId(1)==Bond%UnitId(2)) then  !Michael Sch.: changed due to different reading scheme
+    if (Bond%UnitId(1) == Bond%UnitId(2)) then  !Michael Sch.: changed due to different reading scheme
+
       call Error('Sites of the same unit can not be bonded')
       write (str, '(i10)') j
       call Error('Uncorrect sites for bond' // str)
+
     end if
 
   end subroutine TMolecule_FindBondR
