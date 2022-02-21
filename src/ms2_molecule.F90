@@ -2468,187 +2468,116 @@ contains
     integer, intent(in) :: j
 
     ! Declare local variables
-    integer           :: i
-    integer           :: SiteId1, SiteId2, SiteId3
-    logical           :: Site1, Site2, Site3
-    real(RK)          :: r1(3),r2(3),r3(3)
-    character(10)     ::str
+    integer           :: i, iSite !    (Site1) (Site3)
+    logical           :: Site(3)  !         \  /
+    character(10)     :: str      !        (Site2)
 
-    SiteId1 = Angle%SiteId(1)
-    SiteId2 = Angle%SiteId(2)
-    SiteId3 = Angle%SiteId(3)
-
-    Site1 = .false.   !    (Site1) (Site3)
-    Site2 = .false.   !         \  /
-    Site3 = .false.   !        (Site2)
+    Site = .false.
 
     if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteMIEnm(i)%r(1)
-          r1(2)=this%SiteMIEnm(i)%r(2)
-          r1(3)=this%SiteMIEnm(i)%r(3)
-          Site1 = .true.
-          Angle%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
-          Angle%orientation1 = .false.
-          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
-          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteMIEnm(i)%r(1)
-          r2(2)=this%SiteMIEnm(i)%r(2)
-          r2(3)=this%SiteMIEnm(i)%r(3)
-          Site2 = .true.
-          Angle%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
-          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
-          r3(1)=this%SiteMIEnm(i)%r(1)
-          r3(2)=this%SiteMIEnm(i)%r(2)
-          r3(3)=this%SiteMIEnm(i)%r(3)
-          Site3=.true.
-          Angle%orientation2 = .false.
-          Angle%UnitId(3)=this%SiteMIEnm(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
-          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3) exit
-      end do
+        do i = 1, this%NMIEnm
+
+            do iSite = 1, 3
+                if (this%SiteMIEnm(i)%SiteId == Angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Angle%UnitId(iSite) = this%SiteMIEnm(i)%UnitNumber
+                    this%AngleCount(Angle%UnitId(iSite)) = this%AngleCount(Angle%UnitId(iSite)) + 1
+                    this%AnglePartner(Angle%UnitId(iSite), this%AngleCount(Angle%UnitId(iSite))) = j
+
+                    if (iSite == 1) Angle%orientation1 = .false.
+                    if (iSite == 3) Angle%orientation2 = .false.
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other mie sites
+        end do
     end if
     
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NCharge > 0) ) then
-      do i = 1, this%NCharge
-        if (this%SiteCharge(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteCharge(i)%r(1)
-          r1(2)=this%SiteCharge(i)%r(2)
-          r1(3)=this%SiteCharge(i)%r(3)
-          Site1 = .true.
-          Angle%UnitId(1)=this%SiteCharge(i)%UnitNumber
-          Angle%orientation1 = .false.
-          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
-          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteCharge(i)%r(1)
-          r2(2)=this%SiteCharge(i)%r(2)
-          r2(3)=this%SiteCharge(i)%r(3)
-          Site2 = .true.
-          Angle%UnitId(2)=this%SiteCharge(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
-          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId3) then
-          r3(1)=this%SiteCharge(i)%r(1)
-          r3(2)=this%SiteCharge(i)%r(2)
-          r3(3)=this%SiteCharge(i)%r(3)
-          Site3 = .true.
-          Angle%UnitId(3)=this%SiteCharge(i)%UnitNumber
-          Angle%orientation2 = .false.
-          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
-          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3) exit
-      end do
-    end if
-    
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NDipole > 0) ) then
-      do i = 1, this%NDipole
-        if (this%SiteDipole(i)%SiteId==SiteId1) then
-          if ( SiteId1 == SiteId2) then
-            r1(1)=this%SiteDipole(i)%or(1)
-            r1(2)=this%SiteDipole(i)%or(2)
-            r1(3)=this%SiteDipole(i)%or(3)
-            Angle%orientation1 = .true.
-          else
-            r1(1)=this%SiteDipole(i)%r(1)
-            r1(2)=this%SiteDipole(i)%r(2)
-            r1(3)=this%SiteDipole(i)%r(3)
-            Angle%orientation1 = .false.
-          end if
-          Site1 = .true.
-          Angle%UnitId(1)=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
-          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteDipole(i)%r(1)
-          r2(2)=this%SiteDipole(i)%r(2)
-          r2(3)=this%SiteDipole(i)%r(3)
-          Site2 = .true.
-          Angle%UnitId(2)=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
-          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId3) then
-          if ( SiteId3 == SiteId2) then
-            r3(1)=this%SiteDipole(i)%or(1)
-            r3(2)=this%SiteDipole(i)%or(2)
-            r3(3)=this%SiteDipole(i)%or(3)
-            Angle%orientation2 = .true.
-          else
-            r3(1)=this%SiteDipole(i)%r(1)
-            r3(2)=this%SiteDipole(i)%r(2)
-            r3(3)=this%SiteDipole(i)%r(3)
-            Angle%orientation2 = .false.
-          end if
-          Site3 = .true.
-          Angle%UnitId(3)=this%SiteDipole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
-          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3) exit
-      end do
-    end if
-    
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3) .and. (this%NQuadrupole > 0) ) then
-      do i = 1, this%NQuadrupole
-        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
-          if ( SiteId1 == SiteId2) then
-            r1(1)=this%SiteQuadrupole(i)%or(1)
-            r1(2)=this%SiteQuadrupole(i)%or(2)
-            r1(3)=this%SiteQuadrupole(i)%or(3)
-            Angle%orientation1 = .true.
-          else
-            r1(1)=this%SiteQuadrupole(i)%r(1)
-            r1(2)=this%SiteQuadrupole(i)%r(2)
-            r1(3)=this%SiteQuadrupole(i)%r(3)
-            Angle%orientation1 = .false.
-          end if
-          Site1 = .true.
-          Angle%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(1))=this%AngleCount(Angle%UnitId(1))+1
-          this%AnglePartner(Angle%UnitId(1),this%AngleCount(Angle%UnitId(1)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteQuadrupole(i)%r(1)
-          r2(2)=this%SiteQuadrupole(i)%r(2)
-          r2(3)=this%SiteQuadrupole(i)%r(3)
-          Site2 = .true.
-          Angle%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(2))=this%AngleCount(Angle%UnitId(2))+1
-          this%AnglePartner(Angle%UnitId(2),this%AngleCount(Angle%UnitId(2)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
-          if ( SiteId3 == SiteId2) then
-            r3(1)=this%SiteQuadrupole(i)%or(1)
-            r3(2)=this%SiteQuadrupole(i)%or(2)
-            r3(3)=this%SiteQuadrupole(i)%or(3)
-            Angle%orientation2 = .true.
-          else
-            r3(1)=this%SiteQuadrupole(i)%r(1)
-            r3(2)=this%SiteQuadrupole(i)%r(2)
-            r3(3)=this%SiteQuadrupole(i)%r(3)
-            Angle%orientation2 = .false.
-          end if
-          Site3 = .true.
-          Angle%UnitId(3)=this%SiteQuadrupole(i)%UnitNumber
-          this%AngleCount(Angle%UnitId(3))=this%AngleCount(Angle%UnitId(3))+1
-          this%AnglePartner(Angle%UnitId(3),this%AngleCount(Angle%UnitId(3)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3) exit
-      end do
+    if((.not. all(Site)) .and. (this%NCharge > 0) ) then
+        do i = 1, this%NCharge
+
+            do iSite = 1, 3
+                if (this%SiteCharge(i)%SiteId == Angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Angle%UnitId(iSite) = this%SiteCharge(i)%UnitNumber
+                    this%AngleCount(Angle%UnitId(iSite)) = this%AngleCount(Angle%UnitId(iSite)) + 1
+                    this%AnglePartner(Angle%UnitId(iSite), this%AngleCount(Angle%UnitId(iSite))) = j
+
+                    if (iSite == 1) Angle%orientation1 = .false.
+                    if (iSite == 3) Angle%orientation2 = .false.
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other charge sites
+        end do
     end if
 
-    if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
+    if((.not. all(Site)) .and. (this%NDipole > 0) ) then
+        do i = 1, this%NDipole
+
+            do iSite = 1, 3
+                if (this%SiteDipole(i)%SiteId == Angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Angle%UnitId(iSite) = this%SiteDipole(i)%UnitNumber
+                    this%AngleCount(Angle%UnitId(iSite)) = this%AngleCount(Angle%UnitId(iSite)) + 1
+                    this%AnglePartner(Angle%UnitId(iSite), this%AngleCount(Angle%UnitId(iSite))) = j
+
+                    if (iSite == 1) then
+                        Angle%orientation1 = (Angle%SiteId(iSite) == Angle%SiteId(2))
+                    else if (iSite == 3) then
+                        Angle%orientation2 = (Angle%SiteId(iSite) == Angle%SiteId(2))
+                    end if
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other dipole sites
+        end do
+    end if
+
+    if((.not. all(Site)) .and. (this%NQuadrupole > 0) ) then
+        do i = 1, this%NQuadrupole
+
+            do iSite = 1, 3
+                if (this%SiteQuadrupole(i)%SiteId == Angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Angle%UnitId(iSite) = this%SiteQuadrupole(i)%UnitNumber
+                    this%AngleCount(Angle%UnitId(iSite)) = this%AngleCount(Angle%UnitId(iSite)) + 1
+                    this%AnglePartner(Angle%UnitId(iSite), this%AngleCount(Angle%UnitId(iSite))) = j
+
+                    if (iSite == 1) then
+                        Angle%orientation1 = (Angle%SiteId(iSite) == Angle%SiteId(2))
+                    else if (iSite == 3) then
+                        Angle%orientation2 = (Angle%SiteId(iSite) == Angle%SiteId(2))
+                    end if
+
+                    exit ! do not check other angle sites
+
+                end if
+
+            end do
+            if (all(Site)) exit ! do not check other quadrupole sites
+        end do
+    end if
+
+    if (.not. all(Site)) then
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
     end if
 
-
-    if (Angle%UnitId(1)==Angle%UnitId(2) .and. Angle%UnitId(2)==Angle%UnitId(3)) then  !Michael Sch.: changed due to different reading scheme
+    if (all(Angle%UnitId .eq. Angle%UnitId(1))) then  !Michael Sch.: changed due to different reading scheme
       call Error('At leas one site of a given angle potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
