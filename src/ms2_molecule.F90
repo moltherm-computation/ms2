@@ -2453,6 +2453,136 @@ contains
   end subroutine TMolecule_FindBondR
 
 
+  subroutine setBondPointers(this, bond)
+
+    implicit none
+
+    type(TMolecule)     :: this
+    type(TIdfBond)      :: bond
+
+    logical :: Site(2)
+    integer :: j, iSite
+
+    Site = .false.
+
+    if (this%NMIEnm > 0) then
+        do j = 1, this%NMIEnm
+
+            do iSite = 1, 2
+                if (this%SiteMIEnm(j)%SiteId == bond%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    bond%R(iSite)%X => this%SiteMIEnm(j)%RX(:)
+                    bond%R(iSite)%Y => this%SiteMIEnm(j)%RY(:)
+                    bond%R(iSite)%Z => this%SiteMIEnm(j)%RZ(:)
+
+                    bond%F(iSite)%X => this%SiteMIEnm(j)%FX(:)
+                    bond%F(iSite)%Y => this%SiteMIEnm(j)%FY(:)
+                    bond%F(iSite)%Z => this%SiteMIEnm(j)%FZ(:)
+
+                    bond%P(iSite)%X => this%SiteMIEnm(j)%PX(:)
+                    bond%P(iSite)%Y => this%SiteMIEnm(j)%PY(:)
+                    bond%P(iSite)%Z => this%SiteMIEnm(j)%PZ(:)
+
+                    exit ! do not check other bond sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other mie sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NCharge > 0)) then
+        do j = 1, this%NCharge
+
+            do iSite = 1, 2
+                if (this%SiteCharge(j)%SiteId == bond%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    bond%R(iSite)%X => this%SiteCharge(j)%RX(:)
+                    bond%R(iSite)%Y => this%SiteCharge(j)%RY(:)
+                    bond%R(iSite)%Z => this%SiteCharge(j)%RZ(:)
+
+                    bond%F(iSite)%X => this%SiteCharge(j)%FX(:)
+                    bond%F(iSite)%Y => this%SiteCharge(j)%FY(:)
+                    bond%F(iSite)%Z => this%SiteCharge(j)%FZ(:)
+
+                    bond%P(iSite)%X => this%SiteCharge(j)%PX(:)
+                    bond%P(iSite)%Y => this%SiteCharge(j)%PY(:)
+                    bond%P(iSite)%Z => this%SiteCharge(j)%PZ(:)
+
+                    exit ! do not check other bond sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other charge sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NDipole > 0)) then
+        do j = 1, this%NDipole
+
+            do iSite = 1, 2
+                if (this%SiteDipole(j)%SiteId == bond%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    bond%R(iSite)%X => this%SiteDipole(j)%RX(:)
+                    bond%R(iSite)%Y => this%SiteDipole(j)%RY(:)
+                    bond%R(iSite)%Z => this%SiteDipole(j)%RZ(:)
+
+                    bond%F(iSite)%X => this%SiteDipole(j)%FX(:)
+                    bond%F(iSite)%Y => this%SiteDipole(j)%FY(:)
+                    bond%F(iSite)%Z => this%SiteDipole(j)%FZ(:)
+
+                    bond%P(iSite)%X => this%SiteDipole(j)%PX(:)
+                    bond%P(iSite)%Y => this%SiteDipole(j)%PY(:)
+                    bond%P(iSite)%Z => this%SiteDipole(j)%PZ(:)
+
+                    exit ! do not check other bond sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other dipole sites
+        end do
+    end if
+
+    if((.not. all(Site)) .and. (this%NQuadrupole > 0)) then
+        do j = 1, this%NQuadrupole
+
+            do iSite = 1, 2
+                if (this%SiteQuadrupole(j)%SiteId == bond%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    bond%R(iSite)%X => this%SiteQuadrupole(j)%RX(:)
+                    bond%R(iSite)%Y => this%SiteQuadrupole(j)%RY(:)
+                    bond%R(iSite)%Z => this%SiteQuadrupole(j)%RZ(:)
+
+                    bond%F(iSite)%X => this%SiteQuadrupole(j)%FX(:)
+                    bond%F(iSite)%Y => this%SiteQuadrupole(j)%FY(:)
+                    bond%F(iSite)%Z => this%SiteQuadrupole(j)%FZ(:)
+
+                    bond%P(iSite)%X => this%SiteQuadrupole(j)%PX(:)
+                    bond%P(iSite)%Y => this%SiteQuadrupole(j)%PY(:)
+                    bond%P(iSite)%Z => this%SiteQuadrupole(j)%PZ(:)
+
+                    exit ! do not check other bond sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other quadrupole sites
+        end do
+    end if
+
+  end subroutine setBondPointers
+
 
 !==============================================================!
 !  Subroutine TMolecule_FindAngle                              !
@@ -2595,6 +2725,141 @@ contains
     end if
 
   end subroutine TMolecule_FindAngle
+
+
+  subroutine setAnglePointers(this, angle)
+
+    implicit none
+
+    type(TMolecule)     :: this
+    type(TIdfAngle)     :: angle
+
+    logical             :: Site(3)
+    integer             :: j, iSite
+
+    Site = .false.
+
+    if (this%NMIEnm > 0) then
+        do j = 1, this%NMIEnm
+
+            do iSite = 1, 3
+                if (this%SiteMIEnm(j)%SiteId == angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    angle%R(iSite)%X => this%SiteMIEnm(j)%RX(:)
+                    angle%R(iSite)%Y => this%SiteMIEnm(j)%RY(:)
+                    angle%R(iSite)%Z => this%SiteMIEnm(j)%RZ(:)
+
+                    angle%F(iSite)%X => this%SiteMIEnm(j)%FX(:)
+                    angle%F(iSite)%Y => this%SiteMIEnm(j)%FY(:)
+                    angle%F(iSite)%Z => this%SiteMIEnm(j)%FZ(:)
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other mie sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NCharge > 0)) then
+        do j = 1, this%NCharge
+
+            do iSite = 1, 3
+                if (this%SiteCharge(j)%SiteId == angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    angle%R(iSite)%X => this%SiteCharge(j)%RX(:)
+                    angle%R(iSite)%Y => this%SiteCharge(j)%RY(:)
+                    angle%R(iSite)%Z => this%SiteCharge(j)%RZ(:)
+
+                    angle%F(iSite)%X => this%SiteCharge(j)%FX(:)
+                    angle%F(iSite)%Y => this%SiteCharge(j)%FY(:)
+                    angle%F(iSite)%Z => this%SiteCharge(j)%FZ(:)
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+        if (all(Site)) exit ! do not check other charge sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NDipole > 0)) then
+        do j = 1, this%NDipole
+
+            do iSite = 1, 3
+                if (this%SiteDipole(j)%SiteId == angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    if ((iSite == 1 .or. iSite == 3) .and. (angle%SiteId(iSite) == angle%SiteId(2))) then
+
+                        angle%R(iSite)%X => this%SiteDipole(j)%OX(:)
+                        angle%R(iSite)%Y => this%SiteDipole(j)%OY(:)
+                        angle%R(iSite)%Z => this%SiteDipole(j)%OZ(:)
+
+                    else
+
+                        angle%R(iSite)%X => this%SiteDipole(j)%RX(:)
+                        angle%R(iSite)%Y => this%SiteDipole(j)%RY(:)
+                        angle%R(iSite)%Z => this%SiteDipole(j)%RZ(:)
+
+                    end if
+
+                    angle%F(iSite)%X => this%SiteDipole(j)%FX(:)
+                    angle%F(iSite)%Y => this%SiteDipole(j)%FY(:)
+                    angle%F(iSite)%Z => this%SiteDipole(j)%FZ(:)
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other dipole sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NQuadrupole > 0)) then
+        do j = 1, this%NQuadrupole
+
+            do iSite = 1, 3
+                if (this%SiteQuadrupole(j)%SiteId == angle%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    if ((iSite == 1 .or. iSite == 3) .and. (angle%SiteId(iSite) == angle%SiteId(2))) then
+
+                        angle%R(iSite)%X => this%SiteQuadrupole(j)%OX(:)
+                        angle%R(iSite)%Y => this%SiteQuadrupole(j)%OY(:)
+                        angle%R(iSite)%Z => this%SiteQuadrupole(j)%OZ(:)
+
+                    else
+
+                        angle%R(iSite)%X => this%SiteQuadrupole(j)%RX(:)
+                        angle%R(iSite)%Y => this%SiteQuadrupole(j)%RY(:)
+                        angle%R(iSite)%Z => this%SiteQuadrupole(j)%RZ(:)
+
+                    end if
+
+                    angle%F(iSite)%X => this%SiteQuadrupole(j)%FX(:)
+                    angle%F(iSite)%Y => this%SiteQuadrupole(j)%FY(:)
+                    angle%F(iSite)%Z => this%SiteQuadrupole(j)%FZ(:)
+
+                    exit ! do not check other angle sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other quadrupole sites
+        end do
+    end if
+
+  end subroutine setAnglePointers
 
 
 !==============================================================!
@@ -2767,7 +3032,145 @@ contains
 
   end subroutine TMolecule_FindDihedral
 
-  
+
+  subroutine setDihedralPointers(this, dihedral)
+
+    implicit none
+
+    type(TMolecule)    :: this
+    type(TIdfDihedral) :: dihedral
+
+    logical            :: Site(4)
+    integer            :: j, iSite
+
+    Site = .false.
+
+    if (this%NMIEnm > 0) then
+        do j = 1, this%NMIEnm
+
+            do iSite = 1, 4
+
+                if (this%SiteMIEnm(j)%SiteId == dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    dihedral%R(iSite)%X => this%SiteMIEnm(j)%RX(:)
+                    dihedral%R(iSite)%Y => this%SiteMIEnm(j)%RY(:)
+                    dihedral%R(iSite)%Z => this%SiteMIEnm(j)%RZ(:)
+
+                    dihedral%F(iSite)%X => this%SiteMIEnm(j)%FX(:)
+                    dihedral%F(iSite)%Y => this%SiteMIEnm(j)%FY(:)
+                    dihedral%F(iSite)%Z => this%SiteMIEnm(j)%FZ(:)
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other mie sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NCharge > 0)) then
+        do j = 1, this%NCharge
+
+            do iSite = 1, 4
+                if (this%SiteCharge(j)%SiteId == dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    dihedral%R(iSite)%X => this%SiteCharge(j)%RX(:)
+                    dihedral%R(iSite)%Y => this%SiteCharge(j)%RY(:)
+                    dihedral%R(iSite)%Z => this%SiteCharge(j)%RZ(:)
+
+                    dihedral%F(iSite)%X => this%SiteCharge(j)%FX(:)
+                    dihedral%F(iSite)%Y => this%SiteCharge(j)%FY(:)
+                    dihedral%F(iSite)%Z => this%SiteCharge(j)%FZ(:)
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other charge sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NDipole > 0)) then
+        do j = 1, this%NDipole
+
+            do iSite = 1, 4
+                if (this%SiteDipole(j)%SiteId == dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    if ((iSite == 1 .and. (dihedral%SiteId(iSite) == dihedral%SiteId(2))) .or. &
+                        (iSite == 4 .and. (dihedral%SiteId(iSite) == dihedral%SiteId(3)))) then
+
+                        dihedral%R(iSite)%X => this%SiteDipole(j)%OX(:)
+                        dihedral%R(iSite)%Y => this%SiteDipole(j)%OY(:)
+                        dihedral%R(iSite)%Z => this%SiteDipole(j)%OZ(:)
+
+                    else
+
+                        dihedral%R(iSite)%X => this%SiteDipole(j)%RX(:)
+                        dihedral%R(iSite)%Y => this%SiteDipole(j)%RY(:)
+                        dihedral%R(iSite)%Z => this%SiteDipole(j)%RZ(:)
+
+                    end if
+
+                    dihedral%F(iSite)%X => this%SiteDipole(j)%FX(:)
+                    dihedral%F(iSite)%Y => this%SiteDipole(j)%FY(:)
+                    dihedral%F(iSite)%Z => this%SiteDipole(j)%FZ(:)
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other dipole sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NQuadrupole > 0)) then
+        do j = 1, this%NQuadrupole
+
+            do iSite = 1, 4
+                if (this%SiteQuadrupole(j)%SiteId == dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+
+                    if ((iSite == 1 .and. (dihedral%SiteId(iSite) == dihedral%SiteId(2))) .or. &
+                        (iSite == 4 .and. (dihedral%SiteId(iSite) == dihedral%SiteId(3)))) then
+
+                        dihedral%R(iSite)%X => this%SiteQuadrupole(j)%OX(:)
+                        dihedral%R(iSite)%Y => this%SiteQuadrupole(j)%OY(:)
+                        dihedral%R(iSite)%Z => this%SiteQuadrupole(j)%OZ(:)
+
+                    else
+
+                        dihedral%R(iSite)%X => this%SiteQuadrupole(j)%RX(:)
+                        dihedral%R(iSite)%Y => this%SiteQuadrupole(j)%RY(:)
+                        dihedral%R(iSite)%Z => this%SiteQuadrupole(j)%RZ(:)
+
+                    end if
+
+                    dihedral%F(iSite)%X => this%SiteQuadrupole(j)%FX(:)
+                    dihedral%F(iSite)%Y => this%SiteQuadrupole(j)%FY(:)
+                    dihedral%F(iSite)%Z => this%SiteQuadrupole(j)%FZ(:)
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other quadrupole sites
+        end do
+    end if
+
+  end subroutine setDihedralPointers
+
+
 !==============================================================!
 !  Subroutine TMolecule_SaveIDF                                !
 !==============================================================!
