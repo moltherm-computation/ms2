@@ -2601,174 +2601,131 @@ contains
 !  Subroutine TMolecule_FindDihedral                           !
 !==============================================================!
 
-  subroutine TMolecule_FindDihedral( this, Dihedral, j )
+  subroutine TMolecule_FindDihedral(this, Dihedral, j)
 
     implicit none
 
-    ! Declare arguments
-    type(TMolecule)     :: this
-    type(TIdfDihedral)  :: Dihedral
-    integer, intent(in) :: j
+    ! Declare arguments              (Site1)     (Site4)
+    type(TMolecule)     :: this    !     \        /
+    type(TIdfDihedral)  :: Dihedral!      \______/
+    integer, intent(in) :: j       !   (Site2) (Site3)
 
     ! Declare local variables
 
-    integer           :: i
-    integer           :: SiteId1, SiteId2, SiteId3, SiteId4
-    logical           :: Site1, Site2, Site3, Site4
-    character(10)     ::str
+    integer           :: i, iSite
+    logical           :: Site(4)
+    character(10)     :: str
 
-    SiteId1 = Dihedral%SiteId(1)
-    SiteId2 = Dihedral%SiteId(2)
-    SiteId3 = Dihedral%SiteId(3)
-    SiteId4 = Dihedral%SiteId(4)
-
-
-    Site1 = .false.   !    (Site1)     (Site4)
-    Site2 = .false.   !         \        /
-    Site3 = .false.   !          \______/
-    Site4 = .false.   !       (Site2) (Site3)
+    Site = .false.
 
     if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
-          Site1 = .true.
-          Dihedral%UnitId(1)=this%SiteMIEnm(i)%UnitNumber
-          Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
-          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
-          Site2 = .true.
-          Dihedral%UnitId(2)=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
-          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
-          Dihedral%orientation1 = .false.
-        else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
-          Site3=.true.
-          Dihedral%UnitId(3)=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
-          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
-          Dihedral%orientation2 = .false.
-        else if (this%SiteMIEnm(i)%SiteId==SiteId4) then
-          Site4=.true.
-          Dihedral%UnitId(4)=this%SiteMIEnm(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
-          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
-          Dihedral%orientation2 = .false.
-        end if
-        if (Site1 .and. Site2 .and. Site3 .and. Site4)exit
-      end do
-    end if
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
-&              .and. (this%NCharge > 0) ) then
-      do i = 1, this%NCharge
-        if (this%SiteCharge(i)%SiteId==SiteId1) then
-          Site1 = .true.
-          Dihedral%UnitId(1)=this%SiteCharge(i)%UnitNumber
-          Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
-          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId2) then
-          Site2 = .true.
-          Dihedral%UnitId(2)=this%SiteCharge(i)%UnitNumber
-          Dihedral%orientation1 = .false.
-          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
-          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId3) then
-          Site3 = .true.
-          Dihedral%UnitId(3)=this%SiteCharge(i)%UnitNumber
-          Dihedral%orientation2 = .false.
-          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
-          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
-        else if (this%SiteCharge(i)%SiteId==SiteId4) then
-          Site4 = .true.
-          Dihedral%UnitId(4)=this%SiteCharge(i)%UnitNumber
-          Dihedral%orientation2 = .false.
-          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
-          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
-      end do
-    end if
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
-&              .and. (this%NDipole > 0) ) then
-      do i = 1, this%NDipole
-        if (this%SiteDipole(i)%SiteId==SiteId1) then
-          if ( SiteId1 == SiteId2 ) then
-            Dihedral%orientation1 = .true.
-          else
-            Dihedral%orientation1 = .false.
-          end if
-          Site1 = .true.
-          Dihedral%UnitId(1)=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
-          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId2) then
-          Site2 = .true.
-          Dihedral%UnitId(2)=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
-          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId3) then
-          Site3 = .true.
-          Dihedral%UnitId(3)=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
-          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
-        else if (this%SiteDipole(i)%SiteId==SiteId4) then
-          if ( SiteId4 == SiteId3 ) then
-            Dihedral%orientation2 = .true.
-          else
-            Dihedral%orientation2 = .false.
-          end if
-          Site4 = .true.
-          Dihedral%UnitId(4)=this%SiteDipole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
-          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
-      end do
-    end if
-    if((.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) &
-&              .and. (this%NQuadrupole > 0) ) then
-      do i = 1, this%NQuadrupole
-        if (this%SiteQuadrupole(i)%SiteId==SiteId1) then
-          if ( SiteId1 == SiteId2 ) then
-            Dihedral%orientation1 = .true.
-          else
-            Dihedral%orientation1 = .false.
-          end if
-          Site1 = .true.
-          Dihedral%UnitId(1)=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(1))=this%DihedralCount(Dihedral%UnitId(1))+1
-          this%DihedralPartner(Dihedral%UnitId(1),this%DihedralCount(Dihedral%UnitId(1)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId2) then
-          Site2 = .true.
-          Dihedral%UnitId(2)=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(2))=this%DihedralCount(Dihedral%UnitId(2))+1
-          this%DihedralPartner(Dihedral%UnitId(2),this%DihedralCount(Dihedral%UnitId(2)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId3) then
-          Site3 = .true.
-          Dihedral%UnitId(3)=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(3))=this%DihedralCount(Dihedral%UnitId(3))+1
-          this%DihedralPartner(Dihedral%UnitId(3),this%DihedralCount(Dihedral%UnitId(3)))=j
-        else if (this%SiteQuadrupole(i)%SiteId==SiteId4) then
-          if ( SiteId4 == SiteId3 ) then
-            Dihedral%orientation2 = .true.
-          else
-            Dihedral%orientation2 = .false.
-          end if
-          Site4 = .true.
-          Dihedral%UnitId(4)=this%SiteQuadrupole(i)%UnitNumber
-          this%DihedralCount(Dihedral%UnitId(4))=this%DihedralCount(Dihedral%UnitId(4))+1
-          this%DihedralPartner(Dihedral%UnitId(4),this%DihedralCount(Dihedral%UnitId(4)))=j
-        end if
-        if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
-      end do
+        do i = 1, this%NMIEnm
+
+            do iSite = 1, 4
+                if (this%SiteMIEnm(i)%SiteId == Dihedral%SiteId(iSite)) then
+
+                    Site(iSite)=.true.
+                    Dihedral%UnitId(iSite) = this%SiteMIEnm(i)%UnitNumber
+                    this%DihedralCount(Dihedral%UnitId(iSite)) = this%DihedralCount(Dihedral%UnitId(iSite)) + 1
+                    this%DihedralPartner(Dihedral%UnitId(iSite), this%DihedralCount(Dihedral%UnitId(iSite))) = j
+
+                    if (iSite == 1 .or. iSite == 2) then
+                        Dihedral%orientation1 = .false.
+                    else if (iSite == 3 .or. iSite == 4) then
+                        Dihedral%orientation2 = .false.
+                    end if
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other mie sites
+        end do
     end if
 
-    if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
+    if ((.not. all(Site)) .and. (this%NCharge > 0)) then
+        do i = 1, this%NCharge
+
+            do iSite = 1, 4
+                if (this%SiteCharge(i)%SiteId == Dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Dihedral%UnitId(iSite) = this%SiteCharge(i)%UnitNumber
+                    this%DihedralCount(Dihedral%UnitId(iSite)) = this%DihedralCount(Dihedral%UnitId(iSite)) + 1
+                    this%DihedralPartner(Dihedral%UnitId(iSite), this%DihedralCount(Dihedral%UnitId(iSite))) = j
+
+                    if (iSite == 1 .or. iSite == 2) then
+                        Dihedral%orientation1 = .false.
+                    else if (iSite == 3 .or. iSite == 4) then
+                        Dihedral%orientation2 = .false.
+                    end if
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other charge sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NDipole > 0)) then
+        do i = 1, this%NDipole
+
+            do iSite = 1, 4
+                if (this%SiteDipole(i)%SiteId == Dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Dihedral%UnitId(iSite) = this%SiteDipole(i)%UnitNumber
+                    this%DihedralCount(Dihedral%UnitId(iSite)) = this%DihedralCount(Dihedral%UnitId(iSite)) + 1
+                    this%DihedralPartner(Dihedral%UnitId(iSite), this%DihedralCount(Dihedral%UnitId(iSite))) = j
+
+                    if (iSite == 1) then
+                        Dihedral%orientation1 = (Dihedral%SiteId(iSite) == Dihedral%SiteId(2))
+                    else if (iSite == 4) then
+                        Dihedral%orientation2 = (Dihedral%SiteId(iSite) == Dihedral%SiteId(3))
+                    end if
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other dipole sites
+        end do
+    end if
+
+    if ((.not. all(Site)) .and. (this%NQuadrupole > 0)) then
+        do i = 1, this%NQuadrupole
+
+            do iSite = 1, 4
+                if (this%SiteQuadrupole(i)%SiteId == Dihedral%SiteId(iSite)) then
+
+                    Site(iSite) = .true.
+                    Dihedral%UnitId(iSite) = this%SiteQuadrupole(i)%UnitNumber
+                    this%DihedralCount(Dihedral%UnitId(iSite)) = this%DihedralCount(Dihedral%UnitId(iSite)) + 1
+                    this%DihedralPartner(Dihedral%UnitId(iSite), this%DihedralCount(Dihedral%UnitId(iSite))) = j
+
+                    if (iSite == 1) then
+                        Dihedral%orientation1 = (Dihedral%SiteId(iSite) == Dihedral%SiteId(2))
+                    else if (iSite == 4) then
+                        Dihedral%orientation2 = (Dihedral%SiteId(iSite) == Dihedral%SiteId(3))
+                    end if
+
+                    exit ! do not check other dihedral sites
+
+                end if
+            end do
+
+            if (all(Site)) exit ! do not check other quadrupole sites
+        end do
+    end if
+
+    if (.not. all(Site)) then
       write (str, '(i10)') j
       call Error('Uncorrect sites for dihedral angle' // str)
     end if
-
 
     if (Dihedral%UnitId(1)==Dihedral%UnitId(2) .and. Dihedral%UnitId(2)==Dihedral%UnitId(3) &
 &             .and. Dihedral%UnitId(3)==Dihedral%UnitId(4) ) then  !Michael Sch.: changed due to different reading scheme
