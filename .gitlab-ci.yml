@@ -11,6 +11,16 @@ variables: # "declaration" neccessary for use in job definitions
   OMP: $OMP
   COMPILER: $COMPILER
 
+default:
+  before_script:
+    - cd src
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi/2021.1.1 compiler/2021.1.1 ;fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then ifort --version; mpiifort --version; else gfortran --version; mpif90 --version ;fi
+    - if [ $MPI == 'MPI=1' ]; then mpirun --version; fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i; fi
+  after_script:
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module unload mpi/2021.1.1 compiler/2021.1.1 ;fi
+
 stages:
   - build
   - flags
@@ -25,6 +35,7 @@ stages:
 
 Check Version:
   stage: version
+  before_script: [] # do not run default before_script
   script:
     - chmod +x test/checkVersionUpdate.sh
     - ./test/checkVersionUpdate.sh
@@ -39,8 +50,6 @@ GNU:
   extends: .standardJob
   stage: build
   script:
-    - cd src
-    - gfortran --version
     - make all -j 3 COMPILER=GNU $MPI $OMP
   parallel:
     matrix: # run job for each parameter combination
@@ -49,11 +58,10 @@ GNU:
 
 INTEL:
   extends: .standardJob
+  variables:
+    COMPILER: COMPILER=INTEL
   stage: build
   script:
-    - cd src
-    - mpiifort --version
-    - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i # replace MPI directive
     - make all -j 3 COMPILER=INTEL $MPI $OMP
   parallel:
     matrix:
@@ -65,10 +73,6 @@ TRANS:
   extends: .standardJob
   stage: flags
   script:
-    - cd src
-    - gfortran --version
-    - mpiifort --version
-    - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i
     - make all -j 3 $COMPILER $MPI $OMP TRANS=1
   parallel:
     matrix:
@@ -81,10 +85,6 @@ HBOND:
   extends: .standardJob
   stage: flags
   script:
-    - cd src
-    - gfortran --version
-    - mpiifort --version
-    - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i
     - make all -j 3 $COMPILER $MPI HBOND=1
   parallel:
     matrix:
@@ -96,10 +96,6 @@ OSMOP:
   extends: .standardJob
   stage: flags
   script:
-    - cd src
-    - gfortran --version
-    - mpiifort --version
-    - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i
     - make all -j 3 $COMPILER $MPI $OSMOP
   parallel:
     matrix:
@@ -112,10 +108,6 @@ SPME:
   extends: .standardJob
   stage: flags
   script:
-    - cd src
-    - gfortran --version
-    - mpiifort --version
-    - sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i
     - make all -j 3 $COMPILER $MPI SPME=1
   parallel:
     matrix:
@@ -127,19 +119,16 @@ GNU DEBUG:
   extends: .standardJob
   stage: build
   script:
-    - cd src
-    - gfortran --version
     - make all COMPILER=GNU TARGET=DEBUG
 
 GNU MPI SP:
   extends: .standardJob
   stage: build
   script:
-    - cd src
-    - gfortran --version
     - make all -j 3 COMPILER=GNU MPI=1 SP=1
 
 test:
   extends: .standardJob
+  before_script: [] # do not run default before_script
   script:
     - echo Test..
