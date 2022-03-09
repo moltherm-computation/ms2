@@ -3261,10 +3261,19 @@ contains
       pc => this%Component(i)
       s = s + pc%Fraction
     end do
+    
+    if ( s /= 1_RK) then
+      write(IOBuffer, '("Warning: Mole fraction sum of the considered fluid is not unity")')
+      call LogWrite
+    endif
 
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       pc%Fraction = pc%Fraction / s
+      if ( s /= 1_RK) then    
+        write( IOBuffer, '("Mole fraction of ", A, " was set to:",T45, F6.3)' ) trim( pc%PotModFileName ), pc%Fraction
+        call LogWrite
+      endif
     end do
 
     ! Calculate number of particles in each component
@@ -3294,6 +3303,9 @@ contains
 
     ! Set mole fractions according to real number of particles
     ! and calculate number of degrees of freedom
+    write( IOBuffer, '("The mole fraction(s) may be slightly changed due to the number of particle(s).")' )
+    call LogWrite
+
     this%NDFTran = 0
     this%NDFRot = 0
     do i = 1, this%NComponents
