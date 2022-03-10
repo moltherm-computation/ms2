@@ -340,14 +340,6 @@ module ms2_component
     module procedure TComponent_InitIntegratorLeap
   end interface
 
-  interface InitIntegratorVerlet
-    module procedure TComponent_InitIntegratorVerlet
-  end interface
-
-  interface InitIntegratorVV
-    module procedure TComponent_InitIntegratorVV
-  end interface
-
   interface RemoveNetMomentum
     module procedure TComponent_RemoveNetMomentum
   end interface
@@ -2074,40 +2066,6 @@ contains
     end if
 
   end subroutine TComponent_InitIntegratorLeap
-
-
-!==============================================================!
-!  Subroutine TComponent_InitIntegratorVerlet                  !
-!==============================================================!
-
-  subroutine TComponent_InitIntegratorVerlet( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Issue error
-    call Error( 'Subroutine TComponent_InitIntegratorVerlet is not implemented' )
-
-  end subroutine TComponent_InitIntegratorVerlet
-
-
-!==============================================================!
-!  Subroutine TComponent_InitIntegratorVV                      !
-!==============================================================!
-
-  subroutine TComponent_InitIntegratorVV( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Issue error
-    call Error( 'Subroutine TComponent_InitIntegratorVV is not implemented' )
-
-  end subroutine TComponent_InitIntegratorVV
 
 
 !==============================================================!

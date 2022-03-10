@@ -629,14 +629,6 @@ module ms2_ensemble
     module procedure TEnsemble_InitIntegratorLeap
   end interface
 
-  interface InitIntegratorVerlet
-    module procedure TEnsemble_InitIntegratorVerlet
-  end interface
-
-  interface InitIntegratorVV
-    module procedure TEnsemble_InitIntegratorVV
-  end interface
-
   interface RemoveNetMomentum
     module procedure TEnsemble_RemoveNetMomentum
   end interface
@@ -4896,10 +4888,6 @@ xloop:do i = 1, NCells1dim(1)
       call InitIntegratorGear( this )
     case( IntegratorTypeLeapFrog )
       call InitIntegratorLeapFrog( this )
-    case( IntegratorTypeVerlet )
-      call InitIntegratorVerlet( this )
-    case( IntegratorTypeVV )
-      call InitIntegratorVV( this )
     end select
 
   end subroutine TEnsemble_InitIntegrator
@@ -4958,50 +4946,6 @@ xloop:do i = 1, NCells1dim(1)
     this%Volume2 = 0._RK
 
   end subroutine TEnsemble_InitIntegratorLeap
-
-
-!==============================================================!
-!  Subroutine TEnsemble_InitIntegratorVerlet                   !
-!==============================================================!
-
-  subroutine TEnsemble_InitIntegratorVerlet( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Call InitIntegrator for each component
-    do i = 1, this%NComponents
-      call InitIntegratorVerlet( this%Component(i) )
-    end do
-
-  end subroutine TEnsemble_InitIntegratorVerlet
-
-
-!==============================================================!
-!  Subroutine TEnsemble_InitIntegratorVV                       !
-!==============================================================!
-
-  subroutine TEnsemble_InitIntegratorVV( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Call InitIntegrator for each component
-    do i = 1, this%NComponents
-      call InitIntegratorVV( this%Component(i) )
-    end do
-
-  end subroutine TEnsemble_InitIntegratorVV
 
 
 !==============================================================!
@@ -5723,10 +5667,6 @@ loop3:    do nc = 1, this%NComponents
       call PredictGear( this )
     case( IntegratorTypeLeapFrog )
       call PredictLeapFrog( this )
-    case( IntegratorTypeVerlet )
-      call PredictVerlet( this )
-    case( IntegratorTypeVV )
-      call PredictVV( this )
     end select
 
   end subroutine TEnsemble_Predict
@@ -5749,10 +5689,6 @@ loop3:    do nc = 1, this%NComponents
       call CorrectGear( this )
     case( IntegratorTypeLeapFrog )
       call CorrectLeapFrog( this )
-    case( IntegratorTypeVerlet )
-      call CorrectVerlet( this )
-    case( IntegratorTypeVV )
-      call CorrectVV( this )
     end select
 
   end subroutine TEnsemble_Correct
