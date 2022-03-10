@@ -8224,7 +8224,6 @@ loop2:        do nc = 1, this%NComponents
     integer                   :: ncfnew, npfnew
     real(RK)                  :: EPotOld, EPotNew
     real(RK)                  :: EPotDeltaAll
-    real(RK)                  :: EFourier, EVirial
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -8272,9 +8271,7 @@ loop2:        do nc = 1, this%NComponents
 ! Save states for the Ewald Summation and/or derivates
     if (LongRange .eq. Ewald) then     ! Ewald Summation
        ! Save the initial state
-       EFourier = this%UFourier
        EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
-       EVirial  = this%EVirial
 !  Sufficient, since no call to Mol2Atom1 yet
 
        DO i=1,pcf%Molecule%NCharge
@@ -8339,8 +8336,6 @@ loop2:        do nc = 1, this%NComponents
 #if SPME > 0
 ! ----------------------------------------------------------------
     else if (LongRange .eq. PME) then ! SPME
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
       call PMESetup(this)
       write (*,*) 'Gradual Insertion does not yet work with SPME'
       STOP
@@ -8635,7 +8630,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: s
-    real(RK)                  :: UIntra, USelbst, EFourier, EVirial
+    real(RK)                  :: UIntra, USelbst, EFourier
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll
 #endif
@@ -8673,7 +8668,6 @@ loop2:        do nc = 1, this%NComponents
       UIntra   = this%UIntra
       USelbst  = this%USelbstTerm
       EFourier = this%UFourier
-      EVirial  = this%EVirial
 
       ! Energy
       call EwaldSelfTerm_Energy(this)
@@ -8731,7 +8725,6 @@ loop2:        do nc = 1, this%NComponents
 
 #if SPME > 0
     else if (LongRange .eq. PME) then           ! SPME-SUMMATION
-      EVirial  = this%EVirial
       this%qgrida_old = this%qgrida
       call chargegrid_plus (this, nc, np)
       call PMESelfTermMC( this )
@@ -8819,7 +8812,6 @@ loop2:        do nc = 1, this%NComponents
 
 ! Ewald Parameter
     real(RK)                    :: EFourier
-    real(RK)                    :: EVirial, EVirialIntra
     real(RK)                    :: USelf, UIntra
 
     ! Assign local variables
@@ -8831,7 +8823,6 @@ loop2:        do nc = 1, this%NComponents
 
     if (LongRange .eq. Ewald) then
       EFourier = this%UFourier
-      EVirial  = this%EVirial
 
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
@@ -8885,8 +8876,6 @@ loop2:        do nc = 1, this%NComponents
 #if SPME > 0
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
-      EVirial  = this%EVirial
-      EVirialIntra = this%EVirialIntra
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
       this%qgrida_old = this%qgrida
