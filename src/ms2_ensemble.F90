@@ -12625,54 +12625,25 @@ loop2:        do nc = 1, this%NComponents
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
               endif
 
-              ! Pressure
-              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Density
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Temperature
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Potential energy
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Enthalpy
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
               ! Dielectric Constant
               if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! Dielectric Constant
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Dielectric Constant
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-                  call FileWriteNoAdvance_parallel( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-                  call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+                  call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
               endif
 
       if (printIDF) then
@@ -12800,54 +12771,25 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-            ! Pressure
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Density
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Temperature
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Potential energy
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-            ! Enthalpy
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+            call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
             ! Dielectric Constant
             if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+                call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
             endif
 
       if (printIDF) then
@@ -12946,11 +12888,10 @@ loop2:        do nc = 1, this%NComponents
 
               ! Mole fraction of each component
               do i = 1, this%NComponents
+
                 pc => this%Component(i)
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
               end do
             end if
 
@@ -12997,54 +12938,25 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance_parallel( this%iounit_runave )
           endif
 
-          ! Pressure
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Density
-          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Temperature
-          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Potential energy
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-          ! Enthalpy
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
+          call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
           ! Dielectric Constant
           if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.true.)
 
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
+              call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
           endif
 
       if (printIDF) then
@@ -13124,10 +13036,9 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                   case( ChemPotMethodThermoInt )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                    call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
                   end select
 
                 else
@@ -13153,10 +13064,9 @@ loop2:        do nc = 1, this%NComponents
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
 
                   case( ChemPotMethodThermoInt )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                    call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
                   end select
                 end if
             end if
@@ -13172,10 +13082,9 @@ loop2:        do nc = 1, this%NComponents
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.true.)
+
             end if
           end do
 
@@ -13183,29 +13092,26 @@ loop2:        do nc = 1, this%NComponents
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+                call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.true.)
+
             end if
           end do
 
         ! Number of particles in ensemble
           if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
           & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-            call FileWriteNoAdvance_parallel( this%iounit_result )
-            write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            call writeAverages(this%SumNPart, this%iounit_result, this%iounit_runave, '(" ",F10.2)', parallelMC=.true.)
 
             ! Mole fraction of each component
             do i = 1, this%NComponents
+
               pc => this%Component(i)
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.true.)
+
             end do
+
           end if
 
           write( IOBuffer, '(A)' )new_line('a')
@@ -13219,121 +13125,26 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Density
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Temperature
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Potential energy
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
-        end if
-        call FileWriteNoAdvance( this%iounit_result )
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-        end if
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Enthalpy
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
-        end if
-        call FileWriteNoAdvance( this%iounit_result )
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-        end if
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
         ! Dielectric Constant
         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
         endif
-
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-      end if
 
         ! Chemical potential
         do i = 1, this%NRealComponents
@@ -13360,10 +13171,8 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
                 end select
 
@@ -13383,20 +13192,17 @@ loop2:        do nc = 1, this%NComponents
                   call FileWriteNoAdvance( this%iounit_runave )
 
                 case( ChemPotMethodThermoInt )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(pc%SumChemPotV, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
                 end select
               end if
             end if
           end if
           if (EnsembleType .eq. EnsembleTypeGE) then
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotGE%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumChemPotGE, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
           endif
         end do
 
@@ -13409,10 +13215,9 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+                call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
            end if
           end if
         end do
@@ -13426,10 +13231,9 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+                call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
             end if
           end if
         end do
@@ -13437,18 +13241,15 @@ loop2:        do nc = 1, this%NComponents
       ! Number of particles in ensemble
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
         & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumNPart, this%iounit_result, this%iounit_runave, '(" ",F10.2)', parallelMC=.false.)
 
           ! Mole fraction of each component
           do i = 1, this%NComponents
             pc => this%Component(i)
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumFraction, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
           end do
         end if
 
@@ -13475,78 +13276,38 @@ loop2:        do nc = 1, this%NComponents
         write( IOBuffer, '(" ",F8.3)' ) value
         call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Pressure
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumPressure, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Density
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumDensity, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-        ! Temperature
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumTemperature, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
 #if OSMOP > 0
-        ! OsmoticPressure
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.5)' ) this%SumOsmoticPressure%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        call writeAverages(this%SumOsmoticPressure, this%iounit_result, this%iounit_runave, '(F10.5)', parallelMC=.false.)
 #endif
 
         ! Potential energy
         if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+            call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, parallelMC=.false.)
         else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+            call writeAverages(this%SumEPot, this%iounit_result, this%iounit_runave, '(" ",F12.5)', parallelMC=.false.)
         end if
-        call FileWriteNoAdvance( this%iounit_result )
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
-        end if
-        call FileWriteNoAdvance( this%iounit_runave )
 
         ! Enthalpy
         if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+            call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, parallelMC=.false.)
         else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+            call writeAverages(this%SumEnthalpy, this%iounit_result, this%iounit_runave, '(" ",F12.5)', parallelMC=.false.)
         end if
-        call FileWriteNoAdvance( this%iounit_result )
-        if (.not. UseIntDegFreed) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
-        else
-            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
-        end if
-        call FileWriteNoAdvance( this%iounit_runave )
 
-        ! Dielectric Constant
         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%BlockAverage !MAXFEHLER
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumDielectricConstant, this%iounit_result, this%iounit_runave, parallelMC=.false.)
 
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumTotalDipoleMoment, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%iounit_result, this%iounit_runave, parallelMC=.false.)
+
         endif
 
       if (printIDF) then
@@ -13666,10 +13427,9 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_runave )
 
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+               call writeAverages(pc%SumVW, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
             end if
           end if
         end do
@@ -13683,38 +13443,34 @@ loop2:        do nc = 1, this%NComponents
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
             else
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+              call writeAverages(pc%SumHM, this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
             end if
           end if
         end do
 
 #if HBOND > 0
         do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumHBond0(i), this%iounit_result, this%iounit_runave, '(" ",F10.4)', parallelMC=.false.)
+
         end do
 
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(this%SumHBond1(i,j), this%iounit_result, this%iounit_runave, '("   ", F10.4)', parallelMC=.false.)
+
           end do
         end do
 
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '("      ", F10.4)' ) this%SumHBond2(i,j,k)%Average
-              call FileWriteNoAdvance( this%iounit_runave )
+
+              call writeAverages(this%SumHBond2(i,j,k), this%iounit_result, this%iounit_runave, '("      ", F10.4)', parallelMC=.false.)
+
             end do
           end do
         end do
@@ -13723,10 +13479,9 @@ loop2:        do nc = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
               do  l = k, this%NComponents
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%BlockAverage
-                call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '("         ", F10.4)' ) this%SumHBond3(i,j,k,l)%Average
-                call FileWriteNoAdvance( this%iounit_runave )
+
+                call writeAverages(this%SumHBond3(i,j,k,l), this%iounit_result, this%iounit_runave, '("         ", F10.4)', parallelMC=.false.)
+
               end do
             end do
           end do
@@ -13737,10 +13492,9 @@ loop2:        do nc = 1, this%NComponents
             do k = j, this%NComponents
               do l = k, this%NComponents
                 do m = l, this%NComponents
-                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%BlockAverage
-                  call FileWriteNoAdvance( this%iounit_result )
-                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%Average
-                  call FileWriteNoAdvance( this%iounit_runave )
+
+                  call writeAverages(this%SumHBond4(i,j,k,l,m), this%iounit_result, this%iounit_runave, '("         ", F10.4)', parallelMC=.false.)
+
                 end do
               end do
             end do
@@ -13748,10 +13502,9 @@ loop2:        do nc = 1, this%NComponents
         end do
 
         do i = 1, this%NComponents
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
-          call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%Average
-          call FileWriteNoAdvance( this%iounit_runave )
+
+          call writeAverages(this%SumHBondN(i), this%iounit_result, this%iounit_runave, '(" ", F10.4)', parallelMC=.false.)
+
         end do
 #endif
 
@@ -13760,20 +13513,18 @@ loop2:        do nc = 1, this%NComponents
         do i = 1, this%NComponents
           pc => this%Component(i)
           do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) pc%SumDenProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(pc%SumDenProfile(j), this%iounit_result, this%iounit_runave, '(F10.4)', parallelMC=.false.)
+
           end do
         end do
 
 #if OSMOP == 2
         !Pressure Profile
         do j = 1, NBinsDen
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average
-            call FileWriteNoAdvance( this%iounit_runave )
+
+            call writeAverages(this%SumPressureProfile(j), this%iounit_result, this%iounit_runave, '(F10.4)', parallelMC=.false.)
+
         end do
 
         !Chemical Potential Profile
@@ -15094,109 +14845,22 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank( this%iounit_errors )
       end if
 
-      ! A10
-      Average = this%SumA10resI%Average
-      Variance = this%SumA10resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resI, 'A10', this%iounit_errors)
 
-      ! A01
-      Average = this%SumA01resI%Average
-      Variance = this%SumA01resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resI, 'A01', this%iounit_errors)
 
-      ! A20
-      Average = this%SumA20resI%Average
-      Variance = this%SumA20resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resI, 'A20', this%iounit_errors)
 
-      ! A11
-      Average = this%SumA11resI%Average
-      Variance = this%SumA11resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resI, 'A11', this%iounit_errors)
 
-      ! A02
-      Average = this%SumA02resI%Average
-      Variance = this%SumA02resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resI, 'A02', this%iounit_errors)
 
-      ! A30
-      Average = this%SumA30resI%Average
-      Variance = this%SumA30resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resI, 'A30', this%iounit_errors)
 
-      ! A21
-      Average = this%SumA21resI%Average
-      Variance = this%SumA21resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resI, 'A21', this%iounit_errors)
 
-      ! A12
-      Average = this%SumA12resI%Average
-      Variance = this%SumA12resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resI, 'A12', this%iounit_errors)
+
     end if
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
@@ -15223,213 +14887,38 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank( this%iounit_errors )
       end if
 
-      ! A10I
-      Average = this%SumA10resI%Average
-      Variance = this%SumA10resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resI, 'A10', this%iounit_errors)
 
-      ! A01I
-      Average = this%SumA01resI%Average
-      Variance = this%SumA01resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resI, 'A01', this%iounit_errors)
 
-      ! A20I
-      Average = this%SumA20resI%Average
-      Variance = this%SumA20resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resI, 'A20', this%iounit_errors)
 
-      ! A11I
-      Average = this%SumA11resI%Average
-      Variance = this%SumA11resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resI, 'A11', this%iounit_errors)
 
-      ! A02I
-      Average = this%SumA02resI%Average
-      Variance = this%SumA02resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resI, 'A02', this%iounit_errors)
 
-      ! A30I
-      Average = this%SumA30resI%Average
-      Variance = this%SumA30resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resI, 'A30', this%iounit_errors)
 
-      ! A21I
-      Average = this%SumA21resI%Average
-      Variance = this%SumA21resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resI, 'A21', this%iounit_errors)
 
-      ! A12I
-      Average = this%SumA12resI%Average
-      Variance = this%SumA12resI%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resI, 'A12', this%iounit_errors)
 
-      ! A10II
-      Average = this%SumA10resII%Average
-      Variance = this%SumA10resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA10resII, 'A10', this%iounit_errors)
 
-      ! A01II
-      Average = this%SumA01resII%Average
-      Variance = this%SumA01resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA01resII, 'A01', this%iounit_errors)
 
-      ! A20II
-      Average = this%SumA20resII%Average
-      Variance = this%SumA20resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA20resII, 'A20', this%iounit_errors)
 
-      ! A11II
-      Average = this%SumA11resII%Average
-      Variance = this%SumA11resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA11resII, 'A11', this%iounit_errors)
 
-      ! A02II
-      Average = this%SumA02resII%Average
-      Variance = this%SumA02resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA02resII, 'A02', this%iounit_errors)
 
-      ! A30II
-      Average = this%SumA30resII%Average
-      Variance = this%SumA30resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA30resII, 'A30', this%iounit_errors)
 
-      ! A21II
-      Average = this%SumA21resII%Average
-      Variance = this%SumA21resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA21resII, 'A21', this%iounit_errors)
 
-      ! A12II
-      Average = this%SumA12resII%Average
-      Variance = this%SumA12resII%Variance
-      if (.not. UseIntDegFreed) then
-          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&           Average, Variance
-      else
-          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&           Average, Variance
-      end if
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumA12resII, 'A12', this%iounit_errors)
+
     end if
 
     ! thermodynamic factors with KBI
@@ -17361,82 +16850,24 @@ end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-      ! J100
-      Average = this%SumJ100%Average
-      Variance = this%SumJ100%Variance
-      write( IOBuffer, '("J100", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J010
-      Average = this%SumJ010%Average
-      Variance = this%SumJ010%Variance
-      write( IOBuffer, '("J010", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J001
-      Average = this%SumJ001%Average
-      Variance = this%SumJ001%Variance
-      write( IOBuffer, '("J001", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ100, "J100", this%iounit_errors, .true.)
 
-      ! J200
-      Average = this%SumJ200%Average
-      Variance = this%SumJ200%Variance
-      write( IOBuffer, '("J200", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J020
-      Average = this%SumJ020%Average
-      Variance = this%SumJ020%Variance
-      write( IOBuffer, '("J020", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J002
-      Average = this%SumJ002%Average
-      Variance = this%SumJ002%Variance
-      write( IOBuffer, '("J002", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ010, "J010", this%iounit_errors, .true.)
 
-      ! J110
-      Average = this%SumJ110%Average
-      Variance = this%SumJ110%Variance
-      write( IOBuffer, '("J110", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J101
-      Average = this%SumJ101%Average
-      Variance = this%SumJ101%Variance
-      write( IOBuffer, '("J101", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-      ! J011
-      Average = this%SumJ011%Average
-      Variance = this%SumJ011%Variance
-      write( IOBuffer, '("J011", T29, "Dimensionless:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ001, "J001", this%iounit_errors, .true.)
 
+      call writeAverageAndVariance(this%SumJ200, "J200", this%iounit_errors, .true.)
 
-    end if
+      call writeAverageAndVariance(this%SumJ020, "J020", this%iounit_errors, .true.)
 
-    if( (SimulationType .eq. MolecularDynamics) .and. (EnsembleType .eq. EnsembleTypeGE) ) then
-      ! Statistics section
-      write( IOBuffer, '("Statistics")' )
-      call FileWrite( this%iounit_errors )
-      write( IOBuffer, '("----------")' )
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
+      call writeAverageAndVariance(this%SumJ002, "J002", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ110, "J110", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ101, "J101", this%iounit_errors, .true.)
+
+      call writeAverageAndVariance(this%SumJ011, "J011", this%iounit_errors, .true.)
+
     end if
 
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then

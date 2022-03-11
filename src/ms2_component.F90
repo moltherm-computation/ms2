@@ -5457,40 +5457,6 @@ loop1:do i = 1, this%NPart
   end subroutine TComponent_ZeroNAttempts
 
 
-#if 0
-!==============================================================!
-!  Subroutine TComponent_UpdateDisplacements                   !
-!==============================================================!
-
-  subroutine TComponent_UpdateDisplacements( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Update translational displacement
-    if( this%NMoveSuccesses < this%NMoveAttempts * Acceptance ) then
-      this%DispTran = this%DispTran * .95_RK
-
-    else if( this%DispTran < DispTranLimit ) then
-      this%DispTran = this%DispTran * 1.05_RK
-
-    end if
-
-    ! Update rotational displacement
-    if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
-      this%DispRot = this%DispRot * .95_RK
-
-    else if( this%DispRot < DispRotLimit ) then
-      this%DispRot = this%DispRot * 1.05_RK
-
-    end ifl
-
-  end subroutine TComponent_UpdateDisplacements
-#endif
-
-
 !==============================================================!
 !  Subroutine TComponent_AddParticle                           !
 !==============================================================!
