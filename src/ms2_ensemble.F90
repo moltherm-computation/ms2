@@ -12646,55 +12646,25 @@ loop2:        do nc = 1, this%NComponents
 
               endif
 
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              if (printIDF) then
 
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotInter, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotIntra_Bond, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotIntra_Angle, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotIntra_Dihedral, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                  call writeAverages(this%SumEPotIntra_Nonbonded, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
+                  call writeAverages(this%SumVirialIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
+
+                  call writeAverages(this%SumVirialInter, this%iounit_result, this%iounit_runave, '(" ",F14.5) ', parallelMC=.false.)
+
+              end if
 
               ! Chemical potential
               do i = 1, this%NRealComponents
@@ -12792,55 +12762,25 @@ loop2:        do nc = 1, this%NComponents
 
             endif
 
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+            if (printIDF) then
 
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotInter, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotIntra_Bond, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotIntra_Angle, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotIntra_Dihedral, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+                call writeAverages(this%SumEPotIntra_Nonbonded, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
+                call writeAverages(this%SumVirialIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
+
+                call writeAverages(this%SumVirialInter, this%iounit_result, this%iounit_runave, '(" ",F14.5) ', parallelMC=.false.)
+
+            end if
 
             ! Chemical potential
             do i = 1, this%NRealComponents
@@ -12959,55 +12899,25 @@ loop2:        do nc = 1, this%NComponents
 
           endif
 
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+          if (printIDF) then
 
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotInter, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotIntra_Bond, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotIntra_Angle, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotIntra_Dihedral, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
+              call writeAverages(this%SumEPotIntra_Nonbonded, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance_parallel( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance_parallel( this%iounit_runave )
-      end if
+              call writeAverages(this%SumVirialIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
+
+              call writeAverages(this%SumVirialInter, this%iounit_result, this%iounit_runave, '(" ",F14.5) ', parallelMC=.false.)
+
+          end if
 
           ! Chemical potential
           do i = 1, this%NRealComponents
@@ -13310,55 +13220,25 @@ loop2:        do nc = 1, this%NComponents
 
         endif
 
-      if (printIDF) then
-        ! EPotInter
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+        if (printIDF) then
 
-        ! EPotIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotInter, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Bond
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Angle
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotIntra_Bond, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Dihedral
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotIntra_Angle, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! EPotIntra_Nonbonded
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotIntra_Dihedral, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialIntra
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
-        call FileWriteNoAdvance( this%iounit_runave )
+            call writeAverages(this%SumEPotIntra_Nonbonded, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
 
-        ! VirialInter
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
-        call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
-        call FileWriteNoAdvance( this%iounit_runave )
-      end if
+            call writeAverages(this%SumVirialIntra, this%iounit_result, this%iounit_runave, '(" ",F12.5) ', parallelMC=.false.)
+
+            call writeAverages(this%SumVirialInter, this%iounit_result, this%iounit_runave, '(" ",F14.5) ', parallelMC=.false.)
+
+        end if
 
         ! Chemical potential
         do i = 1, this%NRealComponents
