@@ -561,7 +561,12 @@ contains
         formatString = '("'//variableName//'", T29, "Dimensionless, residual:", 2F20.9)'
     end if
 
+    if (UseIntDegFreed) then
+        formatString = '("'//variableName//' - Dimensionless, residual", T36,":", 2F20.9)'
+    end if
+
     write( IOBuffer, formatString) this%Average, this%Variance
+
     call FileWrite(iounit_errors)
     call FileWriteBlank(iounit_errors)
 
