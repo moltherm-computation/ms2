@@ -501,6 +501,73 @@ contains
   end subroutine TAccumulator_Error
 
 
+  subroutine writeAverages(this, iounit_result, iounit_runave, optionalFormatString, parallelMC)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    integer            :: iounit_result, iounit_runave
+    logical            :: parallelMC
+    character(len=*), intent(in), optional :: optionalFormatString
+    character(:), allocatable :: formatString
+
+    if (PRESENT(optionalFormatString)) then
+        formatString = optionalFormatString
+    else
+        formatString = '(" ",F10.5)'
+    end if
+
+#if MPI_VER > 0
+    if (parallelMC) then
+
+        write( IOBuffer, formatString) this%BlockAverage
+        call FileWriteNoAdvance_parallel(iounit_result)
+
+        write( IOBuffer, formatString) this%Average
+        call FileWriteNoAdvance_parallel(iounit_runave)
+
+    else
+#endif
+
+    write( IOBuffer, formatString) this%BlockAverage
+    call FileWriteNoAdvance(iounit_result)
+
+    write( IOBuffer, formatString) this%Average
+    call FileWriteNoAdvance(iounit_runave)
+
+#if MPI_VER > 0
+    end if
+#endif
+
+  end subroutine writeAverages
+
+
+  subroutine writeAverageAndVariance(this, variableName, iounit_errors, reducedTitle)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    integer, intent(in)        :: iounit_errors
+    character(:), allocatable    :: formatString
+    character(len=*), intent(in)    :: variableName
+    logical, optional :: reducedTitle
+
+
+    if (present(reducedTitle) .and. reducedTitle) then
+
+        formatString = '("'//variableName//'", T29, "Dimensionless:", 2F20.9)'
+    else
+
+        formatString = '("'//variableName//'", T29, "Dimensionless, residual:", 2F20.9)'
+    end if
+
+    write( IOBuffer, formatString) this%Average, this%Variance
+    call FileWrite(iounit_errors)
+    call FileWriteBlank(iounit_errors)
+
+  end subroutine writeAverageAndVariance
+
+
 !==============================================================!
 !  Subroutine TAccumulator_ErrorGI                             !
 !==============================================================!
