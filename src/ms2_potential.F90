@@ -13870,25 +13870,32 @@ loop2:  do j = 1, j1
   end subroutine TPotQQ_ChemicalPotential
 
 
+!==============================================================!
+!  Subroutine TPoterfc_approx                                  !
+!==============================================================!
 
   subroutine TPoterfc_approx(this,in,approx_out)
+  
+      implicit none
 
-  type(TPotChargeCharge)      :: this
-  real(RK),intent(in)     :: in
-  real(RK),intent(out)    :: approx_out
+      ! Declare arguments
+      type(TPotChargeCharge)  :: this
+      real(RK),intent(in)     :: in
+      real(RK),intent(out)    :: approx_out
 
-! Local variables
-  real(RK)                :: C1,C2,C3,C4,C5,P
+      ! Declare local variables
+      real(RK)                :: C1,C2,C3,C4,C5,P
+      real(RK)                :: argu
 
-  C1 =  0.254829592
-  C2 = -0.284496736
-  C3 =  1.421413741
-  C4 = -1.453152027
-  C5 =  1.061405429
-  P  =  0.3275911
+      C1 =  0.254829592
+      C2 = -0.284496736
+      C3 =  1.421413741
+      C4 = -1.453152027
+      C5 =  1.061405429
+      P  =  0.3275911
 
-  argu = 1._RK / (1._RK + P*in)
-  approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
+      argu = 1._RK / (1._RK + P*in)
+      approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
 
   end subroutine TPoterfc_approx
 
