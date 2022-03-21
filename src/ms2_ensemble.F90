@@ -29609,16 +29609,21 @@ end subroutine  TEnsemble_infnan
     real(RK)                  :: dLogVolumeThird
     real(RK)                  :: oldF(this%NPartmax,3,this%NUnitmax)
 
-    select case( IntegratorType )
-    case( IntegratorTypeGear )
-      call Error( "QShake only valid for Verlet-Algorithms" )
-      ! QShake could be used with Gear, but precision advantage of Gear (o5) is lost when using QShake (o2)
-      ! also Virial-contribution of Shake can't be accounted for in either correction or prediction step
-    case( IntegratorTypeVerlet )
-      call Error( "QShake only implemented for LeapFrog" )
-    case( IntegratorTypeVV )
-      call Error( "QShake only implemented for LeapFrog" )
-    end select
+    if ( IntegratorType .eq. IntegratorTypeGear ) then
+
+        call Error( "QShake only valid for Verlet-Algorithms" )
+        ! QShake could be used with Gear, but precision advantage of Gear (o5) is lost when using QShake (o2)
+        ! also Virial-contribution of Shake can't be accounted for in either correction or prediction step
+
+    else if (IntegratorType .eq. IntegratorTypeLeapFrog) then
+
+        continue
+
+    else
+
+        call Error( "Unknown integrator in QShake" )
+
+    end if
 
     VirialShake = 0._RK
     tempVirial = 0._RK
