@@ -364,12 +364,7 @@ contains
     logical, intent(in), optional :: kbi
 
     ! Declare local variables
-!#if TRANS == 1
-!    real(RK) :: Tau(max(NBlockSizes,NBlockSizesCF))
-!#else
-    !real(RK) :: Tau(NBlockSizes)
     real(RK), dimension(:), allocatable :: Tau
-!#endif
     real(RK) :: BlockAverage
     real(RK) :: sx1, sx2, sxy
     real(RK) :: TauSum, TauInf
@@ -397,11 +392,7 @@ contains
       end if
     end if
 
-#if TRANS == 1
-    allocate(Tau(max(NBlockSizes,NBlockSizesCF)),STAT=stat)
-#else 
     allocate(Tau(max(m,1)),STAT=stat)
-#endif
 
 
 #if MPI_VER > 0
