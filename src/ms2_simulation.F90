@@ -517,17 +517,6 @@ contains
           IntegratorType = IntegratorTypeLeapFrog
           IntegratorTypeString = 'LeapFrog'
 
-        case( 'VERLET', 'Verlet', 'verlet' )
-          IntegratorType = IntegratorTypeVerlet
-          IntegratorTypeString = 'Verlet'
-
-        case( 'VV', 'Vv', 'vV', 'vv', &
-&         'VELOCITY VERLET', 'Velocity Verlet', 'velocity Verlet', &
-&         'velocity verlet', 'VELOCITY-VERLET', 'Velocity-Verlet', &
-&         'velocity-Verlet', 'velocity-verlet', 'VELOCITYVERLET', &
-&         'VelocityVerlet', 'velocityVerlet', 'velocityverlet' )
-          IntegratorType = IntegratorTypeVV
-          IntegratorTypeString = 'Velocity-Verlet'
         case default
           call Error( trim( str )//' integrator is not implemented' )
         end select

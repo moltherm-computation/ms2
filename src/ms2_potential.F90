@@ -5652,9 +5652,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
@@ -6777,9 +6774,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
             OXj = OX2(jk)
             OYj = OY2(jk)
             OZj = OZ2(jk)
@@ -7914,9 +7908,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
             OXj = OX2(jk)
             OYj = OY2(jk)
             OZj = OZ2(jk)
@@ -9017,9 +9008,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
@@ -13287,9 +13275,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RXij = (RXij - anint( PXij )) * BoxLength
             RYij = (RYij - anint( PYij )) * BoxLength
             RZij = (RZij - anint( PZij )) * BoxLength
-            PXij = (PXij - anint( PXij )) * BoxLength
-            PYij = (PYij - anint( PYij )) * BoxLength
-            PZij = (PZij - anint( PZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
             if( RijSquared <= RShieldSquared ) then
@@ -16601,30 +16586,32 @@ loop2:  do j = 1, j1
   end subroutine TPotQQ_ChemicalPotential
 
 
+!==============================================================!
+!  Subroutine TPoterfc_approx                                  !
+!==============================================================!
 
   subroutine TPoterfc_approx(this,in,approx_out)
+  
+      implicit none
 
-  type(TPotChargeCharge)      :: this
-  real(RK),intent(in)     :: in
-  real(RK),intent(out)    :: approx_out
+      ! Declare arguments
+      type(TPotChargeCharge)  :: this
+      real(RK),intent(in)     :: in
+      real(RK),intent(out)    :: approx_out
 
-! Local variables
-  real(RK)                :: argu,C1,C2,C3,C4,C5,P
+      ! Declare local variables
+      real(RK)                :: C1,C2,C3,C4,C5,P
+      real(RK)                :: argu
 
-  C1 =  0.254829592
-  C2 = -0.284496736
-  C3 =  1.421413741
-  C4 = -1.453152027
-  C5 =  1.061405429
-  P  =  0.3275911
+      C1 =  0.254829592
+      C2 = -0.284496736
+      C3 =  1.421413741
+      C4 = -1.453152027
+      C5 =  1.061405429
+      P  =  0.3275911
 
-  if (.not. UseIntDegFreed) then
-      argu = real(1._RK / (1._RK + P*in))
-  else
       argu = 1._RK / (1._RK + P*in)
-  end if
-
-  approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
+      approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
 
   end subroutine TPoterfc_approx
 
