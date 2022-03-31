@@ -16920,10 +16920,10 @@ loop2:  do j = 1, j1
     ! Declare local variables
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     real(RK)          :: RijRkj, RijSquared, RkjSquared
-    type(vector)      :: R1, R2, R3, Rij, Rkj
+    type(vector)      :: R1, R2, R3, Rij, Rkj, fa, fb, faa, fbb
     real(RK)          :: EPotLocal
     real(RK)          :: ForConst, Angle, Angle0, dAngle, cosa, sina
-    real(RK)          :: abc, sab, cab, fab, fbb, faa, fax, fay, faz,  fbx, fby, fbz
+    real(RK)          :: abc, sab, cab, fab
 
 
     integer           :: i, i1
@@ -17002,27 +17002,24 @@ loop2:  do j = 1, j1
          sab = -2._RK*abc/sina
          cab = sab*cosa
 
-         fab = sab/RijRkj
-         faa = cab/RijSquared
-         fbb = cab/RkjSquared
+         faa = SCALE_VECTOR(Rij, cab/RijSquared)
+         fbb = SCALE_VECTOR(Rkj, cab/RkjSquared)
 
-         fax = fab*Rkj%x-faa*Rij%x
-         fay = fab*Rkj%y-faa*Rij%y
-         faz = fab*Rkj%z-faa*Rij%z
+         fa = SCALE_VECTOR(Rkj, sab/RijRkj)
+         fa = SUB_VECTOR(fa, faa)
 
-         fbx = fab*Rij%x-fbb*Rkj%x
-         fby = fab*Rij%y-fbb*Rkj%y
-         fbz = fab*Rij%z-fbb*Rkj%z
+         fb = SCALE_VECTOR(Rij, sab/RijRkj)
+         fb = SUB_VECTOR(fb, fbb)
 
-         FX1(i) = FX1(i) - fax
-         FY1(i) = FY1(i) - fay
-         FZ1(i) = FZ1(i) - faz
-         FX2(i) = FX2(i) + fax + fbx
-         FY2(i) = FY2(i) + fay + fby
-         FZ2(i) = FZ2(i) + faz + fbz
-         FX3(i) = FX3(i) - fbx
-         FY3(i) = FY3(i) - fby
-         FZ3(i) = FZ3(i) - fbz
+         FX1(i) = FX1(i) - fa%x
+         FY1(i) = FY1(i) - fa%y
+         FZ1(i) = FZ1(i) - fa%z
+         FX2(i) = FX2(i) + fa%x + fb%x
+         FY2(i) = FY2(i) + fa%y + fb%y
+         FZ2(i) = FZ2(i) + fa%z + fb%z
+         FX3(i) = FX3(i) - fb%x
+         FY3(i) = FY3(i) - fb%y
+         FZ3(i) = FZ3(i) - fb%z
        end do
 
     ! Update potential energy, no contribution to virial!
