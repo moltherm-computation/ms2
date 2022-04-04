@@ -75,22 +75,20 @@ module ms2_simulation
     ! Ensembles
     type(TEnsemble), pointer, contiguous :: Ensemble(:)
 
-    ! I/O unit for result file
-    integer :: iounit_result
+    type(TFile) :: resultFile
 
-    ! I/O unit for running average result file
-    integer :: iounit_runave
+    type(TFile) :: runaveFile
 
     ! I/O unit for final result file
-    integer :: iounit_errors
+    type(TFile) :: errorsFile
 
     integer :: terminate_cc_multiensemble !DC NOTE- the counter that signifies if the simulation is to be terminated in multiensemble case
 
 #if  TRANS == 1
 
     ! I/O unit for correlation function
-    integer :: iounit_rescf
-    integer :: iounit_ecoef
+    type(TFile) :: rescfFile
+    type(TFile) :: ecoefFile
 
 #endif
 
@@ -300,20 +298,20 @@ contains
     end if
 
 #else
-    call FileReset( iounit_config, ProgramFileName//ConfigFileExtension )
-    call FileReadParameter( str, iounit_config, IdRestart, .true., "NO" )
+    call FileReset( configFile%iounit, ProgramFileName//ConfigFileExtension )
+    call FileReadParameter( str, configFile%iounit, IdRestart, .true., "NO" )
     select case( str )
 
     case( 'YES', 'Yes', 'yes' )
       Restart = .true.
-      call FileReadParameter( RestartFileName, iounit_config, IdRestartFileName, .true. )
+      call FileReadParameter( RestartFileName, configFile%iounit, IdRestartFileName, .true. )
       write( IOBuffer, '("Restarting from file: ", A)' ) RestartFileName
       call LogWrite
-      call FileReset( iounit_restart, RestartFileName )
-      read( iounit_restart, '(A128)' ) ParameterFileName
+      call FileReset( restartFile%iounit, RestartFileName )
+      read( restartFile%iounit, '(A128)' ) ParameterFileName
 
     case( 'NO', 'No', 'no' )
-      call FileReadParameter( ParameterFileName, iounit_config, IdParamsFileName, .true. )
+      call FileReadParameter( ParameterFileName, configFile%iounit, IdParamsFileName, .true. )
 
     case default
       call Error( 'Select yes/no for restart in file '// ProgramFileName//ConfigFileExtension )
@@ -330,14 +328,14 @@ contains
     call LogWrite
 
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
-    call FileClose( iounit_config )
+    call FileClose( configFile%iounit )
 #endif
 !    call LogWriteBlank
 
     ! Open parameter file for reading
-    call FileReset( iounit_params, trim(ParameterFileName) )
+    call FileReset( paramsFile%iounit, trim(ParameterFileName) )
     ! Read parVersionNr
-    call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1.0_RK )
+    call FileReadParameter( parVersionNr, paramsFile%iounit , IdparVersionNr, .true., 1.0_RK )
     if ( parVersionNr .lt. 0 ) then
       write( IOBuffer, '("Remark: No ms2-version given within your parameter file - unable to check")' )
       call LogWrite
@@ -356,7 +354,7 @@ contains
     call LogWrite
 
     ! Read name tag for output files
-    call FileReadParameter( str, iounit_params , IdOutputNameTag, .true., status=stat )
+    call FileReadParameter( str, paramsFile%iounit , IdOutputNameTag, .true., status=stat )
     if ( OutputNameTagfromCommandline ) then
 
       if ( RootProc .and. stat .eq. 0 ) then
@@ -377,17 +375,17 @@ contains
     call LogWrite
     call LogWriteBlank
 
-    call FileReadParameter( max_time , iounit_params , IdWallTime , .true., 20160  )
+    call FileReadParameter( max_time , paramsFile%iounit , IdWallTime , .true., 20160  )
     write( IOBuffer, '("Specified walltime: ",T23, I5, " m")' ) max_time
     call LogWrite
 
-    call FileReadParameter( time_limit , iounit_params , IdTimeLimit , .true., 60  )
+    call FileReadParameter( time_limit , paramsFile%iounit , IdTimeLimit , .true., 60  )
     write( IOBuffer, '("Specified time limit: ",T23, I5, " m")' ) time_limit
     call LogWrite
     call LogWriteBlank
 
     ! Read type of units
-    call FileReadParameter( str, iounit_params , IdUseReducedUnits, .true. )
+    call FileReadParameter( str, paramsFile%iounit , IdUseReducedUnits, .true. )
     select case( str )
     case( 'REDUCED', 'Reduced', 'reduced' )
       UseReducedUnits = .true.
@@ -402,19 +400,19 @@ contains
     call LogWrite
 
     ! Read unit of length
-    call FileReadParameter( UnitLength, iounit_params, IdUnitLength, .true., 3.5_RK )
+    call FileReadParameter( UnitLength, paramsFile%iounit, IdUnitLength, .true., 3.5_RK )
     UnitLength = UnitLength * Angstroem
     write( IOBuffer, '("Unit of length: ",T23, F8.3, " A")' ) UnitLength / Angstroem
     call LogWrite
 
     ! Read unit of energy
-    call FileReadParameter( UnitEnergy, iounit_params, IdUnitEnergy, .true., 100.0_RK )
+    call FileReadParameter( UnitEnergy, paramsFile%iounit, IdUnitEnergy, .true., 100.0_RK )
     UnitEnergy = UnitEnergy * kBoltzmann
     write( IOBuffer, '("Unit of energy: ",T23, F8.3, " K")' ) UnitEnergy / kBoltzmann
     call LogWrite
 
     ! Read unit of mass
-    call FileReadParameter( UnitMass, iounit_params, IdUnitMass, .true., 40.0_RK )
+    call FileReadParameter( UnitMass, paramsFile%iounit, IdUnitMass, .true., 40.0_RK )
     UnitMass = UnitMass * .001_RK / NAvogadro
     write( IOBuffer, '("Unit of mass:   ",T23, F8.3, " a.u.")' ) UnitMass * NAvogadro * 1000._RK
     call LogWrite
@@ -434,7 +432,7 @@ contains
     UnitQuadrupole = UnitCharge * UnitLength**2
 
     ! Read type of simulation
-    call FileReadParameter( str, iounit_params , IdSimulationType, .true. )
+    call FileReadParameter( str, paramsFile%iounit , IdSimulationType, .true. )
     select case( str )
 
     case( 'MD', 'md' )
@@ -463,17 +461,17 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
 
       ! Read number of orientations
-      call FileReadParameter( NOrient, iounit_params , IdNOrient, .true. )
+      call FileReadParameter( NOrient, paramsFile%iounit , IdNOrient, .true. )
       write( IOBuffer, '("Number of orientations: ",T24, I7)' ) NOrient
       call LogWrite
 
       ! Read number of steps
-      call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
+      call FileReadParameter( NSteps, paramsFile%iounit , IdRSteps, .true. )
       write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
-      call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .true. )
+      call FileReadParameter( MinRadius, paramsFile%iounit , IdMinRadius, .true. )
       if( .not. UseReducedUnits ) then
         MinRadius = MinRadius / UnitLength * Angstroem
       end if
@@ -481,7 +479,7 @@ contains
       call LogWrite
 
       ! Read maximum radius
-      call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .true. )
+      call FileReadParameter( MaxRadius, paramsFile%iounit , IdMaxRadius, .true. )
       if( .not. UseReducedUnits ) then
         MaxRadius = MaxRadius / UnitLength * Angstroem
       end if
@@ -506,7 +504,7 @@ contains
       if( SimulationType .eq. MolecularDynamics ) then
 
         ! Type of integrator
-        call FileReadParameter( str, iounit_params , IdIntegratorType, .true., "GEAR" )
+        call FileReadParameter( str, paramsFile%iounit , IdIntegratorType, .true., "GEAR" )
         select case( str )
 
         case( 'GEAR', 'Gear', 'gear' )
@@ -524,7 +522,7 @@ contains
         call LogWrite
 
         ! Time step
-        call FileReadParameter( TimeStep, iounit_params , IdTimeStep, .true., 5.0E-4_RK )
+        call FileReadParameter( TimeStep, paramsFile%iounit , IdTimeStep, .true., 5.0E-4_RK )
         if (.not. UseReducedUnits ) then
           if ( parVersionNr .ge. 2.0_RK ) then
             TimeStep = TimeStep / UnitTime
@@ -546,7 +544,7 @@ contains
       else
 
         ! Acceptance rate
-        call FileReadParameter( Acceptance, iounit_params , IdAcceptance, .true., 0.5_RK )
+        call FileReadParameter( Acceptance, paramsFile%iounit , IdAcceptance, .true., 0.5_RK )
         if( Acceptance < 0.05_RK ) then
           Acceptance = 0.05_RK
         else if( Acceptance > 0.95_RK ) then
@@ -560,7 +558,7 @@ contains
       end if
 
       ! Read type of ensembles
-      call FileReadParameter( str, iounit_params , IdEnsembleType, .true. )
+      call FileReadParameter( str, paramsFile%iounit , IdEnsembleType, .true. )
       select case( str )
 
       case( 'NVE', 'nve' )
@@ -633,7 +631,7 @@ contains
           call LogWriteBlank
           ! Read number of MPI common groups for MC => Prod. cycles are divided by the number of groups
           ! and the mpi members of a group share the work of the particles
-          call FileReadParameter( mpiMCCommonGroups, iounit_params , IdmpiMCCommonGroups, .true., 0 )
+          call FileReadParameter( mpiMCCommonGroups, paramsFile%iounit , IdmpiMCCommonGroups, .true., 0 )
           if ( mpiMCCommonGroups > 0 ) then
             RootProc_MCCom = .true. ! for all processes for writing because RootProc is true only for RootProc_W (because up to here the old Communicator is still active)
             write( IOBuffer, '("mpiMCCommonGroups:",T24, I3)' ) mpiMCCommonGroups
@@ -643,7 +641,7 @@ contains
               call LogWrite
               call LogWriteBlank
               ! Close the ParameterFile to reopen it within the subcommunicators
-              call FileClose( iounit_params )
+              call FileClose( paramsFile%iounit )
               call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
               oldCommunicator=Communicator
               color = NProc*mpiMCCommonGroups/NProcs
@@ -666,7 +664,7 @@ contains
               if ( NProc_MCCom == NRootProc_MCCom .and. RootProc) RootProc_MCCom = .true. ! =RootProc_W
 
               ! Reopen the ParameterFile (dirty hack) for each communicator
-              call FileReset( iounit_params, ParameterFileName )
+              call FileReset( paramsFile%iounit, ParameterFileName )
             else
               call Error( trim( str )//' Number of mpi processes must be divisible by mpiMCCommonGroups without remainder' )
             end if
@@ -677,7 +675,7 @@ contains
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
+        call FileReadParameter( NStepsMC, paramsFile%iounit , IdNStepsMC, .true., 0 )
         if( NStepsMC > 0 ) then
           write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMC
           call LogWrite
@@ -698,7 +696,7 @@ contains
 
       ! Read insert/delete acceptance rate for muVT
       if( EnsembleType .eq. EnsembleTypeMUVT ) then
-        call FileReadParameter( AccInserts, iounit_params , IdAccInserts, .true., 0.5_RK )
+        call FileReadParameter( AccInserts, paramsFile%iounit , IdAccInserts, .true., 0.5_RK )
         if( AccInserts < 0.05_RK ) then
           AccInserts = 0.05_RK
         else if( AccInserts > 0.95_RK ) then
@@ -712,13 +710,13 @@ contains
       end if
 
       ! Read number of NVT equilibration steps
-      call FileReadParameter( NStepsV, iounit_params , IdNStepsV, .true., 0 )
+      call FileReadParameter( NStepsV, paramsFile%iounit , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ",T40, I7)' ) NStepsV
       call LogWrite
 
       ! Read number of NVE equilibration steps
       if( EnsembleType .eq. EnsembleTypeNVE ) then
-        call FileReadParameter( NStepsE, iounit_params , IdNStepsE, .true., 0 )
+        call FileReadParameter( NStepsE, paramsFile%iounit , IdNStepsE, .true., 0 )
         write( IOBuffer, '("Number of NVE equilibration steps: ",T40, I7)' ) NStepsE
         call LogWrite
       else
@@ -728,28 +726,28 @@ contains
       ! Read number of constant pressure equilibration steps
       if( ConstantPressure ) then
         if( EnsembleType .eq. EnsembleTypeHA ) then
-          call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
+          call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ",T40, I7)' ) NStepsP
           call LogWrite
 
         else if( EnsembleType .eq. EnsembleTypeNPH ) then
-          call FileReadParameter( NStepsH, iounit_params , IdNStepsH, .true., 0 )
+          call FileReadParameter( NStepsH, paramsFile%iounit , IdNStepsH, .true., 0 )
           write( IOBuffer, '("Number of NPH equilibration steps: ",T40, I7)' ) NStepsH
           call LogWrite
 
         else
-          call FileReadParameter( NStepsP, iounit_params , IdNStepsP, .true., 0 )
+          call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsP, .true., 0 )
           write( IOBuffer, '("Number of NPT equilibration steps: ",T40, I7)' ) NStepsP
           call LogWrite
         end if
 
       else if( EnsembleType .eq. EnsembleTypeGE ) then
-        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
+        call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of GE equilibration steps: ",T40, I7)' ) NStepsP
         call LogWrite
 
       else if( EnsembleType .eq. EnsembleTypeMUVT ) then
-        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
+        call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of MUVT equilibration steps: ",T40, I7)' ) NStepsP
         call LogWrite
 
@@ -758,7 +756,7 @@ contains
       end if
 
       ! Read number of production steps
-      call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
+      call FileReadParameter( NSteps, paramsFile%iounit , IdNSteps, .true., 0 )
       write( IOBuffer, '("Number of production steps: ",T39, I8)' ) NSteps
       call LogWrite
       call LogWriteBlank
@@ -774,7 +772,7 @@ contains
 #endif
 
       ! Read frequency of updating result file
-      call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., NSteps )
+      call FileReadParameter( BlockSize, paramsFile%iounit , IdBlockSize, .true., NSteps )
       if( BlockSize > 0 ) then
         write( IOBuffer, '("Result files will be updated each", T40, I7, " time steps")' ) BlockSize
       else
@@ -833,7 +831,7 @@ contains
 
       ! Read frequency of updating final result file
       if ( BlockSize > 0 ) then
-        call FileReadParameter( ErrorsUpdateFrequency, iounit_params , IdErrorsUpdateFrequency, .true., 0 )
+        call FileReadParameter( ErrorsUpdateFrequency, paramsFile%iounit , IdErrorsUpdateFrequency, .true., 0 )
         if( ErrorsUpdateFrequency < 1 ) then
           ErrorsUpdateFrequency = NSteps
         else if( ErrorsUpdateFrequency < BlockSize * 4 ) then
@@ -853,7 +851,7 @@ contains
       end if
 
       ! Read frequency of updating visualisation file
-      call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
+      call FileReadParameter( VisualUpdateFrequency, paramsFile%iounit , IdVisualUpdateFrequency, .true., 0 )
       if( VisualUpdateFrequency > 0 ) then
         write( IOBuffer, '("Visualization files will be updated each", T40, I7, " time steps")' ) VisualUpdateFrequency
       else
@@ -863,7 +861,7 @@ contains
       call LogWriteBlank
 
       ! Read frequency of updating visualisation file
-      call FileReadParameter( RDFUpdateFrequency, iounit_params , IdRDFUpdateFrequency, .true., 0 )
+      call FileReadParameter( RDFUpdateFrequency, paramsFile%iounit , IdRDFUpdateFrequency, .true., 0 )
       if( RDFUpdateFrequency > 0 ) then
         write( IOBuffer, '("RDF files will be updated each", T40, I7, " time steps")' ) RDFUpdateFrequency
       else
@@ -872,13 +870,13 @@ contains
       call LogWrite
 
       if( RDFUpdateFrequency > 0 ) then
-      call FileReadParameter( RDFNumberShells, iounit_params , IdRDFNumberShells, .true., 200 )
+      call FileReadParameter( RDFNumberShells, paramsFile%iounit , IdRDFNumberShells, .true., 200 )
         write( IOBuffer, '("RDF will operate with", I7, " shells")' ) RDFNumberShells
       call LogWrite
       end if
       call LogWriteBlank
 
-      call FileReadParameter( ODFUpdateFrequency, iounit_params , IdODFUpdateFrequency, .true., 0 )
+      call FileReadParameter( ODFUpdateFrequency, paramsFile%iounit , IdODFUpdateFrequency, .true., 0 )
       if( ODFUpdateFrequency > 0 ) then
         write( IOBuffer, '("ODF files will be updated each", T40, I7, " time steps")' ) ODFUpdateFrequency
       else
@@ -887,23 +885,23 @@ contains
       call LogWrite
 
       if( ODFUpdateFrequency > 0 ) then
-        call FileReadParameter( nR, iounit_params , IdnR, .true., 3 )
+        call FileReadParameter( nR, paramsFile%iounit , IdnR, .true., 3 )
         write( IOBuffer, '("ODF will operate with", I7, " shells")' ) nR
         call LogWrite
-        call FileReadParameter( nPhi, iounit_params , IdnPhi, .true., 40 )
+        call FileReadParameter( nPhi, paramsFile%iounit , IdnPhi, .true., 40 )
         write( IOBuffer, '("ODF will operate with", I7, " angular increments in phi-direction")' ) nPhi
         call LogWrite
-        call FileReadParameter( nGamma, iounit_params , IdnGamma, .true., 36 )
+        call FileReadParameter( nGamma, paramsFile%iounit , IdnGamma, .true., 36 )
         write( IOBuffer, '("ODF will operate with", I7, " angular increments in gamma-direction")' ) nGamma
         call LogWrite
-        call FileReadParameter( ODFOutputFrequency, iounit_params , IdODFOutputFrequency, .true., 1000000 )
+        call FileReadParameter( ODFOutputFrequency, paramsFile%iounit , IdODFOutputFrequency, .true., 1000000 )
         write( IOBuffer, '("ODF output will be generated every", I7, " steps")' ) ODFOutputFrequency
         call LogWrite
       end if
       call LogWriteBlank
 
       ! Read frequency of updating KBI file
-      call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
+      call FileReadParameter( KBIUpdateFrequency, paramsFile%iounit , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
         if( .not. EnsembleType .eq. EnsembleTypeNVT) then
             call Error( trim( str )//' -> Kirkwood-Buff integration is in the NVT ensemble defined only' )
@@ -917,12 +915,12 @@ contains
       call LogWrite
 
       if( KBIUpdateFrequency > 0 ) then
-        call FileReadParameter( BlockSizeKBI, iounit_params , IdKBIResetFrequency, .true., 10000 )
+        call FileReadParameter( BlockSizeKBI, paramsFile%iounit , IdKBIResetFrequency, .true., 10000 )
         !rounding up if KBIResetFreq is not a multiple of KBIUpdateFreq
         BlockSizeKBI = KBIUpdateFrequency*ceiling(real(BlockSizeKBI,RK)/real(KBIUpdateFrequency,RK))
         write( IOBuffer, '("RDF for KBI will be reset each", T40, I7, " time steps")' ) BlockSizeKBI
         call LogWrite
-        call FileReadParameter( KBINumberShells, iounit_params , IdKBINumberShells, .true., 200 )
+        call FileReadParameter( KBINumberShells, paramsFile%iounit , IdKBINumberShells, .true., 200 )
         write( IOBuffer, '("RDF for KBI will operate with", I7, " shells")' ) KBINumberShells
         call LogWrite
         KBINumberShellsMax=ceiling(sqrt(3*real(KBINumberShells,RK)**2))
@@ -945,11 +943,11 @@ contains
       call LogWriteBlank
 
       ! Read frequency of updating Alpha2 correlation function
-      call FileReadParameter( ALPHA2UpdateFrequency, iounit_params, IdALPHA2UpdateFrequency, .true., 0 )
+      call FileReadParameter( ALPHA2UpdateFrequency, paramsFile%iounit, IdALPHA2UpdateFrequency, .true., 0 )
       if ( ALPHA2UpdateFrequency > 0 ) then
         if ( SimulationType .eq. MolecularDynamics ) then
-            call FileReadParameter( ALPHA2Length, iounit_params, IdALPHA2Length, .true., 10000 )
-            call FileReadParameter( ALPHA2Shift,  iounit_params, IdALPHA2Shift,  .true., 1000  )
+            call FileReadParameter( ALPHA2Length, paramsFile%iounit, IdALPHA2Length, .true., 10000 )
+            call FileReadParameter( ALPHA2Shift,  paramsFile%iounit, IdALPHA2Shift,  .true., 1000  )
             write( IOBuffer, '("Alpha2 will be updated each", T40, I7, " time steps")' ) ALPHA2UpdateFrequency
             call LogWrite
             write( IOBuffer, '("Alpha2 correlation length ", T40, I7, " time steps")' ) ALPHA2Length
@@ -1009,10 +1007,10 @@ contains
         call LogWriteBlank
       else
         !Number of Bins for the Density, Chem. Potential and Pressure
-        call FileReadParameter( NBinsDen, iounit_params , IdNBinsDen, .true., 500 )
+        call FileReadParameter( NBinsDen, paramsFile%iounit , IdNBinsDen, .true., 500 )
         write( IOBuffer, '("Osmotic Pressure calculation with ", I7, " Bins")' ) NBinsDen
         call LogWrite
-        call FileReadParameter( kForceOsmoticPressure, iounit_params , IdWallForce, .true., 41868._RK )
+        call FileReadParameter( kForceOsmoticPressure, paramsFile%iounit , IdWallForce, .true., 41868._RK )
         if( .not. UseReducedUnits ) then
           kForceOsmoticPressure = kForceOsmoticPressure/(NAvogadro*Angstroem**2)*(UnitLength**2)/UnitEnergy
         end if
@@ -1023,7 +1021,7 @@ contains
 #endif
 
       ! Read cutoff mode
-      call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
+      call FileReadParameter( str, paramsFile%iounit , IdCutoffMode, .true., "COM" )
       select case( str )
 
       case( 'COM', 'com', 'CenterOfMass', 'CenterofMass', 'centerofmass' )
@@ -1043,26 +1041,26 @@ contains
       call LogWriteBlank
 
       ! Read LongRange mode
-      call FileReadParameter( str, iounit_params , IdLongRange, .true., "rf" )
+      call FileReadParameter( str, paramsFile%iounit , IdLongRange, .true., "rf" )
       select case( str )
         case( 'Ewald', 'ew', 'ewald', 'EWALD')
             LongRange = Ewald
             LongRangeString = 'EwaldSum'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
-            call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
+            call FileReadParameter( KappaL_h, paramsFile%iounit , IdKappa, .true., 5.6_RK )
             write( IOBuffer, '("Ewald: KappaL:", T23, F8.3)' ) KappaL_h
             call LogWrite
 
-            call FileReadParameter( nsqmax_h, iounit_params , Idnsqmax, .true. )
+            call FileReadParameter( nsqmax_h, paramsFile%iounit , Idnsqmax, .true. )
             write( IOBuffer, '("Ewald: NsqMax:",T20, I7)' ) nsqmax_h
             call LogWrite
 
-            call FileReadParameter( nvecmax_h, iounit_params , IdNVecMax, .true. )
+            call FileReadParameter( nvecmax_h, paramsFile%iounit , IdNVecMax, .true. )
             write( IOBuffer, '("Ewald: NVecMax:",T20, I7)' ) nvecmax_h
             call LogWrite
 
-            call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
+            call FileReadParameter( nmax_h, paramsFile%iounit , IdNMax, .true. )
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
 #if SPME > 0
@@ -1072,15 +1070,15 @@ contains
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
             ! Read SPM Ewald Parameters
-            call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
+            call FileReadParameter( KappaL_h, paramsFile%iounit , IdKappa, .true., 5.6_RK )
             write( IOBuffer, '("Ewald: KappaL:", F8.3)' )KappaL_h
             call LogWrite
 
-            call FileReadParameter( grid_h, iounit_params , IdGrid, .true. )
+            call FileReadParameter( grid_h, paramsFile%iounit , IdGrid, .true. )
             write( IOBuffer, '("Grid Space SPME:", I7)' ) grid_h
             call LogWrite
 
-            call FileReadParameter( spline_h, iounit_params , IdSpline, .true. )
+            call FileReadParameter( spline_h, paramsFile%iounit , IdSpline, .true. )
             write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
 #endif
         case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
@@ -1094,7 +1092,7 @@ contains
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
             ! Read extended Reaction Field Parameters
-            call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true.)
+            call FileReadParameter( debyelen_h, paramsFile%iounit , IdDebyeLen, .true.)
             write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
 
         case( 'Rodgers', 'rodgers' )
@@ -1103,7 +1101,7 @@ contains
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
             ! Read Rodgers Parameters
-            call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 0.15_RK )
+            call FileReadParameter( KappaL_h, paramsFile%iounit , IdKappa, .true., 0.15_RK )
             write( IOBuffer, '("Rodgers Parameter KappaL:", F8.3)' )KappaL_h
             call LogWrite
 
@@ -1115,7 +1113,7 @@ contains
     end if
 
     ! Read number of ensembles
-    call FileReadParameter( this%NEnsembles, iounit_params , IdNEnsembles, .true., 1 )
+    call FileReadParameter( this%NEnsembles, paramsFile%iounit , IdNEnsembles, .true., 1 )
     write( IOBuffer, '("Number of ensembles:",T24, I3)' ) this%NEnsembles
     call LogWrite
 
@@ -1127,7 +1125,7 @@ contains
 &       //trim( SimulationTypeString )//" needs 2 Ensembles" )
 
     ! Read number of MPI ensemble groups
-    call FileReadParameter( this%mpiEnsembleGroups, iounit_params , IdmpiEnsembleGroups, .true., 0 )
+    call FileReadParameter( this%mpiEnsembleGroups, paramsFile%iounit , IdmpiEnsembleGroups, .true., 0 )
     if ( this%mpiEnsembleGroups /= 0 ) then
         write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
         call LogWrite
@@ -1142,7 +1140,7 @@ contains
         write( IOBuffer, '("setting up",I3," MPI ensemble groups")' ) this%mpiEnsembleGroups
         call LogWrite
         ! Close the ParameterFile to reopen it within the subcommunicators
-        call FileClose( iounit_params )
+        call FileClose( paramsFile%iounit )
         call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
         ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
         call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
@@ -1154,8 +1152,8 @@ contains
         ! be aware that e.g. the random number generator calls might be different
         call LogWrite
         ! Reopen the ParameterFile (dirty hack) for each communicator
-        call FileReset( iounit_params, ParameterFileName )
-        !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
+        call FileReset( paramsFile%iounit, ParameterFileName )
+        !call FileReadParameter( dummyI, paramsFile%iounit , IdNEnsembles, .true., 1 )
 
         !TerminateStatus=0
         !TerminateStatus_msg=0
@@ -1197,7 +1195,7 @@ contains
 
     this%terminate_cc_multiensemble = 0 !DC NOTE- initialize the global termination counter for multiensemble simulation
     !DC NOTE- Read option if the simulation is supposed to be Cluster criteria
-    call FileReadParameter( str , iounit_params , IdIsClusterCriteria, .true. , 'no' )
+    call FileReadParameter( str , paramsFile%iounit , IdIsClusterCriteria, .true. , 'no' )
     select case( str )
       case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
         this%Ensemble(:)%isCCSimulation = .true.
@@ -1217,7 +1215,7 @@ contains
 
     ! Read correlation function mode
     if ( parVersionNr .lt. 2.0_RK ) then
-      call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
+      call FileReadParameter( str , paramsFile%iounit , IdCorrFun, .true. , 'no' )
       select case( str )
 
       case( 'yes' , 'ok', 'ja' )
@@ -1238,7 +1236,7 @@ contains
     endif
 
       !Read Transport Method
-      call FileReadParameter( str, iounit_params , IdTransMethod, .true., "GK" )
+      call FileReadParameter( str, paramsFile%iounit , IdTransMethod, .true., "GK" )
       select case( str )
         case( 'GK', 'gk', 'GreenKubo', 'GREENKUBO', 'Green-Kubo')
             TransMethod = GreenKubo
@@ -1301,8 +1299,8 @@ contains
 #if MPI_VER > 0
       else
         ! dirty hack to move the file pointer to the next ensemble
-        call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )
-        !call FileReadParameter( dummyR, iounit_params , IdRefDensity, .false. )
+        call FileReadParameter( dummyR, paramsFile%iounit , IdRefTemperature, .false. )
+        !call FileReadParameter( dummyR, paramsFile%iounit , IdRefDensity, .false. )
       end if
       call MPI_Barrier( MPI_COMM_WORLD, ierror )
     end do
@@ -1327,7 +1325,7 @@ contains
   maxcounter = 0
 
   ! Close parameter file
-  call FileClose( iounit_params )
+  call FileClose( paramsFile%iounit )
   write( IOBuffer, '(T18, "Reading Simulation Input successful")')
   call LogWrite
   write( IOBuffer, '(72(1H*))')
@@ -1346,22 +1344,22 @@ contains
            call LogWriteBlank
            SimulationTypeString = 'Second Virial Coefficient'
            SimulationType = SecondVirialCoeff
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
+           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
            if( .not. UseReducedUnits ) then
-           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! hard-coded.
-           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 200 )
-           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 2._RK )
-           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 20._RK  )
+           call FileReadParameter( NOrient, paramsFile%iounit , IdNOrient, .false., 1000 ) ! hard-coded.
+           call FileReadParameter( NSteps, paramsFile%iounit , IdRSteps, .false., 200 )
+           call FileReadParameter( MinRadius, paramsFile%iounit , IdMinRadius, .false., 2._RK )
+           call FileReadParameter( MaxRadius, paramsFile%iounit , IdMaxRadius, .false., 20._RK  )
            else
-           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) !
-           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 400 )
-           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 0.66_RK )
-           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 6.66_RK )
+           call FileReadParameter( NOrient, paramsFile%iounit , IdNOrient, .false., 1000 ) !
+           call FileReadParameter( NSteps, paramsFile%iounit , IdRSteps, .false., 400 )
+           call FileReadParameter( MinRadius, paramsFile%iounit , IdMinRadius, .false., 0.66_RK )
+           call FileReadParameter( MaxRadius, paramsFile%iounit , IdMaxRadius, .false., 6.66_RK )
            end if
            maxNComp=0
            do i = 1, this%NEnsembles !maximum number of components
-               call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )! dirty hack to move the file pointer to the next ensemble
-               call FileReadParameter( thisNComp, iounit_params , IdNComponents, .false. )
+               call FileReadParameter( dummyR, paramsFile%iounit , IdRefTemperature, .false. )! dirty hack to move the file pointer to the next ensemble
+               call FileReadParameter( thisNComp, paramsFile%iounit , IdNComponents, .false. )
                if (thisNComp > maxNComp) maxNComp = thisNComp !maximum number of NComponents of all ensembles
            end do
            allocate(ArrSVC(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat) !allocate memory for SVC and dB/dT
@@ -1394,8 +1392,8 @@ contains
            call LogWrite
            write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem
            call LogWrite
-           call FileClose( iounit_params )
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
+           call FileClose( paramsFile%iounit )
+           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
 #if MPI_VER > 0
            ! force sequential reading of parameter file (within Ensemble Construct)    better use MPI-IO!
            do icommunicator = 0,NCommunicators-1
@@ -1407,14 +1405,14 @@ contains
 #if MPI_VER > 0
              else
                ! dirty hack to move the file pointer to the next ensemble
-               call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )
-               call FileReadParameter( dummyR, iounit_params , IdRefDensity, .false. )
+               call FileReadParameter( dummyR, paramsFile%iounit , IdRefTemperature, .false. )
+               call FileReadParameter( dummyR, paramsFile%iounit , IdRefDensity, .false. )
              end if
              call MPI_Barrier( MPI_COMM_WORLD, ierror )
            end do
 #endif
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-           call FileClose( iounit_params )
+           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
+           call FileClose( paramsFile%iounit )
            SVCCalc = .true.
        endif
      endif
@@ -1424,11 +1422,11 @@ contains
   call CreateAccumulators( this )
 
   ! Set I/O unit numbers
-  this%iounit_result = iounit_result
-  this%iounit_runave = iounit_runave
-  this%iounit_errors = iounit_errors
+  this%resultFile%iounit = resultFile%iounit
+  this%runaveFile%iounit = runaveFile%iounit
+  this%errorsFile%iounit = errorsFile%iounit
 #if  TRANS == 1
-  this%iounit_rescf  = iounit_rescf  !TRANSPORT_thisline
+  this%rescfFile%iounit  = rescfFile%iounit  !TRANSPORT_thisline
 #endif
 
 ! Open result and visualisation files
@@ -1741,18 +1739,18 @@ contains
            if (RootProc) then
              if (NProc_W .ne. NRootProc) then
                write( IOBuffer, '(I16)' ) NProc_W
-               call FileRewrite( iounit_log, trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//LogFileExtension )
+               call FileRewrite( logFile%iounit, trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//LogFileExtension )
 
                do j = this%firstEnsembleIdx, this%lastEnsembleIdx
 
                  ! Open running average result file
                  write( IOBuffer, '(I16)' ) NProc_W
-                 call FileRewrite( this%Ensemble(j)%iounit_runave, &
+                 call FileRewrite( this%Ensemble(j)%runaveFile%iounit, &
 &                     trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
 
                  ! Open result file
                  write( IOBuffer, '(I16)' ) NProc_W
-                 call FileRewrite( this%Ensemble(j)%iounit_result, &
+                 call FileRewrite( this%Ensemble(j)%resultFile%iounit, &
 &                     trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
                enddo
              endif
@@ -2114,8 +2112,8 @@ eqloop: do
           if (NProc_W .ne. NRootProc) then
             ! Close all files keeping track of the equilibration
             do j = this%firstEnsembleIdx, this%lastEnsembleIdx
-              call FileClose( this%Ensemble(j)%iounit_runave )
-              call FileClose( this%Ensemble(j)%iounit_result )
+              call FileClose( this%Ensemble(j)%runaveFile%iounit )
+              call FileClose( this%Ensemble(j)%resultFile%iounit )
             enddo
             call LogClose
           endif
@@ -3560,14 +3558,14 @@ eqloop: do
 #endif
 
         ! Open restart file for writing
-        call FileRewrite( iounit_restart, trim(RestartFileName) )
+        call FileRewrite( restartFile%iounit, trim(RestartFileName) )
 
         ! Save contents to restart file
-        write( iounit_restart, '(A)' ) trim( ParameterFileName )
-        write( iounit_restart, '(2I10)' ) Step, StepTotal
+        write( restartFile%iounit, '(A)' ) trim( ParameterFileName )
+        write( restartFile%iounit, '(2I10)' ) Step, StepTotal
         write( IOBuffer, '("saving restart data at step",I10," /",I10)' ) Step, StepTotal
         call LogWrite
-        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        write( restartFile%iounit, '(2L5)' ) Equilibration, NVTEquilibration
         write( IOBuffer, '("still to be done: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
         call LogWrite
 
@@ -3578,7 +3576,7 @@ eqloop: do
         if( RootProc ) then
             write( IOBuffer, '("writing ensemble",I7)' ) i
             call LogWriteTime
-            write( iounit_restart, '(A,":",I0)' ) RstEnsembleMarker,i
+            write( restartFile%iounit, '(A,":",I0)' ) RstEnsembleMarker,i
         end if
         ! saving ensemble data
         call RestartSave( this%Ensemble(i) )
@@ -3587,7 +3585,7 @@ eqloop: do
     ! Check for root process
     if( RootProc ) then
       ! Close restart file
-      call FileClose( iounit_restart )
+      call FileClose( restartFile%iounit )
     endif
 
 #if MPI_VER > 0
@@ -3657,10 +3655,10 @@ eqloop: do
       call LogWriteTime
 #endif
 
-      call FileReset( iounit_restart, trim(RestartFileName) )
+      call FileReset( restartFile%iounit, trim(RestartFileName) )
 
       ! Read non-ensemble specific contents from restart file first
-      read( iounit_restart, '(A128)' ) parfilename
+      read( restartFile%iounit, '(A128)' ) parfilename
       if (trim(parfilename) /= trim(ParameterFileName)) then
         call LogWriteBlank
         write( IOBuffer, '("WARNING: ",A," was created with par-file ",A," and NOT ",A)' ) &
@@ -3668,10 +3666,10 @@ eqloop: do
         call LogWrite
         call LogWriteBlank
       endif
-      read( iounit_restart, '(2I10)' ) Step, StepTotal
+      read( restartFile%iounit, '(2I10)' ) Step, StepTotal
       write( IOBuffer, '("restarting at step",I10," /",I10)' ) Step, StepTotal
       call LogWrite
-      read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+      read( restartFile%iounit, '(2L5)' ) Equilibration, NVTEquilibration
       write( IOBuffer, '("run: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
       call LogWrite
 
@@ -3699,7 +3697,7 @@ eqloop: do
       ! Read ensembles
       do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         if( RootProc ) then
-          read( iounit_restart, '(A)' ) ensemblemarker
+          read( restartFile%iounit, '(A)' ) ensemblemarker
           pos = index( ensemblemarker,':')
           if( pos<=1 .or. trim(ensemblemarker(1:pos-1))/=trim(RstEnsembleMarker) ) then
             call LogWriteBlank
@@ -3717,7 +3715,7 @@ eqloop: do
       ! Check for root process
       if( RootProc ) then
         ! Close restart file
-        call FileClose( iounit_restart )
+        call FileClose( restartFile%iounit )
       endif
 
 #if MPI_VER > 0
