@@ -244,32 +244,38 @@ module ms2_global
   integer, parameter :: iounit_start  = 1000
 #endif
 
+  type TFile
+
+    integer :: iounit
+
+  end type TFile
+
   ! Define i/o unit numbers
-  integer, parameter :: iounit_log       = iounit_start +  0
-  integer, parameter :: iounit_config    = iounit_start +  1
-  integer, parameter :: iounit_params    = iounit_start +  2
-  integer, parameter :: iounit_potmod    = iounit_start +  3
-  integer, parameter :: iounit_normal    = iounit_start +  4
-  integer, parameter :: iounit_restart   = iounit_start +  5
-  integer, parameter :: iounit_result    = iounit_start +  6
-  integer, parameter :: iounit_runave    = iounit_start +  7
-  integer, parameter :: iounit_errors    = iounit_start +  8
-  integer, parameter :: iounit_visual    = iounit_start +  9
-  integer, parameter :: iounit_rdf       = iounit_start + 10
-  integer, parameter :: iounit_thermoint = iounit_start + 11
-  integer, parameter :: iounit_rescf     = iounit_start + 12
-  integer, parameter :: iounit_visualHB  = iounit_start + 13
-  integer, parameter :: iounit_dcp       = iounit_start + 14
-  integer, parameter :: iounit_kbirdf    = iounit_start + 15
-  integer, parameter :: iounit_kbirav    = iounit_start + 16
-  integer, parameter :: iounit_a2rav     = iounit_start + 17
-  integer, parameter :: iounit_proc      = iounit_start + 18
-  integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
-  integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
+  type(TFile), parameter :: logFile      = TFile(iounit = iounit_start + 0)
+  type(TFile), parameter :: configFile   = TFile(iounit = iounit_start + 1)
+  type(TFile), parameter :: paramsFile   = TFile(iounit = iounit_start + 2)
+  type(TFile), parameter :: potmodFile   = TFile(iounit = iounit_start + 3)
+  type(TFile), parameter :: normalFile   = TFile(iounit = iounit_start + 4)
+  type(TFile), parameter :: restartFile  = TFile(iounit = iounit_start + 5)
+  type(TFile), parameter :: resultFile   = TFile(iounit = iounit_start + 6)
+  type(TFile), parameter :: runaveFile   = TFile(iounit = iounit_start + 7)
+  type(TFile), parameter :: errorsFile   = TFile(iounit = iounit_start + 8)
+  type(TFile), parameter :: visualFile   = TFile(iounit = iounit_start + 9)
+  type(TFile), parameter :: rdfFile      = TFile(iounit = iounit_start + 10)
+  type(TFile), parameter :: thermointFile= TFile(iounit = iounit_start + 11)
+  type(TFile), parameter :: rescfFile    = TFile(iounit = iounit_start + 12)
+  type(TFile), parameter :: visualHBFile = TFile(iounit = iounit_start + 13)
+  type(TFile), parameter :: dcpFile      = TFile(iounit = iounit_start + 14)
+  type(TFile), parameter :: kbirdfFile   = TFile(iounit = iounit_start + 15)
+  type(TFile), parameter :: kbiravFile   = TFile(iounit = iounit_start + 16)
+  type(TFile), parameter :: a2ravFile    = TFile(iounit = iounit_start + 17)
+  type(TFile), parameter :: procFile     = TFile(iounit = iounit_start + 18)
+  type(TFile), parameter :: ecoefFile    = TFile(iounit = iounit_start + 19)   !EinsteinCoef
+  type(TFile), parameter :: ccFile       = TFile(iounit = iounit_start + 20) !DC TODO - this should be changed appropriate to the other output files
+  type(TFile), parameter :: ccgridFile   = TFile(iounit = iounit_start + 21) !DC TODO - this should be changed appropriate to the other output files
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = dcpFile%iounit - resultFile%iounit + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -1493,7 +1499,7 @@ contains
     call LogWrite
     call LogWriteBlank
 
-    call writeCitationHeader(iounit_log)
+    call writeCitationHeader(logFile%iounit)
 
     write( IOBuffer, '(74("*"))')
     call LogWrite
@@ -1919,10 +1925,10 @@ contains
     endif
 
     if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
-      call FileAppend( iounit_log, trim(filename) )
+      call FileAppend( logFile%iounit, trim(filename) )
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
-      call FileRewrite( iounit_log, trim(filename) )
+      call FileRewrite( logFile%iounit, trim(filename) )
       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
@@ -1954,7 +1960,7 @@ contains
 #endif
 
     ! Close log file
-    call FileClose( iounit_log )
+    call FileClose( logFile%iounit )
 
   end subroutine Global_LogClose
 
@@ -1978,11 +1984,11 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWrite( iounit_log )
+    call FileWrite( logFile%iounit )
 
     ! Update log file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
-    call flush( iounit_log )
+    call flush( logFile%iounit )
 #endif
 
   end subroutine Global_LogWrite
@@ -2006,7 +2012,7 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWriteNoAdvance( iounit_log )
+    call FileWriteNoAdvance( logFile%iounit )
 
   end subroutine Global_LogWriteNoAdvance
 
@@ -2030,7 +2036,7 @@ contains
 #endif
 
     ! Write blank line to log file
-    call FileWriteBlank( iounit_log )
+    call FileWriteBlank( logFile%iounit )
 
   end subroutine Global_LogWriteBlank
 
@@ -2158,7 +2164,7 @@ contains
 
     if(RootProc) then
       ! open file for writing
-      if( iounit /= iounit_log ) then
+      if( iounit /= logFile%iounit ) then
         write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
         call logwrite
         open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
@@ -2197,7 +2203,7 @@ contains
     if( RootProc ) then
 
       ! Open file for writing
-      if( iounit /= iounit_log ) then
+      if( iounit /= logFile%iounit ) then
         write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
         call LogWrite
       end if
@@ -2260,7 +2266,7 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
@@ -2289,7 +2295,7 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
@@ -2333,7 +2339,7 @@ contains
     if( i > 0 ) fn = fn( i+1:len( fn ) )
 #endif
     close( iounit )
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), iounit
       call LogWrite
     end if
@@ -3254,7 +3260,7 @@ subroutine Global_printprocStatus(tag_string)
       integer(8) values_minmaxsum(numvalues,3)
 #endif
 
-      open(unit=iounit_proc, file=procfilename, action='read', iostat=stat)
+      open(unit=procFile%iounit, file=procfilename, action='read', iostat=stat)
       !if ( stat /= 0 ) return  ! dangerous for MPI version if not all ranks do exit...
 
       !linenr = 0
@@ -3262,7 +3268,7 @@ subroutine Global_printprocStatus(tag_string)
       values=0
 
       do ! endless loop
-        read(iounit_proc, '(A)', iostat=stat) buffer
+        read(procFile%iounit, '(A)', iostat=stat) buffer
         if (stat /= 0) exit  ! exit if nothing to read (EOF)
         !linenr = linenr + 1
         seppos=scan(buffer,': ')
@@ -3281,7 +3287,7 @@ subroutine Global_printprocStatus(tag_string)
         end do
       end do
 
-      close(iounit_proc)
+      close(procFile%iounit)
 
       call LogWriteBlank
       if( present( tag_string ) ) then

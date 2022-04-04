@@ -719,8 +719,8 @@ contains
       end if
     end if
     ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) j
-    if( j > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &
+    write( restartFile%iounit, '(I10)' ) j
+    if( j > 0 ) write( restartFile%iounit, '(ES20.12E3, ";", I10)' ) &
 &     ( this%BlockSum(i), this%NBlockSum(i), i = 1, j )
 
   end subroutine TAccumulator_RestartSave
@@ -749,10 +749,10 @@ contains
     ! Check for root process
     if( RootProc ) then
       ! Read contents from restart file
-      read( iounit_restart, '(I10)' ) i
-      !read( iounit_restart, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
+      read( restartFile%iounit, '(I10)' ) i
+      !read( restartFile%iounit, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
       do j = 1, i ! should be equivalent to the previous line, which produced an "input conversion error"
-        read( iounit_restart, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
+        read( restartFile%iounit, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
       end do
     endif
     
