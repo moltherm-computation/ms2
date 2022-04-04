@@ -104,8 +104,6 @@ module ms2_ensemble
     integer :: iounit_dcp
 
     !DC NOTE- I/O unit for cluster crit files
-    integer :: iounit_ccpos
-    !DC NOTE- I/O unit for cluster crit files
     integer :: iounit_cc
     !DC NOTE- I/O unit for cluster crit files
     integer :: iounit_ccgrid
