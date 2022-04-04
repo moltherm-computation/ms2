@@ -952,28 +952,50 @@ contains
             call FileReadParameter( ALPHA2Shift,  iounit_params, IdALPHA2Shift,  .true., 1000  )
             write( IOBuffer, '("Alpha2 will be updated each", T40, I7, " time steps")' ) ALPHA2UpdateFrequency
             call LogWrite
-            write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
+            write( IOBuffer, '("Alpha2 correlation length ", T40, I7, " time steps")' ) ALPHA2Length
             call LogWrite
             write( IOBuffer, '("Alpha2 correlation span", T40, I7, " time steps")' ) ALPHA2Shift
             call LogWrite
+
             if (ALPHA2Length < ALPHA2UpdateFrequency) call Error(trim( str )//' -> ALPHA2Length must be greater than ALPHA2Freq')
             if ( mod(ALPHA2Length,ALPHA2UpdateFrequency) /= 0 ) then
               write( IOBuffer, '("ALPHA2Length must be divisible by ALPHA2Freq")' )
               call LogWrite
               ALPHA2Length = ALPHA2Length - mod(ALPHA2Length,ALPHA2UpdateFrequency)
-              write( IOBuffer, '("Alpha2 correlation length was set to: ", T40, I7, " time steps")' ) ALPHA2Length
+              write( IOBuffer, '("Alpha2 correlation length was set to ", T40, I7, " time steps")' ) ALPHA2Length
               call LogWrite
             endif
-            if (ALPHA2Length < ALPHA2Shift) call Error(trim( str )//' -> ALPHA2Length must be equal to or greater than ALPHA2Span')
+
+            if (ALPHA2Length < ALPHA2Shift) then
+              ALPHA2Shift = ALPHA2Length
+              write( IOBuffer, '("ALPHA2Length must be be equal to or greater than ALPHA2Span")' )
+              call LogWrite
+              write( IOBuffer, '("Alpha2 correlation span is set to ", T40, I7, " time steps")' ) ALPHA2Shift
+              call LogWrite
+            endif
             if ( mod(ALPHA2Length,ALPHA2Shift) /= 0 ) then
               write( IOBuffer, '("ALPHA2Length must be divisible by ALPHA2Span")' )
               call LogWrite
               do while ( mod(ALPHA2Length,ALPHA2Shift) /= 0 )
                 ALPHA2Shift = ALPHA2Shift + 1
               end do
-              write( IOBuffer, '("Alpha2 correlation span", T40, I7, " time steps")' ) ALPHA2Shift
-            call LogWrite
+              write( IOBuffer, '("Alpha2 correlation span is set to ", T40, I7, " time steps")' ) ALPHA2Shift
+              call LogWrite
             endif
+
+            if ( mod(ALPHA2Shift,ALPHA2UpdateFrequency) /= 0 ) then
+              write( IOBuffer, '("ALPHA2Span must be divisible by ALPHA2Freq too")' )
+              call LogWrite
+              do
+                ALPHA2Shift = ALPHA2Shift + 1
+                if ( (mod(ALPHA2Shift,ALPHA2UpdateFrequency) == 0) .and. (mod(ALPHA2Length,ALPHA2Shift) == 0) ) then
+                  exit
+                endif
+              end do
+              write( IOBuffer, '("Alpha2 correlation span is set to ", T40, I7, " time steps")' ) ALPHA2Shift
+              call LogWrite
+            endif
+
         else
             call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )
         end if
