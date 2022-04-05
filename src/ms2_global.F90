@@ -835,6 +835,14 @@ module ms2_global
   ! Internal variables of random number generator
   integer, parameter :: K4B = selected_int_kind(9)
   integer(K4B)       :: ix, iy, tpix, randk
+#if MPI_VER > 0
+#if MPI_USE_MODULE
+  ! MPI Datatype corresponding to K4B of the passed data
+  TYPE(MPI_Datatype) :: MPI_K4B
+#else
+  integer :: MPI_K4B
+#endif
+#endif
   real(RK)           :: am
 
   ! Internal variable of FileReadParameter
@@ -1354,6 +1362,18 @@ contains
       end if
       call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
     end if
+
+    if ( K4B == 8 ) then
+      MPI_K4B = MPI_INTEGER8
+    else if ( K4B == 4 ) then
+      MPI_K4B = MPI_INTEGER4
+    else
+      if( RootProc ) then
+        print *,"ERROR: K4B==", K4B," not supported for MPI version"
+      end if
+      call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    endif
+
 #endif
 
     ! Initialize flags
