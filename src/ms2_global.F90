@@ -25,10 +25,6 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 !           __GFORTRAN__
 #if defined __GNUC__
 ! the gfortran preprocessor seems not to support the # operator
@@ -61,8 +57,7 @@
 module ms2_global
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_version
@@ -3052,11 +3047,6 @@ contains
 #endif
 
     implicit none
-
-!     ! Include MPI header
-! #if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-!     include 'mpif.h'
-! #endif
 
 #ifdef __INTEL_COMPILER
     ! Declare arguments

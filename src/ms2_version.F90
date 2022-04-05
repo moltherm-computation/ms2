@@ -10,7 +10,7 @@
 
 module ms2_version
 
-  character(*), parameter :: VersionString = '4.067'
-  real(4)                :: ms2VersionNr = 4.067
+  character(*), parameter :: VersionString = '4.068'
+  real(4)                :: ms2VersionNr = 4.068
 
 end module ms2_version

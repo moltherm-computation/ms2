@@ -48,9 +48,6 @@
 ! the MPI2 standard requires the support of a mpi module (see 16.2),
 ! but some MPI1 distributions don't offer a Fortran90 binding and won't compile
 ! uncomment the next line, if you have a MPI distribution for MPI>=version 2
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
 #define STOPWATCH_USE_MPIWTIME
 #endif
 
@@ -77,8 +74,7 @@
 module ms2_stopwatch
 
 #ifdef MPI_USE_MODULE
-  use mpi
-  !use mpi_f08	! needs to adjust types (e.g. Integer->MPI_Comm etc.)
+  use mpi_f08
 #endif
 
   use ms2_global
