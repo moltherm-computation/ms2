@@ -6320,7 +6320,11 @@ loop3:    do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
+#if MPI_USE_MODULE
+    TYPE(MPI_Comm)            :: tempComm
+#else
     integer                   :: tempComm
+#endif
     integer                   :: tempVec(0:this%NFluctMax)
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)

@@ -851,10 +851,17 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
+#if MPI_USE_MODULE
+  TYPE(MPI_Comm) :: Communicator   ! actual MPI communicator
+  !TYPE(MPI_Comm) :: Communicator_W    ! =MPI_COMM_WORLD
+  TYPE(MPI_Comm) :: Communicator_R ! MPI communicator containing all roots
+  TYPE(MPI_Comm) :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
+#else
   integer :: Communicator   ! actual MPI communicator
   !integer :: Communicator_W    ! =MPI_COMM_WORLD
   integer :: Communicator_R ! MPI communicator containing all roots
   integer :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
+#endif
   integer :: NProcs ! number of PEs within actual MPI communicator
   integer :: NProc  ! MPI rank of actual MPI communicator
   integer :: NRootProc  ! MPI rank of root of actual MPI communicator
@@ -1171,7 +1178,11 @@ contains
 #endif
 
     ! Declare arguments
+#if MPI_USE_MODULE
+    TYPE(MPI_Comm), intent(in) :: comm
+#else
     integer, intent(in) :: comm
+#endif
 
     Communicator = comm
     if( Communicator /= MPI_COMM_NULL ) then
@@ -1204,9 +1215,13 @@ contains
     integer, intent(in)         :: ngroups
 
     integer :: groupId
-    integer :: oldCommunicator,newCommunicator
+#if MPI_USE_MODULE
+    TYPE(MPI_Comm) :: oldCommunicator, newCommunicator
+#else
+    integer :: oldCommunicator, newCommunicator
+#endif
 
-    oldCommunicator=Communicator
+    oldCommunicator = Communicator
 
     if( ngroups > NProcs ) then
       NCommunicators=NProcs
