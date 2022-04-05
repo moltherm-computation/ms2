@@ -10022,13 +10022,13 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
       if (SimulationType .eq. MonteCarlo) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileAppend_parallel(this%resultFile%iounit, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+        call FileAppend_parallel(this%resultFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
 
         if( .not. SimulationType .eq. SecondVirialCoeff ) then
 
           ! Open running average result file
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
-          call FileAppend_parallel( this%runaveFile%iounit, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+          call FileAppend_parallel( this%runaveFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
       else
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -10064,12 +10064,12 @@ loop2:        do nc = 1, this%NComponents
       if (SimulationType .eq. MonteCarlo) then
         ! Open result file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite_parallel(this%resultFile%iounit, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
+        call FileRewrite_parallel(this%resultFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
         if( .not. SimulationType .eq. SecondVirialCoeff ) then
 
           ! Open running average result file
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
-          call FileRewrite_parallel( this%runaveFile%iounit, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
+          call FileRewrite_parallel(this%runaveFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
       else
         ! Open result file
@@ -10699,8 +10699,8 @@ loop2:        do nc = 1, this%NComponents
          ! all processes
          ! RootProc_W is writing header
          call MPI_Barrier(MPI_COMM_WORLD, ierror)
-         call MPI_File_seek(this%resultFile%iounit, offset, MPI_SEEK_END, ierr)
-         call MPI_File_seek(this%runaveFile%iounit, offset, MPI_SEEK_END, ierr)
+         call MPI_File_seek(this%resultFile%MPIhandle, offset, MPI_SEEK_END, ierr)
+         call MPI_File_seek(this%runaveFile%MPIhandle, offset, MPI_SEEK_END, ierr)
          if (RootProc_W) then
 
            call writeRunRavHeader(this)
@@ -11329,8 +11329,8 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
         call MPI_Barrier(MPI_COMM_WORLD, ierror) ! wait for RootProc_W to write header
         offset=0
-        call MPI_File_seek(this%resultFile%iounit, offset, MPI_SEEK_END, ierr)
-        call MPI_File_seek(this%runaveFile%iounit, offset, MPI_SEEK_END, ierr)
+        call MPI_File_seek(this%resultFile%MPIhandle, offset, MPI_SEEK_END, ierr)
+        call MPI_File_seek(this%runaveFile%MPIhandle, offset, MPI_SEEK_END, ierr)
         call MPI_Barrier(MPI_COMM_WORLD, ierror) ! wait for seeks before writing (and maybe moving END)
 
         if (Equilibration) then
@@ -11340,8 +11340,8 @@ loop2:        do nc = 1, this%NComponents
             if (RootProc) then
               if (mpiMCCommonGroups > 0) then
                 offset = (NProc_W/NProcs) * (11 * fields + 1) !offset for each head of each mpiMCCommonGroup
-                call MPI_File_Seek((this%resultFile%iounit), offset, MPI_SEEK_CUR, ierr)
-                call MPI_File_Seek((this%runaveFile%iounit), offset, MPI_SEEK_CUR, ierr)
+                call MPI_File_Seek((this%resultFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
+                call MPI_File_Seek((this%runaveFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
 
                 ! PROC
                 write( IOBuffer, '(I11)' ) NProc_W
@@ -11448,8 +11448,8 @@ loop2:        do nc = 1, this%NComponents
           else ! No CommonEqui
 
             offset = NProc * (11 * fields + 1)
-            call MPI_File_Seek((this%resultFile%iounit), offset, MPI_SEEK_CUR, ierr)
-            call MPI_File_Seek((this%runaveFile%iounit), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%resultFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%runaveFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
 
             ! PROC
             write( IOBuffer, '(I11)' ) NProc
@@ -11549,8 +11549,8 @@ loop2:        do nc = 1, this%NComponents
             if (.not. RootProc) return
 
             offset = (NProc_W/NProcs) * (11 * fields + 1) !offset for each head of each mpiMCCommonGroup
-            call MPI_File_Seek((this%resultFile%iounit), offset, MPI_SEEK_CUR, ierr)
-            call MPI_File_Seek((this%runaveFile%iounit), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%resultFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%runaveFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
 
             ! PROC
             write( IOBuffer, '(I11)' ) NProc_W
@@ -11564,8 +11564,8 @@ loop2:        do nc = 1, this%NComponents
             call FileWriteNoAdvance_parallel(this%runaveFile)
           else
             offset = NProc * (11 * fields + 1)
-            call MPI_File_Seek((this%resultFile%iounit), offset, MPI_SEEK_CUR, ierr)
-            call MPI_File_Seek((this%runaveFile%iounit), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%resultFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
+            call MPI_File_Seek((this%runaveFile%MPIhandle), offset, MPI_SEEK_CUR, ierr)
 
             ! PROC
             write( IOBuffer, '(I11)' ) NProc
@@ -12343,10 +12343,10 @@ loop2:        do nc = 1, this%NComponents
 #if MPI_VER > 0
     if (SimulationType .eq. MonteCarlo) then
       ! Close running average result file
-      if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose_parallel( this%runaveFile%iounit )
+      if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose_parallel(this%runaveFile)
 
       ! Close result file
-      call FileClose_parallel( this%resultFile%iounit )
+      call FileClose_parallel(this%resultFile)
     else
       if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%runaveFile%iounit )
 
