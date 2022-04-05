@@ -1253,31 +1253,31 @@ contains
 
 #endif
 
-  subroutine writeCitationHeader(ioUnit)
+  subroutine writeCitationHeader(file)
 
     implicit none
 
-    integer, intent(in) :: ioUnit
+    type(Tfile), intent(in) :: file
 
     write( IOBuffer, '(76("="))')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("*                         Publishing with ms2                              *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '(76("="))')
-    call FileWrite(ioUnit)
-    call FileWriteBlank(ioUnit)
+    call FileWrite(file)
+    call FileWriteBlank(file)
 
   end subroutine writeCitationHeader
 
@@ -1499,7 +1499,7 @@ contains
     call LogWrite
     call LogWriteBlank
 
-    call writeCitationHeader(logFile%iounit)
+    call writeCitationHeader(logFile)
 
     write( IOBuffer, '(74("*"))')
     call LogWrite
@@ -1984,7 +1984,7 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWrite( logFile%iounit )
+    call FileWrite(logFile)
 
     ! Update log file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
@@ -2012,7 +2012,7 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWriteNoAdvance( logFile%iounit )
+    call FileWriteNoAdvance(logFile)
 
   end subroutine Global_LogWriteNoAdvance
 
@@ -2036,7 +2036,7 @@ contains
 #endif
 
     ! Write blank line to log file
-    call FileWriteBlank( logFile%iounit )
+    call FileWriteBlank(logFile)
 
   end subroutine Global_LogWriteBlank
 
@@ -2228,7 +2228,7 @@ contains
 !  Subroutine Global_FileWriteNoAdvance_parallel               !
 !==============================================================!
 
-  subroutine Global_FileWriteNoAdvance_parallel( iounit )
+  subroutine Global_FileWriteNoAdvance_parallel(file)
 
     implicit none
 #if !defined(MPI_USE_MODULE)
@@ -2236,10 +2236,10 @@ contains
 #endif
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
-    integer, intent(in) :: iounit
+    type(Tfile), intent(in) :: file
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
+    call MPI_File_write(file%iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
     !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
     !
     !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
@@ -2352,12 +2352,12 @@ contains
 !  Subroutine Global_FileWrite                                 !
 !==============================================================!
 
-  subroutine Global_FileWrite( iounit )
+  subroutine Global_FileWrite(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2369,8 +2369,8 @@ contains
 #endif
 
     ! Write contents of buffer to file
-    call FileWriteNoAdvance( iounit )
-    call FileWriteBlank( iounit )
+    call FileWriteNoAdvance(file)
+    call FileWriteBlank(file)
 
   end subroutine Global_FileWrite
 
@@ -2380,12 +2380,12 @@ contains
 !  Subroutine Global_FileWriteNoAdvance                        !
 !==============================================================!
 
-  subroutine Global_FileWriteNoAdvance( iounit )
+  subroutine Global_FileWriteNoAdvance(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2397,7 +2397,7 @@ contains
 #endif
 
     ! Write contents of buffer to file
-    write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
+    write( file%iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
 
   end subroutine Global_FileWriteNoAdvance
 
@@ -2407,12 +2407,12 @@ contains
 !  Subroutine Global_FileWriteBlank                            !
 !==============================================================!
 
-  subroutine Global_FileWriteBlank( iounit )
+  subroutine Global_FileWriteBlank(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(Tfile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2424,7 +2424,7 @@ contains
 #endif
 
     ! Write blank line to file
-    write( iounit, '()' )
+    write( file%iounit, '()' )
 
   end subroutine Global_FileWriteBlank
 

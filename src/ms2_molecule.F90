@@ -455,71 +455,71 @@ contains
 
     ! Save MIE sites
     if( this%NMIEnm > 0 ) then
-      call FileWriteBlank( normalFile%iounit )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) LJorMIE !'MIEnm'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NMIEnm
       call FileWriteParameter( normalFile%iounit, IdSite_NMIEnm )
       do i = 1, this%NMIEnm
-        call FileWriteBlank( normalFile%iounit )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteMIEnm(i) )
       end do
     end if
 
     ! Save TT68 sites
     if( this%NTT68 > 0 ) then
-      call FileWriteBlank( normalFile%iounit )
+      call FileWriteBlank( normalFile )
       write( IOBuffer, '(1X, A)' ) 'TT68'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NTT68
       call FileWriteParameter( normalFile%iounit, IdSite_NTT68 )
       do i = 1, this%NTT68
-        call FileWriteBlank( normalFile%iounit )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteTT68(i) )
       end do
     end if
 
     ! Save point charge sites
     if( this%NCharge > 0 ) then
-      call FileWriteBlank( normalFile%iounit )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Charge'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NCharge
       call FileWriteParameter( normalFile%iounit, IdSite_NCharge )
       do i = 1, this%NCharge
-        call FileWriteBlank( normalFile%iounit )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteCharge(i) )
       end do
     end if
 
     ! Save point dipole sites
     if( this%NDipole > 0 ) then
-      call FileWriteBlank( normalFile%iounit )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Dipole'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NDipole
       call FileWriteParameter( normalFile%iounit, IdSite_NDipole )
       do i = 1, this%NDipole
-        call FileWriteBlank( normalFile%iounit )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteDipole(i) )
       end do
     end if
 
     ! Save point quadrupole sites
     if( this%NQuadrupole > 0 ) then
-      call FileWriteBlank( normalFile%iounit )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Quadrupole'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NQuadrupole
       call FileWriteParameter( normalFile%iounit, IdSite_NQuadrupole )
       do i = 1, this%NQuadrupole
-        call FileWriteBlank( normalFile%iounit )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteQuadrupole(i) )
       end do
     end if
 
     ! Save number of rotation axes
-    call FileWriteBlank( normalFile%iounit )
+    call FileWriteBlank(normalFile)
     write( IOBuffer, '(I2)' ) this%NDFRot
     call FileWriteParameter( normalFile%iounit, IdSite_NDFRot )
 
