@@ -20814,7 +20814,7 @@ end if
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
     integer                   :: ODFSum_hilf(nPhi*NProcs)
     integer                   :: ODFErrSum_hilf(NProcs)
-    integer(KIND=4)           :: tpix_aux(1:NProcs)
+    integer(K4B)              :: tpix_aux(1:NProcs)
     integer                   :: NBins, LocalVisit
     real(RK), dimension(:), allocatable :: BinsEn, BinsdEndLa, BinsIntdEndLa   ! dynamic 1-D arrays
     real(RK), dimension(:), allocatable :: BinsdEndLaV, BinsdEndLaH, BinsIntVW, BinsIntHW
@@ -21145,8 +21145,8 @@ end if
 
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
-      call MPI_Gather( tpix, 1, MPI_INTEGER4, &
-&                       tpix_aux(1:NProcs), 1, MPI_INTEGER4, NRootProc, Communicator, ierror )
+      call MPI_Gather( tpix, 1, MPI_K4B, &
+&                       tpix_aux(1:NProcs), 1, MPI_K4B, NRootProc, Communicator, ierror )
       if( RootProc ) then
         ! write restart values for random number generator
         write(restartFile%iounit, '(I12)' ) ix
