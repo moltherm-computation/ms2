@@ -61,7 +61,11 @@ module ms2_simulation
     logical :: doneBcastTerm=.false., doneMsgTerm=.false.
     integer :: numMsgTerm_send=0, numMsgTerm_recv=0
     !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
+#if defined(MPI_USE_MODULE)
+    TYPE(MPI_Request) :: mpireqbcastTerm, mpireqmsgTerm
+#else
     integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
+#endif
     integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
     integer :: TerminateCountdown=0
     logical :: doneTerminateCountdown=.false.
