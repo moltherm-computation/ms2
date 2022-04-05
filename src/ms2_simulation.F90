@@ -275,8 +275,13 @@ contains
     integer                     :: value
 
 #if MPI_VER > 0
+#if defined(MPI_USE_MODULE)
+    TYPE(MPI_Comm) oldCommunicator, newCommunicator
+#else
+    integer  :: oldCommunicator, newCommunicator
+#endif
     integer  :: icommunicator
-    integer  :: color, oldCommunicator, newCommunicator, groupId
+    integer  :: color, groupId
     !real(RK) :: dummyR
     !integer  :: dummyI
 #endif
