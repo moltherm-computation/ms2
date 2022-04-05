@@ -492,12 +492,12 @@ contains
   end subroutine TAccumulator_Error
 
 
-  subroutine writeAverages(this, iounit_result, iounit_runave, optionalFormatString, parallelMC)
+  subroutine writeAverages(this, resultFile, runaveFile, optionalFormatString, parallelMC)
 
     implicit none
 
     type(TAccumulator) :: this
-    integer            :: iounit_result, iounit_runave
+    type(TFile)        :: resultFile, runaveFile
     logical            :: parallelMC
     character(len=*), intent(in), optional :: optionalFormatString
     character(:), allocatable :: formatString
@@ -512,19 +512,19 @@ contains
     if (parallelMC) then
 
         write( IOBuffer, formatString) this%BlockAverage
-        call FileWriteNoAdvance_parallel(iounit_result)
+        call FileWriteNoAdvance_parallel(resultFile)
 
         write( IOBuffer, formatString) this%Average
-        call FileWriteNoAdvance_parallel(iounit_runave)
+        call FileWriteNoAdvance_parallel(runaveFile)
 
     else
 #endif
 
     write( IOBuffer, formatString) this%BlockAverage
-    call FileWriteNoAdvance(iounit_result)
+    call FileWriteNoAdvance(resultFile)
 
     write( IOBuffer, formatString) this%Average
-    call FileWriteNoAdvance(iounit_runave)
+    call FileWriteNoAdvance(runaveFile)
 
 #if MPI_VER > 0
     end if
@@ -533,12 +533,12 @@ contains
   end subroutine writeAverages
 
 
-  subroutine writeAverageAndVariance(this, variableName, iounit_errors, reducedTitle)
+  subroutine writeAverageAndVariance(this, variableName, errorsFile, reducedTitle)
 
     implicit none
 
     type(TAccumulator) :: this
-    integer, intent(in)        :: iounit_errors
+    type(TFile), intent(in)        :: errorsFile
     character(:), allocatable    :: formatString
     character(len=*), intent(in)    :: variableName
     logical, optional :: reducedTitle
@@ -553,8 +553,8 @@ contains
     end if
 
     write( IOBuffer, formatString) this%Average, this%Variance
-    call FileWrite(iounit_errors)
-    call FileWriteBlank(iounit_errors)
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
 
   end subroutine writeAverageAndVariance
 
