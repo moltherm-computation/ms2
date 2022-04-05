@@ -15,10 +15,7 @@ SPME     ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
-#---------------------------------------
-#USE_MPI_MODULE ?= 1
-#---------------------------------------
-#
+
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
 #
@@ -111,9 +108,13 @@ ifeq ($(SPME),1)
   PROG     := $(PROG)_spme
 endif
 
-ifdef USE_MPI_MODULE
-  #CPPFLAGS += -DUSE_MPI_MODULE=$(USE_MPI_MODULE)
-  CPPFLAGS += -DUSE_MPI_MODULE
+ifeq ($(MPI_USE_MODULE),1)
+ifeq ($(MPI),1)
+  CPPFLAGS += -DMPI_USE_MODULE
+  $(info MPI_USE_MODULE enabled: remove 'include mpif.h' from routines, add 'use mpif_08' in modules)
+else
+  $(error MPI_USE_MODULE only available with 'MPI=1')
+endif
 endif
 
 SRCS =  ms2.F90 \

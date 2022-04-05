@@ -22,16 +22,11 @@
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 
 module ms2_accumulator
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_global
