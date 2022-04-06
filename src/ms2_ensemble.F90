@@ -25344,31 +25344,31 @@ contains
           end if
 
           ! conductivity
-            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vckt(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) - &
-&                                                  this%vckt(CFindex, k)*this%vcmt(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) - &
-&                                                  this%vckr(CFindex, k)*this%vcmt(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) - &
-&                                                  this%vcpt(CFindex, k)*this%vcmt(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) - &
-&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) - &
-&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) - &
-&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) - &
-&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) - &
-&                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vcmt(s, k)
+            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*(this%vckt(s, k) + &
+&                                                                         this%vcpt(s, k) + &
+&                                                                         this%vckr(s, k) + &
+&                                                                         this%vcpr(s, k) - &
+&                                                                         this%vcmt(s, k))+ &
+&                                                  this%vckr(CFindex, k)*(this%vckt(s, k) + &
+&                                                                         this%vcpt(s, k) + &
+&                                                                         this%vckr(s, k) + &
+&                                                                         this%vcpr(s, k) - &
+&                                                                         this%vcmt(s, k))+ &
+&                                                  this%vcpt(CFindex, k)*(this%vckt(s, k) + &
+&                                                                         this%vcpt(s, k) + &
+&                                                                         this%vckr(s, k) + &
+&                                                                         this%vcpr(s, k) - &
+&                                                                         this%vcmt(s, k))+ &
+&                                                  this%vcpr(CFindex, k)*(this%vckt(s, k) + &
+&                                                                         this%vcpt(s, k) + &
+&                                                                         this%vckr(s, k) + &
+&                                                                         this%vcpr(s, k) - &
+&                                                                         this%vcmt(s, k))- &
+&                                                  this%vcmt(CFindex, k)*(this%vckt(s, k) + &
+&                                                                         this%vcpt(s, k) + &
+&                                                                         this%vckr(s, k) + &
+&                                                                         this%vcpr(s, k) - &
+&                                                                         this%vcmt(s, k))
 
         end do !k = 1, 3
 
