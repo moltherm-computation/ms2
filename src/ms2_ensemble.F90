@@ -25057,7 +25057,7 @@ contains
     real(RK) :: KinERot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
-    real(RK) :: Mass
+    real(RK) :: Mass, beautifulSum1
     real(RK), pointer, contiguous :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
     logical  :: EConductivity, Bulkviscosity, MolarEnthConduct
@@ -25344,31 +25344,13 @@ contains
           end if
 
           ! conductivity
-            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*(this%vckt(s, k) + &
-&                                                                         this%vcpt(s, k) + &
-&                                                                         this%vckr(s, k) + &
-&                                                                         this%vcpr(s, k) - &
-&                                                                         this%vcmt(s, k))+ &
-&                                                  this%vckr(CFindex, k)*(this%vckt(s, k) + &
-&                                                                         this%vcpt(s, k) + &
-&                                                                         this%vckr(s, k) + &
-&                                                                         this%vcpr(s, k) - &
-&                                                                         this%vcmt(s, k))+ &
-&                                                  this%vcpt(CFindex, k)*(this%vckt(s, k) + &
-&                                                                         this%vcpt(s, k) + &
-&                                                                         this%vckr(s, k) + &
-&                                                                         this%vcpr(s, k) - &
-&                                                                         this%vcmt(s, k))+ &
-&                                                  this%vcpr(CFindex, k)*(this%vckt(s, k) + &
-&                                                                         this%vcpt(s, k) + &
-&                                                                         this%vckr(s, k) + &
-&                                                                         this%vcpr(s, k) - &
-&                                                                         this%vcmt(s, k))- &
-&                                                  this%vcmt(CFindex, k)*(this%vckt(s, k) + &
-&                                                                         this%vcpt(s, k) + &
-&                                                                         this%vckr(s, k) + &
-&                                                                         this%vcpr(s, k) - &
-&                                                                         this%vcmt(s, k))
+          beautifulSum1 = this%vckt(s, k) + this%vcpt(s, k) + this%vckr(s, k) + this%vcpr(s, k) - this%vcmt(s, k)
+
+            this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*(beautifulSum1)+ &
+&                                                  this%vckr(CFindex, k)*(beautifulSum1)+ &
+&                                                  this%vcpt(CFindex, k)*(beautifulSum1)+ &
+&                                                  this%vcpr(CFindex, k)*(beautifulSum1)- &
+&                                                  this%vcmt(CFindex, k)*(beautifulSum1)
 
         end do !k = 1, 3
 
