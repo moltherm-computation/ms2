@@ -1968,10 +1968,10 @@ contains
     endif
 
     if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
-      call FileAppend( logFile%iounit, trim(filename) )
+      call FileAppend(logFile, trim(filename))
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
-      call FileRewrite( logFile%iounit, trim(filename) )
+      call FileRewrite(logFile, trim(filename))
       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
@@ -2003,7 +2003,7 @@ contains
 #endif
 
     ! Close log file
-    call FileClose( logFile%iounit )
+    call FileClose(logFile)
 
   end subroutine Global_LogClose
 
@@ -2146,12 +2146,12 @@ contains
 !  Subroutine Global_FileReset                                 !
 !==============================================================!
 
-  subroutine Global_FileReset( iounit, filename )
+  subroutine Global_FileReset(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)      :: iounit
+    type(TFile), intent(in)      :: file
     character(*), intent(in) :: filename
 
     ! Declare local variables
@@ -2162,9 +2162,9 @@ contains
 
 
     ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
+    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), file%iounit
     call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    open( file%iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
     if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
 
   end subroutine Global_FileReset
@@ -2295,23 +2295,23 @@ contains
 !  Subroutine Global_FileRewrite                               !
 !==============================================================!
 
-  subroutine Global_FileRewrite( iounit, filename )
+  subroutine Global_FileRewrite(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    type(TFile), intent(in)       :: file
     character(*), intent(in)      :: filename
 
     ! Check for root process
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), iounit
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), file%iounit
       call LogWrite
     end if
-    open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+    open( file%iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
 
   end subroutine Global_FileRewrite
 
@@ -2321,12 +2321,12 @@ contains
 !  Subroutine Global_FileAppend                                !
 !==============================================================!
 
-  subroutine Global_FileAppend( iounit, filename )
+  subroutine Global_FileAppend(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    type(TFile), intent(in)       :: file
     character(*), intent(in)      :: filename
 
     ! Declare local variables
@@ -2336,17 +2336,17 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), iounit
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), file%iounit
       call LogWrite
     end if
     inquire( file = filename, exist = ex )
     if( ex ) then
-      open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
+      open( file%iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
     else
       write( IOBuffer, '("File does not exist. Creating new")' )
       call LogWrite
-      open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+      open( file%iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
     end if
 
   end subroutine Global_FileAppend
@@ -2357,12 +2357,12 @@ contains
 !  Subroutine Global_FileClose                                 !
 !==============================================================!
 
-  subroutine Global_FileClose( iounit )
+  subroutine Global_FileClose(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Declare local variables
     character(FileNameLength) :: fn
@@ -2374,14 +2374,14 @@ contains
     if( .not. RootProc ) return
 
     ! Close file
-    inquire( iounit, NAME = fn )
+    inquire( file%iounit, NAME = fn )
 #ifdef _WIN32
     i = index( fn, '\', BACK=.true. )
     if( i > 0 ) fn = fn( i+1:len( fn ) )
 #endif
-    close( iounit )
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), iounit
+    close( file%iounit )
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), file%iounit
       call LogWrite
     end if
 
