@@ -84,7 +84,12 @@ module ms2_global
 #endif
 
 #if MPI_VER > 0
+#if MPI_USE_MODULE
+  ! MPI Datatype corresponding to RK of the passed data
+  TYPE(MPI_Datatype) :: MPI_RK
+#else
   integer :: MPI_RK
+#endif
 #endif
 
   ! Identifier for MC overlaps
