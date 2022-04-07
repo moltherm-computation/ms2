@@ -25057,7 +25057,8 @@ contains
     real(RK) :: KinERot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
-    real(RK) :: Mass, beautifulSum1, beautifulSum2
+    real(RK) :: Mass
+    real(RK), dimension(3) :: beautifulSum1, beautifulSum2
     real(RK), pointer, contiguous :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
     logical  :: EConductivity, Bulkviscosity, MolarEnthConduct
@@ -25322,6 +25323,9 @@ contains
           end if
         end if
 
+        beautifulSum1 = this%vckt(s, :) + this%vcpt(s, :) + this%vckr(s, :) + this%vcpr(s, :) - this%vcmt(s, :)
+        beautifulSum2 = this%vckt(CFindex, :) + this%vcpt(CFindex, :) + this%vckr(CFindex, :) + this%vcpr(CFindex, :) - this%vcmt(CFindex, :)
+
         ! Calculated in general
         do k = 1, 3
           ! shear viscosity (off-diagonal elements)
@@ -25344,10 +25348,7 @@ contains
           end if
 
           ! conductivity
-          beautifulSum1 = this%vckt(s, k) + this%vcpt(s, k) + this%vckr(s, k) + this%vcpr(s, k) - this%vcmt(s, k)
-          beautifulSum2 = this%vckt(CFindex, k) + this%vcpt(CFindex, k) + this%vckr(CFindex, k) + this%vcpr(CFindex, k) - this%vcmt(CFindex, k)
-
-          this%cf_c(nmess) =  this%cf_c(nmess) + beautifulSum2 * beautifulSum1
+          this%cf_c(nmess) =  this%cf_c(nmess) + beautifulSum2(k) * beautifulSum1(k)
 
         end do !k = 1, 3
 
@@ -25368,10 +25369,7 @@ contains
            do j = 1, this%NComponents
              do k = 1, 3
 
-               beautifulSum1 = this%vckt(s, k) + this%vcpt(s, k) + this%vckr(s, k) + this%vcpr(s, k) - this%vcmt(s, k)
-               beautifulSum2 = this%vckt(CFindex, k) + this%vcpt(CFindex, k) + this%vckr(CFindex, k) + this%vcpr(CFindex, k) - this%vcmt(CFindex, k)
-
-               this%cf_soret(j, nmess) =  this%cf_soret(j, nmess) + beautifulSum2 * ss(j,k) + Sindex(j,k) * beautifulSum1
+               this%cf_soret(j, nmess) =  this%cf_soret(j, nmess) + beautifulSum2(k) * ss(j,k) + Sindex(j,k) * beautifulSum1(k)
 
              end do
            end do
