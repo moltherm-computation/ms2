@@ -25367,16 +25367,12 @@ contains
          if (this%Ncomponents .gt. 1) then
            do j = 1, this%NComponents
              do k = 1, 3
-               this%cf_soret(j, nmess) =  this%cf_soret(j, nmess) + this%vckt(CFindex, k)*ss(j,k) + &
-&                                                                   this%vckr(CFindex, k)*ss(j,k) + &
-&                                                                   this%vcpt(CFindex, k)*ss(j,k) + &
-&                                                                   this%vcpr(CFindex, k)*ss(j,k) - &
-&                                                                   this%vcmt(CFindex, k)*ss(j,k) + &
-&                                                                   Sindex(j,k)*this%vckt(s, k) + &
-&                                                                   Sindex(j,k)*this%vckr(s, k) + &
-&                                                                   Sindex(j,k)*this%vcpt(s, k) + &
-&                                                                   Sindex(j,k)*this%vcpr(s, k) - &
-&                                                                   Sindex(j,k)*this%vcmt(s, k)
+
+               beautifulSum1 = this%vckt(s, k) + this%vcpt(s, k) + this%vckr(s, k) + this%vcpr(s, k) - this%vcmt(s, k)
+               beautifulSum2 = this%vckt(CFindex, k) + this%vcpt(CFindex, k) + this%vckr(CFindex, k) + this%vcpr(CFindex, k) - this%vcmt(CFindex, k)
+
+               this%cf_soret(j, nmess) =  this%cf_soret(j, nmess) + beautifulSum2 * ss(j,k) + Sindex(j,k) * beautifulSum1
+
              end do
            end do
          end if
