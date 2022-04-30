@@ -3246,7 +3246,7 @@ contains
       pc => this%Component(i)
       s = s + pc%Fraction
     end do
-    
+
     if ( s /= 1_RK) then
       write(IOBuffer, '("Warning: Mole fraction sum of the considered fluid is not unity")')
       call LogWrite
@@ -3255,7 +3255,7 @@ contains
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       pc%Fraction = pc%Fraction / s
-      if ( s /= 1_RK) then    
+      if ( s /= 1_RK) then
         write( IOBuffer, '("Mole fraction of ", A, " was set to:",T45, F6.3)' ) trim( pc%PotModFileName ), pc%Fraction
         call LogWrite
       endif
@@ -6608,8 +6608,11 @@ loop2:        do nc = 1, this%NComponents
           call ChemicalPotential( this%Interaction( i, j ), this%EPotTest, this%BoxLength )
         end do
 
-        ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
-
+        ChemPot = 0.0
+        do j = 1, this%Component(i)%NTest
+          ChemPot = ChemPot + exp( -( this%EPotTest(j) ) / this%Temperature )
+        end do
+        ChemPot = ChemPot/pc%NTest
 
 #if MPI_VER > 0
         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
@@ -6836,7 +6839,7 @@ loop2:        do nc = 1, this%NComponents
     do nc = 1, this%NComponents
       do i = nc, this%NComponents
         pi => this%Interaction(nc, i)
-        matrixhalf = nc == i !SameComponent => matrixhalf=.true.        
+        matrixhalf = nc == i !SameComponent => matrixhalf=.true.
         ! Loop over particles
         do np = 1, this%Component(nc)%NPart
           call Energy( pi, np, this%BoxLength, matrixhalf )
@@ -10219,7 +10222,7 @@ loop2:        do nc = 1, this%NComponents
         ! Dielectric Constant
         write( IOBuffer, '("        <M>")' )
         call writeIOBufferToRUNandRAV(this%resultFile, this%runaveFile)
-    
+
         ! Dielectric Constant
         write( IOBuffer, '("      <M^2>")' )
         call writeIOBufferToRUNandRAV(this%resultFile, this%runaveFile)
@@ -10259,7 +10262,7 @@ loop2:        do nc = 1, this%NComponents
 
         if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) ) then
 
-            write( columnWidth, '(A, I0.1)') "HM_", i 
+            write( columnWidth, '(A, I0.1)') "HM_", i
             write( IOBuffer, '(A)' ) adjustr(columnWidth)
 
             call writeIOBufferToRUNandRAV(this%resultFile, this%runaveFile)
@@ -10375,7 +10378,7 @@ loop2:        do nc = 1, this%NComponents
 
         write( IOBuffer, '("      NPART")' )
         call writeIOBufferToRUNandRAV(this%resultFile, this%runaveFile)
-        
+
         ! Mole fraction of each component
         do i = 1, this%NComponents
 
@@ -12974,7 +12977,7 @@ loop2:        do nc = 1, this%NComponents
         call FileWrite(this%errorsFile)
       end do
       call FileWriteBlank(this%errorsFile)
-      
+
       if (EnsembleType .eq. EnsembleTypeGE) then
         ! Chemical potential
         do i = 1, this%NRealComponents
@@ -21877,7 +21880,7 @@ if( RootProc .and. this%CorrfunMode ) then
       if (EnsembleType .eq. EnsembleTypeGE) then
         call RestartRead( pc%SumChemPotGE )
       endif
-      
+
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartRead( pc%SumVW )
         call RestartRead( pc%SumHM )
