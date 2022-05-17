@@ -12505,8 +12505,10 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: Average, Variance
     real(RK)                  :: Beta, Beta2
     type(TComponent), pointer :: pc
-    integer                   :: i, j, t!, s, o
-    real(RK)                  :: value
+    integer                   :: i, j, t, iKBImethod, iComponent
+    real(RK)                  :: dimensionFactor, value
+    character(:), allocatable :: formatString
+    character(len=16), dimension(3) :: methodStringKBI
 #if  TRANS == 1
     integer                   :: k, m
     real(RK)                  :: mw,w1,w2,nc,factor
@@ -13574,329 +13576,154 @@ loop2:        do nc = 1, this%NComponents
 
     end if
 
+    methodStringKBI = [character(len=16) :: "RDF", "RDF vdV cor.", "RDF vdV+shf cor."]
+
     ! thermodynamic factors with KBI
     if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then
+
+        dimensionFactor =  1E-6_RK / (NAvogadro * (UnitLength**3))
+
         if (this%NRealComponents == 2) then
+
             ! Thermodynamic factor through KBI
-            ! RDF standard
-            write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
-            call FileWrite(this%errorsFile)
+
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA11 (", A, ")" , T29, "Dimensionless:", 2F20.9)') &
+                    trim(methodStringKBI(iKBImethod)), this%TDF(iKBImethod, 1), this%dTDF(iKBImethod, 1)
+
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA11,0 (", A, ")", T29, "Dimensionless:", 1F20.9)') &
+                    trim(methodStringKBI(iKBImethod)), this%TDF0(iKBImethod, 1)
+
+                call FileWrite(this%errorsFile)
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
+            do iKBImethod = 1, 3
+
+                do iComponent = 1, this%NRealComponents
+
+                    write(IOBuffer, '("partial molar volume ", I1, " (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '(T44, "in l/mol:", 2F20.9)') 0.001_RK * this%partialmolV(iKBImethod, iComponent), &
+                                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '("partial molar volume ", I1, ",0 (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV0(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '(T44, "in l/mol:", 2F20.9)') 0.001_RK * this%partialmolV0(iKBImethod, iComponent), &
+                                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                end do
+
+            end do
+
             call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,1)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("GAMMA11 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,1), this%dTDF(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! Partial molar volumes through KBI
-            ! RDF standard
-            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+
         else if (this%NRealComponents == 3) then
+
+            formatString = '(T20, 2F20.9, A, 19X, 2F20.9)'
+
             ! Thermodynamic factor through KBI
-            ! RDF standard
-            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,3), this%TDF0(1,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,3), this%TDF0(2,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV+shf correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF(iKBImethod, 1:2), NEW_LINE('A'), this%TDF(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("dGAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%dTDF(iKBImethod, 1:2), NEW_LINE('A'), this%dTDF(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA0_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF0(iKBImethod, 1:2), NEW_LINE('A'), this%TDF0(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
+            formatString = '(T44, "in l/mol:", 2F20.9)'
+
             ! Partial molar volumes through KBI
-            ! RDF standard
-            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,3),0.001_RK*this%dpartialmolV(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,3),0.001_RK*this%dpartialmolV(1,3)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,3),0.001_RK*this%dpartialmolV(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,3),0.001_RK*this%dpartialmolV(2,3)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,3),0.001_RK*this%dpartialmolV(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,3),0.001_RK*this%dpartialmolV(3,3)
-            call FileWrite(this%errorsFile)
+            do iKBImethod = 1, 3
+
+                do iComponent = 1, this%NRealComponents
+
+                    write(IOBuffer, '("partial molar volume ", I1, " (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, formatString) 0.001_RK * this%partialmolV(iKBImethod, iComponent), &
+                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '("partial molar volume ", I1, ",0 (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV0(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, formatString) 0.001_RK * this%partialmolV0(iKBImethod, iComponent), &
+                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                end do
+
+            end do
+
             call FileWriteBlank(this%errorsFile)
+
         else if (this%NRealComponents == 4) then
-            ! RDF standard
-            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2), this%TDF(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,4), this%TDF0(1,5), this%TDF0(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,7), this%TDF0(1,8), this%TDF0(1,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2), this%TDF(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,4), this%TDF0(2,5), this%TDF0(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,7), this%TDF0(2,8), this%TDF0(2,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV+shf correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2), this%TDF(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,4), this%TDF0(3,5), this%TDF0(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,7), this%TDF0(3,8), this%TDF0(3,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+
+            formatString = '(T20, 3F20.9, A, 19X, 3F20.9, A, 19X, 3F20.9)'
+
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%TDF(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%TDF(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("dGAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%dTDF(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%dTDF(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%dTDF(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA0_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF0(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%TDF0(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%TDF0(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
         end if
     end if
 
