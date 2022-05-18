@@ -12484,6 +12484,155 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_ResultClose
 
 
+  subroutine writeStatisticalAnalogues(this)
+
+    type(TEnsemble) :: this
+    type(TComponent), pointer :: pc
+
+    real(RK) :: Average, Variance, dimensionFactor
+    real(RK) :: molmass, cpid
+
+    ! Cv
+
+    Average = this%SumCVsm%Average - 1.5_RK
+    Variance = this%SumCVsm%Variance
+
+    dimensionFactor = kBoltzmann * NAvogadro
+
+    call writeValue("Isochoric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
+    ! GammaV
+
+    Average = this%SumGammaVsm%Average
+    Variance = this%SumGammaVsm%Variance
+
+    dimensionFactor = (UnitPressure * 1E-6_RK) / UnitTemperature
+
+    call writeValue("Thermal pressure coefficient", Average, Variance, dimensionFactor, "MPa/ K", this%errorsFile)
+
+    ! BetaT
+
+    Average = this%SumBetaTsm%Average
+    Variance = this%SumBetaTsm%Variance
+
+    dimensionFactor = 1 / ( UnitPressure * 1E-6_RK )
+
+    call writeValue("Isothermal compressibility", Average, Variance, dimensionFactor, "1/MPa", this%errorsFile)
+
+    ! ALphaP
+
+    Average = this%SumAlphaPsm%Average
+    Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
+                     ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
+
+    dimensionFactor = 1 / UnitTemperature
+
+    call writeValue("Thermal expansion coefficient", Average, Variance, dimensionFactor, "1/ K", this%errorsFile)
+
+    ! CP
+
+    Average = this%SumCPsm%Average - 2.5_RK
+
+    if ( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
+
+        Variance = this%SumCPsm%Variance
+
+    else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+ 
+        Variance = SQRT( this%SumCVsm%Variance**2 + &
+            ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
+            ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
+
+    else
+
+        write( ErrorBuffer, '(A)' ) "Unknown ensemble type in writeStatisticalAnalogues"
+        call Error
+
+    end if
+
+    dimensionFactor = kBoltzmann * NAvogadro
+
+    call writeValue("Isobaric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
+    ! Speed of Sound
+
+    molmass = 0._RK
+    cpid = 0._RK
+    
+    do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        molmass = molmass + pc%Fraction * pc%Molecule%Mass
+        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
+    end do
+    
+    Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
+                    *this%SumCVsm%Average*this%RefDensity ) )
+    
+    Variance = .5_RK * SQRT(( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
+                            ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
+                            ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
+
+    dimensionFactor = UnitLength / UnitTime
+
+    call writeValue("Speed of sound", Average, Variance, dimensionFactor, "m/s", this%errorsFile)
+
+    ! Joule Thomson
+
+    Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
+
+    Variance = SQRT(( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
+                    (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
+                    (this%RefTemperature*this%SumAlphaPsm%Variance / &
+                    (this%RefDensity*this%SumCPsm%Average) )**2 )
+
+    dimensionFactor = UnitTemperature / ( UnitPressure * 1E-6_RK )
+
+    call writeValue("Joule Thomson coefficient", Average, Variance, dimensionFactor, "K/MPa", this%errorsFile)
+
+  end subroutine writeStatisticalAnalogues
+
+
+  subroutine writeValue(quantityName, Average, Variance, dimensionFactor, unitString, errorsFile)
+    ! Output with : as 29th character should be:
+    !<quantityName>             red.:        12.314568478         0.314568478
+    !                in <unitString>:         5.001409733         0.000352543
+
+    type(TFile) :: errorsFile
+    real(RK) :: Average, Variance, dimensionFactor
+    character(*) :: quantityName, unitString
+    character(len=:), allocatable :: formatString
+    integer :: nSpaces
+
+    ! order of ifs is important!
+    if (len(quantityName) <= (36 - 7 - 2)) then ! line width - len("reduced") - space - len(":")
+
+        formatString = '(A, A, "reduced:", 2F20.9)'
+        nSpaces = 36 - len(quantityName) - 7 - 1
+
+    else if (len(quantityName) <= (36 - 4 - 2)) then ! line width - len("red.") - space - len(":")
+
+        formatString = '(A, A, "red.:", 2F20.9)'
+        nSpaces = 36 - len(quantityName) - 4 - 1
+
+    else
+
+        write( ErrorBuffer, '(A, A, A)' ) "Variable name '", quantityName, &
+                                          "' in writeValue does not fit coulmn width."
+        call Error
+
+    end if
+
+    write(IOBuffer, formatString) quantityName, repeat(" ", NSpaces), Average, Variance
+    call FileWrite(errorsFile)
+
+    nSpaces = 36 - len(unitString) - 4
+    write(IOBuffer, '(A, A, A, A, 2F20.9)') repeat(" ", nSpaces), "in ", unitString, ":", Average * dimensionFactor , Variance  * dimensionFactor
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+  end subroutine writeValue
+
 
 !==============================================================!
 !  Subroutine TEnsemble_ErrorsUpdate                           !
@@ -13004,64 +13153,55 @@ loop2:        do nc = 1, this%NComponents
     ! Pressure
     Average = this%SumPressure%Average
     Variance = this%SumPressure%Variance
-    write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitPressure * 1E-6_RK
+
+    call writeValue("Pressure", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
 
     ! Density
     Average = this%SumDensity%Average
     Variance = this%SumDensity%Variance
-    write( IOBuffer, '("Density", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitDensity
+
+    call writeValue("Density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
     ! Temperature
     Average = this%SumTemperature%Average
     Variance = this%SumTemperature%Variance
-    write( IOBuffer, '("Temperature", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T32, "in K:", 2F20.9)' ) Average * UnitTemperature, Variance * UnitTemperature
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitTemperature
+
+    call writeValue("Temperature", Average, Variance, dimensionFactor, "K", this%errorsFile)
 
 #if OSMOP > 0
     if (SimulationType .eq. MolecularDynamics) then
-      ! OsmoticPressure
-      Average = this%SumOsmoticPressure%Average
-      Variance = this%SumOsmoticPressure%Variance
-      write( IOBuffer, '("OsmoticPressure", T29, "reduced:", 2F20.9)' ) &
-  &     Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
-  &     Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+        ! OsmoticPressure
+        Average = this%SumOsmoticPressure%Average
+        Variance = this%SumOsmoticPressure%Variance
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("OsmoticPressure", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
+
     end if
 #endif
 
     ! Potential energy
     Average = this%SumEPot%Average
     Variance = this%SumEPot%Variance
-    write( IOBuffer, '("Potential energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitEnergy * NAvogadro
+
+    call writeValue("Potential energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
     ! Enthalpy
     Average = this%SumEnthalpy%Average
     Variance = this%SumEnthalpy%Variance
-    write( IOBuffer, '("Enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitEnergy * NAvogadro
+
+    call writeValue("Enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
     ! Sampling of Dielectric Constant
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -13228,40 +13368,34 @@ loop2:        do nc = 1, this%NComponents
         ! Isothermal compressibility
         Average = this%SumBetaT%Average
         Variance = this%SumBetaT%Variance
-        write( IOBuffer, '("Isothermal compressibility", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-&              Variance / ( UnitPressure * 1E-6_RK )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / (UnitPressure * 1E-6_RK)
+
+        call writeValue("Isothermal compressibility", Average, Variance, dimensionFactor, "1/MPa", this%errorsFile)
 
         ! dH/dP
         Average = this%SumdHdP%Average
         Variance = this%SumdHdP%Variance
-        write( IOBuffer, '("dH/dP", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in l/mol:", 2F20.9)' ) Average / UnitDensity, Variance / UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / UnitDensity
+
+        call writeValue("dH/dP", Average, Variance, dimensionFactor, "l/mol", this%errorsFile)
 
         ! CP - subtract ideal gas contribution of the pressure
         Average = this%SumCP%Average - 1._RK
         Variance = this%SumCP%Variance
-        write( IOBuffer, '("Isobaric heat capacity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = kBoltzmann * NAvogadro
+
+        call writeValue("Isobaric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
 
         ! AlphaP
         Average = this%SumAlphaP%Average
         Variance = this%SumAlphaP%Variance
-        write( IOBuffer, '("Volume expansivity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in 1/K:", 2F20.9)' ) Average / UnitTemperature, Variance / UnitTemperature
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / UnitTemperature
+
+        call writeValue("Volume expansivity", Average, Variance, dimensionFactor, "1/K", this%errorsFile)
 
         ! Speed of sound
         molmass = 0._RK
@@ -13283,31 +13417,27 @@ loop2:        do nc = 1, this%NComponents
 &                  ( 4._RK * this%SumAlphaP%Variance**2 + this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 * &
 &                  this%SumCP%Variance**2 ) )
 
-        write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitLength / UnitTime
+
+        call writeValue("Speed of sound", Average, Variance, dimensionFactor, "m/s", this%errorsFile)
 
       else
         ! dU/dV
         Average = this%SumdUdV%Average
         Variance = this%SumdUdV%Variance
-        write( IOBuffer, '("dU/dV", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("dU/dV", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
 
         ! Cv
         Average = this%SumCV%Average
         Variance = this%SumCV%Variance
-        write( IOBuffer, '("Isochoric heat capacity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = kBoltzmann * NAvogadro
+
+        call writeValue("Isochoric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
         ! Correlation coefficient R
         Average = this%SumCorCoefR%Average
         Variance = this%SumCorCoefR%Variance
@@ -13424,92 +13554,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
-      ! Statistical analogues
-      ! Cv
-      Average = this%SumCVsm%Average - 1.5_RK
-      Variance = this%SumCVsm%Variance
-      write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! GammaV
-      Average = this%SumGammaVsm%Average
-      Variance = this%SumGammaVsm%Variance
-      write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in MPa/ K:", 2F20.9)' ) Average * ( UnitPressure * 1E-6_RK ) / UnitTemperature, &
-&              Variance * ( UnitPressure * 1E-6_RK ) / UnitTemperature
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! BetaT
-      Average = this%SumBetaTsm%Average
-      Variance = this%SumBetaTsm%Variance
-      write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-      &              Variance / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! ALphaP
-      Average = this%SumAlphaPsm%Average
-      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
-&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
-      write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in 1/ K:", 2F20.9)' ) Average / UnitTemperature, &
-      &              Variance / UnitTemperature
-            call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! CP
-      Average = this%SumCPsm%Average - 2.5_RK
-      Variance = this%SumCPsm%Variance
-      write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! Speed of Sound
-      molmass = 0._RK
-      cpid = 0._RK
-
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        molmass = molmass + pc%Fraction * pc%Molecule%Mass
-        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
-      end do
-
-      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
-&               *this%SumCVsm%Average*this%RefDensity ) )
-
-      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
-&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
-&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
-
-      write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-
-      ! Joule Thomson
-      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
-
-      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
-      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
-      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
-      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
-
-      write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeStatisticalAnalogues(this)
 
 !       ! G00 TODO
 !       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
@@ -13915,26 +13960,22 @@ else
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
-
       ! Liquid density.
 
       Average = this%SumDensity%Average + this%SumDensity%Average * this%SumBetaT%Average * ( VapPressSVC - this%RefPressure)
       Variance = sqrt( this%SumDensity%Variance**2 + ( this%SumBetaT%Variance * ( VapPressSVC - this%RefPressure )&
 &                + VapPressSVCErr * this%SumBetaT%Average )**2 )
 
-      write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      dimensionFactor = UnitDensity
 
+      call writeValue("Liquid density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
        ! Vapor pressure
-       write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) VapPressSVC, VapPressSVCErr
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) VapPressSVC * UnitPressure * 1E-6_RK, VapPressSVCErr * UnitPressure * 1E-6_RK
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+
+       dimensionFactor = UnitPressure * 1E-6_RK
+
+       call writeValue("Vapor pressure", VapPressSVC, VapPressSVCErr, dimensionFactor, "MPa", this%errorsFile)
+
        ! Vapor mole fraction
 
        if (this%NComponents .ge. 2) then
@@ -13956,11 +13997,9 @@ else
  end if
         ! Vapor density.
 
-       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) VapDensSVC, VapDensSVCErr
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) VapDensSVC * UnitDensity, VapDensSVCErr * UnitDensity
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+       dimensionFactor = UnitDensity
+
+       call writeValue("Vapor density", VapDensSVC, VapDensSVCErr, dimensionFactor, "mol/l", this%errorsFile)
 
 
     ! Saturated liquid enthalpy.
@@ -13969,12 +14008,9 @@ else
       Variance = sqrt( this%SumEnthalpy%Variance**2 + ( this%SumdHdP%Variance * &
 &                ( VapPressSVC - this%RefPressure ) + VapPressSVCErr * this%SumdHdP%Average )**2 )
 
-      write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&            Variance * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Liquid enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average
       VarDeltaHv = Variance
@@ -13984,24 +14020,19 @@ else
 &     (this%RefTemperature* this%RefTemperature * VapDensSVC*dBdTmixtemp)
       Variance = sqrt( ( (BmixSVCtemp*this%RefTemperature -  &
 &     dBdTmixtemp*this%RefTemperature*this%RefTemperature)* VapDensSVCErr )**2 )
-      write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&            Variance * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
       VarDeltaHv = Variance + VarDeltaHv
 
       ! Evaporation enthalpy
-      write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
-&            VarDeltaHv * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
 
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Enthalpy of vaporization", DeltaHv, VarDeltaHv, dimensionFactor, "J/mol", this%errorsFile)
 
       ! Ratio of compressibility factors
       z_calc = VapPressSVC / (VapDensSVC * this%RefTemperature)
@@ -14466,11 +14497,9 @@ end if
           Average  = this%SumVisco_s%Average
           Variance = this%SumVisco_s%Variance
           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-          write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+
+          call writeValue("Shear viscosity    ", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+
          end if
 
         !bulk viscosity
@@ -15040,11 +15069,8 @@ end if
         Average  =  this%EinsteinShearAcc%Average
         Variance =  this%EinsteinShearAcc%Variance
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        call writeValue("Shear viscosity    ", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
 
         if ( this%NComponents > 1 ) then
            do i = 1, this%NComponents
@@ -15131,11 +15157,10 @@ end if
         end do
 
         VarPressure = sqrt( Variance**2 + sum( (dpdmu * varmu)**2 ) + sum( (dpdv * varv)**2 ) )
-        write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) Average, VarPressure
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("Vapor pressure", Average, VarPressure, dimensionFactor, "MPa", this%errorsFile)
 
         ! Mole fractions of vapor phase
         do i = 1, this%NComponents
@@ -15172,23 +15197,17 @@ end if
         Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( this%SumPressure%Average - this%RefPressure )&
   &               + VarPressure * this%LiqBetaT )**2 )
 
-        write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitDensity
+
+        call writeValue("Liquid density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
         ! Saturated vapor density
         Average = this%SumDensity%Average
-        Variance = this%SumDensity%Variance
-        write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-  &            Average, Average * VarPressure / this%SumPressure%Average
 
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
-  &            * VarPressure / this%SumPressure%Average * UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitDensity
+
+        call writeValue("Vapor density", Average, Average * VarPressure / this%SumPressure%Average, dimensionFactor, "mol/l", this%errorsFile)
+
 
         ! Saturated liquid enthalpy
         Average = this%LiqEnthalpy + this%LiqdHdP * ( this%SumPressure%Average - this%RefPressure )
@@ -15196,12 +15215,9 @@ end if
         Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
   &                ( this%SumPressure%Average - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
 
-        write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-  &            Variance * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Liquid enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
         DeltaHv = Average
         VarDeltaHv = Variance
@@ -15209,23 +15225,19 @@ end if
         ! Saturated vapor enthalpy
         Average = this%SumEnthalpy%Average
         Variance = this%SumEnthalpy%Variance
-        write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-  &            Variance * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
       VarDeltaHv = Variance + VarDeltaHv
 
         ! Evaporation enthalpy
-        write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
-  &            VarDeltaHv * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Enthalpy of vaporization", DeltaHv, VarDeltaHv, dimensionFactor, "J/mol", this%errorsFile)
 
         ! Separator
         write( IOBuffer, '(76("="))' )
@@ -15234,93 +15246,8 @@ end if
       end if
 
       ! Statistical analogues
-      ! Cv
-      Average = this%SumCVsm%Average - 1.5_RK
-      Variance = this%SumCVsm%Variance
-      write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! GammaV
-      Average = this%SumGammaVsm%Average
-      Variance = this%SumGammaVsm%Variance
-      write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in MPa/ K:", 2F20.9)' ) Average * ( UnitPressure * 1E-6_RK ) / UnitTemperature, &
-&              Variance * ( UnitPressure * 1E-6_RK ) / UnitTemperature
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! BetaT
-      Average = this%SumBetaTsm%Average
-      Variance = this%SumBetaTsm%Variance
-      write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-      &              Variance / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! ALphaP
-      Average = this%SumAlphaPsm%Average
-      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
-&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
-      write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in 1/ K:", 2F20.9)' ) Average / UnitTemperature, &
-      &              Variance / UnitTemperature
-            call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! CP
-      Average = this%SumCPsm%Average - 2.5_RK
-      Variance = SQRT( this%SumCVsm%Variance**2 + &
-&        ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
-&        ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
-      write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! Speed of Sound
-      molmass = 0._RK
-      cpid = 0._RK
 
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        molmass = molmass + pc%Fraction * pc%Molecule%Mass
-        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
-      end do
-
-      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
-&               *this%SumCVsm%Average*this%RefDensity ) )
-
-      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
-&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
-&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
-
-      write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-
-      ! Joule Thomson
-      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
-
-      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
-      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
-      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
-      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
-
-      write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeStatisticalAnalogues(this)
 
       ! J000
       Average = - this%SumPressure%Average / (this%RefTemperature*this%RefDensity)
