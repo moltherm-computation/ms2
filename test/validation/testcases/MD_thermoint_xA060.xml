@@ -4,7 +4,7 @@
 	<parFile>MD_thermoint_xA060.par</parFile>
 	<name>MD_thermoint_xA060</name>
 	<np>40</np>
-	<walltime>01:20:00</walltime>
+	<walltime>03:00:00</walltime>
 	<reference>
 		<file>MD_thermoint_xA060_1.res</file>
 	</reference>

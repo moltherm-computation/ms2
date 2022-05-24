@@ -4,7 +4,7 @@
 	<parFile>MD_leap_thermoint_meoh.par</parFile>
 	<name>MD_leap_thermoint_meoh</name>
 	<np>40</np>
-	<walltime>00:40:00</walltime>
+	<walltime>01:30:00</walltime>
 	<reference>
 		<file>MD_leap_thermoint_meoh_1.res</file>
 	</reference>
