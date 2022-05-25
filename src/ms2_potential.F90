@@ -38,6 +38,9 @@ module ms2_potential
   use ms2_molecule
   use ms2_site
 
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi_f08
+#endif
 
 !==============================================================!
 !  Type TPotMIEnmMIEnm                                         !
