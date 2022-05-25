@@ -25,10 +25,6 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 !           __GFORTRAN__
 #if defined __GNUC__
 ! the gfortran preprocessor seems not to support the # operator
@@ -61,8 +57,7 @@
 module ms2_global
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_version
@@ -244,32 +239,38 @@ module ms2_global
   integer, parameter :: iounit_start  = 1000
 #endif
 
+  type TFile
+
+    integer :: iounit
+
+  end type TFile
+
   ! Define i/o unit numbers
-  integer, parameter :: iounit_log       = iounit_start +  0
-  integer, parameter :: iounit_config    = iounit_start +  1
-  integer, parameter :: iounit_params    = iounit_start +  2
-  integer, parameter :: iounit_potmod    = iounit_start +  3
-  integer, parameter :: iounit_normal    = iounit_start +  4
-  integer, parameter :: iounit_restart   = iounit_start +  5
-  integer, parameter :: iounit_result    = iounit_start +  6
-  integer, parameter :: iounit_runave    = iounit_start +  7
-  integer, parameter :: iounit_errors    = iounit_start +  8
-  integer, parameter :: iounit_visual    = iounit_start +  9
-  integer, parameter :: iounit_rdf       = iounit_start + 10
-  integer, parameter :: iounit_thermoint = iounit_start + 11
-  integer, parameter :: iounit_rescf     = iounit_start + 12
-  integer, parameter :: iounit_visualHB  = iounit_start + 13
-  integer, parameter :: iounit_dcp       = iounit_start + 14
-  integer, parameter :: iounit_kbirdf    = iounit_start + 15
-  integer, parameter :: iounit_kbirav    = iounit_start + 16
-  integer, parameter :: iounit_a2rav     = iounit_start + 17
-  integer, parameter :: iounit_proc      = iounit_start + 18
-  integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
-  integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
+  type(TFile), parameter :: logFile      = TFile(iounit = iounit_start + 0)
+  type(TFile), parameter :: configFile   = TFile(iounit = iounit_start + 1)
+  type(TFile), parameter :: paramsFile   = TFile(iounit = iounit_start + 2)
+  type(TFile), parameter :: potmodFile   = TFile(iounit = iounit_start + 3)
+  type(TFile), parameter :: normalFile   = TFile(iounit = iounit_start + 4)
+  type(TFile), parameter :: restartFile  = TFile(iounit = iounit_start + 5)
+  type(TFile), parameter :: resultFile   = TFile(iounit = iounit_start + 6)
+  type(TFile), parameter :: runaveFile   = TFile(iounit = iounit_start + 7)
+  type(TFile), parameter :: errorsFile   = TFile(iounit = iounit_start + 8)
+  type(TFile), parameter :: visualFile   = TFile(iounit = iounit_start + 9)
+  type(TFile), parameter :: rdfFile      = TFile(iounit = iounit_start + 10)
+  type(TFile), parameter :: thermointFile= TFile(iounit = iounit_start + 11)
+  type(TFile), parameter :: rescfFile    = TFile(iounit = iounit_start + 12)
+  type(TFile), parameter :: visualHBFile = TFile(iounit = iounit_start + 13)
+  type(TFile), parameter :: dcpFile      = TFile(iounit = iounit_start + 14)
+  type(TFile), parameter :: kbirdfFile   = TFile(iounit = iounit_start + 15)
+  type(TFile), parameter :: kbiravFile   = TFile(iounit = iounit_start + 16)
+  type(TFile), parameter :: a2ravFile    = TFile(iounit = iounit_start + 17)
+  type(TFile), parameter :: procFile     = TFile(iounit = iounit_start + 18)
+  type(TFile), parameter :: ecoefFile    = TFile(iounit = iounit_start + 19)   !EinsteinCoef
+  type(TFile), parameter :: ccFile       = TFile(iounit = iounit_start + 20) !DC TODO - this should be changed appropriate to the other output files
+  type(TFile), parameter :: ccgridFile   = TFile(iounit = iounit_start + 21) !DC TODO - this should be changed appropriate to the other output files
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = dcpFile%iounit - resultFile%iounit + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -834,6 +835,14 @@ module ms2_global
   ! Internal variables of random number generator
   integer, parameter :: K4B = selected_int_kind(9)
   integer(K4B)       :: ix, iy, tpix, randk
+#if MPI_VER > 0
+#if MPI_USE_MODULE
+  ! MPI Datatype corresponding to K4B of the passed data
+  TYPE(MPI_Datatype) :: MPI_K4B
+#else
+  integer :: MPI_K4B
+#endif
+#endif
   real(RK)           :: am
 
   ! Internal variable of FileReadParameter
@@ -842,10 +851,17 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
+#if MPI_USE_MODULE
+  TYPE(MPI_Comm) :: Communicator   ! actual MPI communicator
+  !TYPE(MPI_Comm) :: Communicator_W    ! =MPI_COMM_WORLD
+  TYPE(MPI_Comm) :: Communicator_R ! MPI communicator containing all roots
+  TYPE(MPI_Comm) :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
+#else
   integer :: Communicator   ! actual MPI communicator
   !integer :: Communicator_W    ! =MPI_COMM_WORLD
   integer :: Communicator_R ! MPI communicator containing all roots
   integer :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
+#endif
   integer :: NProcs ! number of PEs within actual MPI communicator
   integer :: NProc  ! MPI rank of actual MPI communicator
   integer :: NRootProc  ! MPI rank of root of actual MPI communicator
@@ -1162,7 +1178,11 @@ contains
 #endif
 
     ! Declare arguments
+#if MPI_USE_MODULE
+    TYPE(MPI_Comm), intent(in) :: comm
+#else
     integer, intent(in) :: comm
+#endif
 
     Communicator = comm
     if( Communicator /= MPI_COMM_NULL ) then
@@ -1195,9 +1215,13 @@ contains
     integer, intent(in)         :: ngroups
 
     integer :: groupId
-    integer :: oldCommunicator,newCommunicator
+#if MPI_USE_MODULE
+    TYPE(MPI_Comm) :: oldCommunicator, newCommunicator
+#else
+    integer :: oldCommunicator, newCommunicator
+#endif
 
-    oldCommunicator=Communicator
+    oldCommunicator = Communicator
 
     if( ngroups > NProcs ) then
       NCommunicators=NProcs
@@ -1247,31 +1271,31 @@ contains
 
 #endif
 
-  subroutine writeCitationHeader(ioUnit)
+  subroutine writeCitationHeader(file)
 
     implicit none
 
-    integer, intent(in) :: ioUnit
+    type(Tfile), intent(in) :: file
 
     write( IOBuffer, '(76("="))')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("*                         Publishing with ms2                              *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
-    call FileWrite(ioUnit)
+    call FileWrite(file)
     write( IOBuffer, '(76("="))')
-    call FileWrite(ioUnit)
-    call FileWriteBlank(ioUnit)
+    call FileWrite(file)
+    call FileWriteBlank(file)
 
   end subroutine writeCitationHeader
 
@@ -1353,6 +1377,18 @@ contains
       end if
       call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
     end if
+
+    if ( K4B == 8 ) then
+      MPI_K4B = MPI_INTEGER8
+    else if ( K4B == 4 ) then
+      MPI_K4B = MPI_INTEGER4
+    else
+      if( RootProc ) then
+        print *,"ERROR: K4B==", K4B," not supported for MPI version"
+      end if
+      call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
+    endif
+
 #endif
 
     ! Initialize flags
@@ -1493,7 +1529,7 @@ contains
     call LogWrite
     call LogWriteBlank
 
-    call writeCitationHeader(iounit_log)
+    call writeCitationHeader(logFile)
 
     write( IOBuffer, '(74("*"))')
     call LogWrite
@@ -1919,10 +1955,10 @@ contains
     endif
 
     if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
-      call FileAppend( iounit_log, trim(filename) )
+      call FileAppend( logFile%iounit, trim(filename) )
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
-      call FileRewrite( iounit_log, trim(filename) )
+      call FileRewrite( logFile%iounit, trim(filename) )
       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
@@ -1954,7 +1990,7 @@ contains
 #endif
 
     ! Close log file
-    call FileClose( iounit_log )
+    call FileClose( logFile%iounit )
 
   end subroutine Global_LogClose
 
@@ -1978,11 +2014,11 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWrite( iounit_log )
+    call FileWrite(logFile)
 
     ! Update log file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
-    call flush( iounit_log )
+    call flush( logFile%iounit )
 #endif
 
   end subroutine Global_LogWrite
@@ -2006,7 +2042,7 @@ contains
 #endif
 
     ! Write contents of buffer to log file
-    call FileWriteNoAdvance( iounit_log )
+    call FileWriteNoAdvance(logFile)
 
   end subroutine Global_LogWriteNoAdvance
 
@@ -2030,7 +2066,7 @@ contains
 #endif
 
     ! Write blank line to log file
-    call FileWriteBlank( iounit_log )
+    call FileWriteBlank(logFile)
 
   end subroutine Global_LogWriteBlank
 
@@ -2158,7 +2194,7 @@ contains
 
     if(RootProc) then
       ! open file for writing
-      if( iounit /= iounit_log ) then
+      if( iounit /= logFile%iounit ) then
         write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
         call logwrite
         open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
@@ -2197,7 +2233,7 @@ contains
     if( RootProc ) then
 
       ! Open file for writing
-      if( iounit /= iounit_log ) then
+      if( iounit /= logFile%iounit ) then
         write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
         call LogWrite
       end if
@@ -2222,7 +2258,7 @@ contains
 !  Subroutine Global_FileWriteNoAdvance_parallel               !
 !==============================================================!
 
-  subroutine Global_FileWriteNoAdvance_parallel( iounit )
+  subroutine Global_FileWriteNoAdvance_parallel(file)
 
     implicit none
 #if !defined(MPI_USE_MODULE)
@@ -2230,10 +2266,10 @@ contains
 #endif
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
-    integer, intent(in) :: iounit
+    type(Tfile), intent(in) :: file
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
+    call MPI_File_write(file%iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
     !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
     !
     !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
@@ -2260,7 +2296,7 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
@@ -2289,7 +2325,7 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), iounit
       call LogWrite
     end if
@@ -2333,7 +2369,7 @@ contains
     if( i > 0 ) fn = fn( i+1:len( fn ) )
 #endif
     close( iounit )
-    if( iounit /= iounit_log ) then
+    if( iounit /= logFile%iounit ) then
       write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), iounit
       call LogWrite
     end if
@@ -2346,12 +2382,12 @@ contains
 !  Subroutine Global_FileWrite                                 !
 !==============================================================!
 
-  subroutine Global_FileWrite( iounit )
+  subroutine Global_FileWrite(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2363,8 +2399,8 @@ contains
 #endif
 
     ! Write contents of buffer to file
-    call FileWriteNoAdvance( iounit )
-    call FileWriteBlank( iounit )
+    call FileWriteNoAdvance(file)
+    call FileWriteBlank(file)
 
   end subroutine Global_FileWrite
 
@@ -2374,12 +2410,12 @@ contains
 !  Subroutine Global_FileWriteNoAdvance                        !
 !==============================================================!
 
-  subroutine Global_FileWriteNoAdvance( iounit )
+  subroutine Global_FileWriteNoAdvance(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2391,7 +2427,7 @@ contains
 #endif
 
     ! Write contents of buffer to file
-    write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
+    write( file%iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
 
   end subroutine Global_FileWriteNoAdvance
 
@@ -2401,12 +2437,12 @@ contains
 !  Subroutine Global_FileWriteBlank                            !
 !==============================================================!
 
-  subroutine Global_FileWriteBlank( iounit )
+  subroutine Global_FileWriteBlank(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(Tfile), intent(in) :: file
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -2418,7 +2454,7 @@ contains
 #endif
 
     ! Write blank line to file
-    write( iounit, '()' )
+    write( file%iounit, '()' )
 
   end subroutine Global_FileWriteBlank
 
@@ -3047,11 +3083,6 @@ contains
 
     implicit none
 
-!     ! Include MPI header
-! #if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-!     include 'mpif.h'
-! #endif
-
 #ifdef __INTEL_COMPILER
     ! Declare arguments
     integer, intent(in) :: signum
@@ -3254,7 +3285,7 @@ subroutine Global_printprocStatus(tag_string)
       integer(8) values_minmaxsum(numvalues,3)
 #endif
 
-      open(unit=iounit_proc, file=procfilename, action='read', iostat=stat)
+      open(unit=procFile%iounit, file=procfilename, action='read', iostat=stat)
       !if ( stat /= 0 ) return  ! dangerous for MPI version if not all ranks do exit...
 
       !linenr = 0
@@ -3262,7 +3293,7 @@ subroutine Global_printprocStatus(tag_string)
       values=0
 
       do ! endless loop
-        read(iounit_proc, '(A)', iostat=stat) buffer
+        read(procFile%iounit, '(A)', iostat=stat) buffer
         if (stat /= 0) exit  ! exit if nothing to read (EOF)
         !linenr = linenr + 1
         seppos=scan(buffer,': ')
@@ -3281,7 +3312,7 @@ subroutine Global_printprocStatus(tag_string)
         end do
       end do
 
-      close(iounit_proc)
+      close(procFile%iounit)
 
       call LogWriteBlank
       if( present( tag_string ) ) then

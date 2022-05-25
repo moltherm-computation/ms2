@@ -31,15 +31,10 @@
 !DEC$ MESSAGE:'Compiling ms2_component.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 module ms2_component
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_accumulator
@@ -488,20 +483,20 @@ contains
     call AllocationError( stat, 'number of test particles' )
 
     ! Read file name for potential model
-    call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
+    call FileReadParameter( this%PotModFileName, paramsFile%iounit , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
     write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T13, "Reading component", I3," for ensemble")') comp
     call LogWrite
-    call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
+    call FileReadParameter( this%Fraction, paramsFile%iounit , IdFraction, .false. )
     write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) trim( this%PotModFileName ), this%Fraction
     call LogWrite
 
 #if TRANS==1
  ! Read partial molar enthalpy from the paremeters file
-    call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
+    call FileReadParameter( this%PartialMolarEnthalpy, paramsFile%iounit , IdPartialMolarEnthalpy, .false., 0._RK )
 
     if (this%PartialMolarEnthalpy .ne. 0._RK) then
       write( IOBuffer,'("Reduced PartMolEnt of component ", A, ": ", F12.8 )' ) &
@@ -523,14 +518,14 @@ contains
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
       ! Read mole fraction of liquid simulation
-      call FileReadParameter( this%LiqFraction, iounit_params , IdLiqFraction, .false. )
+      call FileReadParameter( this%LiqFraction, paramsFile%iounit , IdLiqFraction, .false. )
 
       ! Read chemical potential and partial molar volume and their
       ! uncertainties for Grand Equilibrium
-      call FileReadParameter( this%ChemPot0, iounit_params , IdChemPot, .false. )
-      call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
-      call FileReadParameter( this%PartialMolarVolume, iounit_params , IdPartialMolarVolume, .false. )
-      call FileReadParameter( this%VarPartialMolarVolume, iounit_params , IdVarPartialMolarVolume, .false. )
+      call FileReadParameter( this%ChemPot0, paramsFile%iounit , IdChemPot, .false. )
+      call FileReadParameter( this%VarChemPot, paramsFile%iounit , IdVarChemPot, .false. )
+      call FileReadParameter( this%PartialMolarVolume, paramsFile%iounit , IdPartialMolarVolume, .false. )
+      call FileReadParameter( this%VarPartialMolarVolume, paramsFile%iounit , IdVarPartialMolarVolume, .false. )
       write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
@@ -541,8 +536,8 @@ contains
     else if( EnsembleType .eq. EnsembleTypeHA ) then
       if( comp == 1 ) then
         ! Read chemical potential of phase changing component (first one)
-        call FileReadParameter( this%ChemPot, iounit_params , IdChemPot, .false. )
-        call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
+        call FileReadParameter( this%ChemPot, paramsFile%iounit , IdChemPot, .false. )
+        call FileReadParameter( this%VarChemPot, paramsFile%iounit , IdVarChemPot, .false. )
         write( IOBuffer, '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &         trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
         call LogWrite
@@ -550,14 +545,14 @@ contains
 
     else if( EnsembleType .eq. EnsembleTypeMUVT ) then
       ! Read chemical potential
-      call FileReadParameter( this%ChemPot0, iounit_params , IdChemPot, .false. )
+      call FileReadParameter( this%ChemPot0, paramsFile%iounit , IdChemPot, .false. )
       write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
       &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
 
     else
       ! Read method for calculation of chemical potential
-      call FileReadParameter( str, iounit_params, IdChemPotMethod, .false., "NONE" )
+      call FileReadParameter( str, paramsFile%iounit, IdChemPotMethod, .false., "NONE" )
       select case( str )
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
@@ -588,14 +583,14 @@ contains
 
       ! Read Gradual Insertion Initialization Steps
       if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( this%GradInsInit, iounit_params , IdGradInsInit, .false., 0 )
+        call FileReadParameter( this%GradInsInit, paramsFile%iounit , IdGradInsInit, .false., 0 )
         write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
         call LogWrite
       end if
 
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
+        call FileReadParameter( this%NTest, paramsFile%iounit, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 
@@ -610,7 +605,7 @@ contains
       ! Read weighting factors method
       this%WFMethod = WFMethodNone
       if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( str, iounit_params, IdWeightFactors, .false. )
+        call FileReadParameter( str, paramsFile%iounit, IdWeightFactors, .false. )
         select case(str)
         case( 'auto', 'Auto' )
           call Error( 'Method "auto" for weighting factors is not implemented' )
@@ -628,26 +623,26 @@ contains
         call LogWrite
       end if
       if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        call FileReadParameter( this%LaMin, paramsFile%iounit , IdLambdaMin, .false., 0.2_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
         call LogWrite
-        call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
+        call FileReadParameter( this%LaMax, paramsFile%iounit , IdLambdaMax, .false., 1.0_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMax: ", T40, F7.5)' ) this%LaMax
         call LogWrite
-        call FileReadParameter( this%NBins, iounit_params , IdNBins, .false., 100 )
+        call FileReadParameter( this%NBins, paramsFile%iounit , IdNBins, .false., 100 )
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I7)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+          call FileReadParameter( this%LaStepMax, paramsFile%iounit , IdLambdaStepMax, .false., 0.01_RK)
         else
-          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+          call FileReadParameter( this%LaStepMax, paramsFile%iounit , IdLambdaStepMax, .false., 0.1_RK)
         end if
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
         call LogWrite
-        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
+        call FileReadParameter( this%LambdaExponent, paramsFile%iounit , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F7.5)' ) this%LambdaExponent
         call LogWrite
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 100 )
+        call FileReadParameter( this%NTest, paramsFile%iounit, IdNTest, .false., 100 )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
 #if MPI_VER>0
@@ -666,7 +661,7 @@ contains
     end if
 
 #if OSMOP > 0
-    call FileReadParameter( str, iounit_params, IdPermeability, .false.)
+    call FileReadParameter( str, paramsFile%iounit, IdPermeability, .false.)
     select case( str )
       case( 'OFF', 'Off', 'off', 'NO', 'No', 'no', 'false', 'False', 'FALSE' )
         this%permeable = .false.
@@ -701,7 +696,7 @@ contains
       call AllocationError( stat, 'fluctuating particle states', &
 &       this%NFluctMax + 1 )
       if( this%WFMethod .eq. WFMethodGuess .or. this%WFMethod .eq. WFMethodOptSet ) then
-        if( RootProc ) read( iounit_params, * ) this%WF
+        if( RootProc ) read( paramsFile%iounit, * ) this%WF
 #if MPI_VER > 0
         call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
 &         NRootProc, Communicator, ierror )
@@ -4319,49 +4314,49 @@ loop1:do i = 1, this%NPart
     if( .not. RootProc ) return
 
     ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) np
+    write( restartFile%iounit, '(I10)' ) np
 
     ! Centers of mass positions
     do i = 1, np
       pos(:) = this%P0(i,:)
-      write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+      write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
     end do
 
     if( SimulationType .eq. MolecularDynamics ) then
       ! Centers of mass positions' derivatives
       do i = 1, np
         pos(:) = this%P1(i,:)
-        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+        write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
       do i = 1, np
         pos(:) = this%P2(i,:)
-        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+        write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
 
       if( IntegratorType .eq. IntegratorTypeGear ) then
         do i = 1, np
           pos(:) = this%P3(i,:)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
         do i = 1, np
           pos(:) = this%P4(i,:)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
         do i = 1, np
           pos(:) = this%P5(i,:)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end if
 
       do i = 1, np
         pos(:) = this%Disp(i,:)
-        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+        write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
 
       if( ALPHA2UpdateFrequency > 0 ) then
         do i = 1, np
           do j = 0, ALPHA2Length/ALPHA2Shift-1
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
+            write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
           end do
         end do
       end if
@@ -4370,16 +4365,16 @@ loop1:do i = 1, this%NPart
       if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein) ) then  !EinsteinCoef ri0_E rest write
             do i = 1, np
               do j = 0, this%NEinstein-1
-                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
+                write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
               end do
             end do
        end if
 #endif
 
     else
-      write( iounit_restart, '(ES20.12E3)' ) this%DispTran
-      write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-      write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
+      write( restartFile%iounit, '(ES20.12E3)' ) this%DispTran
+      write( restartFile%iounit, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
+      write( restartFile%iounit, '(2I10)' ) this%NMoveBiasedAttempts, &
 &       this%NMoveBiasedSuccesses
     end if
 
@@ -4387,67 +4382,67 @@ loop1:do i = 1, this%NPart
       ! Quaternion parameters
       do i = 1, np
         quat(:) = this%Q0(i,:)
-        write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
+        write( restartFile%iounit, '(4(ES20.12E3, :, ";"))' ) quat(:)
       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Quaternion parameters' derivatives
         do i = 1, np
           quat(:) = this%Q1(i,:)
-          write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
+          write( restartFile%iounit, '(4(ES20.12E3, :, ";"))' ) quat(:)
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             quat(:) = this%Q2(i,:)
-            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
+            write( restartFile%iounit, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
           do i = 1, np
             quat(:) = this%Q3(i,:)
-            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
+            write( restartFile%iounit, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
           do i = 1, np
             quat(:) = this%Q4(i,:)
-            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
+            write( restartFile%iounit, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
         end if
 
         ! Angular velocities and their derivatives
         do i = 1, np
           pos(:) = this%W0( i, : )
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
         do i = 1, np
           pos(:) = this%W1( i, : )
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             pos(:) = this%W2( i, : )
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
           do i = 1, np
             pos(:) = this%W3( i, : )
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
           do i = 1, np
             pos(:) = this%W4( i, : )
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end if
       else
-        write( iounit_restart, '(ES20.12E3)' ) this%DispRot
-        write( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
-        write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
+        write( restartFile%iounit, '(ES20.12E3)' ) this%DispRot
+        write( restartFile%iounit, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
+        write( restartFile%iounit, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
       end if
 
     end if
 
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      write( iounit_restart, '(ES20.12E3)' ) this%WF(:)
-      write( iounit_restart, '(I10)' ) this%NState(:)
-      write( iounit_restart, '(I10)' ) this%NStateWF(:)
+      write( restartFile%iounit, '(ES20.12E3)' ) this%WF(:)
+      write( restartFile%iounit, '(I10)' ) this%NState(:)
+      write( restartFile%iounit, '(I10)' ) this%NStateWF(:)
     end if
 
   end subroutine TComponent_RestartSave
@@ -4476,47 +4471,47 @@ loop1:do i = 1, this%NPart
     if( RootProc ) then
 
       ! Read contents from restart file
-      read( iounit_restart, '(I10)' ) np
+      read( restartFile%iounit, '(I10)' ) np
       if( np > this%NPartMax ) call Error( 'Not enough memory to read particles from restart file' )
       this%NPart = np
 
       ! Centers of mass positions
       do i = 1, np
-        read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P0( i, j ),j=1,3)
+        read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P0( i, j ),j=1,3)
       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Centers of mass positions' derivatives
         do i = 1, np
-          read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P1( i, j ),j=1,3)
+          read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P1( i, j ),j=1,3)
         end do
 
         do i = 1, np
-          read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P2( i, j ),j=1,3)
+          read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P2( i, j ),j=1,3)
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P3( i, j ),j=1,3)
+            read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P3( i, j ),j=1,3)
           end do
 
           do i = 1, np
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P4( i, j ),j=1,3)
+            read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P4( i, j ),j=1,3)
           end do
 
           do i = 1, np
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P5( i, j ),j=1,3)
+            read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%P5( i, j ),j=1,3)
           end do
         end if
 
         do i = 1, np
-          read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%Disp( i, j ),j=1,3)
+          read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%Disp( i, j ),j=1,3)
         end do
 
         if( ALPHA2UpdateFrequency > 0 ) then
           do i = 1, np
             do j = 0, ALPHA2Length/ALPHA2Shift-1
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
+              read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
             end do
           end do
         end if
@@ -4525,78 +4520,78 @@ loop1:do i = 1, this%NPart
          if( (TransMethod .eq. GKEinstein) .or. (TransMethod .eq. Einstein) ) then
              do i = 1, np
                do j = 0, this%NEinstein-1
-                 read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
+                 read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
                end do
              end do
          end if
 #endif
       else
-        read( iounit_restart, '(ES20.12E3)' ) this%DispTran
-        read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-        read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
+        read( restartFile%iounit, '(ES20.12E3)' ) this%DispTran
+        read( restartFile%iounit, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
+        read( restartFile%iounit, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
       end if
 
       if( this%Molecule%isElongated ) then
         ! Quaternion parameters
         do i = 1, np
-          read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q0( i, j ),j=1,4)
+          read( restartFile%iounit, '(4(ES20.12E3, :, 1X))' ) (this%Q0( i, j ),j=1,4)
         end do
 
         if( SimulationType .eq. MolecularDynamics ) then
           ! Quaternion parameters' derivatives
           do i = 1, np
-            read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q1( i, j ),j=1,4)
+            read( restartFile%iounit, '(4(ES20.12E3, :, 1X))' ) (this%Q1( i, j ),j=1,4)
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
-              read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q2( i, j ),j=1,4)
+              read( restartFile%iounit, '(4(ES20.12E3, :, 1X))' ) (this%Q2( i, j ),j=1,4)
             end do
 
             do i = 1, np
-              read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q3( i, j ),j=1,4)
+              read( restartFile%iounit, '(4(ES20.12E3, :, 1X))' ) (this%Q3( i, j ),j=1,4)
             end do
 
             do i = 1, np
-              read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q4( i, j ),j=1,4)
+              read( restartFile%iounit, '(4(ES20.12E3, :, 1X))' ) (this%Q4( i, j ),j=1,4)
             end do
           end if
 
           ! Angular velocities and their derivatives
           do i = 1, np
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W0( i, j ),j=1,3)
+            read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%W0( i, j ),j=1,3)
           end do
 
           do i = 1, np
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W1( i, j ),j=1,3)
+            read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%W1( i, j ),j=1,3)
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W2( i, j ),j=1,3)
+              read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%W2( i, j ),j=1,3)
             end do
 
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W3( i, j ),j=1,3)
+              read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%W3( i, j ),j=1,3)
             end do
 
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W4( i, j ),j=1,3)
+              read( restartFile%iounit, '(3(ES20.12E3, :, 1X))' ) (this%W4( i, j ),j=1,3)
             end do
 
           end if
 
         else
-          read( iounit_restart, '(ES20.12E3)' ) this%DispRot
-          read( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
-          read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
+          read( restartFile%iounit, '(ES20.12E3)' ) this%DispRot
+          read( restartFile%iounit, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
+          read( restartFile%iounit, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
         end if
       end if
 
       if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        read( iounit_restart, '(ES20.12E3)' ) this%WF(:)
-        read( iounit_restart, '(I10)' ) this%NState(:)
-        read( iounit_restart, '(I10)' ) this%NStateWF(:)
+        read( restartFile%iounit, '(ES20.12E3)' ) this%WF(:)
+        read( restartFile%iounit, '(I10)' ) this%NState(:)
+        read( restartFile%iounit, '(I10)' ) this%NStateWF(:)
       end if
 
     end if

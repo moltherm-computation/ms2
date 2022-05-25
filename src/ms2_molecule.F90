@@ -27,15 +27,11 @@
 !DEC$ MESSAGE:'Compiling ms2_molecule.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
 
 module ms2_molecule
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_global
@@ -161,10 +157,10 @@ contains
 
     ! Open potential model file
     this%PotModFileName = filename
-    call FileReset( iounit_potmod, this%PotModFileName )
+    call FileReset( potmodFile%iounit, this%PotModFileName )
 
     ! Read number of potential types
-    call FileReadParameter( ntypes, iounit_potmod, IdSite_ntypes, .false. )
+    call FileReadParameter( ntypes, potmodFile%iounit, IdSite_ntypes, .false. )
 
     ! Zero number of sites
     this%NMIEnm = 0
@@ -178,11 +174,11 @@ contains
 
     ! Loop over potential types
     do i = 1, ntypes
-      call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
+      call FileReadParameter( stype, potmodFile%iounit, IdSite_stype, .false. )
       select case( stype )
       case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
       LJorMIE = 'MIE'
-        call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
           call AllocationError( stat, 'MIE sites', this%NMIEnm )
@@ -193,7 +189,7 @@ contains
 
       case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
       LJorMIE = 'LJ'
-        call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
           call AllocationError( stat, 'LJ sites', this%NMIEnm )
@@ -203,7 +199,7 @@ contains
         end if
 
       case( 'TT68', 'tt68', 'tt' )
-        call FileReadParameter( this%NTT68, iounit_potmod, IdSite_NTT68, .false. )
+        call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NTT68, .false. )
         if( this%NTT68 > 0 ) then
           allocate( this%SiteTT68(this%NTT68), STAT = stat )
           call AllocationError( stat, 'TT sites', this%NTT68 )
@@ -213,7 +209,7 @@ contains
         end if
 
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
-        call FileReadParameter( this%NCharge, iounit_potmod, IdSite_NCharge, .false. )
+        call FileReadParameter( this%NCharge, potmodFile%iounit, IdSite_NCharge, .false. )
         if( this%NCharge > 0 ) then
           allocate( this%SiteCharge(this%NCharge), STAT = stat )
           call AllocationError( stat, 'point charge sites', this%NCharge )
@@ -224,7 +220,7 @@ contains
         end if
 
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
-        call FileReadParameter( this%NDipole, iounit_potmod, IdSite_NDipole, .false. )
+        call FileReadParameter( this%NDipole, potmodFile%iounit, IdSite_NDipole, .false. )
         if( this%NDipole > 0 ) then
           allocate( this%SiteDipole(this%NDipole), STAT = stat )
           call AllocationError( stat, 'dipolar sites', this%NDipole )
@@ -234,7 +230,7 @@ contains
         end if
 
       case( 'QUADRUPOLE', 'Quadrupole', 'quadrupole', 'Q', 'q' )
-        call FileReadParameter( this%NQuadrupole, iounit_potmod, IdSite_NQuadrupole, .false. )
+        call FileReadParameter( this%NQuadrupole, potmodFile%iounit, IdSite_NQuadrupole, .false. )
         if( this%NQuadrupole > 0 ) then
           allocate( this%SiteQuadrupole(this%NQuadrupole), STAT = stat )
           call AllocationError( stat, 'quadrupolar sites', this%NQuadrupole )
@@ -250,7 +246,7 @@ contains
 
 
     ! Read number of rotation axes
-    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+    call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
     select case( stype )
     case( '0' )
       this%NDFRot = 0
@@ -279,12 +275,12 @@ contains
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
-      call FileReadParameter_IOBuffer( iounit_potmod, IdNFluct, .false. )
+      call FileReadParameter_IOBuffer( potmodFile%iounit, IdNFluct, .false. )
 
       ! Scaling factors start in next line
       if( RootProc ) then
         do i = 1, fluctstate
-          read( iounit_potmod, * ) scalegeo, scalesig, scaleeps, scaleest
+          read( potmodFile%iounit, * ) scalegeo, scalesig, scaleeps, scaleest
         end do
       end if
 #if MPI_VER > 0
@@ -328,7 +324,7 @@ contains
 
     else if( fluctstate .eq. 0 ) then
 
-      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .false. )
+      call FileReadParameter( this%NFluct, potmodFile%iounit, IdNFluct, .false. )
 
     else
 
@@ -337,7 +333,7 @@ contains
     end if
 
     ! Close potential model file
-    call FileClose( iounit_potmod )
+    call FileClose( potmodFile%iounit )
 
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
@@ -441,7 +437,7 @@ contains
       write( filename, '(A,".",A,"_",I0,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
 &           ,trim(NormalizedPotModExtension)
     end if
-    call FileRewrite( iounit_normal, filename )
+    call FileRewrite( normalFile%iounit, filename )
 
     ! Save number of potential types
     ntypes = 0
@@ -451,82 +447,82 @@ contains
     if( this%NDipole > 0 ) ntypes = ntypes + 1
     if( this%NQuadrupole > 0 ) ntypes = ntypes + 1
     write( IOBuffer, '(I2)' ) ntypes
-    call FileWriteParameter( iounit_normal, IdSite_ntypes )
+    call FileWriteParameter( normalFile%iounit, IdSite_ntypes )
 
     ! Save MIE sites
     if( this%NMIEnm > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) LJorMIE !'MIEnm'
-      call FileWriteParameter( iounit_normal, IdSite_stype )
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NMIEnm
-      call FileWriteParameter( iounit_normal, IdSite_NMIEnm )
+      call FileWriteParameter( normalFile%iounit, IdSite_NMIEnm )
       do i = 1, this%NMIEnm
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteMIEnm(i) )
       end do
     end if
 
     ! Save TT68 sites
     if( this%NTT68 > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank( normalFile )
       write( IOBuffer, '(1X, A)' ) 'TT68'
-      call FileWriteParameter( iounit_normal, IdSite_stype )
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NTT68
-      call FileWriteParameter( iounit_normal, IdSite_NTT68 )
+      call FileWriteParameter( normalFile%iounit, IdSite_NTT68 )
       do i = 1, this%NTT68
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteTT68(i) )
       end do
     end if
 
     ! Save point charge sites
     if( this%NCharge > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Charge'
-      call FileWriteParameter( iounit_normal, IdSite_stype )
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NCharge
-      call FileWriteParameter( iounit_normal, IdSite_NCharge )
+      call FileWriteParameter( normalFile%iounit, IdSite_NCharge )
       do i = 1, this%NCharge
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteCharge(i) )
       end do
     end if
 
     ! Save point dipole sites
     if( this%NDipole > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Dipole'
-      call FileWriteParameter( iounit_normal, IdSite_stype )
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NDipole
-      call FileWriteParameter( iounit_normal, IdSite_NDipole )
+      call FileWriteParameter( normalFile%iounit, IdSite_NDipole )
       do i = 1, this%NDipole
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteDipole(i) )
       end do
     end if
 
     ! Save point quadrupole sites
     if( this%NQuadrupole > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Quadrupole'
-      call FileWriteParameter( iounit_normal, IdSite_stype )
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NQuadrupole
-      call FileWriteParameter( iounit_normal, IdSite_NQuadrupole )
+      call FileWriteParameter( normalFile%iounit, IdSite_NQuadrupole )
       do i = 1, this%NQuadrupole
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%SiteQuadrupole(i) )
       end do
     end if
 
     ! Save number of rotation axes
-    call FileWriteBlank( iounit_normal )
+    call FileWriteBlank(normalFile)
     write( IOBuffer, '(I2)' ) this%NDFRot
-    call FileWriteParameter( iounit_normal, IdSite_NDFRot )
+    call FileWriteParameter( normalFile%iounit, IdSite_NDFRot )
 
     ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
-    call FileWriteParameter( iounit_normal, IdSite_Mass )
+    call FileWriteParameter( normalFile%iounit, IdSite_Mass )
 
     ! Save moments of inertia
     if( this%NDFRot > 0 ) then
@@ -534,20 +530,20 @@ contains
 &            this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &            this%MOI(1)
 
-      call FileWriteParameter( iounit_normal, IdSite_MOI1 )
+      call FileWriteParameter( normalFile%iounit, IdSite_MOI1 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &            this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &            this%MOI(2)
 
-      call FileWriteParameter( iounit_normal, IdSite_MOI2 )
+      call FileWriteParameter( normalFile%iounit, IdSite_MOI2 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &            this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &            this%MOI(3)
-      call FileWriteParameter( iounit_normal, IdSite_MOI3 )
+      call FileWriteParameter( normalFile%iounit, IdSite_MOI3 )
     end if
 
     ! Close file
-    call FileClose( iounit_normal )
+    call FileClose( normalFile%iounit )
 
     ! Update log file
     write( IOBuffer, '("Normalized potential model for ", A, &
@@ -858,10 +854,10 @@ contains
     ! Read moments of inertia
     this%MOI(:) = 0._RK
     if( this%NDFRot > 0 ) then
-      call FileReadParameter( this%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
-      call FileReadParameter( this%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
+      call FileReadParameter( this%MOI(1), potmodFile%iounit, IdSite_MOI1, .false. )
+      call FileReadParameter( this%MOI(2), potmodFile%iounit, IdSite_MOI2, .false. )
       if( this%NDFRot == 3 ) then
-        call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
+        call FileReadParameter( this%MOI(3), potmodFile%iounit, IdSite_MOI3, .false. )
       end if
     end if
 
