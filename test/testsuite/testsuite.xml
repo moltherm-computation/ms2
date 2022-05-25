@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>6bd12f876632a27a023725d196b6d405cd7cfa8f</caseRepositoryHash>
+	<caseRepositoryHash>480a8c3efd1c3e294000c7f7bbb00bc6071adaa5</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -43,6 +43,7 @@
 		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" />
 		<case name="MD_leap_meoh" file="MD_leap_meoh.xml" />
 		<case name="MD_trans_multi_comp" file="MD_trans_multi_comp.xml" />
+<!-- 		<case name="MD_trans_multi_comp_einstein" file="MD_trans_multi_comp_einstein.xml" /> -->
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025" file="MD_NVT_gear_hydrazineH2O_T391-x025.xml" />
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
