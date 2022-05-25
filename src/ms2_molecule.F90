@@ -454,14 +454,14 @@ contains
 
     ! Read number of IDF types
     if (UseIntDegFreed) then
-      call FileReadParameter( nidftypes, iounit_potmod, IdIdf_ntypes, .false. )
+      call FileReadParameter( nidftypes, potmodFile%iounit, IdIdf_ntypes, .false. )
 
     ! Loop over IDF types
       do i =  1, nidftypes
-        call FileReadParameter( sidftype, iounit_potmod, IdIdf_stype, .false. )
+        call FileReadParameter( sidftype, potmodFile%iounit, IdIdf_stype, .false. )
         select case( sidftype )
         case( 'BOND', 'Bond', 'bond', 'Bonds', 'BONDS' )
-          call FileReadParameter( this%NBond, iounit_potmod, IdIdf_NBond, .true., 0 )
+          call FileReadParameter( this%NBond, potmodFile%iounit, IdIdf_NBond, .true., 0 )
           if( this%NBond > 0 ) then
             allocate( this%IdfBond(this%NBond), STAT = stat )
             call AllocationError( stat, 'Bonds for integral degrees of freedom', this%NBond )
@@ -470,7 +470,7 @@ contains
             end do
           end if
         case( 'ANGLE', 'Angle', 'angle', 'Angles', 'ANGLES' )
-          call FileReadParameter( this%NAngle, iounit_potmod, IdIdf_NAngle, .false., 0 )
+          call FileReadParameter( this%NAngle, potmodFile%iounit, IdIdf_NAngle, .false., 0 )
           if( this%NAngle > 0 ) then
             allocate( this%IdfAngle(this%NAngle), STAT = stat )
             call AllocationError( stat, 'angles for internal degrees of freedom', this%NAngle )
@@ -479,7 +479,7 @@ contains
             end do
           end if
         case( 'DIHEDRAL', 'Dihedral', 'dihedral', 'Dihedrals', 'DIHEDRALS' )
-          call FileReadParameter( this%NDihedral, iounit_potmod, IdIdf_NDihedral, .false., 0 )
+          call FileReadParameter( this%NDihedral, potmodFile%iounit, IdIdf_NDihedral, .false., 0 )
           if( this%NDihedral > 0 ) then
             allocate( this%IdfDihedral(this%NDihedral), STAT = stat )
             call AllocationError( stat, 'dihedrals for internal degrees of freedom', this%NDihedral )
@@ -493,12 +493,12 @@ contains
       end do
 
     ! Calculate total number of Units
-      call FileReadParameter( this%NConstraint, iounit_potmod, IdUnit_NConstraint, .true., 0 )
+      call FileReadParameter( this%NConstraint, potmodFile%iounit, IdUnit_NConstraint, .true., 0 )
       if (this%NConstraint > 0) then
         allocate (ncspu(this%NConstraint), STAT = stat)
         call AllocationError( stat, 'ncspu', this%NConstraint )
         do j = 1,this%NConstraint
-            call FileReadParameter( ncspu(j), iounit_potmod, IdConstraint_NSites, .false. )
+            call FileReadParameter( ncspu(j), potmodFile%iounit, IdConstraint_NSites, .false. )
             ncs = ncs + ncspu(j)  ! number of sites in all constraint units
         end do
         allocate (this%ConstraintSiteIds(ncs), STAT = stat)
@@ -517,7 +517,7 @@ contains
     call AllocationError( stat, 'Units', this%NUnit)
 
     ! Rewind File for reading Constraints
-    call FileRewind( iounit_potmod, this%PotModFileName )  !Michael Sch.: fix me ... needed? if not delete whole rewind-routine
+    call FileRewind( potmodFile%iounit, this%PotModFileName )  !Michael Sch.: fix me ... needed? if not delete whole rewind-routine
 
     ! Construct Units
     if (UseIntDegFreed) then
@@ -648,7 +648,7 @@ contains
 
         if (.not. UseIntDegFreed) then
             ! Read number of rotation axes
-            call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+            call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
             select case( stype )
             case( '0' )
               this%Unit(1)%NDFRot = 0
@@ -2918,63 +2918,63 @@ contains
 
     ! Save information about Idf
     ! Save number of potential types
-    call FileWriteBlank( iounit_normal )
-    call FileWriteBlank( iounit_normal )
+    call FileWriteBlank(normalFile)
+    call FileWriteBlank(normalFile)
     nidftypes = 0
     if( this%NBond > 0 ) nidftypes = nidftypes + 1
     if( this%NAngle > 0 ) nidftypes = nidftypes + 1
     if( this%NDihedral > 0 ) nidftypes = nidftypes + 1
     write( IOBuffer, '(I2)' ) nidftypes
-    call FileWriteParameter( iounit_normal, IdIdf_ntypes )
+    call FileWriteParameter( normalFile%iounit, IdIdf_ntypes )
 
     ! Save Bonds
     if( this%NBond > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Bond'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      call FileWriteParameter( normalFile%iounit, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NBond
-      call FileWriteParameter( iounit_normal, IdIdf_NBond )
+      call FileWriteParameter( normalFile%iounit, IdIdf_NBond )
       do i = 1, this%NBond
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%IdfBond(i) )
       end do
     end if
 
    ! Save Angles
    if( this%NAngle > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Angle'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      call FileWriteParameter( normalFile%iounit, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NAngle
-      call FileWriteParameter( iounit_normal, IdIdf_NAngle )
+      call FileWriteParameter( normalFile%iounit, IdIdf_NAngle )
       do i = 1, this%NAngle
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%IdfAngle(i) )
       end do
    end if
 
    ! Save Dihedrals
    if( this%NDihedral > 0 ) then
-      call FileWriteBlank( iounit_normal )
+      call FileWriteBlank(normalFile)
       write( IOBuffer, '(1X, A)' ) 'Dihedral'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      call FileWriteParameter( normalFile%iounit, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NDihedral
-      call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
+      call FileWriteParameter( normalFile%iounit, IdIdf_NDihedral )
       do i = 1, this%NDihedral
-        call FileWriteBlank( iounit_normal )
+        call FileWriteBlank(normalFile)
         call Save( this%IdfDihedral(i) )
       end do
     end if
 
    ! Save information about Constraint Units
    ! Save number of constraint unites
-     call FileWriteBlank( iounit_normal )
+     call FileWriteBlank(normalFile)
      write( IOBuffer, '(I2)' ) this%NConstraint
-     call FileWriteParameter( iounit_normal, IdUnit_NConstraint )
+     call FileWriteParameter( normalFile%iounit, IdUnit_NConstraint )
      if( this%NConstraint > 0 ) then
-       call FileWriteBlank( iounit_normal )
+       call FileWriteBlank(normalFile)
        do i = 1, this%NConstraint
-         call FileWriteBlank( iounit_normal )
+         call FileWriteBlank(normalFile)
          call Save( this%Unit(i) )
        end do
      end if

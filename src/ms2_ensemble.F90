@@ -17490,7 +17490,7 @@ end if
               psMIEnm => this%Component(i)%Molecule%Unit(k)%SiteMIEnm(j)
               write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
 &                  psMIEnm%sig  * UnitLength / Angstroem
-              call FileWrite( this%iounit_visual )
+              call FileWrite(this%visualFile)
             end do
           else  ! For visualisation of Units with no LJ sites
             ch_sig = UnitLength * 0.2

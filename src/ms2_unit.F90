@@ -158,12 +158,12 @@ contains
 
     if ( UseIntDegFreed ) then
       if ( this%isConstraint ) then
-          call FileReadParameter( this%NSites, iounit_potmod, IdConstraint_NSites, .false. )
-          call FileReadParameter_IOBuffer( iounit_potmod, IdConstraint_SiteIds )
+          call FileReadParameter( this%NSites, potmodFile%iounit, IdConstraint_NSites, .false. )
+          call FileReadParameter_IOBuffer( potmodFile%iounit, IdConstraint_SiteIds )
           read( IOBuffer, * ) this%SiteIds
 
           ! Read number of rotation axes
-          call FileReadParameter( stype, iounit_potmod, IdConstraint_NDFRot, .false. )
+          call FileReadParameter( stype, potmodFile%iounit, IdConstraint_NDFRot, .false. )
           select case( stype )
             case( '0' )
                this%NDFRot = 0
@@ -244,33 +244,33 @@ contains
 
    ! Save Constraint Unit parameters
     write( IOBuffer, '(I3)' ) this%NSites
-    call FileWriteParameter( iounit_normal, IdConstraint_NSites )
+    call FileWriteParameter( normalFile%iounit, IdConstraint_NSites )
     write( IOBuffer, '(20I3)' ) (this%SiteIds(i),i=1,n)
-    call FileWriteParameter( iounit_normal, IdConstraint_SiteIds )
+    call FileWriteParameter( normalFile%iounit, IdConstraint_SiteIds )
 
     ! Save number of rotation axes
     write( IOBuffer, '(I2)' ) this%NDFRot
-    call FileWriteParameter( iounit_normal, IdConstraint_NDFRot )
+    call FileWriteParameter( normalFile%iounit, IdConstraint_NDFRot )
 
     ! Save total mass of the constraint unit
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
-    call FileWriteParameter( iounit_normal, IdConstraint_Mass )
+    call FileWriteParameter( normalFile%iounit, IdConstraint_Mass )
 
     ! Save moments of inertia
     if( this%NDFRot > 0 ) then
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &       this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &       this%MOI(1)
-      call FileWriteParameter( iounit_normal, IdConstraint_MOI1 )
+      call FileWriteParameter( normalFile%iounit, IdConstraint_MOI1 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &       this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &       this%MOI(2)
-      call FileWriteParameter( iounit_normal, IdConstraint_MOI2 )
+      call FileWriteParameter( normalFile%iounit, IdConstraint_MOI2 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &       this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
 &       this%MOI(3)
-      call FileWriteParameter( iounit_normal, IdConstraint_MOI3 )
+      call FileWriteParameter( normalFile%iounit, IdConstraint_MOI3 )
     end if
 
   end subroutine TUnit_Save

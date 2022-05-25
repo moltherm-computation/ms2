@@ -733,7 +733,7 @@ contains
         if (UseIntDegFreed) then
             call FileReadParameter( this%NTest, paramsFile%iounit, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
         else
-            call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 100 )
+            call FileReadParameter( this%NTest, paramsFile%iounit, IdNTest, .false., 100 )
         end if
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
@@ -741,22 +741,22 @@ contains
         if (UseIntDegFreed) then
             ! Michael Sch.: new for enhanced possibilites for E(la) sampling
             if (SimulationType .eq. MolecularDynamics) then
-              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+              call FileReadParameter( this%changeLaFreq, paramsFile%iounit , IdchangeLaFreq, .false., 5000)
             else
-              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+              call FileReadParameter( this%changeLaFreq, paramsFile%iounit , IdchangeLaFreq, .false., 100)
             end if
             write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
             call LogWrite
             this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
             if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
             ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
-            call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
+            call FileReadParameter( this%changeLaPart, paramsFile%iounit , IdchangeLaPart, .false., this%changeLaPart)
             write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
             call LogWrite
             if (SimulationType .eq. MolecularDynamics) then
-              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+              call FileReadParameter( this%forfeitLaSampl, paramsFile%iounit , IdforfeitLaSampl, .false., 2000)
             else
-              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+              call FileReadParameter( this%forfeitLaSampl, paramsFile%iounit , IdforfeitLaSampl, .false., 40)
             end if
             write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
             call LogWrite
@@ -5738,9 +5738,9 @@ loop1:do i = 1, this%NPart
       write( restartFile%iounit, '(2I10)' ) this%NMoveBiasedAttempts, &
 &       this%NMoveBiasedSuccesses
       if ( UseIntDegFreed ) then
-        write( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
-        write( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
-        write( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, this%NMoveBiasedMolSuccesses
+        write( restartFile%iounit, '(ES20.12E3)' ) this%DispMolTran
+        write( restartFile%iounit, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
+        write( restartFile%iounit, '(2I10)' ) this%NMoveBiasedMolAttempts, this%NMoveBiasedMolSuccesses
       end if
     end if
 
@@ -5867,7 +5867,7 @@ loop1:do i = 1, this%NPart
       if( np > this%NPartMax ) call Error( 'Not enough memory to read particles from restart file' )
       this%NPart = np
       if (UseIntDegFreed) then
-        read( iounit_restart, '(I10)' ) nu
+        read( restartFile%iounit, '(I10)' ) nu
         this%Molecule%NUnit = nu
       else
         nu = 1
@@ -6643,17 +6643,17 @@ molloop: do i = 1, i1
 #endif
 
       if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
-        call FileRewrite( iounit_restart, trim(RestartFileName) )
-        write( iounit_restart, '(A)' ) trim( ParameterFileName )
-        write( iounit_restart, '(2I10)' ) Step, StepTotal
-        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        call FileRewrite( restartFile%iounit, trim(RestartFileName) )
+        write( restartFile%iounit, '(A)' ) trim( ParameterFileName )
+        write( restartFile%iounit, '(2I10)' ) Step, StepTotal
+        write( restartFile%iounit, '(2L5)' ) Equilibration, NVTEquilibration
         call RestartSave( this )
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
+            write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
           end do
         end do
-        call FileClose( iounit_restart )
+        call FileClose( restartFile%iounit )
       end if
 
       if (unstableMol > 0) then

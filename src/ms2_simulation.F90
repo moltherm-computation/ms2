@@ -692,8 +692,8 @@ contains
         end if
 
         EMinimizationIDF = .false.
-        call FileReadParameter( NStepsrigEmin, iounit_params , IdNStepsrigEmin, .true., 0 )
-        call FileReadParameter( NStepsflexEmin, iounit_params , IdNStepsflexEmin, .true., 0 )
+        call FileReadParameter( NStepsrigEmin, paramsFile%iounit , IdNStepsrigEmin, .true., 0 )
+        call FileReadParameter( NStepsflexEmin, paramsFile%iounit , IdNStepsflexEmin, .true., 0 )
         if( NStepsrigEmin > 0 .or. NStepsflexEmin > 0) then
           EMinimizationIDF = .true.
           write( IOBuffer, '("Energy minimization will be used.")' )
@@ -1136,7 +1136,7 @@ contains
     end if
 
     ! Read type of simulation with/without internal degree of freedom 
-    call FileReadParameter( str, iounit_params , IdUseIntDegFreed, .true., "off" )
+    call FileReadParameter( str, paramsFile%iounit , IdUseIntDegFreed, .true., "off" )
     select case( str )
     case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' )
        UseIntDegFreed = .true.
@@ -1156,7 +1156,7 @@ contains
 
     ! Read printIDF parameter - to print all contributions to inramolecular energy if need
     if (UseIntDegFreed) then
-      call FileReadParameter( str, iounit_params , IdPrintIDF, .true., "off" )
+      call FileReadParameter( str, paramsFile%iounit , IdPrintIDF, .true., "off" )
       select case( str )
       case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' )
          printIDF = .true.
@@ -1172,7 +1172,7 @@ contains
 
       ! Read tolerance for Shake/QShake algorithm, if <= 0, then no constraint dynamics is used and all bond lengths can vibrate
       if (SimulationType .eq. MolecularDynamics) then
-        call FileReadParameter( Shake, iounit_params , IdShake, .true., 0.0_RK )
+        call FileReadParameter( Shake, paramsFile%iounit , IdShake, .true., 0.0_RK )
         if ( Shake > 0 ) then 
           str = 'yes'
         else 
@@ -1189,7 +1189,7 @@ contains
       end if
 
       ! Read parameters for intramolecular nonbonded interactions
-      call FileReadParameter( str, iounit_params , IdIntraLJEl, .true., "off" )
+      call FileReadParameter( str, paramsFile%iounit , IdIntraLJEl, .true., "off" )
       select case( str )
       case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' ) ! include all intramolecular 1-5 electrostatic & LJ interaction 
          IntraLJEl = .true.
@@ -1204,7 +1204,7 @@ contains
       call LogWrite
 
       if (IntraLJEl) then 
-        call FileReadParameter( str, iounit_params , IdLJEl14, .true., "off" )
+        call FileReadParameter( str, paramsFile%iounit , IdLJEl14, .true., "off" )
         select case( str )
         case( 'ON', 'On', 'on', 'YES', 'Yes', 'yes' ) ! include all intramolecular 1-4 electrostatic & LJ interaction 
            LJEl14 = .true.
