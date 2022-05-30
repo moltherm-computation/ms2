@@ -12634,6 +12634,38 @@ loop2:        do nc = 1, this%NComponents
   end subroutine writeValue
 
 
+  subroutine writeSeparator(errorsFile, noHline, errorColumn)
+
+    type(Tfile) :: errorsFile
+    logical :: noHline, errorColumn
+
+    if (.not. noHline) then
+        write( IOBuffer, '(76("="))' )
+    end if
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+    if (errorColumn) then
+
+        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
+        call FileWrite(errorsFile)
+        write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
+
+    else
+
+        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")')
+        call FileWrite(errorsFile)
+        write( IOBuffer, '("-----", T31, "-----", T46, "-------")')
+
+    end if
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+  end subroutine writeSeparator
+
+
 !==============================================================!
 !  Subroutine TEnsemble_ErrorsUpdate                           !
 !==============================================================!
@@ -13141,14 +13173,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWriteBlank(this%errorsFile)
 
     ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-    write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+    call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .true.)
 
     ! Pressure
     Average = this%SumPressure%Average
@@ -13448,7 +13473,7 @@ loop2:        do nc = 1, this%NComponents
 
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
+    if (any((/EnsembleTypeNVT, EnsembleTypeNVE/) .eq. EnsembleType) .and. LongRange .eq. Rfield) then
       ! A00
       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
         Average  = 0_RK
@@ -13488,63 +13513,25 @@ loop2:        do nc = 1, this%NComponents
 
       call writeAverageAndVariance(this%SumA12resI, 'A12', this%errorsFile)
 
-    end if
+      if (EnsembleType .eq. EnsembleTypeNVE) then
 
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
-        Average  = 0_RK
-        Variance = 0_RK
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          select case( pc%ChemPotMethod )
-          case( ChemPotMethodWidom )
-            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
-            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
-          case( ChemPotMethodThermoInt )
-            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
-&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
-            Variance = Variance + pc%SumChemPotV%Variance**2
-          end select
-        end do
-        Average  = Average - this%SumA01resI%Average - log(this%Density)
-        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+          call writeAverageAndVariance(this%SumA10resII, 'A10', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA01resII, 'A01', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA20resII, 'A20', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA11resII, 'A11', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA02resII, 'A02', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA30resII, 'A30', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
+
       end if
-
-      call writeAverageAndVariance(this%SumA10resI, 'A10', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA01resI, 'A01', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA20resI, 'A20', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA11resI, 'A11', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA02resI, 'A02', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA30resI, 'A30', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA21resI, 'A21', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA12resI, 'A12', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA10resII, 'A10', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA01resII, 'A01', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA20resII, 'A20', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA11resII, 'A11', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA02resII, 'A02', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA30resII, 'A30', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
 
     end if
 
@@ -13582,42 +13569,32 @@ loop2:        do nc = 1, this%NComponents
       ! G10
       Average = - this%SumG10%Average - 2.5_RK*this%RefTemperature
       Variance = this%SumG10%Variance
-      write( IOBuffer, '("G10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G10", Average, Variance)
 
       ! G01
       Average = - this%SumG01%Average - 1._RK/this%RefPressure
       Variance = this%SumG01%Variance
-      write( IOBuffer, '("G01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G01", Average, Variance)
 
       ! G20
       Average = - this%SumG20%Average + 2.5_RK*this%RefTemperature*this%RefTemperature
       Variance = this%SumG20%Variance
-      write( IOBuffer, '("G20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G20", Average, Variance)
 
       ! G02
       Average = - this%SumG02%Average + (1._RK/this%RefPressure)**2
       Variance = this%SumG02%Variance
-      write( IOBuffer, '("G02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G02", Average, Variance)
 
       ! G11
       Average = - this%SumG11%Average
       Variance = this%SumG11%Variance
-      write( IOBuffer, '("G11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G11", Average, Variance)
 
     end if
 
@@ -13804,14 +13781,7 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank(this%errorsFile)
 
         ! Separator
-        write( IOBuffer, '(76("="))' )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
-        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")' )
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '("-----", T31, "-----", T46, "-------")' )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .false.)
 
         ! Second virial coefficient
         do i = 1, this%NComponents
@@ -13925,14 +13895,7 @@ else
      write( IOBuffer, '("VLE calculated with the NpT + SVC method")' )
        call FileWrite(this%errorsFile)
        call FileWriteBlank(this%errorsFile)
-       write( IOBuffer, '(76("="))' )
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
-       write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+       call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .true.)
 
       ! Simulation temperature
       write( IOBuffer, '("Simulation temperature", T29, "reduced:", F20.9)' ) this%RefTemperature
@@ -14144,15 +14107,8 @@ end if
     if ( this%CorrfunMode ) Then
 
       write( IOBuffer, '(T24, "TRANSPORT PROPERTIES")' )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
 
-      write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-      call FileWrite(this%errorsFile)
-
-      write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeSeparator(this%errorsFile, noHline = .true., errorColumn = .true.)
 
       write( IOBuffer, '("Number of Corr. Funct.", T36, ":",T45, I8 )' ) this%Mmess
       call FileWrite(this%errorsFile)
@@ -14250,11 +14206,8 @@ end if
 &                     this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
 &                     this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
 
-            write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+            call writeValue("Binary diff. coeff.", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
           end if
 
           if (this%MolarEnthConduct) then
@@ -14357,21 +14310,12 @@ end if
                err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
 &                        ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-               write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
+               call writeValue("Ternary diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Ternary diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Ternary diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
              end if !this%NComponents == 3
 
 
@@ -14445,36 +14389,18 @@ end if
                          ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
                          ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
-               write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
+               call writeValue("Quat. diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 1 4", D_14, err_D14, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 2 4", D_24, err_D24, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 3 4", D_34, err_D34, value, "1E-10 m^2/s", this%errorsFile)
+
              end if !this%NComponents == 4
            end if !TransMethod GreenKubo
         end if !NComponents = 3 or 4
@@ -14595,11 +14521,9 @@ end if
                call FileWriteBlank(this%errorsFile)
              end do
           else
-             write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) Average, Variance
-             call FileWrite(this%errorsFile)
-             write( IOBuffer, '(T26, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
-             call FileWrite(this%errorsFile)
-             call FileWriteBlank(this%errorsFile)
+
+             call writeValue("Energy coefficient LEE ", Average, Variance, value, "W K/ m ", this%errorsFile)
+
              do i = 1, this%NComponents
                Average  = this%SumSoret(i)%Average
                Variance = this%SumSoret(i)%Variance
@@ -14934,21 +14858,12 @@ end if
           err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
 &                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+          call writeValue("Ternary diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Ternary diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Ternary diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
         end if !this%NComponents == 3
 
 
@@ -15020,37 +14935,18 @@ end if
                     ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
                     ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
+          call writeValue("Quat. diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
 
-          write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+          call writeValue("Quat. diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 1 4", D_14, err_D14, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 2 4", D_24, err_D24, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 3 4", D_34, err_D34, value, "1E-10 m^2/s", this%errorsFile)
+
         end if !this%NComponents == 4
 
 
@@ -15955,15 +15851,7 @@ end if
     call FileWriteBlank(this%errorsFile)
 
     ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-    write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")' )
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '("-----", T31, "-----", T46, "-------")' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-
+    call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .false.)
 
     ! Second virial coefficient
     do i = 1, this%NComponents, 2
