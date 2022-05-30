@@ -10,3 +10,8 @@ src/ms2*
 .settings
 .cproject
 .project
+
+
+### OS files
+.DS_Store
+
