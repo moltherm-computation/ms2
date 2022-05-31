@@ -61,7 +61,11 @@ module ms2_simulation
     logical :: doneBcastTerm=.false., doneMsgTerm=.false.
     integer :: numMsgTerm_send=0, numMsgTerm_recv=0
     !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
+#if defined(MPI_USE_MODULE)
+    TYPE(MPI_Request) :: mpireqbcastTerm, mpireqmsgTerm
+#else
     integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
+#endif
     integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
     integer :: TerminateCountdown=0
     logical :: doneTerminateCountdown=.false.
@@ -334,7 +338,7 @@ contains
 !    call LogWriteBlank
 
     ! Open parameter file for reading
-    call FileReset( paramsFile%iounit, trim(ParameterFileName) )
+    call FileReset(paramsFile, trim(ParameterFileName) )
     ! Read parVersionNr
     call FileReadParameter( parVersionNr, paramsFile%iounit , IdparVersionNr, .true., 1.0_RK )
     if ( parVersionNr .lt. 0 ) then
@@ -642,7 +646,7 @@ contains
               call LogWrite
               call LogWriteBlank
               ! Close the ParameterFile to reopen it within the subcommunicators
-              call FileClose( paramsFile%iounit )
+              call FileClose(paramsFile)
               call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
               oldCommunicator=Communicator
               color = NProc*mpiMCCommonGroups/NProcs
@@ -665,7 +669,7 @@ contains
               if ( NProc_MCCom == NRootProc_MCCom .and. RootProc) RootProc_MCCom = .true. ! =RootProc_W
 
               ! Reopen the ParameterFile (dirty hack) for each communicator
-              call FileReset( paramsFile%iounit, ParameterFileName )
+              call FileReset(paramsFile, ParameterFileName )
             else
               call Error( trim( str )//' Number of mpi processes must be divisible by mpiMCCommonGroups without remainder' )
             end if
@@ -1248,7 +1252,7 @@ contains
         write( IOBuffer, '("setting up",I3," MPI ensemble groups")' ) this%mpiEnsembleGroups
         call LogWrite
         ! Close the ParameterFile to reopen it within the subcommunicators
-        call FileClose( paramsFile%iounit )
+        call FileClose(paramsFile)
         call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
         ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
         call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
@@ -1260,7 +1264,7 @@ contains
         ! be aware that e.g. the random number generator calls might be different
         call LogWrite
         ! Reopen the ParameterFile (dirty hack) for each communicator
-        call FileReset( paramsFile%iounit, ParameterFileName )
+        call FileReset(paramsFile, ParameterFileName )
         !call FileReadParameter( dummyI, paramsFile%iounit , IdNEnsembles, .true., 1 )
 
         !TerminateStatus=0
@@ -1433,7 +1437,7 @@ contains
   maxcounter = 0
 
   ! Close parameter file
-  call FileClose( paramsFile%iounit )
+  call FileClose(paramsFile)
   write( IOBuffer, '(T18, "Reading Simulation Input successful")')
   call LogWrite
   write( IOBuffer, '(72(1H*))')
@@ -1452,7 +1456,7 @@ contains
            call LogWriteBlank
            SimulationTypeString = 'Second Virial Coefficient'
            SimulationType = SecondVirialCoeff
-           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
+           call FileReset(paramsFile, ParameterFileName ) !An den Anfang von *.par
            if( .not. UseReducedUnits ) then
            call FileReadParameter( NOrient, paramsFile%iounit , IdNOrient, .false., 1000 ) ! hard-coded.
            call FileReadParameter( NSteps, paramsFile%iounit , IdRSteps, .false., 200 )
@@ -1500,8 +1504,8 @@ contains
            call LogWrite
            write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem
            call LogWrite
-           call FileClose( paramsFile%iounit )
-           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
+           call FileClose(paramsFile)
+           call FileReset(paramsFile, ParameterFileName ) !An den Anfang von *.par
 #if MPI_VER > 0
            ! force sequential reading of parameter file (within Ensemble Construct)    better use MPI-IO!
            do icommunicator = 0,NCommunicators-1
@@ -1519,8 +1523,8 @@ contains
              call MPI_Barrier( MPI_COMM_WORLD, ierror )
            end do
 #endif
-           call FileReset( paramsFile%iounit, ParameterFileName ) !An den Anfang von *.par
-           call FileClose( paramsFile%iounit )
+           call FileReset(paramsFile, ParameterFileName ) !An den Anfang von *.par
+           call FileClose(paramsFile)
            SVCCalc = .true.
        endif
      endif
@@ -1848,18 +1852,18 @@ contains
            if (RootProc) then
              if (NProc_W .ne. NRootProc) then
                write( IOBuffer, '(I16)' ) NProc_W  
-               call FileRewrite( logFile%iounit, trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//LogFileExtension )
+               call FileRewrite(logFile, trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//LogFileExtension )
                
                do j = this%firstEnsembleIdx, this%lastEnsembleIdx
 
                  ! Open running average result file
                  write( IOBuffer, '(I16)' ) NProc_W
-                 call FileRewrite( this%Ensemble(j)%runaveFile%iounit, &
+                 call FileRewrite(this%Ensemble(j)%runaveFile, &
 &                     trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
 
                  ! Open result file
                  write( IOBuffer, '(I16)' ) NProc_W
-                 call FileRewrite( this%Ensemble(j)%resultFile%iounit, &
+                 call FileRewrite(this%Ensemble(j)%resultFile, &
 &                     trim( OutputNameTag )//'_Equi_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
                enddo
              endif 
@@ -2283,8 +2287,8 @@ eqloop: do
           if (NProc_W .ne. NRootProc) then
             ! Close all files keeping track of the equilibration
             do j = this%firstEnsembleIdx, this%lastEnsembleIdx
-              call FileClose( this%Ensemble(j)%runaveFile%iounit )
-              call FileClose( this%Ensemble(j)%resultFile%iounit )
+              call FileClose(this%Ensemble(j)%runaveFile)
+              call FileClose(this%Ensemble(j)%resultFile)
             enddo
             call LogClose
           endif
@@ -3733,7 +3737,7 @@ eqloop: do
 #endif
 
         ! Open restart file for writing
-        call FileRewrite( restartFile%iounit, trim(RestartFileName) )
+        call FileRewrite(restartFile, trim(RestartFileName))
 
         ! Save contents to restart file
         write( restartFile%iounit, '(A)' ) trim( ParameterFileName )
@@ -3760,7 +3764,7 @@ eqloop: do
     ! Check for root process
     if( RootProc ) then
       ! Close restart file
-      call FileClose( restartFile%iounit )
+      call FileClose(restartFile)
     endif
 
 #if MPI_VER > 0
@@ -3830,7 +3834,7 @@ eqloop: do
       call LogWriteTime
 #endif
 
-      call FileReset( restartFile%iounit, trim(RestartFileName) )
+      call FileReset(restartFile, trim(RestartFileName) )
 
       ! Read non-ensemble specific contents from restart file first
       read( restartFile%iounit, '(A128)' ) parfilename
@@ -3890,7 +3894,7 @@ eqloop: do
       ! Check for root process
       if( RootProc ) then
         ! Close restart file
-        call FileClose( restartFile%iounit )
+        call FileClose(restartFile)
       endif
 
 #if MPI_VER > 0
