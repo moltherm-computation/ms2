@@ -6218,7 +6218,7 @@ molloop: do i = 1, i1
 #endif
 
       if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
-        call FileRewrite( restartFile%iounit, trim(RestartFileName) )
+        call FileRewrite(restartFile, trim(RestartFileName))
         write( restartFile%iounit, '(A)' ) trim( ParameterFileName )
         write( restartFile%iounit, '(2I10)' ) Step, StepTotal
         write( restartFile%iounit, '(2L5)' ) Equilibration, NVTEquilibration
@@ -6228,7 +6228,7 @@ molloop: do i = 1, i1
             write( restartFile%iounit, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
           end do
         end do
-        call FileClose( restartFile%iounit )
+        call FileClose(restartFile)
       end if
 
       if (unstableMol > 0) then
