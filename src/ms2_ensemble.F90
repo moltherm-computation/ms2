@@ -386,6 +386,17 @@ module ms2_ensemble
     type(TAccumulator) :: SumG20
     type(TAccumulator) :: SumG02
 
+    ! NpH
+    type(TAccumulator) :: SumHmUmpV
+    type(TAccumulator) :: SumHmUmpVInv
+    type(TAccumulator) :: SumHmUmpVInvV
+    type(TAccumulator) :: SumHmUmpVInvV2
+    type(TAccumulator) :: SumS10
+    type(TAccumulator) :: SumS01
+    type(TAccumulator) :: SumS11
+    type(TAccumulator) :: SumS20
+    type(TAccumulator) :: SumS02
+
     ! KBI sums Gij
     type(TAccumulator),pointer, contiguous :: SumKBIGij1(:)
     type(TAccumulator),pointer, contiguous :: SumKBIGij2(:)
@@ -2841,12 +2852,6 @@ contains
           call Construct( this%SumJ010, .true. )
           call Construct( this%SumJ110, .true. )
           call Construct( this%SumJ011, .true. )
-          call Construct( this%SumGammaVsm, .true. )
-          call Construct( this%SumBetaTsm, .true. )
-          call Construct( this%SumCVsm, .true. )
-          call Construct( this%SumCPsm, .true. )
-          call Construct( this%SumAlphaPsm, .true. )
-    
         end if
       end if
 
@@ -2897,6 +2902,11 @@ contains
       call Construct( this%SumCorCoefR, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
+      call Construct( this%SumGammaVsm, .true. )
+      call Construct( this%SumBetaTsm, .true. )
+      call Construct( this%SumCVsm, .true. )
+      call Construct( this%SumCPsm, .true. )
+      call Construct( this%SumAlphaPsm, .true. )
       if( LongRange .eq. Rfield) then
         if ( EnsembleType .eq. EnsembleTypeNVT ) then
           call Construct( this%SumA10resI, .true. )
@@ -2933,11 +2943,16 @@ contains
           call Construct( this%SumG11, .true. )
           call Construct( this%SumG20, .true. )
           call Construct( this%SumG02, .true. )
-          call Construct( this%SumGammaVsm, .true. )
-          call Construct( this%SumBetaTsm, .true. )
-          call Construct( this%SumCVsm, .true. )
-          call Construct( this%SumCPsm, .true. )
-          call Construct( this%SumAlphaPsm, .true. )
+        elseif ( EnsembleType .eq. EnsembleTypeNPH ) then
+          call Construct( this%SumHmUmpV, .false. )
+          call Construct( this%SumHmUmpVInv, .false. )
+          call Construct( this%SumHmUmpVInvV, .false. )
+          call Construct( this%SumHmUmpVInvV2, .false. )
+          call Construct( this%SumS10, .true. )
+          call Construct( this%SumS01, .true. )
+          call Construct( this%SumS11, .true. )
+          call Construct( this%SumS20, .true. )
+          call Construct( this%SumS02, .true. )
         end if
       end if
 
@@ -3094,11 +3109,6 @@ contains
         call Destruct( this%SumJ010 )
         call Destruct( this%SumJ110 )
         call Destruct( this%SumJ011 )
-        call Destruct( this%SumGammaVsm )
-        call Destruct( this%SumBetaTsm )
-        call Destruct( this%SumCVsm )
-        call Destruct( this%SumCPsm )
-        call Destruct( this%SumAlphaPsm )
       end if
     end if
 
@@ -3148,6 +3158,11 @@ contains
     call Destruct( this%SumCorCoefR )
     call Destruct( this%SumCP )
     call Destruct( this%SumAlphaP )
+    call Destruct( this%SumGammaVsm )
+    call Destruct( this%SumBetaTsm )
+    call Destruct( this%SumCVsm )
+    call Destruct( this%SumCPsm )
+    call Destruct( this%SumAlphaPsm )
     if( LongRange .eq. Rfield) then
       if ( EnsembleType .eq. EnsembleTypeNVT ) then
         call Destruct( this%SumA10resI )
@@ -3184,11 +3199,16 @@ contains
         call Destruct( this%SumG11 )
         call Destruct( this%SumG02 )
         call Destruct( this%SumG20 )
-        call Destruct( this%SumGammaVsm )
-        call Destruct( this%SumBetaTsm )
-        call Destruct( this%SumCVsm )
-        call Destruct( this%SumCPsm )
-        call Destruct( this%SumAlphaPsm )
+      elseif ( EnsembleType .eq. EnsembleTypeNPH ) then
+        call Destruct( this%SumHmUmpV )
+        call Destruct( this%SumHmUmpVInv )
+        call Destruct( this%SumHmUmpVInvV )
+        call Destruct( this%SumHmUmpVInvV2 )
+        call Destruct( this%SumS10 )
+        call Destruct( this%SumS01 )
+        call Destruct( this%SumS11 )
+        call Destruct( this%SumS02 )
+        call Destruct( this%SumS20 )
       end if
     end if
 
@@ -10500,6 +10520,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3
+    real(RK)                  :: HmUmpV, HmUmpVInv, HmUmpVInvV, HmUmpVInvV2
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: a1, a2 ! dummy arguments
 #if MPI_VER > 0
@@ -10685,6 +10706,11 @@ loop2:        do nc = 1, this%NComponents
         call Reset( this%SumCorCoefR )
       endif
       if( LongRange .eq. Rfield) then
+        call Reset( this%SumCVsm )
+        call Reset( this%SumCPsm )
+        call Reset( this%SumGammaVsm )
+        call Reset( this%SumBetaTsm )
+        call Reset( this%SumAlphaPsm )
         if ( EnsembleType .eq. EnsembleTypeNVT ) then
           call Reset( this%SumA10resI )
           call Reset( this%SumA01resI )
@@ -10720,11 +10746,16 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%SumG11 )
           call Reset( this%SumG02 )
           call Reset( this%SumG20 )
-          call Reset( this%SumCVsm )
-          call Reset( this%SumCPsm )
-          call Reset( this%SumGammaVsm )
-          call Reset( this%SumBetaTsm )
-          call Reset( this%SumAlphaPsm )
+        elseif ( EnsembleType .eq. EnsembleTypeNPH ) then
+          call Reset( this%SumHmUmpV )
+          call Reset( this%SumHmUmpVInv )
+          call Reset( this%SumHmUmpVInvV )
+          call Reset( this%SumHmUmpVInvV2 )
+          call Reset( this%SumS10 )
+          call Reset( this%SumS01 )
+          call Reset( this%SumS11 )
+          call Reset( this%SumS02 )
+          call Reset( this%SumS20 )
         end if
       end if
 
@@ -10941,11 +10972,13 @@ loop2:        do nc = 1, this%NComponents
         BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumJ020%Average- &
         &                (this%SumJ011%Average**2) / this%SumJ002%Average )
 
+        CP = CV + specv*InvBeta*BetaT*(GammaV**2)
+
         call Update( this%SumCVsm, CV )
         call Update( this%SumGammaVsm, GammaV )
         call Update( this%SumBetaTsm, BetaT )
         call Update( this%SumAlphaPsm, BetaT*GammaV )
-        call Update( this%SumCPsm, CV + specv*InvBeta*BetaT*(GammaV**2) )
+        call Update( this%SumCPsm, CP )
       end if
 
       do i = 1, this%NComponents
@@ -11072,6 +11105,22 @@ loop2:        do nc = 1, this%NComponents
       call Update( this%SumA30resI, A30res )
       call Update( this%SumA21resI, A21res )
       call Update( this%SumA12resI, A12res )
+
+      CV = -A20res
+
+      CP = - 1._RK - A20res + ((1._RK+A01res-A11res)**2)/ &
+&             (1._RK+2._RK*A01res+A02res)
+
+      GammaV = this%Density * (1._RK+A01res-A11res)
+
+      BetaT = 1._RK/(this%Density*this%RefTemperature * (1._RK+2._RK*A01res+A02res))
+
+      call Update( this%SumCVsm, CV + 1.5 )
+      call Update( this%SumGammaVsm, GammaV )
+      call Update( this%SumBetaTsm, BetaT )
+      call Update( this%SumAlphaPsm, BetaT*GammaV )
+      call Update( this%SumCPsm, CP + 2.5 )
+
     end if
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -11168,6 +11217,21 @@ loop2:        do nc = 1, this%NComponents
       call Update( this%SumA21resI,  A21res*specv*Beta2 ) !=-(-V*Beta2*A21res)/Numb
       call Update( this%SumA12resI, -Beta*(specv2*A12res*Numb + 2._RK*specv*A11res) ) !=-Beta*(V^2*A12res+2V*A11res)/Numb
 
+      CV = -this%SumA20resI%Average
+
+      CP = - 1._RK - this%SumA20resI%Average + ((1._RK+this%SumA01resI%Average-this%SumA11resI%Average)**2)/ &
+&             (1._RK+2._RK*this%SumA01resI%Average+this%SumA02resI%Average)
+
+      GammaV = this%Density * (1._RK+this%SumA01resI%Average-this%SumA11resI%Average)
+
+      BetaT = 1._RK/(this%Density*this%RefTemperature * (1._RK+2._RK*this%SumA01resI%Average+this%SumA02resI%Average))
+
+      call Update( this%SumCVsm, CV + 1.5 )
+      call Update( this%SumGammaVsm, GammaV )
+      call Update( this%SumBetaTsm, BetaT )
+      call Update( this%SumAlphaPsm, BetaT*GammaV )
+      call Update( this%SumCPsm, CP + 2.5 )
+
       !Entropy definition II
 
       S01 =  O11
@@ -11258,6 +11322,79 @@ loop2:        do nc = 1, this%NComponents
       BetaT = -this%SumG02%Average / this%SumG01%Average
 
       AlphaP = Beta*( this%SumG01%Average - Beta*this%SumG11%Average) / this%SumG01%Average
+
+      call Update( this%SumCVsm, CV )
+      call Update( this%SumGammaVsm, GammaV ) 
+      call Update( this%SumBetaTsm, BetaT )
+      call Update( this%SumAlphaPsm, AlphaP )
+      call Update( this%SumCPsm, CP )
+
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNPH .and. LongRange .eq. Rfield) then
+
+      HmUmpV =  this%RefEnthalpy*real( this%NPart, RK ) - this%EPot - real( this%NPart, RK )*this%RefPressure / this%Density
+      HmUmpVInv =  1._RK / HmUmpV
+
+      call Update( this%SumHmUmpV, HmUmpV )
+      call Update( this%SumHmUmpVInv, HmUmpVInv )
+      call Update( this%SumHmUmpVInvV, HmUmpVInv / this%Density )
+      call Update( this%SumHmUmpVInvV2, HmUmpVInv / (this%Density**2) )
+
+      Beta       = 1._RK/this%RefTemperature
+      Beta2      = Beta*Beta
+      InvBeta    = this%RefTemperature
+      InvBeta2   = InvBeta*InvBeta
+      Numb       = real( this%NPart, RK )
+      rho        = this%Density
+      rho2       = rho*rho
+      specv      = 1._RK / this%Density
+      F = real(this%NDF, RK)/2._RK
+      HmUmpV     = this%SumHmUmpV%Average
+      HmUmpVInv  = this%SumHmUmpVInv%Average
+      HmUmpVInvV = this%SumHmUmpVInvV%Average*Numb
+      HmUmpVInvV2= this%SumHmUmpVInvV2%Average*Numb*Numb
+      V          = this%SumVolume%Average*Numb
+
+      O00 = HmUmpV / (1.5_RK*Numb)
+      O10 = 1._RK
+      O01 = -V
+      O20 = (1.5_RK*Numb - 1._RK) * HmUmpVInv
+      O02 = (1.5_RK*Numb - 1._RK) * HmUmpVInvV2
+      O11 = -(1.5_RK*Numb - 1._RK) * HmUmpVInvV
+ 
+      O00m1 = 1._RK/O00
+      O00m2 = O00m1*O00m1
+      O00m3 = O00m2*O00m1
+      O012  = O01*O01
+
+      !Entropy definition I
+      S10 =  O00m1
+      S01 =  O00m1*O01
+      S20 = -O00m2     +O00m1*O20
+      S02 = -O00m2*O012+O00m1*O02
+      S11 = -O00m2*O01 +O00m1*O11
+
+      S20m1 = 1._RK/S20
+      S20m2 = S20m1*S20m1
+
+      call Update( this%SumS10, S10 )
+      call Update( this%SumS01, S01 )
+      call Update( this%SumS11, S11 )
+      call Update( this%SumS02, S02 )
+      call Update( this%SumS20, S20 )
+
+      CV = ( 1._RK + ( O00*(O11-O20*O01)**2 ) / &
+      &    ( (1-O00*O20)*(O11*O01-O02) - (O01-O00*O11)*(O20*O01-O11) ) ) / &
+      &    ((1 - O00*O20) * Numb) 
+      
+      BetaT = O11 - O02/O01 - (O20-O11/O01)*(O01-O00*O11)/(1-O00*O20)
+
+      CP = 1._RK / ((1 - O00*O20) * Numb)
+
+      GammaV = (O11-O20*O01) / ( (1-O00*O20)*(O11*O01-O02) - (O01-O00*O11)*(O20*O01-O11) )
+
+      AlphaP = (O11-O20*O01) / (O01*(1-O00*O20))
 
       call Update( this%SumCVsm, CV )
       call Update( this%SumGammaVsm, GammaV ) 
@@ -12533,22 +12670,22 @@ loop2:        do nc = 1, this%NComponents
 
     Average = this%SumCPsm%Average - 2.5_RK
 
-    if ( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
+    ! if ( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
 
-        Variance = this%SumCPsm%Variance
+      Variance = this%SumCPsm%Variance
 
-    else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+    ! else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
  
-        Variance = SQRT( this%SumCVsm%Variance**2 + &
-            ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
-            ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
+    !     Variance = SQRT( this%SumCVsm%Variance**2 + &
+    !         ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
+    !         ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
 
-    else
+    ! else
 
-        write( ErrorBuffer, '(A)' ) "Unknown ensemble type in writeStatisticalAnalogues"
-        call Error
+    !     write( ErrorBuffer, '(A)' ) "Unknown ensemble type in writeStatisticalAnalogues"
+    !     call Error
 
-    end if
+    ! end if
 
     dimensionFactor = kBoltzmann * NAvogadro
 
@@ -12814,6 +12951,11 @@ loop2:        do nc = 1, this%NComponents
     call Error( this%SumEPotd2EpotdV2)
 
     if ( LongRange .eq. Rfield ) then
+      call Error( this%SumCVsm )
+      call Error( this%SumGammaVsm )
+      call Error( this%SumBetaTsm )
+      call Error( this%SumAlphaPsm )
+      call Error( this%SumCPsm )
       if( EnsembleType .eq. EnsembleTypeNVE ) then
         call Error( this%SumHmU )
         call Error( this%SumHmUm1)
@@ -12862,11 +13004,16 @@ loop2:        do nc = 1, this%NComponents
         call Error( this%SumG11 )
         call Error( this%SumG02 )
         call Error( this%SumG20 )
-        call Error( this%SumCVsm )
-        call Error( this%SumGammaVsm )
-        call Error( this%SumBetaTsm )
-        call Error( this%SumAlphaPsm )
-        call Error( this%SumCPsm )
+      elseif( EnsembleType .eq. EnsembleTypeNPH ) then
+        call Error( this%SumHmUmpV )
+        call Error( this%SumHmUmpVInv )
+        call Error( this%SumHmUmpVInvV )
+        call Error( this%SumHmUmpVInvV2 )
+        call Error( this%SumS10 )
+        call Error( this%SumS01 )
+        call Error( this%SumS11 )
+        call Error( this%SumS02 )
+        call Error( this%SumS20 )
       end if  
     end if
 
@@ -13474,6 +13621,13 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     if (any((/EnsembleTypeNVT, EnsembleTypeNVE/) .eq. EnsembleType) .and. LongRange .eq. Rfield) then
+      ! Separator
+      write( IOBuffer, '(76("="))' )
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      call writeStatisticalAnalogues(this)
+      
       ! A00
       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
         Average  = 0_RK
@@ -13536,35 +13690,39 @@ loop2:        do nc = 1, this%NComponents
     end if
 
     if( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
-        ! Separator
+      ! Separator
       write( IOBuffer, '(76("="))' )
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
       call writeStatisticalAnalogues(this)
 
-!       ! G00 TODO
-!       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
-!         Average  = 0_RK
-!         Variance = 0_RK
-!         do i = 1, this%NRealComponents
-!           pc => this%Component(i)
-!           select case( pc%ChemPotMethod )
-!           case( ChemPotMethodWidom )
-!             Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
-!             Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
-!           case( ChemPotMethodThermoInt )
-!             Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
-! &                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
-!             Variance = Variance + pc%SumChemPotV%Variance**2
-!           end select
-!         end do
-!         Average  = Average - log(this%SumDensity%Average)
-!         Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-!         write( IOBuffer, '("G00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
-!         call FileWrite(this%errorsFile)
-!         call FileWriteBlank(this%errorsFile)
-!       end if
+      ! G00
+      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
+        Average  = 0_RK
+        Variance = 0_RK
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          select case( pc%ChemPotMethod )
+          case( ChemPotMethodWidom )
+            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
+            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
+          case( ChemPotMethodThermoInt )
+            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
+&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
+            Variance = Variance + pc%SumChemPotV%Variance**2
+          end select
+        end do
+
+        Average  = Average - log(this%RefPressure/this%RefTemperature)
+        Variance = sqrt(Variance)
+
+        call writeDimlessValueWithError(this%errorsFile, "G00", Average, Variance)
+
+        ! write( IOBuffer, '("G00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
+        ! call FileWrite(this%errorsFile)
+        ! call FileWriteBlank(this%errorsFile)
+      end if
 
       ! G10
       Average = - this%SumG10%Average - 2.5_RK*this%RefTemperature
@@ -13595,6 +13753,26 @@ loop2:        do nc = 1, this%NComponents
       Variance = this%SumG11%Variance
 
       call writeDimlessValueWithError(this%errorsFile, "G11", Average, Variance)
+
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNPH .and. LongRange .eq. Rfield ) then
+      ! Separator
+      write( IOBuffer, '(76("="))' )
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      call writeStatisticalAnalogues(this)
+
+      call writeAverageAndVariance(this%SumS10, "S10", this%errorsFile)
+
+      call writeAverageAndVariance(this%SumS01, "S01", this%errorsFile)
+
+      call writeAverageAndVariance(this%SumS20, "S20", this%errorsFile)
+
+      call writeAverageAndVariance(this%SumS02, "S02", this%errorsFile)
+
+      call writeAverageAndVariance(this%SumS11, "S11", this%errorsFile)
 
     end if
 
@@ -20989,6 +21167,11 @@ end if
           call RestartSave( this%SumCorCoefR )
         endif
         if( LongRange .eq. Rfield) then
+          call RestartSave( this%SumCVsm )
+          call RestartSave( this%SumBetaTsm )
+          call RestartSave( this%SumGammaVsm )
+          call RestartSave( this%SumCPsm )
+          call RestartSave( this%SumAlphaPsm )
           if ( EnsembleType .eq. EnsembleTypeNVT ) then
             call RestartSave( this%SumA10resI )
             call RestartSave( this%SumA01resI )
@@ -21024,11 +21207,16 @@ end if
             call RestartSave( this%SumG11 )
             call RestartSave( this%SumG02 )
             call RestartSave( this%SumG20 )
-            call RestartSave( this%SumCVsm )
-            call RestartSave( this%SumBetaTsm )
-            call RestartSave( this%SumGammaVsm )
-            call RestartSave( this%SumCPsm )
-            call RestartSave( this%SumAlphaPsm )
+          elseif ( EnsembleType .eq. EnsembleTypeNPH ) then
+            call RestartSave( this%SumHmUmpV )
+            call RestartSave( this%SumHmUmpVInv )
+            call RestartSave( this%SumHmUmpVInvV )
+            call RestartSave( this%SumHmUmpVInvV2 )
+            call RestartSave( this%SumS10 )
+            call RestartSave( this%SumS01 )
+            call RestartSave( this%SumS11 )
+            call RestartSave( this%SumS02 )
+            call RestartSave( this%SumS20 )
           end if
         end if
 
@@ -21760,6 +21948,11 @@ if( RootProc .and. this%CorrfunMode ) then
       call RestartRead( this%SumCorCoefR )
     endif
     if( LongRange .eq. Rfield) then
+      call RestartRead( this%SumCVsm )
+      call RestartRead( this%SumBetaTsm )
+      call RestartRead( this%SumGammaVsm )
+      call RestartRead( this%SumCPsm )
+      call RestartRead( this%SumAlphaPsm )
       if ( EnsembleType .eq. EnsembleTypeNVT ) then
         call RestartRead( this%SumA10resI )
         call RestartRead( this%SumA01resI )
@@ -21795,11 +21988,16 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumG11 )
         call RestartRead( this%SumG02 )
         call RestartRead( this%SumG20 )
-        call RestartRead( this%SumCVsm )
-        call RestartRead( this%SumBetaTsm )
-        call RestartRead( this%SumGammaVsm )
-        call RestartRead( this%SumCPsm )
-        call RestartRead( this%SumAlphaPsm )
+      elseif ( EnsembleType .eq. EnsembleTypeNPH ) then
+        call RestartRead( this%SumHmUmpV )
+        call RestartRead( this%SumHmUmpVInv )
+        call RestartRead( this%SumHmUmpVInvV )
+        call RestartRead( this%SumHmUmpVInvV2 )
+        call RestartRead( this%SumS10 )
+        call RestartRead( this%SumS01 )
+        call RestartRead( this%SumS11 )
+        call RestartRead( this%SumS02 )
+        call RestartRead( this%SumS20 )
       end if
     end if
 
