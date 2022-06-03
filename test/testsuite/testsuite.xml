@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>c397dd1d7ffd9e2579ba91b9f3aa56011ecfc3e8</caseRepositoryHash>
+	<caseRepositoryHash>6c38bcbb2255dcb119c35bc9fcdc76decc246b53</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -84,6 +84,7 @@
 		<case name="TangToennies_com" file="TangToennies_com.xml" />
 		<case name="TangToennies_site" file="TangToennies_site.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
+		<case name="trans_partMolEnth" file="trans_partMolEnth.xml" />
 <!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
 		<case name="trans_KBI" file="trans_KBI.xml" />
 	</caseList>
