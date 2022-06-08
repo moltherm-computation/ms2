@@ -81,6 +81,20 @@ TRANS:
         OMP: [OMP=1, OMP=0]
   retry: 2
 
+MPIF08:
+  extends: .standardJob
+  variables:
+    MPI: MPI=1
+  stage: flags
+  script:
+    - make all -j 3 $COMPILER MPI=1 $OMP TRANS=$TRANS MPI_USE_MODULE=1
+  parallel:
+    matrix:
+      - COMPILER: [COMPILER=GNU, COMPILER=INTEL]
+        OMP: [OMP=1, OMP=0]
+        TRANS: [TRANS=1, TRANS=0]
+  retry: 2
+
 HBOND:
   extends: .standardJob
   stage: flags
