@@ -1685,6 +1685,10 @@ contains
     write( IOBuffer, '(" SPME=1")' )
     call LogWriteNoAdvance
 #endif
+#if MPI_USE_MODULE == 1
+    write( IOBuffer, '(" MPI_USE_MODULE=1")' )
+    call LogWriteNoAdvance
+#endif
     ! new compiler flags should be added
     ! include target, omp and precision???
     write( IOBuffer, '(" ")' )
