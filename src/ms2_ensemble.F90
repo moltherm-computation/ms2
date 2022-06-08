@@ -365,7 +365,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumNPart2EPot
     type(TAccumulator) :: SumNPartEpot2
     type(TAccumulator) :: SumNPartdEpotdV
-    type(TAccumulator) :: SumGammaV
     type(TAccumulator) :: SumJ100
     type(TAccumulator) :: SumJ200
     type(TAccumulator) :: SumJ001
@@ -409,6 +408,16 @@ module ms2_ensemble
       type(TAccumulator) :: SumA12resII
     !end if
 
+    ! NpT
+    type(TAccumulator) :: SumConfEnthalpyTot
+    type(TAccumulator) :: SumConfEnthalpy2
+    type(TAccumulator) :: SumConfEnthalpyV
+    type(TAccumulator) :: SumG10
+    type(TAccumulator) :: SumG01
+    type(TAccumulator) :: SumG11
+    type(TAccumulator) :: SumG20
+    type(TAccumulator) :: SumG02
+
     ! KBI sums Gij
     type(TAccumulator),pointer, contiguous :: SumKBIGij1(:)
     type(TAccumulator),pointer, contiguous :: SumKBIGij2(:)
@@ -422,6 +431,13 @@ module ms2_ensemble
     type(TAccumulator) :: SumCorCoefR
     type(TAccumulator) :: SumCP
     type(TAccumulator) :: SumAlphaP
+
+    ! Statistical Mechanics
+    type(TAccumulator) :: SumCVsm
+    type(TAccumulator) :: SumAlphaPsm
+    type(TAccumulator) :: SumCPsm
+    type(TAccumulator) :: SumBetaTsm
+    type(TAccumulator) :: SumGammaVsm
 
     ! BiasedPartners
     integer            :: NGradIns
@@ -2925,7 +2941,12 @@ contains
           call Construct( this%SumJ010, .true. )
           call Construct( this%SumJ110, .true. )
           call Construct( this%SumJ011, .true. )
-          call Construct( this%SumGammaV, .true. )
+          call Construct( this%SumGammaVsm, .true. )
+          call Construct( this%SumBetaTsm, .true. )
+          call Construct( this%SumCVsm, .true. )
+          call Construct( this%SumCPsm, .true. )
+          call Construct( this%SumAlphaPsm, .true. )
+    
         end if
       end if
 
@@ -3003,6 +3024,20 @@ contains
           call Construct( this%SumA30resII, .true. )
           call Construct( this%SumA21resII, .true. )
           call Construct( this%SumA12resII, .true. )
+        elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+          call Construct( this%SumConfEnthalpyTot, .false. )
+          call Construct( this%SumConfEnthalpy2, .false. )
+          call Construct( this%SumConfEnthalpyV, .false. )
+          call Construct( this%SumG10, .true. )
+          call Construct( this%SumG01, .true. )
+          call Construct( this%SumG11, .true. )
+          call Construct( this%SumG20, .true. )
+          call Construct( this%SumG02, .true. )
+          call Construct( this%SumGammaVsm, .true. )
+          call Construct( this%SumBetaTsm, .true. )
+          call Construct( this%SumCVsm, .true. )
+          call Construct( this%SumCPsm, .true. )
+          call Construct( this%SumAlphaPsm, .true. )
         end if
       end if
 
@@ -3169,7 +3204,11 @@ contains
         call Destruct( this%SumJ010 )
         call Destruct( this%SumJ110 )
         call Destruct( this%SumJ011 )
-        call Destruct( this%SumGammaV )
+        call Destruct( this%SumGammaVsm )
+        call Destruct( this%SumBetaTsm )
+        call Destruct( this%SumCVsm )
+        call Destruct( this%SumCPsm )
+        call Destruct( this%SumAlphaPsm )
       end if
     end if
 
@@ -3246,6 +3285,20 @@ contains
         call Destruct( this%SumA30resII )
         call Destruct( this%SumA21resII )
         call Destruct( this%SumA12resII )
+      elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+        call Destruct( this%SumConfEnthalpyTot )
+        call Destruct( this%SumConfEnthalpy2 )
+        call Destruct( this%SumConfEnthalpyV )
+        call Destruct( this%SumG10 )
+        call Destruct( this%SumG01 )
+        call Destruct( this%SumG11 )
+        call Destruct( this%SumG02 )
+        call Destruct( this%SumG20 )
+        call Destruct( this%SumGammaVsm )
+        call Destruct( this%SumBetaTsm )
+        call Destruct( this%SumCVsm )
+        call Destruct( this%SumCPsm )
+        call Destruct( this%SumAlphaPsm )
       end if
     end if
 
@@ -11544,7 +11597,9 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: currentBinsEn, EPot
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
-    real(RK)                  :: Psi001res, Psi002res, Psi100res, Psi200res, Psi020res, Psi101res, Psi010res, Psi110res, Psi011res, CV, BetaT, GammaV, Totalmu
+    real(RK)                  :: Psi001res, Psi002res, Psi100res, Psi200res, Psi020res, Psi101res, Psi010res, Psi110res, Psi011res 
+    real(RK)                  :: CV, BetaT, GammaV, Totalmu, CP, AlphaP
+    real(RK)                  :: Z01, Z10, Z11, Z02, Z20, V, V2, H, H2, HV
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, InvBeta, InvBeta2, Numb, Numb2, Numb3, NU, N2U, NU2, NdUdV, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2, InvVol
     real(RK)                  :: currentHmU, currentHmUm1, currentH
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
@@ -11688,9 +11743,11 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%SumJ010 )
           call Reset( this%SumJ110 )
           call Reset( this%SumJ011 )
-          call Reset( this%SumGammaV )
-          call Reset( this%SumBetaT )
-          call Reset( this%SumAlphaP )
+          call Reset( this%SumCVsm )
+          call Reset( this%SumCPsm )
+          call Reset( this%SumGammaVsm )
+          call Reset( this%SumBetaTsm )
+          call Reset( this%SumAlphaPsm )
         end if
         do i = 1, this%NComponents
           call Reset( this%Component(i)%SumFraction )
@@ -11770,6 +11827,20 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%SumA30resII )
           call Reset( this%SumA21resII )
           call Reset( this%SumA12resII )
+        elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+          call Reset( this%SumConfEnthalpyTot )
+          call Reset( this%SumConfEnthalpy2 )
+          call Reset( this%SumConfEnthalpyV )
+          call Reset( this%SumG10 )
+          call Reset( this%SumG01 )
+          call Reset( this%SumG11 )
+          call Reset( this%SumG02 )
+          call Reset( this%SumG20 )
+          call Reset( this%SumCVsm )
+          call Reset( this%SumCPsm )
+          call Reset( this%SumGammaVsm )
+          call Reset( this%SumBetaTsm )
+          call Reset( this%SumAlphaPsm )
         end if
       end if
 
@@ -12006,11 +12077,11 @@ loop2:        do nc = 1, this%NComponents
         BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumJ020%Average- &
         &                (this%SumJ011%Average**2) / this%SumJ002%Average )
 
-        call Update( this%SumCV, CV )
-        call Update( this%SumGammaV, GammaV )
-        call Update( this%SumBetaT, BetaT )
-        call Update( this%SumAlphaP, BetaT*GammaV )
-        call Update( this%SumCP, CV + specv*InvBeta*BetaT*(GammaV**2) )
+        call Update( this%SumCVsm, CV )
+        call Update( this%SumGammaVsm, GammaV )
+        call Update( this%SumBetaTsm, BetaT )
+        call Update( this%SumAlphaPsm, BetaT*GammaV )
+        call Update( this%SumCPsm, CV + specv*InvBeta*BetaT*(GammaV**2) )
       end if
 
       do i = 1, this%NComponents
@@ -12320,6 +12391,54 @@ loop2:        do nc = 1, this%NComponents
       call Update( this%SumA30resII, -A30res*Beta3/Numb )
       call Update( this%SumA21resII,  A21res*specv*Beta2 ) !=-(-V*Beta2*A21res)/Numb
       call Update( this%SumA12resII, -Beta*(specv2*A12res*Numb + 2._RK*specv*A11res) ) !=-Beta*(V^2*A12res+2V*A11res)/Numb
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNpT .and. LongRange .eq. Rfield) then
+
+      call Update( this%SumConfEnthalpyTot, ( this%EPot +  real( this%NPart, RK )*this%RefPressure / this%Density) )
+      call Update( this%SumConfEnthalpy2, ( this%EPot +  real( this%NPart, RK )*this%RefPressure / this%Density)**2 )
+      call Update( this%SumConfEnthalpyV, ( this%EPot +  real( this%NPart, RK )*this%RefPressure / this%Density) / this%Density )
+
+      Beta     = 1._RK/this%RefTemperature
+      Beta2    = Beta*Beta
+      InvBeta  = this%RefTemperature
+      InvBeta2 = InvBeta*InvBeta
+      Numb     = real( this%NPart, RK )
+      V        = this%SumVolume%Average
+      V2       = this%SumVolumeSquared%Average*Numb
+      H        = this%SumConfEnthalpyTot%Average
+      H2       = this%SumConfEnthalpy2%Average
+      HV       = this%SumConfEnthalpyV%Average
+
+      Z01 = -Beta*V
+      Z10 = -1.5*InvBeta - H/Numb
+      Z11 = (1.5*Numb-1._RK)*V + Beta*HV
+      Z02 = Beta2*V2
+      Z20 = 1.5*(1.5*Numb+1)*InvBeta2 + 3*InvBeta*H + H2/Numb
+
+      call Update( this%SumG10, Z10 )
+      call Update( this%SumG01, Z01 )
+      call Update( this%SumG11, Z11 - Z10*Z01*Numb )
+      call Update( this%SumG02, Z02 - Z01*Z01*Numb )
+      call Update( this%SumG20, Z20 - Z10*Z10*Numb )
+
+      CV =  ( Beta2*this%SumG20%Average - ( (this%SumG01%Average - Beta*this%SumG11%Average)**2 )&
+      &           /this%SumG02%Average ) 
+
+      GammaV = -( Beta*( this%SumG01%Average - Beta*this%SumG11%Average )/this%SumG02%Average )
+
+      CP = Beta2*this%SumG20%Average
+
+      BetaT = -this%SumG02%Average / this%SumG01%Average
+
+      AlphaP = Beta*( this%SumG01%Average - Beta*this%SumG11%Average) / this%SumG01%Average
+
+      call Update( this%SumCVsm, CV )
+      call Update( this%SumGammaVsm, GammaV ) 
+      call Update( this%SumBetaTsm, BetaT )
+      call Update( this%SumAlphaPsm, AlphaP )
+      call Update( this%SumCPsm, CP )
+
     end if
 
 #if  TRANS == 1
@@ -13880,7 +13999,21 @@ loop2:        do nc = 1, this%NComponents
         call Error( this%SumA30resI )
         call Error( this%SumA21resI )
         call Error( this%SumA12resI )
-      end if
+      elseif( EnsembleType .eq. EnsembleTypeNPT ) then
+        call Error( this%SumConfEnthalpyTot )
+        call Error( this%SumConfEnthalpy2 )
+        call Error( this%SumConfEnthalpyV )
+        call Error( this%SumG10 )
+        call Error( this%SumG01 )
+        call Error( this%SumG11 )
+        call Error( this%SumG02 )
+        call Error( this%SumG20 )
+        call Error( this%SumCVsm )
+        call Error( this%SumGammaVsm )
+        call Error( this%SumBetaTsm )
+        call Error( this%SumAlphaPsm )
+        call Error( this%SumCPsm )
+      end if  
     end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
@@ -13889,20 +14022,6 @@ loop2:        do nc = 1, this%NComponents
         pc => this%Component(i)
         call Error( pc%SumFraction )
       end do
-
-      ! call Error( this%SumNPart )
-      ! call Error( this%SumNPart2 )
-      ! call Error( this%SumNPart3 )
-      ! call Error( this%SumEPotTot )
-      ! call Error( this%SumEPot2Tot )
-      ! call Error( this%SumdEPotdVTot )
-      ! call Error( this%SumdEPotdV2Tot )
-      ! call Error( this%SumUdEPotdVTot )
-      ! call Error( this%Sumd2EPotdV2Tot )
-      ! call Error( this%SumNPartEPot )
-      ! call Error( this%SumNPart2EPot )
-      ! call Error( this%SumNPartEpot2 )
-      ! call Error( this%SumNPartdEpotdV )
 
       call Error( this%SumJ001 )
       call Error( this%SumJ002 )
@@ -13913,11 +14032,11 @@ loop2:        do nc = 1, this%NComponents
       call Error( this%SumJ010 )
       call Error( this%SumJ110 )
       call Error( this%SumJ011 )
-      call Error( this%SumCV )
-      call Error( this%SumGammaV )
-      call Error( this%SumBetaT )
-      call Error( this%SumAlphaP )
-      call Error( this%SumCP )
+      call Error( this%SumCVsm )
+      call Error( this%SumGammaVsm )
+      call Error( this%SumBetaTsm )
+      call Error( this%SumAlphaPsm )
+      call Error( this%SumCPsm )
 
     else
       if( ConstantPressure ) then
@@ -14726,6 +14845,164 @@ loop2:        do nc = 1, this%NComponents
       call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
 
       call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
+
+    end if
+
+    if( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
+        ! Separator
+      write( IOBuffer, '(76("="))' )
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! Statistical analogues
+      ! Cv
+      Average = this%SumCVsm%Average - 1.5_RK
+      Variance = this%SumCVsm%Variance
+      write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
+&              Variance * kBoltzmann * NAvogadro
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      ! GammaV
+      Average = this%SumGammaVsm%Average
+      Variance = this%SumGammaVsm%Variance
+      write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T24, "in MPa/ K:", 2F20.9)' ) Average * ( UnitPressure * 1E-6_RK ) / UnitTemperature, &
+&              Variance * ( UnitPressure * 1E-6_RK ) / UnitTemperature
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      ! BetaT
+      Average = this%SumBetaTsm%Average
+      Variance = this%SumBetaTsm%Variance
+      write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
+      &              Variance / ( UnitPressure * 1E-6_RK )
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      ! ALphaP
+      Average = this%SumAlphaPsm%Average
+      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
+&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
+      write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T24, "in 1/ K:", 2F20.9)' ) Average / UnitTemperature, &
+      &              Variance / UnitTemperature
+            call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      ! CP
+      Average = this%SumCPsm%Average - 2.5_RK
+      Variance = this%SumCPsm%Variance
+      write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
+&              Variance * kBoltzmann * NAvogadro
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      ! Speed of Sound
+      molmass = 0._RK
+      cpid = 0._RK
+
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        molmass = molmass + pc%Fraction * pc%Molecule%Mass
+        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
+      end do
+
+      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
+&               *this%SumCVsm%Average*this%RefDensity ) )
+
+      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
+&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
+&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
+
+      write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! Joule Thomson
+      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
+
+      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
+      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
+      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
+      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
+
+      write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite(this%errorsFile)
+      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+!       ! G00 TODO
+!       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
+!         Average  = 0_RK
+!         Variance = 0_RK
+!         do i = 1, this%NRealComponents
+!           pc => this%Component(i)
+!           select case( pc%ChemPotMethod )
+!           case( ChemPotMethodWidom )
+!             Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
+!             Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
+!           case( ChemPotMethodThermoInt )
+!             Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
+! &                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
+!             Variance = Variance + pc%SumChemPotV%Variance**2
+!           end select
+!         end do
+!         Average  = Average - log(this%SumDensity%Average)
+!         Variance = sqrt(Variance + this%SumA01resI%Variance**2)
+!         write( IOBuffer, '("G00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
+!         call FileWrite(this%errorsFile)
+!         call FileWriteBlank(this%errorsFile)
+!       end if
+
+      ! G10
+      Average = - this%SumG10%Average - 2.5_RK*this%RefTemperature
+      Variance = this%SumG10%Variance
+      write( IOBuffer, '("G10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! G01
+      Average = - this%SumG01%Average - 1._RK/this%RefPressure
+      Variance = this%SumG01%Variance
+      write( IOBuffer, '("G01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! G20
+      Average = - this%SumG20%Average + 2.5_RK*this%RefTemperature*this%RefTemperature
+      Variance = this%SumG20%Variance
+      write( IOBuffer, '("G20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! G02
+      Average = - this%SumG02%Average + (1._RK/this%RefPressure)**2
+      Variance = this%SumG02%Variance
+      write( IOBuffer, '("G02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+
+      ! G11
+      Average = - this%SumG11%Average
+      Variance = this%SumG11%Variance
+      write( IOBuffer, '("G11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&       Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
 
     end if
 
@@ -16571,8 +16848,8 @@ end if
 
       ! Statistical analogues
       ! Cv
-      Average = this%SumCV%Average
-      Variance = this%SumCV%Variance
+      Average = this%SumCVsm%Average - 1.5_RK
+      Variance = this%SumCVsm%Variance
       write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
       call FileWrite(this%errorsFile)
       write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
@@ -16580,8 +16857,8 @@ end if
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
       ! GammaV
-      Average = this%SumGammaV%Average
-      Variance = this%SumGammaV%Variance
+      Average = this%SumGammaVsm%Average
+      Variance = this%SumGammaVsm%Variance
       write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite(this%errorsFile)
@@ -16590,8 +16867,8 @@ end if
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
       ! BetaT
-      Average = this%SumBetaT%Average
-      Variance = this%SumBetaT%Variance
+      Average = this%SumBetaTsm%Average
+      Variance = this%SumBetaTsm%Variance
       write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite(this%errorsFile)
@@ -16600,9 +16877,9 @@ end if
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
       ! ALphaP
-      Average = this%SumAlphaP%Average
-      Variance = SQRT( ( this%SumBetaT%Average * this%SumGammaV%Variance )**2 + &
-&               ( this%SumBetaT%Variance * this%SumGammaV%Average )**2 )
+      Average = this%SumAlphaPsm%Average
+      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
+&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
       write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
 &       Average, Variance
       call FileWrite(this%errorsFile)
@@ -16611,10 +16888,10 @@ end if
             call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
       ! CP
-      Average = this%SumCP%Average
-      Variance = SQRT( this%SumCV%Variance**2 + &
-&        ( this%RefTemperature*this%SumGammaV%Average*this%SumBetaT%Variance / this%RefDensity )**2 + &
-&        ( this%RefTemperature*this%SumGammaV%Variance*this%SumBetaT%Average / this%RefDensity )**2 )
+      Average = this%SumCPsm%Average - 2.5_RK
+      Variance = SQRT( this%SumCVsm%Variance**2 + &
+&        ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
+&        ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
       write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
       call FileWrite(this%errorsFile)
       write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
@@ -16631,12 +16908,12 @@ end if
         cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
       end do
 
-      Average = SQRT( this%SumCP%Average / ( molmass*this%SumBetaT%Average &
-&               *this%SumCV%Average*this%RefDensity ) )
+      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
+&               *this%SumCVsm%Average*this%RefDensity ) )
 
-      Variance = .5_RK * SQRT( ( Average*this%SumCP%Variance/this%SumCp%Average )**2 + &
-&                ( Average*this%SumBetaT%Variance/this%SumBetaT%Average )**2 + &
-&                ( Average*this%SumCV%Variance/this%SumCV%Average )**2 ) / Average
+      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
+&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
+&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
 
       write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite(this%errorsFile)
@@ -16645,12 +16922,12 @@ end if
       call FileWriteBlank(this%errorsFile)
 
       ! Joule Thomson
-      Average = 1._RK/(this%RefDensity*this%SumCP%Average) * (this%RefTemperature*this%SumAlphaP%Average-1)
+      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
 
-      Variance = SQRT( ( this%SumCP%Variance/(this%RefDensity*this%SumCP%Average*this%SumCP%Average) * &
-      &      (this%RefTemperature*this%SumAlphaP%Average-1) )**2 + &
-      &      (this%RefTemperature*this%SumAlphaP%Variance / &
-      &      (this%RefDensity*this%SumCP%Average) )**2 )
+      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
+      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
+      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
+      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
 
       write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite(this%errorsFile)
@@ -16658,6 +16935,13 @@ end if
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
+      ! J000
+      Average = - this%SumPressure%Average / (this%RefTemperature*this%RefDensity)
+      Variance = - this%SumPressure%Variance / (this%RefTemperature*this%RefDensity)
+      write( IOBuffer, '("J000", T29, "Dimensionless: ", 2F20.9)' ) Average, Variance
+      call FileWrite(this%errorsFile)
+      call FileWriteBlank(this%errorsFile)
+      
       call writeAverageAndVariance(this%SumJ100, "J100", this%errorsFile, .true.)
 
       call writeAverageAndVariance(this%SumJ010, "J010", this%errorsFile, .true.)
@@ -16922,7 +17206,7 @@ end if
 &                100._RK * real( tempVal, RK ) / real ( tempVal2, RK )
           if ( EnsembleType .eq. EnsembleTypeMUVT ) then
             call FileWrite(this%errorsFile)
-            write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+            write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
 &                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
           end if
         endif
@@ -16931,7 +17215,7 @@ end if
 &              100._RK * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
         if ( EnsembleType .eq. EnsembleTypeMUVT ) then
           call FileWrite(this%errorsFile)
-          write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+          write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
 &              100._RK * this%BndInsertAttempts * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
         end if
 #endif
@@ -16950,7 +17234,7 @@ end if
 &                100._RK * real(tempVal, RK ) / real ( tempVal2, RK )
           if ( EnsembleType .eq. EnsembleTypeMUVT ) then
             call FileWrite(this%errorsFile)
-            write( IOBuffer, '("Per MC step", T32, "in %:", F20.9)' ) &
+            write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
 &                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
           end if
         endif
@@ -16959,7 +17243,7 @@ end if
 &              100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
         if ( EnsembleType .eq. EnsembleTypeMUVT ) then
           call FileWrite(this%errorsFile)
-          write( IOBuffer, '("Per time step", T32, "in %:", F20.9)' ) &
+          write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
 &                100._RK * this%BndInsertAttempts * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
         end if
 #endif
@@ -22518,10 +22802,11 @@ end if
             call RestartSave( this%SumJ010 )
             call RestartSave( this%SumJ110 )
             call RestartSave( this%SumJ011 )
-            call RestartSave( this%SumBetaT )
-            call RestartSave( this%SumGammaV )
-            call RestartSave( this%SumCP )
-            call RestartSave( this%SumAlphaP )
+            call RestartSave( this%SumCVsm )
+            call RestartSave( this%SumBetaTsm )
+            call RestartSave( this%SumGammaVsm )
+            call RestartSave( this%SumCPsm )
+            call RestartSave( this%SumAlphaPsm )
           end if
         end if
 
@@ -22591,6 +22876,20 @@ end if
             call RestartSave( this%SumA30resII )
             call RestartSave( this%SumA21resII )
             call RestartSave( this%SumA12resII )
+          elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+            call RestartSave( this%SumConfEnthalpyTot )
+            call RestartSave( this%SumConfEnthalpy2 )
+            call RestartSave( this%SumConfEnthalpyV )
+            call RestartSave( this%SumG10 )
+            call RestartSave( this%SumG01 )
+            call RestartSave( this%SumG11 )
+            call RestartSave( this%SumG02 )
+            call RestartSave( this%SumG20 )
+            call RestartSave( this%SumCVsm )
+            call RestartSave( this%SumBetaTsm )
+            call RestartSave( this%SumGammaVsm )
+            call RestartSave( this%SumCPsm )
+            call RestartSave( this%SumAlphaPsm )
           end if
         end if
 
@@ -23283,10 +23582,11 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumJ010 )
         call RestartRead( this%SumJ110 )
         call RestartRead( this%SumJ011 )
-        call RestartRead( this%SumBetaT )
-        call RestartRead( this%SumGammaV )
-        call RestartRead( this%SumCP )
-        call RestartRead( this%SumAlphaP )
+        call RestartRead( this%SumCVsm )
+        call RestartRead( this%SumBetaTsm )
+        call RestartRead( this%SumGammaVsm )
+        call RestartRead( this%SumCPsm )
+        call RestartRead( this%SumAlphaPsm )
       end if
     end if
 
@@ -23357,8 +23657,23 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumA30resII )
         call RestartRead( this%SumA21resII )
         call RestartRead( this%SumA12resII )
+      elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+        call RestartRead( this%SumConfEnthalpyTot )
+        call RestartRead( this%SumConfEnthalpy2 )
+        call RestartRead( this%SumConfEnthalpyV )
+        call RestartRead( this%SumG10 )
+        call RestartRead( this%SumG01 )
+        call RestartRead( this%SumG11 )
+        call RestartRead( this%SumG02 )
+        call RestartRead( this%SumG20 )
+        call RestartRead( this%SumCVsm )
+        call RestartRead( this%SumBetaTsm )
+        call RestartRead( this%SumGammaVsm )
+        call RestartRead( this%SumCPsm )
+        call RestartRead( this%SumAlphaPsm )
       end if
     end if
+
 
     ! 4.) Chemical potential and partial molar volumes
     counter = this%NRealComponents+1
