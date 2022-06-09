@@ -14558,65 +14558,46 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
     if (printIDF) then
-      !Intermolecular potential energy
-      Average = this%SumEPotInter%Average
-      Variance = this%SumEPotInter%Variance
-      write( IOBuffer, '("Intermolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&         Variance * UnitEnergy * NAvogadro
-      call FileWrite( this%errorsFile )
-      call FileWriteBlank( this%errorsFile )
 
-      !Intramolecular potential energy
-      Average = this%SumEPotIntra%Average
-      Variance = this%SumEPotIntra%Variance
-      write( IOBuffer, '("Intramolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitEnergy * NAvogadro
 
-      !Intramolecular potential energy - Bonds
-      Average = this%SumEPotIntra_Bond%Average
-      Variance = this%SumEPotIntra_Bond%Variance
-      write( IOBuffer, '("Bond energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-      call FileWrite( this%errorsFile )
-      call FileWriteBlank( this%errorsFile )
+        !Intermolecular potential energy
 
-      !Intramolecular potential energy - Angles
-      Average = this%SumEPotIntra_Angle%Average
-      Variance = this%SumEPotIntra_Angle%Variance
-      write( IOBuffer, '("Angle energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-      call FileWrite( this%errorsFile )
-      call FileWriteBlank( this%errorsFile )
+        Average = this%SumEPotInter%Average
+        Variance = this%SumEPotInter%Variance
 
-      !Intramolecular potential energy - Dihedral
-      Average = this%SumEPotIntra_Dihedral%Average
-      Variance = this%SumEPotIntra_Dihedral%Variance
-      write( IOBuffer, '("Dihedral energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&         Variance * UnitEnergy * NAvogadro
-      call FileWrite( this%errorsFile )
-      call FileWriteBlank( this%errorsFile )
+        call writeValue("Intermolecular energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
-      !Intramolecular potential energy - Nonbonded
-      Average = this%SumEPotIntra_Nonbonded%Average
-      Variance = this%SumEPotIntra_Nonbonded%Variance
-      write( IOBuffer, '("1-4, 1-5 energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite( this%errorsFile )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-      call FileWrite( this%errorsFile )
-      call FileWriteBlank( this%errorsFile )
+        !Intramolecular potential energy
+        Average = this%SumEPotIntra%Average
+        Variance = this%SumEPotIntra%Variance
+
+        call writeValue("Intramolecular energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
+
+        !Intramolecular potential energy - Bonds
+        Average = this%SumEPotIntra_Bond%Average
+        Variance = this%SumEPotIntra_Bond%Variance
+
+        call writeValue("Bond energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
+
+        !Intramolecular potential energy - Angles
+        Average = this%SumEPotIntra_Angle%Average
+        Variance = this%SumEPotIntra_Angle%Variance
+
+        call writeValue("Angle energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
+
+        !Intramolecular potential energy - Dihedral
+        Average = this%SumEPotIntra_Dihedral%Average
+        Variance = this%SumEPotIntra_Dihedral%Variance
+
+        call writeValue("Dihedral energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
+
+        !Intramolecular potential energy - Nonbonded
+
+        Average = this%SumEPotIntra_Nonbonded%Average
+        Variance = this%SumEPotIntra_Nonbonded%Variance
+
+        call writeValue("1-4, 1-5 energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
     end if ! printIDF
 
