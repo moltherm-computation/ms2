@@ -12484,6 +12484,187 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_ResultClose
 
 
+  subroutine writeStatisticalAnalogues(this)
+
+    type(TEnsemble) :: this
+    type(TComponent), pointer :: pc
+
+    real(RK) :: Average, Variance, dimensionFactor
+    real(RK) :: molmass, cpid
+
+    ! Cv
+
+    Average = this%SumCVsm%Average - 1.5_RK
+    Variance = this%SumCVsm%Variance
+
+    dimensionFactor = kBoltzmann * NAvogadro
+
+    call writeValue("Isochoric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
+    ! GammaV
+
+    Average = this%SumGammaVsm%Average
+    Variance = this%SumGammaVsm%Variance
+
+    dimensionFactor = (UnitPressure * 1E-6_RK) / UnitTemperature
+
+    call writeValue("Thermal pressure coefficient", Average, Variance, dimensionFactor, "MPa/ K", this%errorsFile)
+
+    ! BetaT
+
+    Average = this%SumBetaTsm%Average
+    Variance = this%SumBetaTsm%Variance
+
+    dimensionFactor = 1 / ( UnitPressure * 1E-6_RK )
+
+    call writeValue("Isothermal compressibility", Average, Variance, dimensionFactor, "1/MPa", this%errorsFile)
+
+    ! ALphaP
+
+    Average = this%SumAlphaPsm%Average
+    Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
+                     ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
+
+    dimensionFactor = 1 / UnitTemperature
+
+    call writeValue("Thermal expansion coefficient", Average, Variance, dimensionFactor, "1/ K", this%errorsFile)
+
+    ! CP
+
+    Average = this%SumCPsm%Average - 2.5_RK
+
+    if ( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
+
+        Variance = this%SumCPsm%Variance
+
+    else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+ 
+        Variance = SQRT( this%SumCVsm%Variance**2 + &
+            ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
+            ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
+
+    else
+
+        write( ErrorBuffer, '(A)' ) "Unknown ensemble type in writeStatisticalAnalogues"
+        call Error
+
+    end if
+
+    dimensionFactor = kBoltzmann * NAvogadro
+
+    call writeValue("Isobaric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
+    ! Speed of Sound
+
+    molmass = 0._RK
+    cpid = 0._RK
+    
+    do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        molmass = molmass + pc%Fraction * pc%Molecule%Mass
+        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
+    end do
+    
+    Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
+                    *this%SumCVsm%Average*this%RefDensity ) )
+    
+    Variance = .5_RK * SQRT(( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
+                            ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
+                            ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
+
+    dimensionFactor = UnitLength / UnitTime
+
+    call writeValue("Speed of sound", Average, Variance, dimensionFactor, "m/s", this%errorsFile)
+
+    ! Joule Thomson
+
+    Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
+
+    Variance = SQRT(( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
+                    (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
+                    (this%RefTemperature*this%SumAlphaPsm%Variance / &
+                    (this%RefDensity*this%SumCPsm%Average) )**2 )
+
+    dimensionFactor = UnitTemperature / ( UnitPressure * 1E-6_RK )
+
+    call writeValue("Joule Thomson coefficient", Average, Variance, dimensionFactor, "K/MPa", this%errorsFile)
+
+  end subroutine writeStatisticalAnalogues
+
+
+  subroutine writeValue(quantityName, Average, Variance, dimensionFactor, unitString, errorsFile)
+    ! Output with : as 29th character should be:
+    !<quantityName>             red.:        12.314568478         0.314568478
+    !                in <unitString>:         5.001409733         0.000352543
+
+    type(TFile) :: errorsFile
+    real(RK) :: Average, Variance, dimensionFactor
+    character(*) :: quantityName, unitString
+    character(len=:), allocatable :: formatString
+    integer :: nSpaces
+
+    ! order of ifs is important!
+    if (len(quantityName) <= (36 - 7 - 2)) then ! line width - len("reduced") - space - len(":")
+
+        formatString = '(A, A, "reduced:", 2F20.9)'
+        nSpaces = 36 - len(quantityName) - 7 - 1
+
+    else if (len(quantityName) <= (36 - 4 - 2)) then ! line width - len("red.") - space - len(":")
+
+        formatString = '(A, A, "red.:", 2F20.9)'
+        nSpaces = 36 - len(quantityName) - 4 - 1
+
+    else
+
+        write( ErrorBuffer, '(A, A, A)' ) "Variable name '", quantityName, &
+                                          "' in writeValue does not fit coulmn width."
+        call Error
+
+    end if
+
+    write(IOBuffer, formatString) quantityName, repeat(" ", NSpaces), Average, Variance
+    call FileWrite(errorsFile)
+
+    nSpaces = 36 - len(unitString) - 4
+    write(IOBuffer, '(A, A, A, A, 2F20.9)') repeat(" ", nSpaces), "in ", unitString, ":", Average * dimensionFactor , Variance  * dimensionFactor
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+  end subroutine writeValue
+
+
+  subroutine writeSeparator(errorsFile, noHline, errorColumn)
+
+    type(Tfile) :: errorsFile
+    logical :: noHline, errorColumn
+
+    if (.not. noHline) then
+        write( IOBuffer, '(76("="))' )
+    end if
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+    if (errorColumn) then
+
+        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
+        call FileWrite(errorsFile)
+        write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
+
+    else
+
+        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")')
+        call FileWrite(errorsFile)
+        write( IOBuffer, '("-----", T31, "-----", T46, "-------")')
+
+    end if
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+  end subroutine writeSeparator
+
 
 !==============================================================!
 !  Subroutine TEnsemble_ErrorsUpdate                           !
@@ -12505,8 +12686,10 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: Average, Variance
     real(RK)                  :: Beta, Beta2
     type(TComponent), pointer :: pc
-    integer                   :: i, j, t!, s, o
-    real(RK)                  :: value
+    integer                   :: i, j, t, iKBImethod, iComponent
+    real(RK)                  :: dimensionFactor, value
+    character(:), allocatable :: formatString
+    character(len=16), dimension(3) :: methodStringKBI
 #if  TRANS == 1
     integer                   :: k, m
     real(RK)                  :: mw,w1,w2,nc,factor
@@ -12990,76 +13173,60 @@ loop2:        do nc = 1, this%NComponents
     call FileWriteBlank(this%errorsFile)
 
     ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-    write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+    call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .true.)
 
     ! Pressure
     Average = this%SumPressure%Average
     Variance = this%SumPressure%Variance
-    write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitPressure * 1E-6_RK
+
+    call writeValue("Pressure", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
 
     ! Density
     Average = this%SumDensity%Average
     Variance = this%SumDensity%Variance
-    write( IOBuffer, '("Density", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitDensity
+
+    call writeValue("Density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
     ! Temperature
     Average = this%SumTemperature%Average
     Variance = this%SumTemperature%Variance
-    write( IOBuffer, '("Temperature", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T32, "in K:", 2F20.9)' ) Average * UnitTemperature, Variance * UnitTemperature
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitTemperature
+
+    call writeValue("Temperature", Average, Variance, dimensionFactor, "K", this%errorsFile)
 
 #if OSMOP > 0
     if (SimulationType .eq. MolecularDynamics) then
-      ! OsmoticPressure
-      Average = this%SumOsmoticPressure%Average
-      Variance = this%SumOsmoticPressure%Variance
-      write( IOBuffer, '("OsmoticPressure", T29, "reduced:", 2F20.9)' ) &
-  &     Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
-  &     Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+        ! OsmoticPressure
+        Average = this%SumOsmoticPressure%Average
+        Variance = this%SumOsmoticPressure%Variance
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("OsmoticPressure", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
+
     end if
 #endif
 
     ! Potential energy
     Average = this%SumEPot%Average
     Variance = this%SumEPot%Variance
-    write( IOBuffer, '("Potential energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitEnergy * NAvogadro
+
+    call writeValue("Potential energy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
     ! Enthalpy
     Average = this%SumEnthalpy%Average
     Variance = this%SumEnthalpy%Variance
-    write( IOBuffer, '("Enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&          Variance * UnitEnergy * NAvogadro
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
+
+    dimensionFactor = UnitEnergy * NAvogadro
+
+    call writeValue("Enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
     ! Sampling of Dielectric Constant
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -13226,40 +13393,34 @@ loop2:        do nc = 1, this%NComponents
         ! Isothermal compressibility
         Average = this%SumBetaT%Average
         Variance = this%SumBetaT%Variance
-        write( IOBuffer, '("Isothermal compressibility", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-&              Variance / ( UnitPressure * 1E-6_RK )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / (UnitPressure * 1E-6_RK)
+
+        call writeValue("Isothermal compressibility", Average, Variance, dimensionFactor, "1/MPa", this%errorsFile)
 
         ! dH/dP
         Average = this%SumdHdP%Average
         Variance = this%SumdHdP%Variance
-        write( IOBuffer, '("dH/dP", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in l/mol:", 2F20.9)' ) Average / UnitDensity, Variance / UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / UnitDensity
+
+        call writeValue("dH/dP", Average, Variance, dimensionFactor, "l/mol", this%errorsFile)
 
         ! CP - subtract ideal gas contribution of the pressure
         Average = this%SumCP%Average - 1._RK
         Variance = this%SumCP%Variance
-        write( IOBuffer, '("Isobaric heat capacity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = kBoltzmann * NAvogadro
+
+        call writeValue("Isobaric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
 
         ! AlphaP
         Average = this%SumAlphaP%Average
         Variance = this%SumAlphaP%Variance
-        write( IOBuffer, '("Volume expansivity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in 1/K:", 2F20.9)' ) Average / UnitTemperature, Variance / UnitTemperature
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = 1 / UnitTemperature
+
+        call writeValue("Volume expansivity", Average, Variance, dimensionFactor, "1/K", this%errorsFile)
 
         ! Speed of sound
         molmass = 0._RK
@@ -13281,31 +13442,27 @@ loop2:        do nc = 1, this%NComponents
 &                  ( 4._RK * this%SumAlphaP%Variance**2 + this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 * &
 &                  this%SumCP%Variance**2 ) )
 
-        write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitLength / UnitTime
+
+        call writeValue("Speed of sound", Average, Variance, dimensionFactor, "m/s", this%errorsFile)
 
       else
         ! dU/dV
         Average = this%SumdUdV%Average
         Variance = this%SumdUdV%Variance
-        write( IOBuffer, '("dU/dV", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("dU/dV", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
 
         ! Cv
         Average = this%SumCV%Average
         Variance = this%SumCV%Variance
-        write( IOBuffer, '("Isochoric heat capacity", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = kBoltzmann * NAvogadro
+
+        call writeValue("Isochoric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
+
         ! Correlation coefficient R
         Average = this%SumCorCoefR%Average
         Variance = this%SumCorCoefR%Variance
@@ -13316,7 +13473,7 @@ loop2:        do nc = 1, this%NComponents
 
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
+    if (any((/EnsembleTypeNVT, EnsembleTypeNVE/) .eq. EnsembleType) .and. LongRange .eq. Rfield) then
       ! A00
       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
         Average  = 0_RK
@@ -13356,63 +13513,25 @@ loop2:        do nc = 1, this%NComponents
 
       call writeAverageAndVariance(this%SumA12resI, 'A12', this%errorsFile)
 
-    end if
+      if (EnsembleType .eq. EnsembleTypeNVE) then
 
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
-        Average  = 0_RK
-        Variance = 0_RK
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          select case( pc%ChemPotMethod )
-          case( ChemPotMethodWidom )
-            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
-            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
-          case( ChemPotMethodThermoInt )
-            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
-&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
-            Variance = Variance + pc%SumChemPotV%Variance**2
-          end select
-        end do
-        Average  = Average - this%SumA01resI%Average - log(this%Density)
-        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+          call writeAverageAndVariance(this%SumA10resII, 'A10', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA01resII, 'A01', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA20resII, 'A20', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA11resII, 'A11', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA02resII, 'A02', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA30resII, 'A30', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
+
       end if
-
-      call writeAverageAndVariance(this%SumA10resI, 'A10', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA01resI, 'A01', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA20resI, 'A20', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA11resI, 'A11', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA02resI, 'A02', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA30resI, 'A30', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA21resI, 'A21', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA12resI, 'A12', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA10resII, 'A10', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA01resII, 'A01', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA20resII, 'A20', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA11resII, 'A11', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA02resII, 'A02', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA30resII, 'A30', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
-
-      call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
 
     end if
 
@@ -13422,92 +13541,7 @@ loop2:        do nc = 1, this%NComponents
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
-      ! Statistical analogues
-      ! Cv
-      Average = this%SumCVsm%Average - 1.5_RK
-      Variance = this%SumCVsm%Variance
-      write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! GammaV
-      Average = this%SumGammaVsm%Average
-      Variance = this%SumGammaVsm%Variance
-      write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in MPa/ K:", 2F20.9)' ) Average * ( UnitPressure * 1E-6_RK ) / UnitTemperature, &
-&              Variance * ( UnitPressure * 1E-6_RK ) / UnitTemperature
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! BetaT
-      Average = this%SumBetaTsm%Average
-      Variance = this%SumBetaTsm%Variance
-      write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-      &              Variance / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! ALphaP
-      Average = this%SumAlphaPsm%Average
-      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
-&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
-      write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in 1/ K:", 2F20.9)' ) Average / UnitTemperature, &
-      &              Variance / UnitTemperature
-            call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! CP
-      Average = this%SumCPsm%Average - 2.5_RK
-      Variance = this%SumCPsm%Variance
-      write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! Speed of Sound
-      molmass = 0._RK
-      cpid = 0._RK
-
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        molmass = molmass + pc%Fraction * pc%Molecule%Mass
-        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
-      end do
-
-      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
-&               *this%SumCVsm%Average*this%RefDensity ) )
-
-      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
-&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
-&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
-
-      write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-
-      ! Joule Thomson
-      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
-
-      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
-      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
-      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
-      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
-
-      write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeStatisticalAnalogues(this)
 
 !       ! G00 TODO
 !       if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
@@ -13535,368 +13569,183 @@ loop2:        do nc = 1, this%NComponents
       ! G10
       Average = - this%SumG10%Average - 2.5_RK*this%RefTemperature
       Variance = this%SumG10%Variance
-      write( IOBuffer, '("G10", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G10", Average, Variance)
 
       ! G01
       Average = - this%SumG01%Average - 1._RK/this%RefPressure
       Variance = this%SumG01%Variance
-      write( IOBuffer, '("G01", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G01", Average, Variance)
 
       ! G20
       Average = - this%SumG20%Average + 2.5_RK*this%RefTemperature*this%RefTemperature
       Variance = this%SumG20%Variance
-      write( IOBuffer, '("G20", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G20", Average, Variance)
 
       ! G02
       Average = - this%SumG02%Average + (1._RK/this%RefPressure)**2
       Variance = this%SumG02%Variance
-      write( IOBuffer, '("G02", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G02", Average, Variance)
 
       ! G11
       Average = - this%SumG11%Average
       Variance = this%SumG11%Variance
-      write( IOBuffer, '("G11", T29, "Dimensionless, residual:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      call writeDimlessValueWithError(this%errorsFile, "G11", Average, Variance)
 
     end if
 
+    methodStringKBI = [character(len=16) :: "RDF", "RDF vdV cor.", "RDF vdV+shf cor."]
+
     ! thermodynamic factors with KBI
     if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then
+
+        dimensionFactor =  1E-6_RK / (NAvogadro * (UnitLength**3))
+
         if (this%NRealComponents == 2) then
+
             ! Thermodynamic factor through KBI
-            ! RDF standard
-            write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
-            call FileWrite(this%errorsFile)
+
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA11 (", A, ")" , T29, "Dimensionless:", 2F20.9)') &
+                    trim(methodStringKBI(iKBImethod)), this%TDF(iKBImethod, 1), this%dTDF(iKBImethod, 1)
+
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA11,0 (", A, ")", T29, "Dimensionless:", 1F20.9)') &
+                    trim(methodStringKBI(iKBImethod)), this%TDF0(iKBImethod, 1)
+
+                call FileWrite(this%errorsFile)
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
+            do iKBImethod = 1, 3
+
+                do iComponent = 1, this%NRealComponents
+
+                    write(IOBuffer, '("partial molar volume ", I1, " (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '(T44, "in l/mol:", 2F20.9)') 0.001_RK * this%partialmolV(iKBImethod, iComponent), &
+                                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '("partial molar volume ", I1, ",0 (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV0(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '(T44, "in l/mol:", 2F20.9)') 0.001_RK * this%partialmolV0(iKBImethod, iComponent), &
+                                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                end do
+
+            end do
+
             call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,1)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("GAMMA11 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,1), this%dTDF(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! Partial molar volumes through KBI
-            ! RDF standard
-            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+
         else if (this%NRealComponents == 3) then
+
+            formatString = '(T20, 2F20.9, A, 19X, 2F20.9)'
+
             ! Thermodynamic factor through KBI
-            ! RDF standard
-            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,3), this%TDF0(1,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,3), this%TDF0(2,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV+shf correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF(iKBImethod, 1:2), NEW_LINE('A'), this%TDF(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("dGAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%dTDF(iKBImethod, 1:2), NEW_LINE('A'), this%dTDF(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA0_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF0(iKBImethod, 1:2), NEW_LINE('A'), this%TDF0(iKBImethod, 3:4)
+                call FileWrite(this%errorsFile)
+
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
+            formatString = '(T44, "in l/mol:", 2F20.9)'
+
             ! Partial molar volumes through KBI
-            ! RDF standard
-            write( IOBuffer, '("partial molar volume 1 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,1),0.001_RK*this%dpartialmolV(1,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,2),0.001_RK*this%dpartialmolV(1,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(1,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(1,3),0.001_RK*this%dpartialmolV(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(1,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(1,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(1,3),0.001_RK*this%dpartialmolV(1,3)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,1),0.001_RK*this%dpartialmolV(2,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,2),0.001_RK*this%dpartialmolV(2,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(2,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(2,3),0.001_RK*this%dpartialmolV(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(2,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(2,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(2,3),0.001_RK*this%dpartialmolV(2,3)
-            call FileWrite(this%errorsFile)
-            ! RDF vdV + shf correction
-            write( IOBuffer, '("partial molar volume 1 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 1,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,1)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,1)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,1),0.001_RK*this%dpartialmolV(3,1)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 2,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,2)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,2)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,2),0.001_RK*this%dpartialmolV(3,2)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV(3,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV(3,3),0.001_RK*this%dpartialmolV(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("partial molar volume 3,0 (RDF vdV+shf cor.)", T45, "reduced:", 2F20.9)' ) (1E-6_RK)*this%partialmolV0(3,3)&
-&           *1_RK/(NAvogadro*(UnitLength**3)),(1E-6_RK)*this%dpartialmolV(3,3)*1_RK/(NAvogadro*(UnitLength**3))
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T44, "in l/mol:", 2F20.9)' ) 0.001_RK*this%partialmolV0(3,3),0.001_RK*this%dpartialmolV(3,3)
-            call FileWrite(this%errorsFile)
+            do iKBImethod = 1, 3
+
+                do iComponent = 1, this%NRealComponents
+
+                    write(IOBuffer, '("partial molar volume ", I1, " (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, formatString) 0.001_RK * this%partialmolV(iKBImethod, iComponent), &
+                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, '("partial molar volume ", I1, ",0 (", A, ")", T45, "reduced:", 2F20.9)') iComponent, trim(methodStringKBI(iKBImethod)), &
+                                                                                this%partialmolV0(iKBImethod, iComponent) * dimensionFactor, &
+                                                                                this%dpartialmolV(iKBImethod, iComponent) * dimensionFactor
+                    call FileWrite(this%errorsFile)
+
+                    write(IOBuffer, formatString) 0.001_RK * this%partialmolV0(iKBImethod, iComponent), &
+                                                  0.001_RK * this%dpartialmolV(iKBImethod, iComponent)
+                    call FileWrite(this%errorsFile)
+
+                end do
+
+            end do
+
             call FileWriteBlank(this%errorsFile)
+
         else if (this%NRealComponents == 4) then
-            ! RDF standard
-            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2), this%TDF(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,4), this%TDF0(1,5), this%TDF0(1,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,7), this%TDF0(1,8), this%TDF0(1,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2), this%TDF(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,4), this%TDF0(2,5), this%TDF0(2,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,7), this%TDF0(2,8), this%TDF0(2,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
-            ! RDF vdV+shf correction
-            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2), this%TDF(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,4), this%TDF0(3,5), this%TDF0(3,6)
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,7), this%TDF0(3,8), this%TDF0(3,9)
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+
+            formatString = '(T20, 3F20.9, A, 19X, 3F20.9, A, 19X, 3F20.9)'
+
+            do iKBImethod = 1, 3
+
+                write(IOBuffer, '("GAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%TDF(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%TDF(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("dGAMMA_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%dTDF(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%dTDF(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%dTDF(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, '("GAMMA0_ij (", A, ")", T29, "Dimensionless:")') trim(methodStringKBI(iKBImethod))
+                call FileWrite(this%errorsFile)
+
+                write(IOBuffer, formatString) this%TDF0(iKBImethod, 1:3), NEW_LINE('A'), &
+                                              this%TDF0(iKBImethod, 4:6), NEW_LINE('A'), &
+                                              this%TDF0(iKBImethod, 7:9)
+                call FileWrite(this%errorsFile)
+
+                call FileWriteBlank(this%errorsFile)
+
+            end do
+
         end if
     end if
 
@@ -13932,14 +13781,7 @@ loop2:        do nc = 1, this%NComponents
         call FileWriteBlank(this%errorsFile)
 
         ! Separator
-        write( IOBuffer, '(76("="))' )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
-        write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")' )
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '("-----", T31, "-----", T46, "-------")' )
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .false.)
 
         ! Second virial coefficient
         do i = 1, this%NComponents
@@ -14053,14 +13895,7 @@ else
      write( IOBuffer, '("VLE calculated with the NpT + SVC method")' )
        call FileWrite(this%errorsFile)
        call FileWriteBlank(this%errorsFile)
-       write( IOBuffer, '(76("="))' )
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
-       write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+       call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .true.)
 
       ! Simulation temperature
       write( IOBuffer, '("Simulation temperature", T29, "reduced:", F20.9)' ) this%RefTemperature
@@ -14088,26 +13923,22 @@ else
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
-
       ! Liquid density.
 
       Average = this%SumDensity%Average + this%SumDensity%Average * this%SumBetaT%Average * ( VapPressSVC - this%RefPressure)
       Variance = sqrt( this%SumDensity%Variance**2 + ( this%SumBetaT%Variance * ( VapPressSVC - this%RefPressure )&
 &                + VapPressSVCErr * this%SumBetaT%Average )**2 )
 
-      write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      dimensionFactor = UnitDensity
 
+      call writeValue("Liquid density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
        ! Vapor pressure
-       write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) VapPressSVC, VapPressSVCErr
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) VapPressSVC * UnitPressure * 1E-6_RK, VapPressSVCErr * UnitPressure * 1E-6_RK
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+
+       dimensionFactor = UnitPressure * 1E-6_RK
+
+       call writeValue("Vapor pressure", VapPressSVC, VapPressSVCErr, dimensionFactor, "MPa", this%errorsFile)
+
        ! Vapor mole fraction
 
        if (this%NComponents .ge. 2) then
@@ -14129,11 +13960,9 @@ else
  end if
         ! Vapor density.
 
-       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) VapDensSVC, VapDensSVCErr
-       call FileWrite(this%errorsFile)
-       write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) VapDensSVC * UnitDensity, VapDensSVCErr * UnitDensity
-       call FileWrite(this%errorsFile)
-       call FileWriteBlank(this%errorsFile)
+       dimensionFactor = UnitDensity
+
+       call writeValue("Vapor density", VapDensSVC, VapDensSVCErr, dimensionFactor, "mol/l", this%errorsFile)
 
 
     ! Saturated liquid enthalpy.
@@ -14142,12 +13971,9 @@ else
       Variance = sqrt( this%SumEnthalpy%Variance**2 + ( this%SumdHdP%Variance * &
 &                ( VapPressSVC - this%RefPressure ) + VapPressSVCErr * this%SumdHdP%Average )**2 )
 
-      write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&            Variance * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Liquid enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average
       VarDeltaHv = Variance
@@ -14157,24 +13983,19 @@ else
 &     (this%RefTemperature* this%RefTemperature * VapDensSVC*dBdTmixtemp)
       Variance = sqrt( ( (BmixSVCtemp*this%RefTemperature -  &
 &     dBdTmixtemp*this%RefTemperature*this%RefTemperature)* VapDensSVCErr )**2 )
-      write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&            Variance * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
       VarDeltaHv = Variance + VarDeltaHv
 
       ! Evaporation enthalpy
-      write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
-&            VarDeltaHv * UnitEnergy * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
 
+      dimensionFactor = UnitEnergy * NAvogadro
+
+      call writeValue("Enthalpy of vaporization", DeltaHv, VarDeltaHv, dimensionFactor, "J/mol", this%errorsFile)
 
       ! Ratio of compressibility factors
       z_calc = VapPressSVC / (VapDensSVC * this%RefTemperature)
@@ -14286,15 +14107,8 @@ end if
     if ( this%CorrfunMode ) Then
 
       write( IOBuffer, '(T24, "TRANSPORT PROPERTIES")' )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
 
-      write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE", T66, "ERROR")' )
-      call FileWrite(this%errorsFile)
-
-      write( IOBuffer, '("-----", T31, "-----", T46, "-------", T66, "-----")' )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeSeparator(this%errorsFile, noHline = .true., errorColumn = .true.)
 
       write( IOBuffer, '("Number of Corr. Funct.", T36, ":",T45, I8 )' ) this%Mmess
       call FileWrite(this%errorsFile)
@@ -14392,11 +14206,8 @@ end if
 &                     this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
 &                     this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
 
-            write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-            call FileWrite(this%errorsFile)
-            call FileWriteBlank(this%errorsFile)
+            call writeValue("Binary diff. coeff.", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
           end if
 
           if (this%MolarEnthConduct) then
@@ -14499,21 +14310,12 @@ end if
                err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
 &                        ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-               write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
+               call writeValue("Ternary diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Ternary diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Ternary diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
              end if !this%NComponents == 3
 
 
@@ -14587,36 +14389,18 @@ end if
                          ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
                          ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
-               write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
-               write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-               call FileWrite(this%errorsFile)
-               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-               call FileWrite(this%errorsFile)
-               call FileWriteBlank(this%errorsFile)
+               call writeValue("Quat. diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 1 4", D_14, err_D14, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 2 4", D_24, err_D24, value, "1E-10 m^2/s", this%errorsFile)
+
+               call writeValue("Quat. diff. coeff. 3 4", D_34, err_D34, value, "1E-10 m^2/s", this%errorsFile)
+
              end if !this%NComponents == 4
            end if !TransMethod GreenKubo
         end if !NComponents = 3 or 4
@@ -14639,11 +14423,9 @@ end if
           Average  = this%SumVisco_s%Average
           Variance = this%SumVisco_s%Variance
           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-          write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+
+          call writeValue("Shear viscosity    ", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+
          end if
 
         !bulk viscosity
@@ -14739,11 +14521,9 @@ end if
                call FileWriteBlank(this%errorsFile)
              end do
           else
-             write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) Average, Variance
-             call FileWrite(this%errorsFile)
-             write( IOBuffer, '(T26, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
-             call FileWrite(this%errorsFile)
-             call FileWriteBlank(this%errorsFile)
+
+             call writeValue("Energy coefficient LEE ", Average, Variance, value, "W K/ m ", this%errorsFile)
+
              do i = 1, this%NComponents
                Average  = this%SumSoret(i)%Average
                Variance = this%SumSoret(i)%Variance
@@ -15078,21 +14858,12 @@ end if
           err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
 &                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+          call writeValue("Ternary diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Ternary diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Ternary diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
         end if !this%NComponents == 3
 
 
@@ -15164,37 +14935,18 @@ end if
                     ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
                     ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
 
+          call writeValue("Quat. diff. coeff. 1 2", D_12, err_D12, value, "1E-10 m^2/s", this%errorsFile)
 
-          write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
+          call writeValue("Quat. diff. coeff. 1 3", D_13, err_D13, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 1 4", D_14, err_D14, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 2 3", D_23, err_D23, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 2 4", D_24, err_D24, value, "1E-10 m^2/s", this%errorsFile)
+
+          call writeValue("Quat. diff. coeff. 3 4", D_34, err_D34, value, "1E-10 m^2/s", this%errorsFile)
+
         end if !this%NComponents == 4
 
 
@@ -15213,11 +14965,8 @@ end if
         Average  =  this%EinsteinShearAcc%Average
         Variance =  this%EinsteinShearAcc%Variance
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        call writeValue("Shear viscosity    ", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
 
         if ( this%NComponents > 1 ) then
            do i = 1, this%NComponents
@@ -15304,11 +15053,10 @@ end if
         end do
 
         VarPressure = sqrt( Variance**2 + sum( (dpdmu * varmu)**2 ) + sum( (dpdv * varv)**2 ) )
-        write( IOBuffer, '("Vapor pressure", T29, "reduced:", 2F20.9)' ) Average, VarPressure
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, VarPressure * UnitPressure * 1E-6_RK
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitPressure * 1E-6_RK
+
+        call writeValue("Vapor pressure", Average, VarPressure, dimensionFactor, "MPa", this%errorsFile)
 
         ! Mole fractions of vapor phase
         do i = 1, this%NComponents
@@ -15345,23 +15093,17 @@ end if
         Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( this%SumPressure%Average - this%RefPressure )&
   &               + VarPressure * this%LiqBetaT )**2 )
 
-        write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitDensity
+
+        call writeValue("Liquid density", Average, Variance, dimensionFactor, "mol/l", this%errorsFile)
 
         ! Saturated vapor density
         Average = this%SumDensity%Average
-        Variance = this%SumDensity%Variance
-        write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-  &            Average, Average * VarPressure / this%SumPressure%Average
 
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
-  &            * VarPressure / this%SumPressure%Average * UnitDensity
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitDensity
+
+        call writeValue("Vapor density", Average, Average * VarPressure / this%SumPressure%Average, dimensionFactor, "mol/l", this%errorsFile)
+
 
         ! Saturated liquid enthalpy
         Average = this%LiqEnthalpy + this%LiqdHdP * ( this%SumPressure%Average - this%RefPressure )
@@ -15369,12 +15111,9 @@ end if
         Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
   &                ( this%SumPressure%Average - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
 
-        write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-  &            Variance * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Liquid enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
         DeltaHv = Average
         VarDeltaHv = Variance
@@ -15382,23 +15121,19 @@ end if
         ! Saturated vapor enthalpy
         Average = this%SumEnthalpy%Average
         Variance = this%SumEnthalpy%Variance
-        write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-  &            Variance * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
       VarDeltaHv = Variance + VarDeltaHv
 
         ! Evaporation enthalpy
-        write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
-        call FileWrite(this%errorsFile)
-        write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
-  &            VarDeltaHv * UnitEnergy * NAvogadro
-        call FileWrite(this%errorsFile)
-        call FileWriteBlank(this%errorsFile)
+
+        dimensionFactor = UnitEnergy * NAvogadro
+
+        call writeValue("Enthalpy of vaporization", DeltaHv, VarDeltaHv, dimensionFactor, "J/mol", this%errorsFile)
 
         ! Separator
         write( IOBuffer, '(76("="))' )
@@ -15407,93 +15142,8 @@ end if
       end if
 
       ! Statistical analogues
-      ! Cv
-      Average = this%SumCVsm%Average - 1.5_RK
-      Variance = this%SumCVsm%Variance
-      write( IOBuffer, '("Isochoric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! GammaV
-      Average = this%SumGammaVsm%Average
-      Variance = this%SumGammaVsm%Variance
-      write( IOBuffer, '("Thermal pressure coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in MPa/ K:", 2F20.9)' ) Average * ( UnitPressure * 1E-6_RK ) / UnitTemperature, &
-&              Variance * ( UnitPressure * 1E-6_RK ) / UnitTemperature
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! BetaT
-      Average = this%SumBetaTsm%Average
-      Variance = this%SumBetaTsm%Variance
-      write( IOBuffer, '("Isothermal compressibility", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T28, "in 1/MPa:", 2F20.9)' ) Average / ( UnitPressure * 1E-6_RK ), &
-      &              Variance / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! ALphaP
-      Average = this%SumAlphaPsm%Average
-      Variance = SQRT( ( this%SumBetaTsm%Average * this%SumGammaVsm%Variance )**2 + &
-&               ( this%SumBetaTsm%Variance * this%SumGammaVsm%Average )**2 )
-      write( IOBuffer, '("Thermal expansion coefficient", T32, "red.:", 2F20.9)' ) &
-&       Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in 1/ K:", 2F20.9)' ) Average / UnitTemperature, &
-      &              Variance / UnitTemperature
-            call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! CP
-      Average = this%SumCPsm%Average - 2.5_RK
-      Variance = SQRT( this%SumCVsm%Variance**2 + &
-&        ( this%RefTemperature*this%SumGammaVsm%Average*this%SumBetaTsm%Variance / this%RefDensity )**2 + &
-&        ( this%RefTemperature*this%SumGammaVsm%Variance*this%SumBetaTsm%Average / this%RefDensity )**2 )
-      write( IOBuffer, '("Isobaric heat capacity", T32, "red.:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T24, "in J/(mol K):", 2F20.9)' ) Average * kBoltzmann * NAvogadro, &
-&              Variance * kBoltzmann * NAvogadro
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-      ! Speed of Sound
-      molmass = 0._RK
-      cpid = 0._RK
 
-      do i = 1, this%NRealComponents
-        pc => this%Component(i)
-        molmass = molmass + pc%Fraction * pc%Molecule%Mass
-        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
-      end do
-
-      Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
-&               *this%SumCVsm%Average*this%RefDensity ) )
-
-      Variance = .5_RK * SQRT( ( Average*this%SumCPsm%Variance/this%SumCpsm%Average )**2 + &
-&                ( Average*this%SumBetaTsm%Variance/this%SumBetaTsm%Average )**2 + &
-&                ( Average*this%SumCVsm%Variance/this%SumCVsm%Average )**2 ) / Average
-
-      write( IOBuffer, '("Speed of sound", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in m/s:", 2F20.9)' ) Average * UnitLength / UnitTime, Variance * UnitLength / UnitTime
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
-
-      ! Joule Thomson
-      Average = 1._RK/(this%RefDensity*this%SumCPsm%Average) * (this%RefTemperature*this%SumAlphaPsm%Average-1)
-
-      Variance = SQRT( ( this%SumCPsm%Variance/(this%RefDensity*this%SumCPsm%Average*this%SumCPsm%Average) * &
-      &      (this%RefTemperature*this%SumAlphaPsm%Average-1) )**2 + &
-      &      (this%RefTemperature*this%SumAlphaPsm%Variance / &
-      &      (this%RefDensity*this%SumCPsm%Average) )**2 )
-
-      write( IOBuffer, '("Joule Thomson coefficient", T29, "reduced:", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      write( IOBuffer, '(T30, "in K/MPa:", 2F20.9)' ) Average * UnitTemperature / ( UnitPressure * 1E-6_RK ) , Variance  * UnitTemperature / ( UnitPressure * 1E-6_RK )
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      call writeStatisticalAnalogues(this)
 
       ! J000
       Average = - this%SumPressure%Average / (this%RefTemperature*this%RefDensity)
@@ -16201,15 +15851,7 @@ end if
     call FileWriteBlank(this%errorsFile)
 
     ! Separator
-    write( IOBuffer, '(76("="))' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-    write( IOBuffer, '("VALUE", T31, "UNITS", T46, "AVERAGE")' )
-    call FileWrite(this%errorsFile)
-    write( IOBuffer, '("-----", T31, "-----", T46, "-------")' )
-    call FileWrite(this%errorsFile)
-    call FileWriteBlank(this%errorsFile)
-
+    call writeSeparator(this%errorsFile, noHline = .false., errorColumn = .false.)
 
     ! Second virial coefficient
     do i = 1, this%NComponents, 2
