@@ -528,15 +528,15 @@ contains
   end subroutine writeAverages
 
 
-  subroutine writeAverageAndVariance(this, variableName, errorsFile, reducedTitle)
+  subroutine writeDimlessValueWithError(errorsFile, variableName, average, error, reducedTitle)
 
     implicit none
 
-    type(TAccumulator) :: this
     type(TFile), intent(in)        :: errorsFile
     character(:), allocatable    :: formatString
     character(len=*), intent(in)    :: variableName
     logical, optional :: reducedTitle
+    real(RK) :: average, error
 
 
     if (present(reducedTitle) .and. reducedTitle) then
@@ -551,10 +551,24 @@ contains
         formatString = '("'//variableName//' - Dimensionless, residual", T36,":", 2F20.9)'
     end if
 
-    write( IOBuffer, formatString) this%Average, this%Variance
+    write( IOBuffer, formatString) average, error
 
     call FileWrite(errorsFile)
     call FileWriteBlank(errorsFile)
+
+  end subroutine writeDimlessValueWithError
+
+
+  subroutine writeAverageAndVariance(this, variableName, errorsFile, reducedTitle)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    type(TFile), intent(in)        :: errorsFile
+    character(len=*), intent(in)    :: variableName
+    logical, optional :: reducedTitle
+
+    call writeDimlessValueWithError(errorsFile, variableName, this%Average, this%Variance, present(reducedTitle))
 
   end subroutine writeAverageAndVariance
 
