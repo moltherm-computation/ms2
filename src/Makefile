@@ -12,8 +12,8 @@ ifneq ($(ABL),)
   CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DCONSTR=0 -DABL 
   PROG =  ms2abl
 else
-  F90 = pgf90 
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DCONSTR=0  
+  F90 = ifort 
+  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created 
   PROG =  ms2
 endif
 endif
