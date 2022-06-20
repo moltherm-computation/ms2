@@ -14,7 +14,7 @@ ifneq ($(ABL),)
 else
   F90 = ifort 
   CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created 
-  PROG =  ms2
+  PROG =  ms2_INTEL
 endif
 endif
 F90FLAGS = -g -C
@@ -82,6 +82,8 @@ ms2_idf.mod:  ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod 
 
-ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod
+ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod ms2_molecule.mod
+
+ms2_accumulator.mod: ms2_global.mod
 
 ms2_stopwatch.mod: ms2_global.mod
