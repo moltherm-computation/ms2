@@ -1,0 +1,7 @@
+.cproject
+.project
+
+src/*.o
+src/*.mod
+
+.settings
