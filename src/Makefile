@@ -8,7 +8,7 @@ TARGET    = RELEASE
 MPI       = 0
 OMP       = 0
 PROG      = ms2
-
+TRANS     = 0
 ifeq ($(MPI),1)
   F90 = mpif90
   CPPFLAGS += -DMPI_VER=1
@@ -27,6 +27,11 @@ CPPFLAGS += -DENABLE_OMP
 F90FLAGS += $(OMPFLAGS)
 LDFLAGS  += $(OMPFLAGS)
 PROG     := $(PROG)_omp
+endif
+
+ifeq ($(TRANS),1)
+CPPFLAGS += -DTRANS
+PROG     := $(PROG)_trans
 endif
 
 SRCS =  ms2.F90 \
@@ -79,7 +84,9 @@ ms2_ensemble.mod: ms2_component.mod ms2_interaction.mod \
 ms2_component.mod: ms2_molecule.mod ms2_site.mod \
   ms2_accumulator.mod ms2_global.mod
 
-ms2_molecule.mod: ms2_site.mod ms2_global.mod
+ms2_molecule.mod: ms2_site.mod ms2_unit.mod ms2_idf.mod ms2_global.mod
+
+ms2_unit.mod: ms2_site.mod ms2_global.mod
 
 ms2_unit.mod: ms2_site.mod ms2_global.mod
 

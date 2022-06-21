@@ -1,16 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_molecule                                         !
 !  Contains TMolecule object                                   !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -23,7 +33,6 @@ module ms2_molecule
   use ms2_site
   use ms2_idf
   use ms2_unit
-
 
 
 !==============================================================!
@@ -91,13 +100,13 @@ module ms2_molecule
 
     ! Units of molecule
     integer, pointer :: NUnit
-    integer :: NEUnit           ! number of elongated Units
+    integer :: NEUnit         ! number of elongated Units
     type(TUnit), pointer ::Unit(:)
-
+    
     ! File name for potential model
     character(FileNameLength) :: PotModFileName
-
-    ! Bonded Units
+    
+    ! Bonded Units (IDF-connected)
     integer,pointer      :: BondCount(:)
     integer,pointer      :: BoPartner(:,:)
     integer,pointer      :: AngleCount(:)
@@ -106,7 +115,7 @@ module ms2_molecule
     integer,pointer      :: DihedralPartner(:,:)
     integer, allocatable :: BondedUnits(:, :)
 
-    !1-4 and 1-5 Sites in molecule for intramolecular 1-4, 1-5 nonbonded interactions
+    ! For intramolecular 1-4, 1-5 nonbonded interactions
      integer, allocatable :: Int14(:, :)
      integer, allocatable :: IntLJ14(:, :), IntLJ15(:, :)
      integer, allocatable :: IntCC14(:, :), IntCC15(:, :)
@@ -135,6 +144,9 @@ module ms2_molecule
     ! Number of fluctuating states
     integer :: NFluct
 
+    ! Total charge of the molecule
+    real(RK) :: Charge
+
   end type TMolecule
 
   interface Construct
@@ -148,7 +160,7 @@ module ms2_molecule
   interface Save
     module procedure TMolecule_Save
   end interface
-
+  
   interface SaveIDF
     module procedure TMolecule_SaveIDF
   end interface
@@ -169,24 +181,23 @@ module ms2_molecule
     module procedure TMolecule_FindNDF
   end interface
 
-! Find bond  distance
+  ! Find bond  distance
   interface FindBondR
     module procedure TMolecule_FindBondR
   end interface
 
-! Find  bond angle
+  ! Find  bond angle
   interface FindAngle
     module procedure TMolecule_FindAngle
   end interface
 
-! Check  dihedral angle
+  ! Check  dihedral angle
   interface FindDihedral
     module procedure TMolecule_FindDihedral
   end interface
 
-
+  
 contains
-
 
 
 !==============================================================!
@@ -213,7 +224,7 @@ contains
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
-
+    
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
     integer       :: nidftypes  !number of internal degree of freedom types
@@ -2303,8 +2314,6 @@ contains
       end do
     end if
     
-    ! Michael Sch.: added Dipole and Quadrupole sites to consider for bonds/bond-partners
-    
     if((.not. Site1 .or. .not. Site2) .and. (this%NDipole > 0) ) then
       do i = 1, this%NDipole
         if (this%SiteDipole(i)%SiteId==SiteId1) then
@@ -2577,7 +2586,6 @@ contains
 
 
     if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
-!  print *, 'this angle is in one unit, should not be calculated'
       this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
       this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
@@ -2812,7 +2820,6 @@ contains
 
     if (Dihedral%UnitId1==Dihedral%UnitId2 .and. Dihedral%UnitId2==Dihedral%UnitId3 &
 &             .and. Dihedral%UnitId3==Dihedral%UnitId4 ) then
-!  print *, 'this dihedral angle is in one unit, should not be calculated'
       this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
       this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
       this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
@@ -2873,6 +2880,7 @@ contains
 
   end subroutine TMolecule_FindDihedral
 
+  
 
 end module ms2_molecule
 

@@ -1,23 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_interaction                                      !
 !  Contains TInteraction object                                !
 !==============================================================!
 
-!==============================================================!
-! ChangeLog                                                    !
-!==============================================================!
-! 04/07/09  PotQuadrupoleDipole erg�nzt                        !
-!                                                              !
-!==============================================================!
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -49,12 +52,11 @@ module ms2_interaction
     type(TPotQuadrupoleCharge), pointer     :: PotQuadrupoleCharge(:, :)
     type(TPotQuadrupoleDipole), pointer     :: PotQuadrupoleDipole(:, :)
     type(TPotQuadrupoleQuadrupole), pointer :: PotQuadrupoleQuadrupole(:, :)
-
+    
     !Idf potentials
     type(TPotBond), pointer                 :: PotBond(:)
     type(TPotAngle), pointer                :: PotAngle(:)
     type(TPotDihedral), pointer             :: PotDihedral(:)
-
 
     ! Potential energy
     real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :)
@@ -91,11 +93,10 @@ module ms2_interaction
     ! Total dipole moments of test particles for reaction field
     real(RK), pointer :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
 
-
     ! Maximum number of particles per component
     integer :: NPartMax
-
-   ! Max number of units per component
+    
+    ! Max number of units per component
     integer :: NUnitMax
 
     ! Numbers of particles
@@ -107,7 +108,7 @@ module ms2_interaction
 
     ! Numbers of test particles in component 1
     integer :: NTest1
-
+    
     ! Number of units
     integer, pointer :: NUnit1, NUnit2
 
@@ -116,7 +117,7 @@ module ms2_interaction
     integer :: N1Charge, N2Charge
     integer :: N1Dipole, N2Dipole
     integer :: N1Quadrupole, N2Quadrupole
-
+    
     ! Number of Idf sites
     integer :: NBond
     integer :: NAngle
@@ -142,12 +143,11 @@ module ms2_interaction
     integer,pointer :: AnglePartner(:,:), AngleCount(:)
     integer,pointer :: DihedralPartner(:,:), DihedralCount(:)
 
-
     ! Ewald Summation
     real(RK) :: Kappa
     real(RK) :: DebyeLen, RFConstant
     real(RK) :: lad1,lad2
-
+    
     ! IDF
     integer,pointer :: UnitLJ1(:),UnitC1(:),UnitDP1(:),UnitQP1(:)
     integer,pointer :: UnitLJ2(:),UnitC2(:),UnitDP2(:),UnitQP2(:)

@@ -1,17 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
-!  (c) 2008 by Ekaterina Elts, TUM                                  !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_global                                           !
 !  Contains declarations of global constants and functions     !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -35,6 +44,7 @@
 # endif
 #endif
 
+
 module ms2_global
 
 #ifdef _WIN32
@@ -46,6 +56,15 @@ module ms2_global
 #endif
 
 
+!#if MPI_VER
+!  use mpi
+!#endif
+
+!#ifdef ENABLE_OMP
+!  use omp_lib
+!#endif
+
+
 
 !==============================================================!
 !  Global constants and variables                              !
@@ -55,19 +74,17 @@ module ms2_global
   ! 4: single precision
   ! 8: double precision
 #ifdef SINGLEPRECISION
-  integer, parameter :: RK = KIND(1.0)                                         
+  integer, parameter :: RK = KIND(1.0)
 #else
   integer, parameter :: RK = KIND(1D0)
 #endif
-! better use a MPI_RK parameter in future, if compilation problems with mpif.h are solved
+
 #if MPI_VER > 0
   integer :: MPI_RK
 #endif
 
   ! limits
-  !real(RK), parameter :: limits_RK_MAX = huge(limits_RK_MAX)
   real(RK)            :: limits_RK_MAX
-  !real(RK), parameter :: exp_arg_max  = log(limits_RK_MAX)
   real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
 
   ! Define maximum length of file names
@@ -81,7 +98,7 @@ module ms2_global
 #endif
 
   ! Version of program
-character(*), parameter :: VersionString = 'v12'
+character(*), parameter :: VersionString = 'v1.0'
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -110,6 +127,8 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'pc/pathf9X'
 #elif defined _PGF
   character(*), parameter :: Hardware = 'pc/PGF'
+#elif defined _CRAYFTN
+  character(*), parameter :: Hardware = 'XE6/CRAY'
 #elif defined __GNUC__
   character(*), parameter :: Hardware = 'pc/gfortran'
 #else
@@ -119,11 +138,10 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: Hardware = 'NEC SX'
 #elif ARCH == 4
   character(*), parameter :: Hardware = 'IBM p690'
-!#elif ARCH == 5
-!  character(*), parameter :: Hardware = 'Cray XT5'
 #else
   character(*), parameter :: Hardware = 'generic platform'
 #endif
+
 
 ! define platform-specific path separator
 #ifdef _WIN32
@@ -158,15 +176,31 @@ character(*), parameter :: VersionString = 'v12'
 
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
+  
+  ! Extension of RDF file 
+  
+  character(*), parameter :: RDFFileExtension = '.rdf'
+  
+
+#if  TRANS == 1
+!TRANSPORT_start
+  ! Extension fo result correlation fucntion
+  character(*), parameter :: ResultTransportExtension = '.rtr'
+!TRANSPORT_END
+#endif
 
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
+  ! true, if OutputNameTag is set through the command line argument
+  ! MPI_VER>0: only set on RootProc
+  logical :: OutputNameTagfromCommandline
 
   ! Parameter file name
   character(FileNameLength) :: ParameterFileName
 
   ! Restart file name
   character(FileNameLength) :: RestartFileName
+
 
   ! Define minimum allowed i/o unit number
 #if ARCH == 1
@@ -185,10 +219,17 @@ character(*), parameter :: VersionString = 'v12'
   integer, parameter :: iounit_result  = iounit_start + 6
   integer, parameter :: iounit_runave  = iounit_start + 7
   integer, parameter :: iounit_errors  = iounit_start + 8
+#if  TRANS == 1
+  integer, parameter :: iounit_rescf   = iounit_start + 9  !10  !TRANSPORT_thisline
+  integer, parameter :: iounit_visual  = iounit_start + 10
+  integer, parameter :: iounit_rdf     = iounit_start + 11
+#else
   integer, parameter :: iounit_visual  = iounit_start + 9
+  integer, parameter :: iounit_rdf     = iounit_start + 10
+#endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_visual - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_rdf - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -228,6 +269,8 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdBlockSize                   = 'ResultFreq'
   character(*), parameter :: IdErrorsUpdateFrequency       = 'ErrorsFreq'
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
+  character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
+  character(*), parameter :: IdRDFNumberShells             = 'NumShells'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdLongRange                   = 'LongRange'
   character(*), parameter :: IdKappa                       = 'Kappa'
@@ -266,6 +309,7 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdVarChemPot                  = 'VarChemPot'
   character(*), parameter :: IdPartialMolarVolume          = 'PartMolVol'
   character(*), parameter :: IdVarPartialMolarVolume       = 'VarPartMolVol'
+  character(*), parameter :: IdPartialMolarEnthalpy        = 'PartMolEnt'
   character(*), parameter :: IdScaleSigma                  = 'eta'
   character(*), parameter :: IdScaleEpsilon                = 'xi'
   character(*), parameter :: IdRCutoffCOM                  = 'Cutoff'
@@ -277,13 +321,14 @@ character(*), parameter :: VersionString = 'v12'
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
   character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
+
   character(*), parameter :: IdUseIntDegFreed              = 'IntDegFreed'   ! switch on internal degrees of freedom
   character(*), parameter :: IdPrintIDF                    = 'printIDF'      ! print contributions to inramolecular energy
   character(*), parameter :: IdShake                       = 'Shake'         ! QShake algorithm in the case of Leap-frog
-  character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 electrostatic & LJ interaction incl/excl
-  character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs must be included/excluded from non-bonded inter.
-!  character(*), parameter :: IdScaleEl14                   = 'ScaleEl_14'    ! Scale 1-4 electrostatic interactions by this factor
-!  character(*), parameter :: IdScaleLJ14                   = 'ScaleLJ_14'    ! Scale 1-4 LJ interactions by this factor
+  character(*), parameter :: IdIntraLJEl                   = 'IntraLJ_El'    ! all intramolecular 1-5 interaction incl/excl
+  character(*), parameter :: IdLJEl14                      = 'LJ_El_14'      ! all 1-4 pairs incl/excl from non-bonded inter.
+  character(*), parameter :: IdScaleEl14                   = 'ScaleEl_14'    ! Scale 1-4 electrostatic interactions
+  character(*), parameter :: IdScaleLJ14                   = 'ScaleLJ_14'    ! Scale 1-4 LJ interactions
 
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'

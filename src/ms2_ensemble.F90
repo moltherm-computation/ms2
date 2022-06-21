@@ -1,16 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_ensemble                                         !
 !  Contains TEnsemble object                                   !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -53,9 +63,8 @@ module ms2_ensemble
     integer, pointer :: NPartMax
     integer, pointer :: NPartMaxFluct
 
-!    ! Maximum number of units
+    ! Maximum number of units
     integer, pointer :: NUnitMax
-
 
     ! Number of particles in ensemble
     integer :: NPart, NPartInitial
