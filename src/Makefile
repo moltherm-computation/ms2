@@ -2,7 +2,7 @@
 # Makefile for ms2
 ########################################
 COMPILER = GNU
-CONFIG = makefiles/$(COMPILER).mk
+#CONFIG = makefiles/$(COMPILER).mk
 include $(CONFIG)
 TARGET    = RELEASE
 MPI       = 0
@@ -14,8 +14,9 @@ ifeq ($(MPI),1)
   CPPFLAGS += -DMPI_VER=1
   PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
-  CPPFLAGS += -DMPI_VER=0
-  PROG     :=  $(PROG)_$(COMPILER)
+  F90 = ifort 
+  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created 
+  PROG =  ms2_INTEL
 endif
 
 F90FLAGS = $(F90FLAGS_$(TARGET))
@@ -80,7 +81,11 @@ ms2_component.mod: ms2_molecule.mod ms2_site.mod \
 
 ms2_molecule.mod: ms2_site.mod ms2_global.mod
 
+ms2_unit.mod: ms2_site.mod ms2_global.mod
+
 ms2_site.mod: ms2_global.mod
+
+ms2_idf.mod:  ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
