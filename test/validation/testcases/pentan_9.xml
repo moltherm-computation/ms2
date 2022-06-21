@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>pentan_NPT_9.par</parFile>
+	<name>pentan_9</name>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<reference>
+		<file>pentan_NPT_9_1.res</file>
+	</reference>
+</testcase>
