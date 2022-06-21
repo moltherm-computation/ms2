@@ -592,9 +592,9 @@ contains
           write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
           call LogWrite
           ! Read extended Reaction Field Parameters
-!           call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0 )
-!           write( IOBuffer, '("Debye Length [A^-1]:", F8.3)' )debyelen_h
-!           call LogWrite
+          call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0_RK ) !!Michael Sch. uncommented debyelen_h read
+          write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
+          call LogWrite
           ! Read Ewald Parameters
           call FileReadParameter( KappaL_h, iounit_params , IdKappa, .true., 5.6_RK )
           write( IOBuffer, '("Ewald Parameter KappaL:", F8.3)' )KappaL_h
@@ -642,6 +642,7 @@ contains
           ! Read extended Reaction Field Parameters
           call FileReadParameter( debyelen_h, iounit_params , IdDebyeLen, .true., 0.0_RK )
           write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
+          call LogWrite
       case( 'Rodgers', 'rodgers' )
           LongRange = rodgers
           LongRangeString = 'Rodgers'

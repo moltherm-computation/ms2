@@ -158,7 +158,7 @@ contains
     this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
-    this%ForConst = this%ForConst / UnitEnergy
+    this%ForConst = this%ForConst * UnitLength * UnitLength * 1e20_RK / UnitEnergy
 
 
 end subroutine TIdfBond_Construct
@@ -199,7 +199,7 @@ end subroutine TIdfBond_Construct
 &     this%R0 * UnitLength / Angstroem, this%R0
     call FileWriteParameter( iounit_normal, IdBond_R0 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst
+&     this%ForConst * UnitEnergy / kBoltzmann / UnitLength / UnitLength / 1e20_RK, this%ForConst
     call FileWriteParameter( iounit_normal, IdBond_ForConst )
 
   end subroutine TIdfBond_Save

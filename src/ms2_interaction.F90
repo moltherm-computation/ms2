@@ -58,8 +58,8 @@ module ms2_interaction
 
     ! Potential energy
     real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :)
-    real(RK), pointer :: EPotTo(:), EPotAngle(:)
-    real(RK), pointer :: EPot1To(:), EPot1Angle(:)
+    real(RK), pointer :: EPotTo(:), EPotAngle(:), EPotBond(:)
+    real(RK), pointer :: EPot1To(:), EPot1Angle(:), EPot1Bond(:)
     real(RK), pointer :: EPotMol(:,:), VirialMol(:,:)
 
     ! Mayer f-function for second virial coefficient
@@ -775,6 +775,8 @@ contains
     nullify( this%EPot )
     nullify( this%EPot1 )
     nullify( this%EPotNew )
+    nullify( this%EPotBond)
+    nullify( this%EPot1Bond)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
     nullify( this%EPotTo )
@@ -815,6 +817,10 @@ contains
       call AllocationError( stat, 'particles', N2 )
       allocate( this%EPotNew(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
+      allocate( this%EPotBond(this%NBond*this%NPart1), STAT = stat )
+      call AllocationError( stat, 'Bonds', this%NBond )
+      allocate( this%EPot1Bond(this%NBond), STAT = stat )
+      call AllocationError( stat, 'Bonds', this%NBond )
       allocate( this%EPotAngle(this%NAngle*this%NPart1), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle )
       allocate( this%EPot1Angle(this%NAngle), STAT = stat )
@@ -899,6 +905,12 @@ contains
     end if
     if( associated( this%EPotNew ) ) then
       deallocate( this%EPotNew )
+    end if
+    if( associated( this%EPotBond ) ) then
+      deallocate( this%EPotBond )
+    end if
+    if( associated( this%EPot1Bond ) ) then
+      deallocate( this%EPot1Bond )
     end if
     if( associated( this%EPotAngle ) ) then
       deallocate( this%EPotAngle )
@@ -3588,10 +3600,14 @@ contains
             RXij = RXij - anint( PXij )
             RYij = RYij - anint( PYij )
             RZij = RZij - anint( PZij )
-            RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
+            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquaredInv = SigmaSquared / RijSquared 
             Rij6Inv = RijSquaredInv**3
+            
+            EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
+            
             unit2=(np-1)*this%NUnit1+plj%Site2%UnitNumber ! global number of unit
-            EPot(unit2) = EPot(unit2) + 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
+            EPot(unit2) = EPot(unit2) + EPotLocal
             if ( OptPressure ) then
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
@@ -3671,6 +3687,7 @@ contains
                 call erfc_approx(KappaRij,approx)
                 !for 1,4 intramolecular interactions
                 EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff
+                
                 if ( OptPressure ) then
                   PXij = (PXij - anint( PXij )) * BoxLength
                   PYij = (PYij - anint( PYij )) * BoxLength
@@ -3712,7 +3729,8 @@ contains
 #else
                 RijInv = 1._RK / sqrt( RijSquared )
 #endif
-                EPotLocal = 2._RK*Epsilon * RijInv * coeff !for 1,4 intramolecular interactions
+                EPotLocal = 2._RK*Epsilon * RijInv * coeff
+                
                 if ( OptPressure ) then
                   PXij = (PXij - anint( PXij )) * BoxLength
                   PYij = (PYij - anint( PYij )) * BoxLength
@@ -3808,6 +3826,7 @@ contains
 &                 2._RK*FXij * PXij + FYij * PYij + FZij * PZij     ! F2*R_COM_Price; stimmt so
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
             EPot(unit2)  = EPot(unit2) + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
             if ( OptPressure ) &
@@ -3890,6 +3909,7 @@ contains
                 VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij   ! Vorzeichen richtig so
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -3975,6 +3995,7 @@ contains
 &                              + ( OZi - Tmp * eZ ) * PZij )
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -4068,6 +4089,7 @@ contains
                 VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -4165,6 +4187,7 @@ contains
                 VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -4255,6 +4278,7 @@ contains
                 VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -4352,6 +4376,7 @@ contains
                 VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij) * coeff
               end if
             end if
+            
             unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
@@ -4461,6 +4486,7 @@ contains
                 VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
               end if
             end if
+            
             unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
             EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
             if ( OptPressure ) &
@@ -4553,8 +4579,11 @@ contains
           if( RijSquared >= RCutoffSquared ) cycle
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
+          
+          EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
+          
           unit2=(np-1)*this%NUnit2+plj%Site2%UnitNumber ! global number of unit
-          EPot(unit2) = EPot(unit2) + 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
+          EPot(unit2) = EPot(unit2) +  EPotLocal
           if ( OptPressure ) then
             PXij = PXij - anint( RXij )
             PYij = PYij - anint( RYij )
@@ -4643,6 +4672,7 @@ contains
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
               end if
             end if
+            
             unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber
             !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
             EPot(unit2)  = EPot(unit2) + EPotLocal
@@ -4685,6 +4715,7 @@ contains
 &                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
               end if
             end if
+            
             unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber! global number of unit
             EPot(unit2)  = EPot(unit2) + EPotLocal
             if ( OptPressure ) &
@@ -4768,6 +4799,7 @@ contains
               ! F2*R_COM_Price; stimmt so
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
           EPot(unit2)  = EPot(unit2) + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
           if ( OptPressure ) &
@@ -4850,6 +4882,7 @@ contains
               VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -4932,6 +4965,7 @@ contains
 &                            + ( OZi - Tmp * eZ ) * PZij )
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5026,6 +5060,7 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5127,6 +5162,7 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5215,6 +5251,7 @@ contains
               VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5314,6 +5351,7 @@ contains
               VirialLocal = (FXij * PXij + FYij * PYij + FZij * PZij) * coeff
             end if
           end if
+          
           unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5425,6 +5463,7 @@ contains
               VirialLocal = ( FXij * PXij + FYij * PYij + FZij * PZij ) * coeff
             end if
           end if
+          
           unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
           EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
           if ( OptPressure ) &
@@ -5441,6 +5480,7 @@ contains
 !       if (this%NUnit1>1) then
         ! Site
       k = this%BondCount(nu)
+      this%EPot1Bond(:) = this%EPotBond (this%NBond*(np-1)+1 : this%NBond*np)
       do j = 1, k
         bi = this%BoPartner(nu,j)
         pbo => this%PotBond(bi)
@@ -5467,6 +5507,7 @@ contains
 
         ! Energy of the bond
         EPot(unit2) = EPot(unit2) + dR*F0 / NProcs
+        this%EPot1Bond(bi) = dR*F0
 
         if ( OptPressure ) then
           ! Force (abs. value)
@@ -5568,11 +5609,11 @@ contains
 
         ! Assign pointers to site positions
         RXi=pto%Dihedral%RX1(np)
-        RYi=pto%Dihedral%RY1(np)
-        RZi=pto%Dihedral%RZ1(np)
-        RXj=pto%Dihedral%RX2(np)
-        RYj=pto%Dihedral%RY2(np)
-        RZj=pto%Dihedral%RZ2(np)
+        RYi=pto%Dihedral%RY1(np) !                  (i)            (l)
+        RZi=pto%Dihedral%RZ1(np) !                    \            /
+        RXj=pto%Dihedral%RX2(np) !                  a  \          / c
+        RYj=pto%Dihedral%RY2(np) !                      (j)-----(k)
+        RZj=pto%Dihedral%RZ2(np) !                            b
         RXk=pto%Dihedral%RX3(np)
         RYk=pto%Dihedral%RY3(np)
         RZk=pto%Dihedral%RZ3(np)
@@ -5635,9 +5676,9 @@ contains
 
             ! Value of angle:
             arg = sign( acos(co), signum)
-            si = sin(arg)
-            if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
-
+            !only for forces
+            !si = sin(arg)
+            !if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
             if (multi > 0) then
               ! Normal Amber-type torsion angle
@@ -5657,7 +5698,6 @@ contains
         this%EPot1To(bi) = EPotAdd / NProcs
 
       end do ! Dihedral Interaction
-
 
   end subroutine TInteraction_IntraEnergy
 

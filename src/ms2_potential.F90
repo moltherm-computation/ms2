@@ -1855,9 +1855,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
             FZi    = FZi    + FZij
-            FX2(j) = FX2(j) - FXij
-            FY2(j) = FY2(j) - FYij
-            FZ2(j) = FZ2(j) - FZij
+            FX2(jk) = FX2(jk) - FXij  !!!Michael Sch.
+            FY2(jk) = FY2(jk) - FYij
+            FZ2(jk) = FZ2(jk) - FZij
          end if
       end do loop1
       ! Include intramolecular interaction if need
