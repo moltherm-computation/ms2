@@ -330,11 +330,23 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdScaleEl14                   = 'ScaleEl_14'    ! Scale 1-4 electrostatic interactions
   character(*), parameter :: IdScaleLJ14                   = 'ScaleLJ_14'    ! Scale 1-4 LJ interactions
 
+
+#if  TRANS == 1
+  !TRANSPORT_start
+  character(*), parameter :: IdBlockSizeCF                 = 'ResultFreqCF'
+  character(*), parameter :: IdCorrFun                     = 'CorrfunMode'
+  character(*), parameter :: IdCorrlength                  = 'Corrlength'
+  character(*), parameter :: IdNStepcf                     = 'StepsCorrfun'
+  character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
+  character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
+!TRANSPORT_END
+#endif
+
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
-  character(*), parameter :: IdIdf_ntypes                  = 'NIdfTypes' !number of types for internel degrees of freedom
+  character(*), parameter :: IdIdf_ntypes                  = 'NIdfTypes'
   character(*), parameter :: IdSite_stype                  = 'SiteType'
-  character(*), parameter :: IdIdf_stype                   = 'IdfType'   ! type of internal degree of freedom: bond, angle, dihedral angle
+  character(*), parameter :: IdIdf_stype                   = 'IdfType'
   character(*), parameter :: IdSite_NLJ126                 = 'NSites'
   character(*), parameter :: IdSite_NCharge                = 'NSites'
   character(*), parameter :: IdSite_NDipole                = 'NSites'
@@ -380,7 +392,7 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdQuadrupole_Q                = 'quadrupole'
   character(*), parameter :: IdQuadrupole_mass             = 'mass'
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
-! Inner Degrees of Freedom
+  ! Internal degrees of freedom
   character(*), parameter :: IdConstraint_NSites           = 'Constraint'
   character(*), parameter :: IdConstraint_SiteIds          = 'SiteIds'
   character(*), parameter :: IdConstraint_NDFRot           = 'NRotAxes'
@@ -398,11 +410,30 @@ character(*), parameter :: VersionString = 'v1.0'
   character(*), parameter :: IdDihedral_PotBarrier         = 'PotBarrier'
   character(*), parameter :: IdDihedral_n                  = 'n'
   character(*), parameter :: IdDihedral_gamma              = 'gamma'
-  character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'  ! Scale 1-4 LJ interactions by this factor
-  character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14' ! Scale 1-4 electrostatic interactions by this factor
-! Chemical Potential
+  character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
+  character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+  
+#if CONSTR > 0
+  character(*), parameter :: IdNCons                       = 'NConstr'
+  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
+  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
+  character(*), parameter :: IdCons1                       = 'Constr1'
+  character(*), parameter :: IdCons2                       = 'Constr2'
+  character(*), parameter :: IdConsR                       = 'ConstrDist'
+#endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
+  character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
+
+! Calculation of residence times
+  character(*), parameter :: IdResidTime                   = 'ResidTime'
+  character(*), parameter :: IdResidComp1                  = 'ResidComp1'
+  character(*), parameter :: IdResidSite1                  = 'ResidSite1'
+  character(*), parameter :: IdResidComp2                  = 'ResidComp2'
+  character(*), parameter :: IdResidSite2                  = 'ResidSite2'
+  character(*), parameter :: IdResidPeriod                 = 'ResidPeriod'
+  character(*), parameter :: IdResidLength                 = 'ResidLength'
+  character(*), parameter :: IdResidBreak                  = 'ResidBreak'
 
   ! (Almost) zero for mass of inertia
   real(RK), parameter :: Zero = 1E-10_RK
@@ -455,10 +486,10 @@ character(*), parameter :: VersionString = 'v1.0'
   logical :: LJEl14
 
   ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
-!  real(RK) :: ScaleEl14
+  real(RK) :: ScaleEl14
 
   ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
-!  real(RK) :: ScaleLJ14
+  real(RK) :: ScaleLJ14
 
   ! Basic reduced units
   real(RK) :: UnitLength
@@ -549,6 +580,18 @@ character(*), parameter :: VersionString = 'v1.0'
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
 
+#if  TRANS == 1
+!TRANSPORT_start
+  ! Correlation function status
+  character(80)      :: CorrfunModeString
+  integer, parameter :: inactive               = 0
+  integer, parameter :: active                 = 1
+  integer            :: CorrfunMode
+  real(RK)           :: TimeStepCorr
+  integer            :: NStepCorr
+!TRANSPORT_END
+#endif
+
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
   real(RK) :: TimeStepSquared, TimeStepSquared2, TimeStepSquaredInv2
@@ -559,15 +602,16 @@ character(*), parameter :: VersionString = 'v1.0'
 
   ! MC acceptance rate auto-adjustment parameters
   real(RK), parameter :: DispTranStart = 0.0020_RK
-  real(RK), parameter :: DispTranLimit = 0.150_RK
+  real(RK), parameter :: DispTranLimit = 0.0150_RK
   real(RK), parameter :: DispRotStart  = 0.0050_RK
-  real(RK), parameter :: DispRotLimit  = 0.150_RK
-  real(RK), parameter :: DispVolStart  = 0.010_RK
-  real(RK), parameter :: DispVolLimit  = 0.100_RK
+  real(RK), parameter :: DispRotLimit  = 0.0150_RK
   real(RK), parameter :: DispMolTranStart = 0.020_RK
   real(RK), parameter :: DispMolTranLimit = 0.150_RK
   real(RK), parameter :: DispMolRotStart  = 0.050_RK
   real(RK), parameter :: DispMolRotLimit  = 0.150_RK
+  real(RK), parameter :: DispVolStart  = 0.010_RK
+  real(RK), parameter :: DispVolLimit  = 0.100_RK
+  integer,  parameter :: TransferRateLimit = 50
 
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100
@@ -584,6 +628,9 @@ character(*), parameter :: VersionString = 'v1.0'
   ! Number of NPT equilibration time steps
   integer :: NStepsP
 
+  ! Number of gradual insertion initialization steps
+  integer :: GradInsInit
+  
   ! Number of orientations for second virial coefficient
   integer :: NOrient
 
@@ -594,7 +641,7 @@ character(*), parameter :: VersionString = 'v1.0'
   integer :: Step, StepTotal
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction
+  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, GradInsInitialization
 
   ! Restart flag
   logical :: Restart
@@ -626,7 +673,46 @@ character(*), parameter :: VersionString = 'v1.0'
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
-  ! Frequency of updating log file
+  ! Frequency of updating RDF file
+  integer :: RDFUpdateFrequency
+  
+  ! Number of RDF shells
+  integer :: RDFNumberShells
+  
+  ! Common equilibration flag for MC. Determines whether one shared 
+  ! equilibration is performed
+  logical :: CommonEqui
+
+  ! Calculate the radial distribution function
+  integer :: CallsToRDF = 0
+  
+  !RDF
+  real(RK) :: RDFRho, RDFRhoLocal
+
+  
+#if  TRANS == 1
+!TRANSPORT_start
+  ! Maximum number of blocks CF
+  integer :: NBlocksMaxCF
+
+  ! Frequency of updating result file CF
+  integer :: BlockSizeCF
+
+  ! Maximum number of block sizes for error calculation CF
+  integer :: NBlockSizesMaxCF
+
+  ! Number of block sizes for error calculation CF
+  integer :: NBlockSizesCF
+
+  ! Current number of blocks CF
+  integer :: NBlocksCF
+
+  ! Total number of blocks CF; necessary for the restart
+  integer :: NBlocksRestartCF
+!TRANSPORT_END
+#endif
+
+ ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
 
   ! Internal variables of random number generator
@@ -645,6 +731,10 @@ character(*), parameter :: VersionString = 'v1.0'
   integer :: NProc
   integer :: NRootProc
   logical :: RootProc
+  integer :: NProcs_W
+  integer :: NProc_W
+  integer :: NRootProc_W
+  logical :: RootProc_W
 #else
   integer, parameter :: NProcs    = 1
   integer, parameter :: NProc     = 0
@@ -733,7 +823,7 @@ character(*), parameter :: VersionString = 'v1.0'
   interface FileRewind
    module procedure Global_FileRewind
   end interface
-
+  
   interface FileRewrite
     module procedure Global_FileRewrite
   end interface
@@ -767,9 +857,7 @@ character(*), parameter :: VersionString = 'v1.0'
     module procedure Global_FileReadParameter_String, &
 &                    Global_FileReadParameter_Int, &
 &                    Global_FileReadParameter_RK, &
-&                    Global_FileReadParameter_RKdim1!,
-!&                    Global_FileReadParameter_buffer
-!                    ambiguous for SX compiler, collision of _buffer with _Int
+&                    Global_FileReadParameter_RKdim1
   end interface
 
   interface FileWriteParameter
@@ -803,7 +891,7 @@ character(*), parameter :: VersionString = 'v1.0'
   interface strtriml
     module procedure Global_String_TrimL
   end interface
-
+  
   interface strtrimlr
     module procedure Global_String_TrimLR
   end interface
@@ -813,15 +901,14 @@ character(*), parameter :: VersionString = 'v1.0'
   end interface
 
 
-
 !==============================================================!
 !  External (intrinsic) procedures                             !
 !==============================================================!
 
 #if !( defined _WIN32 || defined __GNUC__ )
 
-  ! Command line arguments
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+  ! Command line arguments
   integer, external :: iargc
   external getarg
 #endif
@@ -835,7 +922,7 @@ character(*), parameter :: VersionString = 'v1.0'
   ! change current directory
 #if defined _PGF
   integer, external :: chdir
-!#elif defined 
+!#elif defined
   !external chdir
 #endif
 
@@ -861,10 +948,7 @@ character(*), parameter :: VersionString = 'v1.0'
 
 #endif
 
-
-
 contains
-
 
 #if MPI_VER > 0
 !==============================================================!
@@ -925,6 +1009,10 @@ contains
     integer,pointer                            :: ioranks(:)
     logical                                    :: flag
 #endif
+#ifdef ENABLE_OMP
+    integer                                    :: OMP_GET_MAX_THREADS, OMP_GET_NUM_PROCS
+    integer                                    :: ompmaxnumthreads, ompnumprocs
+#endif
 
     ! Initialize MPI
 #if MPI_VER > 0
@@ -943,24 +1031,16 @@ contains
       end if
       call MPI_Abort( MPI_COMM_WORLD, 1, ierror )
     end if
-    !
 #endif
 
-!DEBUG
-!   if( NProcs > 1 ) then
-!     write(IOBuffer, '("debug.out.", I0)') NProc
-!     open(999, file=trim(IOBuffer), status='REPLACE', action='WRITE')
-!   else
-!     open(999, file='debug.out', status='REPLACE', action='WRITE')
-!   endif
-!DEBUG
-
-    ! Initialize restart flag
+    ! Initialize flags
     Restart = .false.
+    OutputNameTagfromCommandline = .false.
 
-    ! Read command line parameter
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
+    ! Read command line parameter
     if( RootProc ) then
+      ! first argument is binary file path, which was executed
       call getarg( 0, buffer )
       i = scan( buffer, FileSep, BACK=.true. )
       if( i > 0 ) then
@@ -968,16 +1048,15 @@ contains
       else
         ProgramFileName = trim( buffer )         ! possible truncation?
       end if
-#if defined __PATHSCALE__
+#if defined __PATHSCALE__ || defined _CRAYFTN
+! this should work for all Fortran2003 compilers
       narg = command_argument_count()
 #else
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-        print *, trim( ProgramFileName ) &
-&              , ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
-        print *, 'usage: ', trim( ProgramFileName ) &
-&              , ' {<par-file[', ParameterFileExtension &
+        print *, trim( ProgramFileName ), ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
+        print *, 'usage: ', trim( ProgramFileName ) , ' {<par-file[', ParameterFileExtension &
 &              , ']|<rst-file>', RestartFileExtension, '}'
 
         ! Abort program
@@ -986,16 +1065,18 @@ contains
 #endif
         stop
       end if
+      ! second argument should be the input file name
       call getarg( 1, buffer )
-      !call get_command_argument( 1, buffer )
       buffer = trim( buffer )
       ! separate directory and filename
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__
+#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
-#elif ARCH==3 || defined __GNUC__
+#elif defined _CRAYFTN
+        call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
+#elif ARCH==3 || defined __GNUC__ 
         call chdir( buffer(:max(i-1,1)), stat )
 #else
         print *, 'chdir not supported!'
@@ -1003,12 +1084,13 @@ contains
         i=0
 #endif
         if( stat==0 ) then
-          print *, 'chdir to', trim(buffer(:max(i-1,1)))
+          print *, 'chdir to ', trim(buffer(:max(i-1,1)))
         else
           print *, 'cannot change to ', trim(buffer(:max(i-1,1))), ' stat=', stat
         end if
         buffer=trim(buffer(i+1:))
       end if
+
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
@@ -1016,11 +1098,9 @@ contains
           RestartFileName = trim( buffer )       ! possible truncation
 
           ! Open restart file for reading
-          open( iounit_restart , file = RestartFileName, action = 'READ', &
-&           status = 'OLD', iostat = stat )
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
           if( stat /= 0 ) then
-            print *, 'Cannot open restart file ', trim( RestartFileName ), &
-&             ' for reading'
+            print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
 
             ! Abort program
 #if MPI_VER > 0
@@ -1031,18 +1111,33 @@ contains
 
           ! Read parameter file name from restart file
           read( iounit_restart, '(A128)' ) ParameterFileName
-          buffer = ParameterFileName( 1:len( trim( ParameterFileName ) ) - 4 )
 
         else if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
-          buffer = buffer( 1:dot - 1 )
+!           buffer = buffer( 1:dot - 1 )
+          ParameterFileName =  trim( buffer )    ! possible truncation
         end if
+      end if
+
+      if( narg .ge. 2 ) then
+        ! if present, the third argument should be the input file name
+        call getarg( 2, buffer )
+        OutputNameTagfromCommandline = .true.
+      else
+        ! otherwise use the input file name without extension
+        buffer = buffer( 1:dot - 1 )
       end if
       OutputNameTag = trim( buffer )             ! possible truncation
     end if
+#else
+    ! Plattform does not support command line parameters
+    ProgramFileName='ms2'
+    ParameterFileName = 'ms2.par'
+    OutputNameTag='ms2out'
+#endif
 
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
-#endif
+    call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
 
     ! Open log file
@@ -1078,6 +1173,7 @@ contains
     call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
 &                  ,NRootProc, Communicator, ierror)
+
     if( RootProc ) then
       write( IOBuffer, '("rank:  I/O: processor name:")' )
       call LogWrite
@@ -1090,17 +1186,33 @@ contains
         call LogWrite
       end do
     end if
+
+    call LogWriteBlank
     if( associated( ioranks ) ) deallocate( ioranks )
     if( associated( procnames ) ) deallocate( procnames )
 #else
+
+#ifndef ENABLE_OMP
     write( IOBuffer, '("sequential Version")' )
+    call LogWrite
+#endif
+#endif
+#ifdef ENABLE_OMP
+    write( IOBuffer, '("OpenMP enabled")' )
+    call LogWrite
+    ompmaxnumthreads = OMP_GET_MAX_THREADS()
+    write( IOBuffer, '("Number of max. threads:",I4)' ) ompmaxnumthreads
+    call LogWrite
+    ompnumprocs = OMP_GET_NUM_PROCS()
+    write( IOBuffer, '("Number of processors  :",I4)' ) ompnumprocs
     call LogWrite
 #endif
     call LogWriteBlank
 
     ! Set signal handler
 #if ARCH == 1 || ARCH == 2
-#ifdef __GNUC__
+#ifdef _CRAYFTN
+#elif defined  __GNUC__
     call signal( 1, IgnoreSignal )
     call signal( 2, SetTerminateProgram )
     call signal( 15, SetTerminateProgram )
@@ -1120,7 +1232,7 @@ contains
     else
       write( IOBuffer, '("Signal handler set successfully")' )
       call LogWrite
-!       call LogWriteBlank
+       !call LogWriteBlank
     end if
 #endif
 
@@ -1132,10 +1244,8 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) &
-&     * real(VacuumPermittivity, 8) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) &
-&     * real(VacuumPermittivity, 8) ) ), RK )
+    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
+    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
 #else
     DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
@@ -1161,40 +1271,13 @@ contains
     ! Close log file
     call LogClose
 
-!DEBUG
-!   close(999)
-!DEBUG
 
     ! Finalize MPI
 #if MPI_VER > 0
-!     call MPI_Barrier( Communicator, ierror )
     call MPI_Finalize( ierror )
 #endif
 
   end subroutine Global_FinalizeProgram
-
-
-
-!==============================================================!
-!  Subroutine Global_Message                                   !
-!==============================================================!
-!
-!  subroutine Global_Message( MessageString )
-!
-!    implicit none
-!
-!    ! Declare arguments
-!    character(*), intent(in), optional :: MessageString
-!
-!    if( present( MessageString ) ) then
-!      IOBuffer = 'MESSAGE: '// trim(MessageString)
-!    else
-!      IOBuffer = 'MESSAGE: '// trim(MessageBuffer)        ! possible truncation
-!    end if
-!    if( RootProc ) print *, trim( IOBuffer )
-!    call LogWrite
-!
-!  end subroutine Global_MESSAGE
 
 
 
@@ -1287,8 +1370,7 @@ contains
     ! Check for allocation error
 #if MPI_VER > 0
     ok = stat == 0
-    call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, &
-&     Communicator, ierror )
+    call MPI_Allreduce( ok, okAll, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
     if( okAll ) return
 #else
     if( stat == 0 ) return
@@ -1296,15 +1378,14 @@ contains
 
     ! Terminate program
     if( present( NPart ) ) then
-      write( ErrorBuffer, &
-&       '("Cannot allocate memory for", I11, " ", A)' ) &
-&       NPart, str
+      write( ErrorBuffer, '("Cannot allocate memory for", I11, " ", A)' ) NPart, str
     else
       write( ErrorBuffer, '("Cannot allocate memory for ", A)' ) str
     end if
     call Error
 
   end subroutine Global_AllocationError
+
 
 
 !==============================================================!
@@ -1326,11 +1407,13 @@ contains
     character(*), parameter   :: hostname = 'unknown host'
     character(*), parameter   :: username = 'unknown user'
 #endif
-
+    integer :: length,stat
+    character :: Version*6
     ! Check for root process
     if( .not. RootProc ) return
+
     ! Get name of host
-#if ARCH == 1 || defined _CRAYFTN
+#if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
 #if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
@@ -1340,41 +1423,77 @@ contains
 #endif
     if( i .ne. 0 ) hostname = 'unknown host'
 #endif
-
-#if ARCH == 1 || defined _PGF
+#ifdef _CRAYFTN
+   username = 'Getlog is not supported'
+#elif ARCH == 1 || defined _PGF
     username = getlog()
 #elif ARCH == 2 || ARCH == 3
     call getlog( username )
 #endif
 
     ! Open log file
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
     call FileRewrite( iounit_log, trim( OutputNameTag )//LogFileExtension )
-#else
-    call FileRewrite( iounit_log, ProgramFileName//LogFileExtension )
-#endif
     call LogWriteBlank
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '(72(1H*))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '("Program ", A, " version ", A)' ) &
-&          trim( ProgramFileName ), trim( VersionString )
-
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("*                         Publishing with ms2                          *")')
+    call LogWrite
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
+    call LogWrite
+    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
+    call LogWrite
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,     *")')
+    call LogWrite
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec           *")')
+    call LogWrite
+    write( IOBuffer, '("* Computer Physics Communications (2011)                               *")')
+    call LogWrite
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
+    call LogWrite
+    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
+    call LogWrite
+    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '("Program ", A, " version ", A)' ) trim( ProgramFileName ), trim( VersionString )
     call LogWrite
     write( IOBuffer, '("Hardware architecture: ", A)' ) Hardware
     call LogWrite
+
 ! cmp. http://predef.sourceforge.net/precomp.html
 !           __GFORTRAN__
-#if defined __GNUC__
-    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) &
-&          __GNUC_VERSION__
+#if defined _CRAYFTN
+    call GET_ENVIRONMENT_VARIABLE('CRAY_CC_VERSION',Version,length,stat,.FALSE.)
+    write( IOBuffer, '("Compiler version     : CRAYFTN ftn ", A6)' )   Version 
+#elif defined __GNUC__
+    write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
-    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) &
-&         __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
+    write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
 #elif defined __PGI
     write( IOBuffer, '("Compiler version     : PGI pgf")' )
 #elif defined __SUNPRO_F95
@@ -1410,6 +1529,11 @@ contains
   subroutine Global_LogClose()
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Check for root process
     if( .not. RootProc ) return
@@ -1553,15 +1677,13 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-&     trim( filename )
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) trim( filename )
     call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', &
-&     iostat = stat )
-    if( stat /= 0 ) &
-&     call Error( 'Cannot open file '//trim( filename )//' for reading' )
+    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
 
   end subroutine Global_FileReset
+
 
 
 !==============================================================!
@@ -1594,7 +1716,6 @@ contains
 
 
 
-
 !==============================================================!
 !  Subroutine Global_FileRewrite                               !
 !==============================================================!
@@ -1612,8 +1733,7 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for writing")' ) &
-&       trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for writing")' ) trim( filename )
       call LogWrite
     end if
     open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
@@ -1642,14 +1762,12 @@ contains
 
     ! Open file for writing
     if( iounit /= iounit_log ) then
-      write( IOBuffer, '("Opening file <", A, "> for appending")' ) &
-&       trim( filename )
+      write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
       call LogWrite
     end if
     inquire( file = filename, exist = ex )
     if( ex ) then
-      open( iounit, file = filename, action = 'WRITE', status = 'OLD', &
-&       position = 'APPEND' )
+      open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
     else
       write( IOBuffer, '("File does not exist. Creating new")' )
       call LogWrite
@@ -1798,21 +1916,18 @@ contains
       ! rewind file, if requested
       if( present(rewind_before) ) then
         if( rewind_before ) then
-!          write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
           rewind( iounit )
           FileReadParameter_LineNumber = 0
         end if
       end if
       linesread = 0
       ! loop to read lines until parameter is found
+
       do
         read( iounit, '(A)', IOSTAT = stat ) parametervalue
         ! error reading from file?
         if( stat > 0 ) then
-          call Error( "ERROR reading file "//trim(fn)// &
-&                     " while searching for parameter <"//parameterqualifiers//">" )
-          !if( present(status) ) status = stat
-          !return
+          call Error( "ERROR reading file "//trim(fn)// " while searching for parameter <"//parameterqualifiers//">" )
         ! end of file reached?
         elseif( stat < 0 ) then
           !call Warning( trim(fn)//": Could not find parameter <"//parameterqualifiers//">" )
@@ -1821,7 +1936,6 @@ contains
           ! (try to) restore position
           if( present(rewind_before) ) then
             if( rewind_before ) then
-!              write( IOBuffer, '("(",A,":",I4,") rewind")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
               rewind( iounit )
               FileReadParameter_LineNumber = 0
               linesread = 0
@@ -1831,7 +1945,6 @@ contains
           ! rewind to the position, where the reading process was started
           backspace( iounit )   ! "undo" last read, where eof was encountered
           do i = 1,linesread
-!            write( IOBuffer, '("(",A,":",I4,") backspace")' ) trim(fn),FileReadParameter_LineNumber; call LogWrite
             backspace( iounit )
             FileReadParameter_LineNumber = FileReadParameter_LineNumber - 1
           end do
@@ -1839,19 +1952,13 @@ contains
         end if
         FileReadParameter_LineNumber = FileReadParameter_LineNumber + 1
         linesread = linesread + 1
-!        write( IOBuffer, '("(",A,":",I4,") read:",A)' ) trim(fn),FileReadParameter_LineNumber,trim(parametervalue); call LogWrite
-!         check for comment token
         comment_pos = index( parametervalue, CommentSign )
         if( comment_pos > 0 ) then
-!          write( IOBuffer, '("(",A,":",I4,") comment:",A)' ) trim(fn),FileReadParameter_LineNumber, &
-!&               trim(parametervalue(comment_pos:len(parametervalue))); call LogWrite
-          !                eliminate comment part of line
           parametervalue = parametervalue(1:comment_pos - 1)
         end if
         delimiterpos2 = 0
         do ! test all qualifier alternatives (if parameterqualifier is a list delimited with :)
           delimiterpos1 = delimiterpos2
-          !                   len_trim(parameterqualifiers)
           if ( delimiterpos1>=len(trim(parameterqualifiers)) ) exit
           delimiterpos2 = delimiterpos1 + scan(trim(parameterqualifiers(delimiterpos1+1:)),":")
           if( delimiterpos2>delimiterpos1 ) then
@@ -1864,47 +1971,42 @@ contains
             ! extract value part (after =)
             parametervalue = parametervalue( index( parametervalue, '=' )+1:len( parametervalue ) )
             parametervalue = strtrimlr( parametervalue )
-!            write( IOBuffer, '("(",A,":",I4,") ",A,"=",A)' ) trim(fn),FileReadParameter_LineNumber, &
-!&                 trim(parameterqualifier),trim(parametervalue); call LogWrite
             if( present(status) ) status = 0
             exit
           end if
           if ( delimiterpos2<=delimiterpos1 ) exit
         end do
         if ( foundqualifier ) exit
-
       end do
-
     end if
 
     ! Broadcast parameter to other processes
     ! (2 Broadcast are not very efficient, but it doesn't need to be efficient here.
     !  Better broadcast the integer, float parametervalues, instead of the string?)
 #if MPI_VER > 0
-    call MPI_Bcast( parametervalue, len(parametervalue), &
-&     MPI_CHARACTER, NRootProc, Communicator, ierror )
+    ! RootProc knows length (len_trim) of parametervalue, but it's easier to bcast the whole buffer
+    call MPI_Bcast( parametervalue, len(parametervalue), MPI_CHARACTER, NRootProc, Communicator, ierror )
     if( present(status) ) then
-      call MPI_Bcast( status, 1, &
-&       MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( status, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
     end if
 #endif
 
-!    write( IOBuffer, '(I5," (",A,":",I4,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&                      trim(parameterqualifiers),trim(parametervalue); call LogWrite
-
   end function Global_FileReadParameter
-
 
 
 !==============================================================!
 !  Subroutine Global_FileReadParameter_buffer                  !
 !==============================================================!
 
-  subroutine Global_FileReadParameter_buffer( iounit, parameterqualifier, &
-&                                            rewind_before, defaultvalue, status )
+  subroutine Global_FileReadParameter_buffer( iounit, parameterqualifier, rewind_before, defaultvalue, status )
   ! this subroutine is for backward compatibily purposes
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     integer, intent(in)                :: iounit
@@ -1919,8 +2021,7 @@ contains
     IOBuffer = Global_FileReadParameter(iounit, parameterqualifier, rewind_before, stat)
     if ( stat < 0 ) then
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) &
-&             trim(parameterqualifier), trim(defaultvalue)
+        write( IOBuffer, '("setting ",A," (IOBuffer) to default value ",A)' ) trim(parameterqualifier), trim(defaultvalue)
         call LogWrite
         IOBuffer = defaultvalue
       else
@@ -1929,16 +2030,6 @@ contains
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter
-!#if MPI_VER > 0
-!    call MPI_Bcast( IOBuffer, IOBufferLength, &
-!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") IOBuffer ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifier),trim(IOBuffer); call LogWrite
 
   end subroutine Global_FileReadParameter_buffer
 
@@ -1950,9 +2041,14 @@ contains
   subroutine Global_FileReadParameter_String( parametervariable, iounit, parameterqualifiers, &
 &                                            rewind_before, defaultvalue, status )
   ! setting up functions with result (parametervalue) for different data types is ambigious
-  ! for a FileReadParameter polymorphism 
+  ! for a FileReadParameter polymorphism
 
     implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     character(*), intent(out)          :: parametervariable
@@ -1964,32 +2060,27 @@ contains
 
 
     ! Declare local variables
+    character(IOBufferLength) :: buffer
     integer                   :: stat
     !character(FileNameLength) :: fn
 
-    parametervariable = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
-    if ( stat < 0 ) then
+    buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
+    if ( stat == 0 ) then
+      parametervariable = buffer
+    else
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," to default value ",A)' ) &
-&             trim(parameterqualifiers), trim(defaultvalue)
+        ! set default value
+        write( IOBuffer, '("setting ",A," to default value ",A)' ) trim(parameterqualifiers), trim(defaultvalue)
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, len(parametervariable), &
-!&     MPI_CHARACTER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") String ",A," =",A)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),trim(parametervariable); call LogWrite
 
   end subroutine Global_FileReadParameter_String
 
@@ -2020,28 +2111,21 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+    else !if ( stat < 0 ) then
+
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," to default value ",I7)' ) &
-&             trim(parameterqualifiers), defaultvalue
+        ! set default value
+        write( IOBuffer, '("setting ",A," to default value ",I7)' ) trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_INTEGER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",I7)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_Int
 
@@ -2072,28 +2156,21 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+
+    else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
-        write( IOBuffer, '("setting ",A," to default value ",G15.9)' ) &
-&             trim(parameterqualifiers), defaultvalue
+        ! set default value
+        write( IOBuffer, '("setting ",A," to default value ",G16.9)' ) trim(parameterqualifiers), defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
     if ( present(status) ) status=stat
-
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, 1, &
-!&     MPI_RK, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Integer ",A," =",G15.9)' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers),parametervariable; call LogWrite
 
   end subroutine Global_FileReadParameter_RK
 
@@ -2123,34 +2200,25 @@ contains
     buffer = Global_FileReadParameter(iounit, parameterqualifiers, rewind_before, stat)
     if ( stat == 0 ) then
       read( buffer, * ) parametervariable
-    else if ( stat < 0 ) then
+
+    else !if ( stat < 0 ) then
+      ! parameter could not be read
       if ( present(defaultvalue) ) then
+        ! set default value
         write( IOBuffer, '("setting ",A," to default value ")' ) trim(parameterqualifiers)
         call LogWrite
         write( IOBuffer, * ) defaultvalue
         call LogWrite
         parametervariable = defaultvalue
-      else
+      else if ( .not. present(status) ) then
+        ! Terminate with error, if error can not be returned through status
         call Error( "Could not find parameter <"//parameterqualifiers//">" )
         !return
       end if
     end if
     if ( present(status) ) status=stat
 
-    ! Broadcast parameter to other processes
-!#if MPI_VER > 0
-!    call MPI_Bcast( parametervariable, size(parametervariable), &
-!&     MPI_INTEGER, NRootProc, Communicator, ierror )
-!#endif
-
-!    inquire( iounit, NAME = fn )
-!    write( IOBuffer, '(I5," (",A,":",I4,";",I2,") Real Array ",A," =")' ) NProc,trim(fn),FileReadParameter_LineNumber, &
-!&          stat,trim(parameterqualifiers); call LogWrite
-!    write( IOBuffer, * ) parametervariable; call LogWrite
-
   end subroutine Global_FileReadParameter_RKdim1
-
-
 
 
 
@@ -2226,8 +2294,7 @@ contains
     integer :: iharvest
 
     ! Declare local variables
-    integer(K4B), parameter :: IA=16807, IM=2147483647, &
-&     IQ=127773, IR=2836
+    integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
     integer(K4B), save      :: k
 
     ! Generate random number
@@ -2237,8 +2304,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    iharvest = 1 + ishft(int(range, RK) * &
-&     ior(iand(IM, ieor(ix, iy)), 1), -31)
+    iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd
 
@@ -2259,8 +2325,7 @@ contains
     real(RK) :: rharvest
 
     ! Declare local variables
-    integer(K4B), parameter :: IA=16807, IM=2147483647, &
-&     IQ=127773, IR=2836
+    integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
     integer(K4B), save      :: k
 
     ! Generate random number
@@ -2270,8 +2335,7 @@ contains
     k = iy / IQ
     iy = IA * (iy - k * IQ) - IR * k
     if( iy < 0 ) iy = iy + IM
-    rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) &
-&     * (h_range - l_range)
+    rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) * (h_range - l_range)
 
   end function Global_Rrnd
 
@@ -2299,11 +2363,8 @@ contains
     logical :: do_trim_left, do_trim_right
     integer :: pos1, pos2
 
-
-
     ! Declare result
     integer :: length
-
 
     do_trim_left = .false.
     do_trim_right = .true.
@@ -2315,7 +2376,6 @@ contains
     pos2 = len(string)
     if( do_trim_right ) pos2 = verify(string,Whitespaces,.true.)
     if( do_trim_left ) pos1 = verify(string,Whitespaces)
-
 
     if( pos1/=0 .and. pos2/=0 ) then
       length = pos2-pos1+1
@@ -2424,9 +2484,6 @@ contains
   end function Global_String_TrimLR
 
 
-
-
-
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
 !==============================================================!
 !  Subroutine SetTerminateProgram                              !
@@ -2439,6 +2496,11 @@ contains
 #endif
 
     implicit none
+
+!     ! Include MPI header
+! #if MPI_VER > 0
+!     include 'mpif.h'
+! #endif
 
 #ifdef __INTEL_COMPILER
     ! Declare arguments
@@ -2478,6 +2540,53 @@ contains
 
 
 !==============================================================!
+!  Function Global_GetProcRange                                !
+!==============================================================!
+
+  function Global_GetProcRange( overall_size, first_index, last_index ) result( range_size )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in) :: overall_size
+    integer, intent(out) :: first_index, last_index
+
+    ! Declare result
+    integer :: range_size
+    ! the function could return an array containing the indices, but NPart0..NPart2 are already scalar values.
+
+#if MPI_VER > 0
+    if( NProcs > 0 ) then
+      ! original version 0: last process might get smaller range_size
+      ! The if-statement reads: 
+      ! only do it if we are in the equilibration phase of a MC  simulation
+      ! and common equilibration is active. It is a little complicated, but that cannot be helped
+      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then 
+        range_size = 1 + (overall_size - 1) / NProcs
+        first_index = 1 + NProc * range_size
+        last_index = min( first_index + range_size - 1, overall_size )
+        range_size = last_index - first_index + 1
+      else
+        first_index=1
+        last_index = overall_size
+        range_size=overall_size
+      endif
+    
+    else
+      first_index=0
+      last_index = -1
+      range_size=0
+    end if
+
+#else
+    first_index=1
+    last_index = overall_size
+    range_size=overall_size
+#endif
+
+  end function Global_GetProcRange
+
+!==============================================================!
 !  Subroutine Write Restart File on xc2 in Karlsruhe, Germany  !
 !==============================================================!
 
@@ -2491,8 +2600,14 @@ contains
 
     real(RK) :: time_remaining
     real(RK) :: cputime,max_cpu_time
+    integer  :: max_time
+!     integer  :: ierror
+#ifdef __INTEL_COMPILER
+    integer  :: err
+#endif
+#ifdef KARLS
     character*10 string_max_time
-    integer  :: ierror,max_time, err
+#endif
     integer  :: time_limit
 
 ! Get CPU time consumed by each task and compute the maximum value
@@ -2531,63 +2646,6 @@ contains
 
   end subroutine time_left
 #endif
-
-
-!==============================================================!
-!  Function Global_GetProcRange                                !
-!==============================================================!
-
-  function Global_GetProcRange( overall_size, first_index, last_index ) result( range_size )
-
-    implicit none
-
-    ! Declare arguments
-    integer, intent(in) :: overall_size
-    integer, intent(out) :: first_index, last_index
-
-    ! Declare result
-    integer :: range_size
-    ! the function could return an array containing the indices, but NPart0..NPart2 are already scalar values.
-
-    ! Declare local variables
-    !integer :: range_size0             ! version 1 only: range size for the first process
-
-#if MPI_VER > 0
-    if( NProcs > 0 ) then
-      ! original version 0: last process might get smaller range_size
-      range_size = 1 + (overall_size - 1) / NProcs
-      first_index = 1 + NProc * range_size
-      last_index = min( first_index + range_size - 1, overall_size )
-      range_size = last_index - first_index + 1
-
-      ! alternative version 1: first process ("master", NProc==0) might get smaller range_size
-      !range_size = ceiling( real(overall_size)/NProcs )
-      !range_size0 = mod( overall_size, range_size )
-      !last_index = range_size0 + NProc*range_size
-      !if ( NProc == 0 ) then
-      !  range_size = range_size0
-      !end if
-      !first_index = last_index-range_size+1
-
-      ! alternative version 2: distribute, use round instead of int?
-      !first_index = int(real(NProc)/NProcs*overall_size)+1
-      !last_index = int(real(NProc+1)/NProcs*overall_size)
-      !range_size = last_index - first_index + 1
-    else
-      first_index=0
-      last_index = -1
-      range_size=0
-    end if
-
-#else
-    first_index=1
-    last_index = overall_size
-    range_size=overall_size
-#endif
-
-  end function Global_GetProcRange
-
-
 
 end module ms2_global
 
