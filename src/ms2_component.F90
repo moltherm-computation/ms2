@@ -1,26 +1,16 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
-!      P.O. Box 67653                                          !
-!      67653 Kaiserslautern                                    !
+!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
+!  (c) 2001 by Sergey Lishchuk, ITT                            !
+!  (c) 2007 by Bernhard Eckl, ITT                              !
 !==============================================================!
 !  Module ms2_component                                        !
 !  Contains TComponent object                                  !
 !==============================================================!
 
-!****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
-!****************************************************************
-
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
-#endif
-
-#ifndef TRANS
-#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -47,14 +37,15 @@ module ms2_component
 
     ! Positions and orientations of test particles
     real(RK), pointer :: Pm0Test(:, :), Qm0Test(:, :)
-    
+
     ! Positions and orientations for units of test particles
     real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
 
-    ! Centers of mass positions for molecules
+    ! Centers of mass positions and their derivatives for molecules
     real(RK), pointer :: Pm0(:, :)
     real(RK), pointer :: P0Save( :, :, :)
     real(RK), pointer :: Pm0old(:, :)
+
 
     ! Centers of mass positions and their derivatives for Units
     real(RK), pointer :: P0(:, :, :)
@@ -64,8 +55,11 @@ module ms2_component
     real(RK), pointer :: P4(:, :, :)
     real(RK), pointer :: P5(:, :, :)
 
+
     ! Quaternion parameters for molecules - only to calculate the initial orientation
     real(RK), pointer :: Qm0(:, :)
+
+
 
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer :: Q0(:, :, :)
@@ -76,6 +70,7 @@ module ms2_component
     real(RK), pointer :: Q3(:, :, :)
     real(RK), pointer :: Q4(:, :, :)
 
+
     ! Angular velocities and their derivatives for units
     real(RK), pointer :: W0(:, :, :)
     real(RK), pointer :: W1(:, :, :)
@@ -83,7 +78,7 @@ module ms2_component
     real(RK), pointer :: W3(:, :, :)
     real(RK), pointer :: W4(:, :, :)
 
-    ! Displacement
+    ! Displacement for molecules
     real(RK), pointer :: Disp(:, :)
 
     ! Total forces acting on units
@@ -98,43 +93,7 @@ module ms2_component
     real(RK), pointer :: TAll(:, :, :)
 #endif
 
-#if  TRANS == 1
-!TRANSPORT_start
-    real(RK), pointer :: KinETran(:,:)
-    real(RK) :: KinETranTotal(3)
-    real(RK) :: PartialMolarEnthalpy
-
-    real(RK), pointer :: FS(:,:)
-    real(RK), pointer :: FB(:,:)
-    real(RK), pointer :: FTC(:,:)
-    real(RK), pointer :: FRC(:,:)
-
-    real(RK), pointer :: FTC1(:,:)
-    real(RK), pointer :: FTC2(:,:)
-    real(RK), pointer :: FTC3(:,:)
-
-    real(RK), pointer :: FRC1(:,:)
-    real(RK), pointer :: FRC2(:,:)
-    real(RK), pointer :: FRC3(:,:)
-#if MPI_VER > 0
-    real(RK), pointer :: FSAll(:,:)
-    real(RK), pointer :: FBAll(:,:)
-    real(RK), pointer :: FRCAll(:,:)
-
-! Components of the FTC Tensor(3)
-    real(RK), pointer :: FTC1All(:,:)
-    real(RK), pointer :: FTC2All(:,:)
-    real(RK), pointer :: FTC3All(:,:)
-
-! Components of the FRC Tensor(3)
-    real(RK), pointer :: FRC1All(:,:)
-    real(RK), pointer :: FRC2All(:,:)
-    real(RK), pointer :: FRC3All(:,:)
-#endif
-
-#endif
-
-    ! Total dipole moment of units of a molecule for reaction field
+    ! Total dipole moment of units of molecule for reaction field
     real(RK), pointer :: MueX(:, :), MueY(:, :), MueZ(:, :)
 
     ! Torques from reaction field, space fixed
@@ -155,7 +114,7 @@ module ms2_component
 
     ! Maximum number of particles in component
     integer, pointer :: NPartMax
-    
+
     ! Maximum number of units in component
     integer, pointer :: NUnitMax
 
@@ -194,10 +153,9 @@ module ms2_component
 
     ! Chemical potential
     logical  :: CalcChemPot
-    integer  :: ChemPotMethod, WFMethod, NGradThis
+    integer  :: ChemPotMethod, WFMethod
     integer  :: FluctState
     real(RK) :: ChemPot, WidomContribution
-	real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG
@@ -205,13 +163,9 @@ module ms2_component
     real(RK) :: VarChemPot, VarPartialMolarVolume
 
     integer  :: BiasedPartners
-    integer  :: BiasedPartnersNum
 
     ! IDF
     integer, pointer :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
-
-    ! Ewald
-    real(RK) :: EPotTestSelf
 
     ! Fluctuating components and weighting factors
     integer           :: NFluctState, NFluctMax
@@ -231,14 +185,15 @@ module ms2_component
     ! Long-range corrections
     real(RK) :: EPotTestCorrLJ
     real(RK) :: EPotTestCorrRF
-    
-    ! Internal degrees of freedom
+
+    ! Inner Degrees of Freedom
     integer,pointer :: BondCount(:)
     integer,pointer :: BoPartner(:,:)
     integer,pointer :: AngleCount(:)
     integer,pointer :: AnglePartner(:,:)
     integer,pointer :: DihedralCount(:)
     integer,pointer :: DihedralPartner(:,:)
+
 
     ! Accumulated sums, averages and errors
     type(TAccumulator) :: SumInvChemPotRho
@@ -251,10 +206,7 @@ module ms2_component
 !DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
-    type(TAccumulator) :: SumHW_counter
-    type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
-    type(TAccumulator) :: SumHM
 !DEBUG
     type(TAccumulator) :: SumVW1
     type(TAccumulator) :: SumVW2
@@ -332,9 +284,9 @@ module ms2_component
   end interface
 
   interface Mol2AtomTest
-    module procedure TComponent_Mol2AtomTest  ! needed??? fix me
+    module procedure TComponent_Mol2AtomTest
   end interface
-  
+
   interface Mol2Resize
     module procedure TComponent_Mol2Resize
   end interface
@@ -342,7 +294,7 @@ module ms2_component
   interface Mol2Unit
     module procedure TComponent_Mol2Unit
     module procedure TComponent_Mol2UnitRotate
-  end interface
+end interface
 
   interface Mol2Unit1
     module procedure TComponent_Mol2Unit1
@@ -367,10 +319,6 @@ module ms2_component
 
   interface Atom2Unit
     module procedure TComponent_Atom2Unit
-  end interface
-  
-  interface Atom2Unit_Trans
-    module procedure TComponent_Atom2Unit_Trans
   end interface
 
   interface Unit2Mol
@@ -454,20 +402,6 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 
-#if CONSTR > 0
-  interface CorrectGear_Constraint
-    module procedure TComponent_CorrectGear_Constraint
-  end interface
-#endif
-
-#if  TRANS == 1
-!TRANSPORT_start
-  interface ForceTransport
-    module procedure TComponent_ForceTransport
-  end interface
-!TRANSPORT_END
-#endif
-
 contains
 
 
@@ -515,24 +449,12 @@ contains
     ! Read mole fraction of this component
     write( IOBuffer, '(72(1H-))')
     call LogWrite
-    write( IOBuffer, '(T13, "Reading component", I3," for ensemble")') comp
+    write( IOBuffer, '(T13, "Reading component", I3, "for ensemble")') comp
     call LogWrite
     call FileReadParameter( this%Fraction, iounit_params , IdFraction, .false. )
-    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) trim( this%PotModFileName ), this%Fraction
+    write( IOBuffer, '("Mole fraction of component ", A, ": ", F9.6)' ) &
+&     trim( this%PotModFileName ), this%Fraction
     call LogWrite
-
-#if TRANS==1
- ! Read partial molar enthalpy from the paremeters file     
-    call FileReadParameter( this%PartialMolarEnthalpy, iounit_params , IdPartialMolarEnthalpy, .false., 0._RK )
-
-    if (this%PartialMolarEnthalpy .ne. 0._RK) then
-      write( IOBuffer,'("Reduced PartMolEnt of component ", A, ": ", F9.6 )' ) &
-&       trim( this%PotModFilename ), this%PartialMolarEnthalpy
-      call LogWrite
-    end if
-
-#endif
-
 
     ! Initialize flag for calculation of chemical potential
     this%CalcChemPot = .false.
@@ -540,8 +462,6 @@ contains
 
     ! Initialize fluctuating state (for GradIns)
     this%FluctState = -1
-
-
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
       ! Read mole fraction of liquid simulation
@@ -553,11 +473,14 @@ contains
       call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
       call FileReadParameter( this%PartialMolarVolume, iounit_params , IdPartialMolarVolume, .false. )
       call FileReadParameter( this%VarPartialMolarVolume, iounit_params , IdVarPartialMolarVolume, .false. )
-      write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+      write( IOBuffer, &
+&       '("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
-      write( IOBuffer,'("Reduced PartMolVol of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
-&       trim( this%PotModFilename ), this%PartialMolarVolume, this%VarPartialMolarVolume
+      write( IOBuffer, &
+&       '("Reduced PartMolVol of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+&       trim( this%PotModFilename ), this%PartialMolarVolume, &
+&       this%VarPartialMolarVolume
       call LogWrite
 
     else if( EnsembleType .eq. EnsembleTypeHA ) then
@@ -565,9 +488,11 @@ contains
         ! Read chemical potential of phase changing component (first one)
         call FileReadParameter( this%ChemPot, iounit_params , IdChemPot, .false. )
         call FileReadParameter( this%VarChemPot, iounit_params , IdVarChemPot, .false. )
-        write( IOBuffer, '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+        write( IOBuffer, &
+&         '("Reduced ChemPot of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
 &         trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
         call LogWrite
+
       end if
 
     else
@@ -585,11 +510,14 @@ contains
         this%FluctState = 0
         str = 'gradual insertion'
       case default
-        call Error( trim( str )//  ' method for calculation of chemical potential is not implemented' )
+        call Error( trim( str )// &
+&         ' method for calculation of chemical potential is not implemented' )
       end select
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns .and. .not. SimulationType .eq. MonteCarlo ) &
+      if( this%ChemPotMethod .eq. ChemPotMethodGradIns .and. &
+&         .not. SimulationType .eq. MonteCarlo ) &
 &       call Error( 'Gradual insertion is only allowed for MonteCarlo simulation' )
-      write( IOBuffer, '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
+      write( IOBuffer, &
+&       '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
 &       trim( this%PotModFilename )
       call LogWrite
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
@@ -598,11 +526,9 @@ contains
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
-        if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
+        if( this%NTest <= 0 ) &
+&         call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
-#if MPI_VER>0        
-        this%NTest = (this%NTest/NProcs +1)
-#endif
       end if
 
       ! Read weighting factors method
@@ -620,9 +546,11 @@ contains
           this%WFMethod = WFMethodOptSet
           str = 'optimized set'
         case default
-          call Error( trim( str )// ' method for weighting factors is not implemented' )
+          call Error( trim( str )// &
+&           ' method for weighting factors is not implemented' )
         end select
-        write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
+        write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) &
+&         trim( str )
         call LogWrite
       end if
 
@@ -633,7 +561,7 @@ contains
 &     merge(0, -1, this%ChemPotMethod .eq. ChemPotMethodGradIns) )
     this%NFluctMax = this%Molecule%NFluct
     this%NFluctState = 0
-    
+
     ! Set Unit Borders
     this%UnitLJ => this%Molecule%UnitLJ
     this%UnitC  => this%Molecule%UnitC
@@ -642,10 +570,14 @@ contains
 
     ! Allocate maximum allowed MC displacements
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
+      nullify ( this%DispTran )
+      nullify ( this%DispRot )
       allocate( this%DispTran, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
+      nullify ( this%DispMolTran )
+      nullify ( this%DispMolRot )
       allocate( this%DispMolTran, STAT = stat )
       call AllocationError( stat, 'maximum MC molecule displacement' )
       allocate( this%DispMolRot, STAT = stat )
@@ -654,10 +586,12 @@ contains
 
     ! Allocate and read weighting factors
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+      nullify( this%WF )
       allocate( this%WF( 0:this%NFluctMax ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', &
 &       this%NFluctMax + 1 )
-      if( this%WFMethod .eq. WFMethodGuess .or. this%WFMethod .eq. WFMethodOptSet ) then
+      if( this%WFMethod .eq. WFMethodGuess .or. &
+&         this%WFMethod .eq. WFMethodOptSet ) then
         if( RootProc ) read( iounit_params, * ) this%WF
 #if MPI_VER > 0
         call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
@@ -670,15 +604,17 @@ contains
     nullify( this%NFluctComp )
     if( this%NFluctMax > 0 ) then
       allocate( this%NFluctComp( 0:this%NFluctMax ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle components', this%NFluctMax + 1 )
+      call AllocationError( stat, 'fluctuating particle components', &
+&       this%NFluctMax + 1 )
     end if
 
-    write( IOBuffer, '(T8, "Reading component", I3," for ensemble successful")') comp
+    write( IOBuffer, '(T8, "Reading component", I3, " for ensemble successful")') comp
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine TComponent_Construct
+
 
 
 !==============================================================!
@@ -743,6 +679,9 @@ contains
     integer :: stat
 
     ! Allocate number of particles in component
+    nullify( this%NPart )
+    nullify( this%NPart1 )
+    nullify( this%NPart2 )
     allocate( this%NPart, STAT = stat )
     call AllocationError( stat, 'number of particles' )
 
@@ -775,7 +714,7 @@ contains
 
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, state )
-    
+
     ! Set Unit Borders
     this%UnitLJ => this%Molecule%UnitLJ
     this%UnitC  => this%Molecule%UnitC
@@ -790,7 +729,6 @@ contains
 
     ! Set Degrees of Freedom
     this%Molecule%Unit(1:this%Molecule%NUnit)%NDF = comp0%Molecule%Unit(1:comp0%Molecule%NUnit)%NDF
-
 
   end subroutine TComponent_ConstructFluct
 
@@ -831,6 +769,7 @@ contains
       deallocate( this%NPart )
     end if
 
+    ! Deallocation of MC vectors - even in MD
     if( SimulationType .eq. MonteCarlo .or. MCOverlapReduction ) then
       ! Deallocate maximum allowed MC displacements
       if( associated( this%DispTran ) ) then
@@ -848,6 +787,7 @@ contains
     end if
 
   end subroutine TComponent_Destruct
+
 
 
 !==============================================================!
@@ -888,6 +828,7 @@ contains
   end subroutine TComponent_DestructFluct
 
 
+
 !==============================================================!
 !  Subroutine TComponent_CreateAccumulators                    !
 !==============================================================!
@@ -911,7 +852,6 @@ contains
       call Construct( this%SumInvChemPot2, .true. )
 !DEBUG
       call Construct( this%SumVW, .true. )
-      call Construct( this%SumHM, .true. )  !Michael Sch.: fixes allocation for SumHM for GradIns
 !DEBUG
       call Construct( this%SumVW1, .true. )
       call Construct( this%SumVW2, .true. )
@@ -919,13 +859,11 @@ contains
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
-      call Construct( this%SumHW_counter, .false. )
-      call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
-      call Construct( this%SumHM, .true. )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. &
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -956,7 +894,6 @@ contains
       call Destruct( this%SumInvChemPot2 )
 !DEBUG
       call Destruct( this%SumVW )
-      call Destruct( this%SumHM )
 !DEBUG
       call Destruct( this%SumVW1 )
       call Destruct( this%SumVW2 )
@@ -964,17 +901,17 @@ contains
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
-      call Destruct( this%SumHW_counter )
-      call Destruct( this%SumHW_denom )
       call Destruct( this%SumVW )
-      call Destruct( this%SumHM )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. &
+&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
   end subroutine TComponent_DestroyAccumulators
+
+
 
 !==============================================================!
 !  Subroutine TComponent_Allocate                              !
@@ -990,11 +927,13 @@ contains
     ! Declare local variables
     integer :: np, ntest, nf
     integer :: nu, nup, neu, neup
-    integer :: i, j, index
+    integer :: i
+    integer :: j, index
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
     logical :: ok
+
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -1049,98 +988,6 @@ contains
     nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
-#if  TRANS == 1
-!  Transport  !TRANSPORT_start
-    nullify(this%KinETran)
-    nullify( this%FS )
-    nullify( this%FB )
-    nullify( this%FRC )
-    nullify( this%FTC )
-    nullify( this%FTC1)
-    nullify( this%FTC2 )
-    nullify( this%FTC3 )
-    nullify( this%FRC1)
-    nullify( this%FRC2 )
-    nullify( this%FRC3 )
-
-#if MPI_VER > 0
-    nullify( this%FSAll )
-    nullify( this%FBAll )
-    nullify( this%FRCAll )
-
-    nullify( this%FTC1All )
-    nullify( this%FTC2All )
-    nullify( this%FTC3All )
-
-    nullify( this%FRC1All )
-    nullify( this%FRC2All )
-    nullify( this%FRC3All )
-#endif
-
-    ! Transport
-    allocate( this%KinETran( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FS( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FB( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%Qm0( np, 4 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%Q0( np, 4, nu ), STAT = stat )
-    call AllocationError( stat, 'units*particles', nup )  
-
-#if MPI_VER > 0
-    allocate( this%FSAll( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FBAll( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRCAll( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC1All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC2All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FTC3All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC1All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC2All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%FRC3All( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-
-#endif
-
-    this%FS(: , :)   = 0._RK
-    this%FB(: , :)   = 0._RK
-    this%FTC(: , :)  = 0._RK
-    this%FRC(: , :)  = 0._RK
-
-    this%FTC1(:,:)  = 0._RK
-    this%FTC2(:,:)  = 0._RK
-    this%FTC3(:,:)  = 0._RK
-
-    this%FRC1(:,:)  = 0._RK
-    this%FRC2(:,:)  = 0._RK
-    this%FRC3(:,:)  = 0._RK
-!TRANSPORT_END
-#endif
 
     ! Centers of mass positions
     allocate( this%Pm0( np, 3 ), STAT = stat )
@@ -1149,10 +996,10 @@ contains
     call AllocationError( stat, 'units*particles', nup )
     allocate( this%Pm0old( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
+
     ! Centers of mass positions for Units
     allocate( this%P0( np, 3, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )
-
 
     if( SimulationType .eq. MolecularDynamics ) then
 
@@ -1188,18 +1035,16 @@ contains
 
     if( this%Molecule%isElongated ) then
 
-#if  TRANS != 1
-! For the calculation of transport properties, the necessary quaternion matrix has
-! already been allocated in this subroutine!
       ! Quaternion parameters
       allocate( this%Qm0( np, 4 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      ! Quaternion parameters for Units
-      allocate( this%Q0( np, 4, nu ), STAT = stat )
-      call AllocationError( stat, 'units*particles', nup )      
-#endif
       allocate( this%Q0Save( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
+
+      ! Quaternion parameters for Units
+      allocate( this%Q0( np, 4, nu ), STAT = stat )
+      call AllocationError( stat, 'units*particles', nup )
+
 
       if( SimulationType .eq. MolecularDynamics ) then
 
@@ -1274,10 +1119,13 @@ contains
     end if
 
     ! Gear corrector local arrays
-    if( SimulationType .eq. MolecularDynamics .and. IntegratorType .eq. IntegratorTypeGear ) then
-      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ), nu ),STAT = stat )
+    if( SimulationType .eq. MolecularDynamics &
+&     .and. IntegratorType .eq. IntegratorTypeGear ) then
+      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ),nu ), &
+&               STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
-      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ), nu ),STAT = stat )
+      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ),nu ), &
+&               STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
     end if
 
@@ -1289,23 +1137,16 @@ contains
       this%Molecule%SiteLJ126(i)%NPart0 => this%NPart0
       this%Molecule%SiteLJ126(i)%NPart1 => this%NPart1
       this%Molecule%SiteLJ126(i)%NPart2 => this%NPart2
-
       call Allocate( this%Molecule%SiteLJ126(i) )
-      this%Molecule%SiteLJ126(i)%PX => this%Pm0(:, 1)
-      this%Molecule%SiteLJ126(i)%PY => this%Pm0(:, 2)
-      this%Molecule%SiteLJ126(i)%PZ => this%Pm0(:, 3)
-
+!      this%Molecule%SiteLJ126(i)%PX => this%P0(:, 1)
+!      this%Molecule%SiteLJ126(i)%PY => this%P0(:, 2)
+!      this%Molecule%SiteLJ126(i)%PZ => this%P0(:, 3)
       if( ntest > 0 ) then
-        this%Molecule%SiteLJ126(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteLJ126(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteLJ126(i)%PZTest => this%Pm0Test(:, 3)
+       this%Molecule%SiteLJ126(i)%PXTest => this%Pm0Test(:, 1)
+       this%Molecule%SiteLJ126(i)%PYTest => this%Pm0Test(:, 2)
+       this%Molecule%SiteLJ126(i)%PZTest => this%Pm0Test(:, 3)
       end if
-
-#if TRANS==1
-      this%Molecule%SiteLJ126(i)%Qm0r => this%Qm0
-#endif
     end do
-
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
@@ -1313,23 +1154,16 @@ contains
       this%Molecule%SiteCharge(i)%NPart0 => this%NPart0
       this%Molecule%SiteCharge(i)%NPart1 => this%NPart1
       this%Molecule%SiteCharge(i)%NPart2 => this%NPart2
-
       call Allocate( this%Molecule%SiteCharge(i) )
-      this%Molecule%SiteCharge(i)%PX => this%Pm0(:, 1)
-      this%Molecule%SiteCharge(i)%PY => this%Pm0(:, 2)
-      this%Molecule%SiteCharge(i)%PZ => this%Pm0(:, 3)
-
+!      this%Molecule%SiteCharge(i)%PX => this%P0(:, 1)
+!      this%Molecule%SiteCharge(i)%PY => this%P0(:, 2)
+!      this%Molecule%SiteCharge(i)%PZ => this%P0(:, 3)
       if( ntest > 0 ) then
-        this%Molecule%SiteCharge(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteCharge(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteCharge(i)%PZTest => this%Pm0Test(:, 3)
+       this%Molecule%SiteCharge(i)%PXTest => this%Pm0Test(:, 1)
+       this%Molecule%SiteCharge(i)%PYTest => this%Pm0Test(:, 2)
+       this%Molecule%SiteCharge(i)%PZTest => this%Pm0Test(:, 3)
       end if
-
-#if TRANS==1
-      this%Molecule%SiteCharge(i)%Qm0r => this%Qm0
-#endif
     end do
-
     do i = 1, this%Molecule%NDipole
       this%Molecule%SiteDipole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteDipole(i)%NPart => this%NPart
@@ -1337,23 +1171,16 @@ contains
       this%Molecule%SiteDipole(i)%NPart0 => this%NPart0
       this%Molecule%SiteDipole(i)%NPart1 => this%NPart1
       this%Molecule%SiteDipole(i)%NPart2 => this%NPart2
-
       call Allocate( this%Molecule%SiteDipole(i) )
-      this%Molecule%SiteDipole(i)%PX => this%Pm0(:, 1)
-      this%Molecule%SiteDipole(i)%PY => this%Pm0(:, 2)
-      this%Molecule%SiteDipole(i)%PZ => this%Pm0(:, 3)
-
+!      this%Molecule%SiteDipole(i)%PX => this%P0(:, 1)
+!      this%Molecule%SiteDipole(i)%PY => this%P0(:, 2)
+!      this%Molecule%SiteDipole(i)%PZ => this%P0(:, 3)
       if( ntest > 0 ) then
-        this%Molecule%SiteDipole(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteDipole(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteDipole(i)%PZTest => this%Pm0Test(:, 3)
+       this%Molecule%SiteDipole(i)%PXTest => this%Pm0Test(:, 1)
+       this%Molecule%SiteDipole(i)%PYTest => this%Pm0Test(:, 2)
+       this%Molecule%SiteDipole(i)%PZTest => this%Pm0Test(:, 3)
       end if
-
-#if TRANS==1
-      this%Molecule%SiteDipole(i)%Qm0r => this%Qm0
-#endif
     end do
-
     do i = 1, this%Molecule%NQuadrupole
       this%Molecule%SiteQuadrupole(i)%NPartMax => this%NPartMax
       this%Molecule%SiteQuadrupole(i)%NPart => this%NPart
@@ -1361,29 +1188,24 @@ contains
       this%Molecule%SiteQuadrupole(i)%NPart0 => this%NPart0
       this%Molecule%SiteQuadrupole(i)%NPart1 => this%NPart1
       this%Molecule%SiteQuadrupole(i)%NPart2 => this%NPart2
-
       call Allocate( this%Molecule%SiteQuadrupole(i) )
-      this%Molecule%SiteQuadrupole(i)%PX => this%Pm0(:, 1)
-      this%Molecule%SiteQuadrupole(i)%PY => this%Pm0(:, 2)
-      this%Molecule%SiteQuadrupole(i)%PZ => this%Pm0(:, 3)
-
+!      this%Molecule%SiteQuadrupole(i)%PX => this%P0(:, 1)
+!      this%Molecule%SiteQuadrupole(i)%PY => this%P0(:, 2)
+!      this%Molecule%SiteQuadrupole(i)%PZ => this%P0(:, 3)
       if( ntest > 0 ) then
-        this%Molecule%SiteQuadrupole(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteQuadrupole(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteQuadrupole(i)%PZTest => this%Pm0Test(:, 3)
+       this%Molecule%SiteQuadrupole(i)%PXTest => this%Pm0Test(:, 1)
+       this%Molecule%SiteQuadrupole(i)%PYTest => this%Pm0Test(:, 2)
+       this%Molecule%SiteQuadrupole(i)%PZTest => this%Pm0Test(:, 3)
       end if
-
-#if TRANS==1
-      this%Molecule%SiteQuadrupole(i)%Qm0r => this%Qm0
-#endif
     end do
 
-    ! Internal degrees of freedom
+    ! Inner degrees of freedom
 
     ! Units
     do i = 1, this%Molecule%NUnit
       this%Molecule%Unit(i)%NPartMax => this%NPartMax
       this%Molecule%Unit(i)%NPart => this%NPart
+!      this%Molecule%Unit(i)%NTest => this%NTest
       this%Molecule%Unit(i)%NPart0 => this%NPart0
       this%Molecule%Unit(i)%NPart1 => this%NPart1
       this%Molecule%Unit(i)%NPart2 => this%NPart2
@@ -1848,6 +1670,11 @@ contains
             this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteLJ126(j)%FX(:)
             this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteLJ126(j)%FY(:)
             this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteLJ126(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteLJ126(j)%PX(:) !for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteLJ126(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteLJ126(j)%PZ(:)
+!           this%Molecule%IdfDihedral(i)%Sigma1=this%Molecule%SiteLJ126(j)%sig
+!           this%Molecule%IdfDihedral(i)%Epsilon1=this%Molecule%SiteLJ126(j)%eps
             Site1 = .true.
           else if (this%Molecule%SiteLJ126(j)%SiteId==SiteId2) then
             this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteLJ126(j)%RX(:)
@@ -1872,6 +1699,11 @@ contains
             this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteLJ126(j)%FX(:)
             this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteLJ126(j)%FY(:)
             this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteLJ126(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteLJ126(j)%PX(:)!for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteLJ126(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteLJ126(j)%PZ(:)
+!           this%Molecule%IdfDihedral(i)%Sigma4=this%Molecule%SiteLJ126(j)%sig
+!           this%Molecule%IdfDihedral(i)%Epsilon4=this%Molecule%SiteLJ126(j)%eps
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
@@ -1887,6 +1719,9 @@ contains
             this%Molecule%IdfDihedral(i)%FX1=>this%Molecule%SiteCharge(j)%FX(:)
             this%Molecule%IdfDihedral(i)%FY1=>this%Molecule%SiteCharge(j)%FY(:)
             this%Molecule%IdfDihedral(i)%FZ1=>this%Molecule%SiteCharge(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX1=>this%Molecule%SiteCharge(j)%PX(:)!for 1,4 intramolecular interaction virial
+!           this%Molecule%IdfDihedral(i)%PY1=>this%Molecule%SiteCharge(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ1=>this%Molecule%SiteCharge(j)%PZ(:)
             Site1 = .true.
           else if (this%Molecule%SiteCharge(j)%SiteId==SiteId2) then
             this%Molecule%IdfDihedral(i)%RX2=>this%Molecule%SiteCharge(j)%RX(:)
@@ -1911,6 +1746,9 @@ contains
             this%Molecule%IdfDihedral(i)%FX4=>this%Molecule%SiteCharge(j)%FX(:)
             this%Molecule%IdfDihedral(i)%FY4=>this%Molecule%SiteCharge(j)%FY(:)
             this%Molecule%IdfDihedral(i)%FZ4=>this%Molecule%SiteCharge(j)%FZ(:)
+!           this%Molecule%IdfDihedral(i)%PX4=>this%Molecule%SiteCharge(j)%PX(:)
+!           this%Molecule%IdfDihedral(i)%PY4=>this%Molecule%SiteCharge(j)%PY(:)
+!           this%Molecule%IdfDihedral(i)%PZ4=>this%Molecule%SiteCharge(j)%PZ(:)
             Site4 = .true.
           end if
           if (Site1 .and. Site2 .and. Site3 .and. Site4) exit
@@ -2029,8 +1867,7 @@ contains
       this%DihedralCount => this%Molecule%DihedralCount
       this%DihedralPartner => this%Molecule%DihedralPartner
     end if
-    
-    
+
     ! Fluctuating particle states
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
       nf = this%NFluctMax
@@ -2038,7 +1875,10 @@ contains
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
       allocate( this%NStateWF( 0: nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf + 1 )
-
+!       allocate( this%NStateBF( nf ), STAT = stat )
+!       call AllocationError( stat, 'fluctuating particle states', nf )
+!       allocate( this%BFSumState( nf ), STAT = stat )
+!       call AllocationError( stat, 'fluctuating particle states', nf )
 !DEBUG
       allocate( this%NFluctUpAttempts( nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf )
@@ -2052,10 +1892,11 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
+    write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) &
+&     trim( this%PotModFileName )
     call LogWrite
-    
-    contains
+
+   contains
 
     subroutine binar_search (array, Id, treffer, index)
 
@@ -2104,199 +1945,60 @@ contains
     integer :: i
 
     ! Centers of mass positions and their derivatives
-    if( associated( this%Pm0 ) ) then
-      deallocate( this%Pm0 )
-    end if
-    if( associated( this%P0Save ) ) then
-      deallocate( this%P0Save )
-    end if
-    if( associated( this%Pm0old ) ) then
-      deallocate( this%Pm0old )
-    end if
-    if( associated( this%P0 ) ) then
-      deallocate( this%P0 )
-    end if
-    if( associated( this%P1 ) ) then
-      deallocate( this%P1 )
-    end if
-    if( associated( this%P2 ) ) then
-      deallocate( this%P2 )
-    end if
-    if( associated( this%P3 ) ) then
-      deallocate( this%P3 )
-    end if
-    if( associated( this%P4 ) ) then
-      deallocate( this%P4 )
-    end if
-    if( associated( this%P5 ) ) then
-      deallocate( this%P5 )
-    end if
+    if( associated( this%Pm0 ) ) deallocate( this%Pm0 )
+    if( associated( this%Pm0old ) ) deallocate( this%Pm0old )
+    if( associated( this%P0Save ) ) deallocate( this%P0Save )
+    if( associated( this%P0 ) ) deallocate( this%P0 )
+    if( associated( this%P1 ) ) deallocate( this%P1 )
+    if( associated( this%P2 ) ) deallocate( this%P2 )
+    if( associated( this%P3 ) ) deallocate( this%P3 )
+    if( associated( this%P4 ) ) deallocate( this%P4 )
+    if( associated( this%P5 ) ) deallocate( this%P5 )
 
     ! Displacement
-    if( associated( this%Disp ) ) then
-      deallocate( this%Disp )
-    end if
+    if( associated( this%Disp ) ) deallocate( this%Disp )
 
     ! Total forces
-    if( associated( this%F ) ) then
-      deallocate( this%F )
-    end if
+    if( associated( this%F ) ) deallocate( this%F )
 
     ! Quaternion parameters and their derivatives
-    if( associated( this%Qm0 ) ) then
-      deallocate( this%Qm0 )
-    end if
-    if( associated( this%Q0Save ) ) then
-      deallocate( this%Q0Save )
-    end if
-    if( associated( this%Q0tmp ) ) then
-      deallocate( this%Q0tmp )
-    end if
-    if( associated( this%Q0 ) ) then
-      deallocate( this%Q0 )
-    end if
-    if( associated( this%Q1 ) ) then
-      deallocate( this%Q1 )
-    end if
-    if( associated( this%Q2 ) ) then
-      deallocate( this%Q2 )
-    end if
-    if( associated( this%Q3 ) ) then
-      deallocate( this%Q3 )
-    end if
-    if( associated( this%Q4 ) ) then
-      deallocate( this%Q4 )
-    end if
+    if( associated( this%Qm0 ) ) deallocate( this%Qm0 )
+    if( associated( this%Q0Save ) ) deallocate( this%Q0Save )
+    if( associated( this%Q0 ) ) deallocate( this%Q0 )
+    if( associated( this%Q0tmp ) ) deallocate( this%Q0tmp )
+    if( associated( this%Q1 ) ) deallocate( this%Q1 )
+    if( associated( this%Q2 ) ) deallocate( this%Q2 )
+    if( associated( this%Q3 ) ) deallocate( this%Q3 )
+    if( associated( this%Q4 ) ) deallocate( this%Q4 )
 
     ! Angular velocities and their derivatives
-    if( associated( this%W0 ) ) then
-      deallocate( this%W0 )
-    end if
-    if( associated( this%W1 ) ) then
-      deallocate( this%W1 )
-    end if
-    if( associated( this%W2 ) ) then
-      deallocate( this%W2 )
-    end if
-    if( associated( this%W3 ) ) then
-      deallocate( this%W3 )
-    end if
-    if( associated( this%W4 ) ) then
-      deallocate( this%W4 )
-    end if
+    if( associated( this%W0 ) ) deallocate( this%W0 )
+    if( associated( this%W1 ) ) deallocate( this%W1 )
+    if( associated( this%W2 ) ) deallocate( this%W2 )
+    if( associated( this%W3 ) ) deallocate( this%W3 )
+    if( associated( this%W4 ) ) deallocate( this%W4 )
 
     ! Total torques
-    if( associated( this%T ) ) then
-      deallocate( this%T )
-    end if
+    if( associated( this%T ) ) deallocate( this%T )
 
     ! Total dipole moment of molecules for reaction field
-    if( associated( this%MueX ) ) then
-      deallocate( this%MueX )
-    end if
-    if( associated( this%MueY ) ) then
-      deallocate( this%MueY )
-    end if
-    if( associated( this%MueZ ) ) then
-      deallocate( this%MueZ )
-    end if
+    if( associated( this%MueX ) ) deallocate( this%MueX )
+    if( associated( this%MueY ) ) deallocate( this%MueY )
+    if( associated( this%MueZ ) ) deallocate( this%MueZ )
 
     ! Torques from reaction field
-    if( associated( this%tRFX ) ) then
-      deallocate( this%tRFX )
-    end if
-    if( associated( this%tRFY ) ) then
-      deallocate( this%tRFY )
-    end if
-    if( associated( this%tRFZ ) ) then
-      deallocate( this%tRFZ )
-    end if
+    if( associated( this%tRFX ) ) deallocate( this%tRFX )
+    if( associated( this%tRFY ) ) deallocate( this%tRFY )
+    if( associated( this%tRFZ ) ) deallocate( this%tRFZ )
 
     ! Total dipole moment of test particles for reaction field
-    if( associated( this%MueXTest ) ) then
-      deallocate( this%MueXTest )
-    end if
-    if( associated( this%MueYTest ) ) then
-      deallocate( this%MueYTest )
-    end if
-    if( associated( this%MueZTest ) ) then
-      deallocate( this%MueZTest )
-    end if
+    if( associated( this%MueXTest ) ) deallocate( this%MueXTest )
+    if( associated( this%MueYTest ) ) deallocate( this%MueYTest )
+    if( associated( this%MueZTest ) ) deallocate( this%MueZTest )
 
     ! Gear corrector local arrays
-    if( associated( this%Corr0 ) ) then
-      deallocate( this%Corr0 )
-    end if
-    if( associated( this%Corr1 ) ) then
-      deallocate( this%Corr1 )
-    end if
-
-#if  TRANS == 1
-! Transport !TRANSPORT_start
-    if( associated( this%KinETran) ) then
-      deallocate( this%KinETran )
-    end if
-    if( associated( this%FS ) ) then
-      deallocate( this%FS )
-    end if
-    if( associated( this%FB ) ) then
-      deallocate( this%FB )
-    end if
-    if( associated( this%FTC ) ) then
-      deallocate( this%FTC )
-    end if
-    if( associated( this%FRC ) ) then
-      deallocate( this%FRC )
-    end if
-    if( associated( this%FTC1 ) ) then
-      deallocate( this%FTC1 )
-    end if
-    if( associated( this%FTC2 ) ) then
-      deallocate( this%FTC2 )
-    end if
-    if( associated( this%FTC3 ) ) then
-      deallocate( this%FTC3 )
-    end if
-    if( associated( this%FRC1 ) ) then
-      deallocate( this%FRC1 )
-    end if
-    if( associated( this%FRC2 ) ) then
-      deallocate( this%FRC2 )
-    end if
-    if( associated( this%FRC3 ) ) then
-      deallocate( this%FRC3 )
-    end if
-#if MPI_VER > 0
-    if( associated( this%FBAll ) ) then
-      deallocate( this%FBAll )
-    end if
-    if( associated( this%FSAll ) ) then
-      deallocate( this%FSAll )
-    end if
-    if( associated( this%FRCAll ) ) then
-      deallocate( this%FRCAll )
-    end if
-    if( associated( this%FTC1All ) ) then
-      deallocate( this%FTC1All )
-    end if
-    if( associated( this%FTC2All ) ) then
-      deallocate( this%FTC2All )
-    end if
-    if( associated( this%FTC3All ) ) then
-      deallocate( this%FTC3All )
-    end if
-    if( associated( this%FRC1All ) ) then
-      deallocate( this%FRC1All )
-    end if
-    if( associated( this%FRC2All ) ) then
-      deallocate( this%FRC2All )
-    end if
-    if( associated( this%FRC3All ) ) then
-      deallocate( this%FRC3All )
-    end if
-#endif
-!TRANSPORT_END
-#endif
+    if( associated( this%Corr0 ) ) deallocate( this%Corr0 )
+    if( associated( this%Corr1 ) ) deallocate( this%Corr1 )
 
     ! Site positions, orientations, forces and torques
     do i = 1, this%Molecule%NLJ126
@@ -2314,33 +2016,39 @@ contains
 
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
      ! Fluctuating particle states
-      if( associated( this%NState ) ) then
-        deallocate( this%NState )
-      end if
-      if( associated( this%NStateWF ) ) then
-        deallocate( this%NStateWF )
-      end if
-      if( associated( this%NFluctComp ) ) then
-        deallocate( this%NFluctComp )
-      end if
-      if( associated( this%WF ) ) then
-        deallocate( this%WF )
-      end if
+    if( associated( this%NState ) ) then
+      deallocate( this%NState )
+    end if
+    if( associated( this%NStateWF ) ) then
+      deallocate( this%NStateWF )
+    end if
+    if( associated( this%NFluctComp ) ) then
+      deallocate( this%NFluctComp )
+    end if
+    if( associated( this%WF ) ) then
+      deallocate( this%WF )
+    end if
+!     if( associated( this%NStateBF ) ) then
+!       deallocate( this%NStateBF )
+!     end if
+!     if( associated( this%BFSumState ) ) then
+!       deallocate( this%BFSumState )
+!     end if
 !DEBUG
-      if( associated( this%NFluctUpAttempts ) ) then
-        deallocate( this%NFluctUpAttempts )
-      end if
-      if( associated( this%NFluctUpSuccesses ) ) then
-        deallocate( this%NFluctUpSuccesses )
-      end if
+    if( associated( this%NFluctUpAttempts ) ) then
+      deallocate( this%NFluctUpAttempts )
+    end if
+    if( associated( this%NFluctUpSuccesses ) ) then
+      deallocate( this%NFluctUpSuccesses )
+    end if
       if( associated( this%NFluctDownAttempts ) ) then
         deallocate( this%NFluctDownAttempts )
       end if
       if( associated( this%NFluctDownSuccesses ) ) then
         deallocate( this%NFluctDownSuccesses )
       end if
-!DEBUG
     end if
+!DEBUG
 
 #if MPI_VER > 0
     if( associated( this%FAll ) ) then
@@ -2352,6 +2060,7 @@ contains
 #endif
 
   end subroutine TComponent_Deallocate
+
 
 
 !==============================================================!
@@ -2372,18 +2081,27 @@ contains
    if (abs(q) .ge. 1e-1) this%charged = .true.
 
 ! Reaction Field Check
-     if ((LongRange .eq. RField) .and. (abs(this%Molecule%Charge) .ge. 1e-1)) then
-       write (ErrorBuffer,'("You have a non-neutral component.\n NetCharge norm&
-&      red = ", F15.10, "\n Conflicts with ReactionField")') this%Molecule%Charge
-       call Error
+   if ((LongRange .eq. RField) .and. (CutOffMode .eq. SiteSite) ) then
+     if (this%Molecule%NCharge > 0 ) then
+       write (ErrorBuffer,'("Reaction Field in combination with SiteSite-Cutoff doesnot support partial charges")')
      end if
+   end if
 
-     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
-       write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
-       call Error
-     end if
+
+   if ((LongRange .eq. RField) .and. (abs(q) .ge. 1e-1)) then
+     write (ErrorBuffer,'("You have a non-neutral component.\n &
+&     NetCharge norm&red = ", F15.10, "\n Conflicts with ReactionField")') q
+     call Error
+   end if
+
+   if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) &
+&         .and. (abs(q) .ge. 1e-4) ) then
+     write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
+     call Error
+   end if
 
    end subroutine TComponent_LongRangeCheck
+
 
 
 !==============================================================!
@@ -2402,27 +2120,28 @@ contains
     integer :: nu
 
     nu = this%Molecule%NUnit
-
     ! Set random linear velocities
     do k=1,nu
       do i = 1, 3
         do j = 1, this%NPart
-          this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          this%P1(j, i,k) = rnd( -1._RK, 1._RK )
         end do
       end do
     end do
 
+    !NEW
     ! Normalize translational velocity vectors (only done once - needs not to be efficient)
     do k=1,nu
-      do j = 1, this%NPart
-        this%P1(j, :, k) = this%P1(j, :, k) / sqrt( dot_product( this%P1(j, :, k), this%P1(j, :, k) ))
-      end do
+    	do j = 1, this%NPart
+      		this%P1(j, :, k) = this%P1(j, :, k) / sqrt( dot_product( this%P1(j, :, k), this%P1(j, :, k) ))
+    	end do
     end do
 
     ! Nullify angular velocities
-    if( this%Molecule%isElongated ) this%W0(:, :, :) = 0._RK
+    if( this%Molecule%isElongated ) this%W0(:, :,:) = 0._RK
 
   end subroutine TComponent_InitVelocities
+
 
 
 !==============================================================!
@@ -2435,7 +2154,7 @@ contains
 
     ! Declare arguments
     type(TComponent) :: this
-    
+
     ! Local variables
     integer          :: i
     integer          :: nu
@@ -2448,7 +2167,7 @@ contains
     this%P4(:, :, :) = 0._RK
     this%P5(:, :, :) = 0._RK
     do i=1,nu
-      if( this%Molecule%Unit(i)%isElongated ) then
+!      if( this%Molecule%Unit(i)%isElongated ) then
         this%Q1(:, :, i) = 0._RK
         this%Q2(:, :, i) = 0._RK
         this%Q3(:, :, i) = 0._RK
@@ -2457,10 +2176,11 @@ contains
         this%W2(:, :, i) = 0._RK
         this%W3(:, :, i) = 0._RK
         this%W4(:, :, i) = 0._RK
-      end if
-    end do
+!    end if
+   end do
 
   end subroutine TComponent_InitIntegratorGear
+
 
 
 !==============================================================!
@@ -2473,15 +2193,13 @@ contains
 
     ! Declare arguments
     type(TComponent) :: this
-    
+
     ! Local variables
     integer          :: i, nu
-    
     nu = this%Molecule%NUnit
 
     ! Zero accelerations
     this%P2(:, :, :) = 0._RK
-
     do i = 1, nu
 !     if( this%Molecule%Unit(i)%isElongated ) then
         this%Q1(:, :, i) = 0._RK
@@ -2490,6 +2208,7 @@ contains
     end do
 
   end subroutine TComponent_InitIntegratorLeap
+
 
 
 !==============================================================!
@@ -2509,6 +2228,7 @@ contains
   end subroutine TComponent_InitIntegratorVerlet
 
 
+
 !==============================================================!
 !  Subroutine TComponent_InitIntegratorVV                      !
 !==============================================================!
@@ -2526,35 +2246,51 @@ contains
   end subroutine TComponent_InitIntegratorVV
 
 
+
 !==============================================================!
 !  Subroutine TComponent_RemoveNetMomentum                      !
 !==============================================================!
 
-  subroutine TComponent_RemoveNetMomentum( this, nu )
+  subroutine TComponent_RemoveNetMomentum( this,nu )
 
     implicit none
 
     ! Declare arguments
-    type(TComponent) :: this
+    type(TComponent)    :: this
     integer, intent(in) :: nu
 
     ! Declare local variables
-    real(RK) :: P(3, nu), L(3, nu)
-    integer :: i, j, k
+    real(RK) :: P(3,nu), L(3,nu)
+    integer :: i, j,k
     real(RK) :: Pim(nu)
 
     ! Return if zero particles in component
     if( this%NPart == 0 ) return
 
-    ! Calculate net momentum
+!    ! Calculate net momentum
+!    P(:) = 0._RK
+!    L(:) = 0._RK
+!    do i = 1, 3
+!      P(i) = P(i) &
+!&       + this%Molecule%Mass * sum( this%P1(1:this%NPart, i) )
+!      if( i <= this%Molecule%NDFRot ) &
+!&       L(i) = L(i) &
+!&         + this%Molecule%MOI(i) * sum( this%W0(1:this%NPart, i) )
+!    end do
+!    P(:) = P(:) / this%NPart
+!    L(:) = L(:) / this%NPart
+
+    ! Remove net momentum
     do k = 1, nu
       P(:, k) = 0._RK
       L(:, k) = 0._RK
+      ! Calculate net momentum
       do i = 1, 3
-        P(i, k) = P(i, k) + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
-        if( i <= this%Molecule%Unit(k)%NDFRot ) then
-          L(i, k) = L(i, k) + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
-        end if
+        P(i, k) = P(i, k) &
+&         + this%Molecule%Unit(k)%Mass * sum( this%P1(1:this%NPart, i, k) )
+        if( i <= this%Molecule%Unit(k)%NDFRot ) &
+&         L(i, k) = L(i, k) &
+&           + this%Molecule%Unit(k)%MOI(i) * sum( this%W0(1:this%NPart, i, k) )
       end do
       P(:, k) = P(:, k) / this%NPart
       L(:, k) = L(:, k) / this%NPart
@@ -2581,6 +2317,7 @@ contains
   end subroutine TComponent_RemoveNetMomentum
 
 
+
 !==============================================================!
 !  Subroutine TComponent_CalculateEKin                         !
 !==============================================================!
@@ -2594,7 +2331,7 @@ contains
 
     ! Declare local variables
     integer :: i, k, nu
-    
+
     nu = this%Molecule%NUnit
 
     ! Calculate translational kinetic energy
@@ -2603,7 +2340,6 @@ contains
       this%EKinTran = this%EkinTran+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
 &       * sum( this%P1(1:this%NPart, :, k)**2 ) * this%BoxLength**2
     end do
-
 
     ! Calculate rotational kinetic energy
     this%EKinRot = 0._RK
@@ -2617,13 +2353,364 @@ contains
   end subroutine TComponent_CalculateEKin
 
 
+
+! ! ! !==============================================================!
+! ! ! !  Subroutine TComponent_Mol2Atom                              !
+! ! ! !==============================================================!
+! ! !
+! ! !   subroutine TComponent_Mol2Atom( this, np )
+! ! !
+! ! !     implicit none
+! ! !
+! ! !     ! Include MPI header
+! ! ! #if MPI_VER > 0
+! ! !     include 'mpif.h'
+! ! ! #endif
+! ! !
+! ! !     ! Declare arguments
+! ! !     type(TComponent)    :: this
+! ! !     integer, intent(in) :: np
+! ! !
+! ! !     ! Declare local variables
+! ! !     real(RK)                       :: BoxLengthInv
+! ! !     real(RK)                       :: PX(np), PY(np), PZ(np)
+! ! !     real(RK)                       :: q1, q2, q3, q4, qinv
+! ! !     real(RK)                       :: A11(np), A12(np), A13(np)
+! ! !     real(RK)                       :: A21(np), A22(np), A23(np)
+! ! !     real(RK)                       :: A31(np), A32(np), A33(np)
+! ! !     real(RK)                       :: r1, r2, r3, or1, or2, or3
+! ! !     real(RK)                       :: mue1, mue2, mue3
+! ! !     type(TSiteLJ126), pointer      :: pLJ126
+! ! !     type(TSiteCharge), pointer     :: pCharge
+! ! !     type(TSiteDipole), pointer     :: pDipole
+! ! !     type(TSiteQuadrupole), pointer :: pQuadrupole
+! ! !     integer                        :: i, j
+! ! !
+! ! !     ! Broadcast positions and orientations to all processes
+! ! ! #if MPI_VER > 0
+! ! !     call MPI_Bcast( this%P0(:, :), size( this%P0 ), &
+! ! ! &     MPI_RK, NRootProc, Communicator, ierror )
+! ! !     if( this%Molecule%isElongated ) &
+! ! ! &     call MPI_Bcast( this%Q0(:, :), size( this%Q0 ), &
+! ! ! &       MPI_RK, NRootProc, Communicator, ierror )
+! ! ! #endif
+! ! !
+! ! !     ! Assign local variables
+! ! !     BoxLengthInv = 1._RK / this%BoxLength
+! ! !
+! ! !     ! Check number of rotation axes
+! ! !     if( this%Molecule%isElongated ) then
+! ! !
+! ! !       ! Loop over molecules
+! ! !       do i = 1, np
+! ! !         ! Positions and quaternions of particle i
+! ! !         PX(i) = this%P0(i, 1)
+! ! !         PY(i) = this%P0(i, 2)
+! ! !         PZ(i) = this%P0(i, 3)
+! ! !         q1 = this%Q0(i, 1)
+! ! !         q2 = this%Q0(i, 2)
+! ! !         q3 = this%Q0(i, 3)
+! ! !         q4 = this%Q0(i, 4)
+! ! !
+! ! !         ! Normalise quaternions
+! ! ! #if ARCH == 3
+! ! !         qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+! ! ! #else
+! ! !         qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+! ! ! #endif
+! ! !         q1 = q1 * qinv
+! ! !         q2 = q2 * qinv
+! ! !         q3 = q3 * qinv
+! ! !         q4 = q4 * qinv
+! ! !         this%Q0(i, 1) = q1
+! ! !         this%Q0(i, 2) = q2
+! ! !         this%Q0(i, 3) = q3
+! ! !         this%Q0(i, 4) = q4
+! ! !
+! ! !         ! Calculate rotation matrix elements
+! ! !         A11(i) = q1**2 + q2**2 - q3**2 - q4**2
+! ! !         A12(i) = 2._RK * (q2 * q3 + q1 * q4)
+! ! !         A13(i) = 2._RK * (q2 * q4 - q1 * q3)
+! ! !         A21(i) = 2._RK * (q2 * q3 - q1 * q4)
+! ! !         A22(i) = q1**2 - q2**2 + q3**2 - q4**2
+! ! !         A23(i) = 2._RK * (q3 * q4 + q1 * q2)
+! ! !         A31(i) = 2._RK * (q2 * q4 + q1 * q3)
+! ! !         A32(i) = 2._RK * (q3 * q4 - q1 * q2)
+! ! !         A33(i) = q1**2 - q2**2 - q3**2 + q4**2
+! ! !       end do
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do j = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(j)
+! ! !         r1 = pLJ126%r(1) * BoxLengthInv
+! ! !         r2 = pLJ126%r(2) * BoxLengthInv
+! ! !         r3 = pLJ126%r(3) * BoxLengthInv
+! ! !         do i = 1, np
+! ! !           pLJ126%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+! ! !           pLJ126%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+! ! !           pLJ126%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       do j = 1, this%Molecule%NCharge
+! ! !         pCharge => this%Molecule%SiteCharge(j)
+! ! !         r1 = pCharge%r(1) * BoxLengthInv
+! ! !         r2 = pCharge%r(2) * BoxLengthInv
+! ! !         r3 = pCharge%r(3) * BoxLengthInv
+! ! !         do i = 1, np
+! ! !           pCharge%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+! ! !           pCharge%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+! ! !           pCharge%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over dipole sites in molecule
+! ! !       do j = 1, this%Molecule%NDipole
+! ! !         pDipole => this%Molecule%SiteDipole(j)
+! ! !         r1 = pDipole%r(1) * BoxLengthInv
+! ! !         r2 = pDipole%r(2) * BoxLengthInv
+! ! !         r3 = pDipole%r(3) * BoxLengthInv
+! ! !         or1 = pDipole%or(1)
+! ! !         or2 = pDipole%or(2)
+! ! !         or3 = pDipole%or(3)
+! ! !         do i = 1, np
+! ! !           pDipole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+! ! !           pDipole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+! ! !           pDipole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+! ! !           pDipole%OX(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+! ! !           pDipole%OY(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+! ! !           pDipole%OZ(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over quadrupole sites in molecule
+! ! !       do j = 1, this%Molecule%NQuadrupole
+! ! !         pQuadrupole => this%Molecule%SiteQuadrupole(j)
+! ! !         r1 = pQuadrupole%r(1) * BoxLengthInv
+! ! !         r2 = pQuadrupole%r(2) * BoxLengthInv
+! ! !         r3 = pQuadrupole%r(3) * BoxLengthInv
+! ! !         or1 = pQuadrupole%or(1)
+! ! !         or2 = pQuadrupole%or(2)
+! ! !         or3 = pQuadrupole%or(3)
+! ! !         do i = 1, np
+! ! !           pQuadrupole%RX(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+! ! !           pQuadrupole%RY(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+! ! !           pQuadrupole%RZ(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+! ! !           pQuadrupole%OX(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
+! ! !           pQuadrupole%OY(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
+! ! !           pQuadrupole%OZ(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Rotate total dipole moment
+! ! !       if( CutoffMode .eq. CenterofMass ) then
+! ! !         mue1 = this%Molecule%Mue(1)
+! ! !         mue2 = this%Molecule%Mue(2)
+! ! !         mue3 = this%Molecule%Mue(3)
+! ! !         do i = 1, np
+! ! !           this%MueX(i) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
+! ! !           this%MueY(i) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
+! ! !           this%MueZ(i) = mue1 * A13(i) + mue2 * A23(i) + mue3 * A33(i)
+! ! !         end do
+! ! !       end if
+! ! !
+! ! !     else
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do i = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(i)
+! ! !         do j = 1, np
+! ! !           pLJ126%RX(j) = this%P0(j, 1)
+! ! !           pLJ126%RY(j) = this%P0(j, 2)
+! ! !           pLJ126%RZ(j) = this%P0(j, 3)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       if (LongRange .ne. RField) then
+! ! !         do i = 1, this%Molecule%NCharge
+! ! !           pCharge => this%Molecule%SiteCharge(i)
+! ! !           do j = 1, np
+! ! !             pCharge%RX(j) = this%P0(j,1)
+! ! !             pCharge%RY(j) = this%P0(j,2)
+! ! !             pCharge%RZ(j) = this%P0(j,3)
+! ! !           end do
+! ! !         end do
+! ! !       end if
+! ! !
+! ! !     end if
+! ! !
+! ! !   end subroutine TComponent_Mol2Atom
+! ! !
+! ! !
+! ! !
+! ! ! !==============================================================!
+! ! ! !  Subroutine TComponent_Mol2Atom1                             !
+! ! ! !==============================================================!
+! ! !
+! ! !   subroutine TComponent_Mol2Atom1( this, n )
+! ! !
+! ! !     implicit none
+! ! !
+! ! !     ! Declare arguments
+! ! !     type(TComponent)    :: this
+! ! !     integer, intent(in) :: n
+! ! !
+! ! !     ! Declare local variables
+! ! !     real(RK)                       :: BoxLengthInv
+! ! !     real(RK)                       :: PXi, PYi, PZi
+! ! !     real(RK)                       :: q1, q2, q3, q4, qinv
+! ! !     real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+! ! ! &                                     A31, A32, A33
+! ! !     real(RK)                       :: r1, r2, r3, or1, or2, or3
+! ! !     real(RK)                       :: mue1, mue2, mue3
+! ! !     type(TSiteLJ126), pointer      :: pLJ126
+! ! !     type(TSiteCharge), pointer     :: pCharge
+! ! !     type(TSiteDipole), pointer     :: pDipole
+! ! !     type(TSiteQuadrupole), pointer :: pQuadrupole
+! ! !     integer                        :: i
+! ! !
+! ! !     ! Assign local variables
+! ! !     BoxLengthInv = 1._RK / this%BoxLength
+! ! !
+! ! !     ! Positions of particle n
+! ! !     PXi = this%P0(n, 1)
+! ! !     PYi = this%P0(n, 2)
+! ! !     PZi = this%P0(n, 3)
+! ! !
+! ! !     ! Check number of rotation axes
+! ! !     if( this%Molecule%isElongated ) then
+! ! !
+! ! !       ! Normalise quaternions
+! ! !       q1 = this%Q0(n, 1)
+! ! !       q2 = this%Q0(n, 2)
+! ! !       q3 = this%Q0(n, 3)
+! ! !       q4 = this%Q0(n, 4)
+! ! ! #if ARCH == 3
+! ! !       qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+! ! ! #else
+! ! !       qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+! ! ! #endif
+! ! !       q1 = q1 * qinv
+! ! !       q2 = q2 * qinv
+! ! !       q3 = q3 * qinv
+! ! !       q4 = q4 * qinv
+! ! !       this%Q0(n, 1) = q1
+! ! !       this%Q0(n, 2) = q2
+! ! !       this%Q0(n, 3) = q3
+! ! !       this%Q0(n, 4) = q4
+! ! !
+! ! !       ! Calculate rotation matrix elements
+! ! !       A11 = q1**2 + q2**2 - q3**2 - q4**2
+! ! !       A12 = 2._RK * (q2 * q3 + q1 * q4)
+! ! !       A13 = 2._RK * (q2 * q4 - q1 * q3)
+! ! !       A21 = 2._RK * (q2 * q3 - q1 * q4)
+! ! !       A22 = q1**2 - q2**2 + q3**2 - q4**2
+! ! !       A23 = 2._RK * (q3 * q4 + q1 * q2)
+! ! !       A31 = 2._RK * (q2 * q4 + q1 * q3)
+! ! !       A32 = 2._RK * (q3 * q4 - q1 * q2)
+! ! !       A33 = q1**2 - q2**2 - q3**2 + q4**2
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do i = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(i)
+! ! !         r1 = pLJ126%r(1) * BoxLengthInv
+! ! !         r2 = pLJ126%r(2) * BoxLengthInv
+! ! !         r3 = pLJ126%r(3) * BoxLengthInv
+! ! !         pLJ126%RX(n) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+! ! !         pLJ126%RY(n) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+! ! !         pLJ126%RZ(n) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       do i = 1, this%Molecule%NCharge
+! ! !         pCharge => this%Molecule%SiteCharge(i)
+! ! !         r1 = pCharge%r(1) * BoxLengthInv
+! ! !         r2 = pCharge%r(2) * BoxLengthInv
+! ! !         r3 = pCharge%r(3) * BoxLengthInv
+! ! !         pCharge%RX(n) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+! ! !         pCharge%RY(n) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+! ! !         pCharge%RZ(n) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+! ! !       end do
+! ! !
+! ! !       ! Loop over dipole sites in molecule
+! ! !       do i = 1, this%Molecule%NDipole
+! ! !         pDipole => this%Molecule%SiteDipole(i)
+! ! !         r1 = pDipole%r(1) * BoxLengthInv
+! ! !         r2 = pDipole%r(2) * BoxLengthInv
+! ! !         r3 = pDipole%r(3) * BoxLengthInv
+! ! !         or1 = pDipole%or(1)
+! ! !         or2 = pDipole%or(2)
+! ! !         or3 = pDipole%or(3)
+! ! !         pDipole%RX(n) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+! ! !         pDipole%RY(n) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+! ! !         pDipole%RZ(n) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+! ! !         pDipole%OX(n) = or1 * A11 + or2 * A21 + or3 * A31
+! ! !         pDipole%OY(n) = or1 * A12 + or2 * A22 + or3 * A32
+! ! !         pDipole%OZ(n) = or1 * A13 + or2 * A23 + or3 * A33
+! ! !       end do
+! ! !
+! ! !       ! Loop over quadrupole sites in molecule
+! ! !       do i = 1, this%Molecule%NQuadrupole
+! ! !         pQuadrupole => this%Molecule%SiteQuadrupole(i)
+! ! !         r1 = pQuadrupole%r(1) * BoxLengthInv
+! ! !         r2 = pQuadrupole%r(2) * BoxLengthInv
+! ! !         r3 = pQuadrupole%r(3) * BoxLengthInv
+! ! !         or1 = pQuadrupole%or(1)
+! ! !         or2 = pQuadrupole%or(2)
+! ! !         or3 = pQuadrupole%or(3)
+! ! !         pQuadrupole%RX(n) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+! ! !         pQuadrupole%RY(n) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+! ! !         pQuadrupole%RZ(n) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+! ! !         pQuadrupole%OX(n) = or1 * A11 + or2 * A21 + or3 * A31
+! ! !         pQuadrupole%OY(n) = or1 * A12 + or2 * A22 + or3 * A32
+! ! !         pQuadrupole%OZ(n) = or1 * A13 + or2 * A23 + or3 * A33
+! ! !       end do
+! ! !
+! ! !       ! Rotate total dipole moment
+! ! !       if( CutoffMode .eq. CenterofMass ) then
+! ! !         mue1 = this%Molecule%Mue(1)
+! ! !         mue2 = this%Molecule%Mue(2)
+! ! !         mue3 = this%Molecule%Mue(3)
+! ! !         this%MueX(n) = mue1 * A11 + mue2 * A21 + mue3 * A31
+! ! !         this%MueY(n) = mue1 * A12 + mue2 * A22 + mue3 * A32
+! ! !         this%MueZ(n) = mue1 * A13 + mue2 * A23 + mue3 * A33
+! ! !       end if
+! ! !
+! ! !     else
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do i = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(i)
+! ! !         pLJ126%RX(n) = PXi
+! ! !         pLJ126%RY(n) = PYi
+! ! !         pLJ126%RZ(n) = PZi
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       if (LongRange .ne. RField) then
+! ! !         do i = 1, this%Molecule%NCharge
+! ! !           pCharge => this%Molecule%SiteCharge(i)
+! ! !             pCharge%RX(n) = PXi
+! ! !             pCharge%RY(n) = PYi
+! ! !             pCharge%RZ(n) = PZi
+! ! !         end do
+! ! !       end if
+! ! !
+! ! !     end if
+! ! !
+! ! !   end subroutine TComponent_Mol2Atom1
+! ! !
+! ! !
+! ! !
 !==============================================================!
 !  Subroutine TComponent_Mol2AtomTest                          !
 !==============================================================!
 
   subroutine TComponent_Mol2AtomTest( this, np )
 
-    implicit none    !Michael Sch.: old routine...temporary...later mol2unit1test + unit2atomtest should be used
+    implicit none
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -2646,7 +2733,7 @@ contains
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
-    
+
     nu=this%Molecule%NUnit
 
     ! Check number of rotation axes
@@ -2730,10 +2817,12 @@ contains
         or2 = pQuadrupole%or(2)
         or3 = pQuadrupole%or(3)
         do i = 1, np
-          pQuadrupole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pQuadrupole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pQuadrupole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
-
+          pQuadrupole%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + &
+&                                 r3 * A31(i)
+          pQuadrupole%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + &
+&                                 r3 * A32(i)
+          pQuadrupole%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + &
+&                                 r3 * A33(i)
           pQuadrupole%OXTest(i) = or1 * A11(i) + or2 * A21(i) + or3 * A31(i)
           pQuadrupole%OYTest(i) = or1 * A12(i) + or2 * A22(i) + or3 * A32(i)
           pQuadrupole%OZTest(i) = or1 * A13(i) + or2 * A23(i) + or3 * A33(i)
@@ -2778,57 +2867,206 @@ contains
     end if
 
   end subroutine TComponent_Mol2AtomTest
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Resize                            !
-!==============================================================!
-
-  subroutine TComponent_Mol2Resize( this, DelBoxFrac )
-
-    implicit none
-
-    ! Declare arguments
-    real(RK),intent(in) :: DelBoxFrac
-    type(TComponent)    :: this
-!     integer, intent(in) :: np
-!     integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)            :: PXij, PYij,PZij
-    integer             :: nu, np
-    integer             :: i, j
-
-
-    ! Calculate positions of units after global resize
-    nu = this%Molecule%NUnit
-    np = this%NPart
-    if (nu .eq. 1) then
-      do i=1, np
-        this%P0(i,1,1) = this%Pm0(i,1)
-        this%P0(i,2,1) = this%Pm0(i,2)
-        this%P0(i,3,1) = this%Pm0(i,3)
-      end do
-    else
-      do i=1, np
-        do j=1,nu
-          PXij = this%P0(i,1,j) - this%Pm0(i,1)
-          PYij = this%P0(i,2,j) - this%Pm0(i,2)
-          PZij = this%P0(i,3,j) - this%Pm0(i,3)
-
-          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
-          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
-          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
-
-          this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
-          this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
-          this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
-        end do
-      end do
-    end if
-
-    end subroutine TComponent_Mol2Resize
-
+! ! !
+! ! !
+! ! !
+! ! ! !==============================================================!
+! ! ! !  Subroutine TComponent_Atom2Mol                              !
+! ! ! !==============================================================!
+! ! !
+! ! !   subroutine TComponent_Atom2Mol( this, np )
+! ! !
+! ! !     implicit none
+! ! !
+! ! !     ! Include MPI header
+! ! ! #if MPI_VER > 0
+! ! !     include 'mpif.h'
+! ! ! #endif
+! ! !
+! ! !     ! Declare arguments
+! ! !     type(TComponent)    :: this
+! ! !     integer, intent(in) :: np
+! ! !
+! ! !     ! Declare local variables
+! ! !     real(RK)                       :: BoxLength
+! ! !     real(RK)                       :: rx(np), ry(np), rz(np), r1x, r1y, r1z
+! ! !     real(RK)                       :: q1(np), q2(np), q3(np), q4(np)
+! ! !     real(RK)                       :: fx, fy, fz, tx, ty, tz
+! ! !     real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+! ! ! &                                     A31, A32, A33
+! ! !     type(TSiteLJ126), pointer      :: pLJ126
+! ! !     type(TSiteCharge), pointer     :: pCharge
+! ! !     type(TSiteDipole), pointer     :: pDipole
+! ! !     type(TSiteQuadrupole), pointer :: pQuadrupole
+! ! !     integer                        :: i, j
+! ! !
+! ! !     ! Assign local variables
+! ! !     BoxLength = this%BoxLength
+! ! !
+! ! !     ! Initialize forces
+! ! !     this%F(1:np, :) = 0._RK
+! ! !
+! ! !     ! Check number of rotation axes
+! ! !     if( this%Molecule%isElongated ) then
+! ! !
+! ! !       ! Initialize torques
+! ! !       this%T(1:np, :) = 0._RK
+! ! !
+! ! !       ! Initialize local arrays
+! ! !       rx(:) = this%P0(:, 1)
+! ! !       ry(:) = this%P0(:, 2)
+! ! !       rz(:) = this%P0(:, 3)
+! ! !       q1(:) = this%Q0(:, 1)
+! ! !       q2(:) = this%Q0(:, 2)
+! ! !       q3(:) = this%Q0(:, 3)
+! ! !       q4(:) = this%Q0(:, 4)
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do j = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(j)
+! ! !         do i = 1, np
+! ! !           fx = pLJ126%FX(i)
+! ! !           fy = pLJ126%FY(i)
+! ! !           fz = pLJ126%FZ(i)
+! ! !           r1x = ( pLJ126%RX(i) - rx(i) ) * BoxLength
+! ! !           r1y = ( pLJ126%RY(i) - ry(i) ) * BoxLength
+! ! !           r1z = ( pLJ126%RZ(i) - rz(i) ) * BoxLength
+! ! !           this%F(i, 1) = this%F(i, 1) + fx
+! ! !           this%F(i, 2) = this%F(i, 2) + fy
+! ! !           this%F(i, 3) = this%F(i, 3) + fz
+! ! !           this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+! ! !           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+! ! !           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       do j = 1, this%Molecule%NCharge
+! ! !         pCharge => this%Molecule%SiteCharge(j)
+! ! !         do i = 1, np
+! ! !           fx = pCharge%FX(i)
+! ! !           fy = pCharge%FY(i)
+! ! !           fz = pCharge%FZ(i)
+! ! !           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
+! ! !           r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
+! ! !           r1z = ( pCharge%RZ(i) - rz(i) ) * BoxLength
+! ! !           this%F(i, 1) = this%F(i, 1) + fx
+! ! !           this%F(i, 2) = this%F(i, 2) + fy
+! ! !           this%F(i, 3) = this%F(i, 3) + fz
+! ! !           this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+! ! !           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+! ! !           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over dipole sites in molecule
+! ! !       do j = 1, this%Molecule%NDipole
+! ! !         pDipole => this%Molecule%SiteDipole(j)
+! ! !         do i = 1, np
+! ! !           fx = pDipole%FX(i)
+! ! !           fy = pDipole%FY(i)
+! ! !           fz = pDipole%FZ(i)
+! ! !           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
+! ! !           r1y = ( pDipole%RY(i) - ry(i) ) * BoxLength
+! ! !           r1z = ( pDipole%RZ(i) - rz(i) ) * BoxLength
+! ! !           this%F(i, 1) = this%F(i, 1) + fx
+! ! !           this%F(i, 2) = this%F(i, 2) + fy
+! ! !           this%F(i, 3) = this%F(i, 3) + fz
+! ! !           this%T(i, 1) = this%T(i, 1) + pDipole%OY(i) * pDipole%TZ(i) &
+! ! ! &                                     - pDipole%OZ(i) * pDipole%TY(i) &
+! ! ! &                                     + r1y * fz - r1z * fy
+! ! !           this%T(i, 2) = this%T(i, 2) + pDipole%OZ(i) * pDipole%TX(i) &
+! ! ! &                                     - pDipole%OX(i) * pDipole%TZ(i) &
+! ! ! &                                     + r1z * fx - r1x * fz
+! ! !           this%T(i, 3) = this%T(i, 3) + pDipole%OX(i) * pDipole%TY(i) &
+! ! ! &                                     - pDipole%OY(i) * pDipole%TX(i) &
+! ! ! &                                     + r1x * fy - r1y * fx
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over quadrupole sites in molecule
+! ! !       do j = 1, this%Molecule%NQuadrupole
+! ! !         pQuadrupole => this%Molecule%SiteQuadrupole(j)
+! ! !         do i = 1, np
+! ! !           fx = pQuadrupole%FX(i)
+! ! !           fy = pQuadrupole%FY(i)
+! ! !           fz = pQuadrupole%FZ(i)
+! ! !           r1x = ( pQuadrupole%RX(i) - rx(i) ) * BoxLength
+! ! !           r1y = ( pQuadrupole%RY(i) - ry(i) ) * BoxLength
+! ! !           r1z = ( pQuadrupole%RZ(i) - rz(i) ) * BoxLength
+! ! !           this%F(i, 1) = this%F(i, 1) + fx
+! ! !           this%F(i, 2) = this%F(i, 2) + fy
+! ! !           this%F(i, 3) = this%F(i, 3) + fz
+! ! !           this%T(i, 1) = this%T(i, 1) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
+! ! ! &                                     - pQuadrupole%OZ(i) * pQuadrupole%TY(i) &
+! ! ! &                                     + r1y * fz - r1z * fy
+! ! !           this%T(i, 2) = this%T(i, 2) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
+! ! ! &                                     - pQuadrupole%OX(i) * pQuadrupole%TZ(i) &
+! ! ! &                                     + r1z * fx - r1x * fz
+! ! !           this%T(i, 3) = this%T(i, 3) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
+! ! ! &                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
+! ! ! &                                     + r1x * fy - r1y * fx
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       do i = 1, np
+! ! !         ! Add torques from reaction field
+! ! !         tx = this%T(i, 1) + this%tRFX(i)
+! ! !         ty = this%T(i, 2) + this%tRFY(i)
+! ! !         tz = this%T(i, 3) + this%tRFZ(i)
+! ! !
+! ! !         ! Convert torque to body-fixed coordinates
+! ! !         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+! ! !         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+! ! !         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+! ! !         A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+! ! !         A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+! ! !         A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+! ! !         A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+! ! !         A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+! ! !         A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+! ! !         this%T(i, 1) = A11 * tx + A12 * ty + A13 * tz
+! ! !         this%T(i, 2) = A21 * tx + A22 * ty + A23 * tz
+! ! !         this%T(i, 3) = A31 * tx + A32 * ty + A33 * tz
+! ! !       end do
+! ! !
+! ! !     else
+! ! !
+! ! !       ! Loop over LJ126 sites in molecule
+! ! !       do j = 1, this%Molecule%NLJ126
+! ! !         pLJ126 => this%Molecule%SiteLJ126(j)
+! ! !         do i = 1, np
+! ! !           this%F(i, 1) = this%F(i, 1) + pLJ126%FX(i)
+! ! !           this%F(i, 2) = this%F(i, 2) + pLJ126%FY(i)
+! ! !           this%F(i, 3) = this%F(i, 3) + pLJ126%FZ(i)
+! ! !         end do
+! ! !       end do
+! ! !
+! ! !       ! Loop over charge sites in molecule
+! ! !       if (LongRange .ne. RField) then
+! ! !         do j = 1, this%Molecule%NCharge
+! ! !           pCharge => this%Molecule%SiteCharge(j)
+! ! !           do i = 1, np
+! ! !           this%F(i, 1) = this%F(i, 1) + pCharge%FX(i)
+! ! !           this%F(i, 2) = this%F(i, 2) + pCharge%FY(i)
+! ! !           this%F(i, 3) = this%F(i, 3) + pCharge%FZ(i)
+! ! !           end do
+! ! !         end do
+! ! !       end if
+! ! !
+! ! !     end if
+! ! !
+! ! !     ! Reduce forces and torques from all processes
+! ! ! #if MPI_VER > 0
+! ! !     call MPI_Reduce( this%F(:, :), this%FAll(:, :), size( this%F ), &
+! ! ! &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+! ! !     if( this%Molecule%isElongated ) &
+! ! ! &     call MPI_Reduce( this%T(:, :), this%TAll(:, :), size( this%T ), &
+! ! ! &       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+! ! ! #endif
+! ! !
+! ! !   end subroutine TComponent_Atom2Mol
+! ! !
 
 !==============================================================!
 !  Subroutine TComponent_Mol2Unit                              !
@@ -2856,18 +3094,39 @@ contains
     real(RK)                       :: A21(np), A22(np), A23(np)
     real(RK)                       :: A31(np), A32(np), A33(np)
     integer                        :: nup
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UN11(nu), UN12(nu), UN13(nu)
+!     real(RK)                       :: UN21(nu), UN22(nu), UN23(nu)
+!     real(RK)                       :: UN31(nu), UN32(nu), UN33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: ort(3,3), AUP(3,3)
+!     real(RK)                       :: E(3,3), C(3,3)
+!     real(RK)                       :: determinant
+!     real(RK)                       :: PX(nu*np), PY(nu*np), PZ(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
+!     real(RK)                       :: mue1, mue2, mue3
+!     type(TSiteLJ126), pointer      :: pLJ126
+!     type(TSiteCharge), pointer     :: pCharge
+!     type(TSiteDipole), pointer     :: pDipole
+!     type(TSiteQuadrupole), pointer :: pQuadrupole
     type(TUnit), pointer           :: pUnit
     integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -2920,9 +3179,12 @@ contains
       do j = 1, nu
          pUnit => this%Molecule%Unit(j)
          do i = 1, np
-           this%P0(i, 1, j) = PmX(i) + (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv
-           this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
-           this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
+           this%P0(i, 1, j) = PmX(i) + &
+&            (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv ! COM of Unit in space-fixed system
+           this%P0(i, 2, j) = PmY(i) + &
+&            (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
+           this%P0(i, 3, j) = PmZ(i) + &
+&            (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
 
            this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
 &                            this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
@@ -2942,7 +3204,7 @@ contains
         PmY(i) = this%Pm0(i, 2)
         PmZ(i) = this%Pm0(i, 3)
         do j = 1, nu
-          this%P0(i, 1, j) = PmX(i)
+          this%P0(i, 1, j) = PmX(i) ! COM of Unit in space-fixed system
           this%P0(i, 2, j) = PmY(i)
           this%P0(i, 3, j) = PmZ(i)
         end do
@@ -2951,95 +3213,6 @@ contains
 
   end subroutine TComponent_Mol2Unit
 
-
-!==============================================================!
-!  Subroutine TComponent_Mol2UnitRotate                        !
-!==============================================================!
-
-subroutine TComponent_Mol2UnitRotate( this, np, dq )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    real(RK),intent(in) :: dq(3)
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PX, PY, PZ
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    real(RK)                       :: r1, r2, r3
-    real(RK)                       :: q1, q2, q3,q4
-    integer                        :: i, ik
-    integer                        :: nup
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) then
-      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    ! Calculate rotation matrix elements
-    q1 = 1._RK
-    q2 = dq(1)
-    q3 = dq(2)
-    q4 = dq(3)
-
-    A11 = q2**2 - q3**2 - q4**2 + q1**2
-    A12 = 2._RK * (q2 * q3 + q4*q1)
-    A13 = 2._RK * (q2 * q4 - q3*q1)
-    A21 = 2._RK * (q2 * q3 - q4*q1)
-    A22 = - q2**2 + q3**2 - q4**2 + q1**2
-    A23 = 2._RK * (q3 * q4 + q2*q1)
-    A31 = 2._RK * (q2 * q4 + q3*q1)
-    A32 = 2._RK * (q3 * q4 - q2*q1)
-    A33 = - q2**2 - q3**2 + q4**2 + q1**2
-
-    nup = this%Molecule%NUnit
-
-    do i=1,nup
-      ! Check number of rotation axes
-      ik = (np-1)*nup+i
-      ! Positions and quaternions of unit i in particle np
-      PX = this%P0(np, 1, i)
-      PY = this%P0(np, 2, i)
-      PZ = this%P0(np, 3, i)
-
-      q1 = this%Q0(np, 1, i)
-      q2 = this%Q0(np, 2, i)
-      q3 = this%Q0(np, 3, i)
-      q4 = this%Q0(np, 4, i)
-
-      ! Loop over LJ126 sites in unit ??? COM of unit
-      r1 = (PX-this%Pm0(np,1)) * BoxLengthInv
-      r2 = (PY-this%Pm0(np,2)) * BoxLengthInv
-      r3 = (PZ-this%Pm0(np,3)) * BoxLengthInv
-
-      this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
-      this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
-      this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
-
-      this%Q0(np, 1, i) = q1 - dq(1) * q2 - dq(2) * q3 - dq(3) * q4
-      this%Q0(np, 2, i) = q2 + dq(1) * q1 - dq(2) * q4 + dq(3) * q3
-      this%Q0(np, 3, i) = q3 + dq(1) * q4 + dq(2) * q1 - dq(3) * q2
-      this%Q0(np, 4, i) = q4 - dq(1) * q3 + dq(2) * q2 + dq(3) * q1
-
-    end do
-
-  end subroutine TComponent_Mol2UnitRotate
 
 
 !==============================================================!
@@ -3067,18 +3240,28 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     real(RK)                       :: A11, A12, A13
     real(RK)                       :: A21, A22, A23
     real(RK)                       :: A31, A32, A33
+!    integer                        :: nu
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
     type(TUnit), pointer           :: pUnit
     integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3087,6 +3270,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Check number of rotation axes
     if( this%Molecule%isElongated ) then
+      ! Loop over molecules
       ! Positions and quaternions of particle i
       PmX = this%Pm0(np, 1)
       PmY = this%Pm0(np, 2)
@@ -3127,18 +3311,22 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Loop over Units in molecule
       do j = 1, nu
         pUnit => this%Molecule%Unit(j)
-        this%P0(np,1,j) = PmX+ (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) *BoxLengthInv
-        this%P0(np,2,j) = PmY+ (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) *BoxLengthInv
-        this%P0(np,3,j) = PmZ+ (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) *BoxLengthInv
+        do i = 1, np
+          this%P0(np,1,j) = PmX+ (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) *BoxLengthInv
+          this%P0(np,2,j) = PmY+ (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) *BoxLengthInv
+          this%P0(np,3,j) = PmZ+ (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) *BoxLengthInv
 
-        this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
-&                        this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-        this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
-&                        this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-        this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
-&                        this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-        this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
-&                        this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
+
+          this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
+&                              this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
+          this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
+&                              this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
+          this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
+&                              this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
+          this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
+&                              this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
+        end do
+
       end do
 
     else    ! if Molecule is not Elongated
@@ -3147,13 +3335,15 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       PmY = this%Pm0(np, 2)
       PmZ = this%Pm0(np, 3)
       do j = 1, nu
-        this%P0(np, 1, j) = PmX
+        this%P0(np, 1, j) = PmX ! COM of Unit in space-fixed system
         this%P0(np, 2, j) = PmY
         this%P0(np, 3, j) = PmZ
       end do
     end if
 
   end subroutine TComponent_Mol2Unit1
+
+
 
 
 !==============================================================!
@@ -3181,18 +3371,28 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     real(RK)                       :: A11, A12, A13
     real(RK)                       :: A21, A22, A23
     real(RK)                       :: A31, A32, A33
+!    integer                        :: nu
+!     real(RK)                       :: U11(nu), U12(nu), U13(nu)
+!     real(RK)                       :: U21(nu), U22(nu), U23(nu)
+!     real(RK)                       :: U31(nu), U32(nu), U33(nu)
+!     real(RK)                       :: UA11(nu*np), UA12(nu*np), UA13(nu*np)
+!     real(RK)                       :: UA21(nu*np), UA22(nu*np), UA23(nu*np)
+!     real(RK)                       :: UA31(nu*np), UA32(nu*np), UA33(nu*np)
+!     real(RK)                       :: T, S, SInv
+!     real(RK)                       :: qu01, qu02, qu03, qu04
+!     real(RK)                       :: qu1, qu2, qu3, qu4, quinv
+!     real(RK)                       :: r1, r2, r3
+!     real(RK)                       :: or1, or2, or3
     type(TUnit), pointer           :: pUnit
-    integer                        :: j
+    integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0Test(:, :), size( this%Pm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0Test(:, :), size( this%Qm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    call MPI_Bcast( this%Pm0Test(:, :), size( this%Pm0Test ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Qm0Test(:, :), size( this%Qm0Test ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
@@ -3201,71 +3401,130 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Check number of rotation axes
     if( this%Molecule%isElongated ) then
-      PmX = this%Pm0Test(np, 1)
-      PmY = this%Pm0Test(np, 2)
-      PmZ = this%Pm0Test(np, 3)
-      q1 = this%Qm0Test(np, 1)
-      q2 = this%Qm0Test(np, 2)
-      q3 = this%Qm0Test(np, 3)
-      q4 = this%Qm0Test(np, 4)
+       ! Loop over molecules
+         ! Positions and quaternions of particle i
+          PmX = this%Pm0Test(np, 1)
+          PmY = this%Pm0Test(np, 2)
+          PmZ = this%Pm0Test(np, 3)
+          q1 = this%Qm0Test(np, 1)
+          q2 = this%Qm0Test(np, 2)
+          q3 = this%Qm0Test(np, 3)
+          q4 = this%Qm0Test(np, 4)
 
-      ! Normalise quaternions
+          ! Normalise quaternions
 #if ARCH == 3
-      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-      q1 = q1 * qinv
-      q2 = q2 * qinv
-      q3 = q3 * qinv
-      q4 = q4 * qinv
-      this%Qm0Test(np, 1) = q1
-      this%Qm0Test(np, 2) = q2
-      this%Qm0Test(np, 3) = q3
-      this%Qm0Test(np, 4) = q4
+          q1 = q1 * qinv
+          q2 = q2 * qinv
+          q3 = q3 * qinv
+          q4 = q4 * qinv
+          this%Qm0Test(np, 1) = q1
+          this%Qm0Test(np, 2) = q2
+          this%Qm0Test(np, 3) = q3
+          this%Qm0Test(np, 4) = q4
 
-      ! Calculate rotation matrix elements
-      A11 = q1**2 + q2**2 - q3**2 - q4**2
-      A12 = 2._RK * (q2 * q3 + q1 * q4)
-      A13 = 2._RK * (q2 * q4 - q1 * q3)
-      A21 = 2._RK * (q2 * q3 - q1 * q4)
-      A22 = q1**2 - q2**2 + q3**2 - q4**2
-      A23 = 2._RK * (q3 * q4 + q1 * q2)
-      A31 = 2._RK * (q2 * q4 + q1 * q3)
-      A32 = 2._RK * (q3 * q4 - q1 * q2)
-      A33 = q1**2 - q2**2 - q3**2 + q4**2
+          ! Calculate rotation matrix elements
+          A11 = q1**2 + q2**2 - q3**2 - q4**2
+          A12 = 2._RK * (q2 * q3 + q1 * q4)
+          A13 = 2._RK * (q2 * q4 - q1 * q3)
+          A21 = 2._RK * (q2 * q3 - q1 * q4)
+          A22 = q1**2 - q2**2 + q3**2 - q4**2
+          A23 = 2._RK * (q3 * q4 + q1 * q2)
+          A31 = 2._RK * (q2 * q4 + q1 * q3)
+          A32 = 2._RK * (q3 * q4 - q1 * q2)
+          A33 = q1**2 - q2**2 - q3**2 + q4**2
 
 
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-      do j = 1, nu
-        pUnit => this%Molecule%Unit(j)
-        this%P0Test(np, 1, j) = PmX + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv
-        this%P0Test(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
-        this%P0Test(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
-        this%Q0Test(np,1,j) = this%Qm0(np,1)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(2) - &
-&                            this%Qm0(np,3)*pUnit%Q0(3) - this%Qm0(np,4)*pUnit%Q0(4)
-        this%Q0Test(np,2,j) = this%Qm0(np,1)*pUnit%Q0(2) + this%Qm0(np,2)*pUnit%Q0(1) + &
-&                            this%Qm0(np,3)*pUnit%Q0(4) - this%Qm0(np,4)*pUnit%Q0(3)
-        this%Q0Test(np,3,j) = this%Qm0(np,1)*pUnit%Q0(3) + this%Qm0(np,3)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(2)
-        this%Q0Test(np,4,j) = this%Qm0(np,1)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(3) - this%Qm0(np,3)*pUnit%Q0(2)
-      end do
+        ! Calculate initial COM position and quartenions for Units
+        ! Loop over Units in molecule
+        do j = 1, nu
+           pUnit => this%Molecule%Unit(j)
+           do i = 1, np
+             this%P0Test(np, 1, j) = PmX + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv ! COM of Unit in space-fixed system
+             this%P0Test(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
+             this%P0Test(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
+
+             this%Q0Test(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
+&                                   this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
+             this%Q0Test(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
+&                                   this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
+             this%Q0Test(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
+&                                   this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
+             this%Q0Test(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
+&                                   this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
+           end do
+
+        end do
 
     else    ! if Molecule is not Elongated
-      ! Positions and quaternions of particle np
-      PmX = this%Pm0Test(np, 1)
-      PmY = this%Pm0Test(np, 2)
-      PmZ = this%Pm0Test(np, 3)
-      do j = 1, nu
-        this%P0Test(np, 1, j) = PmX ! COM of Unit in space-fixed system
-        this%P0Test(np, 2, j) = PmY
-        this%P0Test(np, 3, j) = PmZ
-      end do
+        ! Positions and quaternions of particle np
+        PmX = this%Pm0Test(np, 1)
+        PmY = this%Pm0Test(np, 2)
+        PmZ = this%Pm0Test(np, 3)
+        do j = 1, nu
+          this%P0Test(np, 1, j) = PmX ! COM of Unit in space-fixed system
+          this%P0Test(np, 2, j) = PmY
+          this%P0Test(np, 3, j) = PmZ
+        end do
     end if
 
   end subroutine TComponent_Mol2Unit1Test
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Mol2Resize                            !
+!==============================================================!
+
+  subroutine TComponent_Mol2Resize( this, DelBoxFrac )
+
+    implicit none
+
+    ! Declare arguments
+    real(RK),intent(in) :: DelBoxFrac
+    type(TComponent)    :: this
+!     integer, intent(in) :: np
+!     integer, intent(in) :: nu
+
+    ! Declare local variables
+    real(RK)            :: PXij, PYij,PZij
+    integer             :: nu, np
+    integer             :: i, j
+
+
+    ! Calculate positions of units after global resize
+    nu = this%Molecule%NUnit
+    np = this%NPart
+    if (nu .eq. 1) then
+      do i=1, np
+        this%P0(i,1,1) = this%Pm0(i,1)
+        this%P0(i,2,1) = this%Pm0(i,2)
+        this%P0(i,3,1) = this%Pm0(i,3)
+      end do
+    else
+      do i=1, np
+        do j=1,nu
+          PXij = this%P0(i,1,j) - this%Pm0(i,1)
+          PYij = this%P0(i,2,j) - this%Pm0(i,2)
+          PZij = this%P0(i,3,j) - this%Pm0(i,3)
+
+          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
+          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
+          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
+
+          this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
+          this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
+          this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
+        end do
+      end do
+    end if
+
+    end subroutine TComponent_Mol2Resize
+
+
 
 
 !==============================================================!
@@ -3304,13 +3563,11 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
 
@@ -3318,12 +3575,13 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     BoxLengthInv = 1._RK / this%BoxLength
     nup = nu*np
 
-    ! Check number of rotation axes
     if ( this%Molecule%isElongated ) then
+
       ! Loop over all units in Molecule
       do k = 1, nu
         ! Check number of rotation axes
-        if( this%Molecule%Unit(k)%isElongated ) then
+!        if( this%Molecule%Unit(k)%isElongated ) then
+!           print *, 'Unit is elongated'
           ! Loop over molecules
           do i = 1, np
             ik = (i-1)*nu+k
@@ -3335,7 +3593,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             q3 = this%Q0(i, 3, k)
             q4 = this%Q0(i, 4, k)
 
-            ! Normalise quaternions
+          ! Normalise quaternions
 #if ARCH == 3
             qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
@@ -3350,7 +3608,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             this%Q0(i, 3, k) = q3
             this%Q0(i, 4, k) = q4
 
-            ! Calculate rotation matrix elements
+          ! Calculate rotation matrix elements
             A11(ik) = q1**2 + q2**2 - q3**2 - q4**2
             A12(ik) = 2._RK * (q2 * q3 + q1 * q4)
             A13(ik) = 2._RK * (q2 * q4 - q1 * q3)
@@ -3430,55 +3688,32 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             end do
           end do
 
-          if( CutoffMode .eq. CenterofMass ) then
-            mue1 = this%Molecule%Unit(k)%Mue(1)
-            mue2 = this%Molecule%Unit(k)%Mue(2)
-            mue3 = this%Molecule%Unit(k)%Mue(3)
-            do i = 1, np
-              ik = (i-1)*nu+k
-              this%MueX(i, k) = mue1 * A11(ik) + mue2 * A21(ik) + mue3 * A31(ik)
-              this%MueY(i, k) = mue1 * A12(ik) + mue2 * A22(ik) + mue3 * A32(ik)
-              this%MueZ(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
-            end do
-          end if
-        
-        else ! If unit is not elongated
-          ! Loop over LJ126 sites in molecule
-          do i = 1, this%Molecule%Unit(k)%NLJ126
-            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-            do j = 1, np
-              pLJ126%RX(j) = this%P0(j, 1, k)
-              pLJ126%RY(j) = this%P0(j, 2, k)
-              pLJ126%RZ(j) = this%P0(j, 3, k)
-            end do
-          end do
-
-          ! Loop over charge sites in molecule
-          do i = 1, this%Molecule%Unit(k)%NCharge
-            pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-            do j = 1, np
-              pCharge%RX(j) = this%P0(j, 1, k)
-              pCharge%RY(j) = this%P0(j, 2, k)
-              pCharge%RZ(j) = this%P0(j, 3, k)
-            end do
-          end do
-        
+        if( CutoffMode .eq. CenterofMass ) then
+          mue1 = this%Molecule%Unit(k)%Mue(1)
+          mue2 = this%Molecule%Unit(k)%Mue(2)
+          mue3 = this%Molecule%Unit(k)%Mue(3)
+         do i = 1, np
+            ik = (i-1)*nu+k
+            this%MueX(i, k) = mue1 * A11(ik) + mue2 * A21(ik) + mue3 * A31(ik)
+            this%MueY(i, k) = mue1 * A12(ik) + mue2 * A22(ik) + mue3 * A32(ik)
+            this%MueZ(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
+         end do
         end if
-      end do
-    
-    else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NLJ126
-          pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-          do j = 1, np
-            pLJ126%RX(j) = this%P0(j, 1, k)
-            pLJ126%RY(j) = this%P0(j, 2, k)
-            pLJ126%RZ(j) = this%P0(j, 3, k)
-          end do
-        end do
 
-        ! Loop over charge sites in molecule
+        end do
+      else ! If molecule is not elongated
+        do k = 1, nu
+          ! Loop over LJ126 sites in molecule
+         do i = 1, this%Molecule%Unit(k)%NLJ126
+           pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
+           do j = 1, np
+             pLJ126%RX(j) = this%P0(j, 1, k)
+             pLJ126%RY(j) = this%P0(j, 2, k)
+             pLJ126%RZ(j) = this%P0(j, 3, k)
+           end do
+         end do
+
+         ! Loop over charge sites in molecule
         do i = 1, this%Molecule%Unit(k)%NCharge
           pCharge => this%Molecule%Unit(k)%SiteCharge(i)
           do j = 1, np
@@ -3489,6 +3724,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         end do
       end do
     end if
+
 
   end subroutine TComponent_Unit2Atom
 
@@ -3523,399 +3759,30 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
+    integer                        :: i, j, k, ik
     integer                        :: nu
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
 #endif
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
     nu = this%Molecule%NUnit
 
-    ! Check number of rotation axes
     if ( this%Molecule%isElongated ) then
       ! Loop over all units in Molecule
       do k = 1, nu
         ! Check number of rotation axes
-        if( this%Molecule%Unit(k)%isElongated ) then
-          ! Positions and quaternions of unit k in particle i
-          PX = this%P0(np, 1, k)
-          PY = this%P0(np, 2, k)
-          PZ = this%P0(np, 3, k)
-          q1 = this%Q0(np, 1, k)
-          q2 = this%Q0(np, 2, k)
-          q3 = this%Q0(np, 3, k)
-          q4 = this%Q0(np, 4, k)
-
-          ! Normalise quaternions
-#if ARCH == 3
-          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-          q1 = q1 * qinv
-          q2 = q2 * qinv
-          q3 = q3 * qinv
-          q4 = q4 * qinv
-          this%Q0(np, 1, k) = q1
-          this%Q0(np, 2, k) = q2
-          this%Q0(np, 3, k) = q3
-          this%Q0(np, 4, k) = q4
-
-          ! Calculate rotation matrix elements
-          A11 = q1**2 + q2**2 - q3**2 - q4**2
-          A12 = 2._RK * (q2 * q3 + q1 * q4)
-          A13 = 2._RK * (q2 * q4 - q1 * q3)
-          A21 = 2._RK * (q2 * q3 - q1 * q4)
-          A22 = q1**2 - q2**2 + q3**2 - q4**2
-          A23 = 2._RK * (q3 * q4 + q1 * q2)
-          A31 = 2._RK * (q2 * q4 + q1 * q3)
-          A32 = 2._RK * (q3 * q4 - q1 * q2)
-          A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-          ! Loop over LJ126 sites in unit
-          do j = 1, this%Molecule%Unit(k)%NLJ126
-            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(j)
-            r1 = pLJ126%r(1) * BoxLengthInv
-            r2 = pLJ126%r(2) * BoxLengthInv
-            r3 = pLJ126%r(3) * BoxLengthInv
-            pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-            pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-            pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-          end do
-
-          ! Loop over charge sites in molecule
-          do j = 1, this%Molecule%Unit(k)%NCharge
-            pCharge => this%Molecule%Unit(k)%SiteCharge(j)
-            r1 = pCharge%r(1) * BoxLengthInv
-            r2 = pCharge%r(2) * BoxLengthInv
-            r3 = pCharge%r(3) * BoxLengthInv
-            pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-            pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-            pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-          end do
-
-          ! Loop over dipole sites in molecule
-          do j = 1, this%Molecule%Unit(k)%NDipole
-            pDipole => this%Molecule%Unit(k)%SiteDipole(j)
-            r1 = pDipole%r(1) * BoxLengthInv
-            r2 = pDipole%r(2) * BoxLengthInv
-            r3 = pDipole%r(3) * BoxLengthInv
-            or1 = pDipole%or(1)
-            or2 = pDipole%or(2)
-            or3 = pDipole%or(3)
-            pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-            pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-            pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-            pDipole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
-            pDipole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
-            pDipole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
-          end do
-
-          ! Loop over quadrupole sites in molecule
-          do j = 1, this%Molecule%Unit(k)%NQuadrupole
-            pQuadrupole => this%Molecule%Unit(k)%SiteQuadrupole(j)
-            r1 = pQuadrupole%r(1) * BoxLengthInv
-            r2 = pQuadrupole%r(2) * BoxLengthInv
-            r3 = pQuadrupole%r(3) * BoxLengthInv
-            or1 = pQuadrupole%or(1)
-            or2 = pQuadrupole%or(2)
-            or3 = pQuadrupole%or(3)
-            pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-            pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-            pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-            pQuadrupole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
-            pQuadrupole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
-            pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
-          end do
-
-        if( CutoffMode .eq. CenterofMass ) then
-          mue1 = this%Molecule%Unit(k)%Mue(1)
-          mue2 = this%Molecule%Unit(k)%Mue(2)
-          mue3 = this%Molecule%Unit(k)%Mue(3)
-            this%MueX(np, k) = mue1 * A11 + mue2 * A21 + mue3 * A31
-            this%MueY(np, k) = mue1 * A12 + mue2 * A22 + mue3 * A32
-            this%MueZ(np, k) = mue1 * A13 + mue2 * A23 + mue3 * A33
-        end if
-        
-      else !If unit is not elongated
-      
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NLJ126
-          pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, k)
-          pLJ126%RY(np) = this%P0(np, 2, k)
-          pLJ126%RZ(np) = this%P0(np, 3, k)
-        end do
-
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NCharge
-          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          pCharge%RX(np) = this%P0(np, 1, k)
-          pCharge%RY(np) = this%P0(np, 2, k)
-          pCharge%RZ(np) = this%P0(np, 3, k)
-        end do
-        
-      end if
-
-    end do
-    else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NLJ126
-          pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, k)
-          pLJ126%RY(np) = this%P0(np, 2, k)
-          pLJ126%RZ(np) = this%P0(np, 3, k)
-        end do
-
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NCharge
-          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          pCharge%RX(np) = this%P0(np, 1, k)
-          pCharge%RY(np) = this%P0(np, 2, k)
-          pCharge%RZ(np) = this%P0(np, 3, k)
-        end do
-      end do
-    end if
-
-  end subroutine TComponent_Unit2Atom1Mol
-
-
-!==============================================================!
-!  Subroutine TComponent_Unit2Atom1 (per unit)                 !
-!==============================================================!
-
-  subroutine TComponent_Unit2Atom1( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PX, PY, PZ
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    real(RK)                       :: r1, r2, r3, or1, or2, or3
-    real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
-    type(TSiteCharge), pointer     :: pCharge
-    type(TSiteDipole), pointer     :: pDipole
-    type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
-    integer                        :: nup
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ),  MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    if ( this%Molecule%isElongated ) then
-      nup = this%Molecule%NUnit
-      ! Positions and quaternions of unit k in particle i
-      PX = this%P0(np, 1, nu)
-      PY = this%P0(np, 2, nu)
-      PZ = this%P0(np, 3, nu)
-      q1 = this%Q0(np, 1, nu)
-      q2 = this%Q0(np, 2, nu)
-      q3 = this%Q0(np, 3, nu)
-      q4 = this%Q0(np, 4, nu)
-
-      ! Normalise quaternions
-#if ARCH == 3
-      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-      q1 = q1 * qinv
-      q2 = q2 * qinv
-      q3 = q3 * qinv
-      q4 = q4 * qinv
-      this%Q0(np, 1, nu) = q1
-      this%Q0(np, 2, nu) = q2
-      this%Q0(np, 3, nu) = q3
-      this%Q0(np, 4, nu) = q4
-
-      ! Calculate rotation matrix elements
-      A11 = q1**2 + q2**2 - q3**2 - q4**2
-      A12 = 2._RK * (q2 * q3 + q1 * q4)
-      A13 = 2._RK * (q2 * q4 - q1 * q3)
-      A21 = 2._RK * (q2 * q3 - q1 * q4)
-      A22 = q1**2 - q2**2 + q3**2 - q4**2
-      A23 = 2._RK * (q3 * q4 + q1 * q2)
-      A31 = 2._RK * (q2 * q4 + q1 * q3)
-      A32 = 2._RK * (q3 * q4 - q1 * q2)
-      A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-      ! Loop over LJ126 sites in unit
-      do j = 1, this%Molecule%Unit(nu)%NLJ126
-        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(j)
-        r1 = pLJ126%r(1) * BoxLengthInv
-        r2 = pLJ126%r(2) * BoxLengthInv
-        r3 = pLJ126%r(3) * BoxLengthInv
-        pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-      end do
-
-      ! Loop over charge sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NCharge
-        pCharge => this%Molecule%Unit(nu)%SiteCharge(j)
-        r1 = pCharge%r(1) * BoxLengthInv
-        r2 = pCharge%r(2) * BoxLengthInv
-        r3 = pCharge%r(3) * BoxLengthInv
-        pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-      end do
-
-      ! Loop over dipole sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NDipole
-        pDipole => this%Molecule%Unit(nu)%SiteDipole(j)
-        r1 = pDipole%r(1) * BoxLengthInv
-        r2 = pDipole%r(2) * BoxLengthInv
-        r3 = pDipole%r(3) * BoxLengthInv
-        or1 = pDipole%or(1)
-        or2 = pDipole%or(2)
-        or3 = pDipole%or(3)
-        pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-        pDipole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
-        pDipole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
-        pDipole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
-      end do
-
-      ! Loop over quadrupole sites in molecule
-      do j = 1, this%Molecule%Unit(nu)%NQuadrupole
-        pQuadrupole => this%Molecule%Unit(nu)%SiteQuadrupole(j)
-        r1 = pQuadrupole%r(1) * BoxLengthInv
-        r2 = pQuadrupole%r(2) * BoxLengthInv
-        r3 = pQuadrupole%r(3) * BoxLengthInv
-        or1 = pQuadrupole%or(1)
-        or2 = pQuadrupole%or(2)
-        or3 = pQuadrupole%or(3)
-        pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
-        pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
-        pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
-        pQuadrupole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
-        pQuadrupole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
-        pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
-      end do
-
-      if( CutoffMode .eq. CenterofMass ) then
-        mue1 = this%Molecule%Unit(nu)%Mue(1)
-        mue2 = this%Molecule%Unit(nu)%Mue(2)
-        mue3 = this%Molecule%Unit(nu)%Mue(3)
-        this%MueX(np, nu) = mue1 * A11 + mue2 * A21 + mue3 * A31
-        this%MueY(np, nu) = mue1 * A12 + mue2 * A22 + mue3 * A32
-        this%MueZ(np, nu) = mue1 * A13 + mue2 * A23 + mue3 * A33
-      end if
-
-    else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NLJ126
-          pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, nu)
-          pLJ126%RY(np) = this%P0(np, 2, nu)
-          pLJ126%RZ(np) = this%P0(np, 3, nu)
-        end do
-
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NCharge
-          pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
-          pCharge%RX(np) = this%P0(np, 1, nu)
-          pCharge%RY(np) = this%P0(np, 2, nu)
-          pCharge%RZ(np) = this%P0(np, 3, nu)
-        end do
-      end do
-    end if
-
-  end subroutine TComponent_Unit2Atom1
-
-
-
-!==============================================================!
-!  Subroutine TComponent_Unit2Atom1Test                        !
-!==============================================================!
-
-  subroutine TComponent_Unit2Atom1Test( this, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PX, PY, PZ
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    real(RK)                       :: r1, r2, r3, or1, or2, or3
-    real(RK)                       :: mue1, mue2, mue3
-    type(TSiteLJ126), pointer      :: pLJ126
-    type(TSiteCharge), pointer     :: pCharge
-    type(TSiteDipole), pointer     :: pDipole
-    type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
-    integer                        :: nu
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-    nu = this%Molecule%NUnit
-
-    if ( this%Molecule%isElongated ) then
-      ! Loop over all units in Molecule
-      do k = 1, nu
+!        if( this%Molecule%Unit(k)%isElongated ) then
+!           print *, 'Unit is elongated'
+            ik = (np-1)*nu+k
+            ! Positions and quaternions of unit k in particle i
             PX = this%P0(np, 1, k)
             PY = this%P0(np, 2, k)
             PZ = this%P0(np, 3, k)
@@ -3956,6 +3823,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             r1 = pLJ126%r(1) * BoxLengthInv
             r2 = pLJ126%r(2) * BoxLengthInv
             r3 = pLJ126%r(3) * BoxLengthInv
+            ik = (np-1)*nu+k
             pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
             pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
             pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
@@ -3967,6 +3835,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             r1 = pCharge%r(1) * BoxLengthInv
             r2 = pCharge%r(2) * BoxLengthInv
             r3 = pCharge%r(3) * BoxLengthInv
+            ik = (np-1)*nu+k
             pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
             pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
             pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
@@ -3981,6 +3850,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             or1 = pDipole%or(1)
             or2 = pDipole%or(2)
             or3 = pDipole%or(3)
+            ik = (np-1)*nu+k
             pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
             pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
             pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
@@ -3998,6 +3868,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             or1 = pQuadrupole%or(1)
             or2 = pQuadrupole%or(2)
             or3 = pQuadrupole%or(3)
+            ik = (np-1)*nu+k
             pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
             pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
             pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
@@ -4010,6 +3881,367 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           mue1 = this%Molecule%Unit(k)%Mue(1)
           mue2 = this%Molecule%Unit(k)%Mue(2)
           mue3 = this%Molecule%Unit(k)%Mue(3)
+            ik = (np-1)*nu+k
+            this%MueX(np, k) = mue1 * A11 + mue2 * A21 + mue3 * A31
+            this%MueY(np, k) = mue1 * A12 + mue2 * A22 + mue3 * A32
+            this%MueZ(np, k) = mue1 * A13 + mue2 * A23 + mue3 * A33
+        end if
+
+        end do
+      else ! If molecule is not elongated
+        do k = 1, nu
+          ! Loop over LJ126 sites in molecule
+         do i = 1, this%Molecule%Unit(k)%NLJ126
+           pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
+             pLJ126%RX(np) = this%P0(np, 1, k)
+             pLJ126%RY(np) = this%P0(np, 2, k)
+             pLJ126%RZ(np) = this%P0(np, 3, k)
+         end do
+
+         ! Loop over charge sites in molecule
+        do i = 1, this%Molecule%Unit(k)%NCharge
+          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
+          pCharge%RX(np) = this%P0(np, 1, k)
+          pCharge%RY(np) = this%P0(np, 2, k)
+          pCharge%RZ(np) = this%P0(np, 3, k)
+        end do
+      end do
+    end if
+
+
+  end subroutine TComponent_Unit2Atom1Mol
+
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Unit2Atom1 (per unit)                 !
+!==============================================================!
+
+  subroutine TComponent_Unit2Atom1( this, np, nu )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    integer, intent(in) :: nu
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PX, PY, PZ
+    real(RK)                       :: q1, q2, q3, q4, qinv
+    real(RK)                       :: A11, A12, A13
+    real(RK)                       :: A21, A22, A23
+    real(RK)                       :: A31, A32, A33
+    real(RK)                       :: r1, r2, r3, or1, or2, or3
+    real(RK)                       :: mue1, mue2, mue3
+    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteCharge), pointer     :: pCharge
+    type(TSiteDipole), pointer     :: pDipole
+    type(TSiteQuadrupole), pointer :: pQuadrupole
+    integer                        :: i, j, k, ik
+    integer                        :: nup
+
+    ! Broadcast positions and orientations to all processes
+#if MPI_VER > 0
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
+#endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    if ( this%Molecule%isElongated ) then
+      nup = this%Molecule%NUnit
+      ik = (np-1)*nup+nu
+      ! Positions and quaternions of unit k in particle i
+      PX = this%P0(np, 1, nu)
+      PY = this%P0(np, 2, nu)
+      PZ = this%P0(np, 3, nu)
+      q1 = this%Q0(np, 1, nu)
+      q2 = this%Q0(np, 2, nu)
+      q3 = this%Q0(np, 3, nu)
+      q4 = this%Q0(np, 4, nu)
+
+          ! Normalise quaternions
+#if ARCH == 3
+      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+      q1 = q1 * qinv
+      q2 = q2 * qinv
+      q3 = q3 * qinv
+      q4 = q4 * qinv
+      this%Q0(np, 1, nu) = q1
+      this%Q0(np, 2, nu) = q2
+      this%Q0(np, 3, nu) = q3
+      this%Q0(np, 4, nu) = q4
+
+          ! Calculate rotation matrix elements
+      A11 = q1**2 + q2**2 - q3**2 - q4**2
+      A12 = 2._RK * (q2 * q3 + q1 * q4)
+      A13 = 2._RK * (q2 * q4 - q1 * q3)
+      A21 = 2._RK * (q2 * q3 - q1 * q4)
+      A22 = q1**2 - q2**2 + q3**2 - q4**2
+      A23 = 2._RK * (q3 * q4 + q1 * q2)
+      A31 = 2._RK * (q2 * q4 + q1 * q3)
+      A32 = 2._RK * (q3 * q4 - q1 * q2)
+      A33 = q1**2 - q2**2 - q3**2 + q4**2
+
+          ! Loop over LJ126 sites in unit
+      do j = 1, this%Molecule%Unit(nu)%NLJ126
+        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(j)
+        r1 = pLJ126%r(1) * BoxLengthInv
+        r2 = pLJ126%r(2) * BoxLengthInv
+        r3 = pLJ126%r(3) * BoxLengthInv
+        ik = (np-1)*nup+nu
+        pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+        pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+        pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+      end do
+
+          ! Loop over charge sites in molecule
+      do j = 1, this%Molecule%Unit(nu)%NCharge
+        pCharge => this%Molecule%Unit(nu)%SiteCharge(j)
+        r1 = pCharge%r(1) * BoxLengthInv
+        r2 = pCharge%r(2) * BoxLengthInv
+        r3 = pCharge%r(3) * BoxLengthInv
+        ik = (np-1)*nup+nu
+        pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+        pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+        pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+      end do
+
+          ! Loop over dipole sites in molecule
+      do j = 1, this%Molecule%Unit(nu)%NDipole
+        pDipole => this%Molecule%Unit(nu)%SiteDipole(j)
+        r1 = pDipole%r(1) * BoxLengthInv
+        r2 = pDipole%r(2) * BoxLengthInv
+        r3 = pDipole%r(3) * BoxLengthInv
+        or1 = pDipole%or(1)
+        or2 = pDipole%or(2)
+        or3 = pDipole%or(3)
+        ik = (np-1)*nup+nu
+        pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+        pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+        pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pDipole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
+        pDipole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
+        pDipole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
+      end do
+
+      ! Loop over quadrupole sites in molecule
+      do j = 1, this%Molecule%Unit(nu)%NQuadrupole
+        pQuadrupole => this%Molecule%Unit(nu)%SiteQuadrupole(j)
+        r1 = pQuadrupole%r(1) * BoxLengthInv
+        r2 = pQuadrupole%r(2) * BoxLengthInv
+        r3 = pQuadrupole%r(3) * BoxLengthInv
+        or1 = pQuadrupole%or(1)
+        or2 = pQuadrupole%or(2)
+        or3 = pQuadrupole%or(3)
+        ik = (np-1)*nup+nu
+        pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+        pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+        pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+        pQuadrupole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
+        pQuadrupole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
+        pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
+      end do
+
+      if( CutoffMode .eq. CenterofMass ) then
+        mue1 = this%Molecule%Unit(nu)%Mue(1)
+        mue2 = this%Molecule%Unit(nu)%Mue(2)
+        mue3 = this%Molecule%Unit(nu)%Mue(3)
+        this%MueX(np, nu) = mue1 * A11 + mue2 * A21 + mue3 * A31
+        this%MueY(np, nu) = mue1 * A12 + mue2 * A22 + mue3 * A32
+        this%MueZ(np, nu) = mue1 * A13 + mue2 * A23 + mue3 * A33
+      end if
+
+    else ! If molecule is not elongated
+       do k = 1, nu
+         ! Loop over LJ126 sites in molecule
+         do i = 1, this%Molecule%Unit(nu)%NLJ126
+           pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
+           pLJ126%RX(np) = this%P0(np, 1, nu)
+           pLJ126%RY(np) = this%P0(np, 2, nu)
+           pLJ126%RZ(np) = this%P0(np, 3, nu)
+         end do
+
+         ! Loop over charge sites in molecule
+         do i = 1, this%Molecule%Unit(nu)%NCharge
+           pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
+           pCharge%RX(np) = this%P0(np, 1, nu)
+           pCharge%RY(np) = this%P0(np, 2, nu)
+           pCharge%RZ(np) = this%P0(np, 3, nu)
+         end do
+       end do
+    end if
+
+
+  end subroutine TComponent_Unit2Atom1
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Unit2Atom1Test                        !
+!==============================================================!
+
+  subroutine TComponent_Unit2Atom1Test( this, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PX, PY, PZ
+    real(RK)                       :: q1, q2, q3, q4, qinv
+    real(RK)                       :: A11, A12, A13
+    real(RK)                       :: A21, A22, A23
+    real(RK)                       :: A31, A32, A33
+    real(RK)                       :: r1, r2, r3, or1, or2, or3
+    real(RK)                       :: mue1, mue2, mue3
+    type(TSiteLJ126), pointer      :: pLJ126
+    type(TSiteCharge), pointer     :: pCharge
+    type(TSiteDipole), pointer     :: pDipole
+    type(TSiteQuadrupole), pointer :: pQuadrupole
+    integer                        :: i, j, k, ik
+    integer                        :: nu
+
+    ! Broadcast positions and orientations to all processes
+#if MPI_VER > 0
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
+#endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+    nu = this%Molecule%NUnit
+
+    if ( this%Molecule%isElongated ) then
+      ! Loop over all units in Molecule
+      do k = 1, nu
+            ik = (np-1)*nu+k !!!Michael Sch. ik nicht benoetigt
+            ! Positions and quaternions of unit k in particle i
+            PX = this%P0(np, 1, k)
+            PY = this%P0(np, 2, k)
+            PZ = this%P0(np, 3, k)
+            q1 = this%Q0(np, 1, k)
+            q2 = this%Q0(np, 2, k)
+            q3 = this%Q0(np, 3, k)
+            q4 = this%Q0(np, 4, k)
+
+          ! Normalise quaternions
+#if ARCH == 3
+            qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+            qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+            q1 = q1 * qinv
+            q2 = q2 * qinv
+            q3 = q3 * qinv
+            q4 = q4 * qinv
+            this%Q0(np, 1, k) = q1
+            this%Q0(np, 2, k) = q2
+            this%Q0(np, 3, k) = q3
+            this%Q0(np, 4, k) = q4
+
+          ! Calculate rotation matrix elements
+            A11 = q1**2 + q2**2 - q3**2 - q4**2
+            A12 = 2._RK * (q2 * q3 + q1 * q4)
+            A13 = 2._RK * (q2 * q4 - q1 * q3)
+            A21 = 2._RK * (q2 * q3 - q1 * q4)
+            A22 = q1**2 - q2**2 + q3**2 - q4**2
+            A23 = 2._RK * (q3 * q4 + q1 * q2)
+            A31 = 2._RK * (q2 * q4 + q1 * q3)
+            A32 = 2._RK * (q3 * q4 - q1 * q2)
+            A33 = q1**2 - q2**2 - q3**2 + q4**2
+
+          ! Loop over LJ126 sites in unit
+          do j = 1, this%Molecule%Unit(k)%NLJ126
+            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(j)
+            r1 = pLJ126%r(1) * BoxLengthInv
+            r2 = pLJ126%r(2) * BoxLengthInv
+            r3 = pLJ126%r(3) * BoxLengthInv
+            ik = (np-1)*nu+k
+            pLJ126%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+            pLJ126%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+            pLJ126%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+          end do
+
+          ! Loop over charge sites in molecule
+          do j = 1, this%Molecule%Unit(k)%NCharge
+            pCharge => this%Molecule%Unit(k)%SiteCharge(j)
+            r1 = pCharge%r(1) * BoxLengthInv
+            r2 = pCharge%r(2) * BoxLengthInv
+            r3 = pCharge%r(3) * BoxLengthInv
+            ik = (np-1)*nu+k
+            pCharge%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+            pCharge%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+            pCharge%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+          end do
+
+          ! Loop over dipole sites in molecule
+          do j = 1, this%Molecule%Unit(k)%NDipole
+            pDipole => this%Molecule%Unit(k)%SiteDipole(j)
+            r1 = pDipole%r(1) * BoxLengthInv
+            r2 = pDipole%r(2) * BoxLengthInv
+            r3 = pDipole%r(3) * BoxLengthInv
+            or1 = pDipole%or(1)
+            or2 = pDipole%or(2)
+            or3 = pDipole%or(3)
+            ik = (np-1)*nu+k
+            pDipole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+            pDipole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+            pDipole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+            pDipole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
+            pDipole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
+            pDipole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
+          end do
+
+          ! Loop over quadrupole sites in molecule
+          do j = 1, this%Molecule%Unit(k)%NQuadrupole
+            pQuadrupole => this%Molecule%Unit(k)%SiteQuadrupole(j)
+            r1 = pQuadrupole%r(1) * BoxLengthInv
+            r2 = pQuadrupole%r(2) * BoxLengthInv
+            r3 = pQuadrupole%r(3) * BoxLengthInv
+            or1 = pQuadrupole%or(1)
+            or2 = pQuadrupole%or(2)
+            or3 = pQuadrupole%or(3)
+            ik = (np-1)*nu+k
+            pQuadrupole%RX(np) = PX + r1 * A11 + r2 * A21 + r3 * A31
+            pQuadrupole%RY(np) = PY + r1 * A12 + r2 * A22 + r3 * A32
+            pQuadrupole%RZ(np) = PZ + r1 * A13 + r2 * A23 + r3 * A33
+            pQuadrupole%OX(np) = or1 * A11 + or2 * A21 + or3 * A31
+            pQuadrupole%OY(np) = or1 * A12 + or2 * A22 + or3 * A32
+            pQuadrupole%OZ(np) = or1 * A13 + or2 * A23 + or3 * A33
+          end do
+
+        if( CutoffMode .eq. CenterofMass ) then
+          mue1 = this%Molecule%Unit(k)%Mue(1)
+          mue2 = this%Molecule%Unit(k)%Mue(2)
+          mue3 = this%Molecule%Unit(k)%Mue(3)
+            ik = (np-1)*nu+k
             this%MueX(np, k) = mue1 * A11 + mue2 * A21 + mue3 * A31
             this%MueY(np, k) = mue1 * A12 + mue2 * A22 + mue3 * A32
             this%MueZ(np, k) = mue1 * A13 + mue2 * A23 + mue3 * A33
@@ -4039,6 +4271,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
   end subroutine TComponent_Unit2Atom1Test
 
 
+
+
 !==============================================================!
 !  Subroutine TComponent_Atom2Unit                             !
 !==============================================================!
@@ -4063,12 +4297,13 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     real(RK)                       :: rx(np, nu), ry(np, nu), rz(np, nu), r1x, r1y, r1z
     real(RK)                       :: q1(np, nu), q2(np, nu), q3(np, nu), q4(np, nu)
     real(RK)                       :: fx, fy, fz, tx, ty, tz
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
+    real(RK)                       :: A11, A12, A13, A21, A22, A23, &
+&                                     A31, A32, A33
     type(TSiteLJ126), pointer      :: pLJ126
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
+    integer                        :: i, j, k, ik
 
     ! Assign local variables
     BoxLength = this%BoxLength
@@ -4099,6 +4334,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
          do j = 1, this%Molecule%Unit(k)%NLJ126
            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(j)
            do i = 1, np
+!             ik = (i-1)*nu+k
              fx = pLJ126%FX(i)
              fy = pLJ126%FY(i)
              fz = pLJ126%FZ(i)
@@ -4118,6 +4354,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
          do j = 1, this%Molecule%Unit(k)%NCharge
            pCharge => this%Molecule%Unit(k)%SiteCharge(j)
            do i = 1, np
+!             ik = (i-1)*nu+k
              fx = pCharge%FX(i)
              fy = pCharge%FY(i)
              fz = pCharge%FZ(i)
@@ -4137,6 +4374,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
          do j = 1, this%Molecule%Unit(k)%NDipole
            pDipole => this%Molecule%Unit(k)%SiteDipole(j)
            do i = 1, np
+!             ik = (i-1)*nu+k
              fx = pDipole%FX(i)
              fy = pDipole%FY(i)
              fz = pDipole%FZ(i)
@@ -4147,11 +4385,14 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
              this%F(i, 2, k) = this%F(i, 2, k) + fy
              this%F(i, 3, k) = this%F(i, 3, k) + fz
              this%T(i, 1, k) = this%T(i, 1, k) + pDipole%OY(i) * pDipole%TZ(i) &
-&                                        - pDipole%OZ(i) * pDipole%TY(i) + r1y * fz - r1z * fy
+&                                        - pDipole%OZ(i) * pDipole%TY(i) &
+&                                        + r1y * fz - r1z * fy
              this%T(i, 2, k) = this%T(i, 2, k) + pDipole%OZ(i) * pDipole%TX(i) &
-&                                        - pDipole%OX(i) * pDipole%TZ(i) + r1z * fx - r1x * fz
+&                                        - pDipole%OX(i) * pDipole%TZ(i) &
+&                                        + r1z * fx - r1x * fz
              this%T(i, 3, k) = this%T(i, 3, k) + pDipole%OX(i) * pDipole%TY(i) &
-&                                        - pDipole%OY(i) * pDipole%TX(i) + r1x * fy - r1y * fx
+&                                        - pDipole%OY(i) * pDipole%TX(i) &
+&                                        + r1x * fy - r1y * fx
            end do
          end do
 
@@ -4169,11 +4410,14 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
              this%F(i, 2, k) = this%F(i, 2, k) + fy
              this%F(i, 3, k) = this%F(i, 3, k) + fz
              this%T(i, 1, k) = this%T(i, 1, k) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
-&                                        - pQuadrupole%OZ(i) * pQuadrupole%TY(i) + r1y * fz - r1z * fy
+&                                        - pQuadrupole%OZ(i) * pQuadrupole%TY(i) &
+&                                        + r1y * fz - r1z * fy
              this%T(i, 2, k) = this%T(i, 2, k) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
-&                                        - pQuadrupole%OX(i) * pQuadrupole%TZ(i)+ r1z * fx - r1x * fz
+&                                        - pQuadrupole%OX(i) * pQuadrupole%TZ(i) &
+&                                        + r1z * fx - r1x * fz
              this%T(i, 3, k) = this%T(i, 3, k) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
-&                                        - pQuadrupole%OY(i) * pQuadrupole%TX(i) + r1x * fy - r1y * fx
+&                                        - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
+&                                        + r1x * fy - r1y * fx
            end do
          end do
 
@@ -4200,10 +4444,13 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
        else
 
+       !!! Michael Sch.: added forces of charge sites for not elongated units
+       
         ! Loop over LJ126 sites in unit
          do j = 1, this%Molecule%Unit(k)%NLJ126
            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(j)
            do i = 1, np
+             !ik = (i-1)*nu+k
              this%F(i, 1, k) = this%F(i, 1, k) + pLJ126%FX(i)
              this%F(i, 2, k) = this%F(i, 2, k) + pLJ126%FY(i)
              this%F(i, 3, k) = this%F(i, 3, k) + pLJ126%FZ(i)
@@ -4224,563 +4471,18 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     end do
 
-    ! Reduce forces and torques from all processes
+
+
+       ! Reduce forces and torques from all processes
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#if  TRANS == 1
-
-! Transport  !TRANSPORT_start
-    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-
-  !  if (this%Conductivity) then
-      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-
-      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-   ! end if
-!TRANSPORT_END
-#endif
+    if( this%Molecule%isElongated ) &
+&     call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
+&       MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
 #endif
 
   end subroutine TComponent_Atom2Unit
-
-
-!==============================================================!
-!  Subroutine TComponent_Atom2Unit_Trans                       !
-!==============================================================!
-
-  subroutine TComponent_Atom2Unit_Trans( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    integer                        :: nup, neu
-    real(RK)                       :: BoxLength
-    real(RK)                       :: rx(np,nu), ry(np,nu), rz(np,nu), r1x, r1y, r1z
-    real(RK)                       :: q1(np,nu), q2(np,nu), q3(np,nu), q4(np,nu)
-    real(RK)                       :: fx, fy, fz, tx, ty, tz
-    real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-    type(TSiteLJ126), pointer      :: pLJ126
-    type(TSiteCharge), pointer     :: pCharge
-    type(TSiteDipole), pointer     :: pDipole
-    type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
-
-#if  TRANS == 1
-    !TRANSPORT_start
-    real(RK)                       :: vsx,vsy,vsz
-    real(RK)                       :: vsux,vsuy,vsuz
-    real(RK)                       :: vbx,vby,vbz
-    real(RK)                       :: cx, cy, cz
-    real(RK)                       :: tux, tuy, tuz, tlx, tly, tlz, tdx, tdy, tdz
-    real(RK)                       :: BoxLength_dt
-#endif
-!TRANSPORT_END
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    nup = nu*np
-    neu = this%Molecule%NEUnit
-#if  TRANS == 1
-    !TRANSPORT_start
-    BoxLength_dt = this%BoxLength/TimeStep !TRANSPORT_thisline
-    this%FS(:,:) = 0._RK
-    this%FB(:,:) = 0._RK
-  !  if (this%Conductivity) then
-      this%FTC(:,:) = 0._RK
-      this%FRC(:,:) = 0._RK
-      this%FTC1(:,:) = 0._RK
-      this%FTC2(:,:) = 0._RK
-      this%FTC3(:,:) = 0._RK
-      this%FRC1(:,:) = 0._RK
-      this%FRC2(:,:) = 0._RK
-      this%FRC3(:,:) = 0._RK
-   ! end if
-    !TRANSPORT_END
-#endif
-
-    k = nu   ! Michael Sch.: add do loop over molecules when implementing ms2 with transportproperties for flexible molecules
-
-    ! Initialize forces
-    this%F(1:np, :, k) = 0._RK
-
-    ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
-
-      ! Initialize torques
-      this%T(1:np, :, k) = 0._RK
-
-      ! Initialize local arrays
-      rx(:,k) = this%P0(:, 1, k)
-      ry(:,k) = this%P0(:, 2, k)
-      rz(:,k) = this%P0(:, 3, k)
-      q1(:,k) = this%Q0(:, 1, k)
-      q2(:,k) = this%Q0(:, 2, k)
-      q3(:,k) = this%Q0(:, 3, k)
-      q4(:,k) = this%Q0(:, 4, k)
-
-         ! Loop over LJ126 sites in unit
-         do j = 1, this%Molecule%NLJ126
-           pLJ126 => this%Molecule%SiteLJ126(j)
-           do i = 1, np
-             fx = pLJ126%FX(i)
-             fy = pLJ126%FY(i)
-             fz = pLJ126%FZ(i)
-#if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pLJ126%vsLJx(i)
-             vsy = pLJ126%vsLJy(i)
-             vsz = pLJ126%vsLJz(i)
-             vbx = pLJ126%vbLJx(i)
-             vby = pLJ126%vbLJy(i)
-             vbz = pLJ126%vbLJz(i)
-          !   if (this%Conductivity) then
-               vsux= pLJ126%vsuLJx(i)
-               vsuy= pLJ126%vsuLJy(i)
-               vsuz= pLJ126%vsuLJz(i)
-               cx  = pLJ126%cLJx(i)
-               cy  = pLJ126%cLJy(i)
-               cz  = pLJ126%cLJz(i)
-               tux = pLJ126%tuLJx(i)
-               tuy = pLJ126%tuLJy(i)
-               tuz = pLJ126%tuLJz(i)
-               tlx = pLJ126%tlLJx(i)
-               tly = pLJ126%tlLJy(i)
-               tlz = pLJ126%tlLJz(i)
-               tdx = pLJ126%tdLJx(i)
-               tdy = pLJ126%tdLJy(i)
-               tdz = pLJ126%tdLJz(i)
-          !   end if
-             !TRANSPORT_END
-#endif
-             r1x = ( pLJ126%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pLJ126%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pLJ126%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
-#if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
-
-            ! if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-            ! end if
-              !TRANSPORT_END
-#endif
-           end do
-         end do
-
-         ! Loop over charge sites in unit
-         do j = 1, this%Molecule%NCharge
-           pCharge => this%Molecule%SiteCharge(j)
-           do i = 1, np
-             fx = pCharge%FX(i)
-             fy = pCharge%FY(i)
-             fz = pCharge%FZ(i)
-#if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pCharge%vsCx(i)
-             vsy = pCharge%vsCy(i)
-             vsz = pCharge%vsCz(i)
-             vbx = pCharge%vbCx(i)
-             vby = pCharge%vbCy(i)
-             vbz = pCharge%vbCz(i)
-         !    if (this%Conductivity) then
-               vsux= pCharge%vsuCx(i)
-               vsuy= pCharge%vsuCy(i)
-               vsuz= pCharge%vsuCz(i)
-               cx  = pCharge%cCx(i)
-               cy  = pCharge%cCy(i)
-               cz  = pCharge%cCz(i)
-               tux = pCharge%tuCx(i)
-               tuy = pCharge%tuCy(i)
-               tuz = pCharge%tuCz(i)
-               tlx = pCharge%tlCx(i)
-               tly = pCharge%tlCy(i)
-               tlz = pCharge%tlCz(i)
-               tdx = pCharge%tdCx(i)
-               tdy = pCharge%tdCy(i)
-               tdz = pCharge%tdCz(i)
-          !   end if
-             !TRANSPORT_END
-#endif
-             r1x = ( pCharge%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pCharge%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pCharge%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + r1x * fy - r1y * fx
-#if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
-
-           !  if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-            ! end if
-            !TRANSPORT_END
-#endif
-           end do
-         end do
-
-         ! Loop over dipole sites in unit
-         do j = 1, this%Molecule%NDipole
-           pDipole => this%Molecule%SiteDipole(j)
-           do i = 1, np
-             fx = pDipole%FX(i)
-             fy = pDipole%FY(i)
-             fz = pDipole%FZ(i)
-#if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pDipole%vsDx(i)
-             vsy = pDipole%vsDy(i)
-             vsz = pDipole%vsDz(i)
-             vbx = pDipole%vbDx(i)
-             vby = pDipole%vbDy(i)
-             vbz = pDipole%vbDz(i)
-            ! if (this%Conductivity) then
-               vsux= pDipole%vsuDx(i)
-               vsuy= pDipole%vsuDy(i)
-               vsuz= pDipole%vsuDz(i)
-               cx  = pDipole%cDx(i)
-               cy  = pDipole%cDy(i)
-               cz  = pDipole%cDz(i)
-               tux = pDipole%tuDx(i)
-               tuy = pDipole%tuDy(i)
-               tuz = pDipole%tuDz(i)
-               tlx = pDipole%tlDx(i)
-               tly = pDipole%tlDy(i)
-               tlz = pDipole%tlDz(i)
-               tdx = pDipole%tdDx(i)
-               tdy = pDipole%tdDy(i)
-               tdz = pDipole%tdDz(i)
-           !  end if
-             !TRANSPORT_END
-#endif
-             r1x = ( pDipole%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pDipole%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pDipole%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + pDipole%OY(i) * pDipole%TZ(i) &
-&                                        - pDipole%OZ(i) * pDipole%TY(i) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + pDipole%OZ(i) * pDipole%TX(i) &
-&                                        - pDipole%OX(i) * pDipole%TZ(i) + r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + pDipole%OX(i) * pDipole%TY(i) &
-&                                        - pDipole%OY(i) * pDipole%TX(i) + r1x * fy - r1y * fx
-#if  TRANS == 1
-            !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
-
-          !   if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-           !  end if
-              !TRANSPORT_END
-#endif
-           end do
-         end do
-
-         ! Loop over quadrupole sites in unit
-         do j = 1, this%Molecule%NQuadrupole
-           pQuadrupole => this%Molecule%SiteQuadrupole(j)
-           do i = 1, np
-             fx = pQuadrupole%FX(i)
-             fy = pQuadrupole%FY(i)
-             fz = pQuadrupole%FZ(i)
-#if  TRANS == 1
-             !TRANSPORT_start
-             vsx = pQuadrupole%vsQx(i)
-             vsy = pQuadrupole%vsQy(i)
-             vsz = pQuadrupole%vsQz(i)
-             vbx = pQuadrupole%vbQx(i)
-             vby = pQuadrupole%vbQy(i)
-             vbz = pQuadrupole%vbQz(i)
-        !     if (this%Conductivity) then
-               vsux= pQuadrupole%vsuQx(i)
-               vsuy= pQuadrupole%vsuQy(i)
-               vsuz= pQuadrupole%vsuQz(i)
-               cx  = pQuadrupole%cQx(i)
-               cy  = pQuadrupole%cQy(i)
-               cz  = pQuadrupole%cqz(i)
-               tux = pQuadrupole%tuQx(i)
-               tuy = pQuadrupole%tuQy(i)
-               tuz = pQuadrupole%tuQz(i)
-               tlx = pQuadrupole%tlQx(i)
-               tly = pQuadrupole%tlQy(i)
-               tlz = pQuadrupole%tlQz(i)
-               tdx = pQuadrupole%tdQx(i)
-               tdy = pQuadrupole%tdQy(i)
-               tdz = pQuadrupole%tdQz(i)
-         !    end if
-             !TRANSPORT_END
-#endif
-             r1x = ( pQuadrupole%RX(i) - rx(i,k) ) * BoxLength
-             r1y = ( pQuadrupole%RY(i) - ry(i,k) ) * BoxLength
-             r1z = ( pQuadrupole%RZ(i) - rz(i,k) ) * BoxLength
-             this%F(i, 1, k) = this%F(i, 1, k) + fx
-             this%F(i, 2, k) = this%F(i, 2, k) + fy
-             this%F(i, 3, k) = this%F(i, 3, k) + fz
-             this%T(i, 1, k) = this%T(i, 1, k) + pQuadrupole%OY(i) * pQuadrupole%TZ(i) &
-&                                        - pQuadrupole%OZ(i) * pQuadrupole%TY(i) + r1y * fz - r1z * fy
-             this%T(i, 2, k) = this%T(i, 2, k) + pQuadrupole%OZ(i) * pQuadrupole%TX(i) &
-&                                        - pQuadrupole%OX(i) * pQuadrupole%TZ(i)+ r1z * fx - r1x * fz
-             this%T(i, 3, k) = this%T(i, 3, k) + pQuadrupole%OX(i) * pQuadrupole%TY(i) &
-&                                        - pQuadrupole%OY(i) * pQuadrupole%TX(i) + r1x * fy - r1y * fx
-#if  TRANS == 1
-            !TRANSPORT_start
-             this%FS(i, 1)= this%FS(i, 1)+ vsx
-             this%FS(i, 2)= this%FS(i, 2)+ vsy
-             this%FS(i, 3)= this%FS(i, 3)+ vsz
-             this%FB(i, 1)= this%FB(i, 1)+ vbx
-             this%FB(i, 2)= this%FB(i, 2)+ vby
-             this%FB(i, 3)= this%FB(i, 3)+ vbz
-
-         !    if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-
-               this%FRC1(i,1) = this%FRC1(i,1) + tdx
-               this%FRC1(i,2) = this%FRC1(i,2) + tux
-               this%FRC1(i,3) = this%FRC1(i,3) + tuy
-               this%FRC2(i,1) = this%FRC2(i,1) + tlx
-               this%FRC2(i,2) = this%FRC2(i,2) + tdy
-               this%FRC2(i,3) = this%FRC2(i,3) + tuz
-               this%FRC3(i,1) = this%FRC3(i,1) + tly
-               this%FRC3(i,2) = this%FRC3(i,2) + tlz
-               this%FRC3(i,3) = this%FRC3(i,3) + tdz
-          !   end if
-              !TRANSPORT_END
-#endif
-           end do
-         end do
-
-         do i = 1, np
-           ! Add torques from reaction field
-           tx = this%T(i, 1, k) + this%tRFX(i, k)
-           ty = this%T(i, 2, k) + this%tRFY(i, k)
-           tz = this%T(i, 3, k) + this%tRFZ(i, k)
-
-           ! Convert torque to body-fixed coordinates
-           A11 = q1(i,k)**2 + q2(i,k)**2 - q3(i,k)**2 - q4(i,k)**2
-           A12 = 2._RK * (q2(i,k) * q3(i,k) + q1(i,k) * q4(i,k))
-           A13 = 2._RK * (q2(i,k) * q4(i,k) - q1(i,k) * q3(i,k))
-           A21 = 2._RK * (q2(i,k) * q3(i,k) - q1(i,k) * q4(i,k))
-           A22 = q1(i,k)**2 - q2(i,k)**2 + q3(i,k)**2 - q4(i,k)**2
-           A23 = 2._RK * (q3(i,k) * q4(i,k) + q1(i,k) * q2(i,k))
-           A31 = 2._RK * (q2(i,k) * q4(i,k) + q1(i,k) * q3(i,k))
-           A32 = 2._RK * (q3(i,k) * q4(i,k) - q1(i,k) * q2(i,k))
-           A33 = q1(i,k)**2 - q2(i,k)**2 - q3(i,k)**2 + q4(i,k)**2
-           this%T(i, 1, k) = A11 * tx + A12 * ty + A13 * tz
-           this%T(i, 2, k) = A21 * tx + A22 * ty + A23 * tz
-           this%T(i, 3, k) = A31 * tx + A32 * ty + A33 * tz
-         end do
-
-       else
-
-        ! Loop over LJ126 sites in unit
-         do j = 1, this%Molecule%NLJ126
-           pLJ126 => this%Molecule%SiteLJ126(j)
-           do i = 1, np
-#if  TRANS == 1
-           !TRANSPORT_start
-             vsx = pLJ126%vsLJx(i)
-             vsy = pLJ126%vsLJy(i)
-             vsz = pLJ126%vsLJz(i)
-             vbx = pLJ126%vbLJx(i)
-             vby = pLJ126%vbLJy(i)
-             vbz = pLJ126%vbLJz(i)
-        !     if (this%Conductivity) then
-               vsux= pLJ126%vsuLJx(i)
-               vsuy= pLJ126%vsuLJy(i)
-               vsuz= pLJ126%vsuLJz(i)
-               cx  = pLJ126%cLJx(i)
-               cy  = pLJ126%cLJy(i)
-               cz  = pLJ126%cLJz(i)
-         !    end if
-             !TRANSPORT_END
-#endif
-             this%F(i, 1, k) = this%F(i, 1, k) + pLJ126%FX(i)
-             this%F(i, 2, k) = this%F(i, 2, k) + pLJ126%FY(i)
-             this%F(i, 3, k) = this%F(i, 3, k) + pLJ126%FZ(i)
-#if  TRANS == 1
-             !TRANSPORT_start
-             this%FS(i, 1) = this%FS(i, 1) + vsx
-             this%FS(i, 2) = this%FS(i, 2) + vsy
-             this%FS(i, 3) = this%FS(i, 3) + vsz
-             this%FB(i, 1) = this%FB(i, 1) + vbx
-             this%FB(i, 2) = this%FB(i, 2) + vby
-             this%FB(i, 3) = this%FB(i, 3) + vbz
-
-          !   if (this%Conductivity) then
-               this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
-               this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
-               this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
-               this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
-               this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
-               this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
-               this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
-               this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
-               this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-           !  end if
-               !TRANSPORT_END
-#endif
-           end do
-         end do
-         
-        ! Loop over charge sites in molecule
-          do j = 1, this%Molecule%NCharge
-            pCharge => this%Molecule%SiteCharge(j)
-            do i = 1, np
-             this%F(i, 1, k) = this%F(i, 1, k) + pCharge%FX(i)
-             this%F(i, 2, k) = this%F(i, 2, k) + pCharge%FY(i)
-             this%F(i, 3, k) = this%F(i, 3, k) + pCharge%FZ(i)
-#if  TRANS == 1
-            !TRANSPORT_start
-            vsx = pCharge%vsCx(i)
-            vsy = pCharge%vsCy(i)
-            vsz = pCharge%vsCz(i)
-            vbx = pCharge%vbCx(i)
-            vby = pCharge%vbCy(i)
-            vbz = pCharge%vbCz(i)
-            this%FS(i, 1)= this%FS(i, 1)+ vsx
-            this%FS(i, 2)= this%FS(i, 2)+ vsy
-            this%FS(i, 3)= this%FS(i, 3)+ vsz
-            this%FB(i, 1)= this%FB(i, 1)+ vbx
-            this%FB(i, 2)= this%FB(i, 2)+ vby
-            this%FB(i, 3)= this%FB(i, 3)+ vbz
-            !TRANSPORT_END
-#endif
-          end do
-      end do
-
-    end if
-
-    ! Reduce forces and torques from all processes
-#if MPI_VER > 0
-    call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
-&     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-#if  TRANS == 1
-
-! Transport  !TRANSPORT_start
-    call MPI_Reduce( this%FB(:, :), this%FBAll(:, :), size( this%FB ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( this%FS(:, :), this%FSAll(:, :), size( this%FS ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-
-  !  if (this%Conductivity) then
-      call MPI_Reduce( this%FTC1(:, :), this%FTC1All(:, :), size( this%FTC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC2(:, :), this%FTC2All(:, :), size( this%FTC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FTC3(:, :), this%FTC3All(:, :), size( this%FTC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-
-      call MPI_Reduce( this%FRC1(:, :), this%FRC1All(:, :), size( this%FRC1 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC2(:, :), this%FRC2All(:, :), size( this%FRC2 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( this%FRC3(:, :), this%FRC3All(:, :), size( this%FRC3 ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-   ! end if
-!TRANSPORT_END
-#endif
-#endif
-
-  end subroutine TComponent_Atom2Unit_Trans
 
 
 !==============================================================!
@@ -4808,12 +4510,9 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     do i=1,this%Molecule%NUnit
       mass = mass + this%Molecule%Unit(i)%Mass
-      PX(1:np)   = PX(1:np)   + (this%P0(1:np,1,i)-&
-&          anint(this%P0(1:np,1,i)-this%Pm0(1:np,1)) )*this%Molecule%Unit(i)%Mass
-      PY(1:np)   = PY(1:np)   + (this%P0(1:np,2,i)-&
-&          anint(this%P0(1:np,2,i)-this%Pm0(1:np,2)) )*this%Molecule%Unit(i)%Mass
-      PZ(1:np)   = PZ(1:np)   + (this%P0(1:np,3,i)-&
-&          anint(this%P0(1:np,3,i)-this%Pm0(1:np,3)) )*this%Molecule%Unit(i)%Mass
+      PX(1:np)   = PX(1:np)   + this%P0(1:np,1,i)*this%Molecule%Unit(i)%Mass
+      PY(1:np)   = PY(1:np)   + this%P0(1:np,2,i)*this%Molecule%Unit(i)%Mass
+      PZ(1:np)   = PZ(1:np)   + this%P0(1:np,3,i)*this%Molecule%Unit(i)%Mass
     end do
 
     this%Pm0(1:np,1) = PX / mass
@@ -4854,6 +4553,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 &          anint(this%P0(np,2,i)-this%Pm0(np,2)) )*this%Molecule%Unit(i)%Mass
       PZ   = PZ   + ( this%P0(np,3,i) - &
 &          anint(this%P0(np,3,i)-this%Pm0(np,3) ) )*this%Molecule%Unit(i)%Mass
+
     end do
 
     this%Pm0(np,1) = PX / mass
@@ -4861,6 +4561,102 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     this%Pm0(np,3) = PZ / mass
 
   end subroutine TComponent_Unit2Mol1
+
+
+
+!==============================================================!
+!  Subroutine TComponent_Unit2Atom1 (per molecule)             !
+!==============================================================!
+
+  subroutine TComponent_Mol2UnitRotate( this, np, dq )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    real(RK),intent(in) :: dq(3)
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PX, PY, PZ
+    real(RK)                       :: A11, A12, A13
+    real(RK)                       :: A21, A22, A23
+    real(RK)                       :: A31, A32, A33
+    real(RK)                       :: r1, r2, r3
+    real(RK)                       :: q1, q2, q3,q4
+    integer                        :: i, ik
+    integer                        :: nup
+
+    ! Broadcast positions and orientations to all processes
+#if MPI_VER > 0
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), &
+&     MPI_RK, NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), &
+&       MPI_RK, NRootProc, Communicator, ierror )
+#endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+
+    ! Calculate rotation matrix elements
+    q1 = 1._RK
+    q2 = dq(1)
+    q3 = dq(2)
+    q4 = dq(3)
+
+    A11 = q2**2 - q3**2 - q4**2 + q1**2
+    A12 = 2._RK * (q2 * q3 + q4*q1)
+    A13 = 2._RK * (q2 * q4 - q3*q1)
+    A21 = 2._RK * (q2 * q3 - q4*q1)
+    A22 = - q2**2 + q3**2 - q4**2 + q1**2
+    A23 = 2._RK * (q3 * q4 + q2*q1)
+    A31 = 2._RK * (q2 * q4 + q3*q1)
+    A32 = 2._RK * (q3 * q4 - q2*q1)
+    A33 = - q2**2 - q3**2 + q4**2 + q1**2
+
+    nup = this%Molecule%NUnit
+
+    do i=1,nup
+      ! Check number of rotation axes
+      ik = (np-1)*nup+i
+      ! Positions and quaternions of unit i in particle np
+      PX = this%P0(np, 1, i)
+      PY = this%P0(np, 2, i)
+      PZ = this%P0(np, 3, i)
+
+      q1 = this%Q0(np, 1, i)
+      q2 = this%Q0(np, 2, i)
+      q3 = this%Q0(np, 3, i)
+      q4 = this%Q0(np, 4, i)
+
+      ! Loop over LJ126 sites in unit ??? COM of unit
+      r1 = (PX-this%Pm0(np,1)) * BoxLengthInv
+      r2 = (PY-this%Pm0(np,2)) * BoxLengthInv
+      r3 = (PZ-this%Pm0(np,3)) * BoxLengthInv
+
+      this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
+      this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
+      this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
+
+      this%Q0(np, 1, i) = q1 - dq(1) * q2 - dq(2) * q3 - dq(3) * q4
+      this%Q0(np, 2, i) = q2 + dq(1) * q1 - dq(2) * q4 + dq(3) * q3
+      this%Q0(np, 3, i) = q3 + dq(1) * q4 + dq(2) * q1 - dq(3) * q2
+      this%Q0(np, 4, i) = q4 - dq(1) * q3 + dq(2) * q2 + dq(3) * q1
+
+    end do
+
+  end subroutine TComponent_Mol2UnitRotate
+
+
+
+
 
 
 !==============================================================!
@@ -4923,6 +4719,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
   end subroutine TComponent_Rigid2Flex
 
 
+
 !==============================================================!
 !  Subroutine TComponent_PredictGear                           !
 !==============================================================!
@@ -4948,14 +4745,26 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     do k=1,nu
      do j = 1, 3
       do i = 1, np
-        this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
-&                        + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
-        this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
-&                        + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
-        this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
-&                        +10._RK * this%P5(i, j, k)
-        this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
-        this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+        this%P0(i, j, k) = this%P0(i, j, k) &
+&                        + this%P1(i, j, k) &
+&                        + this%P2(i, j, k) &
+&                        + this%P3(i, j, k) &
+&                        + this%P4(i, j, k) &
+&                        + this%P5(i, j, k)
+        this%P1(i, j, k) = this%P1(i, j, k) &
+&                + 2._RK * this%P2(i, j, k) &
+&                + 3._RK * this%P3(i, j, k) &
+&                + 4._RK * this%P4(i, j, k) &
+&                + 5._RK * this%P5(i, j, k)
+        this%P2(i, j, k) = this%P2(i, j, k) &
+&                + 3._RK * this%P3(i, j, k) &
+&                + 6._RK * this%P4(i, j, k) &
+&                +10._RK * this%P5(i, j, k)
+        this%P3(i, j, k) = this%P3(i, j, k) &
+&                + 4._RK * this%P4(i, j, k) &
+&                +10._RK * this%P5(i, j, k)
+        this%P4(i, j, k) = this%P4(i, j, k) &
+&                + 5._RK * this%P5(i, j, k)
       end do
      end do
 
@@ -4965,32 +4774,47 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Predict quaternion parameters and their derivatives
        do j = 1, 4
          do i = 1, np
-           this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
-&                           + this%Q3(i, j, k) + this%Q4(i, j, k)
-           this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
-&                           + 4._RK * this%Q4(i, j, k)
-           this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
-           this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
+           this%Q0(i, j, k) = this%Q0(i, j, k) &
+&                           + this%Q1(i, j, k) &
+&                           + this%Q2(i, j, k) &
+&                           + this%Q3(i, j, k) &
+&                           + this%Q4(i, j, k)
+           this%Q1(i, j, k) = this%Q1(i, j, k) &
+&                   + 2._RK * this%Q2(i, j, k) &
+&                   + 3._RK * this%Q3(i, j, k) &
+&                   + 4._RK * this%Q4(i, j, k)
+           this%Q2(i, j, k) = this%Q2(i, j, k) &
+&                   + 3._RK * this%Q3(i, j, k) &
+&                   + 6._RK * this%Q4(i, j, k)
+           this%Q3(i, j, k) = this%Q3(i, j, k) &
+&                   + 4._RK * this%Q4(i, j, k)
          end do
        end do
 
       ! Predict angular velocities and their derivatives
        do j = 1, this%Molecule%Unit(k)%NDFRot
          do i = 1, np
-           this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
-&                           + this%W3(i, j, k) + this%W4(i, j, k)
-           this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
-&                           + 4._RK * this%W4(i, j, k)
-           this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
-           this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
+           this%W0(i, j, k) = this%W0(i, j, k) &
+&                           + this%W1(i, j, k) &
+&                           + this%W2(i, j, k) &
+&                           + this%W3(i, j, k) &
+&                           + this%W4(i, j, k)
+           this%W1(i, j, k) = this%W1(i, j, k) &
+&                   + 2._RK * this%W2(i, j, k) &
+&                   + 3._RK * this%W3(i, j, k) &
+&                   + 4._RK * this%W4(i, j, k)
+           this%W2(i, j, k) = this%W2(i, j, k) &
+&                   + 3._RK * this%W3(i, j, k) &
+&                   + 6._RK * this%W4(i, j, k)
+           this%W3(i, j, k) = this%W3(i, j, k) &
+&                   + 4._RK * this%W4(i, j, k)
          end do
        end do
-       
      end if
    end do
 
-
   end subroutine TComponent_PredictGear
+
 
 
 !==============================================================!
@@ -5030,10 +4854,11 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       MassInv = 1._RK / this%Molecule%Unit(k)%Mass
       do j = 1, 3
         do i = 1, np
-          this%Corr0(i, j, k) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv
-          if( ConstantPressure .and. .not. NVTEquilibration ) then
-            this%Corr0(i, j, k) = this%Corr0(i, j, k) - this%P1(i, j, k) * dLogVolumeThird
-          end if
+          this%Corr0(i, j, k) = pF(i, j, k) &
+&           * TimeStepSquared2 * BoxLengthInv * MassInv
+          if( ConstantPressure .and. .not. NVTEquilibration ) &
+&           this%Corr0(i, j, k) = this%Corr0(i, j, k) &
+&             - this%P1(i, j, k) * dLogVolumeThird
           this%Corr1(i, j, k) = this%Corr0(i, j, k) - this%P2(i, j, k)
           this%P0(i, j, k) = this%P0(i, j, k) + this%Corr1(i, j, k) * Gear20
           this%P1(i, j, k) = this%P1(i, j, k) + this%Corr1(i, j, k) * Gear21
@@ -5093,20 +4918,24 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Correct quaternion parameters and their derivatives
     do k = 1, nu
       do i = 1, np
-        this%Corr0(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+        this%Corr0(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) &
+&                                        - this%Q0(i, 3, k) * this%W0(i, 2, k) &
 &                                        - this%Q0(i, 4, k) * this%W0(i, 3, k))
-        this%Corr0(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+        this%Corr0(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) &
+&                                        - this%Q0(i, 4, k) * this%W0(i, 2, k) &
 &                                        + this%Q0(i, 3, k) * this%W0(i, 3, k))
-        this%Corr0(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+        this%Corr0(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) &
+&                                        + this%Q0(i, 1, k) * this%W0(i, 2, k) &
 &                                        - this%Q0(i, 2, k) * this%W0(i, 3, k))
-        this%Corr0(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+        this%Corr0(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) &
+&                                        + this%Q0(i, 2, k) * this%W0(i, 2, k) &
 &                                        + this%Q0(i, 1, k) * this%W0(i, 3, k))
       end do
       do j = 1, 4
         do i = 1, np
           this%Corr1(i, j, k) = this%Corr0(i, j, k) - this%Q1(i, j, k)
           this%Q0(i, j, k) = this%Q0(i, j, k) + this%Corr1(i, j, k) * Gear10
-          this%Q1(i, j, k) =                  this%Corr0(i, j, k)
+          this%Q1(i, j, k) =                 this%Corr0(i, j, k)
           this%Q2(i, j, k) = this%Q2(i, j, k) + this%Corr1(i, j, k) * Gear12
           this%Q3(i, j, k) = this%Q3(i, j, k) + this%Corr1(i, j, k) * Gear13
           this%Q4(i, j, k) = this%Q4(i, j, k) + this%Corr1(i, j, k) * Gear14
@@ -5128,9 +4957,12 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
         TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
         do i = 1, np
-          this%Corr0(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-          this%Corr0(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-          this%Corr0(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+          this%Corr0(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * &
+&                             Moi23) * TMoi1
+          this%Corr0(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * &
+&                             Moi31) * TMoi2
+          this%Corr0(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * &
+&                             Moi12) * TMoi3
         end do
       else
         do i = 1, np
@@ -5151,8 +4983,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       end do
     end do
   end if
-
-
 
   end subroutine TComponent_CorrectGear
 
@@ -5244,13 +5074,17 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           do j = 1, nra
             this%W0(i, j, k) = Korr * this%W0(i, j, k) + .5_RK * this%W1(i, j, k)
           end do
-          this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0tmp(i, 2, k) * this%W0(i, 1, k) - this%Q0tmp(i, 3, k) * this%W0(i, 2, k) &
+          this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0tmp(i, 2, k) * this%W0(i, 1, k) &
+&                                       - this%Q0tmp(i, 3, k) * this%W0(i, 2, k) &
 &                                       - this%Q0tmp(i, 4, k) * this%W0(i, 3, k))
-          this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0tmp(i, 1, k) * this%W0(i, 1, k) - this%Q0tmp(i, 4, k) * this%W0(i, 2, k) &
+          this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0tmp(i, 1, k) * this%W0(i, 1, k) &
+&                                       - this%Q0tmp(i, 4, k) * this%W0(i, 2, k) &
 &                                       + this%Q0tmp(i, 3, k) * this%W0(i, 3, k))
-          this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0tmp(i, 4, k) * this%W0(i, 1, k) + this%Q0tmp(i, 1, k) * this%W0(i, 2, k) &
+          this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0tmp(i, 4, k) * this%W0(i, 1, k) &
+&                                       + this%Q0tmp(i, 1, k) * this%W0(i, 2, k) &
 &                                       - this%Q0tmp(i, 2, k) * this%W0(i, 3, k))
-          this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0tmp(i, 3, k) * this%W0(i, 1, k) + this%Q0tmp(i, 2, k) * this%W0(i, 2, k) &
+          this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0tmp(i, 3, k) * this%W0(i, 1, k) &
+&                                       + this%Q0tmp(i, 2, k) * this%W0(i, 2, k) &
 &                                       + this%Q0tmp(i, 1, k) * this%W0(i, 3, k))
           do j = 1, 4
             this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k)
@@ -5260,7 +5094,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     end if
 
   end subroutine TComponent_PredictLeapFrog
-
 
 
 !==============================================================!
@@ -5318,9 +5151,12 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
         Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
         do i = 1, np
-          this%W1(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-          this%W1(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-          this%W1(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+          this%W1(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * &
+&                         TMoi1
+          this%W1(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * &
+&                         TMoi2
+          this%W1(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * &
+&                         TMoi3
         end do
       else
         do i = 1, np
@@ -5335,19 +5171,25 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         end do
       end do
       do i = 1, np
-        this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+        this%Q1(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) &
+&                                     - this%Q0(i, 3, k) * this%W0(i, 2, k) &
 &                                     - this%Q0(i, 4, k) * this%W0(i, 3, k))
-        this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+        this%Q1(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) &
+&                                     - this%Q0(i, 4, k) * this%W0(i, 2, k) &
 &                                     + this%Q0(i, 3, k) * this%W0(i, 3, k))
-        this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+        this%Q1(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) &
+&                                     + this%Q0(i, 1, k) * this%W0(i, 2, k) &
 &                                     - this%Q0(i, 2, k) * this%W0(i, 3, k))
-        this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k)  + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+        this%Q1(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) &
+&                                     + this%Q0(i, 2, k) * this%W0(i, 2, k) &
 &                                     + this%Q0(i, 1, k) * this%W0(i, 3, k))
       end do
     end do
   end if
 
   end subroutine TComponent_CorrectLeapFrog
+
+
 
 
 !==============================================================!
@@ -5489,6 +5331,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       else if( this%DispMolTran < DispMolTranLimit ) then
         this%DispTran = this%DispTran * 1.05_RK
       end if
+
       ! Update rotational displacement
       if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
         this%DispMolRot = this%DispMolRot * .95_RK
@@ -5496,7 +5339,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         this%DispMolRot = this%DispMolRot * 1.05_RK
       end if
     end if
-
 
   end subroutine TComponent_UpdateDisplacements
 
@@ -5506,17 +5348,18 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 !  Subroutine TComponent_AddParticle                           !
 !==============================================================!
 
-  subroutine TComponent_AddParticle( this, r, q )
+  subroutine TComponent_AddParticle( this, GradIns, r, q )
 
     implicit none
 
     ! Declare arguments
     type(TComponent)               :: this
+    logical,intent(in)             :: GradIns
     real(RK), intent(in)           :: r(3)
-    real(RK), intent(in), optional :: q(4, this%Molecule%NUnit)
+    real(RK), intent(in), optional :: q(4, 1:this%Molecule%NUnit)
 
     ! Test boundaries of particle arrays
-    if( this%NPart > this%NPartMax ) then
+    if( this%NPart >= this%NPartMax ) then
       tooManyParticles = .true.
       return
     end if
@@ -5527,21 +5370,46 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
 #endif
 
+    if ( GradIns ) then
     ! Set coordinates and orientation of new particle
-    if ( this%Molecule%NUnit .ne. 1) then
-      this%Pm0(this%NPart, :) = r(:)
-      if( this%Molecule%isElongated ) then
-        this%Q0(this%NPart, :,:) = q(:,:)
+      if ( this%Molecule%NUnit .ne. 1) then
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        if( this%Molecule%isElongated ) then
+          this%Q0(this%NPart, :,:) = q(:,:)
+        end if
+
+      else
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        this%P0(this%NPart, :,1) = r(:)
+        if ( this%Molecule%isElongated ) then
+!           this%Qm0(this%NPart, :) = q(:,1)
+          this%Q0(this%NPart, :,1) = q(:,1)
+        end if
       end if
-    else
-      this%Pm0(this%NPart, :) = r(:)
-      this%P0(this%NPart, :,1) = r(:)
-      if ( this%Molecule%isElongated ) then
-        this%Q0(this%NPart, :,1) = q(:,1)
+    else  ! Insertion of a new particle - rigid
+      if ( this%Molecule%NUnit .ne. 1) then
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        if( this%Molecule%isElongated ) then
+          this%Qm0(this%NPart, :) = q(:,1)
+        end if
+        call Mol2Unit1 ( this, this%NPart, this%Molecule%NUnit )
+
+      else
+        ! Add Particle
+        this%Pm0(this%NPart, :) = r(:)
+        this%P0(this%NPart, :,1) = r(:)
+        if ( this%Molecule%isElongated ) then
+          this%Qm0(this%NPart, :) = q(:,1)
+          this%Q0(this%NPart, :,1) = q(:,1)
+        end if
       end if
     end if
 
   end subroutine TComponent_AddParticle
+
 
 
 !==============================================================!
@@ -5555,20 +5423,20 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Declare arguments
     type(TComponent)    :: this
     integer, intent(in) :: np
-    
+
     ! Declare local variables
     integer :: k, nu
-
 
     if( np .ne. this%NPart ) then
 
       ! Copy coordinates and orientation of last particle
-      this%Pm0(np, :) = this%Pm0(this%NPart, :)
+      this%Pm0(np, :)   = this%Pm0(this%NPart, :)
       this%P0(np, :, :) = this%P0(this%NPart, :, :)
       if( this%Molecule%isElongated ) then
         this%Qm0(np, :)   = this%Qm0(this%NPart, :)
         this%Q0(np, :, :) = this%Q0(this%NPart, :, :)
       end if
+
 
       nu=this%Molecule%NUnit
 
@@ -5582,7 +5450,10 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Remove last particle
     this%NPart = this%NPart - 1
 #if MPI_VER > 0
-    this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
+    this%NPart1 = 1 + (this%NPart - 1) / NProcs
+    this%NPart0 = 1 + this%NPart1 * NProc
+    this%NPart2 = min( this%NPart0 + this%NPart1 - 1, this%NPart )
+    this%NPart1 = this%NPart2 - this%NPart0 + 1
 #endif
 
   end subroutine TComponent_RemoveParticle
@@ -5618,12 +5489,15 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Declare arguments
     type(TComponent) :: this
-    integer          :: i
+    integer          :: k
 
     ! Save current state
     this%P0Save = this%P0
-    do i = 1, this%Molecule%NUnit
-      if( this%Molecule%Unit(i)%IsElongated ) this%Q0Save = this%Q0
+    do k = 1, this%Molecule%NUnit
+      if( this%Molecule%Unit(k)%IsElongated ) then
+        this%Q0Save = this%Q0
+        exit
+      end if
     end do
 
 
@@ -5646,14 +5520,16 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Restore saved state
     this%P0 = this%P0Save
     do i = 1, this%Molecule%NUnit
-      if( this%Molecule%Unit(i)%IsElongated ) this%Q0 = this%Q0Save
+      if( this%Molecule%Unit(i)%IsElongated ) then
+        this%Q0 = this%Q0Save
+        exit
+      end if
     end do
 
     ! Calculate site positions
     do i=1,this%Molecule%NUnit
-      call Unit2Atom( this, this%NPart, i)
+      call Unit2Atom( this, this%NPart,1 )
     end do
-
 
   end subroutine TComponent_RestoreState
 
@@ -5671,8 +5547,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     type(TComponent) :: this
 
     ! Declare local variables
-    integer  :: np, i, k, nu
-    real(RK) :: pos(3), quat(4)
+    integer :: np, i
+    integer :: k,nu
 
     ! Assign local variables
     np = this%NPart
@@ -5685,11 +5561,14 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     write( iounit_restart, '(I10)' ) np
     if ( UseIntDegFreed ) write( iounit_restart, '(I10)' ) nu
 
-    ! Centers of mass positions
+
+    ! Centers of mass positions for units               !!!Michael Sch. changed all following expressions from : to 1,2,3(,..,5) to suppress I/O error messages
     do i = 1, np
       do k = 1, nu
-        pos(:) = this%P0(i,:, k)
-        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+        !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P0( i, :, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 1, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 2, k )
+        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 3, k )
       end do
     end do
 
@@ -5697,83 +5576,110 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Centers of mass positions' derivatives
       do i = 1, np
         do k = 1, nu
-          pos(:) = this%P1(i,:, k)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, :, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 1, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 2, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 3, k )
         end do
       end do
       do i = 1, np
         do k = 1, nu
-          pos(:) = this%P2(i,:, k)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+          !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, :, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 1, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 2, k )
+          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 3, k )
         end do
       end do
 
       if( IntegratorType .eq. IntegratorTypeGear ) then
         do i = 1, np
           do k = 1, nu
-            pos(:) = this%P3(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            pos(:) = this%P4(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            pos(:) = this%P5(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 3, k )
           end do
         end do
       end if
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-      write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
+      write( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
+&       this%NMoveBiasedSuccesses
       if ( UseIntDegFreed ) then
         write( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
         write( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
-        write( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, this%NMoveBiasedMolSuccesses
+        write( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, &
+&         this%NMoveBiasedMolSuccesses
       end if
     end if
 
     if( this%Molecule%isElongated ) then
       ! Quaternion parameters
       do i = 1, np
-        do k = 1, nu
-          quat(:) = this%Q0(i,:, k)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
-        end do
+         do  k = 1, nu
+            !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q0( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 3, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 4, k )
+         end do
       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Quaternion parameters' derivatives
         do i = 1, np
-          do k = 1, nu
-            quat(:) = this%Q1(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
-          end do
+         do  k = 1, nu
+            !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q1( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 3, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 4, k )
+         end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            do k = 1, nu
-              quat(:) = this%Q2(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+            do  k = 1, nu
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 4, k )
             end do
           end do
           do i = 1, np
-            do k = 1, nu
-              quat(:) = this%Q3(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+            do  k = 1, nu
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 4, k )
             end do
           end do
           do i = 1, np
-            do k = 1, nu
-              quat(:) = this%Q4(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+            do  k = 1, nu
+              !write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 3, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 4, k )
             end do
           end do
         end if
@@ -5781,45 +5687,59 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         ! Angular velocities and their derivatives
         do i = 1, np
           do k = 1, nu
-            pos(:) = this%W0(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 3, k )
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            pos(:) = this%W1(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, :, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 1, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 2, k )
+            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 3, k )
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            do k = 1, nu
-              pos(:) = this%W2(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            do k= 1, nu
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 3, k )
             end do
           end do
           do i = 1, np
-            do k = 1, nu
-              pos(:) = this%W3(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            do k= 1, nu
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 3, k )
             end do
           end do
           do i = 1, np
-            do k = 1, nu
-              pos(:) = this%W4(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
+            do k= 1, nu
+              !write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, :, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 1, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 2, k )
+              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 3, k )
             end do
           end do
         end if
       else
         write( iounit_restart, '(ES20.12E3)' ) this%DispRot
-        write( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
-        write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
+        write( iounit_restart, '(2I10)' ) this%NRotateAttempts, &
+&         this%NRotateSuccesses
+        write( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
+&         this%NRotateBiasedSuccesses
         if ( UseIntDegFreed ) then
           write( iounit_restart, '(ES20.12E3)' ) this%DispMolRot
-          write( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, this%NRotateMolSuccesses
-          write( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, this%NRotateBiasedMolSuccesses
+          write( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, &
+&           this%NRotateMolSuccesses
+          write( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, &
+&           this%NRotateBiasedMolSuccesses
         end if
       end if
 
@@ -5852,15 +5772,16 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: i, np, nu, k
+    integer :: i, np
+    integer :: nu, k
     real(RK):: r(3)
-
 
     if( RootProc ) then
 
       ! Read contents from restart file
       read( iounit_restart, '(I10)' ) np
-      if( np > this%NPartMax ) call Error( 'Not enough memory to read particles from restart file' )
+      if( np > this%NPartMax ) &
+&       call Error( 'Not enough memory to read particles from restart file' )
       this%NPart = np
       if (UseIntDegFreed) then
         read( iounit_restart, '(I10)' ) nu
@@ -5887,6 +5808,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         this%Pm0old(i,:) = this%Pm0(i, :)
       end do
 
+
       if( SimulationType .eq. MolecularDynamics ) then
         ! Centers of mass positions' derivatives
         do i = 1, np
@@ -5894,7 +5816,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P1( i, : , k )
           end do
         end do
-
         do i = 1, np
           do k = 1, nu
             read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P2( i, : , k )
@@ -5907,29 +5828,27 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P3( i, :, k )
             end do
           end do
-
           do i = 1, np
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P4( i, :, k )
             end do
           end do
-
           do i = 1, np
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%P5( i, :, k )
             end do
           end do
-
         end if
-
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
-        read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, this%NMoveBiasedSuccesses
+        read( iounit_restart, '(2I10)' ) this%NMoveBiasedAttempts, &
+&         this%NMoveBiasedSuccesses
         if ( UseIntDegFreed ) then
           read( iounit_restart, '(ES20.12E3)' ) this%DispMolTran
           read( iounit_restart, '(2I10)' ) this%NMoveMolAttempts, this%NMoveMolSuccesses
-          read( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, this%NMoveBiasedMolSuccesses
+          read( iounit_restart, '(2I10)' ) this%NMoveBiasedMolAttempts, &
+&           this%NMoveBiasedMolSuccesses
         end if
       end if
 
@@ -5955,13 +5874,11 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
                 read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q2( i, :, k )
               end do
             end do
-
             do i = 1, np
               do k = 1, nu
                 read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q3( i, :, k )
               end do
             end do
-
             do i = 1, np
               do k = 1, nu
                 read( iounit_restart, '(4(ES20.12E3, :, ";"))' ) this%Q4( i, :, k )
@@ -5975,7 +5892,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W0( i, :, k )
             end do
           end do
-
           do i = 1, np
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W1( i, :, k )
@@ -5988,30 +5904,31 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
                 read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W2( i, : , k)
               end do
             end do
-
             do i = 1, np
               do k = 1, nu
                 read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W3( i, : , k)
               end do
             end do
-
             do i = 1, np
               do k = 1, nu
                 read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%W4( i, : , k)
               end do
             end do
-
           end if
-
         else
           read( iounit_restart, '(ES20.12E3)' ) this%DispRot
-          read( iounit_restart, '(2I10)' ) this%NRotateAttempts, this%NRotateSuccesses
-          read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, this%NRotateBiasedSuccesses
+          read( iounit_restart, '(2I10)' ) this%NRotateAttempts, &
+&           this%NRotateSuccesses
+          read( iounit_restart, '(2I10)' ) this%NRotateBiasedAttempts, &
+&           this%NRotateBiasedSuccesses
           if ( UseIntDegFreed ) then
             read( iounit_restart, '(ES20.12E3)' ) this%DispMolRot
-            read( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, this%NRotateMolSuccesses
-            read( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, this%NRotateBiasedMolSuccesses
+            read( iounit_restart, '(2I10)' ) this%NRotateMolAttempts, &
+&             this%NRotateMolSuccesses
+            read( iounit_restart, '(2I10)' ) this%NRotateBiasedMolAttempts, &
+&             this%NRotateBiasedMolSuccesses
           end if
+
         end if
       end if
 
@@ -6024,49 +5941,73 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
-    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) then
-      call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
-    end if
-      
+    call MPI_Bcast( this%NPart, 1, MPI_INTEGER, NRootProc, &
+&     Communicator, ierror )
+    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
+    call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, &
+&     NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
+    if( this%Molecule%isElongated ) &
+&     call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) ) then
-
-      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-      call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%DispTran, 1, MPI_RK, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( this%NMoveAttempts, 1, MPI_INTEGER, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( this%NMoveSuccesses, 1, MPI_INTEGER, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( this%NMoveBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
+&       Communicator, ierror )
+      call MPI_Bcast( this%NMoveBiasedSuccesses, 1, MPI_INTEGER, NRootProc, &
+&       Communicator, ierror )
       if ( UseIntDegFreed ) then
-        call MPI_Bcast( this%DispMolTran, 1, MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NMoveMolAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NMoveMolSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NMoveBiasedMolAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NMoveBiasedMolSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%DispMolTran, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NMoveMolAttempts, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NMoveMolSuccesses, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NMoveBiasedMolAttempts, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NMoveBiasedMolSuccesses, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
       end if
-
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-        call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
+&         Communicator, ierror )
+        call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
+&         NRootProc, Communicator, ierror )
         if ( UseIntDegFreed ) then
-          call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, Communicator, ierror )
-          call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-          call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-          call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-          call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+          call MPI_Bcast( this%DispRot, 1, MPI_RK, NRootProc, &
+&           Communicator, ierror )
+          call MPI_Bcast( this%NRotateAttempts, 1, MPI_INTEGER, NRootProc, &
+&           Communicator, ierror )
+          call MPI_Bcast( this%NRotateSuccesses, 1, MPI_INTEGER, NRootProc, &
+&           Communicator, ierror )
+          call MPI_Bcast( this%NRotateBiasedAttempts, 1, MPI_INTEGER, NRootProc, &
+&           Communicator, ierror )
+          call MPI_Bcast( this%NRotateBiasedSuccesses, 1, MPI_INTEGER, &
+&           NRootProc, Communicator, ierror )
         end if
       end if
     end if
-
     if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
+&       NRootProc, Communicator, ierror )
+      call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, &
+&       NRootProc, Communicator, ierror )
+      call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, &
+&       NRootProc, Communicator, ierror )
     end if
 #endif
 
@@ -6076,165 +6017,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
   end subroutine TComponent_RestartRead
 
 
-!TRANSPORT_start
-!==============================================================!
-!  Subroutine TComponent_ForceTransport                        !
-!==============================================================!
-
-subroutine TComponent_ForceTransport( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)  :: this
-#if TRANS==1
-    integer           :: i, j, k, nra
-    real(RK), pointer :: pFTC1(:,:), pFTC2(:,:), pFTC3(:,:)
-    real(RK), pointer :: pFRC1(:,:), pFRC2(:,:), pFRC3(:,:)
-    real(RK)          :: BoxLength_dt
-    real(RK)          :: BoxLength_dt2
-
-    !declare local variables
-    BoxLength_dt = this%BoxLength/TimeStep
-    BoxLength_dt2 = BoxLength_dt*BoxLength_dt
-
-
-    this%FTC(:,:) = 0._RK
-    this%FRC(:,:) = 0._RK
-    this%KinETran(:,:) = 0._RK
-
-    if (RootProc) then
-
-   !   if (this%Conductivity) then
-#if MPI_VER > 0
-        pFTC1 => this%FTC1All(:,:)
-        pFTC2 => this%FTC2All(:,:)
-        pFTC3 => this%FTC3All(:,:)
-
-        pFRC1 => this%FRC1All(:,:)
-        pFRC2 => this%FRC2All(:,:)
-        pFRC3 => this%FRC3All(:,:)
-#else
-        pFTC1 => this%FTC1(:,:)
-        pFTC2 => this%FTC2(:,:)
-        pFTC3 => this%FTC3(:,:)
-
-        pFRC1 => this%FRC1(:,:)
-        pFRC2 => this%FRC2(:,:)
-        pFRC3 => this%FRC3(:,:)
-#endif
-       !Michael Sch.: this only works for 1unit per molecule...no P1 and W0 defined for COM only for the units !!!
-        do k = 1, 3
-          do i= 1, this%Npart  
-            this%FTC(i,1)= this%FTC(i,1)+ pFTC1(i,k)*this%P1(i,k, 1)
-            this%FTC(i,2)= this%FTC(i,2)+ pFTC2(i,k)*this%P1(i,k, 1)
-            this%FTC(i,3)= this%FTC(i,3)+ pFTC3(i,k)*this%P1(i,k, 1)
-          end do
-        end do
-
-        nra = this%Molecule%NDFRot
-        do k= 1, nra
-          do i= 1, this%Npart
-            this%FRC(i,1)= this%FRC(i,1)+ pFRC1(i,k)*this%W0(i,k, 1)
-            this%FRC(i,2)= this%FRC(i,2)+ pFRC2(i,k)*this%W0(i,k, 1)
-            this%FRC(i,3)= this%FRC(i,3)+ pFRC3(i,k)*this%W0(i,k, 1)
-          end do
-        end do
-
-        this%FTC(:,:) = this%FTC(:,:)*BoxLength_dt
-
-
-        ! Calculate kinetic energy / molecule
-        do j = 1, 3
-          this%KinETran(:,j) = this%P1(:,j, 1)*this%P1(:,j, 1)
-        end do
-
-        this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
-
-        this%KinETranTotal(1) = sum(this%KinETran(:,1))
-        this%KinETranTotal(2) = sum(this%KinETran(:,2))
-        this%KinETranTotal(3) = sum(this%KinETran(:,3))
-
-    end if ! RootProc
-#endif
-
-  end subroutine TComponent_ForceTransport
-!TRANSPORT_END
-
-
-#if CONSTR > 0
-!==============================================================!
-!  Subroutine TComponent_CorrectGear                           !
-!==============================================================!
-
-  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)         :: this
-    real(RK),intent(in)      :: dLogVolumeThird
-    integer,intent (in)      :: aa
-    real(RK), intent(in out) :: Forc
-    real(RK),intent(in)      :: drx,dry,drz
-
-    ! Declare local variables
-    real(RK)          :: BoxLength
-    real(RK)          :: Mass
-    real(RK)          :: np
-    real(RK)          :: ff
-    real(RK)          :: Corr0,Corr0ff,Corr1
-    real(RK)          :: dr(3)
-    integer           :: i, j
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    Mass = this%Molecule%Mass
-    np = 2
-    dr(1) = drx
-    dr(2) = dry
-    dr(3) = drz
-
-    ! Correct COM positions and their derivatives
-    do j = 1, 3,1
-
-      Corr1 = + dr(j) / Gear20
-      Corr0 = Corr1 + this%P2(aa,j)
-
-      Corr0ff = Corr0
-      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
-
-        ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-        Forc = Forc + ff
-        this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
-
-        ! Check for conservation of particles in primary cell
-
-#if ARCH == 1
-        if( this%P0(aa, j) < -.5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) + 1._RK
-        elseif( this%P0(i, j) > .5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) - 1._RK
-        end if
-#else
-        this%P0(aa, j) = this%P0(aa, j) - anint( this%P0(aa, j) )
-#endif
-        this%P0old(aa, j) = this%P0(aa, j)
-    end do
-
-  end subroutine TComponent_CorrectGear_Constraint
-
-#endif
 
 
 
