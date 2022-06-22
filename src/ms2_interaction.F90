@@ -73,8 +73,10 @@ module ms2_interaction
     real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
     logical           :: OptPressure
 
+    real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :), d2EpotdV2Mol(:,:)
+
     ! Arrays for center of mass cutoff
-    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)
+    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)!, RDFSum (:)
 
     ! Center of mass positions
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)

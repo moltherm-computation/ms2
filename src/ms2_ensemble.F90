@@ -59,6 +59,17 @@ module ms2_ensemble
     ! I/O unit for visualization file
     integer :: iounit_visual
 
+    ! I/O unit for RDF file
+    integer :: iounit_rdf
+    
+#if  TRANS == 1
+    ! I/O unit for result ACF
+    integer :: iounit_rescf   !TRANSPORT_thisline
+    logical :: Conductivity
+    logical :: EConductivity
+    logical :: MolarEnthConduct
+#endif
+
     ! Maximum number of particles
     integer, pointer :: NPartMax
     integer, pointer :: NPartMaxFluct
@@ -92,7 +103,7 @@ module ms2_ensemble
     integer :: NCells
 
     ! Number of components in ensemble
-    integer :: NComponents, NRealComponents
+    integer :: NComponents, NRealComponents, NGradInsComp
 
     ! Maximum numbers of sites in components
     integer :: NLJ126Max, NChargeMax, NDipoleMax, NQuadrupoleMax
@@ -136,6 +147,12 @@ module ms2_ensemble
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
 
+ 
+    !RDF Hilfsvariable
+    real(RK) :: RDFdr, RDFdr3
+    real(RK), pointer :: RDFVSchale(:)
+    real(RK), pointer :: RDF(:) 
+    
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
 
@@ -156,12 +173,16 @@ module ms2_ensemble
     integer :: NResizeAttempts, NResizeSuccesses
     integer :: NInsertAttempts, NInsertSuccesses
     integer :: NDeleteAttempts, NDeleteSuccesses
+    integer :: NTransferAttempts, NTransferSuccesses
 
     ! Kinetic energy
     real(RK) :: EKin, EKinTran, EKinRot
 
     ! Potential energy
     real(RK) :: EPot
+
+    ! d2EpotdV2
+    real(RK) :: d2EpotdV2
 
     ! Intra and inter potential energy
     real(RK) :: EPotIntra
@@ -190,15 +211,17 @@ module ms2_ensemble
     type(TAccumulator) :: SumEnthalpy
     type(TAccumulator) :: SumEPotIntra
     type(TAccumulator) :: SumEPotInter
-    type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumEPotIntra_Bond
     type(TAccumulator) :: SumEPotIntra_Angle
     type(TAccumulator) :: SumEPotIntra_Dihedral
     type(TAccumulator) :: SumEPotIntra_Nonbonded
+    type(TAccumulator) :: SumVolume
     type(TAccumulator) :: SumVirial
     type(TAccumulator) :: SumVirialIntra
     type(TAccumulator) :: SumVirialInter
     type(TAccumulator) :: SumNPart
+    type(TAccumulator) :: SumdEpotdV
+    type(TAccumulator) :: Sumd2EpotdV2
 
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
@@ -207,6 +230,20 @@ module ms2_ensemble
     type(TAccumulator) :: SumEnthalpySquared
     type(TAccumulator) :: SumEnthalpyV
     type(TAccumulator) :: SumVolumeSquared
+    type(TAccumulator) :: SumEPotCubic
+    type(TAccumulator) :: SumdEpotdVSquared
+    type(TAccumulator) :: SumEPotdEpotdV
+    type(TAccumulator) :: SumEPotSquareddEpotdV
+    type(TAccumulator) :: SumEPotdEpotdVSquared
+    type(TAccumulator) :: SumEPotd2EpotdV2
+    type(TAccumulator) :: SumA10resNVT
+    type(TAccumulator) :: SumA01resNVT
+    type(TAccumulator) :: SumA20resNVT
+    type(TAccumulator) :: SumA11resNVT
+    type(TAccumulator) :: SumA02resNVT
+    type(TAccumulator) :: SumA30resNVT
+    type(TAccumulator) :: SumA21resNVT
+    type(TAccumulator) :: SumA12resNVT
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -253,10 +290,9 @@ module ms2_ensemble
     real(RK),pointer:: bsp_arr(:), bsp_modx(:), bsp_mody(:), bsp_modz(:)
     real(RK)        :: EVirialIntra
     real(RK),pointer:: EPotPME(:), VirialPME(:), mm2(:)
-!    real(RK),pointer:: spline(:), dspline(:)
 #endif
 
-   ! Extended ReactionField Method
+    ! Extended ReactionField Method
     real(RK)        :: DebyeLen
 
   end type TEnsemble
@@ -663,19 +699,6 @@ module ms2_ensemble
   interface EwaldSelfTerm_Energy
     module procedure TEnsemble_EwaldSelf_Energy
   end interface
-! ! !
-! ! !   interface Ewald_ChemPotSelf
-! ! !     module procedure TEnsemble_Ewald_ChemPotSelf
-! ! !   end interface
-! ! !
-! ! !
-! ! !   interface Ewald_ChemPotFour
-! ! !     module procedure TEnsemble_Ewald_ChemPotFour
-! ! !   end interface
-
-!   interface PMESelfTerm
-!     module procedure TEnsemble_PMESelfTerm
-!   end interface
 
 #ifdef SPME
   interface PMEFourierTerm

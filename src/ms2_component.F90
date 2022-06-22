@@ -1,16 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_component                                        !
 !  Contains TComponent object                                  !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -37,15 +47,14 @@ module ms2_component
 
     ! Positions and orientations of test particles
     real(RK), pointer :: Pm0Test(:, :), Qm0Test(:, :)
-
+    
     ! Positions and orientations for units of test particles
     real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
 
-    ! Centers of mass positions and their derivatives for molecules
+    ! Centers of mass positions for molecules
     real(RK), pointer :: Pm0(:, :)
     real(RK), pointer :: P0Save( :, :, :)
     real(RK), pointer :: Pm0old(:, :)
-
 
     ! Centers of mass positions and their derivatives for Units
     real(RK), pointer :: P0(:, :, :)
@@ -55,11 +64,8 @@ module ms2_component
     real(RK), pointer :: P4(:, :, :)
     real(RK), pointer :: P5(:, :, :)
 
-
     ! Quaternion parameters for molecules - only to calculate the initial orientation
     real(RK), pointer :: Qm0(:, :)
-
-
 
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer :: Q0(:, :, :)
@@ -70,7 +76,6 @@ module ms2_component
     real(RK), pointer :: Q3(:, :, :)
     real(RK), pointer :: Q4(:, :, :)
 
-
     ! Angular velocities and their derivatives for units
     real(RK), pointer :: W0(:, :, :)
     real(RK), pointer :: W1(:, :, :)
@@ -78,7 +83,7 @@ module ms2_component
     real(RK), pointer :: W3(:, :, :)
     real(RK), pointer :: W4(:, :, :)
 
-    ! Displacement for molecules
+    ! Displacement
     real(RK), pointer :: Disp(:, :)
 
     ! Total forces acting on units
@@ -93,7 +98,43 @@ module ms2_component
     real(RK), pointer :: TAll(:, :, :)
 #endif
 
-    ! Total dipole moment of units of molecule for reaction field
+#if  TRANS == 1
+!TRANSPORT_start
+    real(RK), pointer :: KinETran(:,:)
+    real(RK) :: KinETranTotal(3)
+    real(RK) :: PartialMolarEnthalpy
+
+    real(RK), pointer :: FS(:,:)
+    real(RK), pointer :: FB(:,:)
+    real(RK), pointer :: FTC(:,:)
+    real(RK), pointer :: FRC(:,:)
+
+    real(RK), pointer :: FTC1(:,:)
+    real(RK), pointer :: FTC2(:,:)
+    real(RK), pointer :: FTC3(:,:)
+
+    real(RK), pointer :: FRC1(:,:)
+    real(RK), pointer :: FRC2(:,:)
+    real(RK), pointer :: FRC3(:,:)
+#if MPI_VER > 0
+    real(RK), pointer :: FSAll(:,:)
+    real(RK), pointer :: FBAll(:,:)
+    real(RK), pointer :: FRCAll(:,:)
+
+! Components of the FTC Tensor(3)
+    real(RK), pointer :: FTC1All(:,:)
+    real(RK), pointer :: FTC2All(:,:)
+    real(RK), pointer :: FTC3All(:,:)
+
+! Components of the FRC Tensor(3)
+    real(RK), pointer :: FRC1All(:,:)
+    real(RK), pointer :: FRC2All(:,:)
+    real(RK), pointer :: FRC3All(:,:)
+#endif
+
+#endif
+
+    ! Total dipole moment of units of a molecule for reaction field
     real(RK), pointer :: MueX(:, :), MueY(:, :), MueZ(:, :)
 
     ! Torques from reaction field, space fixed
@@ -114,7 +155,7 @@ module ms2_component
 
     ! Maximum number of particles in component
     integer, pointer :: NPartMax
-
+    
     ! Maximum number of units in component
     integer, pointer :: NUnitMax
 
@@ -153,9 +194,10 @@ module ms2_component
 
     ! Chemical potential
     logical  :: CalcChemPot
-    integer  :: ChemPotMethod, WFMethod
+    integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
     real(RK) :: ChemPot, WidomContribution
+	real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG
@@ -163,9 +205,13 @@ module ms2_component
     real(RK) :: VarChemPot, VarPartialMolarVolume
 
     integer  :: BiasedPartners
+    integer  :: BiasedPartnersNum
 
     ! IDF
     integer, pointer :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
+
+    ! Ewald
+    real(RK) :: EPotTestSelf
 
     ! Fluctuating components and weighting factors
     integer           :: NFluctState, NFluctMax
@@ -185,15 +231,14 @@ module ms2_component
     ! Long-range corrections
     real(RK) :: EPotTestCorrLJ
     real(RK) :: EPotTestCorrRF
-
-    ! Inner Degrees of Freedom
+    
+    ! Internal degrees of freedom
     integer,pointer :: BondCount(:)
     integer,pointer :: BoPartner(:,:)
     integer,pointer :: AngleCount(:)
     integer,pointer :: AnglePartner(:,:)
     integer,pointer :: DihedralCount(:)
     integer,pointer :: DihedralPartner(:,:)
-
 
     ! Accumulated sums, averages and errors
     type(TAccumulator) :: SumInvChemPotRho
@@ -206,7 +251,10 @@ module ms2_component
 !DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
+    type(TAccumulator) :: SumHW_counter
+    type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
+    type(TAccumulator) :: SumHM
 !DEBUG
     type(TAccumulator) :: SumVW1
     type(TAccumulator) :: SumVW2
@@ -286,7 +334,7 @@ module ms2_component
   interface Mol2AtomTest
     module procedure TComponent_Mol2AtomTest
   end interface
-
+  
   interface Mol2Resize
     module procedure TComponent_Mol2Resize
   end interface
