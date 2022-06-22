@@ -59,7 +59,15 @@ module ms2_simulation
     ! SimulationType
     logical :: realMC
 
-  end type TSimulation
+#if  TRANS == 1
+!TRANSPORT_start
+    ! I/O unit for correlation function
+    integer :: iounit_rescf
+!TRANSPORT_END
+#endif
+
+
+end type TSimulation
 
   interface Construct
     module procedure TSimulation_Construct

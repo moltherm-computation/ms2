@@ -59,10 +59,9 @@ module ms2_interaction
     type(TPotDihedral), pointer             :: PotDihedral(:)
 
     ! Potential energy
-    real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :)
+    real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
     real(RK), pointer :: EPotTo(:), EPotAngle(:), EPotBond(:)
     real(RK), pointer :: EPot1To(:), EPot1Angle(:), EPot1Bond(:)
-    real(RK), pointer :: EPotMol(:,:), VirialMol(:,:)
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
@@ -70,7 +69,7 @@ module ms2_interaction
     real(RK), pointer :: MayerFFunction2(:), IntFFunction2(:)
 
     ! Virial
-    real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :)
+    real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :), VirialMol(:,:)
     logical           :: OptPressure
 
     real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :), d2EpotdV2Mol(:,:)
@@ -158,6 +157,13 @@ module ms2_interaction
     integer  :: NDipole_U1, NDipole_U2
     integer  :: NQuadrupole_U1, NQuadrupole_U2
 
+#ifdef ABL
+    real(RK),pointer :: AblS(:)
+    real(RK),pointer :: AblE(:)
+    real(RK),pointer :: AblPS(:,:)
+    real(RK),pointer :: AblPE(:,:)
+#endif
+
   end type TInteraction
 
   interface Construct
@@ -191,8 +197,8 @@ module ms2_interaction
   interface Energy
     module procedure TInteraction_Energy
   end interface
-
-   interface IntraEnergy
+  
+  interface IntraEnergy
     module procedure TInteraction_IntraEnergy
   end interface
 
@@ -204,7 +210,7 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners
     module procedure TInteraction_CalcPartners1
   end interface
-
+  
   interface CalcCutoffPartnersIntra
     module procedure TInteraction_CalcPartnersIntra
   end interface
@@ -213,10 +219,7 @@ module ms2_interaction
     module procedure TInteraction_CalcPartnersTest
   end interface
 
-
-
 contains
-
 
 
 !==============================================================!
@@ -252,16 +255,16 @@ contains
 
     ! RFConstant2
     if (LongRange .eq. RField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 &
-&       * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
+
     else
       fac = this%DebyeLen*RCutoffDipoleDipole
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 &
-&       * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
-&       / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
+      this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
+&                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
+&                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
+
       this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
-&               / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
-!       this%RFConst3 = ( 1._RK - RFEpsilon*(1+fac) ) / ( RFEpsilon*(1+fac) )
+&                     / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
       this%RFConstant=RCutoffDipoleDipole
     end if
 
@@ -276,7 +279,6 @@ contains
     this%NUnitMax = max( Component1%NUnitMax, Component2%NUnitMax )
     this%NUnit1 => Component1%Molecule%NUnit
     this%NUnit2 => Component2%Molecule%NUnit
-
 #if MPI_VER > 0
     this%NPart10 => Component1%NPart0
     this%NPart12 => Component1%NPart2
@@ -294,7 +296,7 @@ contains
     this%N2Dipole = Component2%Molecule%NDipole
     this%N1Quadrupole = Component1%Molecule%NQuadrupole
     this%N2Quadrupole = Component2%Molecule%NQuadrupole
-
+    
     ! Set number of Idf sites
     this%NBond = Component1%Molecule%NBond
     this%NAngle = Component1%Molecule%NAngle
@@ -405,7 +407,6 @@ contains
     nullify( this%PotAngle )
     nullify( this%PotDihedral )
 
-
     ! Construct Lennard-Jones potentials
     if( this%N1LJ126 > 0 .and. this%N2LJ126 > 0 ) then
       allocate( this%PotLJ126LJ126(this%N1LJ126, this%N2LJ126), STAT = stat )
@@ -413,8 +414,9 @@ contains
       do j1 = 1, this%N1LJ126
         do j2 = 1, this%N2LJ126
           call Construct( this%PotLJ126LJ126(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&           RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
+        
           this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -440,15 +442,14 @@ contains
 
     ! Construct charge-dipole potentials
     if( this%N1Charge > 0 .and. this%N2Dipole > 0 ) then
-      allocate( &
-&       this%PotChargeDipole(this%N1Charge, this%N2Dipole), &
-&       STAT = stat )
+      allocate(this%PotChargeDipole(this%N1Charge, this%N2Dipole), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Charge + this%N2Dipole )
       do j1 = 1, this%N1Charge
         do j2 = 1, this%N2Dipole
           call Construct( this%PotChargeDipole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&              i1, i2, j1, j2, Component1%Molecule, &
+&              Component2%Molecule, RCutoffDipoleDipole )
+
           this%PotChargeDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeDipole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -464,8 +465,9 @@ contains
       do j1 = 1, this%N1Charge
         do j2 = 1, this%N2Quadrupole
           call Construct( this%PotChargeQuadrupole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&              i1, i2, j1, j2, Component1%Molecule, &
+&              Component2%Molecule, RCutoffDipoleDipole )
+
           this%PotChargeQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotChargeQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -474,15 +476,14 @@ contains
 
     ! Construct dipole-charge potentials
     if( this%N1Dipole > 0 .and. this%N2Charge > 0 ) then
-      allocate( &
-&       this%PotDipoleCharge(this%N1Dipole, this%N2Charge), &
-&       STAT = stat )
+      allocate(this%PotDipoleCharge(this%N1Dipole, this%N2Charge), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Dipole + this%N2Charge )
       do j1 = 1, this%N1Dipole
         do j2 = 1, this%N2Charge
           call Construct( this%PotDipoleCharge(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&              i1, i2, j1, j2, Component1%Molecule, &
+&              Component2%Molecule, RCutoffDipoleDipole )
+
           this%PotDipoleCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleCharge(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -491,15 +492,14 @@ contains
 
     ! Construct dipole-dipole potentials
     if( this%N1Dipole > 0 .and. this%N2Dipole > 0 ) then
-      allocate( &
-&       this%PotDipoleDipole(this%N1Dipole, this%N2Dipole), &
-&       STAT = stat )
+      allocate(this%PotDipoleDipole(this%N1Dipole, this%N2Dipole), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Dipole + this%N2Dipole )
       do j1 = 1, this%N1Dipole
         do j2 = 1, this%N2Dipole
           call Construct( this%PotDipoleDipole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&           RCutoffDipoleDipole, RFEpsilon )
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffDipoleDipole, RFEpsilon )
+
           this%PotDipoleDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleDipole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -508,15 +508,14 @@ contains
 
     ! Construct dipole-quadrupole potentials
     if( this%N1Dipole > 0 .and. this%N2Quadrupole > 0 ) then
-      allocate( &
-&       this%PotDipoleQuadrupole(this%N1Dipole, this%N2Quadrupole), &
-&       STAT = stat )
+      allocate(this%PotDipoleQuadrupole(this%N1Dipole, this%N2Quadrupole), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Dipole + this%N2Quadrupole )
       do j1 = 1, this%N1Dipole
         do j2 = 1, this%N2Quadrupole
           call Construct( this%PotDipoleQuadrupole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&           RCutoffDipoleQuadrupole )
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffDipoleQuadrupole )
+
           this%PotDipoleQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotDipoleQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -525,15 +524,14 @@ contains
 
     ! Construct quadrupole-charge potentials
     if( this%N1Quadrupole > 0 .and. this%N2Charge > 0 ) then
-      allocate( &
-&       this%PotQuadrupoleCharge(this%N1Quadrupole, this%N2Charge), &
-&       STAT = stat )
+      allocate(this%PotQuadrupoleCharge(this%N1Quadrupole, this%N2Charge), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Quadrupole + this%N2Charge )
       do j1 = 1, this%N1Quadrupole
         do j2 = 1, this%N2Charge
           call Construct( this%PotQuadrupoleCharge(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, &
-&           Component2%Molecule, RCutoffDipoleDipole )
+&              i1, i2, j1, j2, Component1%Molecule, &
+&              Component2%Molecule, RCutoffDipoleDipole )
+
           this%PotQuadrupoleCharge(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleCharge(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -542,15 +540,14 @@ contains
 
     ! Construct quadrupole-dipole potentials
     if( this%N1Quadrupole > 0 .and. this%N2Dipole > 0 ) then
-      allocate( &
-&       this%PotQuadrupoleDipole(this%N1Quadrupole, this%N2Dipole), &
-&       STAT = stat )
+      allocate(this%PotQuadrupoleDipole(this%N1Quadrupole, this%N2Dipole), STAT = stat )
       call AllocationError( stat, 'sites', this%N1Quadrupole + this%N2Dipole )
       do j1 = 1, this%N1Quadrupole
         do j2 = 1, this%N2Dipole
           call Construct( this%PotQuadrupoleDipole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&           RCutoffDipoleQuadrupole )
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffDipoleQuadrupole )
+
           this%PotQuadrupoleDipole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleDipole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
@@ -559,23 +556,21 @@ contains
 
     ! Construct quadrupole-quadrupole potentials
     if( this%N1Quadrupole > 0 .and. this%N2Quadrupole > 0 ) then
-      allocate( &
-&       this%PotQuadrupoleQuadrupole(this%N1Quadrupole, this%N2Quadrupole), &
-&       STAT = stat )
-      call AllocationError( &
-&       stat, 'sites', this%N1Quadrupole + this%N2Quadrupole )
+      allocate(this%PotQuadrupoleQuadrupole(this%N1Quadrupole, this%N2Quadrupole), STAT = stat )
+      call AllocationError(stat, 'sites', this%N1Quadrupole + this%N2Quadrupole )
       do j1 = 1, this%N1Quadrupole
         do j2 = 1, this%N2Quadrupole
           call Construct( this%PotQuadrupoleQuadrupole(j1, j2), &
-&           i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&           RCutoffQuadrupoleQuadrupole )
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffQuadrupoleQuadrupole )
+
           this%PotQuadrupoleQuadrupole(j1, j2)%NInCutoff => this%NInCutoff
           this%PotQuadrupoleQuadrupole(j1, j2)%CutoffPartner => this%CutoffPartner
         end do
       end do
     end if
-
-   ! Construct bond potentials
+    
+    ! Construct bond potentials
     if (UseIntDegFreed .and. this%SameComponent .and. this%NBond > 0 ) then
        allocate( this%PotBond(this%NBond),STAT=stat )
        call AllocationError ( stat, 'Idfsites', this%NBond)
@@ -727,30 +722,33 @@ contains
         call Destruct( this%PotQuadrupoleQuadrupole(i, j) )
       end do
     end do
-   if( associated( this%PotQuadrupoleQuadrupole ) ) &
-&    deallocate( this%PotQuadrupoleQuadrupole )
-
-
+    if( associated( this%PotQuadrupoleQuadrupole ) ) then
+      deallocate( this%PotQuadrupoleQuadrupole )
+    end if
+    
     ! Destroy bond-potentials
    do i=1, this%NBond
       call Destruct( this%PotBond(i))
     end do
-    if( associated( this%PotBond ) ) &
-&     deallocate( this%PotBond )
+    if( associated( this%PotBond ) ) then
+      deallocate( this%PotBond )
+    end if
 
     ! Destroy angle-potentials
    do i=1, this%NAngle
       call Destruct( this%PotAngle(i))
     end do
-    if( associated( this%PotAngle ) ) &
-&     deallocate( this%PotAngle )
+    if( associated( this%PotAngle ) ) then
+      deallocate( this%PotAngle )
+    end if
 
     ! Destroy dihedral-potentials
    do i=1, this%NDihedral
       call Destruct( this%PotDihedral(i))
     end do
-    if( associated( this%PotDihedral ) ) &
-&     deallocate( this%PotDihedral )
+    if( associated( this%PotDihedral ) ) then
+      deallocate( this%PotDihedral )
+    end if
 
     ! Destroy arrays
     call Deallocate( this )
@@ -777,13 +775,18 @@ contains
     nullify( this%EPot )
     nullify( this%EPot1 )
     nullify( this%EPotNew )
+    nullify( this%EPotMol )
     nullify( this%EPotBond)
     nullify( this%EPot1Bond)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
     nullify( this%EPotTo )
     nullify( this%EPot1To )
-    nullify( this%EPotMol )
+    nullify( this%d2EpotdV2 )
+    nullify( this%d2EpotdV21 )
+    nullify( this%d2EpotdV2New )
+    nullify( this%d2EpotdV2Mol )
+
     if ( this%OptPressure ) then
       nullify( this%Virial )
       nullify( this%Virial1 )
@@ -792,7 +795,7 @@ contains
     end if
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
-
+    
     ! allocated only for SimulationType .eq. SecondVirialCoeff
     nullify( this%MayerFFunction )
     nullify( this%MayerFFunction1 )
@@ -800,12 +803,14 @@ contains
     nullify( this%IntFFunction )
     nullify( this%IntFFunction1 )
     nullify( this%IntFFunction2 )
+    
 
     ! Calculate dimension of arrays
-    if( EnsembleType .eq. EnsembleTypeGE .or. &
-&       EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
+  &     SimulationType .eq. Gibbs) then
       N1 = this%NPartMax*this%NUnitMax
       N2 = this%NPartMax*this%NUnitMax
+
     else
       N1 = max(this%NPart1*this%NUnit1, this%NUnit1)
       N2 = max(this%NPart2*this%NUnit2, this%NUnit2)
@@ -908,6 +913,9 @@ contains
     if( associated( this%EPotNew ) ) then
       deallocate( this%EPotNew )
     end if
+    if( associated( this%EPotMol ) ) then
+      deallocate( this%EPotMol )
+    end if
     if( associated( this%EPotBond ) ) then
       deallocate( this%EPotBond )
     end if
@@ -926,9 +934,20 @@ contains
     if( associated( this%EPot1To ) ) then
       deallocate( this%EPot1To )
     end if
-    if( associated( this%EPotMol ) ) then
-      deallocate( this%EPotMol )
+
+    if( associated( this%d2EpotdV2 ) ) then
+      deallocate( this%d2EpotdV2 )
     end if
+    if( associated( this%d2EpotdV21 ) ) then
+      deallocate( this%d2EpotdV21 )
+    end if
+    if( associated( this%d2EpotdV2New ) ) then
+      deallocate( this%d2EpotdV2New )	  
+    end if
+    if( associated( this%d2EpotdV2Mol ) ) then
+      deallocate( this%d2EpotdV2Mol )	  
+    end if
+
     if ( this%OptPressure ) then
       if( associated( this%Virial ) ) then
         deallocate( this%Virial )
@@ -1349,13 +1368,13 @@ contains
 !==============================================================!
 !  Subroutine TInteraction_Energy                              !
 !==============================================================!
-   subroutine TInteraction_Energy( this, np, nu, BoxLength )
+
+  subroutine TInteraction_Energy( this, np, nu, BoxLength )
 
     implicit none
 
     ! Declare arguments
     type(TInteraction)   :: this
-!    integer, intent(in)  :: nu1, nu2
     integer, intent(in)  :: np, nu
     real(RK), intent(in) :: BoxLength
 
@@ -1371,6 +1390,11 @@ contains
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
     real(RK), pointer :: EPot(:), Virial(:)
+    real(RK), pointer :: d2EpotdV2(:)
+    real(RK)          :: EPotLocal
+    real(RK)          :: VirialLocal
+    real(RK)          :: d2EpotdV2Local
+
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
@@ -1389,7 +1413,6 @@ contains
     real(RK)          :: eX, eY, eZ
     real(RK)          :: RijSquared, RijInv, RijSquaredInv, Rij3Inv
     real(RK)          :: Rij4Inv, Rij4Inv3, Rij5Inv, Rij6Inv
-    real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
 !     real(RK)          :: CosTheta3, CosTheta2,CosTheta
