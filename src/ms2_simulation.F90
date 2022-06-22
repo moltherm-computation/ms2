@@ -1,11 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_simulation                                       !
 !  Contains TSimulation object                                 !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -13,15 +19,15 @@
 #define MPI_VER 0
 #endif
 
+#ifndef TRANS
+#define TRANS 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
 
 module ms2_simulation
-
-!#ifdev MPI_VER > 0
-!  use mpi
-!#endif
 
   use ms2_global
   use ms2_ensemble

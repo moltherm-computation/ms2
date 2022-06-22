@@ -1,17 +1,26 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v12            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2007 by Bernhard Eckl, ITT                              !
-!  (c) 2007 by Ekaterina Elts, TUM                             !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
+!  (c) 2011 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
 !  Module ms2_site                                             !
 !  Contains TSite* objects                                     !
 !==============================================================!
 
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
 #define MPI_VER 0
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
@@ -204,9 +213,7 @@ module ms2_site
   end interface
 
 
-
 contains
-
 
 
 !==============================================================!
@@ -219,13 +226,15 @@ contains
 
     ! Declare arguments
     type(TSiteLJ126) :: this
+    
+    ! Declare local variables
     integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
     end if
-
+    
     nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
@@ -252,7 +261,6 @@ contains
   end subroutine TSiteLJ126_Construct
 
 
-
 !==============================================================!
 !  Subroutine TSiteLJ126_Destruct                              !
 !==============================================================!
@@ -268,7 +276,6 @@ contains
     continue
 
   end subroutine TSiteLJ126_Destruct
-
 
 
 !==============================================================!
@@ -316,6 +323,7 @@ contains
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -405,13 +413,15 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
+    
+    ! Declare local variables
     integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
       call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
     end if
-
+    
     nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
@@ -502,6 +512,7 @@ contains
       allocate( this%FZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )
@@ -512,7 +523,6 @@ contains
     end if
 
   end subroutine TSiteCharge_Allocate
-
 
 
 !==============================================================!
@@ -722,6 +732,7 @@ contains
       allocate( this%TZ( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
     end if
+
     if( nt > 0 ) then
       allocate( this%RXTest( nt ), STAT = stat )
       call AllocationError( stat, 'test particles', nt )

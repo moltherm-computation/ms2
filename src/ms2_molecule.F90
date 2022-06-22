@@ -251,20 +251,17 @@ contains
     integer                :: Charge1Id, Charge2Id, Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
 
-
-
+    
     ! Nullify pointers.
     nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
-    ! Inner Degrees of Freedom
     nullify( this%IdfBond )
     nullify( this%IdfAngle )
     nullify( this%IdfDihedral )
     nullify( this%Unit )
     nullify( this%NUnit )
-
 
     ! Open potential model file
     this%PotModFileName = filename
@@ -284,24 +281,27 @@ contains
     this%NBond = 0
     this%NAngle = 0
     this%NDihedral = 0
+    
     ! Zero number of Units
     this%NEUnit = 0
     allocate( this%NUnit, STAT = stat )
     call AllocationError( stat, 'number of units' )
-    ! Zero number of constraint and notconstrained Units
+    
+    ! Zero number of constraint and unconstrained Units
     this%NConstraint = 0
     this%NNotConstraint = 0
+    
     ! Zero number of Sites
     this%NSite = 0
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
 
 
-
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
+
       case( 'LJ126', 'lj126', 'LJ', 'lj' )
         call FileReadParameter( this%NLJ126, iounit_potmod, IdSite_NLJ126, .false. )
         if( this%NLJ126 > 0 ) then
@@ -311,6 +311,7 @@ contains
             call Construct( this%SiteLJ126(j) )
           end do
         end if
+
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
         call FileReadParameter( this%NCharge, iounit_potmod, IdSite_NCharge, .false. )
         if( this%NCharge > 0 ) then
@@ -320,6 +321,7 @@ contains
             call Construct( this%SiteCharge(j) )
           end do
         end if
+
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
         call FileReadParameter( this%NDipole, iounit_potmod, IdSite_NDipole, .false. )
         if( this%NDipole > 0 ) then
@@ -329,6 +331,7 @@ contains
             call Construct( this%SiteDipole(j) )
           end do
         end if
+
       case( 'QUADRUPOLE', 'Quadrupole', 'quadrupole', 'Q', 'q' )
         call FileReadParameter( this%NQuadrupole, iounit_potmod, IdSite_NQuadrupole, .false. )
         if( this%NQuadrupole > 0 ) then
@@ -338,6 +341,7 @@ contains
             call Construct( this%SiteQuadrupole(j) )
           end do
         end if
+
       case default
         call Error( trim( stype )//' potential is not implemented' )
       end select
@@ -370,7 +374,7 @@ contains
 
     ! Find number of degrees of freedom
     call FindNDF( this )
-
+    
     ! Internal degrees of freedom
     ! Calculate the total number of sites
     this%NSite = this%NLJ126+this%NCharge+this%NDipole+this%NQuadrupole
@@ -447,11 +451,11 @@ contains
     end if
 
 
-    ! Read number of internal degree of freedom types
+    ! Read number of IDF types
     if (UseIntDegFreed) then
       call FileReadParameter( nidftypes, iounit_potmod, IdIdf_ntypes, .false. )
 
-    ! Loop over internal degree of freedom types
+    ! Loop over IDF types
       do i =  1, nidftypes
         call FileReadParameter( sidftype, iounit_potmod, IdIdf_stype, .false. )
         select case( sidftype )
@@ -462,7 +466,6 @@ contains
             call AllocationError( stat, 'Bonds for integral degrees of freedom', this%NBond )
             do j = 1, this%NBond
               call Construct( this%IdfBond(j) )
-!             call FindBondR(this,this%IdfBond(j), j)
             end do
           end if
         case( 'ANGLE', 'Angle', 'angle', 'Angles', 'ANGLES' )
@@ -472,7 +475,6 @@ contains
             call AllocationError( stat, 'angles for internal degrees of freedom', this%NAngle )
             do j = 1, this%NAngle
               call Construct( this%IdfAngle(j) )
-!              call FindAngle(this,this%IdfAngle(j), j)
             end do
           end if
         case( 'DIHEDRAL', 'Dihedral', 'dihedral', 'Dihedrals', 'DIHEDRALS' )
@@ -517,8 +519,8 @@ contains
     ! Rewind File for reading Constraints
     call FileRewind( iounit_potmod, this%PotModFileName )
 
+    
     ! Construct Units
-
     if (UseIntDegFreed) then
       if (this%NConstraint > 0) then
         ! Construct constrained Units and create array this%ConstraintSiteIds
@@ -976,9 +978,7 @@ contains
            call binar_search(this%LJSiteIds(:), j, LJ2, index)
            if (LJ1 .and. LJ2) then
              IntLJ15(lj,1)=i
-!             print *, 'IntLJ15(lj,1)=', i
              IntLJ15(lj,2)=j
-!             print *, 'IntLJ15(lj,2)=', j
              lj=lj+1
            else if (.not. LJ1 .and. .not. LJ2) then
              call binar_search(this%ChargeSiteIds(:), i, charge1, index)
@@ -999,14 +999,10 @@ contains
                if (charge2) then
                  IntCC15(cc,1)= i
                  IntCC15(cc,2)= j
-!                print *, 'CC15, 1=', IntCC15(cc,1)
-!                print *, 'CC15, 2=', IntCC15(cc,2)
                  cc=cc+1
                else if (dipole2) then
                  IntCD15(cd,1)= i
                  IntCD15(cd,2)= j
-!                print *, 'CD15, 1=', IntCD15(cd,1)
-!                print *, 'CD15, 2=', IntCD15(cd,2)
                  cd=cd+1
                else !quadrupole2
                  IntCQ15(cq,1)=i
@@ -1048,11 +1044,6 @@ contains
          end if
        end do
      end do
-
-
-
-!     print *, 'Number of 1,5 LJ=', lj-1
-!     print *, 'Number of 1,5 CC=', cc-1
 
      allocate (this%IntLJ15(lj-1, 2), STAT = stat)
      call AllocationError( stat, 'this%IntLJ15', (lj-1)*2 )
@@ -1098,8 +1089,6 @@ contains
        call AllocationError( stat, 'this%IntQQ15', (qq-1)*2 )
        this%IntQQ15 = IntQQ15(1:qq-1,:)
       end if
-
-!     print *, "this%IntLJ15=", this%IntLJ15(:,:)
 
 
      if (LJEl14) then
@@ -1228,22 +1217,18 @@ contains
        allocate (this%IntLJ14(lj-1, 2), STAT = stat)
        call AllocationError( stat, 'this%IntLJ14', (lj-1)*2 )
        this%IntLJ14 = IntLJ14(1:lj-1,:)
-!       print *, 'IntLJ14=', this%IntLJ14(:,:)
        allocate (this%ScaleLJ14(lj-1), STAT = stat)
        call AllocationError( stat, 'ScaleLJ14', lj-1 )
        this%ScaleLJ14 = ScaleLJ14(1:lj-1)
-!       print *, 'ScaleLJ14=', this%ScaleLJ14(:)
 
 
        if (this%NCharge>0) then
          allocate (this%IntCC14(cc-1, 2), STAT = stat)
          call AllocationError( stat, 'this%IntCC14', (cc-1)*2 )
          this%IntCC14 = IntCC14(1:cc-1,:)
-!         print *, 'IntCC14=', this%IntCC14(:,:)
          allocate (this%ScaleCC14(cc-1), STAT = stat)
          call AllocationError( stat, 'ScaleCC14', cc-1 )
          this%ScaleCC14 = ScaleCC14(1:cc-1)
-!         print *, 'ScaleCC14=', this%ScaleCC14(:)
          if (this%NDipole>0) then
            allocate (this%IntCD14(cd-1, 2), STAT = stat)
            call AllocationError( stat, 'this%IntCD14', (cd-1)*2 )
@@ -1305,12 +1290,8 @@ contains
        end if
 
      end if
-   end if     ! (Inner Degrees of Freedom) IntLJE1
-
-
-
-
-
+   end if    ! (Internal Degrees of Freedom)
+    
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
@@ -1343,21 +1324,25 @@ contains
         this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
         this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
       end do
+
       do i = 1, this%NCharge
         this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
         this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
         this%SiteCharge(i)%e = this%SiteCharge(i)%e * scaleest
       end do
+
       do i = 1, this%NDipole
         this%SiteDipole(i)%r = this%SiteDipole(i)%r * scalegeo
         this%SiteDipole(i)%shield = this%SiteDipole(i)%shield * scalegeo
         this%SiteDipole(i)%D = this%SiteDipole(i)%D * scaleest
       end do
+
       do i = 1, this%NQuadrupole
         this%SiteQuadrupole(i)%r = this%SiteQuadrupole(i)%r * scalegeo
         this%SiteQuadrupole(i)%shield = this%SiteQuadrupole(i)%shield * scalegeo
         this%SiteQuadrupole(i)%Q = this%SiteQuadrupole(i)%Q * scaleest
       end do
+
       ! For Unit Sites as well
       do i = 1, this%NUnit
         do j = 1, this%Unit(i)%NLJ126
@@ -1400,7 +1385,7 @@ contains
           this%IdfBond(i)%R0 = this%IdfBond(i)%R0 * scalegeo
         end do
       end if
-
+      
     else if( fluctstate .eq. 0 ) then
        call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
 
@@ -1423,7 +1408,7 @@ contains
     else
 
       this%NFluct = 0
-
+      
       ! Reduction of point charges to body fixed dipole vector
       do i=1, this%NUnit
         this%Unit(i)%Mue(:) = 0._RK
@@ -1567,6 +1552,7 @@ contains
 
     end subroutine FindEdgeFrom
 
+    
 
   end subroutine TMolecule_Construct
 
@@ -1611,7 +1597,7 @@ contains
       end do
       deallocate( this%SiteQuadrupole )
     end if
-
+    
     if( associated( this%BondCount ) ) then
       deallocate( this%BondCount )
     end if
@@ -1630,7 +1616,6 @@ contains
     if( associated( this%DihedralPartner ) ) then
       deallocate( this%DihedralPartner )
     end if
-
 
   end subroutine TMolecule_Destruct
 
@@ -1723,8 +1708,7 @@ contains
       end do
     end if
 
-
-    ! Save number of rotation axes of molecule
+    ! Save number of rotation axes
     call FileWriteBlank( iounit_normal )
     write( IOBuffer, '(I2)' ) this%NDFRot
     call FileWriteParameter( iounit_normal, IdSite_NDFRot )
@@ -1762,7 +1746,7 @@ contains
   end subroutine TMolecule_Save
 
 
-
+  
 !==============================================================!
 !  Subroutine TMolecule_SaveIDF                                !
 !==============================================================!
@@ -1860,8 +1844,6 @@ contains
 
 
 
-
-
 !==============================================================!
 !  Subroutine TMolecule_FindCOM                                !
 !==============================================================!
@@ -1938,7 +1920,6 @@ contains
     ! Declare local variables
     integer  :: i
     real(RK) :: moi(3, 3), rotation(3, 3)
-!     real(RK) :: determinant
 
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
@@ -2027,7 +2008,6 @@ contains
   contains
 
 
-
     subroutine jrotate( a1, a2, s, tau )
 
       ! Declare arguments
@@ -2082,8 +2062,10 @@ contains
 &             .and. (abs( d(iq) ) + g == abs( d(iq) )) &
 &           ) then
               a(ip, iq) = 0._RK
+
             else if( abs( a(ip, iq) ) > thresh ) then
               h = d(iq) - d(ip)
+
               if( abs( h ) + g == abs( h ) ) then
                 t = a(ip, iq) / h
               else
@@ -2091,6 +2073,7 @@ contains
                 t = 1._RK / (abs( theta ) + sqrt( 1._RK + theta**2 ))
                 if( theta < 0._RK ) t = -t
               end if
+
               c = 1._RK / sqrt( 1._RK + t**2 )
               s = t * c
               tau = s / (1._RK + c)
