@@ -180,10 +180,8 @@ contains
     integer                     :: stat
     real(RK)                    :: KappaL_h
     real(RK)                    :: debyelen_h
-    integer                     :: nvecmax_h,nsqmax_h,nmax_h
-#if SPME
     integer                     :: grid_h,spline_h
-#endif
+    integer                     :: nvecmax_h,nsqmax_h,nmax_h
 
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3

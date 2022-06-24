@@ -1032,6 +1032,7 @@ contains
     real(RK), intent(in out) :: EPotInter
     real(RK), intent(in out) :: VirialIntra
     real(RK), intent(in out) :: VirialInter
+    real(RK) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
@@ -1095,8 +1096,10 @@ contains
 &             EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
       end do
       do j = 1, this%N2Dipole
-        call Force( this%PotDipoleDipole( i, j ), EPot, Virial, &
-&             EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, BoxLength )
+          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+
       end do
       do j = 1, this%N2Quadrupole
         call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
@@ -1587,7 +1590,7 @@ contains
                   Rij =  sqrt(RijSquared)
                   RijInv = 1._RK /  Rij
                   KappaRij = this%Kappa*Rij
-                  call erfc_approx(KappaRij,approx)
+                  call ErrorApprox(this%PotChargeCharge(s1,s2), KappaRij, approx)
                   EPotLocal = Epsilon * RijInv * approx
                   if ( OptPressure ) then
                     PXij = (PXij - anint( PXij )) * BoxLength
@@ -2700,7 +2703,7 @@ contains
                 Rij =  sqrt(RijSquared)
                 RijInv = 1._RK /  Rij
                 KappaRij = this%Kappa*Rij
-                call erfc_approx(KappaRij,approx)
+                !call erfc_approx(KappaRij,approx)
                 EPotLocal = Epsilon * RijInv * approx
                 if ( OptPressure ) then
                   PXij = (PXij - anint( RXij )) * BoxLength
@@ -3709,7 +3712,7 @@ contains
 #endif
                 Rij =  sqrt(RijSquared)
                 KappaRij = this%Kappa*Rij
-                call erfc_approx(KappaRij,approx)
+                call ErrorApprox(this%PotChargeCharge(s1,s2), KappaRij, approx)
                 !for 1,4 intramolecular interactions
                 EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff
                 
@@ -4623,379 +4626,9 @@ contains
         end do
       end do
 
-      ! Calculate point charge energy
-      do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do s2 = 1, this%N2Charge
-          pcc => this%PotChargeCharge(s1, s2)
-
-          ! Inner Degrees of Freedom
-          intra15 = pcc%potintra15
-          intra14 = pcc%potintra14
-          if (intra14) then
-            coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
-          else if (intra15) then
-            coeff = 1._RK
-          else
-            cycle
-          end if
-
-          ! Constants
-          Epsilon = pcc%Epsilon
-          RShieldSquared = pcc%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pcc%Site1%RX
-          RY1 => pcc%Site1%RY
-          RZ1 => pcc%Site1%RZ
-          RX2 => pcc%Site2%RX
-          RY2 => pcc%Site2%RY
-          RZ2 => pcc%Site2%RZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-
-! Ewald-Summation
-          if ( .not. this%ReactionField ) then
-
-!CDIR NODEP
-            ! Include intramolecular interaction if need
-            RXij = RXi - RX2(np)
-            RYij = RYi - RY2(np)
-            RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,pcc%Site2%UnitNumber)
-            PYij = PYi - PY2(np,pcc%Site2%UnitNumber)
-            PZij = PZi - PZ2(np,pcc%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength
-            RYij = (RYij - anint( RYij )) * BoxLength
-            RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared >= RCutoffSquared ) cycle
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              if ( OptPressure ) &
-&                VirialLocal = 0._RK
-            else
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
-              RijInv = 1._RK / sqrt( RijSquared )
-#endif
-              Rij = sqrt(RijSquared)
-              KappaRij = this%Kappa*Rij
-              call erfc_approx(KappaRij,approx)
-              EPotLocal = 2._RK*Epsilon * RijInv * approx * coeff
-              if ( OptPressure ) then
-                PXij = (PXij - anint( RXij )) * BoxLength
-                PYij = (PYij - anint( RYij )) * BoxLength
-                PZij = (PZij - anint( RZij )) * BoxLength
-                eX = RXij * RijInv
-                eY = RYij * RijInv
-                eZ = RZij * RijInv
-                !for 1,4 intramolecular interactions
-                VirialLocal = (EPotLocal + 2._RK*coeff*Faktor*exp(-KappaRij**2) * Epsilon) &
-&                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
-              end if
-            end if
-            
-            unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber
-            !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
-            EPot(unit2)  = EPot(unit2) + EPotLocal
-            if ( OptPressure ) &
-&              Virial(unit2)= Virial(unit2) + Third * VirialLocal
-! Reaction Field
-          else ! if Reaction Field
-
-!CDIR NODEP
-            RXij = RXi - RX2(np)
-            RYij = RYi - RY2(np)
-            RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,pcc%Site2%UnitNumber)
-            PYij = PYi - PY2(np,pcc%Site2%UnitNumber)
-            PZij = PZi - PZ2(np,pcc%Site2%UnitNumber)
-            RXij = (RXij - anint( RXij )) * BoxLength
-            RYij = (RYij - anint( RYij )) * BoxLength
-            RZij = (RZij - anint( RZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-            if( RijSquared >= RCutoffSquared ) cycle
-            if( RijSquared <= RShieldSquared ) then
-              EPotLocal = 1E33_RK
-              if ( OptPressure ) &
-&                VirialLocal = 0._RK
-            else
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
-              RijInv = 1._RK / sqrt( RijSquared )
-#endif
-              EPotLocal = 2._RK*Epsilon * RijInv * coeff !for 1,4 intramolecular interactions
-              if ( OptPressure ) then
-                PXij = (PXij - anint( RXij )) * BoxLength
-                PYij = (PYij - anint( RYij )) * BoxLength
-                PZij = (PZij - anint( RZij )) * BoxLength
-                eX = RXij * RijInv
-                eY = RYij * RijInv
-                eZ = RZij * RijInv
-                VirialLocal = EPotLocal  &
-&                         * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
-              end if
-            end if
-            
-            unit2=(np-1)*this%NUnit2+pcc%Site2%UnitNumber! global number of unit
-            EPot(unit2)  = EPot(unit2) + EPotLocal
-            if ( OptPressure ) &
-&              Virial(unit2)= Virial(unit2) + Third * VirialLocal
-          end if ! ReactionField - Ewald-Summation
-        end do !s2-cycle
-
-        do s2 = 1, this%N2Dipole
-          pcd => this%PotChargeDipole(s1, s2)
-
-          ! Inner Degrees of Freedom
-          intra14 = pcd%potintra14
-          intra15 = pcd%potintra15
-          if (intra14) then
-            coeff = pcd%ScaleEl14
-          else if (intra15) then
-            coeff = 1._Rk
-          else
-            cycle
-          end if
-
-          ! Constants
-          Epsilon = pcd%Epsilon
-          RShieldSquared = pcd%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pcd%Site1%RX
-          RY1 => pcd%Site1%RY
-          RZ1 => pcd%Site1%RZ
-          RX2 => pcd%Site2%RX
-          RY2 => pcd%Site2%RY
-          RZ2 => pcd%Site2%RZ
-          OX2 => pcd%Site2%OX
-          OY2 => pcd%Site2%OY
-          OZ2 => pcd%Site2%OZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-
-          ! Loop over molecules
-!CDIR NODEP
-        ! Include intramolecular interactions if need
-          RXij = RXi - RX2(np)
-          RYij = RYi - RY2(np)
-          RZij = RZi - RZ2(np)
-          PXij = PXi - PX2(np,pcd%Site2%UnitNumber)
-          PYij = PYi - PY2(np,pcd%Site2%UnitNumber)
-          PZij = PZi - PZ2(np,pcd%Site2%UnitNumber)
-          RXij = (RXij - anint( RXij )) * BoxLength
-          RYij = (RYij - anint( RYij )) * BoxLength
-          RZij = (RZij - anint( RZij )) * BoxLength
-          OXj = OX2(np)
-          OYj = OY2(np)
-          OZj = OZ2(np)
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            if ( OptPressure ) &
-&              VirialLocal = 0._RK
-          else
-            RijSquaredInv = 1._RK / ( RijSquared )
-            RijInv = sqrt( RijSquaredInv )
-            eX = RXij * RijInv               ! Einheitsabstandvektor nach Price
-            eY = RYij * RijInv
-            eZ = RZij * RijInv
-            CosTheta  = OXj * ex + OYj * eY + OZj * eZ    ! cos(alpha) nach Price
-            Epsilon1  = Epsilon * RijSquaredInv * coeff
-            EPotLocal = 2._RK*Epsilon1 * CosTheta
-            if ( OptPressure ) then
-              PXij = (PXij - anint( RXij )) * BoxLength
-              PYij = (PYij - anint( RYij )) * BoxLength
-              PZij = (PZij - anint( RZij )) * BoxLength
-              CosTheta3 = 3._RK * CosTheta
-              Epsilon2  = Epsilon1 * RijInv
-              FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                       ! F2 bei Price
-              FYij = Epsilon2 * ( CosTheta3 * eY - OYj )
-              FZij = Epsilon2 * ( CosTheta3 * eZ - OZj )
-              VirialLocal = VirialLocal + 2._RK*FXij * PXij + FYij * PYij + FZij * PZij
-              ! F2*R_COM_Price; stimmt so
-            end if
-          end if
-          
-          unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
-          EPot(unit2)  = EPot(unit2) + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
-          if ( OptPressure ) &
-&            Virial(unit2)= Virial(unit2) + 2._RK*Viriallocal     ! F2*R_COM_Price; stimmt so
-        end do !s2-cycle
-
-        do s2= 1, this%N2Quadrupole
-          pcq => this%PotChargeQuadrupole(s1, s2)
-
-          ! Inner Degrees of Freedom
-          intra14 = pcq%potintra14
-          intra15 = pcq%potintra15
-          if (intra14) then
-            coeff = pcq%ScaleEl14
-          else if (intra15) then
-            coeff = 1._Rk
-          else
-            cycle
-          end if
-
-          Epsilon = pcq%Epsilon
-          RShieldSquared = pcq%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pcq%Site1%RX
-          RY1 => pcq%Site1%RY
-          RZ1 => pcq%Site1%RZ
-          RX2 => pcq%Site2%RX
-          RY2 => pcq%Site2%RY
-          RZ2 => pcq%Site2%RZ
-          OX2 => pcq%Site2%OX
-          OY2 => pcq%Site2%OY
-          OZ2 => pcq%Site2%OZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-
-          ! Loop over molecules
-!CDIR NODEP
-          ! Include intramolecular interactions if need
-          RXij = RXi - RX2(np)
-          RYij = RYi - RY2(np)
-          RZij = RZi - RZ2(np)
-          PXij = PXi - PX2(np,pcq%Site2%UnitNumber)
-          PYij = PYi - PY2(np,pcq%Site2%UnitNumber)
-          PZij = PZi - PZ2(np,pcq%Site2%UnitNumber)
-          RXij = (RXij - anint( RXij )) * BoxLength
-          RYij = (RYij - anint( RYij )) * BoxLength
-          RZij = (RZij - anint( RZij )) * BoxLength
-          OXj = OX2(np)
-          OYj = OY2(np)
-          OZj = OZ2(np)
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            if ( OptPressure ) &
-&              VirialLocal = 0._RK
-          else
-            RijSquaredInv = 1._RK / ( RijSquared )
-            RijInv = sqrt( RijSquaredInv )
-            eX = RXij * RijInv
-            eY = RYij * RijInv
-            eZ = RZij * RijInv
-            CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-            Epsilon1 = Epsilon * RijSquaredInv * RijInv * coeff
-            EPotLocal  = Epsilon1 * ( CosTheta * CosTheta - Third )
-            if ( OptPressure ) then
-              PXij = (PXij - anint( RXij )) * BoxLength
-              PYij = (PYij - anint( RYij )) * BoxLength
-              PZij = (PZij - anint( RZij )) * BoxLength
-              CosTheta2 = 2._RK * CosTheta
-              CosAux = 5._RK *  CosTheta * CosTheta - 1._RK
-              Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv * coeff
-              FXij = Epsilon2 * ( CosAux * eX - CosTheta2 * OXj )
-              ! F2 nach Price bzw. Kraft auf Punktladung
-              FYij = Epsilon2 * ( CosAux * eY - CosTheta2 * OYj )
-              FZij = Epsilon2 * ( CosAux * eZ - CosTheta2 * OZj )
-              VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij     ! Vorzeichen richtig so
-            end if
-          end if
-          
-          unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
-          if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-        end do !s2-cycle
-      end do  !s1-cycle
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do s2 = 1, this%N2Charge
-          pdc => this%PotDipoleCharge(s1, s2)
-
-          ! Inner Degrees of Freedom
-          intra14 = pdc%potintra14
-          intra15 = pdc%potintra15
-          if (intra14) then
-            coeff = pdc%ScaleEl14 !Scale 1,4 El interactions
-          else if (intra15) then
-            coeff = 1._RK
-          else
-            cycle
-          end if
-
-          ! Constants
-          Epsilon = pdc%Epsilon
-          RShieldSquared = pdc%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pdc%Site1%RX
-          RY1 => pdc%Site1%RY
-          RZ1 => pdc%Site1%RZ
-          OX1 => pdc%Site1%OX
-          OY1 => pdc%Site1%OY
-          OZ1 => pdc%Site1%OZ
-          RX2 => pdc%Site2%RX
-          RY2 => pdc%Site2%RY
-          RZ2 => pdc%Site2%RZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-          OXi = OX1(np)
-          OYi = OY1(np)
-          OZi = OZ1(np)
-
-          ! Loop over molecules
-!CDIR NODEP
-          ! Include intramolecular interaction if need
-          RXij = RXi - RX2(np)
-          RYij = RYi - RY2(np)
-          RZij = RZi - RZ2(np)
-          PXij = PXi - PX2(np,pdc%Site2%UnitNumber)
-          PYij = PYi - PY2(np,pdc%Site2%UnitNumber)
-          PZij = PZi - PZ2(np,pdc%Site2%UnitNumber)
-          RXij = (RXij - anint( RXij )) * BoxLength
-          RYij = (RYij - anint( RYij )) * BoxLength
-          RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            if ( OptPressure ) &
-&              VirialLocal = 0._RK
-          else
-            RijSquaredInv = 1._RK / RijSquared
-            RijInv = sqrt( RijSquaredInv )
-            eX = RXij * RijInv
-            eY = RYij * RijInv
-            eZ = RZij * RijInv
-            CosThetai = OXi * ex + OYi * eY + OZi * eZ
-            EPotLocal = - Epsilon * RijSquaredInv * CosThetai*coeff
-            if ( OptPressure ) then
-              PXij = (PXij - anint( RXij )) * BoxLength
-              PYij = (PYij - anint( RYij )) * BoxLength
-              PZij = (PZij - anint( RZij )) * BoxLength
-              Tmp = 3._RK * CosThetai
-              VirialLocal = Epsilon * RijSquaredInv * RijInv *coeff &
-&                          * ( ( OXi - Tmp * eX ) * PXij &
-&                            + ( OYi - Tmp * eY ) * PYij &
-&                            + ( OZi - Tmp * eZ ) * PZij )
-            end if
-          end if
-          
-          unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
-          if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-        end do ! s2-cycle
         do s2 = 1, this%N2Dipole
           pdd => this%PotDipoleDipole(s1, s2)
 
@@ -5091,6 +4724,7 @@ contains
           if ( OptPressure ) &
 &            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
         end do !s2-cycle
+
         do s2=1, this%N2Quadrupole
 !         do s2=this%UnitQP2(nu), this%UnitQP2(nu+1) - 1
           pdq => this%PotDipoleQuadrupole(s1, s2)
@@ -5197,91 +4831,6 @@ contains
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do s2 = 1, this%N2Charge
-          pqc => this%PotQuadrupoleCharge(s1, s2)
-
-          ! Inner Degrees of Freedom
-          intra14 = pqc%potintra14
-          intra15 = pqc%potintra15
-          if (intra14) then
-            coeff = pqc%ScaleEl14 !Scale 1,4 El interactions
-          else if (intra15) then
-            coeff = 1._RK
-          else
-            cycle
-          end if
-
-          ! Constants
-          Epsilon = pqc%Epsilon
-          RShieldSquared = pqc%RShieldSquared
-
-          ! Assign pointers to site positions
-          RX1 => pqc%Site1%RX
-          RY1 => pqc%Site1%RY
-          RZ1 => pqc%Site1%RZ
-          OX1 => pqc%Site1%OX
-          OY1 => pqc%Site1%OY
-          OZ1 => pqc%Site1%OZ
-          RX2 => pqc%Site2%RX
-          RY2 => pqc%Site2%RY
-          RZ2 => pqc%Site2%RZ
-
-          RXi = RX1(np)
-          RYi = RY1(np)
-          RZi = RZ1(np)
-          OXi = OX1(np)
-          OYi = OY1(np)
-          OZi = OZ1(np)
-
-          ! Loop over molecules
-!CDIR NODEP
-        ! Include intramolecular interaction if need
-          RXij = RXi - RX2(np)
-          RYij = RYi - RY2(np)
-          RZij = RZi - RZ2(np)
-          PXij = PXi - PX2(np,pqc%Site2%UnitNumber)
-          PYij = PYi - PY2(np,pqc%Site2%UnitNumber)
-          PZij = PZi - PZ2(np,pqc%Site2%UnitNumber)
-          RXij = (RXij - anint( RXij )) * BoxLength
-          RYij = (RYij - anint( RYij )) * BoxLength
-          RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-            if ( OptPressure ) &
-&               VirialLocal = 1E33_RK
-          else
-            RijSquaredInv = 1._RK / RijSquared
-            RijInv = sqrt( RijSquaredInv )
-            eX = - RXij * RijInv     ! Normierter Abstandsvektor nach Price
-            eY = - RYij * RijInv
-            eZ = - RZij * RijInv
-            CosThetai = OXi * ex + OYi * eY + OZi * eZ
-            ! Scalarprodukt normierter Abstandsvektor mit
-            ! Orientierungsvektor Quadrupol
-            EPotLocal = Epsilon * RijSquaredInv * RijInv * coeff &
-&                        * ( CosThetai * CosThetai - Third )
-            if ( OptPressure ) then
-              PXij = (PXij - anint( RXij )) * BoxLength
-              PYij = (PYij - anint( RYij )) * BoxLength
-              PZij = (PZij - anint( RZij )) * BoxLength
-              Tmp = 2._RK * CosThetai
-              CosAux = 5._RK *  CosThetai * CosThetai - 1._RK
-              Epsilon2 = Epsilon * RijSquaredInv * RijSquaredInv * coeff
-              ! Kraft auf die Punktladung, sprich F2
-              FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi )
-              FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
-              FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
-              VirialLocal =  FXij * PXij + FYij * PYij + FZij * PZij
-            end if
-          end if
-          
-          unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
-          if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) - 2._RK*Third * VirialLocal
-        end do !s2-cycle
         do s2 = 1, this%N2Dipole
           pqd => this%PotQuadrupoleDipole(s1, s2)
 
@@ -5382,6 +4931,7 @@ contains
           if ( OptPressure ) &
 &             Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
         end do! s2-cycle
+
         do s2 = 1, this%N2Quadrupole
           pqq => this%PotQuadrupoleQuadrupole(s1, s2)
 

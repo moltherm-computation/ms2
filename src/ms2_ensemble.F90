@@ -10434,8 +10434,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           dr = sqrt(drxij*drxij + dryij*dryij + drzij*drzij)
 
-          if (dr .ge. 0.0000001) then       !!!Michael Sch. changed from "dr .ne. 0.0"
-            call erfc_approx (this%Kappa*dr, approx)
+          if (dr .ge. 0.0000001) then
+            call ErrorApprox(this%interaction(i,i)%PotChargeCharge(Si,Sj), this%Kappa*dr, approx)
 
             UIntraTermKomp = UIntraTermKomp - this%Component(i)%Molecule%SiteCharge(Si)%e* &
 &                   this%Component(i)%Molecule%SiteCharge(Sj)%e / dr * (1-approx)
@@ -10735,8 +10735,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
           dr = sqrt(drxij*drxij + dryij*dryij + drzij*drzij)
 
-          if (dr .ge. 0.0000001) then       !!!Michael Sch. changed from "dr .ne. 0.0"
-            call erfc_approx (this%Kappa*dr, approx)
+          if (dr .ge. 0.0000001) then
+            call ErrorApprox(this%interaction(i,i)%PotChargeCharge(Si,Sj), this%Kappa*dr, approx)
 
             UIntraTermKomp = UIntraTermKomp - this%Component(i)%Molecule%SiteCharge(Si)%e* &
 &                   this%Component(i)%Molecule%SiteCharge(Sj)%e / dr * (1-approx)
@@ -12250,7 +12250,7 @@ contains
           dr = sqrt(drxij*drxij + dryij*dryij + drzij*drzij)
 
           !!! if (dr .ge. 0.0000001) then       !!!missing? try uncommenting if UIntra too big aka EPot=***** Michael Sch.
-          call erfc_approx (this%Kappa*dr, approx)
+            call ErrorApprox(this%interaction(i,i)%PotChargeCharge(Si,Sj), this%Kappa*dr, approx)
 
           UIntraTermKomp = UIntraTermKomp - this%Component(i)%Molecule%SiteCharge(Si)%e* &
 &                   this%Component(i)%Molecule%SiteCharge(Sj)%e / dr * (1-approx)
@@ -13027,6 +13027,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
+         !TODO: Check if this should be changed to ErrorApprox
          call erfc_approx(KappaRij,approx)
 
          eX = dx / dr
@@ -13057,6 +13058,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
+         !TODO: Check if this should be changed to ErrorApprox
          call erfc_approx(KappaRij,approx)
 
          eX = dx / dr
