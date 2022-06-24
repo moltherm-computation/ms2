@@ -1441,6 +1441,7 @@ eqloop: do
 
     integer :: NEns
     integer :: nc,np
+    integer :: NTransfer
 
 
     ! Simulations Setup Check for Gibbs
@@ -1474,8 +1475,7 @@ eqloop: do
 
         call Remove_Gibbs( this%Ensemble(NEns),nc,np,EPotDelta )
         call Insert_Gibbs( this%Ensemble(3-NEns),nc,EPotDelta, accept )
-
-        call Update_Gibbs ( this%Ensemble(NEns),nc,np,accept )
+        call Update_Gibbs ( this%Ensemble(NEns),nc,np,NTransfer,accept )
       END DO
     end if
 
