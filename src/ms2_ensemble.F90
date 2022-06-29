@@ -11095,48 +11095,41 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Mole fractions of vapor phase
       do i = 1, this%NComponents
         pc => this%Component(i)
-        yvi = pc%SumFraction%Average * &
-&         ( pc%PartialMolarVolume / this%Temperature - &
-&         1 / this%SumPressure%Average )
+        yvi = pc%SumFraction%Average * ( pc%PartialMolarVolume / this%Temperature - 1 / this%SumPressure%Average )
         do j = 1, this%NComponents
           dydmu(i, j) = yvi * dpdmu(j)
           dydv(i, j) = yvi * dpdv(j)
         end do
         dydmu(i, i) = dydmu(i, i) + pc%SumFraction%Average
-        dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * &
-&         1 / this%Temperature * ( this%SumPressure%Average - this%RefPressure )
+        dydv(i, i) = dydv(i, i) + pc%SumFraction%Average * 1 / this%Temperature * ( this%SumPressure%Average - this%RefPressure )
       end do
 
       do i = 1, (this%NComponents - 1)
         pc => this%Component(i)
         Average = pc%SumFraction%Average
-        vary(i) = sqrt( pc%SumFraction%Variance**2 + &
-&         sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
-        write( IOBuffer, &
-&         '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
-&         trim( pc%Molecule%PotModFileName ), Average, vary(i)
+        vary(i) = sqrt( pc%SumFraction%Variance**2 + sum( (dydmu(i, :) * varmu)**2 ) + sum( (dydv(i, :) * varv)**2 ) )
+        write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
+&              trim( pc%Molecule%PotModFileName ), Average, vary(i)
         call FileWrite( this%iounit_errors )
       end do
+
       pc => this%Component( this%NComponents )
       Average = pc%SumFraction%Average
       Variance = sqrt( sum( vary(1:(this%NComponents - 1))**2 ) )
-      write( IOBuffer, &
-&       '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
-&       trim( pc%Molecule%PotModFileName ), Average, Variance
+      write( IOBuffer, '("Vapor mole fraction of ", A, T36, ":", 2F20.9)' ) &
+&            trim( pc%Molecule%PotModFileName ), Average, Variance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! Saturated liquid density
-      Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * &
-&       ( this%SumPressure%Average - this%RefPressure )
-      Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * &
-&       ( this%SumPressure%Average - this%RefPressure ) + &
-&       VarPressure * this%LiqBetaT )**2 )
-      write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
+      Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( this%SumPressure%Average - this%RefPressure)
+
+      Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( this%SumPressure%Average - this%RefPressure )&
+&                + VarPressure * this%LiqBetaT )**2 )
+
+      write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) &
-&       Average * UnitDensity, Variance * UnitDensity
+      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Variance * UnitDensity
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -11144,27 +11137,24 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       Average = this%SumDensity%Average
       Variance = this%SumDensity%Variance
       write( IOBuffer, '("Vapor density", T29, "reduced:", 2F20.9)' ) &
-&       Average, Average * VarPressure / this%SumPressure%Average
-! &       Average, Variance
+&            Average, Average * VarPressure / this%SumPressure%Average
+
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) &
-&       Average * UnitDensity, Average * VarPressure / this%SumPressure%Average * UnitDensity
-! &       Average * UnitDensity, Variance * UnitDensity
+      write( IOBuffer, '(T28, "in mol/l:", 2F20.9)' ) Average * UnitDensity, Average&
+&            * VarPressure / this%SumPressure%Average * UnitDensity
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! Saturated liquid enthalpy
-      Average = this%LiqEnthalpy + this%LiqdHdP * &
-&       ( this%SumPressure%Average - this%RefPressure )
+      Average = this%LiqEnthalpy + this%LiqdHdP * ( this%SumPressure%Average - this%RefPressure )
+
       Variance = sqrt( this%VarLiqEnthalpy**2 + ( this%VarLiqdHdP * &
-&       ( this%SumPressure%Average - this%RefPressure ) + &
-&       VarPressure * this%LiqdHdP )**2 )
-      write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
+&                ( this%SumPressure%Average - this%RefPressure ) + VarPressure * this%LiqdHdP )**2 )
+
+      write( IOBuffer, '("Liquid enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-&       Average * UnitEnergy * NAvogadro, &
-&       Variance * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&            Variance * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -11174,12 +11164,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Saturated vapor enthalpy
       Average = this%SumEnthalpy%Average
       Variance = this%SumEnthalpy%Variance
-      write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) &
-&       Average, Variance
+      write( IOBuffer, '("Vapor enthalpy", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-&       Average * UnitEnergy * NAvogadro, &
-&       Variance * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&            Variance * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -11187,13 +11175,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       VarDeltaHv = Variance + VarDeltaHv
 
       ! Evaporation enthalpy
-      write( IOBuffer, &
-&       '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) &
-&       DeltaHv, VarDeltaHv
+      write( IOBuffer, '("Enthalpy of vaporization", T29, "reduced:", 2F20.9)' ) DeltaHv, VarDeltaHv
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) &
-&       DeltaHv * UnitEnergy * NAvogadro, &
-&       VarDeltaHv * UnitEnergy * NAvogadro
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) DeltaHv * UnitEnergy * NAvogadro, &
+&            VarDeltaHv * UnitEnergy * NAvogadro
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 

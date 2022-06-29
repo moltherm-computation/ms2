@@ -55,9 +55,6 @@ module ms2_simulation
 
     ! I/O unit for final result file
     integer :: iounit_errors
-    
-    ! SimulationType
-    logical :: realMC
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -575,11 +572,33 @@ contains
 
       ! Calculate number of blocks and block sizes
       if( BlockSize > 0 ) then
-        NBlocksMax = max( NStepsV, NStepsP, NSteps ) / BlockSize
+        NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+
+        ! Warning, if simulation is extended
+        if ( mod(NSteps,BlockSize) .ne. 0._RK) then
+          if (NSteps > BlockSize) then
+            NSteps = ceiling(real(NSteps)/BlockSize)*BlockSize
+
+            if ( SimulationType .eq. MonteCarlo ) then
+              write( IOBuffer, '("Production steps are extended to",T40, I7, " cycles")' ) NSteps*NProcs
+            else
+              write( IOBuffer, '("Production steps are extended to",T40, I7, " time steps")' ) NSteps
+            end if
+            call LogWrite
+
+          else
+            BlockSize = NSteps
+            write( IOBuffer, '("BlockSize is reduced to ",T40, I7, " due to small number of steps")' ) BlockSize
+            call LogWrite
+            NBlocksMax = ceiling(max( NStepsV, NStepsP, NSteps ) / real(BlockSize))
+          endif
+        end if
+
         NBlockSizesMax = int( sqrt( real( NSteps / BlockSize, RK ) ) )
         if (NBlocksMax .eq. 0) then
             call Error( 'ResultFreq < RunSteps, please change input variables' )
         end if
+
       else
         NBlocksMax = 0
         NBlockSizesMax = 0
@@ -1019,10 +1038,21 @@ contains
     integer :: i, j, s, t
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
+    integer :: k
+
+#if MPI_VER > 0
+    type(TComponent), pointer :: pc
+    type(TInteraction), pointer :: pi
+    integer :: n1, n2
+    
+    integer :: color, NGroups, Proc_Max_Eff
+    integer :: statusHost, lengthHost, tmpVal
+    character(255) :: hostnameStr
+    logical :: multNodes
+
+#endif 
 
     tooManyParticles = .false.
-
-    ! Stopwatch
     call Construct(RunTimer,"TSimulation_Run",CStopwatch_doMPIStartBarrier)
     call Construct(RunStepsTimer)
 
@@ -1422,7 +1452,6 @@ eqloop: do
           call LogWriteTime
 
 
-
         else
           Equilibration = .false.
         end if
@@ -1623,12 +1652,10 @@ eqloop: do
     end if
     call RestartSave( this )
 
-    ! Stopwatch
     call stop_Timer(RunTimer)
     call logwritestop_Timer(RunTimer)
 
   end subroutine TSimulation_Run
-
 
 
 !==============================================================!
@@ -1649,9 +1676,15 @@ eqloop: do
     integer, intent(in) :: StepStart, StepEnd
 
     ! Declare local variables
-#if MPI_VER > 0  && ( ARCH == 1 || ARCH == 2 )
+#if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
 #endif
+
+#if TRANS==1
+    integer:: StepCF
+#endif
+
+    integer:: o, i, j, t, s
 
     ! Run simulation steps
     do Step = StepStart, StepEnd
@@ -1663,6 +1696,25 @@ eqloop: do
       if( BlockSize > 0 ) then
         NBlocks = 1 + (Step - 1) / BlockSize
         NBlockSizes = int( sqrt( real( Step / BlockSize, RK ) ) )
+
+#if TRANS==1
+      ! Run simulation step
+        if(( CorrfunMode == active ).and.(.not. Equilibration )) then
+          do i = 1, this%Nensembles
+            if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+              StepCF = (Step + NStepCorr -1) / NStepCorr
+              if ( StepCF >= this%Ensemble(i)%Ncorr )then
+                NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+              else
+                NBlocksCF     = 0
+                NBlockSizesCF = 0
+              end if
+          
+            end if
+          end do
+        end if
+#endif
       end if
 
       ! Run simulation step
@@ -1680,22 +1732,37 @@ eqloop: do
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
+      call RDFUpdate ( this )
 
       ! Update log and result files
-      if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) &
-&       call LogWriteStep
-      if( .not. Equilibration .and. &
-&       ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) &
-&       call ErrorsUpdate( this )
+      if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) call LogWriteStep
+      if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) call ErrorsUpdate( this )
 
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-      call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, &
-&       MPI_LOGICAL, MPI_LOR, Communicator, ierror )
-      if( AnyTerminateProgram ) then
-        TerminateProgram = .true.
-        exit
-      end if
+      if (SimulationType .eq. MonteCarlo) then
+        if (Step == StepEnd .and. .not. Equilibration) then
+          call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+          if( AnyTerminateProgram ) then
+            TerminateProgram = .true.
+            exit
+          end if
+        else
+          call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+          if( AnyTerminateProgram ) then
+            TerminateProgram = .true.
+            exit
+          end if
+        endif 
+
+      else
+        call MPI_Allreduce( TerminateProgram, AnyTerminateProgram, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
+        if( AnyTerminateProgram ) then
+          TerminateProgram = .true.
+          exit
+        end if
+      endif
+      
 #else
       if( TerminateProgram ) exit
 #endif
@@ -1786,6 +1853,11 @@ eqloop: do
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -1802,11 +1874,14 @@ eqloop: do
     integer :: NTransfer
 
 
+    NTransfer = 100
     ! Simulations Setup Check for Gibbs
-    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) &
-&     call Error( 'Gibbs Ensemble only implemented for NVT')
-    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) &
-&     call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
+    if ( (SimulationType .eq. Gibbs) .and. ConstantPressure ) then
+      call Error( 'Gibbs Ensemble only implemented for NVT')
+    end if
+    if ( (SimulationType .eq. Gibbs) .and. (this%NEnsembles .ne. 2) ) then
+      call Error( 'Gibbs Ensemble needs two SimBoxes: one liquid and one vapor SimBox')
+    end if
 
     ! Run MC simulation step
     do i = 1, this%NEnsembles
@@ -1816,8 +1891,8 @@ eqloop: do
 ! Volume Change in both boxes
     if (.not. NVTEquilibration) then
       accept = .false.
-      EPotOldliq = this%ensemble(1)%EPot
-      VolOldliq = this%ensemble(1)%Volume0
+      EPotOldliq = this%Ensemble(1)%EPot
+      VolOldliq = this%Ensemble(1)%Volume0
 
       call Resize_Gibbs( this%Ensemble(1),dv,EPotDelta )
       call Resize_Gibbs( this%Ensemble(2),dv,EPotDelta,accept )
@@ -1826,7 +1901,7 @@ eqloop: do
       call Update_Gibbs ( this%Ensemble(1),accept,EPotOldliq,VolOldliq )
 
 ! Particle change in both boxes
-      DO i=1, 100
+      DO i=1,NTransfer
         accept = .false.
         NEns_h = rnd(0._RK,1._RK)
         NEns   = int(anint(NEns_h) + 1._RK)
@@ -1866,7 +1941,6 @@ eqloop: do
   end subroutine TSimulation_CheckNPart
 
 
-
 !==============================================================!
 !  Subroutine TSimulation_ResetEnsembles                       !
 !==============================================================!
@@ -1887,7 +1961,6 @@ eqloop: do
     end do
 
   end subroutine TSimulation_ResetEnsembles
-
 
 
 !==============================================================!
@@ -1918,7 +1991,6 @@ eqloop: do
   end subroutine TSimulation_ResultOpen
 
 
-
 !==============================================================!
 !  Subroutine TSimulation_ResultUpdate                         !
 !==============================================================!
@@ -1934,7 +2006,9 @@ eqloop: do
     integer :: i
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( SimulationType .eq. MolecularDynamics ) then
+       if( .not. RootProc ) return
+    endif
 
     ! Return if no output
     if( BlockSize < 1 ) return
@@ -1995,7 +2069,9 @@ eqloop: do
     integer :: i
 
     ! Check for root process
-    if( .not. RootProc ) return
+    if( SimulationType .eq. MolecularDynamics ) then
+       if( .not. RootProc ) return
+    endif
 
     ! Return if no output
     if( BlockSize < 1 ) return
@@ -2042,7 +2118,6 @@ eqloop: do
   end subroutine TSimulation_SVCOutput
 
 
-
 !==============================================================!
 !  Subroutine TSimulation_VisualOpen                           !
 !==============================================================!
@@ -2069,7 +2144,6 @@ eqloop: do
     end do
 
   end subroutine TSimulation_VisualOpen
-
 
 
 !==============================================================!
@@ -2103,7 +2177,6 @@ eqloop: do
     end if
 
   end subroutine TSimulation_VisualUpdate
-
 
 
 !==============================================================!
@@ -2233,13 +2306,10 @@ eqloop: do
     ! Check for root process
     if( .not. RootProc ) return
 
-!DEBUG
   if( SimulationType .eq. SecondVirialCoeff ) return
-!DEBUG
 
     ! Open restart file for writing
-    call FileRewrite( iounit_restart, &
-&     trim( OutputNameTag )//RestartFileExtension )
+    call FileRewrite( iounit_restart, trim( OutputNameTag )//RestartFileExtension )
 
     ! Save contents to restart file
     write( iounit_restart, '(A)' ) trim( ParameterFileName )
@@ -2255,7 +2325,6 @@ eqloop: do
     call FileClose( iounit_restart )
 
   end subroutine TSimulation_RestartSave
-
 
 
 !==============================================================!
@@ -2286,14 +2355,10 @@ eqloop: do
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Step, 1, MPI_INTEGER, &
-&     NRootProc, Communicator, ierror )
-    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, &
-&     NRootProc, Communicator, ierror )
-    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, &
-&     NRootProc, Communicator, ierror )
-    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, &
-&     NRootProc, Communicator, ierror )
+    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number
@@ -2311,9 +2376,6 @@ eqloop: do
     call FileClose( iounit_restart )
 
  end subroutine TSimulation_RestartRead
-
-
-
 
 
 
