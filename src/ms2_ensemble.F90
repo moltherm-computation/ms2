@@ -6393,21 +6393,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     include 'mpif.h'
 #endif
 
-    ! Declare arguments
+    ! Declare arguments03
     type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np, ncf, npf, nu
+    integer, intent(in) :: nc, np, nu, ncf, npf
 
     ! Declare local variables
     real(RK)                  :: dr(3), q(4), dq(3), f1
     real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier
+    real(RK)                  :: EFourier, EVirial
     type(TComponent), pointer :: pc, pcf
     integer                   :: i
     real(RK)                  :: EPotDelta
     logical                   :: accepted
-#if SPME
-    real(RK)                  :: EVirial
-#endif
 
     ! Test for fluctuating particle
     if( nc .eq. ncf .and. np .eq. npf ) return
@@ -6437,7 +6434,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
         this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
       END DO
-!       EVirial  = this%EVirial
+
 #ifdef SPME
     else if (LongRange .eq. PME) then
       EFourier = this%UFourier
@@ -6470,27 +6467,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Energy( this, nc, np, nu, EPotNew )
 
     ! Apply Metropolis acceptance criterion
-
 #if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-    call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, &
-&     MPI_RK, MPI_SUM, Communicator, ierror )
+    if ( Equilibration .and. CommonEqui ) then
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
 
 #else
     EPotDelta = EPotOld - EPotNew
-
 #endif
 
-    ! for EPotDelta/this%Temperature>709.78271 an overflow still might occur for double precision exp
     accepted = EPotDelta > 0._RK
-
     if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
-
     if( accepted ) then
       ! Accept rotation
       pc%NRotateBiasedSuccesses = pc%NRotateBiasedSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
+
     else
+
       ! Reject move
       if (LongRange .eq. Ewald) then
         this%UFourier = EFourier
@@ -6502,11 +6498,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         pc%Q0(np, :, nu) = q(:)
         call Unit2Atom1( pc, np, nu )
         call EwaldFourierEnergy(this,nc,np)
+
 #ifdef SPME
       else if (LongRange .eq. PME) then
         this%UFourier = EFourier
         this%EVirial  = EVirial
         this%qgrida   = this%qgrida_old
+
 #endif
       else
         pc%Q0(np, :, nu) = q(:)
@@ -10790,6 +10788,148 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileClose( this%iounit_visual )
 
   end subroutine TEnsemble_VisualClose
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFOpen                             !
+!==============================================================!
+
+  subroutine TEnsemble_RDFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j, s, t
+
+
+
+    ! RDF, Sum nullen
+    ! DEBUG_COL nullen auf Ensemble Ebene
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       do s=1, this%component(i)%molecule%NLJ126
+        do t=1, this%component(j)%molecule%NLJ126
+         this%Interaction( i, j)%PotLJ126LJ126( s, t)%RDFSum(:) = 0
+        end do
+       end do
+      end do
+     end do
+
+
+    ! Open visualization file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+    call FileWriteBlank( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFOpen
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFUpdate                              !
+!==============================================================!
+
+  subroutine TEnsemble_RDFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, s, t, o
+
+    ! Update visualization file
+
+    !RDF
+    CallsToRDF  = CallsToRDF + 1
+
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+
+    do i=1, this%NComponents
+     do j=1, this%NComponents
+      if (i .LE. j) then
+       call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
+       do s=1, this%Component(i)%molecule%NLJ126
+        do t=1, this%Component(j)%molecule%NLJ126
+         write(IOBuffer, '(I5,I5)') i, j
+         call FileWriteNoAdvance( this%iounit_rdf )
+        enddo
+       enddo            
+      endif
+     enddo
+    enddo
+    call FileWriteBlank( this%iounit_rdf )
+ 
+    do i=1, this%NComponents
+     do j=1, this%NComponents
+      if (i .LE. j) then
+       do s=1, this%Component(i)%molecule%NLJ126
+        do t=1, this%Component(j)%molecule%NLJ126 
+         write(IOBuffer, '(I5,I5)') s, t
+         call FileWriteNoAdvance( this%iounit_rdf )
+        enddo
+       enddo
+      endif
+     enddo
+    enddo
+    call FileWriteBlank( this%iounit_rdf )
+
+    do o = 1, RDFNumberShells
+     do i=1, this%NComponents
+      do j=1, this%NComponents
+       if (i .LE. j) then
+        do s=1, this%Component(i)%molecule%NLJ126
+         do t=1, this%Component(j)%molecule%NLJ126
+          RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+          if (i .EQ. j) then
+           RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+          else
+           RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
+&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
+          end if
+          this%RDF(o) = RDFRhoLocal / RDFRho  
+          write(IOBuffer, '(F10.4)') this%RDF(o)
+          call FileWriteNoAdvance( this%iounit_rdf )
+
+         end do
+        end do
+       end if
+      end do
+     end do
+     call FileWriteBlank( this%iounit_rdf )
+    enddo
+
+    ! Close RDF file
+    call FileClose( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFUpdate
+
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RDFClose                               !
+!==============================================================!
+
+  subroutine TEnsemble_RDFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close visualization file
+    write( IOBuffer, '("##")' )
+    call FileWrite( this%iounit_rdf )
+    call FileClose( this%iounit_rdf )
+
+  end subroutine TEnsemble_RDFClose
 
 
 
