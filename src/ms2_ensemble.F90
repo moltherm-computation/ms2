@@ -10382,6 +10382,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_errors, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
 
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("*                           Publishing with ms2                            *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* S. Deublein, B. Eckl, J. Stoll, S. Lishchuk, G. Guevara-Carrion,         *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* C.W. Glass, T. Merker, M. Bernreuther, H. Hasse, J. Vrabec               *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2011)                                   *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* DOI:10.1016/j.cpc.2011.04.026                                        *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '(76("="))')
+    call FileWrite( this%iounit_errors )
+    call FileWriteBlank( this%iounit_errors )
+
     ! Separator
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
