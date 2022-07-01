@@ -9377,96 +9377,102 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Displacement
       if( SimulationType .eq. MolecularDynamics ) then
-        write( IOBuffer, '("    DISP")' )
+        write( IOBuffer, '("     DISP")' )
         call FileWriteNoAdvance( this%iounit_runave )
       end if
 
       ! Pressure
-      write( IOBuffer, '("     PRESS")' )
+      write( IOBuffer, '("      PRESS")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Density
-      write( IOBuffer, '("   DENSITY")' )
+      write( IOBuffer, '("    DENSITY")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Temperature
-      write( IOBuffer, '("      TEMP")' )
+      write( IOBuffer, '("       TEMP")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Potential energy
-      write( IOBuffer, '("            EPOT")' )
+      write( IOBuffer, '("         EPOT")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Enthalpy
-      write( IOBuffer, '("           ENTLP")' )
+      write( IOBuffer, '("        ENTLP")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Intra Potential energy
-      write( IOBuffer, '("        EP_Intra")' )
+      write( IOBuffer, '("     EP_Intra")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
         ! Intra Potential energy - Bonds
-        write( IOBuffer, '("    EP_Bonds")' )
+        write( IOBuffer, '("     EP_Bonds")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Intra Potential energy - Angles
-        write( IOBuffer, '("   EP_Angles")' )
+        write( IOBuffer, '("    EP_Angles")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Intra Potential energy - Dihedral
-        write( IOBuffer, '("    EP_Dihed")' )
+        write( IOBuffer, '("     EP_Dihed")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Intra Potential energy - Nonbonded
-        write( IOBuffer, '("    EP_14_15")' )
+        write( IOBuffer, '("     EP_14_15")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
       end if
 
       ! Inter Potential energy
-      write( IOBuffer, '("         EP_Inter")' )
+      write( IOBuffer, '("     EP_Inter")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Intra Virial
-      write( IOBuffer, '("   Vir_Intra")' )
+      write( IOBuffer, '("    Vir_Intra")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Inter Virial
-      write( IOBuffer, '("   Vir_Inter")' )
+      write( IOBuffer, '("      Vir_Inter")' )
       call FileWriteNoAdvance( this%iounit_result )
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Chemical potential
       do i = 1, this%NRealComponents
         if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-          write( IOBuffer, '("     MUE", I2)' ) i
+          if( i < 10 ) then
+            write( IOBuffer, '("       MUE_", I1)' ) i
+          else
+            write( IOBuffer, '("      MUE_", I2)' ) i
+          end if
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end if
       end do
 
       ! Partial molar volume
-!       if( ConstantPressure .and. this%NRealComponents > 1 ) then
-        do i = 1, this%NRealComponents
-          if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
-            write( IOBuffer, '("      VW", I2)' ) i
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
+      do i = 1, this%NRealComponents
+        if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+          if( i < 10 ) then
+            write( IOBuffer, '("        VW_", I1)' ) i
+          else
+            write( IOBuffer, '("       VW_", I2)' ) i
           end if
-        end do
-!       end if
+          call FileWriteNoAdvance( this%iounit_result )
+          call FileWriteNoAdvance( this%iounit_runave )
+        end if
+      end do
 
       ! Partial molar enthalpy
       do i = 1, this%NRealComponents
@@ -9483,13 +9489,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Number of particles in ensemble
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '("     NPART")' )
+        write( IOBuffer, '("      NPART")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Mole fraction of each component
         do i = 1, this%NComponents
-          write( IOBuffer, '("   FRACT", I2)' ) i
+          if( i < 10 ) then
+            write( IOBuffer, '("     FRACT_", I1)' ) i
+          else
+            write( IOBuffer, '("    FRACT_", I2)' ) i
+          end if
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
