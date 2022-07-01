@@ -12249,6 +12249,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RestartSave( this%SumEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
+    call RestartSave( this%SumdEpotdV )
+    call RestartSave( this%Sumd2EpotdV2 )
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartSave( this%SumNPart )
@@ -12265,6 +12267,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RestartSave( this%SumEnthalpySquared )
     call RestartSave( this%SumEnthalpyV )
     call RestartSave( this%SumVolumeSquared )
+    call RestartSave( this%SumEPotCubic )
+    call RestartSave( this%SumdEpotdVSquared )
+    call RestartSave( this%SumEPotdEpotdV )
+    call RestartSave( this%SumEPotSquareddEpotdV )
+    call RestartSave( this%SumEPotdEpotdVSquared )
+    call RestartSave( this%SumEPotd2EpotdV2 )
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -12276,6 +12284,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
+    call RestartSave( this%SumA10resNVT )
+    call RestartSave( this%SumA01resNVT )
+    call RestartSave( this%SumA20resNVT )
+    call RestartSave( this%SumA11resNVT )
+    call RestartSave( this%SumA02resNVT )
+    call RestartSave( this%SumA30resNVT )
+    call RestartSave( this%SumA21resNVT )
+    call RestartSave( this%SumA12resNVT )
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
@@ -12293,10 +12309,13 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       case( ChemPotMethodWidom )
         call RestartSave( pc%SumChemPotV )
         call RestartSave( pc%SumChemPotVV )
+        call RestartSave( pc%SumHW_counter )
+        call RestartSave( pc%SumHW_denom )
       end select
 
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartSave( pc%SumVW )
+       call RestartSave( pc%SumHM )
 !DEBUG
         if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
           call RestartSave( pc%SumVW1 )
