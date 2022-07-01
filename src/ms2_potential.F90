@@ -2107,7 +2107,7 @@ loop2:  do j = 1, N2
 !  Subroutine TPotLJLJ_Energy                                  !
 !==============================================================!
 
-  subroutine TPotLJLJ_Energy( this, np, EPot, Virial )
+  subroutine TPotLJLJ_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
 
@@ -2116,7 +2116,7 @@ loop2:  do j = 1, N2
     integer, intent(in)  :: np
     real(RK), pointer    :: EPot(:)
     real(RK), pointer    :: Virial(:)
-!     real(RK), intent(in) :: BoxLength
+    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
@@ -2286,6 +2286,7 @@ loop2:do j = 1, N
     this%Epsilon = this%Site1%e * this%Site2%e
     this%RCutoffSquared = RCutoff**2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
+    this%RFConstant = this%Epsilon / RCutoff**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
     ! if this potential is intra
     if (this%SameComponent .and. IntraLJEL) then
