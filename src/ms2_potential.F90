@@ -1196,6 +1196,11 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FZij = Fij * RZij
             VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
             VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
+            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+            sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+            d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * &
+&                          (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+            d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
@@ -1237,6 +1242,11 @@ loop1:  do k = 1, this%NInCutoff(unit)
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalIntra = VirialLocalIntra + (PXij * FXij + PYij * FYij + PZij * FZij)
+          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * &
+&                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
