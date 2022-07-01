@@ -722,10 +722,11 @@ contains
       this%VirialCorr = Pi329 * this%Epsilon &
 &       * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
 
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - &
+&                        TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
+
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
-
-
 
  
   contains
@@ -1199,6 +1200,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FX2(jk) = FX2(jk) - FXij
             FY2(jk) = FY2(jk) - FYij
             FZ2(jk) = FZ2(jk) - FZij
+
+#ifdef ABL
+            dr2Abl  = RXij**2 + RYij**2 + RZij**2
+            VirAblSig = VirAblSig + Rij6Inv*(1._RK-4._RK*Rij6Inv)*(PXij*RXij+ &
+&                       PYij*RYij + PZij*RZij) / dr2Abl
+            VirAblEps = VirAblEps + Rij6Inv*(1._RK-2._RK*Rij6Inv)*(PXij*RXij+ &
+&                       PYij*RYij + PZij*RZij) / dr2Abl
+#endif
           end if
         end do loop1
     ! Include intramolecular interaction if need
@@ -6047,7 +6056,6 @@ loop1:  do k = 1, this%NInCutoff(i)
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
 
     ! if this potential is intra
-!    if (this%SameComponent .and. IntraLJEL .and. this%Site1%SiteId<this%Site2%SiteId) then
     if (this%SameComponent .and. IntraLJEL) then
       ende = size(Molecule1%IntDC15(:,1))
       do k=1, ende
@@ -11191,6 +11199,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 #if ARCH == 3
         hit = .false.
 #endif
+
 !CDIR NODEP
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
@@ -11207,6 +11216,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
+
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -11221,9 +11231,9 @@ loop1:  do k = 1, this%NInCutoff(i)
           eY = RYij * RijInv
           eZ = RZij * RijInv
           CosTheta  = OXi * ex + OYi * eY + OZi * eZ
-          EPotLocal = EPotLocal + Epsilon * RijSquaredInv * RijInv &
-&                       * ( CosTheta * CosTheta - Third )
+          EPotLocal = EPotLocal + Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
         end do loop1
+
 #if ARCH == 3
         if( .not. hit ) then
           EPotTest(i) = EPotTest(i) + EPotLocal
@@ -14502,11 +14512,10 @@ loop2:  do j = 1, j1
 #else
           Rij5Inv = Epsilon * RijInv**5
 #endif
-          EPotLocal = EPotLocal + Rij5Inv * (1._RK &
-&           - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&           - 15._RK * CosThetaiSquared * CosThetajSquared &
-&           + 2._RK * Tmp**2)
+          EPotLocal = EPotLocal + (Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
+&           - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2))
         end do loop2
+
 #if ARCH == 3
         if( .not. hit ) then
           EPotTest(i) = EPotTest(i) + EPotLocal
