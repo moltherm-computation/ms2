@@ -9772,15 +9772,15 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           value = value + sum( this%Component(i)%Disp(:, :)**2 )
         end do
         value = value * this%BoxLength**2 / ( 6._RK * this%NPart * TimeStep * Step )
-        write( IOBuffer, '(F8.3) ' ) value
+        write( IOBuffer, '(" ",F8.3)' ) value
         call FileWriteNoAdvance( this%iounit_runave )
       end if
 
       ! Pressure
       if( SimulationType .eq. MolecularDynamics ) then
-        write( IOBuffer, '(F10.5) ' ) this%SumPressure%BlockAverage
+        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.5) ' ) this%SumPressure%Average
+        write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%Average
         call FileWriteNoAdvance( this%iounit_runave )
       else
         if ( this%OptPressure ) then
@@ -9797,77 +9797,77 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       end if
 
       ! Density
-      write( IOBuffer, '(F10.5) ' ) this%SumDensity%BlockAverage
+      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F10.5) ' ) this%SumDensity%Average
+      write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Temperature
-      write( IOBuffer, '(F10.5) ' ) this%SumTemperature%BlockAverage
+      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F10.5) ' ) this%SumTemperature%Average
+      write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Potential energy
-      write( IOBuffer, '(F16.5) ' ) this%SumEPot%BlockAverage
+      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F16.5) ' ) this%SumEPot%Average
+      write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Enthalpy
-      write( IOBuffer, '(F16.5) ' ) this%SumEnthalpy%BlockAverage
+      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F16.5) ' ) this%SumEnthalpy%Average
+      write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! EPotIntra
-      write( IOBuffer, '(F16.5) ' ) this%SumEPotIntra%BlockAverage
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F16.5) ' ) this%SumEPotIntra%Average
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
         ! EPotIntra_Bond
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Bond%BlockAverage
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Bond%Average
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Bond%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! EPotIntra_Angle
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Angle%BlockAverage
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Angle%Average
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Angle%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! EPotIntra_Dihedral
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Dihedral%BlockAverage
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Dihedral%Average
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Dihedral%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! EPotIntra_Nonbonded
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F12.3) ' ) this%SumEPotIntra_Nonbonded%Average
+        write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotIntra_Nonbonded%Average
         call FileWriteNoAdvance( this%iounit_runave )
       end if
 
       ! EPotInter
-      write( IOBuffer, '(F16.5) ' ) this%SumEPotInter%BlockAverage
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F16.5) ' ) this%SumEPotInter%Average
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! VirialIntra
-      write( IOBuffer, '(F12.3) ' ) this%SumVirialIntra%BlockAverage
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F12.3) ' ) this%SumVirialIntra%Average
+      write( IOBuffer, '(" ",F12.5) ' ) this%SumVirialIntra%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! VirialInter
-      write( IOBuffer, '(F12.3) ' ) this%SumVirialInter%BlockAverage
+      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%BlockAverage
       call FileWriteNoAdvance( this%iounit_result )
-      write( IOBuffer, '(F12.3) ' ) this%SumVirialInter%Average
+      write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
       call FileWriteNoAdvance( this%iounit_runave )
 
       ! Chemical potential
@@ -9923,14 +9923,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
             if( Equilibration ) then
-              write( IOBuffer, '(F10.5) ' ) 0._RK
+              write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
 
             else
-              write( IOBuffer, '(F10.5) ' ) pc%SumVW%BlockAverage
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
               call FileWriteNoAdvance( this%iounit_result )
-              write( IOBuffer, '(F10.5) ' ) pc%SumVW%Average
+              write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
               call FileWriteNoAdvance( this%iounit_runave )
             end if
           end if
@@ -9955,17 +9955,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
       ! Number of particles in ensemble
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-        write( IOBuffer, '(F10.2) ' ) this%SumNPart%BlockAverage
+        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%BlockAverage
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(F10.2) ' ) this%SumNPart%Average
+        write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Mole fraction of each component
         do i = 1, this%NComponents
           pc => this%Component(i)
-          write( IOBuffer, '(F10.5) ' ) pc%SumFraction%BlockAverage
+          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
-          write( IOBuffer, '(F10.5) ' ) pc%SumFraction%Average
+          write( IOBuffer, '(" ",F10.5)' ) pc%SumFraction%Average
           call FileWriteNoAdvance( this%iounit_runave )
         end do
       end if
