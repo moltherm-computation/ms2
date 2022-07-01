@@ -1199,9 +1199,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
-            FX2(jk) = FX2(jk) - FXij
-            FY2(jk) = FY2(jk) - FYij
-            FZ2(jk) = FZ2(jk) - FZij
+            forceTempX(jk) = forceTempX(jk) - FXij
+            forceTempY(jk) = forceTempY(jk) - FYij
+            forceTempZ(jk) = forceTempZ(jk) - FZij
 
 #ifdef ABL
             dr2Abl  = RXij**2 + RYij**2 + RZij**2
@@ -1237,14 +1237,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalIntra = VirialLocalIntra + (PXij * FXij + PYij * FYij + PZij * FZij)
-            FXi = FXi + FXij
-            FYi = FYi + FYij
-            FZi = FZi + FZij
-            FX2(i) = FX2(i) - FXij
-            FY2(i) = FY2(i) - FYij
-            FZ2(i) = FZ2(i) - FZij
-         end if
-
+          FXi = FXi + FXij
+          FYi = FYi + FYij
+          FZi = FZi + FZij
+          forceTempX(i) = forceTempX(i) - FXij
+          forceTempY(i) = forceTempY(i) - FYij
+          forceTempZ(i) = forceTempZ(i) - FZij
+        end if
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
