@@ -3323,8 +3323,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Loop over all units in Molecule
       do k = 1, nu
         ! Check number of rotation axes
-!        if( this%Molecule%Unit(k)%isElongated ) then
-!           print *, 'Unit is elongated'
+        if( this%Molecule%Unit(k)%isElongated ) then
           ! Loop over molecules
           do i = 1, np
             ik = (i-1)*nu+k
@@ -3442,7 +3441,29 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
               this%MueZ(i, k) = mue1 * A13(ik) + mue2 * A23(ik) + mue3 * A33(ik)
             end do
           end if
+        
+        else ! If unit is not elongated
+          ! Loop over LJ126 sites in molecule
+          do i = 1, this%Molecule%Unit(k)%NLJ126
+            pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
+            do j = 1, np
+              pLJ126%RX(j) = this%P0(j, 1, k)
+              pLJ126%RY(j) = this%P0(j, 2, k)
+              pLJ126%RZ(j) = this%P0(j, 3, k)
+            end do
+          end do
 
+          ! Loop over charge sites in molecule
+          do i = 1, this%Molecule%Unit(k)%NCharge
+            pCharge => this%Molecule%Unit(k)%SiteCharge(i)
+            do j = 1, np
+              pCharge%RX(j) = this%P0(j, 1, k)
+              pCharge%RY(j) = this%P0(j, 2, k)
+              pCharge%RZ(j) = this%P0(j, 3, k)
+            end do
+          end do
+        
+        end if
       end do
     
     else ! If molecule is not elongated
