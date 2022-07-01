@@ -76,8 +76,8 @@ module ms2_molecule
     integer, allocatable :: SiteIds(:)
     integer, allocatable :: LJSiteIds(:)
     integer, allocatable :: ChargeSiteIds(:)
-    integer, allocatable :: QuadrupoleSiteIds(:)
     integer, allocatable :: DipoleSiteIds(:)
+    integer, allocatable :: QuadrupoleSiteIds(:)
     integer, allocatable :: ConstraintSiteIds(:)
     integer, allocatable :: NotConstraintSiteIds(:)
     integer, pointer     :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
@@ -233,22 +233,24 @@ contains
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
     logical                :: ok, ok1, LJ1, LJ2, same
     logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
-    integer                :: cc, cd, cq, dd, dq, qq, qc, qd, dc, lj
-!     integer, allocatable   :: S(:, :), E( :, :), Units(:, :)
+    integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
     integer                :: Site1, Site2, Site3, Site4
-    integer, allocatable   :: AllSites(:, :), Int14(:,:), IntLJ15(:,:)
-    integer, allocatable   :: IntLJ14(:, :), SameCoord(:,:)
+    integer, allocatable   :: AllSites(:, :), Int14(:,:)
+    integer, allocatable   :: IntLJ14(:, :), IntLJ15(:,:)
+    integer, allocatable   :: SameCoord(:,:)
     integer, allocatable   :: IntCC14(:, :), IntCD14(:,:), IntCQ14(:,:)
-    integer, allocatable   :: IntQQ14(:, :), IntDD14(:,:), IntDQ14(:,:)
-    integer, allocatable   :: IntQC14(:, :), IntQD14(:,:), IntDC14(:,:)
+    integer, allocatable   :: IntDC14(:, :), IntDD14(:,:), IntDQ14(:,:)
+    integer, allocatable   :: IntQC14(:, :), IntQD14(:,:), IntQQ14(:,:)
     integer, allocatable   :: IntCC15(:, :), IntCD15(:,:), IntCQ15(:,:)
-    integer, allocatable   :: IntQQ15(:, :), IntDD15(:,:), IntDQ15(:,:)
-    integer, allocatable   :: IntQC15(:, :), IntQD15(:,:), IntDC15(:,:)
-    real, allocatable      :: ScaleLJ14(:), ScaleCC14(:), ScaleCD14(:), ScaleCQ14(:)
-    real, allocatable      :: ScaleQQ14(:), ScaleDD14(:), ScaleDQ14(:)
-    real, allocatable      :: ScaleDC14(:), ScaleQD14(:), ScaleQC14(:)
+    integer, allocatable   :: IntDC15(:, :), IntDD15(:,:), IntDQ15(:,:)
+    integer, allocatable   :: IntQC15(:, :), IntQD15(:,:), IntQQ15(:,:)
+    real, allocatable      :: ScaleLJ14(:)
+    real, allocatable      :: ScaleCC14(:), ScaleCD14(:), ScaleCQ14(:)
+    real, allocatable      :: ScaleDC14(:), ScaleDD14(:), ScaleDQ14(:)
+    real, allocatable      :: ScaleQC14(:), ScaleQD14(:), ScaleQQ14(:)
     real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
-    integer                :: Charge1Id, Charge2Id, Dipole1Id, Dipole2Id
+    integer                :: Charge1Id, Charge2Id
+    integer                :: Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
 
     
@@ -270,13 +272,6 @@ contains
     ! Read number of potential types
     call FileReadParameter( ntypes, iounit_potmod, IdSite_ntypes, .false. )
 
-    ! Zero number of sites
-    this%NLJ126 = 0
-    this%NCharge = 0
-    this%NDipole = 0
-    this%NQuadrupole = 0
-
-    ! Inner Degrees of Freedom
     ! Zero number of idf
     this%NBond = 0
     this%NAngle = 0
@@ -293,6 +288,12 @@ contains
     
     ! Zero number of Sites
     this%NSite = 0
+    this%NLJ126 = 0
+    this%NCharge = 0
+    this%Charge = 0._RK
+    this%NDipole = 0
+    this%NQuadrupole = 0
+    
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
 
@@ -319,6 +320,7 @@ contains
           call AllocationError( stat, 'point charge sites', this%NCharge )
           do j = 1, this%NCharge
             call Construct( this%SiteCharge(j) )
+            this%Charge = this%Charge + this%SiteCharge(j)%e
           end do
         end if
 
@@ -656,7 +658,7 @@ contains
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
            if (j<=this%NBond) then
-              call FindBondR(this,this%IdfBond(j), j) 
+             call FindBondR(this,this%IdfBond(j), j) 
              ! Number of bonds can change in this procedure!
            else
              exit
@@ -1295,8 +1297,7 @@ contains
 
     ! For fluctuating particle scale parameters
     if( fluctstate > 0 ) then
-      ! Rewind Input File
-      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true.)
+      call FileReadParameter_IOBuffer( iounit_potmod, IdNFluct, .false. )
 
       ! Scaling factors start in next line
       if( RootProc ) then
@@ -1305,18 +1306,13 @@ contains
         end do
       end if
 #if MPI_VER > 0
-      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
-      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, &
-&       Communicator, ierror )
+      call MPI_Bcast( scalegeo, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scalesig, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scaleeps, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( scaleest, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. &
-&         scaleeps > 1._RK .or. scaleest > 1._RK ) &
-&       call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
+      if( scalegeo > 1._RK .or. scalesig > 1._RK .or. scaleeps > 1._RK .or. scaleest > 1._RK ) &
+&         call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
 
       ! Apply scaling factors
       do i = 1, this%NLJ126
@@ -1369,9 +1365,13 @@ contains
         ! Reduction of point charges to body fixed dipole vector
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          do j =1, this%Unit(i)%NCharge
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-          end do
+          if (LongRange .ne. Ewald) then
+            if (LongRange .ne. PME) then
+              do j =1, this%Unit(i)%NCharge
+                this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+              end do
+            end if
+          end if
           do j =1, this%Unit(i)%NDipole
             this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
           end do
@@ -1387,16 +1387,21 @@ contains
       end if
       
     else if( fluctstate .eq. 0 ) then
-       call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
+
+      call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
 
       ! Reduction of point charges to body fixed dipole vector
       do i=1, this%NUnit
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          do j =1, this%Unit(i)%NCharge
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                   this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-          end do
+          if (LongRange .ne. Ewald) then
+            if (LongRange .ne. PME) then
+              do j =1, this%Unit(i)%NCharge
+                this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                       this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+              end do
+            end if
+          end if
           do j =1, this%Unit(i)%NDipole
             this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
 &                   this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
@@ -1413,11 +1418,13 @@ contains
       do i=1, this%NUnit
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          if ((LongRange .ne. Ewald) .or. (LongRange .ne. PME)) then
-            do j =1, this%Unit(i)%NCharge
-              this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                      this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-            end do
+          if (LongRange .ne. Ewald) then
+            if (LongRange .ne. PME) then
+              do j =1, this%Unit(i)%NCharge
+                this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
+&                        this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
+              end do
+            end if
           end if
           do j =1, this%Unit(i)%NDipole
             this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
@@ -1435,21 +1442,21 @@ contains
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
-      if ((LongRange .ne. Ewald) .or. (LongRange .ne. PME)) then
-        do i =1, this%NCharge
-          this%Mue(:) = this%Mue(:) + &
-&           this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
-        end do
+      if (LongRange .ne. Ewald) then
+        if (LongRange .ne. PME) then
+          do i =1, this%NCharge
+            this%Mue(:) = this%Mue(:) + this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
+          end do
+        end if
       end if
       do i =1, this%NDipole
-        this%Mue(:) = this%Mue(:) + &
-&         this%SiteDipole(i)%or(:) * this%SiteDipole(i)%D
+        this%Mue(:) = this%Mue(:) + this%SiteDipole(i)%or(:) * this%SiteDipole(i)%D
       end do
     end if
     this%MueSquared = sum( this%Mue(:)**2 )
 
     ! Save used potential model
-    call Save( this, fluctstate )
+    call Save( this, fluctstate ) 
     if (UseIntDegFreed) then
       ! Save  used potential model with IDF
        call SaveIDF( this )
@@ -1638,12 +1645,17 @@ contains
     integer                   :: ntypes
     integer                   :: i
 
-    ! Open file
+    i = index(this%PotModFileName,'.',.true.)
+    if ( i<=1 ) then
+      i = len(trim(this%PotModFileName))
+    end if
+
     if( fluctstate < 1 ) then
-      filename = trim( this%PotModFileName )//NormalizedPotModExtension
+      write( filename, '(A,".",A,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),trim(NormalizedPotModExtension)
+
     else
-      write( filename, '(A, ".", I0)') &
-&       trim( this%PotModFileName )//NormalizedPotModExtension, fluctstate
+      write( filename, '(A,".",A,"_",I0,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
+&           ,trim(NormalizedPotModExtension)
     end if
     call FileRewrite( iounit_normal, filename )
 
@@ -1659,7 +1671,7 @@ contains
     ! Save Lennard-Jones sites
     if( this%NLJ126 > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'LJ126'
+      write( IOBuffer, '(1X, A)' ) 'LJ126'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NLJ126
       call FileWriteParameter( iounit_normal, IdSite_NLJ126 )
@@ -1672,7 +1684,7 @@ contains
     ! Save point charge sites
     if( this%NCharge > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Charge'
+      write( IOBuffer, '(1X, A)' ) 'Charge'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NCharge
       call FileWriteParameter( iounit_normal, IdSite_NCharge )
@@ -1685,7 +1697,7 @@ contains
     ! Save point dipole sites
     if( this%NDipole > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Dipole'
+      write( IOBuffer, '(1X, A)' ) 'Dipole'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NDipole
       call FileWriteParameter( iounit_normal, IdSite_NDipole )
@@ -1698,7 +1710,7 @@ contains
     ! Save point quadrupole sites
     if( this%NQuadrupole > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Quadrupole'
+      write( IOBuffer, '(1X, A)' ) 'Quadrupole'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NQuadrupole
       call FileWriteParameter( iounit_normal, IdSite_NQuadrupole )
@@ -1715,22 +1727,24 @@ contains
 
     ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
+&          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
 
-    ! Save moments of inertia of molecule
+    ! Save moments of inertia
     if( this%NDFRot > 0 ) then
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(1)
+&            this%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(1)
+
       call FileWriteParameter( iounit_normal, IdSite_MOI1 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(2)
+&            this%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(2)
+
       call FileWriteParameter( iounit_normal, IdSite_MOI2 )
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&       this%MOI(3)
+&            this%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%MOI(3)
       call FileWriteParameter( iounit_normal, IdSite_MOI3 )
     end if
 
@@ -1739,8 +1753,7 @@ contains
 
     ! Update log file
     write( IOBuffer, '("Normalized potential model for ", A, &
-&     " saved to file <", A, ">")' ) &
-&     trim( this%PotModFileName ), trim( filename )
+&          " saved to file <", A, ">")' ) trim( this%PotModFileName ), trim( filename )
     call LogWrite
 
   end subroutine TMolecule_Save
@@ -1781,7 +1794,7 @@ contains
     ! Save Bonds
     if( this%NBond > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Bond'
+      write( IOBuffer, '(1X, A)' ) 'Bond'
       call FileWriteParameter( iounit_normal, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NBond
       call FileWriteParameter( iounit_normal, IdIdf_NBond )
@@ -1794,7 +1807,7 @@ contains
    ! Save Angles
    if( this%NAngle > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Angle'
+      write( IOBuffer, '(1X, A)' ) 'Angle'
       call FileWriteParameter( iounit_normal, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NAngle
       call FileWriteParameter( iounit_normal, IdIdf_NAngle )
@@ -1807,7 +1820,7 @@ contains
    ! Save Dihedrals
    if( this%NDihedral > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(X, A)' ) 'Dihedral'
+      write( IOBuffer, '(1X, A)' ) 'Dihedral'
       call FileWriteParameter( iounit_normal, IdIdf_stype )
       write( IOBuffer, '(I2)' ) this%NDihedral
       call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
@@ -1836,8 +1849,7 @@ contains
 
     ! Update log file
     write( IOBuffer, '("Normalized potential model with IDF for ", A, &
-&     " saved to file <", A, ">")' ) &
-&     trim( this%PotModFileName ), trim( filename )
+&     " saved to file <", A, ">")' )trim( this%PotModFileName ), trim( filename )
     call LogWrite
 
   end subroutine TMolecule_SaveIDF
@@ -1924,86 +1936,63 @@ contains
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
     do i = 1, this%NLJ126
-      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass &
-&       * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass &
-&       * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
     end do
+
     do i = 1, this%NCharge
-      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass &
-&       * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass &
-&       * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
     end do
+
     do i = 1, this%NDipole
-      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass &
-&       * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass &
-&       * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
     end do
+
     do i = 1, this%NQuadrupole
-      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass &
-&       * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass &
-&       * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
     end do
 
     ! Transform to principal axes
     call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
     call eigen_sort( this%MOI(:), rotation(:,:) )
     do i = 1, this%NLJ126
-      this%SiteLJ126(i)%r(:) = &
-&       matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
-    end do
-    do i = 1, this%NCharge
-      this%SiteCharge(i)%r(:) = &
-&       matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
-    end do
-    do i = 1, this%NDipole
-      this%SiteDipole(i)%r(:) = &
-&       matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
-      this%SiteDipole(i)%or(:) = &
-&       matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
-    end do
-    do i = 1, this%NQuadrupole
-      this%SiteQuadrupole(i)%r(:) = &
-&       matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
-      this%SiteQuadrupole(i)%or(:) = &
-&       matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
+      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
     end do
 
+    do i = 1, this%NCharge
+      this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NDipole
+      this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
+      this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NQuadrupole
+      this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
+      this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
+    end do
+
+    if( (this%NCharge > 0).or.(this%NDipole > 0) ) this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
 
   contains
 
@@ -2056,11 +2045,7 @@ contains
         do ip = 1, 2
           do iq = ip + 1, 3
             g = 100._RK * abs( a(ip, iq ) )
-            if( &
-&             (i > 4) &
-&             .and. (abs( d(ip) ) + g == abs( d(ip) )) &
-&             .and. (abs( d(iq) ) + g == abs( d(iq) )) &
-&           ) then
+            if((i > 4) .and. (abs( d(ip) ) + g == abs( d(ip) )) .and. (abs( d(iq) ) + g == abs( d(iq) ))) then
               a(ip, iq) = 0._RK
 
             else if( abs( a(ip, iq) ) > thresh ) then
@@ -2152,7 +2137,7 @@ contains
       call FileReadParameter( this%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
       call FileReadParameter( this%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
       if( this%NDFRot == 3 ) then
-         call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
+        call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
       end if
     end if
 
@@ -2200,18 +2185,17 @@ contains
 
     ! Check orientation of dipoles and quadrupoles
     if( this%NDFRot < 3 ) then
-      disoriented = this%NDFRot < 2 &
-&       .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+      disoriented = this%NDFRot < 2 .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+
       do i = 1, this%NDipole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
+        disoriented = disoriented .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
       end do
+
       do i = 1, this%NQuadrupole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
+        disoriented = disoriented .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
       end do
-      if( disoriented ) &
-&       call Error( 'Must specify moments of inertia manually' )
+
+      if( disoriented ) call Error( 'Must specify moments of inertia manually' )
     end if
 
     ! Calculate total number of degrees of freedom
