@@ -5650,8 +5650,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     type(TComponent) :: this
 
     ! Declare local variables
-    integer :: np, i
-    integer :: k,nu
+    integer  :: np, i, k, nu
+    real(RK) :: pos(3), quat(4)
 
     ! Assign local variables
     np = this%NPart
@@ -5667,9 +5667,8 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Centers of mass positions
     do i = 1, np
       do k = 1, nu
-        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 1, k )
-        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 2, k )
-        write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P0( i, 3, k )
+        pos(:) = this%P0(i,:, k)
+        write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
       end do
     end do
 
@@ -5677,39 +5676,34 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Centers of mass positions' derivatives
       do i = 1, np
         do k = 1, nu
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 1, k )
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 2, k )
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P1( i, 3, k )
+          pos(:) = this%P1(i,:, k)
+          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end do
       do i = 1, np
         do k = 1, nu
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 1, k )
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 2, k )
-          write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P2( i, 3, k )
+          pos(:) = this%P2(i,:, k)
+          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
         end do
       end do
 
       if( IntegratorType .eq. IntegratorTypeGear ) then
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P3( i, 3, k )
+            pos(:) = this%P3(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P4( i, 3, k )
+            pos(:) = this%P4(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%P5( i, 3, k )
+            pos(:) = this%P5(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end do
       end if
@@ -5727,48 +5721,38 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     if( this%Molecule%isElongated ) then
       ! Quaternion parameters
       do i = 1, np
-         do  k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 3, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q0( i, 4, k )
-         end do
+        do k = 1, nu
+          quat(:) = this%Q0(i,:, k)
+          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+        end do
       end do
 
       if( SimulationType .eq. MolecularDynamics ) then
         ! Quaternion parameters' derivatives
         do i = 1, np
-         do  k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 3, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q1( i, 4, k )
-         end do
+          do k = 1, nu
+            quat(:) = this%Q1(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+          end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            do  k = 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 3, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q2( i, 4, k )
+            do k = 1, nu
+              quat(:) = this%Q2(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
-            do  k = 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 3, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q3( i, 4, k )
+            do k = 1, nu
+              quat(:) = this%Q3(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
-            do  k = 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 3, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%Q4( i, 4, k )
+            do k = 1, nu
+              quat(:) = this%Q4(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
         end if
@@ -5776,39 +5760,34 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         ! Angular velocities and their derivatives
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W0( i, 3, k )
+            pos(:) = this%W0(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end do
         do i = 1, np
           do k = 1, nu
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 1, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 2, k )
-            write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W1( i, 3, k )
+            pos(:) = this%W1(i,:, k)
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
-            do k= 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W2( i, 3, k )
+            do k = 1, nu
+              pos(:) = this%W2(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
             end do
           end do
           do i = 1, np
-            do k= 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W3( i, 3, k )
+            do k = 1, nu
+              pos(:) = this%W3(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
             end do
           end do
           do i = 1, np
-            do k= 1, nu
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 1, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 2, k )
-              write( iounit_restart, '(ES20.12E3, :, ";")' ) this%W4( i, 3, k )
+            do k = 1, nu
+              pos(:) = this%W4(i,:, k)
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
             end do
           end do
         end if
