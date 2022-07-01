@@ -9708,6 +9708,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         case( ChemPotMethodWidom )
           call Update( pc%SumChemPotV, pc%ChemPot / this%Density )
           call Update( pc%SumChemPotVV, pc%ChemPot / this%Density**2 )
+          call Update(pc%SumHW_counter, pc%HW_counter)
+          call Update(pc%SumHW_denom, pc%HW_denom)
         end select
       end if
     end do
