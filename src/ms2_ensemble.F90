@@ -11786,6 +11786,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write(IOBuffer, '("Critical distance: ",F10.5," A")' ) this%ResidLength*UnitLength/Angstroem
       call FileWrite( this%iounit_errors )
     end if
+    call FileWriteBlank( this%iounit_errors )
 
     ! Close final result file
     call FileClose( this%iounit_errors )
@@ -11959,7 +11960,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         if (this%Component(i)%Molecule%Unit(j)%NLJ126 > 0) then
           do k = 1, this%Component(i)%Molecule%Unit(j)%NLJ126
             psLJ126 => this%Component(i)%Molecule%Unit(j)%SiteLJ126(k)
-            write( IOBuffer, '("~", I3, " LJ", 4F8.4, "  1")' ) (num+j), &
+            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+j), &
 &             psLJ126%r(:) * UnitLength / Angstroem, &
 &             psLJ126%sig  * UnitLength / Angstroem
             call FileWrite( this%iounit_visual )
