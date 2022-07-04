@@ -4938,13 +4938,13 @@ end subroutine TInteraction_Energy
 
           ! Contribution to virial
 #if MPI_VER > 0
-        if (Equilibration .and. CommonEqui) then
-          VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij) / NProcs
-        else
-          VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
-        end if
+          if (Equilibration .and. CommonEqui) then
+            VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij) / NProcs
+          else
+            VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
+          end if
 #else
-        VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
+          VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
 #endif
           Virial(unit2) = Virial(unit2) + Third * VirialLocal
         end if
