@@ -2000,14 +2000,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
 !  Subroutine TPotLJLJ_ChemicalPotential                       !
 !==============================================================!
 
-  subroutine TPotLJLJ_ChemicalPotential( this, EPotTest, BoxLength )
+  subroutine TPotLJLJ_ChemicalPotential( this, EPotTest )
 
     implicit none
 
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
     real(RK), pointer    :: EPotTest(:)
-    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
@@ -2119,7 +2118,7 @@ loop2:  do j = 1, N2
 !  Subroutine TPotLJLJ_Energy                                  !
 !==============================================================!
 
-  subroutine TPotLJLJ_Energy( this, np, EPot, Virial, BoxLength )
+  subroutine TPotLJLJ_Energy( this, np, EPot, Virial )
 
     implicit none
 
@@ -2128,7 +2127,6 @@ loop2:  do j = 1, N2
     integer, intent(in)  :: np
     real(RK), pointer    :: EPot(:)
     real(RK), pointer    :: Virial(:)
-    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
@@ -15049,7 +15047,6 @@ loop2:do j = 1, j1
     ! Declare arguments
     type(TPotAngle)     :: this
     real(RK), intent(in out) :: EPot
-!     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotIntra_Angle
     real(RK), intent(in)     :: BoxLength
 
@@ -15063,8 +15060,7 @@ loop2:do j = 1, j1
     real(RK)          :: FXk, FYk, FZk
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXkj, RYkj, RZkj
-!     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: EPotLocal, VirialLocal
+    real(RK)          :: EPotLocal
     real(RK)          :: ForConst, Angle, Angle0, dAngle, cosa, sina
     real(RK)          :: abc, sab, cab, fab, fbb, faa, fax, fay, faz,  fbx, fby, fbz
 
@@ -15089,7 +15085,6 @@ loop2:do j = 1, j1
      ForConst = this%ForConst
      Angle0 = this%Angle0
      EPotLocal   = 0._RK
-     VirialLocal = 0._RK
 
     ! Assign pointers
      RX1 => this%Angle%RX1

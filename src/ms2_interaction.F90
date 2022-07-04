@@ -1513,7 +1513,7 @@ contains
     ! Calculate Lennard-Jones chemical potential
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-        call ChemicalPotential( this%PotLJ126LJ126( i, j ), EPotTest, BoxLength )
+        call ChemicalPotential( this%PotLJ126LJ126( i, j ), EPotTest )
       end do
     end do
 
