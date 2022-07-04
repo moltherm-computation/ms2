@@ -143,10 +143,6 @@ module ms2_component
     ! Total dipole moment of test particles for reaction field
     real(RK), pointer :: MueXTest(:, :), MueYTest(:, :), MueZTest(:, :)
 
-    ! Gear corrector local arrays
-    real(RK), pointer :: Corr0(:, :, :)
-    real(RK), pointer :: Corr1(:, :, :)
-
     ! Length of simulation box
     real(RK), pointer :: BoxLength
 
@@ -1025,8 +1021,6 @@ contains
     nullify( this%MueXTest )
     nullify( this%MueYTest )
     nullify( this%MueZTest )
-    nullify( this%Corr0 )
-    nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
 #if  TRANS == 1
@@ -1251,14 +1245,6 @@ contains
         end if
       end if
 
-    end if
-
-    ! Gear corrector local arrays
-    if( SimulationType .eq. MolecularDynamics .and. IntegratorType .eq. IntegratorTypeGear ) then
-      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ), nu ),STAT = stat )
-      call AllocationError( stat, 'units*particles', nup )
-      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ), nu ),STAT = stat )
-      call AllocationError( stat, 'units*particles', nup )
     end if
 
     ! Site positions, orientations, forces and torques
@@ -2201,14 +2187,6 @@ contains
     end if
     if( associated( this%MueZTest ) ) then
       deallocate( this%MueZTest )
-    end if
-
-    ! Gear corrector local arrays
-    if( associated( this%Corr0 ) ) then
-      deallocate( this%Corr0 )
-    end if
-    if( associated( this%Corr1 ) ) then
-      deallocate( this%Corr1 )
     end if
 
 #if  TRANS == 1
@@ -4996,6 +4974,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     integer           :: np, nu
     integer           :: i, j, k
     real(RK)          :: r(3)
+    real(RK)          :: Corr0(merge(4,3,this%Molecule%isElongated)), Corr1
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -5012,17 +4991,17 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       MassInv = 1._RK / this%Molecule%Unit(k)%Mass
       do j = 1, 3
         do i = 1, np
-          this%Corr0(i, j, k) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv
+          Corr0(j) = pF(i, j, k) * TimeStepSquared2 * BoxLengthInv * MassInv
           if( ConstantPressure .and. .not. NVTEquilibration ) then
-            this%Corr0(i, j, k) = this%Corr0(i, j, k) - this%P1(i, j, k) * dLogVolumeThird
+            Corr0(j) = Corr0(j) - this%P1(i, j, k) * dLogVolumeThird
           end if
-          this%Corr1(i, j, k) = this%Corr0(i, j, k) - this%P2(i, j, k)
-          this%P0(i, j, k) = this%P0(i, j, k) + this%Corr1(i, j, k) * Gear20
-          this%P1(i, j, k) = this%P1(i, j, k) + this%Corr1(i, j, k) * Gear21
-          this%P2(i, j, k) =                    this%Corr0(i, j, k)
-          this%P3(i, j, k) = this%P3(i, j, k) + this%Corr1(i, j, k) * Gear23
-          this%P4(i, j, k) = this%P4(i, j, k) + this%Corr1(i, j, k) * Gear24
-          this%P5(i, j, k) = this%P5(i, j, k) + this%Corr1(i, j, k) * Gear25
+          Corr1 = Corr0(j) - this%P2(i, j, k)
+          this%P0(i, j, k) = this%P0(i, j, k) + Corr1 * Gear20
+          this%P1(i, j, k) = this%P1(i, j, k) + Corr1 * Gear21
+          this%P2(i, j, k) =                    Corr0(j)
+          this%P3(i, j, k) = this%P3(i, j, k) + Corr1 * Gear23
+          this%P4(i, j, k) = this%P4(i, j, k) + Corr1 * Gear24
+          this%P5(i, j, k) = this%P5(i, j, k) + Corr1 * Gear25
         end do
       end do
     end do
@@ -5075,26 +5054,25 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       ! Correct quaternion parameters and their derivatives
     do k = 1, nu
       do i = 1, np
-        this%Corr0(i, 1, k) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+        Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
 &                                        - this%Q0(i, 4, k) * this%W0(i, 3, k))
-        this%Corr0(i, 2, k) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+        Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
 &                                        + this%Q0(i, 3, k) * this%W0(i, 3, k))
-        this%Corr0(i, 3, k) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+        Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
 &                                        - this%Q0(i, 2, k) * this%W0(i, 3, k))
-        this%Corr0(i, 4, k) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+        Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
 &                                        + this%Q0(i, 1, k) * this%W0(i, 3, k))
-      end do
-      do j = 1, 4
-        do i = 1, np
-          this%Corr1(i, j, k) = this%Corr0(i, j, k) - this%Q1(i, j, k)
-          this%Q0(i, j, k) = this%Q0(i, j, k) + this%Corr1(i, j, k) * Gear10
-          this%Q1(i, j, k) =                  this%Corr0(i, j, k)
-          this%Q2(i, j, k) = this%Q2(i, j, k) + this%Corr1(i, j, k) * Gear12
-          this%Q3(i, j, k) = this%Q3(i, j, k) + this%Corr1(i, j, k) * Gear13
-          this%Q4(i, j, k) = this%Q4(i, j, k) + this%Corr1(i, j, k) * Gear14
+        do j = 1, 4
+          Corr1 = Corr0(j) - this%Q1(i, j, k)
+          this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
+          this%Q1(i, j, k) =                    Corr0(j)
+          this%Q2(i, j, k) = this%Q2(i, j, k) + Corr1 * Gear12
+          this%Q3(i, j, k) = this%Q3(i, j, k) + Corr1 * Gear13
+          this%Q4(i, j, k) = this%Q4(i, j, k) + Corr1 * Gear14
         end do
       end do
     end do
+
       ! Correct angular velocities and their derivatives
 #if MPI_VER > 0
       pT => this%TAll(:, :, :)
@@ -5109,28 +5087,28 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
         Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
         TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
-        do i = 1, np
-          this%Corr0(i, 1, k) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-          this%Corr0(i, 2, k) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-          this%Corr0(i, 3, k) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
-        end do
-      else
-        do i = 1, np
-          this%Corr0(i, 1, k) = pT(i, 1, k) * TMoi1
-          this%Corr0(i, 2, k) = pT(i, 2, k) * TMoi2
-        end do
-      end if
+      endif
 
-      do j = 1, this%Molecule%Unit(k)%NDFRot
-        do i = 1, np
-          this%Corr1(i, j, k) = this%Corr0(i, j, k) - this%W1(i, j, k)
-          this%W0(i, j, k) = this%W0(i, j, k) + this%Corr1(i, j, k) * Gear10
-          this%W1(i, j, k) = this%Corr0(i, j, k)
-          this%W2(i, j, k) = this%W2(i, j, k) + this%Corr1(i, j, k) * Gear12
-          this%W3(i, j, k) = this%W3(i, j, k) + this%Corr1(i, j, k) * Gear13
-          this%W4(i, j, k) = this%W4(i, j, k) + this%Corr1(i, j, k) * Gear14
+      do i = 1, np
+        if( this%Molecule%Unit(k)%is3D ) then
+          Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
+          Corr0(2) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
+          Corr0(3) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+        else
+          Corr0(1) = pT(i, 1, k) * TMoi1
+          Corr0(2) = pT(i, 2, k) * TMoi2
+        end if
+
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          Corr1 = Corr0(j) - this%W1(i, j, k)
+          this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
+          this%W1(i, j, k) =                    Corr0(j)
+          this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
+          this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
+          this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
         end do
       end do
+
     end do
   end if
 
@@ -5495,7 +5473,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Declare arguments
     type(TComponent)               :: this
     real(RK), intent(in)           :: r(3)
-    real(RK), intent(in), optional :: q(4, this%Molecule%NUnit)
+    real(RK), intent(in), optional :: q(4)
 
     ! Test boundaries of particle arrays
     if( this%NPart > this%NPartMax ) then
@@ -5510,18 +5488,11 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 #endif
 
     ! Set coordinates and orientation of new particle
-    if ( this%Molecule%NUnit .ne. 1) then
-      this%Pm0(this%NPart, :) = r(:)
-      if( this%Molecule%isElongated ) then
-        this%Q0(this%NPart, :,:) = q(:,:)
-      end if
-    else
-      this%Pm0(this%NPart, :) = r(:)
-      this%P0(this%NPart, :,1) = r(:)
-      if ( this%Molecule%isElongated ) then
-        this%Q0(this%NPart, :,1) = q(:,1)
-      end if
+    this%Pm0(this%NPart, :) = r(:)
+    if ( this%Molecule%isElongated ) then
+      this%Qm0(this%NPart, :) = q(:)
     end if
+
 
   end subroutine TComponent_AddParticle
 
@@ -6147,77 +6118,6 @@ subroutine TComponent_ForceTransport( this )
 
   end subroutine TComponent_ForceTransport
 !TRANSPORT_END
-
-
-#if CONSTR > 0
-!==============================================================!
-!  Subroutine TComponent_CorrectGear                           !
-!==============================================================!
-
-  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)         :: this
-    real(RK),intent(in)      :: dLogVolumeThird
-    integer,intent (in)      :: aa
-    real(RK), intent(in out) :: Forc
-    real(RK),intent(in)      :: drx,dry,drz
-
-    ! Declare local variables
-    real(RK)          :: BoxLength
-    real(RK)          :: Mass
-    real(RK)          :: np
-    real(RK)          :: ff
-    real(RK)          :: Corr0,Corr0ff,Corr1
-    real(RK)          :: dr(3)
-    integer           :: i, j
-
-    ! Assign local variables
-    BoxLength = this%BoxLength
-    Mass = this%Molecule%Mass
-    np = 2
-    dr(1) = drx
-    dr(2) = dry
-    dr(3) = drz
-
-    ! Correct COM positions and their derivatives
-    do j = 1, 3,1
-
-      Corr1 = + dr(j) / Gear20
-      Corr0 = Corr1 + this%P2(aa,j)
-
-      Corr0ff = Corr0
-      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
-
-        ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
-        Forc = Forc + ff
-        this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
-
-        ! Check for conservation of particles in primary cell
-
-#if ARCH == 1
-        if( this%P0(aa, j) < -.5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) + 1._RK
-        elseif( this%P0(i, j) > .5_RK ) then
-          this%P0(aa, j) = this%P0(aa, j) - 1._RK
-        end if
-#else
-        this%P0(aa, j) = this%P0(aa, j) - anint( this%P0(aa, j) )
-#endif
-        this%P0old(aa, j) = this%P0(aa, j)
-    end do
-
-  end subroutine TComponent_CorrectGear_Constraint
-
-#endif
-
 
 
 end module ms2_component

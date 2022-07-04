@@ -88,7 +88,7 @@ module ms2_ensemble
     integer :: NFluctMax
 
     ! Number of degrees of freedom
-    integer :: NDFTran, NDFRot, NDF
+    integer :: NDFTran, NDFRot, NDF, constrNDF
 
     ! Mass of piston
     real(RK) :: PistonMass
@@ -117,8 +117,8 @@ module ms2_ensemble
     ! Interactions
     type(TInteraction), pointer :: Interaction(:, :)
 
-    ! Initial values of temperature, pressure, density
-    real(RK) :: RefTemperature, RefPressure, RefDensity
+    ! Initial values of temperature, pressure, density, hamiltonian
+    real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian
 
     ! Values of density, enthalpy, betaT, dHdp and their uncertainties
     ! in corresponding liquid simulation (for GE ensemble only)
@@ -137,6 +137,7 @@ module ms2_ensemble
     ! Inter und Intra(Bond) Virial
     real(RK) :: VirialInter
     real(RK) :: VirialIntra
+    real(RK) :: VirialShake
 
     ! Scale coefficients for LJ126 epsilon and sigma
     real(RK), pointer :: ScaleEpsilon(:, :), ScaleSigma(:, :)
@@ -224,6 +225,19 @@ module ms2_ensemble
     type(TAccumulator) :: SumdEpotdV
     type(TAccumulator) :: Sumd2EpotdV2
 
+    type(TAccumulator) :: SumHmU
+    type(TAccumulator) :: SumHmUm1
+    type(TAccumulator) :: SumHmUm2
+    type(TAccumulator) :: SumHmUm3
+    type(TAccumulator) :: SumHmUm1dUdV
+    type(TAccumulator) :: SumHmUm1dUdV2
+    type(TAccumulator) :: SumHmUm1d2UdV2
+    type(TAccumulator) :: SumHmUm2dUdV
+    type(TAccumulator) :: SumHmUm2dUdV2
+    type(TAccumulator) :: SumHmUm2d2UdV2
+    type(TAccumulator) :: SumHmUm3dUdV
+    type(TAccumulator) :: SumHmUm3dUdV2
+
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
     type(TAccumulator) :: SumEPotV
@@ -245,6 +259,14 @@ module ms2_ensemble
     type(TAccumulator) :: SumA30resNVT
     type(TAccumulator) :: SumA21resNVT
     type(TAccumulator) :: SumA12resNVT
+    type(TAccumulator) :: SumA10resII
+    type(TAccumulator) :: SumA01resII
+    type(TAccumulator) :: SumA20resII
+    type(TAccumulator) :: SumA11resII
+    type(TAccumulator) :: SumA02resII
+    type(TAccumulator) :: SumA30resII
+    type(TAccumulator) :: SumA21resII
+    type(TAccumulator) :: SumA12resII
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -2208,6 +2230,20 @@ contains
       call Construct( this%SumEPotSquareddEpotdV, .false. )
       call Construct( this%SumEPotdEpotdVSquared, .false. )
       call Construct( this%SumEPotd2EpotdV2, .false. )
+      if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+        call Construct( this%SumHmU, .false. )
+        call Construct( this%SumHmUm1, .false. )
+        call Construct( this%SumHmUm2, .false. )
+        call Construct( this%SumHmUm3, .false. )
+        call Construct( this%SumHmUm1dUdV, .false. )
+        call Construct( this%SumHmUm1dUdV2, .false. )
+        call Construct( this%SumHmUm1d2UdV2, .false. )
+        call Construct( this%SumHmUm2dUdV, .false. )
+        call Construct( this%SumHmUm2dUdV2, .false. )
+        call Construct( this%SumHmUm2d2UdV2, .false. )
+        call Construct( this%SumHmUm3dUdV, .false. )
+        call Construct( this%SumHmUm3dUdV2, .false. )
+      end if
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -2228,58 +2264,58 @@ contains
 #if  TRANS == 1
 !TRANSPORT_start
     ! 4.) Transport properties
-    if( CorrfunMode .eq. active ) then
+    if ( this%CorrfunMode ) then
       do i = 1, this%NComponents
-        call ConstructCF( this%Sumself_i(i),  .true. )
+        call ConstructCF( this%Sumself_i(i), .true., this%NBlocksMaxCF )
         this%Sumself_i(i)%BLOCKSUM(:) = 0._RK
         this%Sumself_i(i)%TOTALSUM    = 0._RK
         this%Sumself_i(i)%AVERAGE     = 0._RK
         this%Sumself_i(i)%VARIANCE    = 0._RK
       end do
 
-      call ConstructCF( this%SumBin_d,   .true. )
+      call ConstructCF( this%SumBin_d,  .true., this%NBlocksMaxCF )
       this%SumBin_d%BLOCKSUM(:) = 0._RK
       this%SumBin_d%TOTALSUM    = 0._RK
       this%SumBin_d%AVERAGE     = 0._RK
       this%SumBin_d%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_a,  .true. )
+      call ConstructCF( this%SumTer_a, .true., this%NBlocksMaxCF )
       this%SumTer_a%BLOCKSUM(:) = 0._RK
       this%SumTer_a%TOTALSUM    = 0._RK
       this%SumTer_a%AVERAGE     = 0._RK
       this%SumTer_a%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_b,  .true. )
+      call ConstructCF( this%SumTer_b, .true., this%NBlocksMaxCF )
       this%SumTer_b%BLOCKSUM(:) = 0._RK
       this%SumTer_b%TOTALSUM    = 0._RK
       this%SumTer_b%AVERAGE     = 0._RK
       this%SumTer_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumTer_c,  .true. )
+      call ConstructCF( this%SumTer_c, .true., this%NBlocksMaxCF )
       this%SumTer_c%BLOCKSUM(:) = 0._RK
       this%SumTer_c%TOTALSUM    = 0._RK
       this%SumTer_c%AVERAGE     = 0._RK
       this%SumTer_c%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_s, .true. )
+      call ConstructCF( this%SumVisco_s, .true., this%NBlocksMaxCF )
       this%SumVisco_s%BLOCKSUM(:) = 0._RK
       this%SumVisco_s%TOTALSUM    = 0._RK
       this%SumVisco_s%AVERAGE     = 0._RK
       this%SumVisco_s%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumVisco_b, .true. )
+      call ConstructCF( this%SumVisco_b, .true., this%NBlocksMaxCF )
       this%SumVisco_b%BLOCKSUM(:) = 0._RK
       this%SumVisco_b%TOTALSUM    = 0._RK
       this%SumVisco_b%AVERAGE     = 0._RK
       this%SumVisco_b%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumConduct, .true. )
+      call ConstructCF( this%SumConduct, .true., this%NBlocksMaxCF )
       this%SumConduct%BLOCKSUM(:) = 0._RK
       this%SumConduct%TOTALSUM    = 0._RK
       this%SumConduct%AVERAGE     = 0._RK
       this%SumConduct%VARIANCE    = 0._RK
 
-      call ConstructCF( this%SumEConduct, .true. )
+      call ConstructCF( this%SumEConduct, .true., this%NBlocksMaxCF )
       this%SumEConduct%BLOCKSUM(:) = 0._RK
       this%SumEConduct%TOTALSUM    = 0._RK
       this%SumEConduct%AVERAGE     = 0._RK
@@ -6992,6 +7028,581 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 
 !==============================================================!
+!  Subroutine TEnsemble_Move_NVE                               !
+!==============================================================!
+
+  subroutine TEnsemble_Move_NVE( this, nc, np, nu )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np, nu
+
+    ! Declare local variables
+    real(RK)                  :: r(3), rm(3), NewOmega
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier
+#ifdef SPME
+    real(RK)                  :: EVirial
+#endif
+    real(RK)                  :: EPotDelta
+    type(TComponent), pointer :: pc
+    integer                   :: i
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of move attempts
+    pc%NMoveAttempts = pc%NMoveAttempts + 1
+
+    ! Save current particle position and energy
+    r(:)  = pc%P0(np, :, nu)
+    rm(:) = pc%Pm0(np, :)
+    EPotOld = GetEnergy( this, nc, np, nu )
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial displacement
+    do i = 1, 3
+      pc%P0(np, i, nu) = pc%P0(np, i, nu) + rnd( -pc%DispTran, pc%DispTran )
+    end do
+
+    !!! Implement fixed bond length here. 
+    ! 1. check for bond partners and if forconst=0
+    ! 2. stretch bond to original, calculate scaling factor
+    ! 3. move all atoms which are connected to the displaced atom in any number of chains
+    
+    ! Calculate new COM
+    call Unit2Mol( pc, np )
+
+    ! Apply periodic boundary conditions
+    pc%P0(np, :, nu) = pc%P0(np, :, nu) - anint( pc%P0(np, :, nu) )
+    pc%Pm0(np, :)    = pc%Pm0(np, :) - anint( pc%Pm0(np, :) )
+
+    ! Convert molecular coordinates to atom positions
+    call Unit2Atom1( pc, np, nu )
+
+#ifdef SPME
+    ! Calculate changes in the SPME grid
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy at trial position
+    call Energy( this, nc, np, nu, EPotNew )
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
+      NewOmega = 0._RK
+    else 
+      NewOmega = 1._RK
+    end if
+
+    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
+&         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
+      ! Accept move
+      pc%NMoveSuccesses = pc%NMoveSuccesses + 1
+      call UpdateEnergy( this, nc, np, nu )
+    else
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+          this%UFourier = EFourier
+          DO i=1,pc%Molecule%NCharge
+            this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+          END DO
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
+          call EwaldFourierEnergy(this,nc,np)
+          call Unit2Mol( pc, np )
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+          this%UFourier = EFourier
+          this%EVirial  = EVirial
+          call chargegrid_min  (this, nc, np)
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
+          call chargegrid_plus (this, nc, np)
+#endif
+      else
+          pc%P0(np, :, nu) = r(:)
+          pc%Pm0(np, :) = rm(:)
+          call Unit2Atom1( pc, np, nu )
+      end if
+    end if
+
+  end subroutine TEnsemble_Move_NVE
+
+
+!==============================================================!
+!  Subroutine TEnsemble_MoveMol_NVE                            !
+!==============================================================!
+
+  subroutine TEnsemble_MoveMol_NVE( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: rm(3), trans(3)
+    real(RK)                  :: TransMove, NewOmega
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier
+#ifdef SPME
+    real(RK)                  :: EVirial
+#endif
+    real(RK)                  :: EPotDelta
+    type(TComponent), pointer :: pc
+    integer                   :: i, j
+    integer                   :: NUnit
+
+    ! Assign local variables
+    pc => this%Component(nc)
+    NUnit = pc%Molecule%NUnit
+
+    ! Update number of move attempts
+    pc%NMoveMolAttempts = pc%NMoveMolAttempts + 1
+
+    ! Save current particle position and energy
+    rm(:) = pc%Pm0(np, :)
+    EPotOld = 0._RK
+    EPotNew = 0._RK
+    EPotold = GetEnergy( this, nc, np )   ! IDF
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial displacement & Apply periodic boundary conditions
+    do i = 1, 3
+      TransMove = rnd( -pc%DispMolTran, pc%DispMolTran )
+      pc%Pm0(np, i) = pc%Pm0(np, i) + TransMove
+      pc%Pm0(np, i) = pc%Pm0(np, i) - anint( pc%Pm0(np, i) )
+      trans(i)  = TransMove
+      do j=1, NUnit
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) + TransMove
+        pc%P0(np, i, j ) = pc%P0(np, i, j ) - anint( pc%P0(np, i, j) )
+      end do
+      
+    end do
+    
+    ! Convert molecular coordinates to atom positions and calculate Energies
+    do j = 1, NUnit
+      call Unit2Atom1( pc, np, j )
+    end do
+
+#ifdef SPME
+    ! Calculate changes in the SPME grid
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy at trial position
+    call Energy( this, nc, np, EPotNew )
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
+      NewOmega = 0._RK
+    else 
+      NewOmega = 1._RK
+    end if
+
+    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
+&         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
+      ! Accept move
+      pc%NMoveMolSuccesses = pc%NMoveMolSuccesses + 1
+      call UpdateEnergy( this, nc, np )
+    else
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+          this%UFourier = EFourier
+          DO i=1,pc%Molecule%NCharge
+           this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+          END DO
+          pc%Pm0(np, :) = rm(:)
+          do j=1, NUnit
+            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
+            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
+            call Unit2Atom1( pc, np, j )
+          end do
+          call EwaldFourierEnergy(this,nc,np)
+          call Unit2Mol( pc, np )
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+          this%UFourier = EFourier
+          this%EVirial  = EVirial
+          call chargegrid_min  (this, nc, np)
+          pc%Pm0(np, :) = rm(:)
+          do j=1, NUnit
+            pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
+            pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
+            call Unit2Atom1( pc, np, j )
+          end do
+          call chargegrid_plus (this, nc, np)
+#endif
+      else
+        pc%Pm0(np, :) = rm(:)
+        do j=1, NUnit
+          pc%P0(np, :, j) = pc%P0(np, :, j) - trans(:)
+          pc%P0(np, :, j) = pc%P0(np, :, j) - anint( pc%P0(np, :, j) )
+          call Unit2Atom1( pc, np, j )
+        end do
+      end if
+
+    end if
+
+  end subroutine TEnsemble_MoveMol_NVE
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Rotate_NVE                             !
+!==============================================================!
+
+  subroutine TEnsemble_Rotate_NVE( this, nc, np, nu )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments03
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np, nu
+
+    ! Declare local variables
+    real(RK)                  :: q(4), dq(3), NewOmega
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier
+#ifdef SPME
+    real(RK)                  :: EVirial
+#endif
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    real(RK)                  :: EPotDelta
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of rotation attempts
+    pc%NRotateAttempts = pc%NRotateAttempts + 1
+
+    ! Save current particle orientation and energy
+    q(:) = pc%Q0(np, :, nu)
+    EPotOld = GetEnergy( this, nc, np, nu )
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial rotation
+    do i = 1, 3
+      dq(i) = rnd( -pc%DispRot, pc%DispRot )
+    end do
+    pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+
+    ! Convert molecular coordinates to atom positions
+    call Unit2Atom1( pc, np, nu )
+
+#ifdef SPME
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy with trial orientation
+    call Energy( this, nc, np, nu, EPotNew )
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
+      NewOmega = 0._RK
+    else 
+      NewOmega = 1._RK
+    end if
+
+    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
+&         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
+      ! Accept rotation
+      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
+      call UpdateEnergy( this, nc, np, nu )
+
+    else
+
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+        this%UFourier = EFourier
+        DO i=1,pc%Molecule%NCharge
+          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+        END DO
+        pc%Q0(np, :, nu) = q(:)
+        call Unit2Atom1( pc, np, nu )
+        call EwaldFourierEnergy(this,nc,np)
+
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+        this%UFourier = EFourier
+        this%EVirial  = EVirial
+        call chargegrid_min  (this, nc, np)
+        pc%Q0(np, :, nu) = q(:)
+        call Unit2Atom1( pc, np, nu )
+        call chargegrid_plus (this, nc, np)
+#endif
+
+      else
+        pc%Q0(np, :, nu) = q(:)
+        call Unit2Atom1( pc, np, nu )
+      end if
+
+    end if
+
+  end subroutine TEnsemble_Rotate_NVE
+
+
+!==============================================================!
+!  Subroutine TEnsemble_RotateMol_NVE                          !
+!==============================================================!
+
+  subroutine TEnsemble_RotateMol_NVE( this, nc, np )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments03
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: p(3, this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: q(4, this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: dq(3), NewOmega
+    real(RK)                  :: EPotOld, EPotNew
+    real(RK)                  :: EFourier
+#ifdef SPME
+    real(RK)                  :: EVirial
+#endif
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    integer                   :: NUnit
+    real(RK)                  :: EPotDelta
+
+    ! Assign local variables
+    pc => this%Component(nc)
+    NUnit = pc%Molecule%NUnit
+
+    ! Update number of rotation attempts
+    pc%NRotateMolAttempts = pc%NRotateMolAttempts + 1
+
+    ! Save old positions
+    do i=1,NUnit
+      p(:,i) = pc%P0(np, :, i)
+      q(:,i) = pc%Q0(np, :, i)
+    end do
+    ! Calculate old Energies
+    EPotOld = GetEnergy( this, nc, np )   ! IDF
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+      EFourier = this%UFourier
+      DO i=1,pc%Molecule%NCharge
+        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+      END DO
+#ifdef SPME
+    else if (LongRange .eq. PME) then
+      EFourier = this%UFourier
+      EVirial  = this%EVirial
+      call chargegrid_min  (this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial rotation
+    do i = 1, 3
+      dq(i) = rnd( -pc%DispMolRot, pc%DispMolRot )
+    end do
+
+    ! Calculate new unit positions
+    call Mol2Unit(pc,np,dq)
+    do i=1,NUnit
+      call Unit2Atom1( pc, np, i )
+    end do
+
+#ifdef SPME
+    if (LongRange .eq. PME) then
+      call chargegrid_plus (this, nc, np)
+    end if
+#endif
+
+    ! Calculate particle energy with trial orientation
+    call Energy( this, nc, np, EPotNew )
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ( Equilibration .and. CommonEqui ) then
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
+    else
+      EPotDelta = EPotOld - EPotNew
+    endif
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
+      NewOmega = 0._RK
+    else 
+      NewOmega = 1._RK
+    end if
+
+    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF-this%constrNDF, RK)-2._RK)/2._RK) &
+&         * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
+      ! Accept rotation
+      pc%NRotateMolSuccesses = pc%NRotateMolSuccesses + 1
+      call UpdateEnergy( this, nc, np )
+    else
+      ! Reject move
+      if (LongRange .eq. Ewald) then
+        this%UFourier = EFourier
+        DO i=1,pc%Molecule%NCharge
+          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
+          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
+          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
+        END DO
+        do i=1,NUnit
+          pc%P0(np, :, i) = p(:,i)
+          pc%Q0(np, :, i) = q(:,i)
+          call Unit2Atom1( pc, np, i )
+        end do
+        call EwaldFourierEnergy(this,nc,np)
+
+#ifdef SPME
+      else if (LongRange .eq. PME) then
+        this%UFourier = EFourier
+        this%EVirial  = EVirial
+        call chargegrid_min  (this, nc, np)
+        do i=1,NUnit
+          pc%P0(np, :, i) = p(:,i)
+          pc%Q0(np, :, i) = q(:,i)
+          call Unit2Atom1( pc, np, i )
+        end do
+        call chargegrid_plus (this, nc, np)
+#endif
+      else
+        do i=1,NUnit
+          pc%P0(np, :, i) = p(:,i)
+          pc%Q0(np, :, i) = q(:,i)
+          call Unit2Atom1( pc, np, i )
+        end do
+      end if
+
+    end if
+
+  end subroutine TEnsemble_RotateMol_NVE
+
+
+!==============================================================!
 !  Subroutine TEnsemble_MoveBiased                             !
 !==============================================================!
 
@@ -7409,16 +8020,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ncfnew = pc%NFluctComp( newstate )
     pcfnew => this%Component( ncfnew )
     if( pcf%Molecule%IsElongated ) then
-      call AddParticle( pcfnew, pcf%Pm0( npf, : ), pcf%Q0( npf, 1:4, 1:pcf%Molecule%NUnit ) )
+      call AddParticle( pcfnew, pcf%Pm0( npf, :), pcf%Qm0( npf, :) )
     else
-      call AddParticle( pcfnew, pcf%Pm0( npf, : ) )
+      call AddParticle( pcfnew, pcf%Pm0( npf, :) )
     end if
     nu= pcfnew%Molecule%NUnit
     if ( nu .gt. 1) call ShiftParticle ( this, ncf, ncfnew )
     call RemoveParticle( pcf, npf )
     npfnew = pcfnew%NPart
 
-! Save states for the Ewald Summation and/or derivates
+    ! Save states for the Ewald Summation and/or derivates
     if (LongRange .eq. Ewald) then     ! Ewald Summation
        ! Save the initial state
        EFourier = this%UFourier
@@ -7478,9 +8089,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        else
          ! Reject
          if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcfnew, pcf%Pm0( npf, : ), pcf%Q0( npf, 1:4, 1:pcf%Molecule%NUnit ) )
+           call AddParticle( pcf, pcf%Pm0( npf, :), pcf%Qm0( npf, :) )
          else
-           call AddParticle( pcfnew, pcf%Pm0( npf, : ) )
+           call AddParticle( pcf, pcf%Pm0( npf, :) )
          end if
          call RemoveParticle( pcfnew, npfnew )
          call Mol2Unit1( pcfnew, npfnew, nu )
@@ -7555,9 +8166,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
          ! Reject
          if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ),pcfnew%Q0( npfnew, :, 1:pcfnew%Molecule%NUnit ) )
+           call AddParticle( pcf, pcf%Pm0( npf, :), pcf%Qm0( npf, :) )
          else
-           call AddParticle( pcf, pcfnew%Pm0( npfnew, : ) )
+           call AddParticle( pcf, pcf%Pm0( npf, :) )
          end if
          !Sollte eigentlich noch vorhanden sein, muss nur eingekoppelt werden
          if ( nu .gt. 1) call ShiftParticle ( this, ncf, ncfnew )
@@ -7626,7 +8237,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     q = q / sqrt( s )
 #endif
 
-    call AddParticle( pc, r, q )
+!    call AddParticle( pc, r, q )
     if ( tooManyParticles ) return
     np = pc%NPart
     this%NPart = this%NPart + 1
@@ -8109,6 +8720,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 #if MPI_VER > 0
     real(RK) :: EPotNew
 #endif
+    real(RK) :: tempTotal, tempIntra, tempAngleTo
+    real(RK) :: tempTotalNew, tempIntraNew, tempAngleToNew
+    real(RK) :: tempDiffInter, tempDiffIntra
+    integer  :: i, j, k, l, nc1, nc2, nu1, nu2
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -8713,7 +9328,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     q = q / sqrt( s )
 #endif
 
-    call AddParticle( pc, r, q )
+!    call AddParticle( pc, r, q )
     np = pc%NPart
     this%NPart = this%NPart + 1
     this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
@@ -14858,114 +15473,6 @@ endif
 
 
   END subroutine TEnsemble_EwaldFourierAddDel
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Constraints                            !
-!  Calculate part of SHAKE                                     !
-!==============================================================!
-#if CONSTR > 0
-
-  subroutine TEnsemble_Constraints( this)
-
-    implicit none
-
-   type(TEnsemble) :: this
-
-   integer         :: maxit
-   integer         :: i, j, aa, bb
-   integer         :: aacomp, bbcomp
-   real(RK)        :: PX1, PY1, PZ1
-   real(RK)        :: PX2, PY2, PZ2
-   real(RK)        :: dx,dy,dz
-   real(RK)        :: ddx,ddy,ddz
-   real(RK)        :: dist2, dr2, dist
-   real(RK)        :: fac
-   real(RK)        :: Forc
-   real(RK)        :: dLOgVolumeThird
-   real(RK)        :: tol
-
-   logical         :: cont
-
-! Initialization of important variables
-   cont  = .false.
-! Initialization of the max number of iterations for SHAKE
-   maxit = 300
-   tol   = 1e-7
-   dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
-
-
-   if (this%consup .eq. .true.) then
-     DO j=1,this%NCons,1
-          write( IOBuffer, '(F10.5)' ) this%UCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-          write( IOBuffer, '(F10.5)' ) this%FCons(j) / BlockSize
-          call FileWriteNoAdvance( this%iounit_runave )
-
-          this%FCons(j) = 0._RK
-          this%UCons(j) = 0._RK
-     END DO
-
-     call FileWriteBlank( this%iounit_runave )
-#if ARCH == 2
-     call flush( this%iounit_runave )
-#endif
-     this%consup = .false.
-   end if
-
-    i=0
-    DO WHILE ((i .le. maxit) .AND. (cont .eq. .false.))
-       cont  = .true.
-       DO j=1,this%NCons,1
-         aacomp  = this%Cons1Comp(j)
-         bbcomp  = this%Cons2Comp(j)
-         aa      = this%Cons1(j)
-         bb      = this%Cons2(j)
-         dr2     = this%ConsR(j)
-
-         PX1 = this%Component(aacomp)%P0(aa,1)
-         PY1 = this%Component(aacomp)%P0(aa,2)
-         PZ1 = this%Component(aacomp)%P0(aa,3)
-         PX2 = this%Component(bbcomp)%P0(bb,1)
-         PY2 = this%Component(bbcomp)%P0(bb,2)
-         PZ2 = this%Component(bbcomp)%P0(bb,3)
-
-         dx  = (PX2 - PX1)
-         dy  = (PY2 - PY1)
-         dz  = (PZ2 - PZ1)
-
-         dx  = (dx - anint(dx))*this%BoxLength
-         dy  = (dy - anint(dy))*this%BoxLength
-         dz  = (dz - anint(dz))*this%BoxLength
-
-         dist2 = dx*dx + dy*dy + dz*dz
-
-         dist  = dist2 - dr2
-
-         if (abs(dist) .gt. tol) then
-            Forc = 0._RK
-            cont = .false.
-            fac = 1 - sqrt(dr2 / dist2)
-
-            ddx = 0.5_RK*fac * dx/this%BoxLength
-            ddy = 0.5_RK*fac * dy/this%BoxLength
-            ddz = 0.5_RK*fac * dz/this%BoxLength
-
-            call CorrectGear_Constraint(this%Component(aacomp),aa,dLogVolumeThird,Forc, ddx,ddy,ddz)
-            call CorrectGear_Constraint(this%Component(bbcomp),bb,dLogVolumeThird,Forc,-ddx,-ddy,-ddz)
-         end if
-
-         this%FCons(j) = this%FCons(j) + Forc
-         this%UCons(j) = this%UCons(j) + Forc*dist
-
-       END DO
-
-    END DO
-
-
-  end subroutine TEnsemble_Constraints
-
-#endif
 
 
 
