@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>70dbc5e48811fec812aa542bda9444689932076e</caseRepositoryHash>
+	<caseRepositoryHash>0a913d2aa16035d0a94ead076908a4154b2b5dd2</caseRepositoryHash>
 	<caseList>
 		<case name="pentan_org" file="pentan_org.xml" />
 	</caseList>

@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
-!  (c) 2011 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -196,6 +196,7 @@ module ms2_component
     logical  :: CalcChemPot
     integer  :: ChemPotMethod, WFMethod, NGradThis
     integer  :: FluctState
+    integer  :: GradInsInit
     real(RK) :: ChemPot, WidomContribution
 	real (RK) :: HW_counter, HW_denom
 !DEBUG
@@ -243,22 +244,12 @@ module ms2_component
     ! Accumulated sums, averages and errors
     type(TAccumulator) :: SumInvChemPotRho
     type(TAccumulator) :: SumInvChemPot
-!DEBUG
-    type(TAccumulator) :: SumInvChemPotRho1
-    type(TAccumulator) :: SumInvChemPot1
-    type(TAccumulator) :: SumInvChemPotRho2
-    type(TAccumulator) :: SumInvChemPot2
-!DEBUG
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
     type(TAccumulator) :: SumHW_counter
     type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
     type(TAccumulator) :: SumHM
-!DEBUG
-    type(TAccumulator) :: SumVW1
-    type(TAccumulator) :: SumVW2
-!DEBUG
     type(TAccumulator) :: SumFraction
 
     ! Potential model for this component
@@ -595,6 +586,13 @@ contains
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
 
+      ! Read Gradual Insertion Initialization Steps
+      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+        call FileReadParameter( this%GradInsInit, iounit_params , IdGradInsInit, .false., 0 )
+        write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
+        call LogWrite
+      end if
+
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
@@ -906,18 +904,8 @@ contains
     case( ChemPotMethodGradIns )
       call Construct( this%SumInvChemPotRho, .true. )
       call Construct( this%SumInvChemPot, .true. )
-!DEBUG
-      call Construct( this%SumInvChemPotRho1, .true. )
-      call Construct( this%SumInvChemPot1, .true. )
-      call Construct( this%SumInvChemPotRho2, .true. )
-      call Construct( this%SumInvChemPot2, .true. )
-!DEBUG
       call Construct( this%SumVW, .true. )
-      call Construct( this%SumHM, .true. )  !Michael Sch.: fixes allocation for SumHM for GradIns
-!DEBUG
-      call Construct( this%SumVW1, .true. )
-      call Construct( this%SumVW2, .true. )
-!DEBUG
+      call Construct( this%SumHM, .true. )
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
@@ -951,18 +939,8 @@ contains
     case( ChemPotMethodGradIns )
       call Destruct( this%SumInvChemPotRho )
       call Destruct( this%SumInvChemPot )
-!DEBUG
-      call Destruct( this%SumInvChemPotRho1 )
-      call Destruct( this%SumInvChemPot1 )
-      call Destruct( this%SumInvChemPotRho2 )
-      call Destruct( this%SumInvChemPot2 )
-!DEBUG
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
-!DEBUG
-      call Destruct( this%SumVW1 )
-      call Destruct( this%SumVW2 )
-!DEBUG
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
@@ -5748,7 +5726,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       do i = 1, np
         do k = 1, nu
           quat(:) = this%Q0(i,:, k)
-          write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+          write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
         end do
       end do
 
@@ -5757,7 +5735,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         do i = 1, np
           do k = 1, nu
             quat(:) = this%Q1(i,:, k)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+            write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
           end do
         end do
 
@@ -5765,19 +5743,19 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q2(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q3(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
           do i = 1, np
             do k = 1, nu
               quat(:) = this%Q4(i,:, k)
-              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) quat(:)
+              write( iounit_restart, '(4(ES20.12E3, :, ";"))' ) quat(:)
             end do
           end do
         end if
