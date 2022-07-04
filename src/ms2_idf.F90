@@ -287,7 +287,10 @@ end subroutine TIdfAngle_Construct
     call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
     call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
     call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
+    
     if (LJEl14 .and. (this%multi .gt. 0)) then
+      this%ScaleLJ14 = 0.0
+      this%ScaleEl14 = 0.0
       call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )
       call FileReadParameter( this%ScaleEl14, iounit_potmod, IdDihedral_ScaleEl14, .false. )
     end if

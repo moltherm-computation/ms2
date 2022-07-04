@@ -62,6 +62,7 @@ module ms2_interaction
     real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
     real(RK), pointer :: EPotTo(:), EPotAngle(:), EPotBond(:)
     real(RK), pointer :: EPot1To(:), EPot1Angle(:), EPot1Bond(:)
+    !real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)   ! Bond not needed since it's contribution is included in EPotNew
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
@@ -791,8 +792,10 @@ contains
     nullify( this%EPot1Bond)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
+    !nullify( this%EPotAngleNew)
     nullify( this%EPotTo )
     nullify( this%EPot1To )
+    !nullify( this%EPotToNew)
     nullify( this%d2EpotdV2 )
     nullify( this%d2EpotdV21 )
     nullify( this%d2EpotdV2New )
@@ -844,13 +847,16 @@ contains
       call AllocationError( stat, 'Bonds', this%NBond )
       allocate( this%EPotAngle(this%NAngle*this%NPart1), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle )
+      !allocate( this%EPotAngleNew(this%NAngle*this%NPart1), STAT = stat )
+      !call AllocationError( stat, 'Angles', this%NAngle )
       allocate( this%EPot1Angle(this%NAngle), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle )
       allocate( this%EPotTo(this%NDihedral*this%NPart1), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral )
+      !allocate( this%EPotToNew(this%NDihedral*this%NPart1), STAT = stat )
+      !call AllocationError( stat, 'Dihedral', this%NDihedral )
       allocate( this%EPot1To(this%NDihedral), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral )
-      
 
       allocate( this%d2EpotdV2(N1, N2), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
@@ -943,12 +949,18 @@ contains
     if( associated( this%EPot1Angle ) ) then
       deallocate( this%EPot1Angle )
     end if
+    !if( associated( this%EPotAngleNew ) ) then
+    !  deallocate( this%EPotAngleNew )
+    !end if
     if( associated( this%EPotTo ) ) then
       deallocate( this%EPotTo )
     end if
     if( associated( this%EPot1To ) ) then
       deallocate( this%EPot1To )
     end if
+    !if( associated( this%EPotToNew ) ) then
+    !  deallocate( this%EPotToNew )
+    !end if
 
     if( associated( this%d2EpotdV2 ) ) then
       deallocate( this%d2EpotdV2 )
@@ -3373,6 +3385,9 @@ end subroutine TInteraction_Energy
     PY2 => this%PY2
     PZ2 => this%PZ2
 
+  !!! Michael Sch.: if clause to skip nonbonded interactions if intraLJEL=off here
+  if (IntraLJEL) then
+
     ! Initialization Ewald Summation
     if ( .not. this%ReactionField ) then
        Faktor = 2._RK/sqrt(Pi) * this%Kappa
@@ -4854,12 +4869,13 @@ end subroutine TInteraction_Energy
 
     end if ! SiteSite - Cutoff
 
+  endif !!! not IntraLJEL  
 
 ! -------------------------------------------- !
 ! --- Bond / Angle / Dihedral interactions --- !
 ! -------------------------------------------- !
-!       if (this%NUnit1>1) then
-        ! Site
+
+      ! Site
       k = this%BondCount(nu)
       this%EPot1Bond(:) = this%EPotBond (this%NBond*(np-1)+1 : this%NBond*np)
       do j = 1, k
@@ -4887,8 +4903,18 @@ end subroutine TInteraction_Energy
         F0 = dR*this%PotBond(bi)%ForConst
 
         ! Energy of the bond
-        EPot(unit2) = EPot(unit2) + dR*F0 / NProcs
+#if MPI_VER > 0
+        if (Equilibration .and. CommonEqui) then
+          EPot(unit2) = EPot(unit2) + dR*F0 / NProcs
+          this%EPot1Bond(bi) = dR*F0 / NProcs
+        else
+          EPot(unit2) = EPot(unit2) + dR*F0
+          this%EPot1Bond(bi) = dR*F0
+        end if
+#else
+        EPot(unit2) = EPot(unit2) + dR*F0
         this%EPot1Bond(bi) = dR*F0
+#endif
 
         if ( OptPressure ) then
           ! Force (abs. value)
@@ -4911,7 +4937,15 @@ end subroutine TInteraction_Energy
           PZij = (PZij - anint(PZij)) * BoxLength
 
           ! Contribution to virial
+#if MPI_VER > 0
+        if (Equilibration .and. CommonEqui) then
           VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij) / NProcs
+        else
+          VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
+        end if
+#else
+        VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
+#endif
           Virial(unit2) = Virial(unit2) + Third * VirialLocal
         end if
       end do ! bonds
@@ -4953,7 +4987,6 @@ end subroutine TInteraction_Energy
           RZkj = (RZkj - anint(RZkj)) * BoxLength
         end if
 
-
         ! Calculate angle
         RijSquared=RXij**2+RYij**2+RZij**2
         RkjSquared=RXkj**2+RYkj**2+RZkj**2
@@ -4971,7 +5004,15 @@ end subroutine TInteraction_Energy
         ! Derivative of the energy
         abc = dAngle*this%PotAngle(bi)%ForConst
 
-        this%EPot1Angle(bi) = abc*dAngle / NProcs
+#if MPI_VER > 0
+        if (Equilibration .and. CommonEqui) then
+          this%EPot1Angle(bi) = abc*dAngle / NProcs
+        else
+          this%EPot1Angle(bi) = abc*dAngle
+        end if
+#else
+        this%EPot1Angle(bi) = abc*dAngle
+#endif
       end do  ! Angle Interaction
 
       ! Dihedral/Torsions Interaction
@@ -5076,7 +5117,15 @@ end subroutine TInteraction_Energy
           endif ! den>0
         endif ! multi/=0
 
-        this%EPot1To(bi) = EPotAdd / NProcs
+#if MPI_VER > 0
+        if (Equilibration .and. CommonEqui) then
+          this%EPot1To(bi) = EPotAdd / NProcs
+        else
+          this%EPot1To(bi) = EPotAdd
+        end if
+#else
+        this%EPot1To(bi) = EPotAdd
+#endif
 
       end do ! Dihedral Interaction
 

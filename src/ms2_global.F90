@@ -821,7 +821,7 @@ character(*), parameter :: VersionString = 'v1.0'
   end interface
 
   interface FileRewind
-   module procedure Global_FileRewind
+   module procedure Global_FileRewind !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
   end interface
   
   interface FileRewrite
@@ -1695,7 +1695,7 @@ contains
 
   subroutine Global_FileRewind( iounit, filename )
 
-    implicit none
+    implicit none  !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
 
     ! Declare arguments
     integer, intent(in)      :: iounit

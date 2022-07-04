@@ -57,7 +57,6 @@ module ms2_unit
     real(RK) :: MOI(3)
 
     ! matrix of rotation - initial orientation of units in molecular-fixed system
-!     real(RK) :: Rotation(3,3)
     real(RK) :: Q0(4)
 
     ! 12-6 Lennard-Jones sites

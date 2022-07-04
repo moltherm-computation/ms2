@@ -2624,6 +2624,7 @@ contains
   subroutine TComponent_Mol2AtomTest( this, np )
 
     implicit none    !Michael Sch.: old routine...temporary...later mol2unit1test + unit2atomtest should be used
+                     ! this here works only for rigid molecules!!!!
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -2978,7 +2979,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     real(RK)                       :: A31, A32, A33
     real(RK)                       :: r1, r2, r3
     real(RK)                       :: q1, q2, q3,q4
-    integer                        :: i, ik
+    integer                        :: i
     integer                        :: nup
 
     ! Broadcast positions and orientations to all processes
@@ -3014,23 +3015,21 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     nup = this%Molecule%NUnit
 
     do i=1,nup
-      ! Check number of rotation axes
-      ik = (np-1)*nup+i
       ! Positions and quaternions of unit i in particle np
       PX = this%P0(np, 1, i)
       PY = this%P0(np, 2, i)
       PZ = this%P0(np, 3, i)
-
       q1 = this%Q0(np, 1, i)
       q2 = this%Q0(np, 2, i)
       q3 = this%Q0(np, 3, i)
       q4 = this%Q0(np, 4, i)
 
-      ! Loop over LJ126 sites in unit ??? COM of unit
+      ! Distance unit-COM
       r1 = (PX-this%Pm0(np,1)) * BoxLengthInv
       r2 = (PY-this%Pm0(np,2)) * BoxLengthInv
       r3 = (PZ-this%Pm0(np,3)) * BoxLengthInv
 
+      ! Calculating new Positions and quaternions of unit i after rotation
       this%P0(np,1,i) = this%Pm0(np,1) + r1 * A11 + r2 * A21 + r3 * A31
       this%P0(np,2,i) = this%Pm0(np,2) + r1 * A12 + r2 * A22 + r3 * A32
       this%P0(np,3,i) = this%Pm0(np,3) + r1 * A13 + r2 * A23 + r3 * A33
