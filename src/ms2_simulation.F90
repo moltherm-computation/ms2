@@ -1,3 +1,4 @@
+
 !==============================================================!
 !  MOLECULAR SIMULATION PROGRAM ms2 Version 1.0                !
 !  (c) 2011 by TU Kaiserslautern                               !
@@ -1035,15 +1036,14 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j, s, t
+    integer :: i, j
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
-    integer :: k
 
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
     type(TInteraction), pointer :: pi
-    integer :: n1, n2
+    integer :: k, n1, n2
     
     integer :: color, NGroups, Proc_Max_Eff
     integer :: statusHost, lengthHost, tmpVal
@@ -1679,12 +1679,9 @@ eqloop: do
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
     logical :: AnyTerminateProgram
 #endif
-
 #if TRANS==1
-    integer:: StepCF
+    integer:: StepCF, i
 #endif
-
-    integer:: o, i, j, t, s
 
     ! Run simulation steps
     do Step = StepStart, StepEnd
@@ -2277,9 +2274,6 @@ eqloop: do
 
     ! Declare arguments
     type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
 
     ! Check for root process
     if( .not. RootProc ) return

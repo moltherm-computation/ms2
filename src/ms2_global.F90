@@ -1407,8 +1407,11 @@ contains
     character(*), parameter   :: hostname = 'unknown host'
     character(*), parameter   :: username = 'unknown user'
 #endif
+#if defined _CRAYFTN
     integer :: length,stat
     character :: Version*6
+#endif
+
     ! Check for root process
     if( .not. RootProc ) return
 
@@ -2599,7 +2602,7 @@ contains
     include 'mpif.h'
 
     real(RK) :: time_remaining
-    real(RK) :: cputime,max_cpu_time
+    real(RK) :: cputime!, max_cpu_time
     integer  :: max_time
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER

@@ -2983,9 +2983,12 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
-    call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
-    if( this%Molecule%isElongated ) then
-      call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+    ! in MC simulations, we only communicate during common equilibration
+    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+      if( this%Molecule%isElongated ) then
+        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+      end if
     end if
 #endif
 
@@ -3729,7 +3732,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ),  MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
         call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
       end if
