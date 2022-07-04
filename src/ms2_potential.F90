@@ -2000,13 +2000,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
 !  Subroutine TPotLJLJ_ChemicalPotential                       !
 !==============================================================!
 
-  subroutine TPotLJLJ_ChemicalPotential( this, EPotTest )
+  subroutine TPotLJLJ_ChemicalPotential( this, EPotTest, BoxLength )
 
     implicit none
 
     ! Declare arguments
     type(TPotLJ126LJ126) :: this
     real(RK), pointer    :: EPotTest(:)
+    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
@@ -2118,7 +2119,7 @@ loop2:  do j = 1, N2
 !  Subroutine TPotLJLJ_Energy                                  !
 !==============================================================!
 
-  subroutine TPotLJLJ_Energy( this, np, EPot, Virial )
+  subroutine TPotLJLJ_Energy( this, np, EPot, Virial, BoxLength )
 
     implicit none
 
@@ -2127,6 +2128,7 @@ loop2:  do j = 1, N2
     integer, intent(in)  :: np
     real(RK), pointer    :: EPot(:)
     real(RK), pointer    :: Virial(:)
+    real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
@@ -14932,7 +14934,7 @@ loop2:do j = 1, j1
         RZij = (RZij - anint( RZij )) * BoxLength
 
         RSquared=RXij**2+RYij**2+RZij**2
-        R=sqrt(RSquared) ! Bond length
+        R=dsqrt(RSquared) ! Bond length
 
         ! Deviation from equilibrium
         dR=R-R0
@@ -15047,6 +15049,7 @@ loop2:do j = 1, j1
     ! Declare arguments
     type(TPotAngle)     :: this
     real(RK), intent(in out) :: EPot
+!     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotIntra_Angle
     real(RK), intent(in)     :: BoxLength
 
@@ -15060,7 +15063,8 @@ loop2:do j = 1, j1
     real(RK)          :: FXk, FYk, FZk
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: RXkj, RYkj, RZkj
-    real(RK)          :: EPotLocal
+!     real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: ForConst, Angle, Angle0, dAngle, cosa, sina
     real(RK)          :: abc, sab, cab, fab, fbb, faa, fax, fay, faz,  fbx, fby, fbz
 
@@ -15084,7 +15088,8 @@ loop2:do j = 1, j1
 
      ForConst = this%ForConst
      Angle0 = this%Angle0
-     EPotLocal = 0._RK
+     EPotLocal   = 0._RK
+     VirialLocal = 0._RK
 
     ! Assign pointers
      RX1 => this%Angle%RX1
@@ -15150,7 +15155,7 @@ loop2:do j = 1, j1
          RkjSquared=RXkj**2+RYkj**2+RZkj**2
 
          ! Calculate angle
-         RijRkj=sqrt(RijSquared*RkjSquared)
+         RijRkj=dsqrt(RijSquared*RkjSquared)
          cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
          if( cosa .gt. 1._RK ) cosa = 1._RK
          if( cosa .lt.  -1._RK ) cosa = -1._RK
@@ -15229,7 +15234,7 @@ loop2:do j = 1, j1
     this%Unit3 = this%Dihedral%UnitId3
     this%Unit4 = this%Dihedral%UnitId4
     this%ForConst => this%Dihedral%ForConst
-    this%gamma = this%Dihedral%gamma
+    this%gamma = this%Dihedral%gamma*Pi/180
     this%multi = this%Dihedral%multi
 
   end subroutine TPotDihedral_Construct
@@ -15430,14 +15435,14 @@ loop2:do j = 1, j1
 
             if (multi > 0) then
                ! Normal Amber-type torsion angle
-               earg= multi*arg-gamma   !!! Michael Sch. arg in ° or rad? has to be °!!!
+               earg= multi*arg-gamma
 
                ! Energy and forces:
                ! formulae  E = ForConst*( 1 + cos(earg) )
                !           F = ForConst*n*sin(earg)
 
-                EPotLocal  = EPotLocal + ForConst*(1.d0+cos(earg))
-                deri= -ForConst*multi*sin(earg)
+                EPotLocal  = EPotLocal + ForConst*(1.d0+dcos(earg))
+                deri= -ForConst*dble(multi)*dsin(earg)
 
              else ! Improper dihedral angle
                earg= arg-gamma

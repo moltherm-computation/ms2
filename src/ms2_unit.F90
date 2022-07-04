@@ -453,6 +453,7 @@ contains
     Rot2(:,:) = transpose(rotation)
 
 
+
     ! Implemented according to Bronstein et al. 2008, Revision 7
     T = Rot2(1,1)+Rot2(2,2)+Rot2(3,3)+1._RK
     if (T>0) then
@@ -610,8 +611,9 @@ contains
   end subroutine TUnit_FindMOI
 
 
+
 !==============================================================!
-!  Subroutine TUnit_ReadMOI                                    !
+!  Subroutine TUnit_ReadMOI                                !
 !==============================================================!
 
   subroutine TUnit_ReadMOI( this )

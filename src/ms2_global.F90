@@ -98,8 +98,7 @@ module ms2_global
 #endif
 
   ! Version of program
-  character(*), parameter :: VersionString  = 'v2.1'
-  Real(RK)                :: ms2VersionNr = 2.1_RK
+character(*), parameter :: VersionString = 'v1.0'
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -255,7 +254,6 @@ module ms2_global
 
   ! Define identifiers used in parameters file
   character(*), parameter :: IdOutputNameTag               = 'OutputNameTag'
-  character(*), parameter :: IdparVersionNr                = 'ms2Version'
   character(*), parameter :: IdUseReducedUnits             = 'Units'
   character(*), parameter :: IdUnitLength                  = 'LengthUnit'
   character(*), parameter :: IdUnitEnergy                  = 'EnergyUnit'
@@ -267,7 +265,6 @@ module ms2_global
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
   character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
-  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
@@ -293,7 +290,6 @@ module ms2_global
   character(*), parameter :: IdMaxRadius                   = 'RMaxRadius'
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
-  character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
   character(*), parameter :: IdRefPressure                 = 'Pressure'
   character(*), parameter :: IdPressure0                   = 'Pressure0'
   character(*), parameter :: IdLiqDensity                  = 'LiqDensity'
@@ -422,6 +418,15 @@ module ms2_global
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+  
+#if CONSTR > 0
+  character(*), parameter :: IdNCons                       = 'NConstr'
+  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
+  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
+  character(*), parameter :: IdCons1                       = 'Constr1'
+  character(*), parameter :: IdCons2                       = 'Constr2'
+  character(*), parameter :: IdConsR                       = 'ConstrDist'
+#endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
@@ -466,11 +471,30 @@ module ms2_global
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
 
-  ! Version of the parameter file
-  real(RK) :: parVersionNr
-
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
+
+  ! Use integral degrees of freedom
+  logical :: UseIntDegFreed
+
+  ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
+  logical :: printIDF
+
+  ! Shake tolerance for constraint bonds in the case of IDF
+  real(RK) :: Shake
+  integer, parameter :: Maxit = 100 ! Maximum allowed iterations for QShake
+
+  ! Include intramolecular 1-5 nonbonded interactions
+  logical :: IntraLJEl
+
+  ! Include intramolecular 1-4 nonbonded interactions
+  logical :: LJEl14
+
+  ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
+  real(RK) :: ScaleEl14
+
+  ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
+  real(RK) :: ScaleLJ14
 
   ! Basic reduced units
   real(RK) :: UnitLength
@@ -549,15 +573,6 @@ module ms2_global
   integer, parameter :: extRField     = 4
   integer, parameter :: Rodgers       = 5
   integer            :: LongRange
-  
-  ! Use integral degrees of freedom
-  logical :: UseIntDegFreed
-  logical :: printIDF    ! print all contribution to intramolecular energy: bonds, angles, dihedrals, nonbonded
-  real(RK) :: Shake      ! Shake tolerance for constraint bonds in the case of IDF
-  logical :: IntraLJEl   ! Include intramolecular 1-5 nonbonded interactions
-  logical :: LJEl14      ! Include intramolecular 1-4 nonbonded interactions
-  real(RK) :: ScaleEl14  ! Scaling factor for electrostatic terms in intramolecular 1,4 interactions
-  real(RK) :: ScaleLJ14  ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
 
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
@@ -591,15 +606,15 @@ module ms2_global
   real(RK) :: AccUpperLimit,AccLowerLimit
 
   ! MC acceptance rate auto-adjustment parameters
-  real(RK), parameter :: DispTranStart = 0.0020_RK ! unit moves
+  real(RK), parameter :: DispTranStart = 0.0020_RK
   real(RK), parameter :: DispTranLimit = 0.0150_RK
   real(RK), parameter :: DispRotStart  = 0.0050_RK
   real(RK), parameter :: DispRotLimit  = 0.0150_RK
-  real(RK), parameter :: DispMolTranStart = 0.020_RK ! molecule moves
+  real(RK), parameter :: DispMolTranStart = 0.020_RK
   real(RK), parameter :: DispMolTranLimit = 0.150_RK
   real(RK), parameter :: DispMolRotStart  = 0.050_RK
   real(RK), parameter :: DispMolRotLimit  = 0.150_RK
-  real(RK), parameter :: DispVolStart  = 0.010_RK !was also 0.01 in rigid trunk version
+  real(RK), parameter :: DispVolStart  = 0.010_RK
   real(RK), parameter :: DispVolLimit  = 0.100_RK
   integer,  parameter :: TransferRateLimit = 50
 
@@ -611,9 +626,6 @@ module ms2_global
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
-
-  ! Number of NVE equilibration time steps
-  integer :: NStepsE
 
   ! Number of NVT equilibration time steps
   integer :: NStepsV
@@ -682,6 +694,7 @@ module ms2_global
   !RDF
   real(RK) :: RDFRho, RDFRhoLocal
 
+  
 #if  TRANS == 1
 !TRANSPORT_start
   ! Maximum number of blocks CF
@@ -737,11 +750,13 @@ module ms2_global
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flag for catched terminate signal
   logical :: TerminateProgram
+
 ! PGF compiler version < 6.0 seems to need this
 ! #ifdef _PGF
 !   ! External funtion for signal handling
 !   external SetTerminateProgram
 ! #endif
+
 #else
   logical, parameter :: TerminateProgram = .false.
 #endif
@@ -1637,7 +1652,7 @@ contains
     call MPI_File_Close(iounit, ierr)
 
     if( RootProc )then 
-      write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav" 
+      write( IOBuffer, '("File <", A, "> closed")' ) trim( fn )
       call LogWrite
     endif
 
