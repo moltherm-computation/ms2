@@ -5307,20 +5307,22 @@ end subroutine TInteraction_Energy
             !si = sin(arg)
             !if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
-            if (multi > 0) then
+            if (nmax > 0) then
               ! Normal Amber-type torsion angle
-              earg= multi*arg-gamma
-              ! Energy:
-              ! formulae  E = ForConst*( 1 + cos(earg) )
-              EPotAdd = ForConst*(1.d0+cos(earg))
+              do i =1, nmax
+!                earg= i*arg-pto%gamma0(i+1)
+                ! Energy:
+                ! formulae  E = ForConst*( 1 + cos(earg) )
+!                EPotAdd = EPotAdd + pto%ForConst(i+1)*(1._RK+cos(earg))
+              end do
             else ! Improper dihedral angle
-              earg= arg-gamma
+!              earg= arg-pto%gamma0(1)
               ! Energy
               ! formulae  E = ForConst*earg**2
-              EPotAdd = ForConst*earg**2
+!              EPotAdd = pto%ForConst(1)*earg**2
             end if
           endif ! den>0
-        endif ! multi/=0
+        endif ! nmax/=0
 
 #if MPI_VER > 0
         if (Equilibration .and. CommonEqui) then

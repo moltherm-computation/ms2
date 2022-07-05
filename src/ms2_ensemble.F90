@@ -12179,12 +12179,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(T13,"VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T13,"VB")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Bulkviscosity) then
+        write( IOBuffer, '(T13,"VB")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
       if (this%Conductivity) then
         write( IOBuffer, '(T13,"CO")' )
         call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%NComponents == 2) then
+          write( IOBuffer, '(T10,"Th_Diff")' )
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if
       end if
 
       if (this%EConductivity) then
@@ -12215,12 +12221,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       write( IOBuffer, '(T9,"Int VS")' )
       call FileWriteNoAdvance( this%iounit_rescf )
 
-      write( IOBuffer, '(T9,"Int VB")' )
-      call FileWriteNoAdvance( this%iounit_rescf )
+      if (this%Bulkviscosity) then
+        write( IOBuffer, '(T9,"Int VB")' )
+        call FileWriteNoAdvance( this%iounit_rescf )
+      end if
 
       if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
         call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%NComponents == 2) then
+          write( IOBuffer, '(T10,"Int Th_Diff")' )
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if
       end if
 
       if (this%EConductivity) then
@@ -12415,6 +12427,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer                   :: i, j
 #if  TRANS == 1
     real(RK)                  :: value
+    real(RK)                  :: x1, x2, x3
+    real(RK)                  :: Inv_x1, Inv_x2, Inv_x3
+    real(RK)                  :: delta_11, delta_12, delta_21, delta_22
+    real(RK)                  :: err_delta_11, err_delta_12, err_delta_21, err_delta_22
+    real(RK)                  :: det, inv_det
+    real(RK)                  :: B11, B12, B21, B22
+    real(RK)                  :: err_B11, err_B12, err_B21, err_B22
+    real(RK)                  :: D_13, D_12, D_23
+    real(RK)                  :: err_D13, err_D12, err_D23
+    real(RK)                  :: L(3,3)
 #endif
 
     ! Declare local variables for velocity of sound
@@ -12462,21 +12484,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     call Error( this%SumdEpotdV )
     call Error( this%Sumd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call Error( this%SumHmU )
-      call Error( this%SumHmUm1)
-      call Error( this%SumHmUm2 )
-      call Error( this%SumHmUm3 )
-      call Error( this%SumHmUm1dUdV )
-      call Error( this%SumHmUm1dUdV2 )
-      call Error( this%SumHmUm1d2UdV2 )
-      call Error( this%SumHmUm2dUdV )
-      call Error( this%SumHmUm2dUdV2 )
-      call Error( this%SumHmUm2d2UdV2 )
-      call Error( this%SumHmUm3dUdV )
-      call Error( this%SumHmUm3dUdV2 )
-    end if
-
     call Error( this%SumEPotSquared)
     call Error( this%SumEPotCubic)
     call Error( this%SumdEpotdVSquared)
@@ -12485,23 +12492,46 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumEPotdEpotdVSquared)
     call Error( this%SumEPotd2EpotdV2)
 
-    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
-      call Error( this%SumA10resI )
-      call Error( this%SumA01resI )
-      call Error( this%SumA20resI )
-      call Error( this%SumA11resI )
-      call Error( this%SumA02resI )
-      call Error( this%SumA30resI )
-      call Error( this%SumA21resI )
-      call Error( this%SumA12resI )
-      call Error( this%SumA10resII )
-      call Error( this%SumA01resII )
-      call Error( this%SumA20resII )
-      call Error( this%SumA11resII )
-      call Error( this%SumA02resII )
-      call Error( this%SumA30resII )
-      call Error( this%SumA21resII )
-      call Error( this%SumA12resII )
+    if (LongRange .eq. Rfield) then
+      if (EnsembleType .eq. EnsembleTypeNVT) then
+        call Error( this%SumA10resI )
+        call Error( this%SumA01resI )
+        call Error( this%SumA20resI )
+        call Error( this%SumA11resI )
+        call Error( this%SumA02resI )
+        call Error( this%SumA30resI )
+        call Error( this%SumA21resI )
+        call Error( this%SumA12resI )
+      elseif (EnsembleType .eq. EnsembleTypeNVE) then
+        call Error( this%SumHmU )
+        call Error( this%SumHmUm1)
+        call Error( this%SumHmUm2 )
+        call Error( this%SumHmUm3 )
+        call Error( this%SumHmUm1dUdV )
+        call Error( this%SumHmUm1dUdV2 )
+        call Error( this%SumHmUm1d2UdV2 )
+        call Error( this%SumHmUm2dUdV )
+        call Error( this%SumHmUm2dUdV2 )
+        call Error( this%SumHmUm2d2UdV2 )
+        call Error( this%SumHmUm3dUdV )
+        call Error( this%SumHmUm3dUdV2 )
+        call Error( this%SumA10resI )
+        call Error( this%SumA01resI )
+        call Error( this%SumA20resI )
+        call Error( this%SumA11resI )
+        call Error( this%SumA02resI )
+        call Error( this%SumA30resI )
+        call Error( this%SumA21resI )
+        call Error( this%SumA12resI )
+        call Error( this%SumA10resII )
+        call Error( this%SumA01resII )
+        call Error( this%SumA20resII )
+        call Error( this%SumA11resII )
+        call Error( this%SumA02resII )
+        call Error( this%SumA30resII )
+        call Error( this%SumA21resII )
+        call Error( this%SumA12resII )
+      end if
     end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
