@@ -120,8 +120,6 @@ module ms2_idf
     real(RK), pointer :: FX4(:), FY4(:), FZ4(:)
     logical           :: orientation1, orientation2
 !    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX4(:), PY4(:), PZ4(:)
-!    real(RK)          :: Sigma1, Sigma4, Epsilon1, Epsilon4
-
 
   end type TIdfDihedral
 
@@ -136,7 +134,6 @@ module ms2_idf
   interface Save
     module procedure TIdfDihedral_Save
   end interface
-
 
 
 contains
