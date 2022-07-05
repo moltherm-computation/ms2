@@ -251,14 +251,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumEPotSquareddEpotdV
     type(TAccumulator) :: SumEPotdEpotdVSquared
     type(TAccumulator) :: SumEPotd2EpotdV2
-    type(TAccumulator) :: SumA10resNVT
-    type(TAccumulator) :: SumA01resNVT
-    type(TAccumulator) :: SumA20resNVT
-    type(TAccumulator) :: SumA11resNVT
-    type(TAccumulator) :: SumA02resNVT
-    type(TAccumulator) :: SumA30resNVT
-    type(TAccumulator) :: SumA21resNVT
-    type(TAccumulator) :: SumA12resNVT
     type(TAccumulator) :: SumA10resI
     type(TAccumulator) :: SumA01resI
     type(TAccumulator) :: SumA20resI
@@ -2245,14 +2237,6 @@ contains
       call Construct( this%SumCV, .true. )
       call Construct( this%SumCP, .true. )
       call Construct( this%SumAlphaP, .true. )
-      call Construct( this%SumA10resNVT, .true. )
-      call Construct( this%SumA01resNVT, .true. )
-      call Construct( this%SumA20resNVT, .true. )
-      call Construct( this%SumA11resNVT, .true. )
-      call Construct( this%SumA02resNVT, .true. )
-      call Construct( this%SumA30resNVT, .true. )
-      call Construct( this%SumA21resNVT, .true. )
-      call Construct( this%SumA12resNVT, .true. )
       if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
         call Construct( this%SumA10resI, .true. )
         call Construct( this%SumA01resI, .true. )
@@ -10327,14 +10311,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call Reset( this%SumdUdV )
         call Reset( this%SumCV )
       endif
-      call Reset( this%SumA10resNVT )
-      call Reset( this%SumA01resNVT )
-      call Reset( this%SumA20resNVT ) 
-      call Reset( this%SumA11resNVT )
-      call Reset( this%SumA02resNVT )
-      call Reset( this%SumA30resNVT )
-      call Reset( this%SumA21resNVT )
-      call Reset( this%SumA12resNVT )
       if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
         call Reset( this%SumA10resI )
         call Reset( this%SumA01resI )
@@ -10988,14 +10964,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &               specv*Beta2*(2._RK*U*dUdV - 2._RK*UdUdV)+&
 &               specv*Beta*2._RK*dUdV
 
-      call Update( this%SumA10resNVT, A10res )
-      call Update( this%SumA01resNVT, A01res )
-      call Update( this%SumA20resNVT, A20res )
-      call Update( this%SumA11resNVT, A11res )
-      call Update( this%SumA02resNVT, A02res )
-      call Update( this%SumA30resNVT, A30res )
-      call Update( this%SumA21resNVT, A21res )
-      call Update( this%SumA12resNVT, A12res )
       call Update( this%SumA10resI, A10res )
       call Update( this%SumA01resI, A01res )
       call Update( this%SumA20resI, A20res )
@@ -12513,14 +12481,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumEPotdEpotdVSquared)
     call Error( this%SumEPotd2EpotdV2)
 
-    call Error( this%SumA10resNVT )
-    call Error( this%SumA01resNVT )
-    call Error( this%SumA20resNVT )
-    call Error( this%SumA11resNVT )
-    call Error( this%SumA02resNVT )
-    call Error( this%SumA30resNVT )
-    call Error( this%SumA21resNVT )
-    call Error( this%SumA12resNVT )
     if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
       call Error( this%SumA10resI )
       call Error( this%SumA01resI )
@@ -14600,14 +14560,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call RestartSave( this%SumdUdV )
       call RestartSave( this%SumCV )
     endif
-    call RestartSave( this%SumA10resNVT )
-    call RestartSave( this%SumA01resNVT )
-    call RestartSave( this%SumA20resNVT )
-    call RestartSave( this%SumA11resNVT )
-    call RestartSave( this%SumA02resNVT )
-    call RestartSave( this%SumA30resNVT )
-    call RestartSave( this%SumA21resNVT )
-    call RestartSave( this%SumA12resNVT )
     if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
       call RestartSave( this%SumA10resI )
       call RestartSave( this%SumA01resI )
