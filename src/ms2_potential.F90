@@ -15430,7 +15430,7 @@ loop2:do j = 1, j1
 
             if (multi > 0) then
                ! Normal Amber-type torsion angle
-               earg= multi*arg-gamma
+               earg= multi*arg-gamma   !!! Michael Sch. arg in ° or rad? has to be °!!!
 
                ! Energy and forces:
                ! formulae  E = ForConst*( 1 + cos(earg) )

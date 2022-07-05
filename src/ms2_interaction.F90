@@ -191,6 +191,10 @@ module ms2_interaction
     module procedure TInteraction_Force
   end interface
   
+  interface Force_Trans
+    module procedure TInteraction_Force_Trans
+  end interface
+  
   interface GET_RDF
    module procedure TInteraction_RDF
   end interface
@@ -738,26 +742,25 @@ contains
       deallocate( this%PotQuadrupoleQuadrupole )
     end if
     
-    ! Destroy bond-potentials
-   do i=1, this%NBond
-      call Destruct( this%PotBond(i))
-    end do
+    ! Destroy idf potentials
+    if (UseIntDegFreed .and. this%SameComponent) then
+      do i=1, this%NBond
+        call Destruct( this%PotBond(i))
+      end do
+      do i=1, this%NAngle
+        call Destruct( this%PotAngle(i))
+      end do
+      do i=1, this%NDihedral
+        call Destruct( this%PotDihedral(i))
+      end do
+    end if
+
     if( associated( this%PotBond ) ) then
       deallocate( this%PotBond )
     end if
-
-    ! Destroy angle-potentials
-   do i=1, this%NAngle
-      call Destruct( this%PotAngle(i))
-    end do
     if( associated( this%PotAngle ) ) then
       deallocate( this%PotAngle )
     end if
-
-    ! Destroy dihedral-potentials
-   do i=1, this%NDihedral
-      call Destruct( this%PotDihedral(i))
-    end do
     if( associated( this%PotDihedral ) ) then
       deallocate( this%PotDihedral )
     end if
@@ -788,14 +791,15 @@ contains
     nullify( this%EPot1 )
     nullify( this%EPotNew )
     nullify( this%EPotMol )
-    nullify( this%EPotBond)
-    nullify( this%EPot1Bond)
+    !nullify( this%EPotBond)
+    !nullify( this%EPot1Bond)
+    !nullify( this%EPotBondNew)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
-    !nullify( this%EPotAngleNew)
+    nullify( this%EPotAngleNew)
     nullify( this%EPotTo )
     nullify( this%EPot1To )
-    !nullify( this%EPotToNew)
+    nullify( this%EPotToNew)
     nullify( this%d2EpotdV2 )
     nullify( this%d2EpotdV21 )
     nullify( this%d2EpotdV2New )
@@ -841,20 +845,20 @@ contains
       allocate( this%EPotMol(this%NUnit1,N2), STAT = stat )
       call AllocationError( stat, 'EPotMol', this%NUnit1*N2 )
       
-      allocate( this%EPotBond(this%NBond*this%NPart1), STAT = stat )
-      call AllocationError( stat, 'Bonds', this%NBond )
-      allocate( this%EPot1Bond(this%NBond), STAT = stat )
-      call AllocationError( stat, 'Bonds', this%NBond )
-      allocate( this%EPotAngle(this%NAngle*this%NPart1), STAT = stat )
+      !allocate( this%EPotBond(this%NBond*max(this%NPart1,1)), STAT = stat )
+      !call AllocationError( stat, 'Bonds', this%NBond )
+      !allocate( this%EPot1Bond(this%NBond), STAT = stat )
+      !call AllocationError( stat, 'Bonds', this%NBond )
+      allocate( this%EPotAngle(this%NAngle*max(this%NPart1,1)), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle )
-      !allocate( this%EPotAngleNew(this%NAngle*this%NPart1), STAT = stat )
-      !call AllocationError( stat, 'Angles', this%NAngle )
+      allocate( this%EPotAngleNew(this%NAngle*max(this%NPart1,1)), STAT = stat )
+      call AllocationError( stat, 'Angles', this%NAngle )
       allocate( this%EPot1Angle(this%NAngle), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle )
-      allocate( this%EPotTo(this%NDihedral*this%NPart1), STAT = stat )
+      allocate( this%EPotTo(this%NDihedral*max(this%NPart1,1)), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral )
-      !allocate( this%EPotToNew(this%NDihedral*this%NPart1), STAT = stat )
-      !call AllocationError( stat, 'Dihedral', this%NDihedral )
+      allocate( this%EPotToNew(this%NDihedral*max(this%NPart1,1)), STAT = stat )
+      call AllocationError( stat, 'Dihedral', this%NDihedral )
       allocate( this%EPot1To(this%NDihedral), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral )
 
@@ -937,30 +941,30 @@ contains
     if( associated( this%EPotMol ) ) then
       deallocate( this%EPotMol )
     end if
-    if( associated( this%EPotBond ) ) then
-      deallocate( this%EPotBond )
-    end if
-    if( associated( this%EPot1Bond ) ) then
-      deallocate( this%EPot1Bond )
-    end if
+    !if( associated( this%EPotBond ) ) then
+    !  deallocate( this%EPotBond )
+    !end if
+    !if( associated( this%EPot1Bond ) ) then
+    !  deallocate( this%EPot1Bond )
+    !end if
     if( associated( this%EPotAngle ) ) then
       deallocate( this%EPotAngle )
     end if
     if( associated( this%EPot1Angle ) ) then
       deallocate( this%EPot1Angle )
     end if
-    !if( associated( this%EPotAngleNew ) ) then
-    !  deallocate( this%EPotAngleNew )
-    !end if
+    if( associated( this%EPotAngleNew ) ) then
+      deallocate( this%EPotAngleNew )
+    end if
     if( associated( this%EPotTo ) ) then
       deallocate( this%EPotTo )
     end if
     if( associated( this%EPot1To ) ) then
       deallocate( this%EPot1To )
     end if
-    !if( associated( this%EPotToNew ) ) then
-    !  deallocate( this%EPotToNew )
-    !end if
+    if( associated( this%EPotToNew ) ) then
+      deallocate( this%EPotToNew )
+    end if
 
     if( associated( this%d2EpotdV2 ) ) then
       deallocate( this%d2EpotdV2 )
@@ -1065,6 +1069,7 @@ contains
     end do
     
  end subroutine TInteraction_RDF
+
 
 
 !==============================================================!

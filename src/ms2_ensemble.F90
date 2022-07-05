@@ -2561,7 +2561,7 @@ contains
         pc%Molecule%NDF = pc%Molecule%NDF + pc%NDFRot
         if ( Shake > 0 ) then
           this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
-      end if
+        end if
       end if
       pc%NDFRot = pc%NPart * pc%NDFRot
       pc%NDF = pc%NDFTran + pc%NDFRot
@@ -2898,7 +2898,7 @@ contains
       NComp2 = this%NComponents*this%NComponents
 
     ! Allocate correlation fucntions
-     if( CorrfunMode .eq. active ) then
+     if ( this%CorrfunMode ) then
 
       allocate( this%cf_vs(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
@@ -5172,7 +5172,7 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteLJ126(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteLJ126(j)%vsLJx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteLJ126(j)%vsLJy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteLJ126(j)%vsLJz(1:pc%NPart) = 0._RK
@@ -5206,7 +5206,7 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         !TRANSPORT_start
-        if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCz(1:pc%NPart) = 0._RK
@@ -8381,6 +8381,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
          do i = 1, nu
            call Unit2Atom1( pcf, npf, i )
          end do
+
          call EwaldSelfTerm_Energy(this)
          DO i=1,pcfnew%Molecule%NCharge
            this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
@@ -8405,7 +8406,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
        ! Convert molecular coordinates to atom positions
        call Mol2Unit1( pcfnew, npfnew, nu )
        do i = 1, nu
-        call Unit2Atom1( pcfnew, npfnew, i )
+         call Unit2Atom1( pcfnew, npfnew, i )
        end do
 
        ! Calculate particle energy at new fluctuating state
@@ -8487,7 +8488,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(4,this%Component(nc)%Molecule%NUnit)
+    real(RK)                  :: q(4)
     real(RK)                  :: EPotIns
     type(TComponent), pointer :: pc
     integer                   :: i, np, nu
@@ -8510,10 +8511,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do
       s = 0._RK
       do i = 1, 4
-        q(i, 1) = rnd( -1._RK, 1._RK )
+        q(i) = rnd( -1._RK, 1._RK )
       end do
-
-      s = sum( q(:,1)**2 )
+      s = sum( q(:)**2 )
       if( s <= 1._RK ) exit
     end do
 #if ARCH == 3
@@ -8522,7 +8522,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     q = q / sqrt( s )
 #endif
 
-!    call AddParticle( pc, r, q )
+    call AddParticle( pc, r, q )
     if ( tooManyParticles ) return
     np = pc%NPart
     this%NPart = this%NPart + 1
@@ -8530,6 +8530,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Convert molecular coordinates to atom positions
     nu = pc%Molecule%NUnit
+    call Mol2Unit1( pc, np, nu )
     do i=1,nu
       call Unit2Atom( pc, np, i )
     end do
@@ -9582,7 +9583,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Declare local variables
     real(RK)                  :: r(3)
-    real(RK)                  :: q(4,1)
+    real(RK)                  :: q(4)
     type(TComponent), pointer :: pc
     integer                   :: i, np, nu
     real(RK)                  :: s
@@ -9602,9 +9603,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     do
       s = 0._RK
       do i = 1, 4
-        q(i, 1) = rnd( -1._RK, 1._RK )
+        q(i) = rnd( -1._RK, 1._RK )
       end do
-      s = sum( q(:, 1)**2 )
+      s = sum( q(:)**2 )
       if( s <= 1._RK ) exit
     end do
 #if ARCH == 3
@@ -9613,7 +9614,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     q = q / sqrt( s )
 #endif
 
-!    call AddParticle( pc, r, q )
+    call AddParticle( pc, r, q )
     np = pc%NPart
     this%NPart = this%NPart + 1
     this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
@@ -10237,7 +10238,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK)                  :: value
     real(RK)                  :: currentdEpotdV, currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
-    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, AvgUnit, Numb, U, U2, U3
+    real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, Numb, U, U2, U3
     real(RK)                  :: dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2
     real(RK)                  :: currentHmU, currentHmUm1
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
@@ -10248,7 +10249,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     integer                   :: time_limit
 #if TRANS ==1
-    integer                   :: j, NStepsCF
+    integer                   :: NStepsCF
 #endif
 
     if( Step == 1 ) then
@@ -10273,6 +10274,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Reset( this%SumVirialInter )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
+      if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+        call Reset( this%SumHmU )
+        call Reset( this%SumHmUm1)
+        call Reset( this%SumHmUm2 )
+        call Reset( this%SumHmUm3 )
+        call Reset( this%SumHmUm1dUdV )
+        call Reset( this%SumHmUm1dUdV2 )
+        call Reset( this%SumHmUm1d2UdV2 )
+        call Reset( this%SumHmUm2dUdV )
+        call Reset( this%SumHmUm2dUdV2 )
+        call Reset( this%SumHmUm2d2UdV2 )
+        call Reset( this%SumHmUm3dUdV )
+        call Reset( this%SumHmUm3dUdV2 )
+      end if
 
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Reset( this%SumNPart )
@@ -10320,7 +10335,24 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Reset( this%SumA30resNVT )
       call Reset( this%SumA21resNVT )
       call Reset( this%SumA12resNVT )
-
+      if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+        call Reset( this%SumA10resI )
+        call Reset( this%SumA01resI )
+        call Reset( this%SumA20resI )
+        call Reset( this%SumA11resI )
+        call Reset( this%SumA02resI )
+        call Reset( this%SumA30resI )
+        call Reset( this%SumA21resI )
+        call Reset( this%SumA12resI )
+        call Reset( this%SumA10resII )
+        call Reset( this%SumA01resII )
+        call Reset( this%SumA20resII )
+        call Reset( this%SumA11resII )
+        call Reset( this%SumA02resII )
+        call Reset( this%SumA30resII )
+        call Reset( this%SumA21resII )
+        call Reset( this%SumA12resII )
+      end if
 
       ! 4.) Chemical potential and partial molar volumes
       do i = 1, this%NRealComponents
@@ -10964,6 +10996,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Update( this%SumA30resNVT, A30res )
       call Update( this%SumA21resNVT, A21res )
       call Update( this%SumA12resNVT, A12res )
+      call Update( this%SumA10resI, A10res )
+      call Update( this%SumA01resI, A01res )
+      call Update( this%SumA20resI, A20res )
+      call Update( this%SumA11resI, A11res )
+      call Update( this%SumA02resI, A02res )
+      call Update( this%SumA30resI, A30res )
+      call Update( this%SumA21resI, A21res )
+      call Update( this%SumA12resI, A12res )
     end if
 
    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -11113,28 +11153,28 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 #if  TRANS == 1
     ! 4.) Tranport properties !TRANSPORT_start
-    if(mod((Step+NStepCorr-1),NStepCorr) .eq. 0) then
-    NStepsCF = (Step + NStepCorr -1) / NStepCorr
-    if( mod( NStepsCF - this%NCorr, BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
+    if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
+    NStepsCF = (Step + this%NStepCorr -1) / this%NStepCorr
+    if( mod( NStepsCF - this%NCorr, this%BlockSizeCF * this%NSpanCF ) == 0 .and. (this%Mmess > 0) ) then
 
       do i = 1, this%NComponents
-        call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess  )
+        call UpdateCF( this%Sumself_i(i), this%selfd_i(i), this%Mmess, this%BlockSizeCF, this%NBlocksCF )
       end do
 
       if(this%NComponents == 2) then
-        call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess )
+        call UpdateCF( this%SumBin_d, this%binary_d, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
       end if
 
      if(this%NComponents == 3 ) then
-        call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess )
-        call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess )
-        call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess )
+        call UpdateCF( this%Sumter_a, this%ternary_a, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%Sumter_b, this%ternary_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+        call UpdateCF( this%Sumter_c, this%ternary_c, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
       end if
 
-      call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess )
-      call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess )
-      call UpdateCF( this%SumConduct, this%conduct, this%Mmess )
-      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess )
+      call UpdateCF( this%SumVisco_s, this%visco_s, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumVisco_b, this%visco_b, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumConduct, this%conduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
+      call UpdateCF( this%SumEConduct, this%econduct, this%Mmess, this%BlockSizeCF, this%NBlocksCF )
     end if
     end if
 !TRANSPORT_END
@@ -14513,6 +14553,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RestartSave( this%SumVirial )
     call RestartSave( this%SumdEpotdV )
     call RestartSave( this%Sumd2EpotdV2 )
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumHmU )
+      call RestartSave( this%SumHmUm1)
+      call RestartSave( this%SumHmUm2 )
+      call RestartSave( this%SumHmUm3 )
+      call RestartSave( this%SumHmUm1dUdV )
+      call RestartSave( this%SumHmUm1dUdV2 )
+      call RestartSave( this%SumHmUm1d2UdV2 )
+      call RestartSave( this%SumHmUm2dUdV )
+      call RestartSave( this%SumHmUm2dUdV2 )
+      call RestartSave( this%SumHmUm2d2UdV2 )
+      call RestartSave( this%SumHmUm3dUdV )
+      call RestartSave( this%SumHmUm3dUdV2 )
+    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartSave( this%SumNPart )
@@ -14554,6 +14608,24 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call RestartSave( this%SumA30resNVT )
     call RestartSave( this%SumA21resNVT )
     call RestartSave( this%SumA12resNVT )
+    if( (EnsembleType .eq. EnsembleTypeNVT .or. EnsembleType .eq. EnsembleTypeNVE) .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumA10resI )
+      call RestartSave( this%SumA01resI )
+      call RestartSave( this%SumA20resI )
+      call RestartSave( this%SumA11resI )
+      call RestartSave( this%SumA02resI )
+      call RestartSave( this%SumA30resI )
+      call RestartSave( this%SumA21resI )
+      call RestartSave( this%SumA12resI )
+      call RestartSave( this%SumA10resII )
+      call RestartSave( this%SumA01resII )
+      call RestartSave( this%SumA20resII )
+      call RestartSave( this%SumA11resII )
+      call RestartSave( this%SumA02resII )
+      call RestartSave( this%SumA30resII )
+      call RestartSave( this%SumA21resII )
+      call RestartSave( this%SumA12resII )
+    end if
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
