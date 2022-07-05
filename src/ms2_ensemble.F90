@@ -3782,11 +3782,17 @@ loop:do l = 1, NPartInCell
       this%EKin = this%EKinTran + this%EKinRot
 
       ! Calculate temperature
-      this%Temperature = 2._RK * this%EKin / this%NDF
+      this%Temperature = 2._RK * this%EKin / (this%NDF-this%constrNDF) ! constrNDF due to Shake
+
+     if(ConstantTemperature .or. NVTEquilibration) then
+        Reference=this%RefTemperature
+      else
+        Reference=2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
+      end if
 
       ! Rescale velocities
       if( rescale ) then
-      scale = sqrt( this%RefTemperature / this%Temperature )
+      scale = sqrt( Reference / this%Temperature )
 
         do i = 1, this%NComponents
           pc => this%Component(i)
@@ -3913,13 +3919,11 @@ loop:do l = 1, NPartInCell
     call Correct( this )
 
 #if  TRANS == 1
-
 !TRANSPORT_start
     if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
       call CalCorrFun( this )  
     end if
 !TRANSPORT_END
-
 #endif
 
     ! Calculation of residence time
@@ -3927,7 +3931,7 @@ loop:do l = 1, NPartInCell
       call Residence ( this )
     end if
 
-    call CalculateEKin( this, ConstantTemperature .or. Equilibration )
+    call CalculateEKin( this, .true. )
     if( .not. Equilibration .and. this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
 
   end subroutine TEnsemble_RunMDStep
@@ -9041,7 +9045,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Find potential change
     EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
-&     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+&     + this%NUnitTotal * this%Temperature * log( VolumeOld / this%Volume0 )
 
     accepted = EPotDelta < 0._RK
     if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
@@ -11189,7 +11193,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             
           ! partial molar enthalpy
             call Update( pc%SumHM,( pc%SumHW_counter%Average / pc%SumHW_denom%Average )&
-&                      - (this%SumEnthalpy%Average * this%NPart + ( (this%NDF + 2.0 * real( this%NPart, RK )) / 2.0)&
+&                      - (this%SumEnthalpy%Average * this%NPart + ( (this%NDF-this%constrNDF + 2.0 * real( this%NPart, RK )) / 2.0)&
 &                      * this%RefTemperature) + 1.5 * this%RefTemperature  )
            
           end select

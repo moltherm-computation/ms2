@@ -60,9 +60,9 @@ module ms2_interaction
 
     ! Potential energy
     real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
-    real(RK), pointer :: EPotTo(:), EPotAngle(:), EPotBond(:)
-    real(RK), pointer :: EPot1To(:), EPot1Angle(:), EPot1Bond(:)
-    real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)   ! Bond not needed since it's contribution is included in EPotNew
+    real(RK), pointer :: EPotTo(:), EPotAngle(:)!, EPotBond(:)
+    real(RK), pointer :: EPot1To(:), EPot1Angle(:)!, EPot1Bond(:)
+    real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)!, EPotBondNew(:)   ! Bond not needed since it's contribution is included in EPotNew
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
@@ -906,7 +906,7 @@ contains
     end if
 
     if(( CutoffMode .eq. CenterofMass ) .or. ( CutoffMode .eq. SiteSite ))  then
-      N1 = max( N1, this%NTest1 )
+      N1 = max( N1, this%NTest1*this%NUnit1 )
       allocate( this%NInCutoff(N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 )
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
