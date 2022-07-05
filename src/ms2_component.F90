@@ -965,12 +965,11 @@ contains
     ! Declare local variables
     integer :: np, ntest, nf
     integer :: nu, nup, neu, neup
-    integer :: i, j, index
+    integer :: i, j
     integer :: nlj, nch, ndi, nqu
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
-    logical :: ok
 
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
@@ -1362,32 +1361,17 @@ contains
       this%Molecule%Unit(i)%PZ => this%P0(:, 3, i)
       if (this%Molecule%Unit(i)%NLJ126 > 0) then
         do j = 1, this%Molecule%Unit(i)%NLJ126
-!            call binar_search(this%Molecule%SiteLJ126%SiteId,&
-!&                   this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
-!            if (ok) then
-!              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
-!              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
-!              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
-!              this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
-!              this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
-!              this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
-!            end if
-!          else
-              nlj = nlj+1
-              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
-              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
-              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
-              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
-              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
-              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
-              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
-              this%Molecule%SiteLJ126(nlj)%PX =>this%Molecule%Unit(i)%PX
-              this%Molecule%SiteLJ126(nlj)%PY =>this%Molecule%Unit(i)%PY
-              this%Molecule%SiteLJ126(nlj)%PZ =>this%Molecule%Unit(i)%PZ
+          nlj = nlj+1
+          this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
+          this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
+          this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
+          this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
+          this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
+          this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
+          this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
+          this%Molecule%SiteLJ126(nlj)%PX =>this%Molecule%Unit(i)%PX
+          this%Molecule%SiteLJ126(nlj)%PY =>this%Molecule%Unit(i)%PY
+          this%Molecule%SiteLJ126(nlj)%PZ =>this%Molecule%Unit(i)%PZ
         end do
       end if
       if (this%Molecule%Unit(i)%NCharge > 0) then
@@ -3743,23 +3727,23 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
       end if
 
     else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NLJ126
-          pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, nu)
-          pLJ126%RY(np) = this%P0(np, 2, nu)
-          pLJ126%RZ(np) = this%P0(np, 3, nu)
-        end do
 
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(nu)%NCharge
-          pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
-          pCharge%RX(np) = this%P0(np, 1, nu)
-          pCharge%RY(np) = this%P0(np, 2, nu)
-          pCharge%RZ(np) = this%P0(np, 3, nu)
-        end do
+      ! Loop over LJ126 sites in molecule
+      do i = 1, this%Molecule%Unit(nu)%NLJ126
+        pLJ126 => this%Molecule%Unit(nu)%SiteLJ126(i)
+        pLJ126%RX(np) = this%P0(np, 1, nu)
+        pLJ126%RY(np) = this%P0(np, 2, nu)
+        pLJ126%RZ(np) = this%P0(np, 3, nu)
       end do
+
+      ! Loop over charge sites in molecule
+      do i = 1, this%Molecule%Unit(nu)%NCharge
+        pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
+        pCharge%RX(np) = this%P0(np, 1, nu)
+        pCharge%RY(np) = this%P0(np, 2, nu)
+        pCharge%RZ(np) = this%P0(np, 3, nu)
+      end do
+
     end if
 
   end subroutine TComponent_Unit2Atom1
