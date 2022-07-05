@@ -363,7 +363,7 @@ module ms2_global
   character(*), parameter :: IdIdf_NBond                   = 'NIdfs'
   character(*), parameter :: IdIdf_NAngle                  = 'NIdfs'
   character(*), parameter :: IdIdf_NDihedral               = 'NIdfs'
-  character(*), parameter :: IdUnit_NConstraint            = 'NConstraintUnits'
+  character(*), parameter :: IdUnit_NConstraint            = 'NConstrU'
   character(*), parameter :: IdSite_NDFRot                 = 'NRotAxes'
   character(*), parameter :: IdSite_Mass                   = 'TotalMass'
   character(*), parameter :: IdSite_MOI1                   = 'InertMomX'
@@ -416,9 +416,9 @@ module ms2_global
   character(*), parameter :: IdBond_R0                     = 'R0'
   character(*), parameter :: IdAngle_ForConst              = 'ForConst'
   character(*), parameter :: IdAngle_Angle0                = 'Angle0'
-  character(*), parameter :: IdDihedral_PotBarrier         = 'PotBarrier'
-  character(*), parameter :: IdDihedral_n                  = 'n'
-  character(*), parameter :: IdDihedral_gamma              = 'gamma'
+  character(*), parameter :: IdDihedral_nmax               = 'nmax'
+  character(*), parameter :: IdDihedral_ForConst           = 'ForConst'
+  character(*), parameter :: IdDihedral_gamma0             = 'gamma0'
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
@@ -709,7 +709,7 @@ module ms2_global
 
   ! Internal variables of random number generator
   integer, parameter :: K4B = selected_int_kind(9)
-  integer(K4B)       :: ix, iy, tpix
+  integer(K4B)       :: ix, iy, tpix, randk
   real(RK)           :: am
 
   ! Internal variable of FileReadParameter
@@ -1737,7 +1737,7 @@ contains
     integer             :: ierr
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, sizeof(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierr)
 
 
   end subroutine Global_FileWriteNoAdvance_parallel
@@ -2428,14 +2428,13 @@ contains
 
     ! Declare local variables
     integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
-    integer(K4B), save      :: k
 
     ! Generate random number
     ix = ieor(ix, ishft(ix, 13))
     ix = ieor(ix, ishft(ix, -17))
     ix = ieor(ix, ishft(ix, 5))
-    k = iy / IQ
-    iy = IA * (iy - k * IQ) - IR * k
+    randk = iy / IQ
+    iy = IA * (iy - randk * IQ) - IR * randk
     if( iy < 0 ) iy = iy + IM
     iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
@@ -2459,14 +2458,13 @@ contains
 
     ! Declare local variables
     integer(K4B), parameter :: IA=16807, IM=2147483647, IQ=127773, IR=2836
-    integer(K4B), save      :: k
 
     ! Generate random number
     ix = ieor(ix, ishft(ix, 13))
     ix = ieor(ix, ishft(ix, -17))
     ix = ieor(ix, ishft(ix, 5))
-    k = iy / IQ
-    iy = IA * (iy - k * IQ) - IR * k
+    randk = iy / IQ
+    iy = IA * (iy - randk * IQ) - IR * randk
     if( iy < 0 ) iy = iy + IM
     rharvest = l_range + am * ior(iand(IM,ieor(ix,iy)),1) * (h_range - l_range)
 
@@ -2720,7 +2718,7 @@ contains
   end function Global_GetProcRange
 
 !==============================================================!
-!  Subroutine Write Restart File on xc2 in Karlsruhe, Germany  !
+!  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
 
 #if MPI_VER > 0
@@ -2732,22 +2730,32 @@ contains
     include 'mpif.h'
 
     real(RK) :: time_remaining
-    real(RK) :: cputime!, max_cpu_time
+    real(RK) :: cputime
     integer  :: max_time
+    integer  :: time_limit
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
     integer  :: err
 #endif
+
 #ifdef KARLS
     character*10 string_max_time
 #endif
-    integer  :: time_limit
 
+#ifdef SMUC
+    real(RK), save :: first_time = 0._RK
+
+    if (first_time = 0) first_time = MPI_WTIME()
+    cputime = MPI_WTIME() - first_time
+    !Define walltime for the supercomputer in minutes
+    max_time = 1440
+#else
 ! Get CPU time consumed by each task and compute the maximum value
     call cpu_time(cputime)
-!    call MPI_Allreduce(cputime,max_cpu_time,1,MPI_DOUBLE_PREICSION,MPI_MAX,MPI_COMM_WORLD,ierror)
 
     max_time = 1e7
+#endif
+
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t
     call getenv('JMS_t',string_max_time)
@@ -2755,6 +2763,7 @@ contains
 ! Convert to integer
     read(string_max_time,*) max_time
 #endif
+
 #ifdef ITWM
 ! getenv WALLTIME
     call getenv('WALLTIME',string_max_time)
