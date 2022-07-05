@@ -172,7 +172,7 @@ contains
       if ( this%isConstraint ) then
           call FileReadParameter( this%NSites, iounit_potmod, IdConstraint_NSites, .false. )
           call FileReadParameter_IOBuffer( iounit_potmod, IdConstraint_SiteIds )
-          read( IOBuffer, * ) this%SiteIds
+          read( IOBuffer, * ), this%SiteIds
 
           ! Read number of rotation axes
           call FileReadParameter( stype, iounit_potmod, IdConstraint_NDFRot, .false. )

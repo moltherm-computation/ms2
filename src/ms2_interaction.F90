@@ -1737,8 +1737,8 @@ contains
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: PX1(:, :), PY1(:, :), PZ1(:, :), PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -1928,7 +1928,6 @@ contains
 
                 if( RijSquared <= RShieldSquared ) then
                   EPotLocal = 1E33_RK
-                  VirialLocal = 1E33_RK
                 else
                   Rij =  sqrt(RijSquared)
                   RijInv = 1._RK /  Rij 
@@ -1992,8 +1991,6 @@ contains
                 RijSquared = RXij**2 + RYij**2 + RZij**2
                 if( RijSquared <= RShieldSquared ) then
                   EPotLocal = 1E33_RK
-                  VirialLocal = 1E33_RK
-                  d2EpotdV2Local = 1E33_RK
                 else
 #if ARCH == 3
                   RijInv = rsqrt( RijSquared )
@@ -2069,8 +2066,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 RijSquaredInv = 1._RK / RijSquared
                 RijInv = sqrt( RijSquaredInv )
@@ -2145,8 +2140,6 @@ contains
               RijSquared = RXij**2 + RYij**2 + RZij**2
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 RijSquaredInv = 1._RK / RijSquared
                 RijInv = sqrt( RijSquaredInv )
@@ -2227,8 +2220,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 RijSquaredInv = 1._RK / RijSquared
                 RijInv = sqrt( RijSquaredInv )
@@ -2307,8 +2298,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 OXj = OX2(jk)
                 OYj = OY2(jk)
@@ -2335,7 +2324,6 @@ contains
 &                                             - (eY * CosThetaj - OYj) * CosThetai)
                   FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                             - (eZ * CosThetaj - OZj) * CosThetai)
-                  VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
                 end if
                 RijInv2  =  RijInv*RijInv
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -2344,7 +2332,7 @@ contains
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
-                Virial(j) = Virial(j) + Third * VirialLocal
+                Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
               end if
               d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
             end if
@@ -2401,8 +2389,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 OXj = OX2(jk)
                 OYj = OY2(jk)
@@ -2434,7 +2420,6 @@ contains
 &                                            + (eY * CosThetaj - OYj) * dCosThetaj)
                   FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                            + (eZ * CosThetaj - OZj) * dCosThetaj)
-                  VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
                 end if
                 RijInv2  =  RijInv*RijInv
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -2443,7 +2428,7 @@ contains
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
-                Virial(j) = Virial(j) + Third * VirialLocal
+                Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
               end if
               d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
             end if
@@ -2500,8 +2485,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 RijSquaredInv = 1._RK / RijSquared
                 RijInv = sqrt( RijSquaredInv )
@@ -2519,7 +2502,6 @@ contains
                   FXij = Epsilon2 * ( CosAux * eX - Tmp * OXi ) ! Kraft auf die Punktladung, sprich F2
                   FYij = Epsilon2 * ( CosAux * eY - Tmp * OYi )
                   FZij = Epsilon2 * ( CosAux * eZ - Tmp * OZi )
-                  VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
                 end if
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
@@ -2527,7 +2509,7 @@ contains
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
-                Virial(j) = Virial(j) - Third * VirialLocal
+                Virial(j) = Virial(j) - Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
               end if
               d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
             end if
@@ -2584,8 +2566,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 OXj = OX2(jk)
                 OYj = OY2(jk)
@@ -2616,7 +2596,6 @@ contains
 &                                            + (eY * CosThetaj - OYj) * dCosThetaj)
                   FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                            + (eZ * CosThetaj - OZj) * dCosThetaj)
-                  VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
                 end if
                 RijInv2  =  RijInv*RijInv
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -2625,7 +2604,7 @@ contains
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
-                Virial(j) = Virial(j) + Third * VirialLocal
+                Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
               end if
               d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
             end if
@@ -2682,8 +2661,6 @@ contains
 
               if( RijSquared <= RShieldSquared ) then
                 EPotLocal = 1E33_RK
-                VirialLocal = 1E33_RK
-                d2EpotdV2Local = 1E33_RK
               else
                 OXj = OX2(jk)
                 OYj = OY2(jk)
@@ -2725,7 +2702,6 @@ contains
 &                                            + (eY * CosThetaj - OYj) * dCosThetaj)
                   FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                            + (eZ * CosThetaj - OZj) * dCosThetaj)
-                  VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
                 end if
                 RijInv2  =  RijInv*RijInv
                 Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -2734,7 +2710,7 @@ contains
               end if
               EPot(j) = EPot(j) + EPotLocal
               if ( OptPressure ) then
-                Virial(j) = Virial(j) + Third * VirialLocal
+                Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
               end if
               d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
             end if
@@ -2820,9 +2796,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
+            PXi = PX1(np, nu)
+            PYi = PY1(np, nu)
+            PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
@@ -2869,9 +2845,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
+            PXi = PX1(np, nu)
+            PYi = PY1(np, nu)
+            PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
@@ -3058,8 +3034,6 @@ contains
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-              d2EpotdV2Local = 1E33_RK
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -3086,7 +3060,6 @@ contains
 &                                           - (eY * CosThetaj - OYj) * CosThetai)
                 FZij = Rij4Inv3 * (eZ * Tmp - (eZ * CosThetai - OZi) * CosThetaj &
 &                                           - (eZ * CosThetaj - OZj) * CosThetai)
-                VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
               end if
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -3095,7 +3068,7 @@ contains
             end if
             EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(jk) = Virial(jk) + Third * VirialLocal
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
             d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
@@ -3153,8 +3126,6 @@ contains
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-              d2EpotdV2Local = 1E33_RK
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -3185,7 +3156,6 @@ contains
 &                                          + (eY * CosThetaj - OYj) * dCosThetaj)
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
-                VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
               end if
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -3194,7 +3164,7 @@ contains
             end if
             EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(jk) = Virial(jk) + Third * VirialLocal
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
             d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
@@ -3255,8 +3225,6 @@ contains
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-              d2EpotdV2Local = 1E33_RK
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -3287,7 +3255,6 @@ contains
 &                                          + (eY * CosThetaj - OYj) * dCosThetaj)
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
-                VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
               end if
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -3296,7 +3263,7 @@ contains
             end if
             EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(jk) = Virial(jk) + Third * VirialLocal
+              Virial(jk) = Virial(jk) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
             d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
@@ -3354,8 +3321,6 @@ contains
             if( RijSquared >= RCutoffSquared ) cycle
             if( RijSquared <= RShieldSquared ) then
               EPotLocal = 1E33_RK
-              VirialLocal = 1E33_RK
-              d2EpotdV2Local = 1E33_RK
             else
               OXj = OX2(j)
               OYj = OY2(j)
@@ -3399,7 +3364,6 @@ contains
 &                                          + (eY * CosThetaj - OYj) * dCosThetaj)
                 FZij = -eZ * Tmp + RijInv * ((eZ * CosThetai - OZi) * dCosThetai &
 &                                          + (eZ * CosThetaj - OZj) * dCosThetaj)
-                VirialLocal = FXij * PXij + FYij * PYij + FZij * PZij
               end if
               RijInv2  =  RijInv*RijInv
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
@@ -3408,7 +3372,7 @@ contains
             end if
             EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(jk) = Virial(jk) + Third * VirialLocal
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
             d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
@@ -3487,8 +3451,9 @@ end subroutine TInteraction_Energy
     real(RK)          :: r, dr, rsquared
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
     real(RK)          :: f0
-    integer           :: N, nmax
-    integer           :: s1, s2, i, j, k
+    real(RK)          :: ForConst, gamma
+    integer           :: N, multi
+    integer           :: s1, s2, j, k
     integer           :: bi, u1, u2, u3, u4
     integer           :: unit1,unit2, nu2
     logical           :: intra15, intra14
@@ -5229,7 +5194,9 @@ end subroutine TInteraction_Energy
         u2 = pto%Unit2 ! unit2 of dihedral
         u3 = pto%Unit3 ! unit3 of dihedral
         u4 = pto%Unit4 ! unit4 of dihedral
-        nmax = pto%nmax
+        multi = pto%multi
+        gamma = pto%gamma
+        ForConst = pto%ForConst
 
         ! Assign pointers to site positions
         RXi=pto%Dihedral%RX1(np)
@@ -5245,11 +5212,9 @@ end subroutine TInteraction_Energy
         RYl=pto%Dihedral%RY4(np)
         RZl=pto%Dihedral%RZ4(np)
 
-        EPotAdd = 0
-        if (nmax .ge. 0) then
-          EPotAdd = pto%ForConst(1)*2._RK ! Michael Sch.: correct like this
-        end if
-        if (nmax .ne. 0) then
+        if (multi .eq. 0) then
+          EPotAdd=ForConst*2._RK
+        else !multi /= 0
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
           ay = (RYj - RYi)
@@ -5306,22 +5271,20 @@ end subroutine TInteraction_Energy
             !si = sin(arg)
             !if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
-            if (nmax > 0) then
+            if (multi > 0) then
               ! Normal Amber-type torsion angle
-              do i =1, nmax
-                earg= i*arg-pto%gamma0(i+1)
-                ! Energy:
-                ! formulae  E = ForConst*( 1 + cos(earg) )
-                EPotAdd = EPotAdd + pto%ForConst(i+1)*(1._RK+cos(earg))
-              end do
+              earg= multi*arg-gamma
+              ! Energy:
+              ! formulae  E = ForConst*( 1 + cos(earg) )
+              EPotAdd = ForConst*(1.d0+cos(earg))
             else ! Improper dihedral angle
-              earg= arg-pto%gamma0(1)
+              earg= arg-gamma
               ! Energy
               ! formulae  E = ForConst*earg**2
-              EPotAdd = pto%ForConst(1)*earg**2
+              EPotAdd = ForConst*earg**2
             end if
           endif ! den>0
-        endif ! nmax/=0
+        endif ! multi/=0
 
 #if MPI_VER > 0
         if (Equilibration .and. CommonEqui) then
