@@ -14932,7 +14932,7 @@ loop2:do j = 1, j1
         RZij = (RZij - anint( RZij )) * BoxLength
 
         RSquared=RXij**2+RYij**2+RZij**2
-        R=dsqrt(RSquared) ! Bond length
+        R=sqrt(RSquared) ! Bond length
 
         ! Deviation from equilibrium
         dR=R-R0
@@ -15150,7 +15150,7 @@ loop2:do j = 1, j1
          RkjSquared=RXkj**2+RYkj**2+RZkj**2
 
          ! Calculate angle
-         RijRkj=dsqrt(RijSquared*RkjSquared)
+         RijRkj=sqrt(RijSquared*RkjSquared)
          cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
          if( cosa .gt. 1._RK ) cosa = 1._RK
          if( cosa .lt.  -1._RK ) cosa = -1._RK
@@ -15436,8 +15436,8 @@ loop2:do j = 1, j1
                ! formulae  E = ForConst*( 1 + cos(earg) )
                !           F = ForConst*n*sin(earg)
 
-                EPotLocal  = EPotLocal + ForConst*(1.d0+dcos(earg))
-                deri= -ForConst*dble(multi)*dsin(earg)
+                EPotLocal  = EPotLocal + ForConst*(1.d0+cos(earg))
+                deri= -ForConst*multi*sin(earg)
 
              else ! Improper dihedral angle
                earg= arg-gamma
