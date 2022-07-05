@@ -15084,7 +15084,7 @@ loop2:do j = 1, j1
 
      ForConst = this%ForConst
      Angle0 = this%Angle0
-     EPotLocal   = 0._RK
+     EPotLocal = 0._RK
 
     ! Assign pointers
      RX1 => this%Angle%RX1

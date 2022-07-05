@@ -1361,33 +1361,32 @@ contains
       this%Molecule%Unit(i)%PZ => this%P0(:, 3, i)
       if (this%Molecule%Unit(i)%NLJ126 > 0) then
         do j = 1, this%Molecule%Unit(i)%NLJ126
-          if (UseIntDegFreed) then
-            call binar_search(this%Molecule%SiteLJ126%SiteId,&
-&                   this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
-            if (ok) then
-              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
-              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
-              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
-              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
-              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
-              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
-              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
-              this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
-              this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
-              this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
-            end if
-          else
-              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(j)%r
-              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(j)%RX
-              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(j)%RY
-              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(j)%RZ
-              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(j)%FX
-              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(j)%FY
-              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(j)%FZ
-              this%Molecule%SiteLJ126(j)%PX =>this%Molecule%Unit(i)%PX
-              this%Molecule%SiteLJ126(j)%PY =>this%Molecule%Unit(i)%PY
-              this%Molecule%SiteLJ126(j)%PZ =>this%Molecule%Unit(i)%PZ
-          end if
+!            call binar_search(this%Molecule%SiteLJ126%SiteId,&
+!&                   this%Molecule%Unit(i)%SiteLJ126(j)%SiteId, ok, index )
+!            if (ok) then
+!              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(index)%r
+!              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(index)%RX
+!              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(index)%RY
+!              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(index)%RZ
+!              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(index)%FX
+!              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(index)%FY
+!              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(index)%FZ
+!              this%Molecule%SiteLJ126(index)%PX => this%Molecule%Unit(i)%PX
+!              this%Molecule%SiteLJ126(index)%PY => this%Molecule%Unit(i)%PY
+!              this%Molecule%SiteLJ126(index)%PZ => this%Molecule%Unit(i)%PZ
+!            end if
+!          else
+              nlj = nlj+1
+              this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
+              this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
+              this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
+              this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
+              this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
+              this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
+              this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
+              this%Molecule%SiteLJ126(nlj)%PX =>this%Molecule%Unit(i)%PX
+              this%Molecule%SiteLJ126(nlj)%PY =>this%Molecule%Unit(i)%PY
+              this%Molecule%SiteLJ126(nlj)%PZ =>this%Molecule%Unit(i)%PZ
         end do
       end if
       if (this%Molecule%Unit(i)%NCharge > 0) then
@@ -2021,34 +2020,34 @@ contains
     write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
     
-    contains
+!    contains
 
-    subroutine binar_search (array, Id, treffer, index)
-
-      ! Declare arguments
-      integer, dimension(:), intent( in ) :: array
-      integer, intent( in )               :: Id
-      logical, intent( out )              :: treffer
-      integer, intent( out )              :: index
-
-      ! Declare local variables
-      integer                             :: anfang, ende, mitte
-
-      anfang = 1
-      ende = size (array)
-      do
-         if ( anfang == ende ) exit
-         mitte = (anfang + ende)*0.5
-         if ( id <= array(mitte) ) then
-           ende = mitte
-         else
-           anfang = mitte + 1
-         end if
-      end do
-      index = anfang
-      treffer = (id == array(index))
-
-    end subroutine binar_search
+!    subroutine binar_search (array, Id, treffer, index)
+!
+!      ! Declare arguments
+!      integer, dimension(:), intent( in ) :: array
+!      integer, intent( in )               :: Id
+!      logical, intent( out )              :: treffer
+!      integer, intent( out )              :: index
+!
+!      ! Declare local variables
+!      integer                             :: anfang, ende, mitte
+!
+!      anfang = 1
+!      ende = size (array)
+!      do
+!         if ( anfang == ende ) exit
+!         mitte = (anfang + ende)*0.5
+!         if ( id <= array(mitte) ) then
+!           ende = mitte
+!         else
+!           anfang = mitte + 1
+!         end if
+!      end do
+!      index = anfang
+!      treffer = (id == array(index))
+!
+!    end subroutine binar_search
 
 
   end subroutine TComponent_Allocate

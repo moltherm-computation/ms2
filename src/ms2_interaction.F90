@@ -62,7 +62,7 @@ module ms2_interaction
     real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
     real(RK), pointer :: EPotTo(:), EPotAngle(:), EPotBond(:)
     real(RK), pointer :: EPot1To(:), EPot1Angle(:), EPot1Bond(:)
-    !real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)   ! Bond not needed since it's contribution is included in EPotNew
+    real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)   ! Bond not needed since it's contribution is included in EPotNew
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
@@ -581,31 +581,31 @@ contains
       end do
     end if
     
-    ! Construct bond potentials
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NBond > 0 ) then
-       allocate( this%PotBond(this%NBond),STAT=stat )
-       call AllocationError ( stat, 'Idfsites', this%NBond)
-       do j1 = 1, this%NBond
+    ! Construct idf potentials
+    if (UseIntDegFreed .and. this%SameComponent) then
+      if ( this%NBond > 0 ) then
+        allocate( this%PotBond(this%NBond),STAT=stat )
+        call AllocationError ( stat, 'Idfsites', this%NBond)
+        do j1 = 1, this%NBond
           call Construct( this%PotBond(j1),Component1%Molecule, j1)
-       end do
-    end if
+        end do
+      end if
 
-    ! Construct angle potentials
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NAngle> 0 ) then
-       allocate( this%PotAngle(this%NAngle),STAT=stat )
-       call AllocationError ( stat, 'Idfsites', this%NAngle)
-       do j1 = 1, this%NAngle
+      if ( this%NAngle > 0 ) then
+        allocate( this%PotAngle(this%NAngle),STAT=stat )
+        call AllocationError ( stat, 'Idfsites', this%NAngle)
+        do j1 = 1, this%NAngle
           call Construct( this%PotAngle(j1),Component1%Molecule, j1)
-       end do
-    end if
+        end do
+      end if
 
-    !Construct dihedral angle potentials
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NDihedral > 0 ) then
-       allocate( this%PotDihedral(this%NDihedral),STAT=stat )
-       call AllocationError ( stat, 'Idfsites', this%NDihedral)
-       do j1 = 1, this%NDihedral
+      if ( this%NDihedral > 0 ) then
+        allocate( this%PotDihedral(this%NDihedral),STAT=stat )
+        call AllocationError ( stat, 'Idfsites', this%NDihedral)
+        do j1 = 1, this%NDihedral
           call Construct( this%PotDihedral(j1),Component1%Molecule, j1)
-       end do
+        end do
+      end if
     end if
 
     ! Set reaction field flag
@@ -1127,42 +1127,13 @@ contains
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
 #ifndef ABL
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength )
-
-        else
-          call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength )
-        end if
-
-#else
         call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
-#endif
-
-#else
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
-
-        else
-          call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
-        end if
 #else
           call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
-#endif
-
         this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
         this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
 
@@ -1182,144 +1153,49 @@ contains
     do i = 1, this%N1Charge
       if ( .not. this%ReactionField ) then
         do j = 1, this%N2Charge
-
-#if  TRANS == 1
-          if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-            call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength, this%Kappa )
-
-          else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength, this%Kappa )
-          end if
-
-#else
           call Force( this%PotChargeCharge( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength, this%Kappa )
-#endif
         end do
-
       else
         do j = 1, this%N2Charge
-
-#if  TRANS == 1
-          if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-            call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-
-          else
-            call Force( this%PotChargeCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-          end if
-
-#else
           call Force( this%PotChargeCharge( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
         end do
       end if
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-
-        else
-          call Force( this%PotChargeDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-
-#else
         call Force( this%PotChargeDipole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-
-#else
         call Force( this%PotChargeQuadrupole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
     end do
-
 
     ! Calculate dipolar forces
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotDipoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotDipoleCharge( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotDipoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotDipoleDipole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
     end do
 
@@ -1327,81 +1203,44 @@ contains
     ! Calculate quadrupolar forces
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotQuadrupoleCharge( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
 
       do j = 1, this%N2Dipole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotQuadrupoleDipole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
 
       do j = 1, this%N2Quadrupole
-#if  TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+NStepCorr-1),NStepCorr) .eq. 0)) then
-          call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        else
-          call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, &
-&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
-&               d2EpotdV2, BoxLength )
-        end if
-#else
         call Force( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, &
 &               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &               d2EpotdV2, BoxLength )
-#endif
       end do
     end do
     
     ! Inner Degrees of Freedom
-    ! Calculate bond forces
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
-      do i = 1, this%NBond
-        call Force( this%PotBond(i), EPot, Virial, EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength)
-      end do
-    end if
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+      
+      ! Calculate bond forces
+      if (.not. Shake > 0) then
+        do i = 1, this%NBond
+          call Force( this%PotBond(i), EPot, Virial, EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength)
+        end do
+      end if
 
-    ! Calculate angle forces
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
+      ! Calculate angle forces
       do i = 1, this%NAngle
         call Force( this%PotAngle(i), EPot, EPotIntra_Angle, BoxLength)
       end do
-    end if
 
-
-    ! Calculate dihedral forces
-    if (UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1) then
+      ! Calculate dihedral forces
       do i = 1, this%NDihedral
         call Force( this%PotDihedral(i), EPot, EPotIntra_Dihedral, BoxLength)
       end do
+
     end if
 
     EPotIntra = EPotIntra_Bond + EPotIntra_Angle + EPotIntra_Dihedral + EPotIntra_Nonbonded
@@ -1474,6 +1313,260 @@ contains
     end if
 
   end subroutine TInteraction_Force
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_Force_Trans                         !
+!==============================================================!
+#ifndef ABL
+  subroutine TInteraction_Force_Trans( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
+&            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+&            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
+#else
+  subroutine TInteraction_Force_Trans( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
+&            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+&            VirialIntra, VirialInter, d2EpotdV2, BoxLength,C1,C2)
+#endif
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: EPotIntra
+    real(RK), intent(in out) :: EPotIntra_Bond
+    real(RK), intent(in out) :: EPotIntra_Angle
+    real(RK), intent(in out) :: EPotIntra_Dihedral
+    real(RK), intent(in out) :: EPotIntra_Nonbonded
+    real(RK), intent(in out) :: EPotInter
+    real(RK), intent(in out) :: VirialIntra
+    real(RK), intent(in out) :: VirialInter
+    real(RK), intent(in out) :: d2EpotdV2
+    real(RK), intent(in)     :: BoxLength
+#ifdef ABL
+    integer, intent(in)      :: C1,C2
+#endif
+
+    ! Declare local variables
+    real(RK), pointer :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
+    real(RK), pointer :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
+    real(RK), pointer :: TX1(:, :), TY1(:, :), TZ1(:, :)
+    real(RK), pointer :: TX2(:, :), TY2(:, :), TZ2(:, :)
+    real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
+    real(RK)          :: RFTX, RFTY, RFTZ
+    real(RK)          :: EPotLocal, TXi, TYi, TZi
+    integer           :: i, j, k, i1
+    integer           :: iu, u, u2, ju, nu1, nu2
+#if MPI_VER > 0
+    integer           :: i0
+#endif
+#ifdef ABL
+    real(RK)          :: AblSig, AblEps
+    real(RK)          :: eps1,eps2,fac
+#endif
+
+    ! Calculate interactions partners within cutoff sphere
+    if( CutoffMode .eq. CenterofMass ) then
+      call CalcCutoffPartners( this )
+    end if
+
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+#ifndef ABL
+        call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+&              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&              d2EpotdV2, BoxLength )
+
+#else
+        call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+&              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
+&              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
+
+        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
+        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
+
+        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
+          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
+
+        else
+          fac = 2._RK*sqrt(eps1*eps2)
+          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
+          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
+        end if
+#endif
+      end do
+    end do
+
+    ! Calculate point charge forces
+    do i = 1, this%N1Charge
+      if ( .not. this%ReactionField ) then
+        do j = 1, this%N2Charge
+          call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength, this%Kappa )
+        end do
+
+      else
+        do j = 1, this%N2Charge
+          call Force_Trans( this%PotChargeCharge( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+        end do
+      end if
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotChargeDipole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotChargeQuadrupole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+    end do
+
+
+    ! Calculate dipolar forces
+    do i = 1, this%N1Dipole
+      do j = 1, this%N2Charge
+        call Force_Trans( this%PotDipoleCharge( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotDipoleDipole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotDipoleQuadrupole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+    end do
+
+
+    ! Calculate quadrupolar forces
+    do i = 1, this%N1Quadrupole
+      do j = 1, this%N2Charge
+        call Force_Trans( this%PotQuadrupoleCharge( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+
+      end do
+
+      do j = 1, this%N2Dipole
+        call Force_Trans( this%PotQuadrupoleDipole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+
+      do j = 1, this%N2Quadrupole
+        call Force_Trans( this%PotQuadrupoleQuadrupole( i, j ), EPot, Virial, &
+&               EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
+&               d2EpotdV2, BoxLength )
+      end do
+    end do
+    
+    ! Inner Degrees of Freedom
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+      
+      ! Calculate bond forces
+      if (.not. Shake > 0) then
+        do i = 1, this%NBond
+          call Force( this%PotBond(i), EPot, Virial, EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength)
+        end do
+      end if
+
+      ! Calculate angle forces
+      do i = 1, this%NAngle
+        call Force( this%PotAngle(i), EPot, EPotIntra_Angle, BoxLength)
+      end do
+
+      ! Calculate dihedral forces
+      do i = 1, this%NDihedral
+        call Force( this%PotDihedral(i), EPot, EPotIntra_Dihedral, BoxLength)
+      end do
+
+    end if
+
+    EPotIntra = EPotIntra_Bond + EPotIntra_Angle + EPotIntra_Dihedral + EPotIntra_Nonbonded
+
+    ! Explicit reaction field contribution
+    if ( this%ReactionField ) then
+      MueX1 => this%MueX1
+      MueY1 => this%MueY1
+      MueZ1 => this%MueZ1
+      MueX2 => this%MueX2
+      MueY2 => this%MueY2
+      MueZ2 => this%MueZ2
+      TX1 => this%tRFX1
+      TY1 => this%tRFY1
+      TZ1 => this%tRFZ1
+      TX2 => this%tRFX2
+      TY2 => this%tRFY2
+      TZ2 => this%tRFZ2
+      EPotLocal = 0._RK
+      nu1 = this%NUnit1  ! Number of units in molecule of first component
+      nu2 = this%NUnit2
+
+#if MPI_VER > 0
+      i0 = this%NPart10
+      i1 = this%NPart12
+      do i = i0, i1
+#else
+      i1 = this%NPart1
+      do i = 1, i1
+#endif
+         do u = 1, nu1
+          iu = (i-1)*nu1+u ! unit's number
+          TXi = 0._RK
+          TYi = 0._RK
+          TZi = 0._RK
+          mueXi = MueX1(i, u)    ! mue for unit  u of i-th molecule
+          mueYi = MueY1(i, u)
+          mueZi = MueZ1(i, u)
+          do k = 1, this%NInCutoff(iu)
+            ! number of unit, which is in the cutoff radius of our unit iu
+            j = this%CutoffPartner(k, iu)
+            u2 = mod (j, nu2)
+            if (u2 == 0) then
+              ju = INT(j/nu2) ! number of molecule, to which this unit corresponds
+              u2 = nu2
+            else
+              ju = INT(j/nu2) + 1
+            end if
+            mueXj = MueX2(ju, u2)
+            mueYj = MueY2(ju, u2)
+            mueZj = MueZ2(ju, u2)
+            RFTX = this%RFConst2 * (mueZi * mueYj - mueYi * mueZj)
+            RFTY = this%RFConst2 * (mueXi * mueZj - mueZi * mueXj)
+            RFTZ = this%RFConst2 * (mueYi * mueXj - mueXi * mueYj)
+            TXi = TXi + RFTX
+            TYi = TYi + RFTY
+            TZi = TZi + RFTZ
+            TX2(ju, u2) = TX2(ju, u2) - RFTX
+            TY2(ju, u2) = TY2(ju, u2) - RFTY
+            TZ2(ju, u2) = TZ2(ju, u2) - RFTZ 
+            EPotLocal = EPotLocal + mueXi * mueXj + mueYi * mueYj + mueZi * mueZj
+          end do
+          TX1(i, u) = TX1(i, u) + TXi
+          TY1(i, u) = TY1(i, u) + TYi
+          TZ1(i, u) = TZ1(i, u) + TZi
+        end do
+      end do
+      EPot = EPot + this%RFConst2 * EPotLocal
+      EPotInter = EPotInter + this%RFConst2 * EPotLocal
+    end if
+
+  end subroutine TInteraction_Force_Trans
 
 
 
@@ -1566,7 +1659,7 @@ contains
       MueZ2 => this%MueZ2
 
       do i = 1, this%NTest1
-        do u = 1, 1     ! If flexible particles are inserted, please change 1 vs. nu
+        do u = 1, this%NUnit1
           nu2 = 1
           EPotLocal = 0._RK
           EPotLocalInter = 0._RK
@@ -1749,9 +1842,8 @@ contains
 !CDIR NODEP
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit
-            ! choose only units, to which our Site2 correspond
-            nu2 = plj%Site2%UnitNumber
-            if ( mod(j-nu2, this%NUnit2)==0) then
+            nu2 = plj%Site2%UnitNumber !!!!Michael Sch.: UnitNumber of potential wrong!(only when using constrainted units?)!! and UnitLJ1() wrong
+            if ( mod(j-nu2, this%NUnit2)==0) then ! choose only units, to which our Site2 correspond
               jk  = CEILING(real(j)/this%NUnit2)
               RXij = RXi - RX2(jk)
               RYij = RYi - RY2(jk)
@@ -2775,33 +2867,33 @@ contains
               end if
             end do
 
-          else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
-            pcc => this%PotChargeCharge(1, 1)
-            Epsilon = pcc%Epsilon
-            RShieldSquared = pcc%RShieldSquared
+        !  else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
+        !    pcc => this%PotChargeCharge(1, 1)
+        !    Epsilon = pcc%Epsilon
+        !    RShieldSquared = pcc%RShieldSquared
 
-          ! Assign pointers to site positions
-            RX1 => pcc%Site1%RX
-            RY1 => pcc%Site1%RY
-            RZ1 => pcc%Site1%RZ
-            RX2 => pcc%Site2%RX
-            RY2 => pcc%Site2%RY
-            RZ2 => pcc%Site2%RZ
-            do k = 1, this%NInCutoff(unit1)
-              j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-              ! choose only units, to which our Site2 correspond
-              nu2 = pcc%Site2%UnitNumber
-              if ( mod(j-nu2, this%NUnit2)==0) then
-                jk  = CEILING(real(j)/this%NUnit2)
-                RXij = RX2(j)-RX1(np)
-                RYij = RY2(j)-RY1(np)
-                RZij = RZ2(j)-RZ1(np)
-                RXij = (RXij - anint(RXij))*BoxLength
-                RYij = (RYij - anint(RYij))*BoxLength
-                RZij = (RZij - anint(RZij))*BoxLength
-                Rij = (RXij**2+RYij**2+RZij**2)
-              end if
-            end do
+        !  ! Assign pointers to site positions
+        !    RX1 => pcc%Site1%RX
+        !    RY1 => pcc%Site1%RY
+        !    RZ1 => pcc%Site1%RZ
+        !    RX2 => pcc%Site2%RX
+        !    RY2 => pcc%Site2%RY
+        !    RZ2 => pcc%Site2%RZ
+        !    do k = 1, this%NInCutoff(unit1)
+        !      j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+        !      ! choose only units, to which our Site2 correspond
+        !      nu2 = pcc%Site2%UnitNumber
+        !      if ( mod(j-nu2, this%NUnit2)==0) then
+        !        jk  = CEILING(real(j)/this%NUnit2)
+        !        RXij = RX2(jk)-RX1(np)
+        !        RYij = RY2(jk)-RY1(np)
+        !        RZij = RZ2(jk)-RZ1(np)
+        !        RXij = (RXij - anint(RXij))*BoxLength
+        !        RYij = (RYij - anint(RYij))*BoxLength
+        !        RZij = (RZij - anint(RZij))*BoxLength
+        !        Rij = (RXij**2+RYij**2+RZij**2)
+        !      end if
+        !    end do
           end if
         end if 
       end if 
@@ -2860,19 +2952,20 @@ contains
             RijSquaredInv = SigmaSquared / RijSquared
             Rij6Inv = RijSquaredInv**3
             jk = (j-1)*this%NUnit2 + plj%Site2%UnitNumber
-            EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+            EPot(jk) = EPot(jk) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) !Michael Sch.: changed from j to jk, for E,Vir and d's
+                                                                         ! changed for all site-site calculations
             if ( OptPressure ) then
               Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
-              Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+              Virial(jk) = Virial(jk) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
             end if
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
+            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
 &                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss LJ
-            d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
@@ -2968,11 +3061,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)/9._RK !xxxxss5 DD
             end if
-            EPot(j) = EPot(j) + EPotLocal
+            EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
         end do
 
@@ -3064,11 +3157,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss6 DQ
             end if
-            EPot(j) = EPot(j) + EPotLocal
+            EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
         end do
       end do
@@ -3163,11 +3256,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
             end if
-            EPot(j) = EPot(j) + EPotLocal
+            EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(j) = Virial(j) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
+              Virial(jk) = Virial(jk) + Third * (FXij * PXij + FYij * PYij + FZij * PZij)
             end if
-            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
         end do
 
@@ -3272,11 +3365,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
             end if
-            EPot(j) = EPot(j) + EPotLocal
+            EPot(jk) = EPot(jk) + EPotLocal
             if ( OptPressure ) then
-              Virial(j) = Virial(j) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
+              Virial(jk) = Virial(jk) + Third * ( FXij * PXij + FYij * PYij + FZij * PZij )
             end if
-            d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
           end do
         end do
       end do
@@ -3284,6 +3377,7 @@ contains
     end if
 
     this%EPot1 = EPot
+
 end subroutine TInteraction_Energy
 
 
@@ -3366,6 +3460,10 @@ end subroutine TInteraction_Energy
     ! Assign local variables
     SameComponent = this%SameComponent
     EPot => this%EPot1
+    
+    ! Zero angle/torison energies (others are set to 0 in Energy-routine)
+    this%EPot1Angle(:) = 0._RK
+    this%EPot1To(:) = 0._RK
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
     OptPressure = this%OptPressure
     if ( OptPressure ) then
@@ -4406,19 +4504,8 @@ end subroutine TInteraction_Energy
           mueZi = this%MueZ1(np,nu)
           unit1 = (np-1)*this%NUnit1
           do nu2 = 1, this%NUnit1
-            j = unit1 + nu2
-!             j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-!             if (mod(j,this%NUnit2)==0) then
-!               jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-!               nu2 = this%NUnit2 ! number of unit in molecule
-!             else
-!               jk = INT(j/this%NUnit2)+1
-!               nu2 = mod(j,this%NUnit2)
-!             end if
-
-            EPot(j) = EPot(j) + RFConst2 &
+            EPot(unit1+nu2) = EPot(unit1+nu2) + RFConst2 &
 &               * ( mueXi * MueX2(np,nu2) + mueYi * MueY2(np,nu2) + mueZi * MueZ2(np,nu2) )
-!              end if
           end do
         else         ! Extended ReactionField
           call Error('No Extended ReactionField for inner degrees of freedom')
@@ -4949,7 +5036,7 @@ end subroutine TInteraction_Energy
 
       ! Site
       k = this%BondCount(nu)
-      this%EPot1Bond(:) = this%EPotBond (this%NBond*(np-1)+1 : this%NBond*np)
+      !this%EPot1Bond(:) = this%EPotBond (this%NBond*(np-1)+1 : this%NBond*np)
       do j = 1, k
         bi = this%BoPartner(nu,j)
         pbo => this%PotBond(bi)
@@ -4969,7 +5056,8 @@ end subroutine TInteraction_Energy
         RSquared=RXij**2+RYij**2+RZij**2
         R=dsqrt(RSquared) ! Bond length
         ! Deviation from equilibrium
-        unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu
+        unit2 =(np-1) * this%NUnit1 + (u1+u2-nu) ! global number of u2 if u1==nu 
+                                             !(which should be the case Michael Sch.)
         dR=R-this%PotBond(bi)%R0
         ! Potential parameter
         F0 = dR*this%PotBond(bi)%ForConst
@@ -4978,14 +5066,14 @@ end subroutine TInteraction_Energy
 #if MPI_VER > 0
         if (Equilibration .and. CommonEqui) then
           EPot(unit2) = EPot(unit2) + dR*F0 / NProcs
-          this%EPot1Bond(bi) = dR*F0 / NProcs
+          !this%EPot1Bond(bi) = dR*F0 / NProcs
         else
           EPot(unit2) = EPot(unit2) + dR*F0
-          this%EPot1Bond(bi) = dR*F0
+          !this%EPot1Bond(bi) = dR*F0
         end if
 #else
         EPot(unit2) = EPot(unit2) + dR*F0
-        this%EPot1Bond(bi) = dR*F0
+        !this%EPot1Bond(bi) = dR*F0
 #endif
 
         if ( OptPressure ) then
@@ -5022,13 +5110,13 @@ end subroutine TInteraction_Energy
         end if
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
-        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * ForConst * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond
-        d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * ForConst * sitecorr * sitecorr *Third*Third
+        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond
+        d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third
       end do ! bonds
 
       ! Angle Interaction
       k = this%AngleCount(nu)
-      this%EPot1Angle(:) = this%EPotAngle (this%NAngle*(np-1)+1 : this%NAngle*np)
+      !this%EPot1Angle(:) = this%EPotAngle (this%NAngle*(np-1)+1 : this%NAngle*np)
       do j = 1, k
         bi = this%AnglePartner(nu,j)
         pan => this%PotAngle(bi)
@@ -5093,7 +5181,7 @@ end subroutine TInteraction_Energy
 
       ! Dihedral/Torsions Interaction
       k = this%DihedralCount(nu)
-      this%EPot1To(:) = this%EPotTo (this%NDihedral*(np-1)+1 : this%NDihedral*np)
+      !this%EPot1To(:) = this%EPotTo (this%NDihedral*(np-1)+1 : this%NDihedral*np)
       do j = 1, k
         bi = this%DihedralPartner(nu,j)
         pto => this%PotDihedral(bi)
@@ -5183,7 +5271,7 @@ end subroutine TInteraction_Energy
               earg= multi*arg-gamma
               ! Energy:
               ! formulae  E = ForConst*( 1 + cos(earg) )
-              EPotAdd = ForConst*(1.d0+dcos(earg))
+              EPotAdd = ForConst*(1.d0+cos(earg))
             else ! Improper dihedral angle
               earg= arg-gamma
               ! Energy
@@ -5204,6 +5292,8 @@ end subroutine TInteraction_Energy
 #endif
 
       end do ! Dihedral Interaction
+
+      this%EPot1 => EPot
 
   end subroutine TInteraction_IntraEnergy
 

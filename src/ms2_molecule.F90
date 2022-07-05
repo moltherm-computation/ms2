@@ -181,17 +181,14 @@ module ms2_molecule
     module procedure TMolecule_FindNDF
   end interface
 
-  ! Find bond  distance
   interface FindBondR
     module procedure TMolecule_FindBondR
   end interface
 
-  ! Find  bond angle
   interface FindAngle
     module procedure TMolecule_FindAngle
   end interface
 
-  ! Check  dihedral angle
   interface FindDihedral
     module procedure TMolecule_FindDihedral
   end interface
@@ -651,45 +648,74 @@ contains
       this%Unit(1)%NDFRot = -1
     end if
 
+    !sort_sitetypes
+    do i=1,this%NLJ126
+      do j=i+1,this%NLJ126
+        if (this%SiteLJ126(i)%UnitNumber>this%SiteLJ126(j)%Unitnumber) then
+          call sort_LJsitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NCharge
+      do j=i+1,this%NCharge
+        if (this%SiteCharge(i)%UnitNumber>this%SiteCharge(j)%Unitnumber) then
+          call sort_chargesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NDipole
+      do j=i+1,this%NDipole
+        if (this%SiteDipole(i)%UnitNumber>this%SiteDipole(j)%Unitnumber) then
+          call sort_dipolesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
+    do i=1,this%NQuadrupole
+      do j=i+1,this%NQuadrupole
+        if (this%SiteQuadrupole(i)%UnitNumber>this%SiteQuadrupole(j)%Unitnumber) then
+          call sort_quadrupolesitetypes(this,i,j)
+        endif
+      enddo
+    enddo
 
+
+    !Michael Sch.: changed mechanics here.
     if (UseIntDegFreed) then
        if (this%NBond>0) then ! check bonds and find initial bond lengths
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
-           if (j<=this%NBond) then
+           !if (j<=this%NBond) then
              call FindBondR(this,this%IdfBond(j), j) 
              ! Number of bonds can change in this procedure!
-           else
-             exit
-           end if
-          end do
+           !else
+           !  exit
+           !end if
+         end do
        end if
 
-      if (this%NAngle>0) then ! check angles and find initial angles
-        this%AngleCount(1:this%NUnit)=0  ! Zero arrays
+       if (this%NAngle>0) then ! check angles and find initial angles
+         this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
-           if (j<=this%NAngle) then
-              call FindAngle(this,this%IdfAngle(j), j) 
-              ! Number of angles can change in this procedure!
-           else
-             exit
-           end if
-        end do
-      end if
+           !if (j<=this%NAngle) then
+             call FindAngle(this,this%IdfAngle(j), j) 
+           !  ! Number of angles can change in this procedure!
+           !else
+           !  exit
+           !end if
+         end do
+       end if
 
-      if ( this%NDihedral > 0 ) then
-        this%DihedralCount(1:this%NUnit)=0
-        do j = 1, this%NDihedral
-           if (j<=this%NDihedral) then
-              call FindDihedral(this,this%IdfDihedral(j), j) 
-              ! Number of angles can change in this procedure!
-           else
-             exit
-           end if
-        end do
-        do i=1, this%NUnit
-        end do
-      end if
+       if ( this%NDihedral > 0 ) then
+         this%DihedralCount(1:this%NUnit)=0
+         do j = 1, this%NDihedral
+           !if (j<=this%NDihedral) then
+             call FindDihedral(this,this%IdfDihedral(j), j) 
+             ! Number of angles can change in this procedure!
+           !else
+           !  exit
+           !end if
+         end do
+       end if
     end if
 
     ! Assigning Number of interaction sites to vectors
@@ -698,7 +724,7 @@ contains
     nullify( this%UnitDP )
     nullify( this%UnitQP )
 
-    ! Allocate simulation box length
+    ! Allocate unit site counters
     allocate( this%UnitLJ(this%NUnit+1), STAT = stat )
     call AllocationError( stat, 'UnitLJ' )
     allocate( this%UnitC(this%NUnit+1), STAT = stat )
@@ -1483,6 +1509,70 @@ contains
       b = temp
    end subroutine change
 
+    subroutine sort_LJsitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteLJ126), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteLJ126(i)
+    this%SiteLJ126(i) = this%SiteLJ126(j)
+    this%SiteLJ126(j) = temptype
+
+    end subroutine sort_LJsitetypes
+
+    subroutine sort_chargesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteCharge), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteCharge(i)
+    this%SiteCharge(i) = this%SiteCharge(j)
+    this%SiteCharge(j) = temptype
+
+    end subroutine sort_chargesitetypes
+
+    subroutine sort_dipolesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteDipole), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteDipole(i)
+    this%SiteDipole(i) = this%SiteDipole(j)
+    this%SiteDipole(j) = temptype
+
+    end subroutine sort_dipolesitetypes
+
+    subroutine sort_quadrupolesitetypes(this, i, j)
+
+    ! Declare arguments
+    type(TMolecule)         :: this
+    integer, intent( in )   :: i, j
+
+    !Declare local variables
+    type(TSiteQuadrupole), allocatable :: temptype
+
+    allocate(temptype)
+    temptype = this%SiteQuadrupole(i)
+    this%SiteQuadrupole(i) = this%SiteQuadrupole(j)
+    this%SiteQuadrupole(j) = temptype
+
+    end subroutine sort_quadrupolesitetypes
+
     subroutine binar_search (array, Id, treffer, index)
 
       ! Declare arguments
@@ -1771,7 +1861,6 @@ contains
     type(TMolecule) :: this
 
     ! Declare local variables
-    character(FileNameLength)      :: filename
     integer                        :: nidftypes
     integer                        :: i
 
@@ -2216,7 +2305,7 @@ contains
     logical           :: Site1, Site2
     real(RK)          :: r1(3),r2(3)
     real(RK)          :: RX, RY, RZ
-    character(10)      ::stb
+    character(10)      ::str
 
     SiteId1 = Bond%SiteId1
     SiteId2 = Bond%SiteId2
@@ -2318,8 +2407,8 @@ contains
 
 
     if (.not. Site1 .or. .not. Site2) then
-      write (stb, '(i10)') j
-      call Error('Uncorrect sites for bond' // stb)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for bond' // str)
     end if
 
     if (Bond%UnitId1==Bond%UnitId2) then
@@ -2365,7 +2454,7 @@ contains
     real(RK)          :: R1X, R1Y, R1Z, R1S
     real(RK)          :: R2X, R2Y, R2Z, R2S
     real(RK)          ::cosa, R1R2
-    character(10)     ::sta
+    character(10)     ::str
 
     SiteId1 = Angle%SiteId1
     SiteId2 = Angle%SiteId2
@@ -2536,8 +2625,8 @@ contains
     end if
 
     if (.not. Site1 .or. .not. Site2 .or. .not. Site3) then
-      write (sta, '(i10)') j
-      call Error('Uncorrect sites for angle' // sta)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for angle' // str)
     end if
 
 
@@ -2610,8 +2699,8 @@ contains
     implicit none
 
     ! Declare arguments
-    type(TMolecule)         :: this
-    type(TIdfDihedral)      :: Dihedral
+    type(TMolecule)     :: this
+    type(TIdfDihedral)  :: Dihedral
     integer, intent(in out) :: j
 
     ! Declare local variables
@@ -2619,7 +2708,7 @@ contains
     integer           :: i
     integer           :: SiteId1, SiteId2, SiteId3, SiteId4
     logical           :: Site1, Site2, Site3, Site4
-    character(10)     ::sta
+    character(10)     ::str
 
     SiteId1 = Dihedral%SiteId1
     SiteId2 = Dihedral%SiteId2
@@ -2769,8 +2858,8 @@ contains
     end if
 
     if (.not. Site1 .or. .not. Site2 .or. .not. Site3 .or. .not. Site4) then
-      write (sta, '(i10)') j
-      call Error('Uncorrect sites for dihedral angle' // sta)
+      write (str, '(i10)') j
+      call Error('Uncorrect sites for dihedral angle' // str)
     end if
 
 
@@ -2831,8 +2920,6 @@ contains
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
       end if
     end if
-    
-    ! Michael Sch.: add calculation of equlibrium dihedral here (needs introduction of r1-4(3))
 
   end subroutine TMolecule_FindDihedral
 
