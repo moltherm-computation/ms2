@@ -1218,7 +1218,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (SameComponent .and. (intra15 .or. intra14)) then ! Michael Sch.: intra15/14 enough, .and. redundant
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -1454,11 +1454,14 @@ loop2:  do j = j0, j1
 #ifdef ABL
     real(RK)          :: dr2Abl
 #endif
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
-!$OMP PRIVATE(FZ2, SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
+!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1 ) &
+!$OMP PRIVATE(SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 #if MPI_VER > 0
@@ -1528,9 +1531,6 @@ loop2:  do j = j0, j1
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
     
     if (intra14) then
        coeff = this%ScaleLJ14
@@ -1564,10 +1564,10 @@ loop2:  do j = j0, j1
     tdx => this%Site1%tdLJx
     tdy => this%Site1%tdLJy
     tdz => this%Site1%tdLJz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -2020,14 +2020,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
     real(RK)          :: EPotLocal
-    integer           :: N2
-    integer           :: i, j, k
+    integer           :: N2, nu1, nu2, unit
+    integer           :: i, j, k, jk
 
     ! Assign local variables
     N2 = this%Site2%NPart
     SigmaSquared = this%SigmaSquared
     Epsilon4 = this%Epsilon4
     RCutoffSquared = this%RCutoffSquaredScaled
+    nu1 = this%NUnit1
+    nu2 = this%NUnit2
 
     ! Assign pointers
     RX1 => this%Site1%RXTest

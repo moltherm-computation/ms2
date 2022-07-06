@@ -9969,36 +9969,51 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       AccRateTran = real(pc%NMoveSuccesses) / real(pc%NMoveAttempts)
       AccRateRot = real(pc%NRotateSuccesses) / real(pc%NRotateAttempts)
 
-      ! Update translational displacement
-      if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranLimit )) then
-        pc%DispTran = pc%DispTran * 1.05_RK
+      if (pc%Molecule%NUnit .eq. 1) then ! only one type of moves - molecular, no unit differentiation
+        ! Update translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispMolTranUppLimit )) then
+          pc%DispTran = pc%DispTran * 1.05_RK
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispTran .gt. DispMolTranLowLimit )) then
+          pc%DispTran = pc%DispTran * .95_RK
+        end if
 
-      else if( AccRateTran .lt. AccLowerLimit ) then
-        pc%DispTran = pc%DispTran * .95_RK
-      end if
+        ! Update rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotUppLimit )) then
+          pc%DispRot = pc%DispRot * 1.05_RK
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispMolRotLowLimit )) then
+          pc%DispRot = pc%DispRot * 0.95_RK
+        end if
 
-      ! Update rotational displacement
-      if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotLimit )) then
-        pc%DispRot = pc%DispRot * 1.05_RK
+      else
+        ! Update translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispTran .lt. DispTranUppLimit )) then
+          pc%DispTran = pc%DispTran * 1.05_RK
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispTran .gt. DispTranLowLimit )) then
+          pc%DispTran = pc%DispTran * .95_RK
+        end if
 
-      else if( AccRateRot .lt. AccLowerLimit ) then
-        pc%DispRot = pc%DispRot * 0.95_RK
-      end if
+        ! Update rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispRotUppLimit )) then
+          pc%DispRot = pc%DispRot * 1.05_RK
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispRotLowLimit )) then
+          pc%DispRot = pc%DispRot * 0.95_RK
+        end if
 
-      ! Update Displacements for entire molecule
-      if ( UseIntDegFreed ) then
+        ! Update Displacements for entire molecule
         AccRateTran = real(pc%NMoveMolSuccesses) / real(pc%NMoveMolAttempts)
         AccRateRot = real(pc%NRotateMolSuccesses) / real(pc%NRotateMolAttempts)
-        ! Update translational displacement
-        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispMolTran .lt. DispMolTranLimit )) then
+
+        ! Update molecular translational displacement
+        if(( AccRateTran .gt. AccUpperLimit) .and. ( pc%DispMolTran .lt. DispMolTranUppLimit )) then
           pc%DispMolTran = pc%DispMolTran * 1.05_RK
-        else if( AccRateTran .lt. AccLowerLimit ) then
+        else if(( AccRateTran .lt. AccLowerLimit ) .and. ( pc%DispMolTran .gt. DispMolTranLowLimit )) then
           pc%DispMolTran = pc%DispMolTran * .95_RK
         end if
-        ! Update rotational displacement
-        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispRotLimit )) then
+
+        ! Update molecular rotational displacement
+        if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispMolRot .lt. DispMolRotUppLimit )) then
           pc%DispMolRot = pc%DispMolRot * 1.05_RK
-        else if( AccRateRot .lt. AccLowerLimit ) then
+        else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispMolRot .gt. DispMolRotLowLimit )) then
           pc%DispMolRot = pc%DispMolRot * 0.95_RK
         end if
       end if
@@ -10009,10 +10024,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       AccRateVol = real(this%NResizeSuccesses) / real(this%NResizeAttempts)
 
       ! Update volume displacement
-      if(( AccRateVol .gt. AccUpperLimit ) .and. ( this%DispVol .lt. DispVolLimit )) then
+      if(( AccRateVol .gt. AccUpperLimit ) .and. ( this%DispVol .lt. DispVolUppLimit )) then
         this%DispVol = this%DispVol * 1.05_RK
 
-      else if( AccRateVol .lt. AccLowerLimit ) then
+      else if(( AccRateVol .lt. AccLowerLimit ) .and. ( this%DispVol .gt. DispVolLowLimit )) then
         this%DispVol = this%DispVol * 0.95_RK
       end if
     end if
