@@ -1,40 +1,16 @@
 ########################################
 # Makefile for ms2
 ########################################
-#
 COMPILER = GNU
-<<<<<<< HEAD
 #CONFIG = makefiles/$(COMPILER).mk
-=======
-#
-$(info COMPILER: $(COMPILER))
-CONFIG = makefiles/$(COMPILER).mk
->>>>>>> refs/heads/merge-target
 include $(CONFIG)
-#
 TARGET    = RELEASE
-#TARGET    = DEBUG
-TRANS     = 0
 MPI       = 0
 OMP       = 0
 PROG      = ms2
-#
-$(info TARGET: $(TARGET))
-ifeq ($(TRANS),1)
-$(info TRANSPORT enabled)
-endif
+TRANS     = 0
 ifeq ($(MPI),1)
-$(info MPI enabled)
- endif
-ifeq ($(OMP),1)
-$(info OMP enabled)
-endif
-ifeq ($(SP),1)
-$(info compiling Single Precision)
-endif
-ifeq ($(MPI),1)
-  F90      = $(F90mpi)
-  F90ld    = $(F90mpi)
+  F90 = mpif90
   CPPFLAGS += -DMPI_VER=1
   PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
@@ -79,15 +55,12 @@ MODS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).mod)
 ########################################
 # Rules to build the target
 #
-.PHONY: clean
-
 default: all
-       @make clean
 
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(F90ld) $(LDFLAGS) -o $@ $(OBJS)
+	$(F90) $(LDFLAGS) -o $@ $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(MODS)

@@ -107,9 +107,9 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
-! #ifdef USE_MPI
-!   integer :: mpi_defaultCommunicator
-! #endif
+#ifdef USE_MPI
+  integer :: mpi_defaultCommunicator
+#endif
 
 !==============================================================!
 !  Type TStopwatch                                             !
@@ -562,7 +562,7 @@ contains
 #ifdef STOPWATCH_USE_MPIWTIME
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       if (IAND(this%options,CStopwatch_doMPIStartBarrier) /= 0) then
-          call MPI_Barrier( this%mpi_communicator, ierror )
+          call MPI_Barrier( Communicator, ierror )
       end if
       this%mpi_diff_reduced=.FALSE.
       this%wtime_start = MPI_WTIME()
@@ -641,7 +641,7 @@ contains
     if (IAND(this%options,CStopwatch_omitMPIWTIME) == 0) then
       !if (BTEST(this%options,2)) then
       if (IAND(this%options,CStopwatch_doMPIStopBarrier) /= 0) then
-         call MPI_Barrier( this%mpi_communicator, ierror )
+         call MPI_Barrier( Communicator, ierror )
       end if
       this%wtime_stop = MPI_WTIME()
       this%wtime_diff(1)=this%wtime_stop-this%wtime_start
@@ -686,7 +686,7 @@ contains
 
     !if (BTEST(this%options,3)) then
     if (IAND(this%options,CStopwatch_doMPIReduce) /= 0) then
-       call MPI_Reduce( wtime_diff, this%wtime_diff, 2, MPI_DOUBLE_PRECISION, MPI_MAX, NRootProc, this%mpi_communicator, ierror )
+       call MPI_Reduce( wtime_diff, this%wtime_diff, 2, MPI_DOUBLE_PRECISION, MPI_MAX, NRootProc, Communicator, ierror )
        this%wtime_diff(2)=-this%wtime_diff(2)
     else
        this%wtime_diff(1)=wtime_diff(1)
@@ -849,7 +849,7 @@ contains
         write( IOBuffer, '(T2,A," wtime        diff:",G16.9,"-",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(2), this%wtime_diff(1)
         call LogWrite
-        write( IOBuffer,'(T30,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
+        write( IOBuffer,'(T31,"<=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
 
@@ -858,7 +858,7 @@ contains
         write( IOBuffer, '(T2,A," wtime   root diff:",G16.9)' ) &
 &         trim(this%tag_string), this%wtime_diff(1)
         call LogWrite
-        write( IOBuffer,'(T31,"=",I5,"h",I3,"min",F9.5,"sec (+-",E9.2,"sec)")' ) &
+        write( IOBuffer,'(T32,"=",I5,"h",I3,"min",F9.5,"sec (+-",E8.2,"sec)")' ) &
 &         int(this%wtime_diff(1))/3600, mod(int(this%wtime_diff(1)),3600)/60, dmod(this%wtime_diff(1),60.D0), &
 &         MPI_WTICK()
       end if
