@@ -334,6 +334,10 @@ module ms2_component
   interface RotateMol
     module procedure TComponent_RotateMol
   end interface
+  
+  interface RotateTest
+    module procedure TComponent_RotateTest
+  end interface
 
   interface Mol2AtomTest
     module procedure TComponent_Mol2AtomTest  ! needed??? fix me
@@ -356,6 +360,10 @@ module ms2_component
     module procedure TComponent_Mol2Unit1Test
   end interface
 
+  interface InitUnit
+    module procedure TComponent_InitUnit
+  end interface
+
   interface Unit2Atom
     module procedure TComponent_Unit2Atom
   end interface
@@ -370,7 +378,7 @@ module ms2_component
   end interface
 
   interface Unit2AtomTest
-    module procedure TComponent_Unit2Atom1Test
+    module procedure TComponent_Unit2AtomTest
   end interface
 
   interface Atom2Unit
@@ -444,6 +452,10 @@ module ms2_component
 
   interface AddParticle
     module procedure TComponent_AddParticle
+  end interface
+  
+  interface DuplicateParticle
+    module procedure TComponent_DuplicateParticle
   end interface
 
   interface RemoveParticle
@@ -2171,10 +2183,6 @@ contains
       deallocate( this%F )
     end if
 
-    ! Quaternion parameters and their derivatives
-    if( associated( this%Qm0 ) ) then
-      deallocate( this%Qm0 )
-    end if
     if( associated( this%Q0Save ) ) then
       deallocate( this%Q0Save )
     end if
@@ -2363,6 +2371,33 @@ contains
 !DEBUG
     end if
 
+    if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+      if( associated( this%BinsVisit ) ) then
+        deallocate( this%BinsVisit )
+      end if
+      if( associated( this%BinsEn ) ) then
+        deallocate( this%BinsEn )
+      end if
+      if( associated( this%BinsdEndLa ) ) then
+        deallocate( this%BinsdEndLa )
+      end if
+      if( associated( this%BinsIntdEndLa ) ) then
+        deallocate( this%BinsIntdEndLa )
+      end if
+      if( associated( this%BinsdEndLaV ) ) then
+        deallocate( this%BinsdEndLaV )
+      end if
+      if( associated( this%BinsdEndLaH ) ) then
+        deallocate( this%BinsdEndLaH )
+      end if
+      if( associated( this%BinsIntVW ) ) then
+        deallocate( this%BinsIntVW )
+      end if
+      if( associated( this%BinsIntHW ) ) then
+        deallocate( this%BinsIntHW )
+      end if
+    end if
+
 #if MPI_VER > 0
     if( associated( this%FAll ) ) then
       deallocate( this%FAll )
@@ -2468,8 +2503,8 @@ contains
     this%P3(:, :, :) = 0._RK
     this%P4(:, :, :) = 0._RK
     this%P5(:, :, :) = 0._RK
-    do i=1,nu
-      if( this%Molecule%Unit(i)%isElongated ) then
+    if( this%Molecule%isElongated ) then
+      do i=1,nu
         this%Q1(:, :, i) = 0._RK
         this%Q2(:, :, i) = 0._RK
         this%Q3(:, :, i) = 0._RK
@@ -2478,8 +2513,8 @@ contains
         this%W2(:, :, i) = 0._RK
         this%W3(:, :, i) = 0._RK
         this%W4(:, :, i) = 0._RK
-      end if
-    end do
+      end do
+    end if
 
   end subroutine TComponent_InitIntegratorGear
 
@@ -2548,7 +2583,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_RemoveNetMomentum                      !
+!  Subroutine TComponent_RemoveNetMomentum                     !
 !==============================================================!
 
   subroutine TComponent_RemoveNetMomentum( this, nu )
@@ -2583,10 +2618,6 @@ contains
       ! Remove net momentum
       do i = 1, 3
         Pim(k) = P(i, k) / this%Molecule%Unit(k)%Mass
-
-
-
-
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim(k)
         end do
@@ -2597,7 +2628,7 @@ contains
           end do
         end if
       end do
-   end do
+    end do
 
   end subroutine TComponent_RemoveNetMomentum
 
@@ -4080,16 +4111,15 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
-    integer                        :: i, j, k
-    integer                        :: nup
+    integer                        :: i, j
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%P0(np, :, nu), 3, MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%Q0(np, :, nu), 4, MPI_RK, NRootProc, Communicator, ierror )
       end if
     end if
 #endif
@@ -4097,8 +4127,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
 
-    if ( this%Molecule%isElongated ) then
-      nup = this%Molecule%NUnit
+    if ( this%Molecule%Unit(nu)%isElongated ) then
       ! Positions and quaternions of unit k in particle i
       PX = this%P0(np, 1, nu)
       PY = this%P0(np, 2, nu)
@@ -4199,7 +4228,7 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
         this%MueZ(np, nu) = mue1 * A13 + mue2 * A23 + mue3 * A33
       end if
 
-    else ! If molecule is not elongated
+    else ! If unit is not elongated
 
       ! Loop over LJ126 sites in molecule
       do i = 1, this%Molecule%Unit(nu)%NLJ126
@@ -6826,10 +6855,16 @@ contains
     ! Declare arguments
     type(TComponent)               :: this
     real(RK), intent(in)           :: r(3)
-    real(RK), intent(in), optional :: q(4)
+    real(RK), intent(in), optional :: q(3)
+
+    ! Declare local variables
+    integer                :: i
 
     ! Test boundaries of particle arrays
     if( this%NPart > this%NPartMax ) then
+      tooManyParticles = .true.
+      return
+    elseif( this%NPart == this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
       tooManyParticles = .true.
       return
     end if
@@ -6842,10 +6877,13 @@ contains
 
     ! Set coordinates and orientation of new particle
     this%Pm0(this%NPart, :) = r(:)
-    if ( this%Molecule%isElongated ) then
-      this%Qm0(this%NPart, :) = q(:)
+    if (this%Molecule%isElongated) then
+      call InitUnit(this, this%NPart, q)
+    else
+      do i=1,this%Molecule%NUnit
+        this%P0(this%NPart,:,i) = r(:)
+      end do
     end if
-
 
   end subroutine TComponent_AddParticle
 
