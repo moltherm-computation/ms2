@@ -327,6 +327,14 @@ module ms2_component
     module procedure TComponent_CalculateEKin
   end interface
 
+  interface ResizeMol
+    module procedure TComponent_ResizeMol
+  end interface
+
+  interface RotateMol
+    module procedure TComponent_RotateMol
+  end interface
+
   interface Mol2AtomTest
     module procedure TComponent_Mol2AtomTest  ! needed??? fix me
   end interface
@@ -1345,14 +1353,8 @@ contains
       this%Molecule%SiteLJ126(i)%PY => this%Pm0(:, 2)
       this%Molecule%SiteLJ126(i)%PZ => this%Pm0(:, 3)
 
-      if( ntest > 0 ) then
-        this%Molecule%SiteLJ126(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteLJ126(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteLJ126(i)%PZTest => this%Pm0Test(:, 3)
-      end if
-
 #if TRANS==1
-      this%Molecule%SiteLJ126(i)%Qm0r => this%Qm0
+      this%Molecule%SiteLJ126(i)%Qm0r => this%Q0
 #endif
     end do
 
@@ -1369,14 +1371,8 @@ contains
       this%Molecule%SiteCharge(i)%PY => this%Pm0(:, 2)
       this%Molecule%SiteCharge(i)%PZ => this%Pm0(:, 3)
 
-      if( ntest > 0 ) then
-        this%Molecule%SiteCharge(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteCharge(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteCharge(i)%PZTest => this%Pm0Test(:, 3)
-      end if
-
 #if TRANS==1
-      this%Molecule%SiteCharge(i)%Qm0r => this%Qm0
+      this%Molecule%SiteCharge(i)%Qm0r => this%Q0
 #endif
     end do
 
@@ -1393,14 +1389,8 @@ contains
       this%Molecule%SiteDipole(i)%PY => this%Pm0(:, 2)
       this%Molecule%SiteDipole(i)%PZ => this%Pm0(:, 3)
 
-      if( ntest > 0 ) then
-        this%Molecule%SiteDipole(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteDipole(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteDipole(i)%PZTest => this%Pm0Test(:, 3)
-      end if
-
 #if TRANS==1
-      this%Molecule%SiteDipole(i)%Qm0r => this%Qm0
+      this%Molecule%SiteDipole(i)%Qm0r => this%Q0
 #endif
     end do
 
@@ -1417,18 +1407,12 @@ contains
       this%Molecule%SiteQuadrupole(i)%PY => this%Pm0(:, 2)
       this%Molecule%SiteQuadrupole(i)%PZ => this%Pm0(:, 3)
 
-      if( ntest > 0 ) then
-        this%Molecule%SiteQuadrupole(i)%PXTest => this%Pm0Test(:, 1)
-        this%Molecule%SiteQuadrupole(i)%PYTest => this%Pm0Test(:, 2)
-        this%Molecule%SiteQuadrupole(i)%PZTest => this%Pm0Test(:, 3)
-      end if
-
 #if TRANS==1
-      this%Molecule%SiteQuadrupole(i)%Qm0r => this%Qm0
+      this%Molecule%SiteQuadrupole(i)%Qm0r => this%Q0
 #endif
     end do
 
-    ! Internal degrees of freedom  ....Michael Sch.: if clauses should be remodelled here to decrease code lines
+    ! Internal degrees of freedom
 
     ! Units
     nlj=0
@@ -1451,6 +1435,17 @@ contains
           this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
           this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
           this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
+          if (ntest>0) then
+            this%Molecule%Unit(i)%SiteLJ126(j)%RXTest=>this%Molecule%SiteLJ126(nlj)%RXTest
+            this%Molecule%Unit(i)%SiteLJ126(j)%RYTest=>this%Molecule%SiteLJ126(nlj)%RYTest
+            this%Molecule%Unit(i)%SiteLJ126(j)%RZTest=>this%Molecule%SiteLJ126(nlj)%RZTest
+            this%Molecule%Unit(i)%SiteLJ126(j)%PXTest => this%P0Test(:, 1, i)
+            this%Molecule%Unit(i)%SiteLJ126(j)%PYTest => this%P0Test(:, 2, i)
+            this%Molecule%Unit(i)%SiteLJ126(j)%PZTest => this%P0Test(:, 3, i)
+            this%Molecule%SiteLJ126(nlj)%PXTest => this%Molecule%Unit(i)%SiteLJ126(j)%PXTest
+            this%Molecule%SiteLJ126(nlj)%PYTest => this%Molecule%Unit(i)%SiteLJ126(j)%PYTest
+            this%Molecule%SiteLJ126(nlj)%PZTest => this%Molecule%Unit(i)%SiteLJ126(j)%PZTest
+          endif
           this%Molecule%Unit(i)%SiteLJ126(j)%FX=>this%Molecule%SiteLJ126(nlj)%FX
           this%Molecule%Unit(i)%SiteLJ126(j)%FY=>this%Molecule%SiteLJ126(nlj)%FY
           this%Molecule%Unit(i)%SiteLJ126(j)%FZ=>this%Molecule%SiteLJ126(nlj)%FZ
@@ -1466,6 +1461,17 @@ contains
           this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(nch)%RX
           this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(nch)%RY
           this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(nch)%RZ
+          if (ntest>0) then
+            this%Molecule%Unit(i)%SiteCharge(j)%RXTest=>this%Molecule%SiteCharge(nch)%RXTest
+            this%Molecule%Unit(i)%SiteCharge(j)%RYTest=>this%Molecule%SiteCharge(nch)%RYTest
+            this%Molecule%Unit(i)%SiteCharge(j)%RZTest=>this%Molecule%SiteCharge(nch)%RZTest
+            this%Molecule%Unit(i)%SiteCharge(j)%PXTest => this%P0Test(:, 1, i)
+            this%Molecule%Unit(i)%SiteCharge(j)%PYTest => this%P0Test(:, 2, i)
+            this%Molecule%Unit(i)%SiteCharge(j)%PZTest => this%P0Test(:, 3, i)
+            this%Molecule%SiteCharge(nch)%PXTest => this%Molecule%Unit(i)%SiteCharge(j)%PXTest
+            this%Molecule%SiteCharge(nch)%PYTest => this%Molecule%Unit(i)%SiteCharge(j)%PYTest
+            this%Molecule%SiteCharge(nch)%PZTest => this%Molecule%Unit(i)%SiteCharge(j)%PZTest
+          endif
           this%Molecule%Unit(i)%SiteCharge(j)%FX=>this%Molecule%SiteCharge(nch)%FX
           this%Molecule%Unit(i)%SiteCharge(j)%FY=>this%Molecule%SiteCharge(nch)%FY
           this%Molecule%Unit(i)%SiteCharge(j)%FZ=>this%Molecule%SiteCharge(nch)%FZ
@@ -1485,6 +1491,20 @@ contains
           this%Molecule%Unit(i)%SiteDipole(j)%OX=>this%Molecule%SiteDipole(ndi)%OX
           this%Molecule%Unit(i)%SiteDipole(j)%OY=>this%Molecule%SiteDipole(ndi)%OY
           this%Molecule%Unit(i)%SiteDipole(j)%OZ=>this%Molecule%SiteDipole(ndi)%OZ
+          if (ntest>0) then
+            this%Molecule%Unit(i)%SiteDipole(j)%RXTest=>this%Molecule%SiteDipole(ndi)%RXTest
+            this%Molecule%Unit(i)%SiteDipole(j)%RYTest=>this%Molecule%SiteDipole(ndi)%RYTest
+            this%Molecule%Unit(i)%SiteDipole(j)%RZTest=>this%Molecule%SiteDipole(ndi)%RZTest
+            this%Molecule%Unit(i)%SiteDipole(j)%OXTest=>this%Molecule%SiteDipole(ndi)%OXTest
+            this%Molecule%Unit(i)%SiteDipole(j)%OYTest=>this%Molecule%SiteDipole(ndi)%OYTest
+            this%Molecule%Unit(i)%SiteDipole(j)%OZTest=>this%Molecule%SiteDipole(ndi)%OZTest
+            this%Molecule%Unit(i)%SiteDipole(j)%PXTest => this%P0Test(:, 1, i)
+            this%Molecule%Unit(i)%SiteDipole(j)%PYTest => this%P0Test(:, 2, i)
+            this%Molecule%Unit(i)%SiteDipole(j)%PZTest => this%P0Test(:, 3, i)
+            this%Molecule%SiteDipole(ndi)%PXTest => this%Molecule%Unit(i)%SiteDipole(j)%PXTest
+            this%Molecule%SiteDipole(ndi)%PYTest => this%Molecule%Unit(i)%SiteDipole(j)%PYTest
+            this%Molecule%SiteDipole(ndi)%PZTest => this%Molecule%Unit(i)%SiteDipole(j)%PZTest
+          endif
           this%Molecule%Unit(i)%SiteDipole(j)%FX=>this%Molecule%SiteDipole(ndi)%FX
           this%Molecule%Unit(i)%SiteDipole(j)%FY=>this%Molecule%SiteDipole(ndi)%FY
           this%Molecule%Unit(i)%SiteDipole(j)%FZ=>this%Molecule%SiteDipole(ndi)%FZ
@@ -1494,7 +1514,7 @@ contains
           this%Molecule%SiteDipole(ndi)%PX=> this%Molecule%Unit(i)%PX
           this%Molecule%SiteDipole(ndi)%PY=> this%Molecule%Unit(i)%PY
           this%Molecule%SiteDipole(ndi)%PZ=> this%Molecule%Unit(i)%PZ
-         end do
+        end do
       end if
       if (this%Molecule%Unit(i)%NQuadrupole > 0) then
         do j = 1, this%Molecule%Unit(i)%NQuadrupole
@@ -1507,6 +1527,20 @@ contains
           this%Molecule%Unit(i)%SiteQuadrupole(j)%OX=>this%Molecule%SiteQuadrupole(nqu)%OX
           this%Molecule%Unit(i)%SiteQuadrupole(j)%OY=>this%Molecule%SiteQuadrupole(nqu)%OY
           this%Molecule%Unit(i)%SiteQuadrupole(j)%OZ=>this%Molecule%SiteQuadrupole(nqu)%OZ
+          if (ntest>0) then
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%RXTest=>this%Molecule%SiteQuadrupole(nqu)%RXTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%RYTest=>this%Molecule%SiteQuadrupole(nqu)%RYTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%RZTest=>this%Molecule%SiteQuadrupole(nqu)%RZTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%OXTest=>this%Molecule%SiteQuadrupole(nqu)%OXTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%OYTest=>this%Molecule%SiteQuadrupole(nqu)%OYTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%OZTest=>this%Molecule%SiteQuadrupole(nqu)%OZTest
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%PXTest => this%P0Test(:, 1, i)
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%PYTest => this%P0Test(:, 2, i)
+            this%Molecule%Unit(i)%SiteQuadrupole(j)%PZTest => this%P0Test(:, 3, i)
+            this%Molecule%SiteQuadrupole(nqu)%PXTest => this%Molecule%Unit(i)%SiteQuadrupole(j)%PXTest
+            this%Molecule%SiteQuadrupole(nqu)%PYTest => this%Molecule%Unit(i)%SiteQuadrupole(j)%PYTest
+            this%Molecule%SiteQuadrupole(nqu)%PZTest => this%Molecule%Unit(i)%SiteQuadrupole(j)%PZTest
+          endif
           this%Molecule%Unit(i)%SiteQuadrupole(j)%FX=>this%Molecule%SiteQuadrupole(nqu)%FX
           this%Molecule%Unit(i)%SiteQuadrupole(j)%FY=>this%Molecule%SiteQuadrupole(nqu)%FY
           this%Molecule%Unit(i)%SiteQuadrupole(j)%FZ=>this%Molecule%SiteQuadrupole(nqu)%FZ
@@ -2025,6 +2059,25 @@ contains
       allocate( this%NFluctDownSuccesses( nf ), STAT = stat )
       call AllocationError( stat, 'fluctuating particle states', nf )
 !DEBUG
+    end if
+
+    if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+      allocate( this%BinsVisit( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'Number of Bins', this%NBins )
+      allocate( this%BinsEn( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'En', this%NBins )
+      allocate( this%BinsdEndLa( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'dEndLa', this%NBins )
+      allocate( this%BinsIntdEndLa( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'IntdEndLa', this%NBins )
+      allocate( this%BinsdEndLaV( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'dEndLaV', this%NBins )
+      allocate( this%BinsdEndLaH( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'dEndLaH', this%NBins )
+      allocate( this%BinsIntVW( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'IntVW', this%NBins )
+      allocate( this%BinsIntHW( 0: this%NBins-1 ), STAT = stat )
+      call AllocationError( stat, 'IntHW', this%NBins )
     end if
 
     ! Update log file
