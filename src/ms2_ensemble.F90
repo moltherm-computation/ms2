@@ -747,10 +747,6 @@ module ms2_ensemble
     module procedure TEnsemble_ResizeMol
   end interface
 
-  interface ShiftParticle
-    module procedure TEnsemble_ShiftParticle
-  end interface
-
   interface Resize_Gibbs
     module procedure TEnsemble_Resize_liq
     module procedure TEnsemble_Resize_vap
@@ -4554,8 +4550,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Call Unit2Atom for each component
     do i = 1, this%NComponents
-      call Unit2Atom( this%Component(i), this%Component(i)%NPart, &
-&                     this%Component(i)%Molecule%NUnit )
+      call Unit2Atom( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
     end do
 
   end subroutine TEnsemble_Unit2Atom
@@ -4637,109 +4632,6 @@ loop5:    do nc = 1, this%NComponents
     end do
 
   end subroutine TEnsemble_Unit2Mol
-
-
-!==============================================================!
-!  Subroutine TEnsemble_ShiftParticle                          !
-!==============================================================!
-
-  subroutine TEnsemble_ShiftParticle( this, ncf, ncfnew )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-    integer         :: ncf, ncfnew
-
-    ! Declare local variables
-    type(TComponent), pointer :: pcfnew, pcf
-    type(TUnit), pointer      :: pUnitfnew, pUnitf
-    integer                   :: j
-    integer                   :: npfnew, npf
-    integer                   :: nu
-    real(RK)                  :: qold1, qold2, qold3, qold4
-    real(RK)                  :: A11old, A12old, A13old
-    real(RK)                  :: A21old, A22old, A23old
-    real(RK)                  :: A31old, A32old, A33old
-    real(RK)                  :: qnew1, qnew2, qnew3, qnew4
-    real(RK)                  :: A11new, A12new, A13new
-    real(RK)                  :: A21new, A22new, A23new
-    real(RK)                  :: A31new, A32new, A33new
-    real(RK)                  :: Pxold, Pyold, Pzold
-    real(RK)                  :: Pxnew, Pynew, Pznew
-    real(RK)                  :: dxold,dyold,dzold
-    real(RK)                  :: BoxLengthInv
-
-    BoxLengthInv = 1._RK / this%BoxLength
-    ! Assigning molecules
-    pcfnew => this%Component(ncfnew)
-    pcf => this%Component(ncf)
-
-    ! Assigning molecules
-    npfnew = pcfnew%NPart
-    npf    = pcf%NPart
-
-    ! Assigning unit number
-    nu = pcf%Molecule%NUnit
-
-    ! Insert the particles separately
-    qold1 = pcf%Qm0(npf, 1)
-    qold2 = pcf%Qm0(npf, 2)
-    qold3 = pcf%Qm0(npf, 3)
-    qold4 = pcf%Qm0(npf, 4)
-
-    ! Calculate rotation matrix elements
-    A11old = qold1**2 + qold2**2 - qold3**2 - qold4**2
-    A12old = 2._RK * (qold2 * qold3 + qold1 * qold4)
-    A13old = 2._RK * (qold2 * qold4 - qold1 * qold3)
-    A21old = 2._RK * (qold2 * qold3 - qold1 * qold4)
-    A22old = qold1**2 - qold2**2 + qold3**2 - qold4**2
-    A23old = 2._RK * (qold3 * qold4 + qold1 * qold2)
-    A31old = 2._RK * (qold2 * qold4 + qold1 * qold3)
-    A32old = 2._RK * (qold3 * qold4 - qold1 * qold2)
-    A33old = qold1**2 - qold2**2 - qold3**2 + qold4**2
-
-    qnew1 = pcfnew%Qm0(npfnew, 1)
-    qnew2 = pcfnew%Qm0(npfnew, 2)
-    qnew3 = pcfnew%Qm0(npfnew, 3)
-    qnew4 = pcfnew%Qm0(npfnew, 4)
-
-    ! Calculate rotation matrix elements
-    A11new = qnew1**2 + qnew2**2 - qnew3**2 - qnew4**2
-    A12new = 2._RK * (qnew2 * qnew3 + qnew1 * qnew4)
-    A13new = 2._RK * (qnew2 * qnew4 - qnew1 * qnew3)
-    A21new = 2._RK * (qnew2 * qnew3 - qnew1 * qnew4)
-    A22new = qnew1**2 - qnew2**2 + qnew3**2 - qnew4**2
-    A23new = 2._RK * (qnew3 * qnew4 + qnew1 * qnew2)
-    A31new = 2._RK * (qnew2 * qnew4 + qnew1 * qnew3)
-    A32new = 2._RK * (qnew3 * qnew4 - qnew1 * qnew2)
-    A33new = qnew1**2 - qnew2**2 - qnew3**2 + qnew4**2
-
-    do j = 1, nu
-      pUnitf => pcf%Molecule%Unit(j)
-      pUnitfnew => pcfnew%Molecule%Unit(j)
-      Pxold = (pUnitf%P0(1)*A11old+pUnitf%P0(2)*A21old+pUnitf%P0(3)*A31old) *BoxLengthInv
-      Pyold = (pUnitf%P0(1)*A12old+pUnitf%P0(2)*A22old+pUnitf%P0(3)*A32old) *BoxLengthInv
-      Pzold = (pUnitf%P0(1)*A13old+pUnitf%P0(2)*A23old+pUnitf%P0(3)*A33old) *BoxLengthInv
-      Pxnew = (pUnitfnew%P0(1)*A11new+pUnitfnew%P0(2)*A21new+pUnitfnew%P0(3)*A31new) &
-&                 *BoxLengthInv
-      Pynew = (pUnitfnew%P0(1)*A12new+pUnitfnew%P0(2)*A22new+pUnitfnew%P0(3)*A32new) &
-&                 *BoxLengthInv
-      Pznew = (pUnitfnew%P0(1)*A13new+pUnitfnew%P0(2)*A23new+pUnitfnew%P0(3)*A33new) &
-&                 *BoxLengthInv
-
-      dxold = pcf%P0(npf,1,j) - (pcf%Pm0(npf,1)+Pxold)
-      dyold = pcf%P0(npf,2,j) - (pcf%Pm0(npf,2)+Pyold)
-      dzold = pcf%P0(npf,3,j) - (pcf%Pm0(npf,3)+Pzold)
-
-      pcfnew%P0(npfnew,1,j) = pcfnew%Pm0(npfnew,1) + dxold*Pxnew/Pxold
-      pcfnew%P0(npfnew,2,j) = pcfnew%Pm0(npfnew,2) + dyold*Pynew/Pyold
-      pcfnew%P0(npfnew,3,j) = pcfnew%Pm0(npfnew,3) + dzold*Pznew/Pzold
-    end do
-
-
-  end subroutine TEnsemble_ShiftParticle
-
 
 
 !==============================================================!
@@ -10532,8 +10424,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     real(RK), intent(in) :: dv
     real(RK), intent(in out) :: EPotDelta
     real(RK) :: VolumeOld, EPotOld
-    real(RK) :: EVirial
-    real(RK) :: UFourier
+    real(RK) :: EVirial, UFourier, BoxLengthOld, DelBoxL
 #ifdef SPME
     real(RK) :: UIntra, EVirialintra
 #endif
@@ -10560,10 +10451,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Generate a trial volume change
     this%Volume0 = this%Volume0 - dv
+    BoxLengthOld = this%BoxLength
     call UpdateBoxLength( this )
 
     ! Convert molecular coordinates to atom positions
-    call Mol2Unit( this )
+    DelBoxL = this%BoxLength / BoxLengthOld
+    call ResizeMol( this, DelBoxL ) ! testing needed before old mol2unit was used (before rev388)
     call Unit2Atom( this )
 
     ! Calculate potential energy and virial at trial position
@@ -10596,7 +10489,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       ! Reject volume change
       this%Volume0 = VolumeOld
       call UpdateBoxLength( this )
-      call Mol2Unit( this )
+      call ResizeMol( this, 1._RK/DelBoxL ) ! testing needed before old mol2unit was used (before rev388)
       call Unit2Atom( this )
       this%EPot = EPotOld
       if (LongRange .eq. Ewald) then
@@ -10624,6 +10517,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_Resize_vap
+
 
 
 
@@ -11564,6 +11458,12 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call Reset( this%Component(i)%SumChemPotVV )
           call Reset( this%Component(i)%SumHW_counter )
           call Reset( this%Component(i)%SumHW_denom )
+        case( ChemPotMethodThermoInt )
+          call Reset( this%Component(i)%SumChemPotV )
+          call Reset( this%Component(i)%SumChemPotThermoIntWidom )
+          call Reset( this%Component(i)%SumChemPotThermoIntWidomV )
+          call Reset( this%Component(i)%SumHW_counter )
+          call Reset( this%Component(i)%SumHW_denom )
         end select
       end do
 
@@ -11583,7 +11483,10 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
             fields = fields + 1
-            if ( EnsembleType .eq. EnsembleTypeNPT) fields = fields + 2
+            if ( EnsembleType .eq. EnsembleTypeNPT) then
+              fields = fields + 1
+              if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) fields = fields + 1
+            endif
           endif
         enddo
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) fields = fields + this%NComponents + 1
@@ -11635,12 +11538,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
 
-          ! Intra Potential energy
-          write( IOBuffer, '("     EP_Intra")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
           if (printIDF) then
+            ! Inter Potential energy
+            write( IOBuffer, '("     EP_Inter")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Intra Potential energy
+            write( IOBuffer, '("     EP_Intra")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
             ! Intra Potential energy - Bonds
             write( IOBuffer, '("     EP_Bonds")' )
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -11660,22 +11568,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             write( IOBuffer, '("     EP_14_15")' )
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Intra Virial
+            write( IOBuffer, '("    Vir_Intra")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
+
+            ! Inter Virial
+            write( IOBuffer, '("      Vir_Inter")' )
+            call FileWriteNoAdvance_parallel( this%iounit_result )
+            call FileWriteNoAdvance_parallel( this%iounit_runave )
           end if
-
-          ! Inter Potential energy
-          write( IOBuffer, '("     EP_Inter")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-          ! Intra Virial
-          write( IOBuffer, '("    Vir_Intra")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
-
-          ! Inter Virial
-          write( IOBuffer, '("      Vir_Inter")' )
-          call FileWriteNoAdvance_parallel( this%iounit_result )
-          call FileWriteNoAdvance_parallel( this%iounit_runave )
 
           ! Chemical potential
           do i = 1, this%NRealComponents
@@ -13086,6 +12989,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
                 call FileWriteNoAdvance( this%iounit_result )
                 write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%Average )
                 call FileWriteNoAdvance( this%iounit_runave )
+              case( ChemPotMethodThermoInt )
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                call FileWriteNoAdvance( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
+                call FileWriteNoAdvance( this%iounit_runave )
               end select
             else
               select case( pc%ChemPotMethod )
@@ -13095,9 +13003,14 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
                 write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
                 call FileWriteNoAdvance( this%iounit_runave )
               case( ChemPotMethodWidom )
-                write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%BlockAverage )
+                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
                 call FileWriteNoAdvance( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) log( 1._RK / pc%SumChemPotV%Average )
+                write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%Average )
+                call FileWriteNoAdvance( this%iounit_runave )
+              case( ChemPotMethodThermoInt )
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%BlockAverage
+                call FileWriteNoAdvance( this%iounit_result )
+                write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                 call FileWriteNoAdvance( this%iounit_runave )
               end select
             end if
@@ -13109,10 +13022,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( Equilibration ) then
+            write( IOBuffer, '(" ",F10.4)' ) 0._RK
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          else
             write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )
             write( IOBuffer, '(" ",F10.4)' ) pc%SumVW%Average
             call FileWriteNoAdvance( this%iounit_runave )
+          end if
         end if
       end do
 
@@ -13120,10 +13039,16 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
+          if( Equilibration ) then
+            write( IOBuffer, '(" ",F10.4)' ) 0._RK
+            call FileWriteNoAdvance( this%iounit_result )
+            call FileWriteNoAdvance( this%iounit_runave )
+          else
             write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )     
             write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
             call FileWriteNoAdvance( this%iounit_runave )
+          end if
         end if
       end do
 
@@ -14152,20 +14077,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         select case( pc%ChemPotMethod )
-
         case( ChemPotMethodGradIns )
+          Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
           if( pc%NPart > 1 ) then
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
-            write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+            write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
 !MERKER
           else
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = -log( 1/pc%SumInvChemPotRho%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature*pc%SumInvChemPotRho%Average
+            Variance = this%Temperature * pc%SumInvChemPotRho%Average * pc%SumInvChemPotRho%Average / pc%SumInvChemPotRho%Variance
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -14177,17 +14102,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
-
           if( pc%Fraction > 0.0_RK ) then
             Average = log( pc%Fraction / pc%SumChemPotV%Average )
-            write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+            write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-
           else
             Average = -log( pc%SumChemPotV%Average )
             write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            call FileWrite( this%iounit_errors )
             Average = this%Temperature / pc%SumChemPotV%Average
+            Variance = this%Temperature * ( pc%SumChemPotV%Variance / (pc%SumChemPotV%Average * pc%SumChemPotV%Average))
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -14195,6 +14120,19 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 &                  Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
           end if
           call FileWrite( this%iounit_errors )
+
+        case( ChemPotMethodThermoInt )
+          Average  = pc%SumChemPotV%Average
+          Variance = pc%SumChemPotV%Variance
+          write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          call FileWrite( this%iounit_errors )
+          Average  = log( pc%Fraction / pc%SumChemPotThermoIntWidom%Average )
+          Variance =  pc%SumChemPotThermoIntWidom%Variance / pc%SumChemPotThermoIntWidom%Average
+          write( IOBuffer, '("Chem. pot. at LambdaMin ", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average , Variance
+          call FileWrite( this%iounit_errors )
+
         end select
       end do
 
@@ -15629,26 +15567,26 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Create header
     num = 0
     do i = 1, this%NComponents
-      do j = 1, this%Component(i)%Molecule%NUnit
-        if (this%Component(i)%Molecule%Unit(j)%NLJ126 > 0) then
-          do k = 1, this%Component(i)%Molecule%Unit(j)%NLJ126
-            psLJ126 => this%Component(i)%Molecule%Unit(j)%SiteLJ126(k)
-            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+j), &
+      do k = 1, this%Component(i)%Molecule%NUnit
+        if (this%Component(i)%Molecule%Unit(k)%NLJ126 > 0) then
+          do j = 1, this%Component(i)%Molecule%Unit(k)%NLJ126
+            psLJ126 => this%Component(i)%Molecule%Unit(k)%SiteLJ126(j)
+            write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), &
 &             psLJ126%r(:) * UnitLength / Angstroem, &
 &             psLJ126%sig  * UnitLength / Angstroem
             call FileWrite( this%iounit_visual )
           end do
         else  ! For visualisation of Units with no LJ sites
           ch_sig = UnitLength * 0.2
-          do k = 1, this%Component(i)%Molecule%Unit(j)%NCharge
-            psCharge => this%Component(i)%Molecule%Unit(j)%SiteCharge(k)
-            write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+j), &
+          do j = 1, this%Component(i)%Molecule%Unit(k)%NCharge
+            psCharge => this%Component(i)%Molecule%Unit(k)%SiteCharge(j)
+            write( IOBuffer, '("~", I3, " Charge", 4F8.4, "  1")' ) (num+k), &
 &              psCharge%r(:) * UnitLength / Angstroem, ch_sig
             call FileWrite( this%iounit_visual )
           end do
         end if
       end do
-      num = num+(i)*this%Component(i)%Molecule%NUnit
+      num = num+this%Component(i)%Molecule%NUnit
     end do
     call FileWriteBlank( this%iounit_visual )
 
@@ -16180,8 +16118,11 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,stat, counter
-    integer                   :: k, Mindex, StepCorr
+    integer                   :: i, j, k, t, stat, counter
+#if TRANS==1
+    integer                   :: Mindex, StepCorr
+#endif
+    real(RK)                  :: dummy, factor
 
     if( RootProc ) then
 
@@ -16243,8 +16184,19 @@ endif
     call RestartRead( this%SumTemperature )
     call RestartRead( this%SumEPot )
     call RestartRead( this%SumEnthalpy )
+    call RestartRead( this%SumConfEnthalpy )
     call RestartRead( this%SumVolume )
     call RestartRead( this%SumVirial )
+    call RestartRead( this%SumEPotInter )
+    call RestartRead( this%SumEPotIntra )
+    if (printIDF) then
+      call RestartRead( this%SumEPotIntra_Bond )
+      call RestartRead( this%SumEPotIntra_Angle )
+      call RestartRead( this%SumEPotIntra_Dihedral )
+      call RestartRead( this%SumEPotIntra_Nonbonded )
+      call RestartRead( this%SumVirialIntra )
+      call RestartRead( this%SumVirialInter )
+    end if
     call RestartRead( this%SumdEpotdV )
     call RestartRead( this%Sumd2EpotdV2 )
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -16334,15 +16286,18 @@ endif
         call RestartRead( pc%SumInvChemPot )
         pc%NFluctState = 0
         do j = counter,counter + this%Component(i)%Molecule%NFluct-1
-          if (this%Component(j)%NPart .eq. 1) then
-            pc%NFluctState = j-counter+1
-          end if
+          if (this%Component(j)%NPart .eq. 1) pc%NFluctState = j-counter+1
         end do
         counter = counter + this%Component(i)%Molecule%NFluct
-
       case( ChemPotMethodWidom )
         call RestartRead( pc%SumChemPotV )
         call RestartRead( pc%SumChemPotVV )
+        call RestartRead( pc%SumHW_counter )
+        call RestartRead( pc%SumHW_denom )
+      case( ChemPotMethodThermoInt )
+        call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotThermoIntWidom )
+        call RestartRead( pc%SumChemPotThermoIntWidomV )
         call RestartRead( pc%SumHW_counter )
         call RestartRead( pc%SumHW_denom )
       end select
@@ -16389,31 +16344,31 @@ endif
       !Aenderungen Koester
 
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsk(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsp(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsp(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbk(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vbk(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vbp(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vbp(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vckt(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vckr(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vckr(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcpt(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcpr(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcpr(i,:)
       end do
       do i = 1, this%NCorr
-        read( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vcmt(i,:)
+        read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vcmt(i,:)
       end do
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' ) this%average_cf_c(i)
@@ -16549,6 +16504,66 @@ endif
        end do
     end if
 
+    ! Reading thi-file for ThermoInt
+    if (RootProc) then
+      t = this%NRealComponents+1
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileReset( this%iounit_thermoint, trim(OutputNameTag)//'_'//trim( adjustl(IOBuffer) )//ThermoIntFileExtension )
+      end if
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+
+          call FileReadParameter( this%Component(t)%lambda, this%iounit_thermoint , "currentlambda", .false. )
+          pc%CalcChemPot = .true.
+          !read empty line
+          read( this%iounit_thermoint, * )
+
+          ! read thermoint-profile
+          do j = 0,pc%NBins-1
+            read( this%iounit_thermoint, '(I6,"  ", F5.3,3(" ", E15.6)," ", I10)' )  k, dummy, pc%BinsEn(j), pc%BinsdEndLa(j), &
+&                      pc%BinsdEndLaV(j), pc%BinsdEndLaH(j), pc%BinsIntdEndLa(j), pc%BinsIntVW(j), pc%BinsIntHW(j), pc%BinsVisit(j)
+          end do
+          t = t+1
+        end if 
+      end do
+      if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
+        call FileClose( this%iounit_thermoint )
+      end if
+    end if
+
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+        pc => this%Component(i)
+        if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+          call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLaV(0:pc%NBins-1), size( pc%BinsdEndLaV ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsdEndLaH(0:pc%NBins-1), size( pc%BinsdEndLaH ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntdEndLa(0:pc%NBins-1), size( pc%BinsIntdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntVW(0:pc%NBins-1), size( pc%BinsIntVW ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsIntHW(0:pc%NBins-1), size( pc%BinsIntHW ), MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( pc%BinsVisit(0:pc%NBins-1), size( pc%BinsVisit ), MPI_INTEGER, NRootProc, Communicator, ierror )
+          t = t+1
+        end if
+      end do
+    end if
+#endif
+    if ( (SimulationType .eq. MonteCarlo) .or. RootProc ) then
+      t = this%NRealComponents+1
+      do i=1,this%NRealComponents
+        if (this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt) then
+          Factor = this%Component(t)%lambda**this%Component(i)%LambdaExponent
+          call ScaleInteractionThermoInt(this, t, Factor)
+          t = t+1
+        end if
+      end do
+    end if
+
     if( SimulationType .eq. MolecularDynamics ) then
 
       ! Calculate temperature and set up ndf
@@ -16592,12 +16607,13 @@ endif
     ! Declare local variables
     type(TComponent), pointer :: pc
     type(TSiteLJ126), pointer :: plj
-    integer                   :: nc, i, i1, i2, j, n, n2, n3
-    real(RK)                  :: C(this%NPart * 3), Q(this%NPart * 4)
+    integer                   :: nc, i, i1, i2, j, n, n2, n3, k, nu
+    real(RK)                  :: C(this%NPart*this%NUnitMax* 3), Q(this%NPart*this%NUnitMax*4)
 
     if( .not. RootProc ) return
 
-    n = this%NPart
+    nu = this%NUnitMax
+    n = this%NPart*nu
     n2 = 2 * n
     n3 = 3 * n
     i1 = 1
@@ -16609,13 +16625,15 @@ endif
       i2 = i2 + pc%NPart
       do i = i1, i2
         j = i - i1 + 1
-        C(i) = pc%Pm0(j, 1)
-        C(i+n) = pc%Pm0(j, 2)
-        C(i+n2) = pc%Pm0(j, 3)
-        Q(i) = pc%Qm0(j, 1)
-        Q(i+n) = pc%Qm0(j, 2)
-        Q(i+n2) = pc%Qm0(j, 3)
-        Q(i+n3) = pc%Qm0(j, 4)
+        do k = 1, pc%Molecule%NUnit
+          C(i*nu+k) = pc%P0(j, 1, k)
+          C(i*nu+k+n) = pc%P0(j, 2, k)
+          C(i*nu+k+n2) = pc%P0(j, 3, k)
+          Q(i*nu+k) = pc%Q0(j, 1, k)
+          Q(i*nu+k+n) = pc%Q0(j, 2, k)
+          Q(i*nu+k+n2) = pc%Q0(j, 3, k)
+          Q(i*nu+k+n3) = pc%Q0(j, 4, k)
+        end do
       end do
       i1 = i2 + 1
     end do
