@@ -283,14 +283,43 @@ end subroutine TIdfAngle_Construct
     ! Declare arguments
     type(TIdfDihedral) :: this
 
+    ! Declare local variables
+    integer           :: i
+    integer           :: stat
+    character(2)      :: integ
+
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
-    call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
-    call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
-    call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
-    
-    if (LJEl14 .and. (this%multi .gt. 0)) then
+    call FileReadParameter( this%nmax, iounit_potmod, IdDihedral_nmax, .false. )
+
+    if (this%nmax > 0 ) then
+      allocate( this%ForConst(1:this%nmax+1), STAT = stat )
+      call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
+      allocate( this%gamma0(1:this%nmax+1), STAT = stat )
+      call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
+    else
+      allocate( this%ForConst(1), STAT = stat )
+      call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
+      allocate( this%gamma0(1), STAT = stat )
+      call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
+    end if
+
+    call FileReadParameter( this%ForConst(1), iounit_potmod, IdDihedral_ForConst//'0', .false. )
+    call FileReadParameter(this%gamma0(1), iounit_potmod, IdDihedral_gamma0//'0',.false. )
+    if (this%nmax > 0) then
+      do i = 1,(this%nmax)
+        if (i < 10) then
+          write(integ,'(I1)') i
+        else
+          write(integ,'(I2)') i
+        end if
+        call FileReadParameter( this%ForConst(i+1), iounit_potmod, IdDihedral_ForConst//trim(integ), .false. )
+        call FileReadParameter(this%gamma0(i+1), iounit_potmod, IdDihedral_gamma0//trim(integ), .false. )
+      end do
+    end if
+
+    if (LJEl14 .and. (this%nmax .ge. 0)) then
       this%ScaleLJ14 = 0.0
       this%ScaleEl14 = 0.0
       call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )
@@ -298,10 +327,11 @@ end subroutine TIdfAngle_Construct
     end if
 
     ! Convert to SI units
-    this%ForConst = this%ForConst * kBoltzmann
+    this%ForConst(:) = this%ForConst(:) * kBoltzmann
 
     ! Convert to derived units
-    this%ForConst = this%ForConst / UnitEnergy
+    this%gamma0(:) = this%gamma0(:)*Pi/180
+    this%ForConst(:) = this%ForConst(:) / UnitEnergy
 
 end subroutine TIdfDihedral_Construct
 
