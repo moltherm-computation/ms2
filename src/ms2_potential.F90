@@ -2399,7 +2399,7 @@ loop2:do j = 1, N
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE (i0) &
 #endif
-!$OMP FIRSTPRIVATE(i1) &
+!$OMP PRIVATE(i1) &
 !$OMP PRIVATE (Plen2,sitecorr) &
 !$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2645,7 +2645,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE ( i0) &
 #endif
-!$OMP FIRSTPRIVATE (i1, i2) &
+!$OMP PRIVATE (i1, i2) &
 !$OMP PRIVATE ( approx, Fij,KappaRij,Rij2) &
 !$OMP PRIVATE ( RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi) &
 !$OMP PRIVATE ( RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2919,9 +2919,12 @@ loop1:do k = 1, this%NInCutoff(unit)
     !TRANSPORT_END
 #endif
 
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE(  FX1, FY1, FZ1 ) &
 !$OMP PRIVATE(Plen2,sitecorr, PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -2979,9 +2982,6 @@ loop1:do k = 1, this%NInCutoff(unit)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
@@ -3012,10 +3012,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     tdx => this%Site1%tdCx
     tdy => this%Site1%tdCy
     tdz => this%Site1%tdCz
-    q1  => this%Site1%Qm0r(:, 1)
-    q2  => this%Site1%Qm0r(:, 2)
-    q3  => this%Site1%Qm0r(:, 3)
-    q4  => this%Site1%Qm0r(:, 4)
+    q1  => this%Site1%Qm0r(:, 1, 1)
+    q2  => this%Site1%Qm0r(:, 2, 1)
+    q3  => this%Site1%Qm0r(:, 3, 1)
+    q4  => this%Site1%Qm0r(:, 4, 1)
 !TRANSPORT_END
 #endif
 
@@ -3354,10 +3354,13 @@ loop1:do k = 1, this%NInCutoff(unit)
     !TRANSPORT_END
 #endif
  
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
 !$OMP PARALLEL &
 !$OMP PRIVATE( Epsilon, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( approx, Faktor, Fij,KappaRij ) &
-!$OMP PRIVATE(  FX1, FY1, FZ1, FX2, FY2, FZ2) &
+!$OMP PRIVATE(  FX1, FY1, FZ1) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2) &
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -3414,9 +3417,6 @@ loop1:do k = 1, this%NInCutoff(unit)
     FX1 => this%Site1%FX
     FY1 => this%Site1%FY
     FZ1 => this%Site1%FZ
-    FX2 => this%Site2%FX
-    FY2 => this%Site2%FY
-    FZ2 => this%Site2%FZ
 
     if (intra14) then
       coeff = this%ScaleEl14
