@@ -1770,6 +1770,7 @@ contains
     end if
 
     ! Save total mass of the molecule
+    call FileWriteBlank( iounit_normal )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
