@@ -187,9 +187,6 @@ module ms2_global
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
 
-  ! Marker within a result file for each ensemble data
-  character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
-
   ! Name tag for output files
   character(FileNameLength) :: OutputNameTag
   ! true, if OutputNameTag is set through the command line argument
@@ -700,7 +697,6 @@ module ms2_global
 #if MPI_VER > 0
   integer :: ierror
   integer :: Communicator       ! actual MPI communicator
-  !integer :: Communicator_W    ! =MPI_COMM_WORLD
   integer :: Communicator_R     ! MPI communicator containing all roots
   integer :: NProcs     ! number of PEs within actual MPI communicator
   integer :: NProc      ! MPI rank of actual MPI communicator
@@ -710,15 +706,8 @@ module ms2_global
   integer :: NProc_W    ! MPI rank within MPI_COMM_WORLD
   integer :: NRootProc_W        ! MPI rank of root PE within MPI_COMM_WORLD
   logical :: RootProc_W         ! is PE root of MPI_COMM_WORLD?
-  integer :: NProcs_R   ! number of PEs within actual Communicator_R
-  integer :: NProc_R    ! MPI rank within actual Communicator_R
-  integer :: NRootProc_R        ! MPI rank of root PE within actual Communicator_R
-  logical :: RootProc_R         ! is PE root of actual Communicator_R?
   integer :: NCommunicators     ! number of Communicators (useful after MPI_Comm_Split)
   integer :: NCommunicator      ! ID of the Communicator
-  !
-  !integer, parameter :: mpimsgtag_log    = 0
-  integer, parameter :: mpimsgtag_simTerm = 1
 #else
   integer, parameter :: NProcs       = 1
   integer, parameter :: NProc        = 0
@@ -974,27 +963,6 @@ contains
 
 !==============================================================!
 
-  subroutine Global_printVersion()
-    implicit none
-    if (RootProc) then
-      print *, trim( ProgramFileName ), ' Version: ', VersionString &
-&            , ' (compiled at ', CompileTime, ')'
-    end if
-  end subroutine Global_printVersion
-  
-!==============================================================!
-
-  subroutine Global_printUsage()
-    implicit none
-    if (RootProc) then
-      print *, 'usage: ' &
-&            , trim(ProgramFileName), '[-V|--version] [-h|--help] [-r|--restart] <par-file>[' &
-&            , ParameterFileExtension, '] [<OutputPrefix>]', '}'
-    end if
-  end subroutine Global_printUsage
-
-!==============================================================!
-
 #if ARCH == 3
   function new_line( c  ) result(newline)
     implicit none
@@ -1064,8 +1032,7 @@ contains
     
     write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs,NCommunicators
     call LogWrite
-     write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
-&          NCommunicators-1,trim(OutputNameTag), LogFileExtension
+    write( IOBuffer, '("closing logfile - opening ",I3," new logfiles ",A,"_*",A," ...")') NCommunicators-1,trim(OutputNameTag),LogFileExtension
     call LogWrite
     write( IOBuffer, '(72("#"))')
     call LogWrite
@@ -1075,10 +1042,9 @@ contains
     
     !NCommunicator=mod(NProc,NCommunicators)
     NCommunicator=NProc*NCommunicators/NProcs
-    ! NCommunicator -> color, NProc -> key (NProc_W also could be used)
+    ! NCommunicator -> color, NProc -> key
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
-    ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
-    ! (avoiding some internal communication within the MPI library)
+    ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient (avoiding some internal communication within the MPI library)    
     call SetCommunicator(newCommunicator)       !   RootProc is now true for the root of the new communicator(s)
     ! (re)open log files
     call LogOpen
@@ -1090,11 +1056,7 @@ contains
       groupId=1
     endif
     call MPI_Comm_Split(oldCommunicator,groupId,NProc_W,Communicator_R,ierror)
-    call MPI_Comm_size( Communicator_R, NProcs_R, ierror )
-    call MPI_Comm_rank( Communicator_R, NProc_R, ierror )
-    NRootProc_R = 0
-    RootProc_R = NProc_R == NRootProc_R
-
+    
   end subroutine Global_SplitCommunicator
 
 #endif
@@ -1117,7 +1079,6 @@ contains
     integer :: stat
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     integer                   :: narg, dot, i
-    integer                   :: argpos
     character(IOBufferLength) :: buffer
 #endif
 #if MPI_VER > 0
@@ -1202,50 +1163,19 @@ contains
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-        call Global_printVersion()
-        call Global_printUsage()
+        print *, trim( ProgramFileName ), ' Version: ', VersionString, ' (compiled at ', CompileTime, ')'
+        print *, 'usage: ', trim( ProgramFileName ) , ' {<par-file[', ParameterFileExtension &
+&              , ']|<rst-file>', RestartFileExtension, '}'
+
         ! Abort program
 #if MPI_VER > 0
         call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
 #endif
         stop
       end if
-      ! processing command line arguments
-      do i = 1,narg
-        argpos=i
-        call getarg( argpos, buffer )
-        !print *,"processing command line argument ",trim(buffer)
-        if (trim(buffer).eq."-V" .or. trim(buffer).eq."--version") then
-          call Global_printVersion()
-#if MPI_VER > 0
-          call MPI_Finalize( ierror )
-#endif
-          stop
-        else if (trim(buffer).eq."-h" .or. trim(buffer).eq."--help") then
-          call Global_printUsage()
-#if MPI_VER > 0
-          call MPI_Finalize( ierror )
-#endif
-          stop
-        else if (trim(buffer).eq."-r" .or. trim(buffer).eq."--restart") then
-          Restart = .true.
-        else
-        !  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
-          exit
-        end if
-      end do
-      if (argpos>narg) then
-#if MPI_VER > 0
-          call MPI_Finalize( ierror )
-#endif
-          stop
-      end if
-      ! next argument should be the input file name
-      call getarg( argpos, buffer )
-      argpos=argpos+1
-      ! 
+      ! second argument should be the input file name
+      call getarg( 1, buffer )
       buffer = trim( buffer )
-      ParameterFileName =  trim(buffer)
       ! separate directory and filename
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
@@ -1271,19 +1201,41 @@ contains
 
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
-        if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
+        if( buffer( dot:len( buffer ) ) .eq. RestartFileExtension ) then
+          Restart = .true.
+          RestartFileName = trim( buffer )       ! possible truncation
 
+          ! Open restart file for reading
+          !if(RootProc) then
+#if FORTRAN>=2003
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD' &
+&             , access = 'stream', form = 'formatted', iostat = stat )
+#else
+          !FileReset(iounit_restart)
+          open( iounit_restart , file = RestartFileName, action = 'READ', status = 'OLD', iostat = stat )
+#endif
+          if( stat /= 0 ) then
+            print *, 'Cannot open restart file ', trim( RestartFileName ), ' for reading'
+
+            ! Abort program
+#if MPI_VER > 0
+            call MPI_Abort( MPI_COMM_WORLD, 3, ierror )
+#endif
+            stop
+          end if
+
+          ! Read parameter file name from restart file
+          read( iounit_restart, '(A128)' ) ParameterFileName
+
+        else if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
 !           buffer = buffer( 1:dot - 1 )
           ParameterFileName =  trim( buffer )    ! possible truncation
-        !else
-        !  ParameterFileName =  trim(buffer)//ParameterFileExtension
         end if
-        !RestartFileName=trim(buffer(1:dot-1))//RestartFileExtension
       end if
 
-      if( narg .ge. argpos ) then
+      if( narg .ge. 2 ) then
         ! if present, the third argument should be the input file name
-        call getarg( argpos, buffer )
+        call getarg( 2, buffer )
         OutputNameTagfromCommandline = .true.
       else
         ! otherwise use the input file name without extension
@@ -1297,7 +1249,6 @@ contains
     ParameterFileName = 'ms2.par'
     OutputNameTag='ms2out'
 #endif
-    RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
@@ -1700,14 +1651,11 @@ contains
 
     if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
       call FileAppend( iounit_log, trim(filename) )
-      write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
       call FileRewrite( iounit_log, trim(filename) )
-       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
-#if MPI_VER > 0
-    write( IOBuffer(len_trim(IOBuffer)+1:), '(" by PE",I0)' ) NProc_W
-#endif
+
+    write( IOBuffer, '("ms2 logfile ",A," created at")' ) trim(filename)
     call LogWriteTime
     !call LogWriteBlank
 
@@ -1750,8 +1698,8 @@ contains
 !     
 !     if( present( rank ) .and. (rank .ne. NRootProc) ) then
 !       ! transfer IOBuffer to NRootProc
-!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
-! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
+!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, 0, &
+! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      0, &
 ! &                        Communicator, status, ierror)
 !       !call MPI_Barrier( Communicator, ierror )
 !     endif

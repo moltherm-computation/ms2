@@ -563,9 +563,9 @@ module ms2_potential
     type(TIdfDihedral), pointer  :: Dihedral
     integer                      :: Site1, Site2, Site3, Site4
     integer                      :: Unit1, Unit2, Unit3, Unit4
-    integer                      :: nmax
-    real(RK),pointer             :: ForConst(:)
-    real(RK),pointer             :: gamma0(:)
+    integer                      :: multi
+    real(RK),pointer             :: ForConst
+    real(RK)                     :: gamma
 
   end type TPotDihedral
 
@@ -602,6 +602,7 @@ contains
     real(RK), intent(in)        :: ScaleSigma, ScaleEpsilon
 
     ! Declare local variables
+    real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
     integer :: k, ende
 
@@ -714,9 +715,12 @@ contains
 #endif
       endif
     else ! Site-site cutoff or both sites in center of mass
-     this%EPotCorr = Pi8 * this%Epsilon * ( TICCu(-6, RCutoff, this%Sigma**2) - TICCu(-3, RCutoff, this%Sigma**2) )
-
-     this%VirialCorr = Piminus83 * this%Epsilon * ( TICCp(-6, RCutoff, this%Sigma**2) - TICCp(-3, RCutoff, this%Sigma**2) )
+      RCutoff3Inv = (this%Sigma / RCutoff)**3
+      RCutoff9Inv = RCutoff3Inv**3
+      this%EPotCorr = Pi89 * this%Epsilon &
+&       * (RCutoff9Inv - 3._RK * RCutoff3Inv)
+      this%VirialCorr = Pi329 * this%Epsilon &
+&       * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
 
       this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - &
 &                        TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
@@ -1916,16 +1920,17 @@ loop2:  do j = j0, j1
 !  Subroutine TPotLJLJ_RDF                                   !
 !==============================================================!
 
-  subroutine TPotLJLJ_RDF( this, RDFdr )
+  subroutine TPotLJLJ_RDF( this,BoxLength,RDFdr )
 
     implicit none
 
     ! Declare arguments
     type(TPotLJ126LJ126)     :: this
     real(RK), intent(in)     :: RDFdr
+    real(RK), intent(in)     :: BoxLength
 
     !RDF RDFdr und RDFSchalenIndex
-    real(RK)          :: distance
+    real(RK)          :: hilf
     integer           :: RDFSchalenIndex
 
     ! Declare local variables
@@ -1977,9 +1982,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RZij = RZij - anint( RZij )
 
 !RDF in Schalen sortieren
-            distance = sqrt(RXij**2 + RYij**2 + RZij**2)
-            RDFSchalenIndex = INT(distance/RDFdr) + 1
-            if (RDFSchalenIndex .le. RDFNumberShells+1) then
+            hilf = sqrt(RXij**2 + RYij**2 + RZij**2) * BoxLength
+            RDFSchalenIndex = INT(hilf/RDFdr) + 1
+
+            if (RDFSchalenIndex .LT. RDFNumberShells+1) then
                this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
             end if
           end if
@@ -15317,9 +15323,9 @@ loop2:do j = 1, j1
     this%Unit2 = this%Dihedral%UnitId2
     this%Unit3 = this%Dihedral%UnitId3
     this%Unit4 = this%Dihedral%UnitId4
-    this%nmax = this%Dihedral%nmax
     this%ForConst => this%Dihedral%ForConst
-    this%gamma0 => this%Dihedral%gamma0
+    this%gamma = this%Dihedral%gamma*Pi/180
+    this%multi = this%Dihedral%multi
 
   end subroutine TPotDihedral_Construct
 
@@ -15371,9 +15377,9 @@ loop2:do j = 1, j1
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: num, den, de1, ax, ay, az, bx, by, bz, cx, cy, cz
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
-    real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl
+    real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl, ForConst, gamma
 
-    integer           :: i, i1, j
+    integer           :: i, i1, multi
 #if MPI_VER > 0
      integer           :: i0
 !    integer           :: N1, N2, ji
@@ -15389,6 +15395,10 @@ loop2:do j = 1, j1
 #else
      i1 = this%Dihedral%NPart
 #endif
+
+    gamma = this%gamma
+    ForConst = this%ForConst
+    multi =this%multi
 
     EPotLocal   = 0._RK
     VirialLocal = 0._RK
@@ -15454,10 +15464,8 @@ loop2:do j = 1, j1
 
 !CDIR NODEP
 
-        deri = 0._RK
-        if (this%nmax .eq. 0) then
-           earg = 1._RK + cos(-this%gamma0(1))
-           EPotLocal = EPotLocal + earg * this%ForConst(1)
+        if (multi .eq. 0) then
+           EPotLocal = EPotLocal+ForConst*2._RK
         else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
@@ -15515,27 +15523,25 @@ loop2:do j = 1, j1
             if( abs(si) .lt. 1E-10_RK ) si = sign( 1E-10_RK, si )
 
 
-            if (this%nmax > 0) then
-              ! Normal Amber-type torsion angle
-              earg = 1._RK + cos(-this%gamma0(1))
-              EPotLocal = EPotLocal + earg * this%ForConst(1)
-              do j = 1,this%nmax
-                earg= j*arg-this%gamma0(j+1)
-                ! Energy and forces:
-                ! formulae  E = ForConst*( 1 + cos(earg) )
-                !           F = ForConst*n*sin(earg)
-                EPotLocal = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
-                deri = deri - this%ForConst(j+1)*j*sin(earg)
-              end do
+            if (multi > 0) then
+               ! Normal Amber-type torsion angle
+               earg= multi*arg-gamma   !!! Michael Sch. arg in ° or rad? has to be °!!!
+
+               ! Energy and forces:
+               ! formulae  E = ForConst*( 1 + cos(earg) )
+               !           F = ForConst*n*sin(earg)
+
+                EPotLocal  = EPotLocal + ForConst*(1.d0+cos(earg))
+                deri= -ForConst*multi*sin(earg)
 
              else ! Improper dihedral angle
-               earg= arg-this%gamma0(1)
+               earg= arg-gamma
 
                ! Energy and forces:
                ! formulae  E = ForConst*earg**2
                !           F = -2*ForConst*earg
-                EPotLocal = EPotLocal + this%ForConst(1)*earg**2
-                deri = 2._RK*this%ForConst(1)*earg
+                EPotLocal  = EPotLocal + ForConst*earg**2
+                deri= 2.d0*ForConst*earg
              end if
 
              ! Calculate Forces
@@ -15598,7 +15604,7 @@ loop2:do j = 1, j1
             FZ4(i) = FZl+ffl
 
           endif ! den>0
-        endif ! nmax/=0
+        endif ! multi/=0
       enddo
 
     ! Update potential energy, no contribution to virial!
