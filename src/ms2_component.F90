@@ -269,6 +269,7 @@ module ms2_component
     module procedure TComponent_Construct
     module procedure TComponent_ConstructSVC
     module procedure TComponent_ConstructFluct
+    module procedure TComponent_ConstructThermoInt
   end interface
 
   interface Destruct
@@ -595,6 +596,9 @@ contains
         this%ChemPotMethod = ChemPotMethodGradIns
         this%FluctState = 0
         str = 'gradual insertion'
+      case( 'THERMOINT', 'ThermoInt', 'Thermoint', 'thermoint' )
+        this%ChemPotMethod = ChemPotMethodThermoInt
+        str = 'thermodynamic integration'
       case default
         call Error( trim( str )//  ' method for calculation of chemical potential is not implemented' )
       end select
@@ -644,6 +648,30 @@ contains
         end select
         write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
         call LogWrite
+      end if
+
+      if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
+        call LogWrite
+        call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
+        write( IOBuffer, '("Thermo. Int. LambdaMax: ", T40, F7.5)' ) this%LaMax
+        call LogWrite
+        call FileReadParameter( this%NBins, iounit_params , IdNBins, .false., 100 )
+        write( IOBuffer, '("Thermo. Int. NBins: ", T40, I7)' ) this%NBins
+        call LogWrite
+        call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+        write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
+        call LogWrite
+        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4)
+        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, I7)' ) this%LambdaExponent
+        call LogWrite
+        if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
+          this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
+          write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F7.5)' ) this%LaMin
+          call LogWrite
+        endif
+        this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
       end if
 
     end if
@@ -741,6 +769,12 @@ contains
 
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, -1 )
+
+    ! Set Unit Borders
+    this%UnitLJ => this%Molecule%UnitLJ
+    this%UnitC  => this%Molecule%UnitC
+    this%UnitDP => this%Molecule%UnitDP
+    this%UnitQP => this%Molecule%UnitQP
 
   end subroutine TComponent_ConstructSVC
 
@@ -1001,6 +1035,14 @@ contains
       call Construct( this%SumHW_denom, .false. )
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
+    case( ChemPotMethodThermoInt )
+      call Construct( this%SumChemPotV, .true. )
+      call Construct( this%SumChemPotThermoIntWidom, .false. )
+      call Construct( this%SumChemPotThermoIntWidomV, .false. )
+      call Construct( this%SumHW_counter, .false. )
+      call Construct( this%SumHW_denom, .false. )
+      call Construct( this%SumVW, .true. )
+      call Construct( this%SumHM, .true. )
     end select
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -1032,6 +1074,14 @@ contains
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
+      call Destruct( this%SumHW_counter )
+      call Destruct( this%SumHW_denom )
+      call Destruct( this%SumVW )
+      call Destruct( this%SumHM )
+    case( ChemPotMethodThermoInt )
+      call Destruct( this%SumChemPotV )
+      call Destruct( this%SumChemPotThermoIntWidom )
+      call Destruct( this%SumChemPotThermoIntWidomV )
       call Destruct( this%SumHW_counter )
       call Destruct( this%SumHW_denom )
       call Destruct( this%SumVW )
@@ -1142,6 +1192,15 @@ contains
     nullify( this%FRC2All )
     nullify( this%FRC3All )
 #endif
+
+    nullify( this%BinsVisit )
+    nullify( this%BinsEn )
+    nullify( this%BinsdEndLa )
+    nullify( this%BinsIntdEndLa )
+    nullify( this%BinsdEndLaV )
+    nullify( this%BinsdEndLaH )
+    nullify( this%BinsIntVW )
+    nullify( this%BinsIntHW )
 
     ! Transport
     allocate( this%KinETran( np, 3 ), STAT = stat )
@@ -2083,35 +2142,6 @@ contains
     ! Update log file
     write( IOBuffer, '("Memory for ", A, " allocated successfully")' ) trim( this%PotModFileName )
     call LogWrite
-    
-!    contains
-
-!    subroutine binar_search (array, Id, treffer, index)
-!
-!      ! Declare arguments
-!      integer, dimension(:), intent( in ) :: array
-!      integer, intent( in )               :: Id
-!      logical, intent( out )              :: treffer
-!      integer, intent( out )              :: index
-!
-!      ! Declare local variables
-!      integer                             :: anfang, ende, mitte
-!
-!      anfang = 1
-!      ende = size (array)
-!      do
-!         if ( anfang == ende ) exit
-!         mitte = (anfang + ende)*0.5
-!         if ( id <= array(mitte) ) then
-!           ende = mitte
-!         else
-!           anfang = mitte + 1
-!         end if
-!      end do
-!      index = anfang
-!      treffer = (id == array(index))
-!
-!    end subroutine binar_search
 
 
   end subroutine TComponent_Allocate
@@ -2989,7 +3019,6 @@ subroutine TComponent_InitUnit( this, np, dq )
       this%Q0(np,4,i) = pUnit%Q0(4) + dq(3)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) + dq(1)*pUnit%Q0(3)
     end do
 
-
   end subroutine TComponent_InitUnit
 
 
@@ -3581,15 +3610,6 @@ subroutine TComponent_Mol2UnitRotate( this, np, dq )
           end do
         end do
 
-        ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NCharge
-          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          do j = 1, np
-            pCharge%RX(j) = this%P0(j, 1, k)
-            pCharge%RY(j) = this%P0(j, 2, k)
-            pCharge%RZ(j) = this%P0(j, 3, k)
-          end do
-        end do
       end do
     end if
 
