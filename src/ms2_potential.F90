@@ -1920,17 +1920,16 @@ loop2:  do j = j0, j1
 !  Subroutine TPotLJLJ_RDF                                   !
 !==============================================================!
 
-  subroutine TPotLJLJ_RDF( this,BoxLength,RDFdr )
+  subroutine TPotLJLJ_RDF( this, RDFdr )
 
     implicit none
 
     ! Declare arguments
     type(TPotLJ126LJ126)     :: this
     real(RK), intent(in)     :: RDFdr
-    real(RK), intent(in)     :: BoxLength
 
     !RDF RDFdr und RDFSchalenIndex
-    real(RK)          :: hilf
+    real(RK)          :: distance
     integer           :: RDFSchalenIndex
 
     ! Declare local variables
@@ -1982,10 +1981,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RZij = RZij - anint( RZij )
 
 !RDF in Schalen sortieren
-            hilf = sqrt(RXij**2 + RYij**2 + RZij**2) * BoxLength
-            RDFSchalenIndex = INT(hilf/RDFdr) + 1
-
-            if (RDFSchalenIndex .LT. RDFNumberShells+1) then
+            distance = sqrt(RXij**2 + RYij**2 + RZij**2)
+            RDFSchalenIndex = INT(distance/RDFdr) + 1
+            if (RDFSchalenIndex .le. RDFNumberShells+1) then
                this%RDFSum(RDFSchalenIndex) = this%RDFSum(RDFSchalenIndex) + 1
             end if
           end if

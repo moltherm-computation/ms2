@@ -154,9 +154,9 @@ module ms2_ensemble
 
  
     !RDF Hilfsvariable
-    real(RK) :: RDFdr, RDFdr3
+    real(RK) :: RDFdr
     real(RK), pointer :: RDFVSchale(:)
-    real(RK), pointer :: RDF(:) 
+    real(RK), pointer :: RDFValue(:) 
     
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -392,7 +392,6 @@ module ms2_ensemble
     type(TAccumulatorCF)         :: SumEConduct
 !TRANSPORT_END
 #endif
-!RDF
 
 #ifdef ABL
    real(RK),pointer:: AblPS(:,:)
@@ -818,6 +817,10 @@ module ms2_ensemble
   
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
+  end interface
+  
+  interface ErrorsUpdateThermoInt
+    module procedure TEnsemble_ErrorsUpdateThermoInt
   end interface
 
   interface SVCOutput
@@ -2814,7 +2817,7 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
-    nullify( this%RDF )
+    nullify( this%RDFValue )
     nullify( this%RDFVSchale )
 
     ! Allocate scale coefficients for sigma and epsilon
@@ -2829,7 +2832,7 @@ contains
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFVSchale(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )
-      allocate( this%RDF(RDFNumberShells), STAT = stat )
+      allocate( this%RDFValue(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )    
     endif
 
@@ -3204,8 +3207,8 @@ contains
       deallocate( this%RDFVSchale )
     end if
 
-    if( associated( this%RDF ) ) then
-      deallocate( this%RDF )
+    if( associated( this%RDFValue ) ) then
+      deallocate( this%RDFValue )
     end if    
     
 
@@ -15442,6 +15445,105 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 
 !==============================================================!
+!  Subroutine TEnsemble_ErrorsUpdateThermoInt                  !
+!==============================================================!
+
+  subroutine TEnsemble_ErrorsUpdateThermoInt( this, i, NBins )
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: i
+    integer, intent(in) :: NBins
+
+    ! Declare local variables
+    type(TComponent), pointer  :: pc
+    integer                    :: j, LocalVisit
+    real(RK)                   :: BinsEn(0:NBins-1), BinsdEndLa(0:NBins-1), BinsIntdEndLa(0:NBins-1)
+    real(RK)                   :: BinsdEndLaV(0:NBins-1), BinsdEndLaH(0:NBins-1), BinsIntVW(0:NBins-1), BinsIntHW(0:NBins-1)
+    integer                    :: BinsVisit(0:NBins-1)
+
+    pc => this%Component(i)
+    ! Avearge of each MPI process's histogram is saved in the thi file 
+#if MPI_VER > 0
+    if (SimulationType .eq. MonteCarlo) then
+      call MPI_Reduce( pc%BinsEn(0: NBins-1)       *pc%BinsVisit(0: NBins-1), BinsEn(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLa(0: NBins-1)   *pc%BinsVisit(0: NBins-1), BinsdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaV(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaV(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsdEndLaH(0: NBins-1)  *pc%BinsVisit(0: NBins-1), BinsdEndLaH(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntdEndLa(0: NBins-1)                         , BinsIntdEndLa(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntVW(0: NBins-1)                             , BinsIntVW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsIntHW(0: NBins-1)                             , BinsIntHW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( pc%BinsVisit(0: NBins-1)                             , BinsVisit(0: NBins-1), NBins, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+      do j=0,pc%NBins-1
+        if (BinsVisit(j) .eq. 0) then 
+          LocalVisit=1
+        else
+          LocalVisit=BinsVisit(j)
+        end if
+        BinsEn(j)        = BinsEn(j)/LocalVisit
+        BinsdEndLa(j)    = BinsdEndLa(j)/LocalVisit
+        BinsdEndLaV(j)   = BinsdEndLaV(j)/LocalVisit
+        BinsdEndLaH(j)   = BinsdEndLaH(j)/LocalVisit
+        BinsIntdEndLa(j) = BinsIntdEndLa(j)/NProcs
+        BinsIntVW(j)     = BinsIntVW(j)/NProcs
+        BinsIntHW(j)     = BinsIntHW(j)/NProcs
+      end do
+    else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+    endif
+#else
+      BinsEn(:)        = pc%BinsEn(:)
+      BinsdEndLa(:)    = pc%BinsdEndLa(:)
+      BinsdEndLaV(:)   = pc%BinsdEndLaV(:)
+      BinsdEndLaH(:)   = pc%BinsdEndLaH(:)
+      BinsIntdEndLa(:) = pc%BinsIntdEndLa(:)
+      BinsIntVW(:)     = pc%BinsIntVW(:)
+      BinsIntHW(:)     = pc%BinsIntHW(:)
+      BinsVisit(:)     = pc%BinsVisit(:)
+#endif
+
+    ! Rest.
+    if (RootProc) then
+      do j=0,pc%NBins-1
+        write( IOBuffer, '(I6)' ) j
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '("  ",F5.3)' ) pc%LaMin+j*pc%deltaLa
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsEn(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaV(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsdEndLaH(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntdEndLa(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntVW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",E15.6)' ) BinsIntHW(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        write( IOBuffer, '(" ",I10)' ) BinsVisit(j)
+        call FileWriteNoAdvance( this%iounit_thermoint )
+        call FileWriteBlank( this%iounit_thermoint )
+      end do
+    end if
+
+  end subroutine TEnsemble_ErrorsUpdateThermoInt
+
+
+!==============================================================!
 !  Subroutine TEnsemble_SVCOutput                              !
 !==============================================================!
 
@@ -15739,89 +15841,74 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     type(TEnsemble) :: this
 
     ! Declare local variables
-    integer  :: i, j, s, t, o, LocalErrFreq=0
+    integer  :: i, j, s, t, o
+    real(RK) :: RDFRho, RDFRhoLocal
 
-    ! Update visualization file
+    ! Calculate RDF
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
+      end do
+    end do
 
-    !RDF
-    CallsToRDF  = CallsToRDF + 1
-    LocalErrFreq = LocalErrFreq + 1
-
-      ! Open RDF file
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-    endif
-
-    do i=1, this%NComponents
-     do j=1, this%NComponents
-      if (i .LE. j) then
-       call GET_RDF( this%Interaction( i, j ), this%BoxLength, this%RDFdr )
-       if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-         do s=1, this%Component(i)%molecule%NLJ126
-           do t=1, this%Component(j)%molecule%NLJ126
+    ! Open RDF file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        do s=1, this%Component(i)%molecule%NLJ126
+          do t=1, this%Component(j)%molecule%NLJ126
             write(IOBuffer, '(I5,I5)') i, j
             call FileWriteNoAdvance( this%iounit_rdf )
-           enddo
-         enddo
-       endif
-      endif
-     enddo
-    enddo
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      call FileWriteBlank( this%iounit_rdf )
-    end if
-
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-     do i=1, this%NComponents
-      do j=1, this%NComponents
-       if (i .LE. j) then
+          end do
+        end do            
+      end do
+    end do
+    call FileWriteBlank( this%iounit_rdf )
+    write(IOBuffer, '(T5,"______")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+ 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
         do s=1, this%Component(i)%molecule%NLJ126
-         do t=1, this%Component(j)%molecule%NLJ126 
-          write(IOBuffer, '(I5,I5)') s, t
-          call FileWriteNoAdvance( this%iounit_rdf )
-         enddo
-        enddo
-       endif
-      enddo
-     enddo
-     call FileWriteBlank( this%iounit_rdf )
-    endif
+          do t=1, this%Component(j)%molecule%NLJ126 
+            write(IOBuffer, '(I5,I5)') s, t
+            call FileWriteNoAdvance( this%iounit_rdf )
+          end do
+        end do
+      end do
+    end do
+    call FileWriteBlank( this%iounit_rdf )
 
     do o = 1, RDFNumberShells
-     do i=1, this%NComponents
-      do j=1, this%NComponents
-       if (i .LE. j) then
-        do s=1, this%Component(i)%molecule%NLJ126
-         do t=1, this%Component(j)%molecule%NLJ126
-          RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-          if (i .EQ. j) then
-           RDFRhoLocal = 2.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-          else
-           RDFRhoLocal = 1.0 * this%Interaction( i, j)%PotLJ126LJ126(s,t)%RDFSum(o) & 
-&                        / (this%RDFVSchale(o) * CallsToRDF * this%Component(i)%NPart)
-          end if
-          this%RDF(o) = RDFRhoLocal / RDFRho
-          if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-            write(IOBuffer, '(F10.4)') this%RDF(o)
-            call FileWriteNoAdvance( this%iounit_rdf )
-          endif
-
-         end do
+      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+      call FileWriteNoAdvance( this%iounit_rdf )
+      do i= 1, this%NComponents
+        do j= i, this%NComponents
+          do s=1, this%Component(i)%molecule%NLJ126
+            do t=1, this%Component(j)%molecule%NLJ126
+              RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+              if (i == j) then
+                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+              else
+               RDFRhoLocal = real(this%Interaction(i,j)%PotLJ126LJ126(s,t)%RDFSum(o),RK) & 
+&                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+              end if
+              this%RDFValue(o) = RDFRhoLocal / RDFRho  
+              write(IOBuffer, '(F10.4)') this%RDFValue(o)
+              call FileWriteNoAdvance( this%iounit_rdf )
+            end do
+          end do
         end do
-       end if
       end do
-     end do
-     call FileWriteBlank( this%iounit_rdf )
+      call FileWriteBlank( this%iounit_rdf )
     enddo
 
     ! Close RDF file
-    if(LocalErrFreq*RDFUpdateFrequency >= ErrorsUpdateFrequency)then
-      call FileClose( this%iounit_rdf )
-      CallsToRDF = 0
-      LocalErrFreq = 0
-    endif
+    call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFUpdate
 

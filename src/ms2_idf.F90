@@ -155,7 +155,6 @@ contains
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
     call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
 
-
     ! Convert to SI units
     this%ForConst = this%ForConst * kBoltzmann
 
