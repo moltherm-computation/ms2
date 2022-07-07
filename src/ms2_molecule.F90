@@ -42,7 +42,7 @@ module ms2_molecule
   type TMolecule
 
     ! Geometry of molecule
-    logical :: isElongated, is3D
+    logical :: isElongated
 
     ! Number of degrees of freedom
     integer :: NDFRot, NDF
@@ -1386,23 +1386,7 @@ contains
           this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
         end do
-
-        ! Reduction of point charges to body fixed dipole vector
-        this%Unit(i)%Mue(:) = 0._RK
-        if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          if (LongRange .ne. Ewald) then
-            if (LongRange .ne. PME) then
-              do j =1, this%Unit(i)%NCharge
-                this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-              end do
-            end if
-          end if
-          do j =1, this%Unit(i)%NDipole
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
           end do
-        end if
-        this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
-      end do
 
 
       if ( UseIntDegFreed ) then
@@ -1415,31 +1399,16 @@ contains
 
       call FileReadParameter( this%NFluct, iounit_potmod, IdNFluct, .true. )
 
-      ! Reduction of point charges to body fixed dipole vector
-      do i=1, this%NUnit
-        this%Unit(i)%Mue(:) = 0._RK
-        if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
-          if (LongRange .ne. Ewald) then
-            if (LongRange .ne. PME) then
-              do j =1, this%Unit(i)%NCharge
-                this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                       this%Unit(i)%SiteCharge(j)%r(:) * this%Unit(i)%SiteCharge(j)%e
-              end do
-            end if
-          end if
-          do j =1, this%Unit(i)%NDipole
-            this%Unit(i)%Mue(:) = this%Unit(i)%Mue(:) + &
-&                   this%Unit(i)%SiteDipole(j)%or(:) * this%Unit(i)%SiteDipole(j)%D
-          end do
-        end if
-        this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
-      end do
-
     else
 
       this%NFluct = 0
       
-      ! Reduction of point charges to body fixed dipole vector
+    end if
+
+    ! Close potential model file
+    call FileClose( iounit_potmod )
+
+    ! Reduction of point charges and dipoles of units to body fixed dipole vector
       do i=1, this%NUnit
         this%Unit(i)%Mue(:) = 0._RK
         if( (this%Unit(i)%NCharge > 0).or.(this%Unit(i)%NDipole > 0) ) then
@@ -1459,11 +1428,7 @@ contains
         this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
       end do
 
-    end if
-
-    ! Close potential model file
-    call FileClose( iounit_potmod )
-
+    ! Michael Sch.: block below not needed anymore(?) - delete it!!!
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
@@ -2258,7 +2223,6 @@ contains
 
     ! Set logical flags according to the number of rotation axes
     this%isElongated = this%NDFRot > 0
-    this%is3D = this%NDFRot == 3
 
   end subroutine TMolecule_FindNDF
 

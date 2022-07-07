@@ -5525,7 +5525,6 @@ end subroutine TInteraction_Energy
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
               RijSquared = PXij**2 + PYij**2 + PZij**2
-
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
                 this%CutoffPartner(NInCutoff, i) = j
@@ -5784,6 +5783,7 @@ end subroutine TInteraction_Energy
 
     ! Declare arguments
     type(TInteraction)  :: this
+    integer, intent(in) :: np
     integer, intent(in) :: nu
 
     ! Declare local variables
@@ -5791,7 +5791,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff, np, k, NUnit2
+    integer           :: j, NInCutoff, k, NUnit2
     integer           :: nup
 
     ! Set cutoff radius
