@@ -13862,7 +13862,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Number of steps
     write( IOBuffer, '("Number of NVT equilibration steps", T36, ":", I10)' ) NStepsV
     call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("Number of NVE equilibration steps", T36, ":", I10)' ) NStepsE
+    call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
 
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
@@ -13894,7 +13898,9 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
-      write( IOBuffer, '("Mass of piston", T36, ":", F20.9)' ) this%PistonMass
+      write( IOBuffer, '("Mass of piston", T29, "reduced:", F20.9)' ) this%PistonMass
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in kg/m⁴:", F20.9)' ) this%PistonMass * UnitMass / UnitLength**4
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -13907,7 +13913,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     ! Potential models
     if( EnsembleType .ne. EnsembleTypeGE .or. EnsembleType .ne. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NRealComponents
-        write( IOBuffer, '("Mole fraction of ", A, T36, ":", F20.9)' )&
+        write( IOBuffer, '("Mole fraction of ", A, T36, " :", F20.9)' )&
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              this%Component(i)%Fraction
 
