@@ -6636,20 +6636,21 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     integer :: NAngle, NDihedral
     integer :: NAngleNum, NDihedralNum
     integer :: NUnitPart
-    integer :: NUnitNC, nup1
+    integer :: nu, nup1
 
     ! Calculate potential energy of a particle
     E = 0._RK
-    NUnitNC = this%Component(nc)%Molecule%NUnit
-    nup1 = NUnitNC * (np - 1 )
+    nu = this%Component(nc)%Molecule%NUnit
+    nup1 = nu * (np - 1)
     do i = 1, this%NComponents
       NUnitPart = this%Component(i)%Molecule%NUnit*this%Component(i)%NPart
-      do k=1, NUnitNC
+      do k=1, nu
         E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1+k) )
       end do
     end do
 
     if ( UseIntDegFreed ) then
+      E = E - 0.5_RK*sum( this%Interaction(nc,nc)%EPot(nup1+1:nup1+nu,nup1+1:nup1+nu) )
       NAngle = this%Interaction(nc,nc)%NAngle
       NDihedral = this%Interaction(nc,nc)%NDihedral
       NAngleNum = (np-1)*NAngle
