@@ -1084,11 +1084,11 @@ contains
       call LogWrite
     end if
 
-    write( IOBuffer, '("Reduced temperature: ", T26, F12.6)' ) this%RefTemperature
+    write( IOBuffer, '("Reduced temperature: ", T26, F14.8)' ) this%RefTemperature
     call LogWrite
 
     if( ConstantPressure ) then
-      write( IOBuffer, '("Reduced pressure: ",T26, F12.6)' ) this%RefPressure
+      write( IOBuffer, '("Reduced pressure: ",T26, F14.8)' ) this%RefPressure
       call LogWrite
     end if
 
@@ -1106,7 +1106,7 @@ contains
       call LogWrite
     end if
 
-    write( IOBuffer, '("Reduced density: ",T26, F12.6)' ) this%RefDensity
+    write( IOBuffer, '("Reduced density: ",T26, F14.8)' ) this%RefDensity
     call LogWrite
 
     if( EnsembleType .eq. EnsembleTypeNPH ) then
@@ -1117,10 +1117,10 @@ contains
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
-!      if( .not. UseReducedUnits ) then
-!        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4 !Michael Sch.: clean up here and below
-!      end if
-      write( IOBuffer, '("Mass of piston: ",T26, F15.9)' ) this%PistonMass
+      if ( (.not. UseReducedUnits) .and. (parVersionNr .ge. 2.0_RK) ) then
+        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
+      end if
+      write( IOBuffer, '("Reduced mass of piston: ",T26, F14.10)' ) this%PistonMass
       call LogWrite
     end if
 
@@ -2255,6 +2255,7 @@ contains
       call Construct( this%SumConfEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
+      call Construct( this%SumEPotInter, .false. )
       call Construct( this%SumEPotIntra, .false. )
       if (printIDF) then
         call Construct( this%SumEPotIntra_Bond, .false. )
@@ -2401,8 +2402,10 @@ contains
     call Destruct( this%SumTemperature )
     call Destruct( this%SumEPot )
     call Destruct( this%SumEnthalpy )
+    call Destruct( this%SumConfEnthalpy )
     call Destruct( this%SumVolume )
     call Destruct( this%SumVirial )
+    call Destruct( this%SumEPotInter )
     call Destruct( this%SumEPotIntra )
     if (printIDF) then
       call Destruct( this%SumEPotIntra_Bond )
@@ -2410,7 +2413,6 @@ contains
       call Destruct( this%SumEPotIntra_Dihedral )
       call Destruct( this%SumEPotIntra_Nonbonded )
     end if
-    call Destruct( this%SumEPotInter )
     call Destruct( this%SumVirialIntra )
     call Destruct( this%SumVirialInter )
     call Destruct( this%SumdEpotdV )
@@ -2628,7 +2630,7 @@ contains
       pc => this%Component(i)
       pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
 
-      if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
+      !if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
       pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
       this%NFluctMax = max( pc%NFluctMax, this%NFluctMax )
