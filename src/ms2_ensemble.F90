@@ -2252,6 +2252,7 @@ contains
       call Construct( this%SumTemperature, .false. )
       call Construct( this%SumEPot, .false. )
       call Construct( this%SumEnthalpy, .false. )
+      call Construct( this%SumConfEnthalpy, .false. )
       call Construct( this%SumVolume, .false. )
       call Construct( this%SumVirial, .false. )
       call Construct( this%SumEPotIntra, .false. )
@@ -9480,7 +9481,11 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         end if
         Factor = (LambdaNew/pt%Lambda)**pc%LambdaExponent
         pt%Lambda=LambdaNew
-        ! Apply scaling factors
+      ! Apply scaling factors
+#if MPI_VER > 0
+      call MPI_Bcast( Factor, 1, MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( pt%Lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) ! Michael Sch.: unneeded !
+#endif
         call ScaleInteractionThermoInt(this, nt, Factor)
         !call Unit2Atom( this )
       end if
@@ -10575,7 +10580,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
 
 
-
 !==============================================================!
 !  Subroutine TEnsemble_GibbsRemoveParticle                    !
 !==============================================================!
@@ -10845,11 +10849,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
   subroutine TEnsemble_PartChangeUpdate(this,nc,np,TransferRate,accept)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)       :: this
