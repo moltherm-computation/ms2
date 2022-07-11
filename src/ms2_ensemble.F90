@@ -1186,7 +1186,7 @@ contains
     end if
 
     ! Read whether to perform the MC equilibration in parallel
-    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "yes" )
+    call FileReadParameter( str, iounit_params , IdCommonEqui, .false., "no" )
     select case( str )
       case( 'YES', 'Yes', 'yes' )
         CommonEqui = .true.
@@ -2262,10 +2262,9 @@ contains
         call Construct( this%SumEPotIntra_Angle, .false. )
         call Construct( this%SumEPotIntra_Dihedral, .false. )
         call Construct( this%SumEPotIntra_Nonbonded, .false. )
+        call Construct( this%SumVirialIntra, .false. )
+        call Construct( this%SumVirialInter, .false. )
       end if
-      call Construct( this%SumEPotInter, .false. )
-      call Construct( this%SumVirialIntra, .false. )
-      call Construct( this%SumVirialInter, .false. )
       call Construct( this%SumdEpotdV, .false. )
       call Construct( this%Sumd2EpotdV2, .false. )
 
@@ -2412,9 +2411,9 @@ contains
       call Destruct( this%SumEPotIntra_Angle )
       call Destruct( this%SumEPotIntra_Dihedral )
       call Destruct( this%SumEPotIntra_Nonbonded )
+      call Destruct( this%SumVirialIntra )
+      call Destruct( this%SumVirialInter )
     end if
-    call Destruct( this%SumVirialIntra )
-    call Destruct( this%SumVirialInter )
     call Destruct( this%SumdEpotdV )
     call Destruct( this%Sumd2EpotdV2 )
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -4766,7 +4765,6 @@ loop5:    do nc = 1, this%NComponents
     call UpdateBoxLength( this )
 
     DelBoxL = this%BoxLength / BoxLengthOld
-    call ResizeMol(this, DelBoxL)
 
   end subroutine TEnsemble_PredictVol
 
@@ -4841,12 +4839,17 @@ loop5:    do nc = 1, this%NComponents
       
     end if
 
+    if ( IntegratorType .eq. IntegratorTypeGear ) then
 #if MPI_VER > 0
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
 
-    call UpdateBoxLength( this )
+      DelBoxL = this%BoxLength / BoxLengthOld
+
+    end if
 
 
   end subroutine TEnsemble_CorrectVol
@@ -4874,6 +4877,10 @@ loop5:    do nc = 1, this%NComponents
     case( IntegratorTypeVV )
       call PredictVV( this )
     end select
+
+    if( ConstantPressure .and. .not. NVTEquilibration ) then  ! rev381
+      call PredictVol( this )
+    end if
 
   end subroutine TEnsemble_Predict
 
@@ -4929,29 +4936,6 @@ loop5:    do nc = 1, this%NComponents
       end do
     end if
 
-    ! Predict volume of simulation box
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      if( RootProc ) then
-        this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-
-        this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
-&                      + 4._RK * this%Volume4 + 5._RK * this%Volume5
-
-        this%Volume2 = this%Volume2 + 3._RK * this%Volume3 + 6._RK * this%Volume4 &
-&                      + 10._RK * this%Volume5
-
-        this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
-
-        this%Volume4 = this%Volume4 + 5._RK * this%Volume5
-
-      end if
-#if MPI_VER > 0
-      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-      call UpdateBoxLength( this )
-    end if
-
   end subroutine TEnsemble_PredictGear
 
 
@@ -4968,7 +4952,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer  :: i
-    real(RK) :: dLogVolumeThird, Volume2, Corr
+    real(RK) :: dLogVolumeThird
 
 #ifdef ABL
     real(RK) :: vol
@@ -5011,16 +4995,6 @@ loop5:    do nc = 1, this%NComponents
       end do
     end if
 
-    ! Predict volume of simulation box
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      if( RootProc ) then
-        this%Volume1 = this%Volume1 + this%Volume2
-        this%Volume0 = this%Volume0 + this%Volume1
-      end if
-
-      call UpdateBoxLength( this )
-    end if
-
   end subroutine TEnsemble_PredictLeapFrog
 
 
@@ -5046,14 +5020,6 @@ loop5:    do nc = 1, this%NComponents
       do i = 1, this%NComponents
         call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
       end do
-    end if
-
-    ! Correct volume of simulation box
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      if( RootProc ) then
-        this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
-        this%Volume1 = this%Volume1 + this%Volume2
-      end if
     end if
 
   end subroutine TEnsemble_CorrectLeapFrog
@@ -11393,19 +11359,20 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Reset( this%SumDensity )
       call Reset( this%SumTemperature )
       call Reset( this%SumEPot )
+      call Reset( this%SumEPotInter )
       call Reset( this%SumEPotIntra )
       if (printIDF) then
         call Reset( this%SumEPotIntra_Bond )
         call Reset( this%SumEPotIntra_Angle )
         call Reset( this%SumEPotIntra_Dihedral )
         call Reset( this%SumEPotIntra_Nonbonded )
+        call Reset( this%SumVirialIntra )
+        call Reset( this%SumVirialInter )
       end if
-      call Reset( this%SumEPotInter )
       call Reset( this%SumEnthalpy )
+      call Reset( this%SumConfEnthalpy )
       call Reset( this%SumVolume )
       call Reset( this%SumVirial )
-      call Reset( this%SumVirialIntra )
-      call Reset( this%SumVirialInter )
       call Reset( this%SumdEpotdV )
       call Reset( this%Sumd2EpotdV2 )
       if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
@@ -11979,6 +11946,8 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Update( this%SumDensity, this%Density )
     call Update( this%SumTemperature, this%Temperature )
     call Update( this%SumEPot, this%EPot / real( this%NPart, RK ) )
+    call Update( this%SumVolume, 1._RK / this%Density )
+    call Update( this%SumVirial, -3._RK * this%Virial )
     call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
     call Update( this%SumEPotIntra, this%EPotIntra / real( this%NPart, RK ) )
     if (printIDF) then
@@ -11986,24 +11955,22 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
       call Update( this%SumEPotIntra_Angle, this%EPotIntra_Angle / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Dihedral, this%EPotIntra_Dihedral / real( this%NPart, RK ) )
       call Update( this%SumEPotIntra_Nonbonded, this%EPotIntra_Nonbonded / real( this%NPart, RK ) )
+      call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
+      call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     end if
-    call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
-    call Update( this%SumVirialInter, -3._RK * this%VirialInter )
     if( ConstantPressure ) then
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
 &      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
     else
-      call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%Pressure / this%Density - &
-&      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
+      call Update( this%SumEnthalpy, this%EPotInter/real(this%NPart,RK) + this%Pressure/this%Density - this%RefTemperature)
+      call Update( this%SumConfEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density )
     end if
 
-    call Update( this%SumVolume, 1._RK / this%Density )
-    call Update( this%SumVirial, -3._RK * this%Virial )
     call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
 
     currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
-    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2
+    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
 
@@ -13667,6 +13634,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call Error( this%SumTemperature )
     call Error( this%SumEPot )
     call Error( this%SumEnthalpy )
+    call Error( this%SumConfEnthalpy )
     call Error( this%SumVolume )
     call Error( this%SumEPotInter )
     call Error( this%SumEPotIntra )
@@ -13882,7 +13850,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
 
     ! Acceptance rate
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs)  ) then
-      write( IOBuffer, '("Acceptance rate", T34, ":", F20.9)' ) Acceptance
+      write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) Acceptance
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -14046,18 +14014,18 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
-    !Inramolecular potential energy
-    Average = this%SumEPotIntra%Average
-    Variance = this%SumEPotIntra%Variance
-    write( IOBuffer, '("Intramolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
-&        Variance * UnitEnergy * NAvogadro
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
-
     if (printIDF) then
-      !Inramolecular potential energy - Bonds
+      !Intramolecular potential energy
+      Average = this%SumEPotIntra%Average
+      Variance = this%SumEPotIntra%Variance
+      write( IOBuffer, '("Intramolecular energy", T29, "reduced:", 2F20.9)' ) Average, Variance
+      call FileWrite( this%iounit_errors )
+      write( IOBuffer, '(T28, "in J/mol:", 2F20.9)' ) Average * UnitEnergy * NAvogadro, &
+&          Variance * UnitEnergy * NAvogadro
+      call FileWrite( this%iounit_errors )
+      call FileWriteBlank( this%iounit_errors )
+
+      !Intramolecular potential energy - Bonds
       Average = this%SumEPotIntra_Bond%Average
       Variance = this%SumEPotIntra_Bond%Variance
       write( IOBuffer, '("Bond energy", T29, "reduced:", 2F20.9)' ) Average, Variance
@@ -16105,17 +16073,17 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
         call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumHW_counter )
         call RestartSave( pc%SumHW_denom )
-       case( ChemPotMethodThermoInt )
+      case( ChemPotMethodThermoInt )
         call RestartSave( pc%SumChemPotV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
         call RestartSave( pc%SumChemPotThermoIntWidomV )
         call RestartSave( pc%SumHW_counter )
         call RestartSave( pc%SumHW_denom )
-     end select
+      end select
 
       if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
         call RestartSave( pc%SumVW )
-       call RestartSave( pc%SumHM )
+        call RestartSave( pc%SumHM )
       end if
     end do
 

@@ -2707,7 +2707,9 @@ eqloop: do
 
     ! Save ensembles
     do i = 1, this%NEnsembles
-    !do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      write( IOBuffer, '("writing ensemble",I7)' ) i
+      call LogWriteTime
+      ! saving ensemble data
       call RestartSave( this%Ensemble(i) )
     end do
 
