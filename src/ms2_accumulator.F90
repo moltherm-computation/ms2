@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
@@ -32,7 +28,6 @@ module ms2_accumulator
   use ms2_global
 
 
-
 !==============================================================!
 !  Type TAccumulator                                           !
 !==============================================================!
@@ -40,17 +35,17 @@ module ms2_accumulator
   type TAccumulator
 
     ! Block sum
-    real(RK), pointer :: BlockSum(:)
+    real(RK), pointer, contiguous :: BlockSum(:) => NULL()
 
     ! Number of summed values in block
-    integer , pointer :: NBlockSum(:)
+    integer , pointer, contiguous :: NBlockSum(:) => NULL()
 
 #if MPI_VER > 0        
     ! MC communication COL_DEBUG
-    real(RK), pointer :: BlockSumGathered(:)
+    real(RK), pointer, contiguous :: BlockSumGathered(:) => NULL()
 
     ! MC communication COL_DEBUG
-    integer , pointer :: NBlockSumGathered(:)
+    integer , pointer, contiguous :: NBlockSumGathered(:) => NULL()
 #endif  
 
     ! Total sum and average
@@ -107,66 +102,7 @@ module ms2_accumulator
     module procedure TAccumulator_RestartRead
   end interface
 
-#if TRANS == 1
-!===============================================================
-! TRANSPORT_start
-!==============================================================!
-!  Type TAccumulatorCF                                         !
-!==============================================================!
-  type TAccumulatorCF
-    ! Block sum
-    real(RK), pointer :: BlockSum(:)
-
-    ! Number of summed values in block
-    integer , pointer :: NBlockSum(:)
-
-    ! Total sum
-    real(RK) :: NTotalSum, TotalSum
-
-    ! Average and variance
-    real(RK) :: Average, BlockAverage, Variance
-
-    ! Method of updating
-    logical :: UpdateByAverage
-  
-  end type TAccumulatorCF
-
-  interface ConstructCF
-    module procedure TAccumulatorCF_Construct
-  end interface
-
-  interface DestructCF
-    module procedure TAccumulatorCF_Destruct
-  end interface
-
-  interface AllocateCF
-    module procedure TAccumulatorCF_Allocate
-  end interface
-
-  interface DeallocateCF
-    module procedure TAccumulatorCF_Deallocate
-  end interface
-
-  interface UpdateCF
-    module procedure TAccumulatorCF_Update
-  end interface
-
-  interface ErrorCF
-    module procedure TAccumulatorCF_Error
-  end interface
-
-  interface RestartSaveCF
-    module procedure TAccumulator_RestartSaveCF
-  end interface
-
-  interface RestartReadCF
-    module procedure TAccumulator_RestartReadCF
-  end interface
-!TRANSPORT_END
-#endif
-
 contains
-
 
 
 !==============================================================!
@@ -194,36 +130,6 @@ contains
   end subroutine TAccumulator_Construct
 
 
-#if TRANS == 1
-!TRANSPORT_start
-!==============================================================!
-!  Subroutine TAccumulatorCF_Construct                         !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Construct( this, UpdateByAverage, NBlocksMaxCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF):: this
-    logical, intent(in) :: UpdateByAverage
-    integer, intent(in) :: NBlocksMaxCF
-
-    ! Set method of updating
-    this%UpdateByAverage = UpdateByAverage
-
-    ! Initialize
-    this%TotalSum = 0._RK
-    this%NTotalSum = 0
-
-    ! Allocate arrays
-    call AllocateCF( this, NBlocksMaxCF )
-
-  end subroutine TAccumulatorCF_Construct
-#endif
-!TRANSPORT_END
-
-
 !==============================================================!
 !  Subroutine TAccumulator_Destruct                            !
 !==============================================================!
@@ -239,27 +145,6 @@ contains
     call Deallocate( this )
 
   end subroutine TAccumulator_Destruct
-
-
-!TRANSPORT_start
-#if TRANS == 1
-!==============================================================!
-!  Subroutine TAccumulatorCF_Destruct                            !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Destruct( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-
-    ! Deallocate arrays
-    call DeallocateCF( this )
-
-  end subroutine TAccumulatorCF_Destruct
-#endif
-!TRANSPORT_END
 
 
 !==============================================================!
@@ -300,36 +185,6 @@ contains
   end subroutine TAccumulator_Allocate
 
 
-!TRANSPORT_start
-#if TRANS == 1
-!==============================================================!
-!  Subroutine TAccumulatorCF_Allocate                            !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Allocate( this, NBlocksMaxCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-    integer, intent(in)  :: NBlocksMaxCF
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Allocate arrays
-    allocate( this%BlockSum( NBlocksMaxCF ), STAT = stat )
-    call AllocationError( stat, 'output blocks', NBlocksMaxCF )
-    allocate( this%NBlockSum( NBlocksMaxCF ), STAT = stat )
-    call AllocationError( stat, 'output blocks', NBlocksMaxCF )
-    this%BlockSum = 0._RK
-    this%NBlockSum = 0._RK
-
-  end subroutine TAccumulatorCF_Allocate
-#endif
-!TRANSPORT_END
-
-
 !==============================================================!
 !  Subroutine TAccumulator_Deallocate                          !
 !==============================================================!
@@ -351,30 +206,6 @@ contains
 
   end subroutine TAccumulator_Deallocate
 
-!TRANSPORT_start
-#if TRANS == 1
-!==============================================================!
-!  Subroutine TAccumulatorCF_Deallocate                          !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Deallocate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-
-    ! Deallocate arrays
-    if( associated( this%BlockSum ) ) then
-       deallocate( this%BlockSum )
-    end if
-    if( associated( this%NBlockSum ) ) then
-      deallocate( this%NBlockSum )
-    end if
-
-  end subroutine TAccumulatorCF_Deallocate
-#endif
-!TRANSPORT_END
 
 !==============================================================!
 !  Subroutine TAccumulator_Reset                               !
@@ -432,50 +263,6 @@ contains
 
   end subroutine TAccumulator_Update
 
-! TRANSPORT_start
-#if TRANS==1
-!==============================================================!
-!  Subroutine TAccumulatorCF_Update                              !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Update( this, Value , Mmess, BlockSizeCF, NBlocksCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-    real(RK), intent(in) :: Value
-    integer, intent(in)  :: Mmess
-    integer, intent(in)  :: BlockSizeCF
-    integer, intent(in)  :: NBlocksCF
-
-    ! Nullify total sum
-    if( Mmess == 1 ) this%TotalSum = 0._RK
-    if( Mmess == BlockSizeCF ) this%TotalSum = 0._RK
-
-    ! Update sums
-    if( this%UpdateByAverage ) then
-      if( mod( Mmess, BlockSizeCF ) == 0) then
-        this%BlockSum(NBlocksCF) = NBlocksCF * BlockSizeCF * Value - this%TotalSum
-        this%NBlockSum(NBlocksCF) = BlockSizeCF
-        this%TotalSum = NBlocksCF * BlockSizeCF * Value
-        this%NTotalSum = NBlocksCF * BlockSizeCF
-        this%Average = this%TotalSum / real( this%NTotalSum, RK )
-        this%BlockAverage = this%BlockSum(NBlocksCF)/ real( this%NBlockSum(NBlocksCF), RK )
-      end if
-    else
-      if( mod( Mmess, BlockSizeCF ) == 0 ) this%BlockSum(NBlocksCF) = 0._RK
-      this%BlockSum(NBlocksCF) = this%BlockSum(NBlocksCF) + Value
-      this%NBlockSum(NBlocksCF) = this%NBlockSum(NBlocksCF) + 1
-      this%TotalSum = this%TotalSum + Value
-      this%NTotalSum = this%NTotalSum + 1
-      this%Average = this%TotalSum / real( this%NTotalSum, RK )
-      this%BlockAverage = this%BlockSum(NBlocksCF)/ real( this%NBlockSum(NBlocksCF), RK )
-    end if
-
-  end subroutine TAccumulatorCF_Update
-#endif
-!TRANSPORT_END
 
 !==============================================================!
 !  Subroutine TAccumulator_Error                               !
@@ -581,7 +368,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TAccumulator_ErrorGI                               !
+!  Subroutine TAccumulator_ErrorGI                             !
 !==============================================================!
 
 
@@ -686,67 +473,6 @@ contains
 
   end subroutine TAccumulator_ErrorGI
 
-!TRANSPORT_start
-#if TRANS==1
-!==============================================================!
-!  Subroutine TAccumulatorCF_Error                             !
-!==============================================================!
-
-  subroutine TAccumulatorCF_Error( this, Mmess, NBlockSizesCF, NBlocksCF, BlockSizeCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-    integer              :: Mmess
-    integer, intent(in)  :: NBlockSizesCF
-    integer, intent(in)  :: NBlocksCF
-    integer, intent(in)  :: BlockSizeCF
-
-    ! Declare local variables
-    real(RK) :: Tau(NBlockSizesCF)
-    real(RK) :: BlockAverage
-    real(RK) :: sx1, sx2, sxy
-    real(RK) :: TauSum, TauInf
-    integer :: i, j
-
-    ! Calculate average
-    !this%Average = this%TotalSum / Mmess
-
-    ! Calculate variance
-    Tau = 0._RK
-    do i = 1, NBlockSizesCF
-      do j = i, NBlocksCF, i
-        BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( (i * BlockSizeCF), RK )
-        Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
-      end do
-#ifdef _PGF
-      ! Call write to prevent vectorization of loop (a bug in pgi compiler)
-      write( IOBuffer, '("Prevent loop vectorization")' )
-#endif
-      Tau(i) = Tau(i) / real( (NBlocksCF / i), RK )
-    end do
-    this%Variance = Tau(1)
-    if( this%Variance == 0._RK ) return
-    Tau(1:NBlockSizesCF) = Tau(1:NBlockSizesCF) / this%Variance
-    sx1 = 0._RK
-    sx2 = 0._RK
-    sxy = 0._RK
-    do i = 1, NBlockSizesCF
-      sx1 = sx1 + 1._RK / i
-      sx2 = sx2 + 1._RK / i**2
-      sxy = sxy + Tau(i)
-      Tau(i) = i * Tau(i)
-    end do
-    TauSum = sum( Tau(1:NBlockSizesCF) )
-    TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizesCF * sx2 - sx1**2)
-    TauInf = max( TauInf, TauSum / NBlockSizesCF )
-    this%Variance = sqrt( this%Variance / NBlocksCF * TauInf )
-
-  end subroutine TAccumulatorCF_Error
-#endif
-!TRANSPORT_END
-
 
 !==============================================================!
 !  Subroutine TAccumulator_RestartSave                         !
@@ -771,7 +497,6 @@ contains
 &     ( this%BlockSum(i), this%NBlockSum(i), i = 1, NBlocks )
 
   end subroutine TAccumulator_RestartSave
-
 
 
 !==============================================================!
@@ -819,83 +544,9 @@ contains
 
     ! Calculate average
     this%Average = this%TotalSum / real( this%NTotalSum, RK )
-    this%BlockAverage = this%BlockSum(NBlocks) / real( this%NBlockSum(NBlocks), RK )
+    this%BlockAverage = this%BlockSum(i) / real( this%NBlockSum(i), RK )
 
   end subroutine TAccumulator_RestartRead
-
-
-#if  TRANS == 1
-!==============================================================!
-!  Subroutine TAccumulator_RestartSaveCF                         !
-!==============================================================!
-
-  subroutine TAccumulator_RestartSaveCF( this, NBlocksRestartCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-    integer, intent(in)  :: NBlocksRestartCF
-
-    ! Declare local variables
-    integer :: j
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Save contents to restart file
-   ! write( iounit_restart, '(I10)' ) NBlocksMaxCF
-
-    do j = 1, NBlocksRestartCF
-      write( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
-      write( iounit_restart, '(I10)' )        this%NBlockSum(j)
-    end do
-    write( iounit_restart, '(ES20.12E3)' )  this%TotalSum
-    write( iounit_restart, '(I10)' )        this%NTotalSum
-    write( iounit_restart, '(ES20.12E3)' )  this%Average
-    write( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
-    write( iounit_restart, '(ES20.12E3)' )  this%Variance
-
-  end subroutine TAccumulator_RestartSaveCF
-#endif
-!TRANSPORT_END
-
-
-#if  TRANS == 1
-!==============================================================!
-!  Subroutine TAccumulator_RestartReadCF                        !
-!==============================================================!
-
-  subroutine TAccumulator_RestartReadCF( this, NBlocksRestartCF )
-
-    implicit none
-
-    ! Declare arguments
-    type(TAccumulatorCF) :: this
-    integer, intent(in)  :: NBlocksRestartCF
-
-    ! Declare local variables
-    integer :: j
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Read contents from restart file
-!    read( iounit_restart, '(I10)' ) NBlocksMaxCF
-
-    do j = 1, NBlocksRestartCF
-      read( iounit_restart, '(ES20.12E3)' )  this%BlockSum(j)
-      read( iounit_restart, '(I10)' )        this%NBlockSum(j)
-    end do
-    read( iounit_restart, '(ES20.12E3)' )  this%TotalSum
-    read( iounit_restart, '(I10)' )        this%NTotalSum
-    read( iounit_restart, '(ES20.12E3)' )  this%Average
-    read( iounit_restart, '(ES20.12E3)' )  this%BlockAverage
-    read( iounit_restart, '(ES20.12E3)' )  this%Variance
-
-  end subroutine TAccumulator_RestartReadCF
-#endif
-!TRANSPORT_END
 
 
 end module ms2_accumulator

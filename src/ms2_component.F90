@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_component.F90...'
 #endif
@@ -45,8 +41,16 @@ module ms2_component
     ! Charged component
     logical           :: charged
 
+#if OSMOP > 0
+    ! Permeability
+    logical           :: permeable
+#endif
+
     ! Positions and orientations for units of test particles
-    real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
+    real(RK), pointer, contiguous :: P0Test(:, :, :), Q0Test(:, :, :)
+
+    ! Intramolecular energy of test particles
+    real(RK), pointer, contiguous :: EPotTestIntra(:)
 
     ! Centers of mass positions for molecules
     real(RK), pointer :: Pm0(:, :)
@@ -162,6 +166,7 @@ module ms2_component
     ! Number of test particles
     integer, pointer :: NTest
     integer          :: NTestAll
+    integer, pointer :: NTest0, NTest1, NTest2
 
     ! Number of degrees of freedom
     integer :: NDFTran, NDFRot, NDF
@@ -220,11 +225,12 @@ module ms2_component
 !DEBUG
 
     ! Variables for Thermodynamic Integration
-    integer           :: NBins, LambdaExponent
-    integer, pointer  :: BinsVisit(:)
-    real(RK)          :: Lambda, LaMin, LaMax, deltaLa, LaStepMax, ExpMinusBetaEnLaMin
-    real(RK), pointer :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:)
-    real(RK), pointer :: BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
+    integer           :: NBins
+    integer, pointer, contiguous  :: BinsVisit(:)
+    real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax
+    real(RK)          :: ExpMinusBetaEnLaMin, currentBinsEn
+    real(RK), pointer, contiguous :: BinsEn(:), BinsdEndLa(:), BinsIntdEndLa(:)
+    real(RK), pointer, contiguous :: BinsdEndLaV(:), BinsdEndLaH(:), BinsIntVW(:), BinsIntHW(:)
 
     ! Mole fraction in corresponding liquid simulation (for GE ensemble only)
     real(RK) :: LiqFraction
@@ -606,28 +612,22 @@ contains
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
 
-      ! Read Gradual Insertion Initialization Steps
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( this%GradInsInit, iounit_params , IdGradInsInit, .false., 0 )
-        write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
-        call LogWrite
-      end if
+      this%WFMethod = WFMethodNone
+      select case( this%ChemPotMethod )
+      ! reading pm corresponding to chemPotMethod
 
-      ! Read number of test particles
-      if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
+      case (ChemPotMethodWidom)
+        ! Read number of test particles
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
-#if MPI_VER>0
-        if (SimulationType .eq. MolecularDynamics) then
-          this%NTest = ((this%NTest-1)/NProcs +1)
-        endif
-#endif
-      end if
 
-      ! Read weighting factors method
-      this%WFMethod = WFMethodNone
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
+      case (ChemPotMethodGradIns)
+        ! Read Gradual Insertion Initialization Steps
+        call FileReadParameter( this%GradInsInit, iounit_params , IdGradInsInit, .false., 0 )
+        write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
+        call LogWrite
+        ! Read weighting factors method
         call FileReadParameter( str, iounit_params, IdWeightFactors, .false. )
         select case(str)
         case( 'auto', 'Auto' )
@@ -644,33 +644,61 @@ contains
         end select
         write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
         call LogWrite
-      end if
 
-      if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
+      case (ChemPotMethodThermoInt)
         call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
-        write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
+        write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
-        write( IOBuffer, '("Thermo. Int. LambdaMax: ", T40, F7.5)' ) this%LaMax
+        write( IOBuffer, '("Thermo. Int. LambdaMax: ", T40, F8.5)' ) this%LaMax
         call LogWrite
         call FileReadParameter( this%NBins, iounit_params , IdNBins, .false., 100 )
-        write( IOBuffer, '("Thermo. Int. NBins: ", T40, I7)' ) this%NBins
+        write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
-        call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
-        write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F7.5)' ) this%LaStepMax
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+        else
+          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+        end if
+        write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F8.5)' ) this%LaStepMax
         call LogWrite
-        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4)
-        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, I7)' ) this%LambdaExponent
+        call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
+        write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 250 )
+        write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
+        call LogWrite
+#if MPI_VER>0
+        if (SimulationType .eq. MolecularDynamics) then
+          this%NTest = ((this%NTest-1)/NProcs +1)
+        endif
+#endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
-          write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F7.5)' ) this%LaMin
+          write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
           call LogWrite
         endif
         this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
-      end if
+
+      end select
 
     end if
+
+#if OSMOP > 0
+    call FileReadParameter( str, iounit_params, IdPermeability, .false.)
+    select case( str )
+      case( 'OFF', 'Off', 'off', 'NO', 'No', 'no', 'false', 'False', 'FALSE' )
+        this%permeable = .false.
+        write( IOBuffer, '("component ", A, " is not permeable.")' ) trim( this%PotModFilename )
+        call LogWrite
+      case('YES', 'Yes', 'yes', 'ON', 'On', 'on', 'right', 'Right', 'RIGHT' )
+        this%permeable = .true.
+        write( IOBuffer, '("component ", A, " is permeable.")' ) trim( this%PotModFilename )
+        call LogWrite
+      case default
+        call Error( trim( str )//  '  unknown. Set value to Yes or On.' )
+    end select
+#endif
 
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, &
