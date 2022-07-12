@@ -42,29 +42,32 @@ module ms2_molecule
   type TMolecule
 
     ! Geometry of molecule
-    logical :: isElongated, hasIntraLJEl
+    logical :: isElongated
 
     ! Number of degrees of freedom
-    integer :: NDF
+    integer :: NDFRot, NDF
 
     ! Total mass of a molecule
     real(RK) :: Mass
 
+    ! Principal moments of inertia
+    real(RK) :: MOI(3)
+
     ! 12-6 Lennard-Jones sites
     integer :: NLJ126
-    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
+    type(TSiteLJ126), pointer :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
-    type(TSiteCharge), pointer, contiguous :: SiteCharge(:)
+    type(TSiteCharge), pointer :: SiteCharge(:)
 
     ! Dipole sites
     integer :: NDipole
-    type(TSiteDipole), pointer, contiguous :: SiteDipole(:)
+    type(TSiteDipole), pointer :: SiteDipole(:)
 
     ! Quadrupole sites
     integer :: NQuadrupole
-    type(TSiteQuadrupole), pointer, contiguous :: SiteQuadrupole(:)
+    type(TSiteQuadrupole), pointer :: SiteQuadrupole(:)
 
     ! All sites
     integer :: NSite
@@ -81,35 +84,36 @@ module ms2_molecule
 
     ! Bond for internal degree of freedom
     integer :: NBond
-    type(TIdfBond), pointer, contiguous ::IdfBond(:)
+    type(TIdfBond), pointer ::IdfBond(:)
 
     ! Angle for internal degree of freedom
     integer :: NAngle
-    type(TIdfAngle), pointer, contiguous ::IdfAngle(:)
+    type(TIdfAngle), pointer ::IdfAngle(:)
 
     ! Dihedral for internal degree of freedom
     integer :: NDihedral
-    type(TIdfDihedral), pointer, contiguous ::IdfDihedral(:)
+    type(TIdfDihedral), pointer ::IdfDihedral(:)
 
     ! Constraint for internal degree of freedom
     integer :: NConstraint
     integer :: NNotConstraint
 
     ! Units of molecule
-    integer, pointer :: NUnit ! Michael Sch. pointer needed?
-    type(TUnit), pointer, contiguous ::Unit(:)
+    integer, pointer :: NUnit
+    integer :: NEUnit         ! number of elongated Units
+    type(TUnit), pointer ::Unit(:)
     
     ! File name for potential model
     character(FileNameLength) :: PotModFileName
     
     ! Bonded Units (IDF-connected)
-    integer,pointer, contiguous :: BondCount(:)
-    integer,pointer, contiguous :: BoPartner(:,:)
-    integer,pointer, contiguous :: AngleCount(:)
-    integer,pointer, contiguous :: AnglePartner(:,:)
-    integer,pointer, contiguous :: DihedralCount(:)
-    integer,pointer, contiguous :: DihedralPartner(:,:)
-    integer, allocatable :: BondedUnits(:, :)! Michael Sch. make allocatables contiguous?
+    integer,pointer      :: BondCount(:)
+    integer,pointer      :: BoPartner(:,:)
+    integer,pointer      :: AngleCount(:)
+    integer,pointer      :: AnglePartner(:,:)
+    integer,pointer      :: DihedralCount(:)
+    integer,pointer      :: DihedralPartner(:,:)
+    integer, allocatable :: BondedUnits(:, :)
 
     ! For intramolecular 1-4, 1-5 nonbonded interactions
      integer, allocatable :: Int14(:, :)
@@ -165,6 +169,18 @@ module ms2_molecule
     module procedure TMolecule_FindCOM
   end interface
 
+  interface FindMOI
+    module procedure TMolecule_FindMOI
+  end interface
+
+  interface ReadMOI
+    module procedure TMolecule_ReadMOI
+  end interface
+
+  interface FindNDF
+    module procedure TMolecule_FindNDF
+  end interface
+
   interface FindBondR
     module procedure TMolecule_FindBondR
   end interface
@@ -201,7 +217,7 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: ntypes, npossPartners
+    integer       :: ntypes
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
@@ -259,6 +275,7 @@ contains
     this%NDihedral = 0
     
     ! Zero number of Units
+    this%NEUnit = 0
     allocate( this%NUnit, STAT = stat )
     call AllocationError( stat, 'number of units' )
     
@@ -329,8 +346,33 @@ contains
       end select
     end do
 
+    ! Read number of rotation axes
+    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+    select case( stype )
+    case( '0' )
+      this%NDFRot = 0
+    case( '2' )
+      this%NDFRot = 2
+    case( '3' )
+      this%NDFRot = 3
+    case( 'AUTO', 'Auto', 'auto' )
+      this%NDFRot = -1
+    case default
+      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+    end select
+
     ! Find center of mass position
     call FindCOM( this )
+
+    ! Find moments of inertia for molecule
+    if( this%NDFRot < 0 ) then
+      call FindMOI( this )
+    else
+      call ReadMOI( this )
+    end if
+
+    ! Find number of degrees of freedom
+    call FindNDF( this )
     
     ! Internal degrees of freedom
     ! Calculate the total number of sites
@@ -462,6 +504,7 @@ contains
       end if
       this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
       this%NUnit   = this%NNotConstraint+this%NConstraint ! total number of units
+      if (this%NUnit==1) IntraLJEl=.false.
 
     else !  No IDF,  rigid molecule
         this%NUnit = 1
@@ -702,7 +745,6 @@ contains
     end do
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
-    this%NDF = 0
     do i = 1, this%NUnit
       call FindCOM ( this%Unit(i) )
        if( this%Unit(i)%NDFRot < 0 ) then
@@ -711,16 +753,18 @@ contains
           call ReadMOI( this%Unit(i) )
       end if
       call FindNDF( this%Unit(i) )
-      this%NDF = this%NDF + this%Unit(i)%NDF
+      if  (this%Unit(i)%isElongated) this%NEUnit = this%NEunit + 1
     end do
 
-    ! check for elongation of rigid molecules
-    this%isElongated = .false.
-    this%isElongated = this%NUnit > 1
-    if ( this%Unit(1)%NDFRot > 0 ) this%isElongated = .true.
-
-    ! sort SiteIds
-    if (IntraLJEl) then
+    !Consider Intramolecular interactions
+    if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
+       call Error('Check *.par file, molecule too small, &
+&                  no intramolecular interactions can be used' )
+    end if
+    if (UseIntDegFreed .and. IntraLJEl) then
+!      do k = 1, this%NUnit
+!        call sort_array(this%Unit(k)%SiteIds)
+!      end do
       do k = 1, this%NLJ126
         call sort_array(this%LJSiteIds)
       end do
@@ -735,61 +779,44 @@ contains
       end do
     end if
 
-    !Consider Intramolecular interactions
-    this%hasIntraLJEl = .true.
-    if (IntraLJEl ) then
-      if (.not. this%isElongated) then
-        this%hasIntraLJEl = .false.
-      elseif (LJEl14 .and. (this%NSite < 4)) then
-        this%hasIntraLJEl = .false.
-      elseif (this%NSite < 5) then
-        this%hasIntraLJEl = .false.
-      endif
-!        call Error('Check *.par file, molecule too small, &
-! &                  no intramolecular interactions can be used' )
-    else
-      this%hasIntraLJEl = .false.
-    end if
-
    ! create list of 1-4, 1-5 interactions
-   ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
-   npossPartners = (this%NSite-4)*(this%NSite-3)/2
-   if (this%hasIntraLJEl) then
+
+   if (IntraLJEl) then
      allocate (AllSites(this%NSite, this%NSite))
      call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
      allocate (SameCoord(this%NLJ126, 3))
      call AllocationError( stat, 'SameCoord', this%NLJ126*3 )
-     allocate (IntLJ15(npossPartners, 2), STAT = stat)
-     call AllocationError( stat, 'Int15', npossPartners*2 )
+     allocate (IntLJ15((this%NSite-3)*2, 2), STAT = stat)
+     call AllocationError( stat, 'Int15', (this%NSite-3)*4 )
      if (this%NCharge>0) then
-       allocate (IntCC15(npossPartners, 2), STAT = stat)
-       call AllocationError( stat, 'IntCC15', npossPartners*2 )
+       allocate (IntCC15((this%NSite-3)*2, 2), STAT = stat)
+       call AllocationError( stat, 'IntCC15', (this%NSite-3)*4 )
        if (this%NDipole>0) then
-         allocate (IntCD15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntCD15', npossPartners*2 )
-         allocate (IntDC15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntDC15', npossPartners*2 )
+         allocate (IntCD15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntCD15', (this%NSite-3)*4 )
+         allocate (IntDC15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntDC15', (this%NSite-3)*4 )
        end if
        if ( this%NQuadrupole>0) then
-         allocate (IntCQ15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntCQ15', npossPartners*2 )
-         allocate (IntQC15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntQC15', npossPartners*2 )
+         allocate (IntCQ15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntCQ15', (this%NSite-3)*4 )
+         allocate (IntQC15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntQC15', (this%NSite-3)*4 )
        end if
      end if
      if (this%NDipole>0) then
-       allocate (IntDD15(npossPartners, 2), STAT = stat)
-       call AllocationError( stat, 'IntDD15', npossPartners*2 )
+       allocate (IntDD15((this%NSite-3)*2, 2), STAT = stat)
+       call AllocationError( stat, 'IntDD15', (this%NSite-3)*4 )
        if ( this%NQuadrupole >0) then
-         allocate (IntQD15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntQD15', npossPartners*2 )
-         allocate (IntDQ15(npossPartners, 2), STAT = stat)
-         call AllocationError( stat, 'IntDQ15', npossPartners*2 )
+         allocate (IntQD15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntQD15', (this%NSite-3)*4 )
+         allocate (IntDQ15((this%NSite-3)*2, 2), STAT = stat)
+         call AllocationError( stat, 'IntDQ15', (this%NSite-3)*4 )
        end if
      end if
      if ( this%NQuadrupole>0) then
-       allocate (IntQQ15(npossPartners, 2), STAT = stat)
-       call AllocationError( stat, 'IntQQ15', npossPartners*2 )
+       allocate (IntQQ15((this%NSite-3)*2, 2), STAT = stat)
+       call AllocationError( stat, 'IntQQ15', (this%NSite-3)*4 )
      end if
      if (LJEl14) then
        allocate (Int14(this%NDihedral, 2), STAT = stat)
@@ -1091,7 +1118,7 @@ contains
      if (LJEl14) then
        k=1
        do i=1, this%NDihedral
-         if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
+         if (this%IdfDihedral(i)%multi>=0) then  !If proper dihedral
            Site1=this%IdfDihedral(i)%SiteId1
            Site4=this%IdfDihedral(i)%SiteId4
            if (Site1>Site4) then
@@ -1907,6 +1934,296 @@ contains
   end subroutine TMolecule_FindCOM
 
 
+
+!==============================================================!
+!  Subroutine TMolecule_FindMOI                                !
+!==============================================================!
+
+  subroutine TMolecule_FindMOI( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    integer  :: i
+    real(RK) :: moi(3, 3), rotation(3, 3)
+
+    ! Calculate moment-of-inertia tensor
+    moi(:, :) = 0._RK
+    do i = 1, this%NLJ126
+      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+    end do
+
+    do i = 1, this%NCharge
+      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
+    end do
+
+    do i = 1, this%NDipole
+      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
+    end do
+
+    do i = 1, this%NQuadrupole
+      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
+    end do
+
+    ! Transform to principal axes
+    call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
+    call eigen_sort( this%MOI(:), rotation(:,:) )
+    do i = 1, this%NLJ126
+      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NCharge
+      this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NDipole
+      this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
+      this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NQuadrupole
+      this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
+      this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
+    end do
+
+    if( (this%NCharge > 0).or.(this%NDipole > 0) ) this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
+
+  contains
+
+
+    subroutine jrotate( a1, a2, s, tau )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: a1(:), a2(:)
+      real(RK), intent(in)     :: s, tau
+
+      ! Declare local variables
+      real(RK) :: a3(size( a1 ))
+
+      ! Rotate
+      a3(:) = a1(:)
+      a1(:) = a1(:) - s * (a2(:) + a1(:) * tau)
+      a2(:) = a2(:) + s * (a3(:) - a2(:) * tau)
+
+    end subroutine jrotate
+
+
+
+    subroutine eigen_find( a, d, v )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: a(3, 3)
+      real(RK), intent(out)    :: d(3), v(3, 3)
+
+      ! Declare local variables
+      integer  :: i, ip, iq
+      real(RK) :: c, g, h, s, sm, t, tau, theta, thresh, b(3), z(3)
+
+      ! Compute eigenvalues and eigenvectors using Jacobi rotations
+      v(:, :) = 0._RK
+      do i = 1, 3
+        v(i, i) = 1._RK
+        b(i) = a(i, i)
+      end do
+      d(:) = b(:)
+      do i = 1, 50
+        z(:) = 0._RK
+        sm = 0._RK
+        do ip = 1, 2
+          do iq = ip + 1, 3
+            sm = sm + abs( a(ip, iq) )
+          end do
+        end do
+        if( sm == 0._RK ) return
+        thresh = merge( sm / 45._RK, 0._RK, i < 4 )
+        do ip = 1, 2
+          do iq = ip + 1, 3
+            g = 100._RK * abs( a(ip, iq ) )
+            if((i > 4) .and. (abs( d(ip) ) + g == abs( d(ip) )) .and. (abs( d(iq) ) + g == abs( d(iq) ))) then
+              a(ip, iq) = 0._RK
+
+            else if( abs( a(ip, iq) ) > thresh ) then
+              h = d(iq) - d(ip)
+
+              if( abs( h ) + g == abs( h ) ) then
+                t = a(ip, iq) / h
+              else
+                theta = .5_RK * h / a(ip, iq)
+                t = 1._RK / (abs( theta ) + sqrt( 1._RK + theta**2 ))
+                if( theta < 0._RK ) t = -t
+              end if
+
+              c = 1._RK / sqrt( 1._RK + t**2 )
+              s = t * c
+              tau = s / (1._RK + c)
+              h = t * a(ip, iq)
+              z(ip) = z(ip) - h
+              z(iq) = z(iq) + h
+              d(ip) = d(ip) - h
+              d(iq) = d(iq) + h
+              a(ip, iq) = 0._RK
+              call jrotate( a(1:ip - 1, ip), a(1:ip - 1, iq), s, tau )
+              call jrotate( a(ip, ip + 1:iq - 1), a(ip + 1:iq - 1, iq), s, tau )
+              call jrotate( a(ip, iq + 1:3), a(iq, iq + 1:3), s, tau )
+              call jrotate( v(:, ip), v(:, iq), s, tau )
+            end if
+          end do
+        end do
+        b(:) = b(:) + z(:)
+        d(:) = b(:)
+      end do
+
+    end subroutine eigen_find
+
+
+
+    subroutine eigen_sort( d, v )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: d(3), v(3, 3)
+
+      ! Declare local variables
+      integer     :: i
+      real(RK)    :: p, q(3)
+      integer     :: j, j1(1)
+      equivalence (j, j1)
+
+      ! Sort eigenvalues into descending order
+      ! and rearrange eigenvectors correspondingly
+      do i = 1, 2
+        j1(:) = maxloc( d(i:3) )
+        j = j + i - 1
+        if( j /= i ) then
+          p = d(j)
+          d(j) = d(i)
+          d(i) = p
+          q(:) = v(:, i)
+          v(:, i) = v(:, j)
+          v(:, j) = q(:)
+        end if
+      end do
+
+    end subroutine eigen_sort
+
+
+
+  end subroutine TMolecule_FindMOI
+
+
+
+!==============================================================!
+!  Subroutine TMolecule_ReadMOI                                !
+!==============================================================!
+
+  subroutine TMolecule_ReadMOI( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Read moments of inertia
+    this%MOI(:) = 0._RK
+    if( this%NDFRot > 0 ) then
+      call FileReadParameter( this%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
+      call FileReadParameter( this%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
+      if( this%NDFRot == 3 ) then
+        call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
+      end if
+    end if
+
+    ! Convert to derived units
+    do i = 1, 3
+      this%MOI(i) = this%MOI(i) * .001_RK / NAvogadro * Angstroem**2
+      this%MOI(i) = this%MOI(i) / UnitInertia
+    end do
+
+
+
+  end subroutine TMolecule_ReadMOI
+
+
+
+!==============================================================!
+!  Subroutine TMolecule_FindNDF                                !
+!==============================================================!
+
+  subroutine TMolecule_FindNDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    logical :: disoriented
+    integer :: i
+
+    ! Calculate number of rotation axes
+    if( this%NDFRot < 0 ) then
+      if( maxval( abs( this%MOI(:) ) ) > Zero ) then
+        if( abs( this%MOI(3) ) > Zero ) then
+          this%NDFRot = 3
+        else
+          this%NDFRot = 2
+          this%MOI(3) = 0._RK
+        end if
+      else
+        this%NDFRot = 0
+        this%MOI(:) = 0._RK
+      end if
+    end if
+
+    ! Check orientation of dipoles and quadrupoles
+    if( this%NDFRot < 3 ) then
+      disoriented = this%NDFRot < 2 .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+
+      do i = 1, this%NDipole
+        disoriented = disoriented .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
+      end do
+
+      do i = 1, this%NQuadrupole
+        disoriented = disoriented .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
+      end do
+
+      if( disoriented ) call Error( 'Must specify moments of inertia manually' )
+    end if
+
+    ! Calculate total number of degrees of freedom
+    this%NDF = 3 + this%NDFRot
+
+    ! Set logical flags according to the number of rotation axes
+    this%isElongated = this%NDFRot > 0
+
+  end subroutine TMolecule_FindNDF
+
+
 !==============================================================!
 !  Subroutine TMolecule_FindBondR                              !
 !==============================================================!
@@ -1918,13 +2235,14 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfBond)      :: Bond
-    integer, intent(in) :: j
+    integer, intent(in out) :: j
 
     ! Declare local variables
     integer:: SiteId1, SiteId2
     integer           :: i
     logical           :: Site1, Site2
     real(RK)          :: r1(3),r2(3)
+    real(RK)          :: RX, RY, RZ
     character(10)      ::str
 
     SiteId1 = Bond%SiteId1
@@ -2031,10 +2349,22 @@ contains
       call Error('Uncorrect sites for bond' // str)
     end if
 
-    if (Bond%UnitId1==Bond%UnitId2) then  !Michael Sch.: changed due to different reading scheme
-      call Error('Sites of the same unit can not be bonded')
-      write (str, '(i10)') j
-      call Error('Uncorrect sites for bond' // str)
+    if (Bond%UnitId1==Bond%UnitId2) then
+      this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)-1
+      this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)-1
+      Bond%SiteId1  = this%IdfBond(this%NBond)%SiteId1
+      Bond%SiteId2  = this%IdfBond(this%NBond)%SiteId2
+      Bond%UnitId1  = this%IdfBond(this%NBond)%UnitId1
+      Bond%UnitId2  = this%IdfBond(this%NBond)%UnitId2
+      Bond%ForConst = this%IdfBond(this%NBond)%ForConst
+      Bond%R0       = this%IdfBond(this%NBond)%R0
+      j = j - 1 ! the procedure of bond definition will be repeated for the same bond
+      this%NBond = this%NBond - 1
+    else
+      RX=r2(1)-r1(1)
+      RY=r2(2)-r1(2)
+      RZ=r2(3)-r1(3)
+      Bond%R0=dsqrt(RX**2+RY**2+RZ**2)
     end if
 
   end subroutine TMolecule_FindBondR
@@ -2052,13 +2382,16 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfAngle)     :: Angle
-    integer, intent(in) :: j
+    integer, intent(in out) :: j
 
     ! Declare local variables
     integer           :: i
     integer           :: SiteId1, SiteId2, SiteId3
     logical           :: Site1, Site2, Site3
     real(RK)          :: r1(3),r2(3),r3(3)
+    real(RK)          :: R1X, R1Y, R1Z, R1S
+    real(RK)          :: R2X, R2Y, R2Z, R2S
+    real(RK)          ::cosa, R1R2
     character(10)     ::str
 
     SiteId1 = Angle%SiteId1
@@ -2235,12 +2568,23 @@ contains
     end if
 
 
-    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then  !Michael Sch.: changed due to different reading scheme
-      call Error('At leas one site of a given angle potential has to be of another unit')
-      write (str, '(i10)') j
-      call Error('Uncorrect sites for angle' // str)
-
-    else
+    if (Angle%UnitId1==Angle%UnitId2 .and. Angle%UnitId2==Angle%UnitId3) then
+      this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
+      this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)-1
+      this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)-1
+      Angle%SiteId1  = this%IdfAngle(this%NAngle)%SiteId1
+      Angle%SiteId2  = this%IdfAngle(this%NAngle)%SiteId2
+      Angle%SiteId3  = this%IdfAngle(this%NAngle)%SiteId3
+      Angle%UnitId1  = this%IdfAngle(this%NAngle)%UnitId1
+      Angle%UnitId2  = this%IdfAngle(this%NAngle)%UnitId2
+      Angle%UnitId3  = this%IdfAngle(this%NAngle)%UnitId3
+      Angle%orientation1 = this%IdfAngle(this%NAngle)%orientation1
+      Angle%orientation2 = this%IdfAngle(this%NAngle)%orientation2
+      Angle%ForConst = this%IdfAngle(this%NAngle)%ForConst
+      Angle%Angle0       = this%IdfAngle(this%NAngle)%Angle0
+      j = j - 1 ! the procedure of Angle definition will be repeated for the same Angle
+      this%NAngle = this%NAngle - 1
+    else ! calculate value of this angle
       if (Angle%UnitId1==Angle%UnitId2) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       end if
@@ -2250,6 +2594,35 @@ contains
       if (Angle%UnitId1==Angle%UnitId3) then
         this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)-1
       end if
+      
+      if ( .not. Angle%orientation1 ) then
+        R1X=r1(1)-r2(1)
+        R1Y=r1(2)-r2(2)
+        R1Z=r1(3)-r2(3)
+      else
+        R1X=r1(1)
+        R1Y=r1(2)
+        R1Z=r1(3)
+      end if
+      if ( .not. Angle%orientation2 ) then
+        R2X=r3(1)-r2(1)
+        R2Y=r3(2)-r2(2)
+        R2Z=r3(3)-r2(3)
+      else
+        R2X=r3(1)
+        R2Y=r3(2)
+        R2Z=r3(3)
+      end if
+
+      R1S=R1X**2+R1Y**2+R1Z**2
+      R2S=R2X**2+R2Y**2+R2Z**2
+      R1R2=dsqrt(R1S*R2S)
+
+      cosa=(R1X*R2X+R1Y*R2Y+R1Z*R2Z)/R1R2
+      if ( cosa .gt. 1.0d0 ) cosa = 1.0d0
+      if ( cosa .lt. -1.0d0) cosa = -1.0d0
+
+      Angle%Angle0=dacos(cosa)
     end if
 
   end subroutine TMolecule_FindAngle
@@ -2266,7 +2639,7 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfDihedral)  :: Dihedral
-    integer, intent(in) :: j
+    integer, intent(in out) :: j
 
     ! Declare local variables
 

@@ -1,19 +1,29 @@
 This file should give you an overview over things not working properly or are restricted in usage.
 
 1. Not yet tested:
+   - all RDF routines!
+   - GE (Gibbs) Ensemble, since chemPot calculation was not yet verified (even for rigid molecules)
+
 
 2. Restricted to rigid molecules:
    - Calculation of transportproperties
+   - Calculation of the chemical potential through Widom or GradIns
+
 
 3. Known issues/bugs:
-   - bad sampling in MC, since only moves and rotate trial moves done...missing CBMC
-   - SVC gives a wrong value trunk/rigid version of ms2 yields different results....for pure liquids ~factor 2!
-   - GE + MD not working yet....dynamic of MD is troublesome. For a given configuration (MC without trial moves, MD without integrator) MD=MC!!!
-   - all cutoff corrections are formulated on a molecule/COM based....have to be changed to the unit/site based formulism that is now applied for ms2 with IDF!
-   - for OSMOP virialprofiling doesn't include the intramolecular forces!
+   - bad sampling in MC, especially for smaller molecules, since most of the moves/rotates are unit specific
+   - Ewald with MC results with high pressure (bug or bad model? yet to be verified)
+   - all routines using "mol2unit" are not working correctly
+   - mol2unit sets the unit orientation by multiplying the molecule orientation
+     with the initial unit orientation instead of the current one
+
 
 4. Not yet implemtend (coming soon, hopefully :-) ):
-   - QShake ...Shake done...some bug/error regarding rotational energy (conversion) when extending to QShake
-   - CBMC (configurational bias monte-carlo) for calculation of the chemical potential and/or better MC sampling
+   - QShake for constraining bonds to increase time step 
+     (by setting it back to equilibrium state in a few iterations)
+   - CBMC (configurational bias monte-carlo) for calculation of the chemical potential
+     (will also be replacing the current internal moves/rotates, instead moves/rotates of alternative configurations)
+
+
 
 Found a bug or having problems with the IDF version? Please contact Michael Schappals (michael.schappals(at)mv.uni-kl.de).
